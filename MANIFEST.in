@@ -1,0 +1,7 @@
+recursive-include html *
+prune html/epydoc-log.html
+include pdf/api.pdf
+include pdf/api.ps
+include examples/instrumentation/*.py
+include examples/debugging/*.py
+include examples/win32_api_wrappers/*.py
