@@ -226,9 +226,10 @@ class FileHandle (Handle):
         # TODO
         # use os.path and the Win32 API,
         # then compare the results of both
+        filename = pathname
         if '\\' in pathname:
             filename = pathname[pathname.rfind('\\')+1:]
-        elif '/' in baseName:
+        elif '/' in pathname:
             filename = pathname[pathname.rfind('/')+1:]
         return filename
 
@@ -2083,7 +2084,7 @@ class ProcessContainer (object):
             dwCreationFlags |= win32.DEBUG_PROCESS
         if bDebug and not bFollow:
             dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
-        processInformation = CreateProcess(NULL, lpCmdLine,
+        processInformation = win32.CreateProcess(win32.NULL, lpCmdLine,
                                              dwCreationFlags = dwCreationFlags)
         hProcess = ProcessHandle(processInformation.hProcess, bOwnership=True)
         hThread  = ThreadHandle (processInformation.hThread,  bOwnership=True)
@@ -2378,7 +2379,7 @@ class ProcessContainer (object):
         found = list()
         for aProcess in self.iter_processes():
             imagename = aProcess.get_filename()
-            if imagename.endswith(filename):
+            if imagename and imagename.endswith(filename):
                 found.append( (aProcess, imagename) )
         return found
 

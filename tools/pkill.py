@@ -41,12 +41,14 @@ from thread import exit
 
 def main(argv):
     script = os.path.basename(argv[0])
+    params = argv[1:]
 
     print "Process killer"
     print "by Mario Vilas (mvilas at gmail.com)"
     print
 
-    if len(argv) == 1:
+    if len(params) == 0 or '-h' in params or '--help' in params or \
+                                                     '/?' in params:
         print "Usage:"
         print "    %s <process ID or name> [process ID or name...]"
         print
@@ -63,7 +65,7 @@ def main(argv):
     # Each name is translated to an ID.
     # On error, the program stops before killing any process at all.
     pid_set = set()
-    for token in argv[1:]:
+    for token in params:
         try:
             pid = HexInput.integer(token)
         except ValueError:

@@ -37,7 +37,7 @@ import os
 import sys
 import struct
 
-from winappdbg. import Process, System, HexInput
+from winappdbg import Process, System, HexInput
 
 def main():
     print "Process memory writer"
@@ -86,8 +86,8 @@ def main():
     System.request_debug_privileges()
 
     p = Process(pid)
-    bytesWritten = p.write(address, data)
-    print "Written %d bytes to PID %d" % (bytesWritten, pid)
+    p.write(address, data)
+    print "Written %d bytes to PID %d" % (len(data), pid)
 
 if __name__ == '__main__':
     try:

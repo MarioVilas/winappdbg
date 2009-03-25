@@ -49,7 +49,8 @@ __all__ = [ 'EventFactory', 'EventHandler' ]
 
 import win32
 from breakpoint import ApiHook
-from system import ProcessHandle, ThreadHandle, FileHandle, Module
+from system import ProcessHandle, ThreadHandle, FileHandle
+from system import Module, Thread, Process
 
 import ctypes
 
@@ -447,7 +448,7 @@ class CreateProcessEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hProcess = self.raw.u.CreateProcessInfo.hThread
+        hThread = self.raw.u.CreateProcessInfo.hThread
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -959,6 +960,8 @@ class EventHandler (object):
         @param event: Event object.
         """
 
+        print event.get_event_name()
+
         # First call the internal handlers, then the user-defined handlers.
         eventCode   = event.get_code()
         eventName   = self.__eventConstant.get(eventCode, 'unknown_event')
@@ -980,8 +983,10 @@ class EventHandler (object):
         @param handler: User-defined event handler for this event.
         """
 
+        # By default, exceptions are handled by the debugee.
+        event.debug.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+
         # First call the internal handlers, then the user-defined handlers.
-        event.debug.continueStatus = DBG_EXCEPTION_NOT_HANDLED
         code        = event.get_exception_code()
         name        = self.__exceptionConstant.get(code, 'unknown_exception')
         handler     = getattr(self, name, handler)
@@ -1048,18 +1053,19 @@ class EventHandler (object):
         bCallHandler = aProcess.notify_load_dll(event)
 
         # Hook the requested API calls (in self.apiHooks).
-        aModule = event.get_module()
-        fileName = aModule.get_filename()
-        if fileName != aModule.unknown:
-            lib_name = fileName.lower()
-            if '\\' in lib_name:
-                lib_name = lib_name[lib_name.rfind('\\')+1:]
-            elif '/' in lib_name:
-                lib_name = lib_name[lib_name.rfind('/')+1:]
-            for hook_lib, hook_api_list in self.apiHooks.iteritems():
-                if hook_lib == lib_name:
-                    for hook_api_stub in hook_api_list:
-                        hook_api_stub.hook(event.debug, event.get_pid(),
+        if self.apiHooks:
+            aModule = event.get_module()
+            fileName = aModule.get_filename()
+            if fileName != aModule.unknown:
+                lib_name = fileName.lower()
+                if '\\' in lib_name:
+                    lib_name = lib_name[lib_name.rfind('\\')+1:]
+                elif '/' in lib_name:
+                    lib_name = lib_name[lib_name.rfind('/')+1:]
+                for hook_lib, hook_api_list in self.apiHooks.iteritems():
+                    if hook_lib == lib_name:
+                        for hook_api_stub in hook_api_list:
+                            hook_api_stub.hook(event.debug, event.get_pid(),
                                                                       lib_name)
 
         # Call the user defined handler.

@@ -38,23 +38,35 @@ from winappdbg import System
 import optparse
 
 def parse_cmdline(argv):
-    'Parse the command line.'
+    'Parse the command line options.'
     parser = optparse.OptionParser()
     parser.add_option("-f", "--full-path", action="store_true", default=False,
                       help="show full pathnames")
+    parser.add_option("-s", "--search", metavar="STRING",
+                      help="optional search string")
     (options, argv) = parser.parse_args(argv)
     if len(argv) > 1:
         parser.error("unexpected parameter: %s" % argv[1])
     return (options, argv)
 
 def main(argv):
+    'Main function.'
+
+    # Print the banner.
     print "Process enumerator"
     print "by Mario Vilas (mvilas at gmail.com)"
     print
 
+    # Parse the command line options.
     (options, argv)  = parse_cmdline(argv)
     showFilenameOnly = not options.full_path
+    searchString     = options.search
 
+    # Windows filenames are case insensitive.
+    if searchString:
+        searchString = searchString.lower()
+
+    # Take a snapshot of the running processes.
     s = System()
     s.request_debug_privileges()
     s.scan_processes()
@@ -62,15 +74,24 @@ def main(argv):
     pid_list = s.get_process_ids()
     pid_list.sort()
 
+    # Prepare the format string for the output.
     w = len(str(pid_list[-1]))
-##    print ("%%%ds Filename\n" % w) % "PID"
     fmt = "%%%dd %%s" % w
+
+##    # Print the output table header
+##    print ("%%%ds Filename\n" % w) % "PID"
+
+    # Enumerate the processes in the snapshot.
     for pid in pid_list:
         p = s.get_process(pid)
+
+        # Special cases: PIDs 0 and 4.
         if pid == 0:
             fileName = "System process"
         elif pid == 4:
             fileName = "System"
+
+        # Get the process filename (or pathname).
         else:
             try:
                 fileName = p.get_filename()
@@ -79,7 +100,13 @@ def main(argv):
                     fileName = fileName[fileName.rfind('\\')+1:]
             except WindowsError:
 ##                raise   # XXX
-                fileName = p.unknown
+                fileName = '<unknown>'
+
+        # Filter the output with the search string.
+        if searchString and searchString not in fileName.lower():
+            continue
+
+        # Print the process PID and filename (or pathname).
         print fmt % ( pid, fileName )
 
 if __name__ == '__main__':
