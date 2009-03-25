@@ -58,7 +58,7 @@ __all__ =   [
                 'Process',
                 'System',
                 
-                # from textout import *
+                # from textio import *
                 'DebugLog',
                 'HexDump',
                 'HexInput',
@@ -71,5 +71,5 @@ __all__ =   [
 # Import all public symbols
 from crash import *
 from debug import *
-from textout import *
+from textio import *
 import win32

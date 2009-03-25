@@ -1006,7 +1006,7 @@ class MemoryOperations (object):
         
         @raise WindowsError: On error an exception is raised.
         """
-        data = self.read(lpBaseAddress, sizeof(stype))
+        data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
         return ptr.contents
@@ -3528,5 +3528,5 @@ class System (ProcessContainer):
         msr.Address = 0x1D9
         msr.Data    = 2
         return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr,
-                                          sizeof(win32.SYSDBG_MSR),
+                                          ctypes.sizeof(win32.SYSDBG_MSR),
                                           win32.NULL, win32.NULL, win32.NULL)

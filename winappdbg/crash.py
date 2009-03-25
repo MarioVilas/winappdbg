@@ -36,7 +36,7 @@ __all__ =   [
                 'CrashContainer',
             ]
 
-from textout import HexDump, CrashDump
+from textio import HexDump, CrashDump
 import win32
 
 import time

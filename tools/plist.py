@@ -35,20 +35,25 @@
 
 from winappdbg import System
 
+import optparse
+
+def parse_cmdline(argv):
+    'Parse the command line.'
+    parser = optparse.OptionParser()
+    parser.add_option("-f", "--full-path", action="store_true", default=False,
+                      help="show full pathnames")
+    (options, argv) = parser.parse_args(argv)
+    if len(argv) > 1:
+        parser.error("unexpected parameter: %s" % argv[1])
+    return (options, argv)
+
 def main(argv):
     print "Process enumerator"
     print "by Mario Vilas (mvilas at gmail.com)"
     print
-    if '-h' in argv or '/?' in argv:
-        import os
-        script = os.path.basename(argv[0])
-        print "  %s [options]"
-        print
-        print "Options:"
-        print "    -f         Show full pathnames"
-        print "    -h         Show this help message"
-        return
-    showFilenameOnly = '-f' not in argv
+
+    (options, argv)  = parse_cmdline(argv)
+    showFilenameOnly = not options.full_path
 
     s = System()
     s.request_debug_privileges()
