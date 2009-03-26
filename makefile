@@ -9,9 +9,10 @@
 
 
 # Epydoc command line options
-EPYDOC_OPT=--verbose --simple-term --fail-on-docstring-warning --docformat epytext --name "Windows application debugging engine" --url "http://sourceforge.net/projects/winappdbg/"
+EPYDOC_OPT=--verbose --simple-term --fail-on-docstring-warning --docformat epytext --name "Windows application debugging engine" --url "http://sourceforge.net/projects/winappdbg/" winappdbg
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
+EPYDOC_TEST_OPT=--check
 EPYDOC_OUTPUT_OPT=--show-private --no-sourcecode --no-imports --inheritance=included --graph all
 
 # Source package options
@@ -39,13 +40,18 @@ install:
 	python setup.py install
 
 
+# Test the documentation
+#doctest:
+#	epydoc $(EPYDOC_TEST_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+
+
 # Generate the HTML documentation only
 html:
-	epydoc $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT) winappdbg
+	epydoc $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 # Generate the PDF documentation only
 pdf:
-	epydoc $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT) winappdbg
+	epydoc $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 
 # Build the source distribution package
