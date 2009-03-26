@@ -35,6 +35,7 @@ __all__ =   [
             ]
 
 from winappdbg import *
+from winappdbg.system import FileHandle
 
 import os
 import re
@@ -51,31 +52,31 @@ class LoggingEventHandler(EventHandler):
     ' It also remembers crashes, bugs or otherwise interesting events.'
     )
 
-    # API hooks to track down heap operations.
-    apiHooks = {
-        
-        'kernel32.dll' : [
-
-            # Function name     Parameter count
-            ('HeapAlloc',       3),
-            ('HeapReAlloc',     4),
-            ('HeapFree',        3),
-            ('LocalAlloc',      2),
-            ('LocalReAlloc',    3),
-            ('LocalFree',       1),
-            ('GlobalAlloc',     2),
-            ('GlobalReAlloc',   3),
-            ('GlobalFree',      1),
-        ],
-        
-        'msvcrt.dll' : [
-
-            # Function name     Parameter count
-            ('malloc',          1),
-            ('free',            1),
-        ],
-        
-    }
+##    # API hooks to track down heap operations.
+##    apiHooks = {
+##
+##        'kernel32.dll' : [
+##
+##            # Function name     Parameter count
+##            ('HeapAlloc',       3),
+##            ('HeapReAlloc',     4),
+##            ('HeapFree',        3),
+##            ('LocalAlloc',      2),
+##            ('LocalReAlloc',    3),
+##            ('LocalFree',       1),
+##            ('GlobalAlloc',     2),
+##            ('GlobalReAlloc',   3),
+##            ('GlobalFree',      1),
+##        ],
+##
+##        'msvcrt.dll' : [
+##
+##            # Function name     Parameter count
+##            ('malloc',          1),
+##            ('free',            1),
+##        ],
+##
+##    }
 
     # Regular expression to extract 8 digit hexadecimal numbers.
     re_hexa = re.compile('[0-9A-F]' * 8, re.I)
@@ -98,9 +99,9 @@ class LoggingEventHandler(EventHandler):
         if not self.stalk_at:
             self.stalk_at = ( list(), list() )
 
-        # When not tracking down heap operations, remove the API hooks.
-        if not options.heap:
-            self.apiHooks = dict()
+##        # When not tracking down heap operations, remove the API hooks.
+##        if not options.heap:
+##            self.apiHooks = dict()
 
         # Call the base class constructor.
         super(LoggingEventHandler, self).__init__()
@@ -167,36 +168,48 @@ class LoggingEventHandler(EventHandler):
         aModule     = event.get_module()
         lpBaseOfDll = aModule.get_base()
         fileName    = aModule.get_filename()
-        baseName    = fileName[ fileName.rfind('\\') + 1: ]     # XXX
-        try:
 
-            # Set user-defined breakpoints for this process.
-            event.debug.break_at_symbol_list(dwProcessId, self.break_at[1],
-                                               only_for_this_module = baseName)
-            event.debug.stalk_at_symbol_list(dwProcessId, self.stalk_at[1],
-                                               only_for_this_module = baseName)
+        # The filename could be determined.
+        if fileName:
+            baseName = FileHandle.pathname_to_filename(fileName)
 
-        finally:
+            try:
+
+                # Set user-defined breakpoints for this process.
+                event.debug.break_at_symbol_list(dwProcessId, self.break_at[1],
+                                               only_for_this_module = baseName)
+                event.debug.stalk_at_symbol_list(dwProcessId, self.stalk_at[1],
+                                               only_for_this_module = baseName)
+            finally:
+
+                # Log the event to standard output.
+                if self.verbose:
+                    msg = "Loaded %s at 0x%.8x" % (fileName, lpBaseOfDll)
+                    self.__log(event, msg)
+
+        # The filename could NOT be determined.
+        else:
 
             # Log the event to standard output.
             if self.verbose:
-                self.__log(event, "Loaded %s at 0x%.8x" % (fileName, lpBaseOfDll))
+                msg = "Loaded a new module at 0x%.8x" % lpBaseOfDll
+                self.__log(event, msg)
 
     # Handle the exit process events.
     def exit_process(self, event):
 
         # Log the event to standard output.
         if self.verbose:
-            dwExitCode = event.get_exit_code()
-            self.__log(event, "Process terminated, exit code 0x%x" % dwExitCode)
+            msg = "Process terminated, exit code 0x%x" % event.get_exit_code()
+            self.__log(event, msg)
 
     # Handle the exit thread events.
     def exit_thread(self, event):
 
         # Log the event to standard output.
         if self.verbose:
-            dwExitCode = event.get_exit_code()
-            self.__log(event, "Thread terminated, exit code 0x%x" % dwExitCode)
+            msg = "Thread terminated, exit code 0x%x" % event.get_exit_code()
+            self.__log(event, msg)
 
     # Handle the unload dll events.
     def unload_dll(self, event):
@@ -206,6 +219,8 @@ class LoggingEventHandler(EventHandler):
             aModule     = event.get_module()
             lpBaseOfDll = aModule.get_base()
             fileName    = aModule.get_filename()
+            if not fileName:
+                fileName = 'a module'
             self.__log(event, "Unloaded %s at %.8x" % (fileName, lpBaseOfDll))
 
     # Handle the debug output string events.
@@ -302,73 +317,73 @@ class LoggingEventHandler(EventHandler):
 
 #-- API calls -----------------------------------------------------------------
 
-    # Track down heap memory freeing.
-
-    def __remember_free(self, event, pc, ptr):
-##        msg = "Code at %.08x freed heap block at %.08x" % (pc, ptr)
-##        self.__log(event, msg)
-        pid = event.get_pid()
-        if self.processHeapLocation.has_key(pid):
-            temp = self.processHeapLocation[pid]
-            if temp.has_key(ptr):
-                del temp[ptr]
-            if not temp:
-                del self.processHeapLocation[pid]
-
-    def pre_HeapFree(self, event, ra, hHeap, dwFlags, lpMem):
-        self.__remember_free(event, ra, lpMem)
-
-    def pre_LocalFree(self, event, ra, hMem):
-        self.__remember_free(event, ra, hMem)
-
-    def pre_GlobalFree(self, event, ra, hMem):
-        self.__remember_free(event, ra, hMem)
-
-    def pre_free(self, event, ra, ptr):
-        self.__remember_free(event, ra, ptr)
-
-    # Track down heap memory allocations.
-
-    def __remember_malloc(self, event, ptr):
-        pid = event.get_pid()
-        pc  = event.get_thread().get_pc()
-##        msg = "Code at %.08x allocated heap block at %.08x" % (pc, ptr)
-##        self.__log(event, msg)
-        if not self.processHeapLocation.has_key(pid):
-            self.processHeapLocation[pid] = dict()
-        self.processHeapLocation[pid][ptr] = pc
-
-    def post_HeapAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    def post_LocalAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    def post_GlobalAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    def post_malloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    # Track down heap memory re-allocations.
-
-    def pre_HeapReAlloc(self, event, ra, hHeap, dwFlags, lpMem, dwBytes):
-        self.__remember_free(event, lpMem)
-
-    def pre_LocalReAlloc(self, event, ra, hMem, dwBytes, uFlags):
-        self.__remember_free(event, hMem)
-
-    def pre_GlobalReAlloc(self, event, ra, hMem, dwBytes, uFlags):
-        self.__remember_free(event, hMem)
-
-    def post_HeapReAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    def post_LocalReAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
-
-    def post_GlobalReAlloc(self, event, retval):
-        self.__remember_malloc(event, retval)
+##    # Track down heap memory freeing.
+##
+##    def __remember_free(self, event, pc, ptr):
+####        msg = "Code at %.08x freed heap block at %.08x" % (pc, ptr)
+####        self.__log(event, msg)
+##        pid = event.get_pid()
+##        if self.processHeapLocation.has_key(pid):
+##            temp = self.processHeapLocation[pid]
+##            if temp.has_key(ptr):
+##                del temp[ptr]
+##            if not temp:
+##                del self.processHeapLocation[pid]
+##
+##    def pre_HeapFree(self, event, ra, hHeap, dwFlags, lpMem):
+##        self.__remember_free(event, ra, lpMem)
+##
+##    def pre_LocalFree(self, event, ra, hMem):
+##        self.__remember_free(event, ra, hMem)
+##
+##    def pre_GlobalFree(self, event, ra, hMem):
+##        self.__remember_free(event, ra, hMem)
+##
+##    def pre_free(self, event, ra, ptr):
+##        self.__remember_free(event, ra, ptr)
+##
+##    # Track down heap memory allocations.
+##
+##    def __remember_malloc(self, event, ptr):
+##        pid = event.get_pid()
+##        pc  = event.get_thread().get_pc()
+####        msg = "Code at %.08x allocated heap block at %.08x" % (pc, ptr)
+####        self.__log(event, msg)
+##        if not self.processHeapLocation.has_key(pid):
+##            self.processHeapLocation[pid] = dict()
+##        self.processHeapLocation[pid][ptr] = pc
+##
+##    def post_HeapAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    def post_LocalAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    def post_GlobalAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    def post_malloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    # Track down heap memory re-allocations.
+##
+##    def pre_HeapReAlloc(self, event, ra, hHeap, dwFlags, lpMem, dwBytes):
+##        self.__remember_free(event, lpMem)
+##
+##    def pre_LocalReAlloc(self, event, ra, hMem, dwBytes, uFlags):
+##        self.__remember_free(event, hMem)
+##
+##    def pre_GlobalReAlloc(self, event, ra, hMem, dwBytes, uFlags):
+##        self.__remember_free(event, hMem)
+##
+##    def post_HeapReAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    def post_LocalReAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
+##
+##    def post_GlobalReAlloc(self, event, retval):
+##        self.__remember_malloc(event, retval)
 
 #==============================================================================
 
@@ -555,7 +570,7 @@ def main(args):
 
     # Main debugging loop
     try:
-        while debug.system.get_process_count():
+        while debug.get_debugee_count() > 0:
             try:
                 event = debug.wait(1000)
             except WindowsError, e:

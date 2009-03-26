@@ -368,7 +368,7 @@ class CreateThreadEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hProcess = self.raw.u.CreateThread.hThread
+        hThread = self.raw.u.CreateThread.hThread
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -960,8 +960,6 @@ class EventHandler (object):
         @param event: Event object.
         """
 
-        print event.get_event_name()
-
         # First call the internal handlers, then the user-defined handlers.
         eventCode   = event.get_code()
         eventName   = self.__eventConstant.get(eventCode, 'unknown_event')
@@ -1032,8 +1030,7 @@ class EventHandler (object):
         @type  handler: function
         @param handler: User-defined event handler for this event.
         """
-        aProcess = event.get_process()
-        if aProcess.notify_create_thread(event):
+        if event.get_process().notify_create_thread(event):
             handler(event)
 
     def __load_dll(self, event, handler):
@@ -1049,12 +1046,11 @@ class EventHandler (object):
         """
 
         # Remember new modules loaded by the debugee.
-        aProcess = event.get_process()
-        bCallHandler = aProcess.notify_load_dll(event)
+        bCallHandler = event.get_process().notify_load_dll(event)
 
         # Hook the requested API calls (in self.apiHooks).
         if self.apiHooks:
-            aModule = event.get_module()
+            aModule  = event.get_module()
             fileName = aModule.get_filename()
             if fileName != aModule.unknown:
                 lib_name = fileName.lower()
@@ -1085,7 +1081,6 @@ class EventHandler (object):
         try:
             handler(event)
         finally:
-            event.debug.debugeeCount -= 1
             event.debug.notify_exit_process(event)
             event.debug.system.notify_exit_process(event)
 
@@ -1103,7 +1098,7 @@ class EventHandler (object):
             handler(event)
         finally:
             event.debug.notify_exit_thread(event)
-            event.get_process().notify_exit_thread(self, event)
+            event.get_process().notify_exit_thread(event)
 
     def __unload_dll(self, event, handler):
         """

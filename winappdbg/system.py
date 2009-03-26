@@ -238,6 +238,11 @@ class FileHandle (Handle):
 def dllbaseparam(f):
     """
     Decorator to perform type checking on the C{lpBaseOfDll} parameter.
+    
+    @warning: This is only useful for debugging the debugger itself,
+        otherwise the code should be commented out.
+    
+    @see: U{http://www.canonical.org/~kragen/isinstance/}
     """
     return f
 ##    def d(self, lpBaseOfDll, *argv, **argd):
@@ -378,10 +383,11 @@ class ModuleContainer (object):
         """
         fileName = FileHandle.pathname_to_filename(fileName)
         for lib in self.iter_modules():
-            baseName = lib.fileName
-            baseName = FileHandle.pathname_to_filename(baseName)
-            if baseName == fileName:
-                return lib
+            pathName = lib.get_filename()
+            if pathName:
+                baseName = FileHandle.pathname_to_filename(pathName)
+                if baseName == fileName:
+                    return lib
         return None
 
     def get_module_from_address(self, address):
@@ -520,6 +526,7 @@ class ModuleContainer (object):
         @param event: Create process event.
         """
         self.__add_loaded_module(event)
+        return True
 
     def notify_load_dll(self, event):
         """
@@ -529,6 +536,7 @@ class ModuleContainer (object):
         @param event: Load DLL event.
         """
         self.__add_loaded_module(event)
+        return True
 
     def notify_unload_dll(self, event):
         """
@@ -540,12 +548,18 @@ class ModuleContainer (object):
         lpBaseOfDll = event.get_module_base()
         if self.has_module(lpBaseOfDll):
             self.__del_module(lpBaseOfDll)
+        return True
 
 #==============================================================================
 
 def threadidparam(f):
     """
     Decorator to perform type checking on the C{dwThreadId} parameter.
+
+    @warning: This is only useful for debugging the debugger itself,
+        otherwise the code should be commented out.
+
+    @see: U{http://www.canonical.org/~kragen/isinstance/}
     """
     return f
 ##    def d(self, dwThreadId, *argv, **argd):
@@ -829,6 +843,7 @@ class ThreadContainer (object):
         @param event: Create process event.
         """
         self.__add_first_thread(event)
+        return True
 
     def notify_create_thread(self, event):
         """
@@ -838,6 +853,7 @@ class ThreadContainer (object):
         @param event: Create thread event.
         """
         self.__add_first_thread(event)
+        return True
 
     def notify_exit_thread(self, event):
         """
@@ -849,6 +865,7 @@ class ThreadContainer (object):
         dwThreadId = event.get_tid()
         if self.has_thread(dwThreadId):
             self.__del_thread(dwThreadId)
+        return True
 
 #==============================================================================
 
@@ -1873,6 +1890,11 @@ class ProcessDebugOperations (object):
 def processidparam(f):
     """
     Decorator to perform type checking on the C{dwProcessId} parameter.
+
+    @warning: This is only useful for debugging the debugger itself,
+        otherwise the code should be commented out.
+
+    @see: U{http://www.canonical.org/~kragen/isinstance/}
     """
     return f
 ##    def d(self, dwProcessId, *argv, **argd):
@@ -2409,10 +2431,11 @@ class ProcessContainer (object):
             self.__add_process(aProcess)
             aProcess.fileName = event.get_filename()
         aProcess.notify_create_process(event)   # pass it to the process
+        return True
 
     def notify_exit_process(self, event):
         """
-        Notify the L{System} object of an exit process event.
+        Notify the termination of a process.
         
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
@@ -2420,6 +2443,7 @@ class ProcessContainer (object):
         dwProcessId = event.get_pid()
         if self.has_process(dwProcessId):
             self.__del_process(dwProcessId)
+        return True
 
 #==============================================================================
 
@@ -3433,8 +3457,10 @@ class Process (MemoryOperations, ProcessDebugOperations, \
         @param event: Create process event.
         """
         # Do not use super() here.
-        ThreadContainer.notify_create_process(self, event)
-        ModuleContainer.notify_create_process(self, event)
+        bCallHandler = ThreadContainer.notify_create_process(self, event)
+        bCallHandler = bCallHandler and \
+                             ModuleContainer.notify_create_process(self, event)
+        return bCallHandler
 
 #==============================================================================
 

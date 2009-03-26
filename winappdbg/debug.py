@@ -53,7 +53,7 @@ __all__ =   [
 import win32
 from system import System, Process, Thread, Module, processidparam
 from breakpoint import BreakpointContainer
-from event import EventHandler, EventFactory
+from event import EventHandler, EventFactory, ExitProcessEvent
 
 import ctypes
 ##import traceback
@@ -70,9 +70,6 @@ class Debug (BreakpointContainer):
     @ivar system: A System snapshot that is automatically updated for
         processes being debugged. Processes not being debugged in this snapshot
         may be outdated.
-    
-    @type debugeeCount: int
-    @ivar debugeeCount: Number of processes currently being debugged.
     """
 
     def __init__(self, eventHandler = None, bKillOnExit = False):
@@ -80,7 +77,8 @@ class Debug (BreakpointContainer):
         Debugger object.
         
         @type  eventHandler: L{EventHandler}
-        @param eventHandler: (Optional) Custom event handler object.
+        @param eventHandler:
+            (Optional, recommended) Custom event handler object.
         
         @type    bKillOnExit: bool
         @keyword bKillOnExit: (Optional) Global kill on exit mode.
@@ -94,10 +92,23 @@ class Debug (BreakpointContainer):
         if eventHandler is None:
             eventHandler = EventHandler()
 
-        self.system             = System()
-        self.__eventHandler     = eventHandler
-        self.__bKillOnExit      = bKillOnExit
-        self.debugeeCount       = 0
+        # Using isinstance() is quite nasty as it breaks one of Python's design
+        # premises, by implementing explicit type checking instead of interface
+        # compatibility.
+        #
+        # However, in this case we need the particular implementation of the
+        # EventHandler base class, not just the interface if the class (which,
+        # from the Debug object's point of view, would only require the object
+        # to be executable).
+        #
+        elif not isinstance(eventHandler, EventHandler):
+            raise TypeError, "Invalid event handler object"
+
+        self.system                         = System()
+        self.__eventHandler                 = eventHandler
+        self.__bKillOnExit                  = bKillOnExit
+        self.__debugeeCount                 = 0
+        self.__manuallyStartedProcessesSet  = set()
 
 ##        self.system.request_debug_privileges(bIgnoreExceptions = True)
         self.system.request_debug_privileges()
@@ -130,7 +141,7 @@ class Debug (BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         DebugActiveProcess(dwProcessId)
-        self.debugeeCount += 1
+        self.__manuallyStartedProcess.add(dwProcessId)
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -181,7 +192,7 @@ class Debug (BreakpointContainer):
 ##            print
         try:
             DebugActiveProcessStop(dwProcessId)
-            self.debugeeCount -= 1
+            self.__debugeeCount -= 1
         except Exception:
              if not bIgnoreExceptions:
                 raise
@@ -247,7 +258,7 @@ class Debug (BreakpointContainer):
             bSuspended  = bSuspended
         )
 
-        self.debugeeCount += 1
+        self.__manuallyStartedProcess.add(dwProcessId)
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -305,7 +316,15 @@ class Debug (BreakpointContainer):
         
         @raise WindowsError: Raises an exception on error.
         """
-        event.get_process().flush_instruction_cache()
+        
+        # If the process is still alive, flush the instruction cache.
+        if not isinstance(event, ExitProcessEvent):
+            try:
+                event.get_process().flush_instruction_cache()
+            except WindowsError:
+                pass
+        
+        # Continue execution of the debugee.
         dwProcessId      = event.get_pid()
         dwThreadId       = event.get_tid()
         dwContinueStatus = event.continueStatus
@@ -327,7 +346,7 @@ class Debug (BreakpointContainer):
         
         @raise WindowsError: Raises an exception on error.
         """
-        while self.debugeeCount > 0:
+        while self.get_debugee_count() > 0:
             try:
                 event = self.wait(dwMilliseconds)
             except WindowsError, e:
@@ -343,8 +362,12 @@ class Debug (BreakpointContainer):
 ##                print
             self.cont(event)
 
-##    def __bool__(self):
-##        return self.debugeeCount > 0
+    def get_debugee_count(self):
+        """
+        @rtype:  int
+        @return: Number of processes being debugged.
+        """
+        return self.__debugeeCount
 
 #------------------------------------------------------------------------------
 
@@ -359,3 +382,27 @@ class Debug (BreakpointContainer):
         self.erase_all_breakpoints()
         self.detach_from_all()
         self.system.clear()
+
+#------------------------------------------------------------------------------
+
+    def notify_create_process(self, event):
+        """
+        Notify the creation of a new process.
+
+        @type  event: L{ExitProcessEvent}
+        @param event: Exit process event.
+        """
+        
+        self.__debugeeCount += 1
+        return True
+
+    def notify_exit_process(self, event):
+        """
+        Notify the termination of a process.
+
+        @type  event: L{ExitProcessEvent}
+        @param event: Exit process event.
+        """
+        bCallHandler = BreakpointContainer.notify_exit_process(self, event)
+        self.__debugeeCount -= 1
+        return bCallHandler

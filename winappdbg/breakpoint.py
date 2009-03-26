@@ -2555,6 +2555,7 @@ class BreakpointContainer (object):
             del self.__runningBP[tid]
         if self.__hardwareBP.has_key(tid):
             del self.__hardwareBP[tid]
+        return True
 
     def notify_exit_process(self, event):
         """
@@ -2570,6 +2571,7 @@ class BreakpointContainer (object):
         for (bp_pid, bp_address) in self.__pageBP.keys():
             if bp_pid == pid:
                 del self.__pageBP[(bp_pid, bp_address)]
+        return True
 
 #------------------------------------------------------------------------------
 
