@@ -1,5 +1,5 @@
 # Example #8
-# http://code.google.com/p/python-winappdbg/wiki/Instrumentation#Example_#8:_print_a_thread&#x27;s_context
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#8:_print_a_thread&#x27;s_context
 
 from winappdbg import Thread, CrashDump, System
 

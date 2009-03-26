@@ -1,5 +1,5 @@
 # Example #3
-# http://code.google.com/p/python-winappdbg/wiki/Win32APIWrappers#Example_#3:_enumerating_heap_blocks_using_the_Toolhelp_library
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example_#3:_enumerating_heap_blocks_using_the_Toolhelp_library
 
 from winappdbg.win32 import *
 

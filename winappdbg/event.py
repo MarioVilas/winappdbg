@@ -30,7 +30,7 @@
 """
 Event handling library.
 
-@see: U{http://code.google.com/p/python-winappdbg/wiki/Debugging}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
 @group Event objects:
     Event,
@@ -895,11 +895,13 @@ class EventHandler (object):
             }
     """
 
+#------------------------------------------------------------------------------
+
     # Dispatch mechanism.
 
-    # Maps event code constants to handler method names.
+    # Map of event code constants to the names of the user-defined methods.
     # Unknown codes go to 'unknown_event'.
-    __eventConstant = {
+    __eventCallbackName = {
         win32.EXCEPTION_DEBUG_EVENT       : 'exception',              # 1
         win32.CREATE_THREAD_DEBUG_EVENT   : 'create_thread',          # 2
         win32.CREATE_PROCESS_DEBUG_EVENT  : 'create_process',         # 3
@@ -911,9 +913,9 @@ class EventHandler (object):
         win32.RIP_EVENT                   : 'rip',                    # 9
     }
 
-    # Maps exception code constants to handler method names.
+    # Map of exception code constants to the names of the user-defined methods.
     # Unknown codes go to 'unknown_exception'.
-    __exceptionConstant = {
+    __exceptionCallbackName = {
         win32.EXCEPTION_ACCESS_VIOLATION          : 'access_violation',
         win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED     : 'array_bounds_exceeded',
         win32.EXCEPTION_BREAKPOINT                : 'breakpoint',
@@ -946,11 +948,29 @@ class EventHandler (object):
     apiHooks = {}
 
     def __init__(self):
-        # Initialize the API hooks.
+        # Convert the tuples into instances of the ApiHook class.
+        # A new dictionary must be instanced, otherwise we could also be
+        #  affecting all other instances of the EventHandler.
         new_apiHooks = dict()
         for lib, hooks in self.apiHooks.iteritems():
             new_apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
         self.apiHooks = new_apiHooks
+
+    def __setApiHooksForDll(self, event):
+        """
+        Hook the requested API calls (in self.apiHooks).
+        
+        This method must be called whenever a DLL is loaded.
+        """
+        if self.apiHooks:
+            fileName = event.get_module().get_filename()
+            if fileName:
+                lib_name = FileHandle.pathname_to_filename(fileName).lower()
+                for hook_lib, hook_api_list in self.apiHooks.iteritems():
+                    if hook_lib == lib_name:
+                        for hook_api_stub in hook_api_list:
+                            hook_api_stub.hook(event.debug, event.get_pid(),
+                                                                      lib_name)
 
     def __call__(self, event):
         """
@@ -959,278 +979,164 @@ class EventHandler (object):
         @type  event: L{Event}
         @param event: Event object.
         """
+        eventCode = event.get_code()
 
-        # First call the internal handlers, then the user-defined handlers.
-        eventCode   = event.get_code()
-        eventName   = self.__eventConstant.get(eventCode, 'unknown_event')
-        handler     = getattr(self, eventName, self.event)
-        internal    = getattr(self, '_EventHandler__' + eventName, None)
-        if internal is not None:
-            internal(event, handler)
-        else:
-            handler(event)
+        # Try to find an override for the event type.
+        # If not found use the generic "event" method.
+        methodName = self.__eventCallbackName.get(eventCode, 'unknown_event')
+        method = getattr(self, methodName, self.event)
 
-    def __exception(self, event, handler):
-        """
-        Dispatch exception events.
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Exception event object.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
+        # If it's an exception, try to find an override for the exception type.
+        # If not found use the method from the previous step.
+        if eventCode == win32.EXCEPTION_DEBUG_EVENT:
+            methodName = self.__exceptionCallbackName.get(
+                                event.get_exception_code(),
+                                'unknown_exception'
+                                )
+            method = getattr(self, methodName, method)
 
-        # By default, exceptions are handled by the debugee.
-        event.debug.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        # If it's a load dll event, set the requested API hooks.
+        elif eventCode == win32.LOAD_DLL_DEBUG_EVENT:
+            self.__setApiHooksForDll(event)
 
-        # First call the internal handlers, then the user-defined handlers.
-        code        = event.get_exception_code()
-        name        = self.__exceptionConstant.get(code, 'unknown_exception')
-        handler     = getattr(self, name, handler)
-        internal    = getattr(self, '_EventHandler__' + name, None)
-        if internal is not None:
-            internal(event, handler)
-        else:
-            handler(event)
+        # Call the callback method found.
+        return method(event)
 
     def event(self, event):
         """
-        Handler for events not handled by any user-defined method.
-        
+        Handler for events not handled by any other defined method.
+
         @type  event: L{Event}
         @param event: Event object.
         """
         pass
 
-#------------------------------------------------------------------------------
+#==============================================================================
 
-    # Internally handled events
+class EventDispatcher (object):
+    """
+    Implements debug event dispatching capabilities.
+    """
 
-    def __create_process(self, event, handler):
-        """
-        Remember new processes spawned by the debugee.
-        
-        @type  event: L{CreateProcessEvent}
-        @param event: Create process event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        if event.debug.system.notify_create_process(event):
-            handler(event)
+    # Maps event code constants to the names of the pre-notify routines.
+    # These routines are called BEFORE the user-defined handlers.
+    # Unknown codes are ignored.
+    __preEventNotifyCallbackName = {
+        win32.CREATE_THREAD_DEBUG_EVENT   : 'notify_create_thread',
+        win32.CREATE_PROCESS_DEBUG_EVENT  : 'notify_create_process',
+        win32.LOAD_DLL_DEBUG_EVENT        : 'notify_load_dll',
+    }
 
-    def __create_thread(self, event, handler):
-        """
-        Remember new threads spawned by the debugee.
-        
-        @type  event: L{CreateThreadEvent}
-        @param event: Create thread event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        if event.get_process().notify_create_thread(event):
-            handler(event)
+    # Maps event code constants to the names of the post-notify routines.
+    # These routines are called AFTER the user-defined handlers.
+    # Unknown codes are ignored.
+    __postEventNotifyCallbackName = {
+        win32.EXIT_THREAD_DEBUG_EVENT     : 'notify_exit_thread',
+        win32.EXIT_PROCESS_DEBUG_EVENT    : 'notify_exit_process',
+        win32.UNLOAD_DLL_DEBUG_EVENT      : 'notify_unload_dll',
+        win32.RIP_EVENT                   : 'notify_rip',
+    }
 
-    def __load_dll(self, event, handler):
-        """
-        Remember new modules loaded by the debugee.
-        Also hook the requested API calls.
-        
-        @type  event: L{LoadDLLEvent}
-        @param event: Load DLL event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
+    # Maps exception code constants to the names of the pre-notify routines.
+    # These routines are called BEFORE the user-defined handlers.
+    # Unknown codes are ignored.
+    __preExceptionNotifyCallbackName = {
+        win32.EXCEPTION_BREAKPOINT                : 'notify_breakpoint',
+        win32.EXCEPTION_SINGLE_STEP               : 'notify_single_step',
+        win32.EXCEPTION_GUARD_PAGE                : 'notify_guard_page',
+        win32.DBG_CONTROL_C                       : 'notify_debug_control_c',
+        win32.MS_VC_EXCEPTION                     : 'notify_ms_vc_exception',
+    }
 
-        # Remember new modules loaded by the debugee.
-        bCallHandler = event.get_process().notify_load_dll(event)
+    # Maps exception code constants to the names of the post-notify routines.
+    # These routines are called AFTER the user-defined handlers.
+    # Unknown codes are ignored.
+    __postExceptionNotifyCallbackName = {
+    }
 
-        # Hook the requested API calls (in self.apiHooks).
-        if self.apiHooks:
-            aModule  = event.get_module()
-            fileName = aModule.get_filename()
-            if fileName != aModule.unknown:
-                lib_name = fileName.lower()
-                if '\\' in lib_name:
-                    lib_name = lib_name[lib_name.rfind('\\')+1:]
-                elif '/' in lib_name:
-                    lib_name = lib_name[lib_name.rfind('/')+1:]
-                for hook_lib, hook_api_list in self.apiHooks.iteritems():
-                    if hook_lib == lib_name:
-                        for hook_api_stub in hook_api_list:
-                            hook_api_stub.hook(event.debug, event.get_pid(),
-                                                                      lib_name)
-
-        # Call the user defined handler.
-        if bCallHandler:
-            handler(event)
-
-    def __exit_process(self, event, handler):
+    def dispatch(self, event, eventHandler):
         """
-        Forget debugged processes when they finish.
-        
-        @type  event: L{ExitProcessEvent}
-        @param event: Exit process event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
+        Sends event notifications to the L{Debug} object and
+        the L{EventHandler} object provided by the user.
+
+        The L{Debug} object will forward the notifications to it's contained
+        snapshot objects (L{System}, L{Process}, L{Thread} and L{Module}) when
+        appropriate.
+
+        @warning: This method is called automatically from L{Debug.dispatch}.
+
+        @see: L{Debug.cont}, L{Debug.loop}, L{Debug.wait}
+
+        @type  event: L{Event}
+        @param event: Event object passed to L{Debug.dispatch}.
+
+        @type  eventHandler: L{EventHandler}
+        @param eventHandler: Event handler object passed to L{Debug.__init__}.
+
+        @raise WindowsError: Raises an exception on error.
         """
+        returnValue  = None
+        bCallHandler = True
+        pre_handler  = None
+        post_handler = None
+        eventCode    = event.get_code()
+
+        # Get the pre and post notification methods for exceptions.
+        # If not found, the following steps take care of that.
+        if eventCode == win32.EXCEPTION_DEBUG_EVENT:
+            exceptionCode = event.get_exception_code()
+            pre_handler   = getattr(
+                                    self,
+                                    self.__preExceptionNotifyCallbackName.get(
+                                                          exceptionCode, None),
+                                    None
+                                    )
+            post_handler  = getattr(
+                                    self,
+                                    self.__postExceptionNotifyCallbackName.get(
+                                                          exceptionCode, None),
+                                    None
+                                    )
+
+        # Get the pre notification method for all other events.
+        # This includes the exception event if no notify method was found
+        # for this exception code.
+        if pre_handler is None:
+            pre_handler   = getattr(
+                                    self,
+                                    self.__preEventNotifyCallbackName.get(
+                                                              eventCode, None),
+                                    None
+                                    )
+
+        # Get the post notification method for all other events.
+        # This includes the exception event if no notify method was found
+        # for this exception code.
+        if post_handler is None:
+            post_handler  = getattr(
+                                    self,
+                                    self.__postEventNotifyCallbackName.get(
+                                                              eventCode, None),
+                                    None
+                                    )
+
+        # Call the pre-notify method only if it was defined.
+        # If an exception is raised don't call the other methods.
+        if pre_handler is not None:
+            bCallHandler = pre_handler(event)
+
+        # Call the user-defined event handler only if the pre-notify
+        #  method was defined and returned True.
         try:
-            handler(event)
+            if bCallHandler and eventHandler is not None:
+                returnValue = eventHandler(event)
+
+        # Call the post-notify method if defined, even if an exception is
+        #  raised by the user-defined event handler.
         finally:
-            event.debug.notify_exit_process(event)
-            event.debug.system.notify_exit_process(event)
+            if post_handler is not None:
+                post_handler(event)
 
-    def __exit_thread(self, event, handler):
-        """
-        Forget debugged threads when they finish.
-        
-        @type  event: L{ExitThreadEvent}
-        @param event: Exit event event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        try:
-            handler(event)
-        finally:
-            event.debug.notify_exit_thread(event)
-            event.get_process().notify_exit_thread(event)
-
-    def __unload_dll(self, event, handler):
-        """
-        Forget debugee libraries when they are unloaded.
-        
-        @type  event: L{UnloadDLLEvent}
-        @param event: Unload DLL event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        try:
-            handler(event)
-        finally:
-            event.get_process().notify_unload_dll(event)
-
-    def __rip(self, event, handler):
-        """
-        Detach from the debugee on a RIP event.
-        
-        @type  event: L{RIPEvent}
-        @param event: RIP event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        try:
-            handler(event)
-        finally:
-            pid = event.get_pid()
-            event.debug.detach(pid)
-
-    # Internally handled exceptions
-
-    def __breakpoint(self, event, handler):
-        """
-        Hit code breakpoints in an Enabled or OneShot state.
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint exception event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        if event.debug.notify_breakpoint(event):
-            handler(event)
-
-    def __guard_page(self, event, handler):
-        """
-        Hit page breakpoints in an Enabled or OneShot state.
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Guard page exception event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        if event.debug.notify_guard_page(event):
-            handler(event)
-
-    def __single_step(self, event, handler):
-        """
-        Hit code and page breakpoints in a Running state,
-        and memory breakpoints in an Enabled or OneShot state.
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Single step exception event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        if event.debug.notify_single_step(event):
-            handler(event)
-
-    def __debug_control_c(self, event, handler):
-        """
-        Handle the Debug Ctrl-C exception.
-        
-        This exception is only raised when a debugger is attached, and
-        applications are not supposed to handle it, so we need to handle it
-        ourselves or the application may crash.
-        
-        @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Debug Ctrl-C exception event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-
-        # Handle the exception so the application doesn't have to.
-        if event.is_first_chance():
-            event.continueStatus = win32.DBG_CONTINUE
-
-        # Call the user-defined handler.
-        handler(event)
-
-    def __ms_vc_exception(self, event, handler):
-        """
-        Understand Microsoft Visual C thread naming convention.
-        
-        @see: U{http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx}
-        
-        @type  event: L{ExceptionEvent}
-        @param event: Microsoft Visual C exception event.
-        
-        @type  handler: function
-        @param handler: User-defined event handler for this event.
-        """
-        dwType = event.get_exception_information(0)
-        if dwType == 0x1000:
-            pszName     = event.get_exception_information(1)
-            dwThreadID  = event.get_exception_information(2)
-            dwFlags     = event.get_exception_information(3)
-
-            aProcess = event.get_process()
-            szName   = aProcess.peek_string(pszName, fUnicode = False)
-            if szName:
-
-                if dwThreadId == -1:
-                    dwThreadId = event.get_tid()
-
-                if aProcess.has_thread(dwThreadId):
-                    aThread = aProcess.get_thread(dwThreadId)
-                else:
-                    aThread = Thread(dwThreadId)
-                    aProcess._Process__add_thread(aThread)
-
-##                if aThread.get_name() is None:
-##                    aThread.set_name(szName)
-                aThread.set_name(szName)
-
-        # Call the user-defined handler.
-        handler(event)
+        # Return the value from the call to the user-defined event handler.
+        # If not defined return None.
+        return returnValue

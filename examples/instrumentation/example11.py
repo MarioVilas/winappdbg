@@ -1,5 +1,5 @@
 # Example #11
-# http://code.google.com/p/python-winappdbg/wiki/Instrumentation#Example_#11:_resolve_an_API_function_in_a_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#11:_resolve_an_API_function_in_a_process
 
 from winappdbg import System, Process
 

@@ -1,5 +1,5 @@
 # Example #4
-# http://code.google.com/p/python-winappdbg/wiki/Instrumentation#Example_#4:_killing_a_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#4:_killing_a_process
 
 from winappdbg import Process
 

@@ -30,7 +30,7 @@
 """
 Instrumentation library.
 
-@see: U{http://code.google.com/p/python-winappdbg/wiki/Instrumentation}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation}
 
 @group Instrumentation:
     System, Process, Thread, Module

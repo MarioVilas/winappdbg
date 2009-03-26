@@ -9,7 +9,7 @@
 
 
 # Epydoc command line options
-EPYDOC_OPT=--verbose --simple-term --fail-on-docstring-warning --docformat epytext --name "Windows application debugging engine" --url "http://code.google.com/p/python-winappdbg"
+EPYDOC_OPT=--verbose --simple-term --fail-on-docstring-warning --docformat epytext --name "Windows application debugging engine" --url "http://sourceforge.net/projects/winappdbg/"
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
 EPYDOC_OUTPUT_OPT=--show-private --no-sourcecode --no-imports --inheritance=included --graph all

@@ -1,5 +1,5 @@
 # Example #3
-# http://code.google.com/p/python-winappdbg/wiki/Debugging#Example_#3:_killing_a_process_by_attaching_to_it
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example_#3:_killing_a_process_by_attaching_to_it
 
 from winappdbg import Debug
 

@@ -30,7 +30,7 @@
 """
 Debugging API wrappers in ctypes.
 
-@see: U{http://code.google.com/p/python-winapp-dbg/wiki/Win32APIWrappers}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers}
 """
 
 import struct

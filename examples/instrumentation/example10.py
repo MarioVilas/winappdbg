@@ -1,5 +1,5 @@
 # Example #10
-# http://code.google.com/p/python-winappdbg/wiki/Instrumentation#Example_#10:_enumerate_all_modules_in_a_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#10:_enumerate_all_modules_in_a_process
 
 from winappdbg import System, Process
 

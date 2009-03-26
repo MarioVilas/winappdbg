@@ -235,7 +235,7 @@ class Crash (object):
         """
         Crash unique key.
         
-        @see: U{http://code.google.com/p/python-winapp-dbg/wiki/CrashKey}
+        @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/CrashKey}
         
         @return: Crash unique key. Should be treated as an opaque object.
         """

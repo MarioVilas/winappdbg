@@ -1,5 +1,5 @@
 # Example #1
-# http://code.google.com/p/python-winappdbg/wiki/Win32APIWrappers#Example_#1:_finding_a_DLL_in_the_search_path
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example_#1:_finding_a_DLL_in_the_search_path
 
 import sys
 

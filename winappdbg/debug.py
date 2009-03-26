@@ -30,7 +30,7 @@
 """
 Main module.
 
-@see: U{http://code.google.com/p/python-winapp-dbg/wiki/Debugging}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
 @group Instrumentation: System, Process, Thread, Module
 @group Debugging: Debug, EventHandler
@@ -53,18 +53,18 @@ __all__ =   [
 import win32
 from system import System, Process, Thread, Module, processidparam
 from breakpoint import BreakpointContainer
-from event import EventHandler, EventFactory, ExitProcessEvent
+from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
 import ctypes
 ##import traceback
 
 #==============================================================================
 
-class Debug (BreakpointContainer):
+class Debug (EventDispatcher, BreakpointContainer):
     """
     The main debugger class.
     
-    @see: U{http://code.google.com/p/python-winapp-dbg/wiki/Debugging}
+    @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
     
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
@@ -85,24 +85,14 @@ class Debug (BreakpointContainer):
             True to kill the process on exit, False to detach.
             Ignored under Windows 2000 and below.
         
+        @note: The L{eventHandler} parameter may be any callable Python object
+            (for example a function, or an instance method).
+            However you'll probably find it more convenient to use an instance
+            of a subclass of L{EventHandler} here.
+        
         @raise WindowsError: Raises an exception on error.
         """
         super(Debug, self).__init__()
-
-        if eventHandler is None:
-            eventHandler = EventHandler()
-
-        # Using isinstance() is quite nasty as it breaks one of Python's design
-        # premises, by implementing explicit type checking instead of interface
-        # compatibility.
-        #
-        # However, in this case we need the particular implementation of the
-        # EventHandler base class, not just the interface if the class (which,
-        # from the Debug object's point of view, would only require the object
-        # to be executable).
-        #
-        elif not isinstance(eventHandler, EventHandler):
-            raise TypeError, "Invalid event handler object"
 
         self.system                         = System()
         self.__eventHandler                 = eventHandler
@@ -190,6 +180,10 @@ class Debug (BreakpointContainer):
                 raise
 ##            traceback.print_exc()
 ##            print
+
+        if dwProcessId in self.__manuallyStartedProcessesSet:
+            self.__manuallyStartedProcessesSet.remove(dwProcessId)
+
         try:
             DebugActiveProcessStop(dwProcessId)
             self.__debugeeCount -= 1
@@ -294,7 +288,7 @@ class Debug (BreakpointContainer):
 
     def dispatch(self, event):
         """
-        Calls the debug event handler functions.
+        Calls the debug event notify callbacks.
         
         @see: L{cont}, L{loop}, L{wait}
         
@@ -303,7 +297,12 @@ class Debug (BreakpointContainer):
         
         @raise WindowsError: Raises an exception on error.
         """
-        self.__eventHandler(event)
+
+        # By default, exceptions are handled by the debugee.
+        event.debug.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+
+        # Dispatch the debug event.
+        return EventDispatcher.dispatch(event, self.__eventHandler)
 
     def cont(self, event):
         """
@@ -389,20 +388,178 @@ class Debug (BreakpointContainer):
         """
         Notify the creation of a new process.
 
+        @warning: This method is meant to be used internally by the debugger.
+
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
         """
-        
-        self.__debugeeCount += 1
+        dwProcessId = event.get_pid()
+        if dwProcessId in self.__manuallyStartedProcessesSet:
+            self.__manuallyStartedProcessesSet.remove(dwProcessId)
+        else:
+            self.__debugeeCount += 1
         return True
+
+    def notify_create_thread(self, event):
+        """
+        Notify the creation of a new thread.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @type  event: L{CreateThreadEvent}
+        @param event: Create thread event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        return event.get_process().notify_create_thread(event)
+
+    def notify_load_dll(self, event):
+        """
+        Notify the load of a new module.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @type  event: L{LoadDLLEvent}
+        @param event: Load DLL event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        return event.get_process().notify_load_dll(event)
 
     def notify_exit_process(self, event):
         """
         Notify the termination of a process.
 
+        @warning: This method is meant to be used internally by the debugger.
+
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
         """
+        dwProcessId = event.get_pid()
+        if dwProcessId in self.__manuallyStartedProcessesSet:
+            self.__manuallyStartedProcessesSet.remove(dwProcessId)
+
         bCallHandler = BreakpointContainer.notify_exit_process(self, event)
+        bCallHandler = bCallHandler and self.system.notify_exit_process(event)
+
         self.__debugeeCount -= 1
+
         return bCallHandler
+
+    def notify_exit_thread(self, event):
+        """
+        Notify the termination of a thread.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @type  event: L{ExitThreadEvent}
+        @param event: Exit thread event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        bCallHandler = BreakpointContainer.notify_exit_thread(self, event)
+        bCallHandler = bCallHandler and \
+                                   self.get_process().notify_exit_thread(event)
+        return bCallHandler
+
+    def notify_unload_dll(self, event):
+        """
+        Notify the unload of a module.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @type  event: L{UnloadDLLEvent}
+        @param event: Unload DLL event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        return event.get_process().notify_unload_dll(event)
+
+    def notify_rip(self, event):
+        """
+        Notify of a RIP event.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @type  event: L{RIPEvent}
+        @param event: RIP event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        event.debug.detach( event.get_pid() )
+        return True
+
+    def notify_debug_control_c(self, event):
+        """
+        Notify of a Debug Ctrl-C exception.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @note: This exception is only raised when a debugger is attached, and
+            applications are not supposed to handle it, so we need to handle it
+            ourselves or the application may crash.
+
+        @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
+
+        @type  event: L{ExceptionEvent}
+        @param event: Debug Ctrl-C exception event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        if event.is_first_chance():
+            event.continueStatus = win32.DBG_CONTINUE
+        return True
+
+    def notify_ms_vc_exception(self, event):
+        """
+        Notify of a Microsoft Visual C exception.
+
+        @warning: This method is meant to be used internally by the debugger.
+
+        @note: This allows the debugger to understand the
+            Microsoft Visual C thread naming convention.
+
+        @see: U{http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx}
+
+        @type  event: L{ExceptionEvent}
+        @param event: Microsoft Visual C exception event.
+
+        @rtype:  bool
+        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        """
+        dwType = event.get_exception_information(0)
+        if dwType == 0x1000:
+            pszName     = event.get_exception_information(1)
+            dwThreadID  = event.get_exception_information(2)
+            dwFlags     = event.get_exception_information(3)
+
+            aProcess = event.get_process()
+            szName   = aProcess.peek_string(pszName, fUnicode = False)
+            if szName:
+
+                if dwThreadId == -1:
+                    dwThreadId = event.get_tid()
+
+                if aProcess.has_thread(dwThreadId):
+                    aThread = aProcess.get_thread(dwThreadId)
+                else:
+                    aThread = Thread(dwThreadId)
+                    aProcess._Process__add_thread(aThread)
+
+##                if aThread.get_name() is None:
+##                    aThread.set_name(szName)
+                aThread.set_name(szName)
+
+        return True

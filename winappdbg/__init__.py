@@ -32,9 +32,11 @@ Windows application debugging engine
 
 by Mario Vilas (mvilas at gmail.com)
 
-Project: U{http://code.google.com/p/python-winapp-dbg/}
+Project: U{http://sourceforge.net/projects/winappdbg/}
 
-Blog:    U{http://breakingcode.worpress.com}
+Wiki:    U{http://apps.sourceforge.net/trac/winappdbg/wiki/}
+
+Blog:    U{http://breakingcode.wordpress.com}
 
 @group Instrumentation: System, Process, Thread, Module
 @group Debugging: Debug, EventHandler

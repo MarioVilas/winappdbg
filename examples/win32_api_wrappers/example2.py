@@ -1,5 +1,5 @@
 # Example #2
-# http://code.google.com/p/python-winappdbg/wiki/Win32APIWrappers#Example_#2:_killing_a_process_by_attaching_to_it
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example_#2:_killing_a_process_by_attaching_to_it
 
 import sys
 import thread

@@ -1,5 +1,5 @@
 # Example #1
-# http://code.google.com/p/python-winappdbg/wiki/Debugging#Example_#1:_starting_a_new_process_and_waiting_for_it_to_finish
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example_#1:_starting_a_new_process_and_waiting_for_it_to_finish
 
 from winappdbg import Debug
 

@@ -30,7 +30,7 @@
 """
 Breakpoints library.
 
-@see: U{http://code.google.com/p/python-winapp-dbg/wiki/HowBreakpointsWork}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/HowBreakpointsWork}
 
 @group Breakpoints: Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint
 @group Debug registers manipulation: DebugRegister

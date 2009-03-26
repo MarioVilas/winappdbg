@@ -1,5 +1,5 @@
 # Example #6
-# http://code.google.com/p/python-winappdbg/wiki/Instrumentation#Example_#6:_loading_a_DLL_into_the_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#6:_loading_a_DLL_into_the_process
 
 from winappdbg import Process
 
