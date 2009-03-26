@@ -103,6 +103,8 @@ class Event (object):
 
     def get_pid(self):
         """
+        @see: L{get_process}
+
         @rtype:  int
         @return: Process global ID where the event occured.
         """
@@ -110,6 +112,8 @@ class Event (object):
 
     def get_tid(self):
         """
+        @see: L{get_thread}
+
         @rtype:  int
         @return: Thread global ID where the event occured.
         """
@@ -117,25 +121,42 @@ class Event (object):
 
     def get_process(self):
         """
+        @see: L{get_pid}
+
         @rtype:  L{Process}
         @return: Process where the event occured.
         """
-        return self.debug.system.get_process(self.get_pid())
-##        pid     = self.get_pid()
-##        system  = self.debug.system
-##        if system.has_process(pid):
-##            process = system.get_process(pid)
-##        else:
-##            process = Process(pid)
-##            system._ProcessContainer__add_process(process)
-##        return process
+        # We can't assume the Process object will be in the System snapshot.
+        # The user may have cleared the snapshot, or some debug events could
+        # have been missed (it seems to happen sometimes when automatically
+        # following processes created by the debuguee, and I could swear the
+        # bug is not in my code but in the Win32 API).
+        pid     = self.get_pid()
+        system  = self.debug.system
+        if system.has_process(pid):
+            process = system.get_process(pid)
+        else:
+            process = Process(pid)
+            system._ProcessContainer__add_process(process)
+        return process
 
     def get_thread(self):
         """
+        @see: L{get_tid}
+        
         @rtype:  L{Thread}
         @return: Thread where the event occured.
         """
-        return self.get_process().get_thread(self.get_tid())
+        # We can't assume the Process object will be in the System snapshot.
+        # See the comments of get_process.
+        tid     = self.get_tid()
+        process = self.get_process()
+        if process.has_thread(tid):
+            thread = process.get_thread(tid)
+        else:
+            thread = Thread(tid)
+            process._ThreadContainer__add_thread(thread)
+        return thread
 
 #==============================================================================
 
