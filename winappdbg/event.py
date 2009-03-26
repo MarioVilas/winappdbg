@@ -1097,9 +1097,6 @@ class EventDispatcher (object):
         @type  event: L{Event}
         @param event: Event object passed to L{Debug.dispatch}.
 
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler: Event handler object passed to L{Debug.__init__}.
-
         @raise WindowsError: Raises an exception on error.
         """
         returnValue  = None

@@ -34,6 +34,11 @@ doc: html pdf
 dist: sdist bdist
 
 
+# Install the module
+install:
+	python setup.py install
+
+
 # Generate the HTML documentation only
 html:
 	epydoc $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT) winappdbg
