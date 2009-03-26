@@ -4,7 +4,7 @@
 #   Python (d'oh!)
 #   Make (try gnuwin32, cygwin's make doesn't seem to work well for me, but your mileage may vary)
 #   Tar and BZip2 (to compress the source packages to tar.bz2 format, also downloadable at gnuwin32)
-#   Epydoc (to generate the docs)
+#   Epydoc and GraphViz (to generate the docs)
 #   MikTex (or an equivalent Latex package for Windows, to generate pdfs)
 
 
