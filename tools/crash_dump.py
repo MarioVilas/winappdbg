@@ -279,6 +279,24 @@ class LoggingEventHandler(EventHandler):
 
 #-- Exceptions ----------------------------------------------------------------
 
+    # Ignore unknown (most likely C++) exceptions.
+    def unknown_exception(self, event):
+
+        # Log the event to standard output.
+        if self.verbose:
+            desc    = event.get_exception_description()
+            address = event.get_exception_address()
+            self.__log(event, "%s at 0x%.8x" % (desc, address))
+
+    # Ignore Microsoft Visual C exceptions.
+    def ms_vc_exception(self, event):
+
+        # Log the event to standard output.
+        if self.verbose:
+            desc    = event.get_exception_description()
+            address = event.get_exception_address()
+            self.__log(event, "%s at 0x%.8x" % (desc, address))
+
     # Handle single step events.
     def single_step(self, event):
 

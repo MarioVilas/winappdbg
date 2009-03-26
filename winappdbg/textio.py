@@ -271,6 +271,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if efl is None:
+            return ''
         efl_dump = 'iopl=%1d' % ((efl & 0x3000) >> 12)
         if efl & 0x100000:
             efl_dump += ' vip'
@@ -330,6 +332,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if registers is None:
+            return ''
         registers = registers.copy()
         registers['efl_dump'] = cls.dump_flags( registers['EFlags'] )
         return cls.reg_template % registers
@@ -348,6 +352,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if None in (registers, data):
+            return ''
         names = data.keys()
         names.sort()
         result = ''
@@ -373,6 +379,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if data is None:
+            return ''
         pointers = data.keys()
         pointers.sort()
         result = ''
@@ -392,6 +400,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if data is None:
+            return ''
         pointers = data.keys()
         pointers.sort()
         result = ''
@@ -415,6 +425,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if stack_trace is None:
+            return ''
         result = 'Frame pointer  Return address  Module\n'
         for step in stack_trace:
             result += '0x%.8x     0x%.8x      %s\n' % step
@@ -436,6 +448,8 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if disassembly is None:
+            return ''
         max_code = 0
         max_dump = 0
         for (addr, size, code, dump) in disassembly:

@@ -120,30 +120,22 @@ class Event (object):
         @rtype:  L{Process}
         @return: Process where the event occured.
         """
-##        return self.debug.system.get_process(self.get_pid())
-        pid     = self.get_pid()
-        system  = self.debug.system
-        if system.has_process(pid):
-            process = system.get_process(pid)
-        else:
-            process = Process(pid)
-            system._ProcessContainer__add_process(process)
-        return process
+        return self.debug.system.get_process(self.get_pid())
+##        pid     = self.get_pid()
+##        system  = self.debug.system
+##        if system.has_process(pid):
+##            process = system.get_process(pid)
+##        else:
+##            process = Process(pid)
+##            system._ProcessContainer__add_process(process)
+##        return process
 
     def get_thread(self):
         """
         @rtype:  L{Thread}
         @return: Thread where the event occured.
         """
-##        return self.get_process().get_thread(self.get_tid())
-        tid     = self.get_tid()
-        system  = self.debug.system
-        if system.has_process(tid):
-            thread = system.get_process(tid)
-        else:
-            thread = Thread(tid)
-            system._ThreadContainer__add_thread(thread)
-        return thread
+        return self.get_process().get_thread(self.get_tid())
 
 #==============================================================================
 
@@ -235,7 +227,7 @@ class ExceptionEvent (Event):
         @return: User-friendly name of the exception.
         """
         code = self.get_exception_code()
-        unk  = 'Exception 0x%.8x' % code
+        unk  = 'C++ exception 0x%.8x' % code
         return self.__exceptionDescription.get(code, unk)
 
     def is_first_chance(self):
@@ -1054,7 +1046,21 @@ class EventDispatcher (object):
     __postExceptionNotifyCallbackName = {
     }
 
-    def dispatch(self, event, eventHandler):
+    def __init__(self, eventHandler):
+        """
+        Event dispatcher.
+        
+        @type  eventHandler: L{EventHandler}
+        @param eventHandler: Event handler object.
+
+        @note: The L{eventHandler} parameter may be any callable Python object
+            (for example a function, or an instance method).
+            However you'll probably find it more convenient to use an instance
+            of a subclass of L{EventHandler} here.
+        """
+        self.__eventHandler = eventHandler
+
+    def dispatch(self, event):
         """
         Sends event notifications to the L{Debug} object and
         the L{EventHandler} object provided by the user.
@@ -1085,40 +1091,30 @@ class EventDispatcher (object):
         # If not found, the following steps take care of that.
         if eventCode == win32.EXCEPTION_DEBUG_EVENT:
             exceptionCode = event.get_exception_code()
-            pre_handler   = getattr(
-                                    self,
-                                    self.__preExceptionNotifyCallbackName.get(
-                                                          exceptionCode, None),
-                                    None
-                                    )
-            post_handler  = getattr(
-                                    self,
-                                    self.__postExceptionNotifyCallbackName.get(
-                                                          exceptionCode, None),
-                                    None
-                                    )
+            pre_name      = self.__preExceptionNotifyCallbackName.get(
+                                                           exceptionCode, None)
+            post_name     = self.__postExceptionNotifyCallbackName.get(
+                                                           exceptionCode, None)
+            if  pre_name     is not None:
+                pre_handler  = getattr(self, pre_name,  None)
+            if  post_name    is not None:
+                post_handler = getattr(self, post_name, None)
 
         # Get the pre notification method for all other events.
         # This includes the exception event if no notify method was found
         # for this exception code.
         if pre_handler is None:
-            pre_handler   = getattr(
-                                    self,
-                                    self.__preEventNotifyCallbackName.get(
-                                                              eventCode, None),
-                                    None
-                                    )
+            pre_name = self.__preEventNotifyCallbackName.get(eventCode, None)
+            if  pre_name is not None:
+                pre_handler = getattr(self, pre_name, pre_handler)
 
         # Get the post notification method for all other events.
         # This includes the exception event if no notify method was found
         # for this exception code.
         if post_handler is None:
-            post_handler  = getattr(
-                                    self,
-                                    self.__postEventNotifyCallbackName.get(
-                                                              eventCode, None),
-                                    None
-                                    )
+            post_name = self.__postEventNotifyCallbackName.get(eventCode, None)
+            if  post_name is not None:
+                post_handler = getattr(self, post_name, post_handler)
 
         # Call the pre-notify method only if it was defined.
         # If an exception is raised don't call the other methods.
@@ -1128,8 +1124,8 @@ class EventDispatcher (object):
         # Call the user-defined event handler only if the pre-notify
         #  method was defined and returned True.
         try:
-            if bCallHandler and eventHandler is not None:
-                returnValue = eventHandler(event)
+            if bCallHandler and self.__eventHandler is not None:
+                returnValue = self.__eventHandler(event)
 
         # Call the post-notify method if defined, even if an exception is
         #  raised by the user-defined event handler.

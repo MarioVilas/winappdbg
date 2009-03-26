@@ -316,7 +316,7 @@ class Crash (object):
         if self.stackFrame:
             if self.stackPeek:
                 msg += '\nStack pointers:\n'
-                msg += CrashDump.dump_stack_peek(self.stackPeek, self.sp)
+                msg += CrashDump.dump_stack_peek(self.stackPeek)
             msg += '\nStack dump:\n'
             msg += HexDump.hexblock(self.stackFrame, self.sp)
 

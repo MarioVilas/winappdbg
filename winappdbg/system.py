@@ -1444,7 +1444,7 @@ class ThreadDebugOperations (object):
         @return: Dictionary mapping register names to the data they point to.
         """
         aProcess  = self.get_process()
-        registers = self.get_context(CONTEXT_INTEGER)
+        registers = self.get_context(win32.CONTEXT_INTEGER)
         data      = dict()
         for (reg_name, reg_value) in registers.iteritems():
             if reg_name != 'ContextFlags':

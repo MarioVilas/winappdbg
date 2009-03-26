@@ -92,10 +92,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         
         @raise WindowsError: Raises an exception on error.
         """
-        super(Debug, self).__init__()
+        EventDispatcher.__init__(self, eventHandler)
+        BreakpointContainer.__init__(self)
 
         self.system                         = System()
-        self.__eventHandler                 = eventHandler
         self.__bKillOnExit                  = bKillOnExit
         self.__debugeeCount                 = 0
         self.__manuallyStartedProcessesSet  = set()
@@ -131,7 +131,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         DebugActiveProcess(dwProcessId)
-        self.__manuallyStartedProcess.add(dwProcessId)
+        self.__manuallyStartedProcessesSet.add(dwProcessId)
+        self.__debugeeCount += 1
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -252,7 +253,8 @@ class Debug (EventDispatcher, BreakpointContainer):
             bSuspended  = bSuspended
         )
 
-        self.__manuallyStartedProcess.add(dwProcessId)
+        self.__manuallyStartedProcessesSet.add(aProcess.get_pid())
+        self.__debugeeCount += 1
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -302,7 +304,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         event.debug.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
         # Dispatch the debug event.
-        return EventDispatcher.dispatch(event, self.__eventHandler)
+        return EventDispatcher.dispatch(self, event)
 
     def cont(self, event):
         """
@@ -447,10 +449,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         if dwProcessId in self.__manuallyStartedProcessesSet:
             self.__manuallyStartedProcessesSet.remove(dwProcessId)
 
+        self.__debugeeCount -= 1
+
         bCallHandler = BreakpointContainer.notify_exit_process(self, event)
         bCallHandler = bCallHandler and self.system.notify_exit_process(event)
-
-        self.__debugeeCount -= 1
 
         return bCallHandler
 
@@ -468,7 +470,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         bCallHandler = BreakpointContainer.notify_exit_thread(self, event)
         bCallHandler = bCallHandler and \
-                                   self.get_process().notify_exit_thread(event)
+                                  event.get_process().notify_exit_thread(event)
         return bCallHandler
 
     def notify_unload_dll(self, event):
