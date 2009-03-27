@@ -42,7 +42,7 @@ import win32
 import os
 import time
 import zlib
-import shelve
+import anydbm
 import traceback
 
 try:
@@ -239,19 +239,24 @@ class Crash (object):
 
     def key(self):
         """
-        Crash unique key.
+        Generates an approximately unique key for the Crash object.
+        
+        This key can be used as an heuristic to determine if two crashes were
+        caused by the same software error. Ideally it should be treated as an
+        opaque object.
         
         @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/CrashKey}
         
-        @return: Crash unique key. Should be treated as an opaque object.
+        @rtype:  (opaque)
+        @return: Crash unique key.
         """
-        return  (
+        return      (
                     self.eventCode,
                     self.exceptionCode,
                     self.pc,
                     self.stackTracePC,
                     self.debugString,
-                )
+                    )
 
     def briefReport(self):
         """
@@ -413,6 +418,8 @@ class CrashContainer (object):
 
     # The interface is meant to be similar to a Python set.
     # However it may not be necessary to implement all of the set methods.
+    # Other methods like get, has_key, iterkeys and itervalues
+    # are dictionary-like.
 
     # TODO:
     # Lock the files for modifications by other processes.
@@ -436,10 +443,14 @@ class CrashContainer (object):
             @param container: Crash set to iterate.
             """
             # It's important to keep a reference to the CrashContainer,
-            # rather than it's underlying keys and shelf properties.
+            # rather than it's underlying database.
             # Otherwise the destructor of CrashContainer may close the
             # database while we're still iterating it.
+            #
+            # TODO: lock the database when iterating it.
+            #
             self.__container = container
+            self.__keys_iter = container.iterkeys()
         
         def next(self):
             """
@@ -447,38 +458,30 @@ class CrashContainer (object):
             @return: A B{copy} of a Crash object in the L{CrashContainer}.
             @raise StopIteration: No more items left.
             """
-            # This is quite implementation dependent!
-            # But I guess that's OK since it's a private class anyway.
-            try:
-                key = self.__container._CrashContainer__keys.pop()
-            except KeyError:
-                raise StopIteration
-            skey  = pickle.dumps(key, protocol=pickle.HIGHEST_PROTOCOL)
-            zdata = self.__container._CrashContainer__shelf[skey]
-            data  = zlib.decompress(zdata)
-            crash = pickle.loads(data)
-            return crash
+            key  = self.__keys_iter.next()
+            return self.__container.get(key)
 
-    def __init__(self, filename):
+    def __init__(self, filename = None):
         """
         @type  filename: str
         @param filename: (Optional) File name for crash database.
-            If no filename is provided the set is volatile.
+            If no filename is specified, the container is be volatile.
+            
+            Volatile containers are stored only in memory and
+            destroyed when they go out of scope.
         """
+        self.__filename = filename
         if filename:
-            self.__shelf = shelve.open(filename,
-                                              protocol=pickle.HIGHEST_PROTOCOL)
-            self.__keys  = set()
-            for skey in self.__shelf.keys():
-                key = pickle.loads(skey)
-                self.__keys.add(key)
+            self.__db   = anydbm.open(filename, 'c')
+            self.__keys = dict([ (self.__unmarshall_key(mk), mk) \
+                                                  for mk in self.__db.keys() ])
         else:
-            self.__keys  = set()
-            self.__shelf = dict()
+            self.__db   = dict()
+            self.__keys = dict()
 
     def __del__(self):
-        if self.__shelf is not None:
-            self.__shelf.close()
+        if self.__filename:
+            self.__db.close()
 
     def __contains__(self, crash):
         """
@@ -486,48 +489,76 @@ class CrashContainer (object):
         @param crash: Crash object.
         
         @rtype:  bool
-        @return: I{True} if the Crash object is in the set, I{False} otherwise.
+        @return: I{True} if the Crash object is in the container.
         """
-        return crash.key() in self.__keys
+        return self.has_key( crash.key() )
 
     def __iter__(self):
         """
+        @see:    L{itervalues}
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
-            A B{copy} of each object is returned, so any changes made to them
-            will be lost.
-            
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
         """
-
-        # This would work in all cases...
-        if self.__shelf is not None:
-            return self.__CrashContainerIterator(self)
-
-        # ...but it's faster to return a built-in iterator for the
-        # dictionary instead of using our own.
-        return self.__shelf.itervalues()
+        return self.itervalues()
 
     def __len__(self):
         """
         @rtype:  int
-        @return: Count of L{Crash} elements in the set.
+        @return: Count of L{Crash} elements in the container.
         """
         return len(self.__keys)
 
     def __bool__(self):
         """
         @rtype:  bool
-        @return: I{False} if the set is empty.
+        @return: I{False} if the container is empty.
         """
         return bool(self.__keys)
 
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+        
+        @rtype:  bool
+        @return: I{True} if a matching Crash object is in the container.
+        """
+        return self.__keys.has_key(key)
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} object keys.
+        
+        @see:     L{get}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+            
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return self.__keys.iterkeys()
+
+    def itervalues(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+            
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return self.__CrashContainerIterator(self)
+
     def add(self, crash):
         """
-        Adds a new crash to the set.
+        Adds a new crash to the container.
         If the crash appears to be already known, it's ignored.
         
         @see: L{Crask.key}
@@ -536,21 +567,96 @@ class CrashContainer (object):
         @param crash: Crash object to add.
         """
         if crash not in self:
-            key   = crash.key()
-            skey  = pickle.dumps(key,         protocol=pickle.HIGHEST_PROTOCOL)
-            data  = pickle.dumps(crash,       protocol=pickle.HIGHEST_PROTOCOL)
-            zdata = zlib.compress(data,                zlib.Z_BEST_COMPRESSION)
-            self.__shelf[skey] = zdata
-            self.__keys.add(key)
+            key  = crash.key()
+            skey = self.__marshall_key(key)
+            data = self.__marshall_value(crash)
+            self.__db[skey]  = data
+            self.__keys[key] = skey
 
     def remove(self, crash):
         """
-        Removes a crash from the set.
+        Removes a crash from the container.
         
         @type crash:  L{Crash}
         @param crash: Crash object to remove.
         """
         key  = crash.key()
-        skey = pickle.dumps(key, protocol=pickle.HIGHEST_PROTOCOL)
+        skey = self.__keys[key]
+        del self.__db[skey]
         del self.__keys[key]
-        del self.__shelf[skey]
+
+    def get(self, key):
+        """
+        Retrieves a crash from the container.
+        
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+        
+        @rtype:  L{Crash} object.
+        @return: Crash matching the given key.
+        
+        @see:     L{iterkeys}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+            
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        skey  = self.__keys[key]
+        data  = self.__db[skey]
+        crash = self.__unmarshall_value(data)
+        return crash
+
+    def __marshall_key(self, key):
+        """
+        Marshalls a Crash key to be used in the database.
+        
+        @type  key: (opaque object)
+        @param key: Key to convert.
+        
+        @rtype:  str
+        @return: Converted key.
+        """
+        if self.__keys.has_key(key):
+            return self.__keys[key]
+        return pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+
+    def __unmarshall_key(self, key):
+        """
+        Unmarshalls a Crash key read from the database.
+        
+        @type  key: str
+        @param key: Key to convert.
+        
+        @rtype:  (opaque object)
+        @return: Converted key.
+        """
+        return pickle.loads(key)
+
+    def __marshall_value(self, value):
+        """
+        Marshalls a Crash object to be used in the database.
+        
+        @type  key: L{Crash}
+        @param key: Object to convert.
+        
+        @rtype:  str
+        @return: Converted object.
+        """
+        value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        return zlib.compress(value, zlib.Z_BEST_COMPRESSION)
+
+    def __unmarshall_value(self, value):
+        """
+        Unmarshalls a Crash object read from the database.
+        
+        @type  key: str
+        @param key: Object to convert.
+        
+        @rtype:  L{Crash}
+        @return: Converted object.
+        """
+        value = zlib.decompress(value)
+        return pickle.loads(value)

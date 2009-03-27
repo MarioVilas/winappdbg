@@ -1,6 +1,6 @@
 #!~/.wine/drive_c/Python25/python.exe
 
-# Crash dumper
+# Crash logger
 # Copyright (c) 2009, Mario Vilas
 # All rights reserved.
 #
