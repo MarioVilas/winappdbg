@@ -1079,6 +1079,8 @@ class EventDispatcher (object):
             However you'll probably find it more convenient to use an instance
             of a subclass of L{EventHandler} here.
         """
+        if not callable(eventHandler):
+            raise TypeError, "Invalid event handler"
         self.__eventHandler = eventHandler
 
     def dispatch(self, event):
