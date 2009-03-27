@@ -49,8 +49,7 @@ def main():
         if not os.path.exists(sys.argv[1]):
             print "Cannot find file: %s" % sys.argv[1]
         else:
-            cc = CrashContainer()
-            cc.load(sys.argv[1])
+            cc = CrashContainer( sys.argv[1] )
             if cc:
                 print "Found %d crashes:" % len(cc)
                 print '-' * 79

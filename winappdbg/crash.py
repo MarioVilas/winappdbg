@@ -27,7 +27,7 @@
 
 # $Id$
 
-"""
+""" 
 Crash logger.
 """
 
@@ -39,10 +39,16 @@ __all__ =   [
 from textio import HexDump, CrashDump
 import win32
 
+import os
 import time
 import zlib
-import cPickle
+import shelve
 import traceback
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 #==============================================================================
 
@@ -398,99 +404,153 @@ class Crash (object):
 
 #==============================================================================
 
-# TODO
-#
-# It would be better to have a storage module, with classes to separate the
-# crash dump logic from the storage itself. The current implementation using
-# pickle and zlib could be moved there.
-#
-# Also we need a more efficient way to manage crashes, to avoid loading the
-# entire crash dump file in memory. Zip files could be used for this, where
-# each file name would be the key (ascii pickled) and the file contents would
-# be the Crash object (binary pickled).
-
 class CrashContainer (object):
     """
-    Contains a set of Crash objects, trying to avoid duplicates.
+    Manages a database of persistent Crash objects, trying to avoid duplicates.
     
     @see: L{Crash.key}
     """
 
-    def __init__(self, filename = None):
+    # The interface is meant to be similar to a Python set.
+    # However it may not be necessary to implement all of the set methods.
+
+    # TODO:
+    # Lock the files for modifications by other processes.
+    # Otherwise the database could be corrupted by opening it more than once.
+
+    # FIXME:
+    # The underlying database may encounter collisions.
+    # Not much can be done about the keys (maybe change the pickle protocol?),
+    # but the Crash objects could have a spurious public member set to any
+    # value (for example it could be an incremental integer counter), to add
+    # and change if a collision occurs.
+
+    class __CrashContainerIterator (object):
+        """
+        Iterator of Crash objects. Returned by L{CrashContainer.__iter__}.
+        """
+        
+        def __init__(self, container):
+            """
+            @type  container: L{CrashContainer}
+            @param container: Crash set to iterate.
+            """
+            # It's important to keep a reference to the CrashContainer,
+            # rather than it's underlying keys and shelf properties.
+            # Otherwise the destructor of CrashContainer may close the
+            # database while we're still iterating it.
+            self.__container = container
+        
+        def next(self):
+            """
+            @rtype:  L{Crash}
+            @return: A B{copy} of a Crash object in the L{CrashContainer}.
+            @raise StopIteration: No more items left.
+            """
+            # This is quite implementation dependent!
+            # But I guess that's OK since it's a private class anyway.
+            try:
+                key = self.__container._CrashContainer__keys.pop()
+            except KeyError:
+                raise StopIteration
+            skey  = pickle.dumps(key, protocol=pickle.HIGHEST_PROTOCOL)
+            zdata = self.__container._CrashContainer__shelf[skey]
+            data  = zlib.decompress(zdata)
+            crash = pickle.loads(data)
+            return crash
+
+    def __init__(self, filename):
         """
         @type  filename: str
-        @param filename: (Optional)
-           File name for crash container database to read.
-           If no filename is specified, an empty container is created.
+        @param filename: (Optional) File name for crash database.
+            If no filename is provided the set is volatile.
         """
-        self.reset()
         if filename:
-            self.load(filename)
+            self.__shelf = shelve.open(filename,
+                                              protocol=pickle.HIGHEST_PROTOCOL)
+            self.__keys  = set()
+            for skey in self.__shelf.keys():
+                key = pickle.loads(skey)
+                self.__keys.add(key)
+        else:
+            self.__keys  = set()
+            self.__shelf = dict()
+
+    def __del__(self):
+        if self.__shelf is not None:
+            self.__shelf.close()
 
     def __contains__(self, crash):
-        return self.__container.has_key(crash.key())
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+        
+        @rtype:  bool
+        @return: I{True} if the Crash object is in the set, I{False} otherwise.
+        """
+        return crash.key() in self.__keys
 
     def __iter__(self):
-        return self.__container.itervalues()
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+            A B{copy} of each object is returned, so any changes made to them
+            will be lost.
+            
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+
+        # This would work in all cases...
+        if self.__shelf is not None:
+            return self.__CrashContainerIterator(self)
+
+        # ...but it's faster to return a built-in iterator for the
+        # dictionary instead of using our own.
+        return self.__shelf.itervalues()
 
     def __len__(self):
-        return len(self.__container)
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the set.
+        """
+        return len(self.__keys)
 
     def __bool__(self):
-        return bool(self.__container)
-
-    def reset(self):
         """
-        Remove all crashes from the container.
+        @rtype:  bool
+        @return: I{False} if the set is empty.
         """
-        self.__container = {}
+        return bool(self.__keys)
 
     def add(self, crash):
         """
-        Add a new crash to the container.
-        If the crash appears to be already known, it is ignored.
+        Adds a new crash to the set.
+        If the crash appears to be already known, it's ignored.
+        
+        @see: L{Crask.key}
         
         @type crash:  L{Crash}
         @param crash: Crash object to add.
         """
         if crash not in self:
-            self.__container[crash.key()] = crash
+            key   = crash.key()
+            skey  = pickle.dumps(key,         protocol=pickle.HIGHEST_PROTOCOL)
+            data  = pickle.dumps(crash,       protocol=pickle.HIGHEST_PROTOCOL)
+            zdata = zlib.compress(data,                zlib.Z_BEST_COMPRESSION)
+            self.__shelf[skey] = zdata
+            self.__keys.add(key)
 
     def remove(self, crash):
         """
-        Remove a crash from the container.
+        Removes a crash from the set.
         
         @type crash:  L{Crash}
         @param crash: Crash object to remove.
         """
-        del self.__container[crash.key()]
-
-    def load(self, filename):
-        """
-        Load crashes from a crash dump file
-        and merge them into the container.
-        Existing crashes are not modified.
-        
-        @type  filename: str
-        @param filename: File name for crash container database to read.
-        """
-        data = open(filename, 'rb').read()
-        data = zlib.decompress(data)
-        data = cPickle.loads(data)
-        data.update(self.__container)
-        self.__container = data
-
-    def save(self, filename, protocol = cPickle.HIGHEST_PROTOCOL):
-        """
-        Save the crashes in a crash dump file.
-        
-        @type  filename: str
-        @param filename: File name for crash container database to write.
-        
-        @type  protocol: int
-        @param protocol: (Optional) Pickle protocol to use.
-        """
-        data = self.__container
-        data = cPickle.dumps(data, protocol)
-        data = zlib.compress(data, 9)
-        open(filename, 'wb').write(data)
+        key  = crash.key()
+        skey = pickle.dumps(key, protocol=pickle.HIGHEST_PROTOCOL)
+        del self.__keys[key]
+        del self.__shelf[skey]

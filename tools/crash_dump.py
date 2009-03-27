@@ -84,7 +84,10 @@ class LoggingEventHandler(EventHandler):
     def __init__(self, options):
 
         # Create the crash container.
-        self.knownCrashes = CrashContainer()
+        if not options.no_crash_dump_file:
+            self.knownCrashes = CrashContainer( options.file )
+        else:
+            self.knownCrashes = CrashContainer()
 
         # Create the heap tracker.
         self.processHeapLocation = dict()           # pid -> ptr -> pc
@@ -545,19 +548,6 @@ def main(args):
     # Create the event handler
     oldCrashCount = 0
     eventHandler  = LoggingEventHandler(options)
-    if not options.no_crash_dump_file:
-        try:
-            if os.path.exists(options.file):
-                eventHandler.knownCrashes.load(options.file)
-                oldCrashCount = len(eventHandler.knownCrashes)
-                if options.verbose:
-                    msg = "Crash dump file found, loaded %d crashes"
-                    msg = msg % oldCrashCount
-                    print DebugLog.log_text(msg)
-        except Exception, e:
-            if options.verbose:
-                traceback.print_exc()
-                print
 
     # Create the debug object
     debug = Debug(eventHandler)
@@ -605,18 +595,6 @@ def main(args):
                     raise
             debug.cont(event)
     finally:
-        if not options.no_crash_dump_file:
-            newCrashCount = len(eventHandler.knownCrashes)
-            if newCrashCount - oldCrashCount:
-                if options.verbose:
-                    if oldCrashCount:
-                        msg = "Saving %d (%d new) crashes to crash dump file..."
-                        msg = msg % (newCrashCount, newCrashCount - oldCrashCount)
-                    else:
-                        msg = "Saving %d crashes to crash dump file..."
-                        msg = msg % newCrashCount
-                    print DebugLog.log_text(msg)
-                eventHandler.knownCrashes.save(options.file)
         if options.verbose:
             print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
 
