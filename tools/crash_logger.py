@@ -471,7 +471,7 @@ def parse_cmdline(argv):
                       help="Log events to standard output [default]")
     output.add_option("-q", "--quiet", action="store_false", default=False, dest="verbose",
                       help="Do not log events to standard output")
-    output.add_option("-f", "--file", default="crash.dat",
+    output.add_option("-f", "--file", default="crashes.db",
                       help="Specify a crash dump file [default: %default]")
     output.add_option("--no-crash-dump-file", action="store_true", default=False,
                       help="Supresses the use of a crash dump file")
