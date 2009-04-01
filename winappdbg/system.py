@@ -54,6 +54,7 @@ __all__ =   [
             ]
 
 import win32
+from textio import HexInput
 
 import ctypes
 import struct
@@ -181,7 +182,6 @@ class ThreadHandle (Handle):
 
 # TODO
 # maybe add file mapping support here?
-# it would be useful to resolve symbols remotely
 class FileHandle (Handle):
     """
     Win32 file handle.
@@ -213,6 +213,12 @@ class FileHandle (Handle):
 ##            pass
         return None
 
+#------------------------------------------------------------------------------
+# Static methods for filename and pathname manipulation.
+
+# TODO
+# Maybe these should be moved to a class of it's own?
+
     @staticmethod
     def pathname_to_filename(pathname):
         """
@@ -222,16 +228,110 @@ class FileHandle (Handle):
         @rtype:  str
         @return: Relative path.
         """
-        # can't use os.path, doesn't work well on Wine
-        # TODO
-        # use os.path and the Win32 API,
-        # then compare the results of both
-        filename = pathname
-        if '\\' in pathname:
-            filename = pathname[pathname.rfind('\\')+1:]
-        elif '/' in pathname:
-            filename = pathname[pathname.rfind('/')+1:]
-        return filename
+        return win32.PathFindFileName(pathname)
+
+    @staticmethod
+    def filename_to_pathname(filename):
+        """
+        @type  filename: str
+        @param filename: Relative path.
+        
+        @rtype:  str
+        @return: Absolute path.
+        """
+        return win32.GetFullPathName(filename)
+
+    @staticmethod
+    def path_is_relative(path):
+        """
+        @see: L{path_is_absolute}
+        
+        @type  path: str
+        @param path: Absolute or relative path.
+        
+        @rtype:  bool
+        @return: C{True} if the path is relative, C{False} if it's absolute.
+        """
+        return win32.PathIsRelative(path)
+
+    @staticmethod
+    def path_is_absolute(path):
+        """
+        @see: L{path_is_relative}
+        
+        @type  path: str
+        @param path: Absolute or relative path.
+        
+        @rtype:  bool
+        @return: C{True} if the path is absolute, C{False} if it's relative.
+        """
+        return not win32.PathIsRelative(path)
+
+    @staticmethod
+    def split_extension(pathname):
+        """
+        @type  pathname: str
+        @param pathname: Absolute path.
+        
+        @rtype:  tuple( str, str )
+        @return:
+            Tuple containing the file and extension components of the filename.
+        """
+        filepart = win32.PathRemoveExtension(pathname)
+        extpart  = win32.PathFindExtension(pathname)
+        return (filepart, extpart)
+
+    @staticmethod
+    def split_filename(pathname):
+        """
+        @type  pathname: str
+        @param pathname: Absolute path.
+        
+        @rtype:  tuple( str, str )
+        @return: Tuple containing the path to the file and the base filename.
+        """
+        filepart = win32.PathFindFileName(pathname)
+        pathpart = win32.PathRemoveFileSpec(pathname)
+        return (pathpart, filepart)
+
+    @staticmethod
+    def split_path(path):
+        """
+        @see: L{join_path}
+        
+        @type  path: str
+        @param path: Absolute or relative path.
+        
+        @rtype:  list( str... )
+        @return: List of path components.
+        """
+        components = list()
+        while path:
+            next = win32.PathFindNextComponent(path)
+            if next:
+                prev = path[ : -len(next) ]
+                components.append(prev)
+            path = next
+        return components
+
+    @staticmethod
+    def join_path(*components):
+        """
+        @see: L{split_path}
+        
+        @type  components: tuple( str... )
+        @param components: Path components.
+        
+        @rtype:  str
+        @return: Absolute or relative path.
+        """
+        if components:
+            path = components[0]
+            for next in components[1:]:
+                path = win32.PathAppend(path, next)
+        else:
+            path = ""
+        return path
 
 #==============================================================================
 
@@ -267,9 +367,6 @@ class ModuleContainer (object):
         has_module, iter_modules, iter_module_addresses,
         clear_modules
     
-    @group Symbols:
-        resolve_exported_symbol
-    
     @group Debugging:
         get_system_breakpoint
     """
@@ -282,8 +379,8 @@ class ModuleContainer (object):
         """
         @type  anObject: L{Module}, int
         @param anObject:
-            I{Module}: Module object to look for.
-            I{int}: Base address of the DLL to look for.
+            C{Module}: Module object to look for.
+            C{int}: Base address of the DLL to look for.
         
         @rtype:  bool
         @return: C{True} if the snapshot contains
@@ -369,25 +466,60 @@ class ModuleContainer (object):
 
 #------------------------------------------------------------------------------
 
-    # TODO better filename matching
-    # it should treat filenames differently
-    # if the parameter is either a full or a relative pathname
-    def get_module_from_name(self, fileName):
+    def get_module_from_name(self, modName):
         """
-        @type  fileName: int
-        @param fileName: Filename of the DLL to look for.
+        @type  modName: int
+        @param modName:
+            Name of the module to look for, as returned by L{Module.get_name}.
+            If two or more modules with the same name are loaded, only one
+            of the matching modules is returned.
+            
+            You can also pass a full pathname to the DLL file.
+            This works correctly even if two modules with the same name
+            are loaded from different paths.
         
         @rtype:  L{Module}
-        @return: Module object that best matches the given filename.
-            Returns C{None} if no Module can be found.
+        @return: C{Module} object that best matches the given name.
+            Returns C{None} if no C{Module} can be found.
         """
-        fileName = FileHandle.pathname_to_filename(fileName)
-        for lib in self.iter_modules():
-            pathName = lib.get_filename()
-            if pathName:
-                baseName = FileHandle.pathname_to_filename(pathName)
-                if baseName == fileName:
+        
+        # Convert modName to lowercase.
+        # This helps make case insensitive string comparisons.
+        modName = modName.lower()
+        
+        # modName is an absolute pathname.
+        if FileHandle.path_is_absolute(modName):
+            for lib in self.iter_modules():
+                if modName == lib.get_filename().lower():
                     return lib
+            return None     # Stop trying to match the name.
+        
+        # Get all the module names.
+        # This prevents having to iterate through the module list
+        #  more than once.
+        modDict = [ ( lib.get_name(), lib ) for lib in self.iter_modules() ]
+        modDict = dict(modDict)
+        
+        # modName is a base filename.
+        if modDict.has_key(modName):
+            return modDict[modName]
+
+        # modName is a base filename without extension.
+        filepart, extpart = FileHandle.split_extension(modName)
+        if filepart and extpart and extpart.lower() == ".dll":
+            if modDict.has_key(filepart):
+                return modDict[filepart]
+
+        # modName is a base address.
+        try:
+            baseAddress = HexInput.integer(modName)
+        except ValueError:
+            raise
+            return None
+        if self.has_module(baseAddress):
+            return self.get_module(baseAddress)
+
+        # Module not found.
         return None
 
     def get_module_from_address(self, address):
@@ -396,36 +528,19 @@ class ModuleContainer (object):
         @param address: Memory address to query.
         
         @rtype:  L{Module}
-        @return: Module object that best matches the given address.
-            Returns C{None} if no Module can be found.
+        @return: C{Module} object that best matches the given address.
+            Returns C{None} if no C{Module} can be found.
         """
         bases = self.get_module_bases()
         bases.sort()
         bases.insert(0, 0x00000000)
         bases.append(   0xFFFFFFFF)
-        for i in xrange(len(bases)):
+        for i in xrange(len(bases)-1):
             begin, end = bases[i:i+2]
             if begin <= address <= end:
                 if not self.has_module(begin):
                     break
                 return self.get_module(begin)
-        return None
-
-    def resolve_exported_symbol(self, dllname, symbolname):
-        """
-        @type  dllname: str
-        @param dllname: Name of the DLL that exports the symbol.
-        
-        @type  symbolname: str
-        @param symbolname: Name of the exported symbol.
-        
-        @rtype:  int
-        @return: Address of the exported symbol within the process address space.
-            Returns C{None} on error.
-        """
-        lib = self.get_module_from_name(dllname)
-        if lib is not None:
-            return lib.resolve_exported_symbol(symbolname)
         return None
 
     # FIXME
@@ -438,7 +553,7 @@ class ModuleContainer (object):
             within the process address space.
             Returns C{None} on error.
         """
-        return self.resolve_exported_symbol('ntdll.dll', 'DbgBreakPoint')
+        return self.resolve_label("ntdll!DbgBreakPoint")
 
     def scan_modules(self):
         """
@@ -595,8 +710,8 @@ class ThreadContainer (object):
         """
         @type  anObject: L{Thread}, int
         @param anObject:
-             - I{int}: Global ID of the thread to look for.
-             - I{Thread}: Thread object to look for.
+             - C{int}: Global ID of the thread to look for.
+             - C{Thread}: Thread object to look for.
         
         @rtype:  bool
         @return: C{True} if the snapshot contains
@@ -779,7 +894,8 @@ class ThreadContainer (object):
         """
         dead_tids   = set( self.get_thread_ids() )
         dwProcessId = self.get_pid()
-        hSnapshot   = win32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, dwProcessId)
+        hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD,
+                                                                 dwProcessId)
         try:
             te = win32.Thread32First(hSnapshot)
             while te is not None:
@@ -824,7 +940,7 @@ class ThreadContainer (object):
 
 #------------------------------------------------------------------------------
 
-    def __add_first_thread(self, event):
+    def __add_created_thread(self, event):
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
         if self.has_thread(dwThreadId):
@@ -842,7 +958,7 @@ class ThreadContainer (object):
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
-        self.__add_first_thread(event)
+        self.__add_created_thread(event)
         return True
 
     def notify_create_thread(self, event):
@@ -852,7 +968,7 @@ class ThreadContainer (object):
         @type  event: L{CreateThreadEvent}
         @param event: Create thread event.
         """
-        self.__add_first_thread(event)
+        self.__add_created_thread(event)
         return True
 
     def notify_exit_thread(self, event):
@@ -1265,6 +1381,425 @@ class MemoryOperations (object):
 
 #==============================================================================
 
+# TODO
+# Add symbol support using the debug help API.
+# http://msdn.microsoft.com/en-us/library/ms679291(VS.85).aspx
+
+class SymbolOperations (object):
+    """
+    Encapsulates symbol operations capabilities.
+    
+    Requires a L{ModuleContainer}.
+    
+    @note: Labels are an approximated way of referencing memory locations
+        across different executions of the same process, or different processes
+        with common modules. They are not meant to be perfectly unique, and
+        some errors may occur when multiple modules with the same name are
+        loaded, or when module filenames can't be retrieved.
+        
+        Read more on labels here:
+        U{https://apps.sourceforge.net/trac/winappdbg/wiki/Labels}
+    
+    @group Labels:
+        create_label,
+        create_label_from_address,
+        split_label,
+        split_label_fuzzy,
+        resolve_label
+    """
+
+    @staticmethod
+    def create_label(module = None, function = None, offset = None):
+        """
+        Creates a label from a module and a function name, plus an offset.
+        
+        @type  module: None or str
+        @param module: (Optional) Module name.
+        
+        @type  function: None, str or int
+        @param function: (Optional) Function name or ordinal.
+        
+        @type  offset: None or str
+        @param offset: (Optional) Offset value.
+            
+            If C{function} is specified, offset from the function.
+            
+            If C{function} is C{None}, offset from the module.
+        
+        @rtype:  str
+        @return:
+            Label representing the given function in the given module.
+        
+        @raise ValueError:
+            The module or function name contain invalid characters.
+        """
+
+        # TODO
+        # Invalid characters should be escaped or filtered.
+
+        # Convert ordinals to strings.
+        try:
+            function = "#0x%x" % function
+        except TypeError:
+            pass
+
+        # Validate the parameters.
+        if module is not None and ('!' in module or '+' in module):
+            raise ValueError, "Invalid module name: %s" % module
+        if function is not None and ('!' in function or '+' in function):
+            raise ValueError, "Invalid function name: %s" % function
+
+        # Parse the label.
+        if module:
+            if function:
+                if offset:
+                    label = "%s!%s+0x%x" % (module, function, offset)
+                else:
+                    label = "%s!%s" % (module, function)
+            else:
+                if offset:
+##                    label = "%s+0x%x!" % (module, offset)
+                    label = "%s!0x%x" % (module, offset)
+                else:
+                    label = "%s!" % module
+        else:
+            if function:
+                if offset:
+                    label = "!%s+0x%x" % (function, offset)
+                else:
+                    label = "!%s" % function
+            else:
+                if offset:
+                    label = "0x%x" % offset
+                else:
+                    label = "0x0"
+
+        return label
+
+    @staticmethod
+    def split_label(label):
+        """
+        Splits a label created with L{create_label}.
+        
+        To parse labels with a less strict syntax, use the L{split_label_fuzzy}
+        method instead.
+        
+        @type  label: str
+        @param label: Label to split.
+        
+        @rtype:  tuple( str, str, str )
+        @return: Tuple containing the C{module} name,
+            the C{function} name, and the C{offset} value.
+            
+            If the label doesn't specify a module,
+            then C{module} is C{None}.
+            
+            If the label doesn't specify a function,
+            then C{function} is C{None}.
+            
+            If the label doesn't specify an offset,
+            then C{offset} is C{0}.
+        
+        @raise ValueError: The label is malformed.
+        """
+        module = function = None
+        offset = 0
+        
+        # Special case: None
+        if not label:
+            label = "0x0"
+        else:
+
+            # Remove all blanks.
+            label = label.replace(' ', '')
+            label = label.replace('\t', '')
+            label = label.replace('\r', '')
+            label = label.replace('\n', '')
+            
+            # Special case: empty label.
+            if not label:
+                label = "0x0"
+        
+        # * ! *
+        if '!' in label:
+            try:
+                module, function = label.split('!')
+            except ValueError:
+                raise ValueError, "Invalid label: %s" % label
+
+            # module ! function
+            if function:
+                if '+' in module:
+                    raise ValueError, "Invalid label: %s" % label
+
+                # module ! function + offset
+                if '+' in function:
+                    try:
+                        function, offset = function.split('+')
+                    except ValueError:
+                        raise ValueError, "Invalid label: %s" % label
+                    try:
+                        offset = HexInput.integer(offset)
+                    except ValueError:
+                        raise ValueError, "Invalid label: %s" % label
+                else:
+
+                    # module ! offset
+                    try:
+                        offset   = HexInput.integer(function)
+                        function = None
+                    except ValueError:
+                        pass
+            else:
+                
+                # module + offset !
+                if '+' in module:
+                    try:
+                        module, offset = module.split('+')
+                    except ValueError:
+                        raise ValueError, "Invalid label: %s" % label
+                    try:
+                        offset = HexInput.integer(offset)
+                    except ValueError:
+                        raise ValueError, "Invalid label: %s" % label
+
+                else:
+
+                    # module !
+                    try:
+                        offset = HexInput.integer(module)
+                        module = None
+
+                    # offset !
+                    except ValueError:
+                        pass
+
+            if not module:
+                module   = None
+            if not function:
+                function = None
+
+        # *
+        else:
+            
+            # offset
+            try:
+                offset = HexInput.integer(label)
+
+            # # ordinal
+            except ValueError:
+                if label.startswith('#'):
+                    function = label
+                    try:
+                        HexInput.integer(function[1:])
+
+                    # module?
+                    # function?
+                    except ValueError:
+                        raise ValueError, "Ambiguous label: %s" % label
+
+                # module?
+                # function?
+                else:
+                    raise ValueError, "Ambiguous label: %s" % label
+
+        # Convert function ordinal strings into integers.
+        if function and function.startswith('#'):
+            try:
+                function = HexInput.integer(function[1:])
+            except ValueError:
+                pass
+
+        # Convert null offsets to None.
+        if not offset:
+            offset = None
+
+        return (module, function, offset)
+
+    def split_label_fuzzy(self, label):
+        """
+        Splits a label entered as user input.
+        
+        It's more flexible in it's syntax parsing than the L{split_label}
+        module, as it allows the exclamation mark (B{C{!}}) to be omitted.
+        
+        The ambiguity is resolved by searching the modules in the snapshot to
+        guess if a label refers to a module or a function.
+        """
+        module = function = None
+        offset = 0
+        
+        # Special case: None
+        if not label:
+            label = "0x0"
+        else:
+
+            # Remove all blanks.
+            label = label.replace(' ', '')
+            label = label.replace('\t', '')
+            label = label.replace('\r', '')
+            label = label.replace('\n', '')
+            
+            # Special case: empty label.
+            if not label:
+                label = "0x0"
+
+        # If an exclamation sign is present, we know we can parse it strictly.
+        if '!' in label:
+            return self.split_label(label)
+
+##        # Try to parse it strictly, on error do it the fuzzy way.
+##        try:
+##            return self.split_label(label)
+##        except ValueError:
+##            pass
+
+        # * + offset
+        if '+' in label:
+            try:
+                prefix, offset = label.split('+')
+            except ValueError:
+                raise ValueError, "Invalid label: %s" % label
+            try:
+                offset = HexInput.integer(offset)
+            except ValueError:
+                raise ValueError, "Invalid label: %s" % label
+            label = prefix
+
+        modobj = self.get_module_from_name(label)
+        if modobj:
+
+            # module
+            # module + offset
+            module = modobj.get_name()
+
+        else:
+
+            # offset
+            try:
+                offset = HexInput.integer(label)
+
+                # If only a hardcoded address is given,
+                # rebuild the label using create_label_from_address.
+                # Then parse it again, but this time strictly,
+                # both because there is no need for fuzzy syntax and
+                # to prevent an infinite recursion if there's a bug here.
+                try:
+                    new_label = self.create_label_from_address(offset)
+                    module, function, offset = self.split_label(new_label)
+                except ValueError:
+                    pass
+
+            # function
+            # function + offset
+            except ValueError:
+                function = label
+
+        # Convert function ordinal strings into integers.
+        if function and function.startswith('#'):
+            try:
+                function = HexInput.integer(function[1:])
+            except ValueError:
+                pass
+
+        # Convert null offsets to None.
+        if not offset:
+            offset = None
+
+        return (module, function, offset)
+
+    def resolve_label(self, label):
+        """
+        Resolve the memory address of the given label.
+        
+        @note:
+            If multiple modules with the same name are loaded,
+            the label may be resolved at any of them. For a more precise
+            way to resolve functions use the base address to get the L{Module}
+            object (see L{Process.get_module}) and then call L{Module.resolve}.
+            
+            If no module name is specified in the label, the function may be
+            resolved in any loaded module. If you want to resolve all functions
+            with that name in all processes, call L{Process.iter_modules} to
+            iterate through all loaded modules, and then try to resolve the
+            function in each one of them using L{Module.resolve}.
+        
+        @type  label: str
+        @param label: Label to resolve.
+        
+        @rtype:  int
+        @return: Memory address pointed to by the label.
+        
+        @raise ValueError: The label is malformed or impossible to resolve.
+        @raise RuntimeError: Cannot resolve the module or function.
+        """
+        # Default address if no module or function are given.
+        # An offset may be added later.
+        address = 0
+        
+        # Split the label into module, function and offset components.
+        module, function, offset = self.split_label_fuzzy(label)
+        
+        # Resolve the module.
+        if module:
+            modobj = self.get_module_from_name(module)
+            if not modobj:
+                msg = "Module %s not found" % module
+                raise RuntimeError, msg
+    
+            # Resolve the function.
+            if function:
+                address = modobj.resolve(function)
+                if address is None:
+                    msg = "Function %s not found in module %s"
+                    msg = msg % (function, module)
+                    raise RuntimeError, msg
+
+            # No function, use the base address.
+            else:
+                address = modobj.get_base()
+
+        # Resolve the function in any module.
+        elif function:
+            for modobj in self.iter_modules():
+                address = modobj.resolve(function)
+                if address is not None:
+                    break
+            if address is None:
+                msg = "Function %s not found in any module" % function
+                raise RuntimeError, msg
+
+        # Return the address plus the offset.
+        if offset:
+            address = address + offset
+        return address
+
+    def create_label_from_address(self, address):
+        """
+        Creates a label from the given memory address.
+        
+        @type  address: int
+        @param address: Memory address.
+        
+        @rtype:  str
+        @return: Label pointing to the given address.
+        """
+        modobj = self.get_module_from_address(address)
+        if modobj is None:
+            label = self.create_label(None, None, address)
+        else:
+            
+            # TODO
+            # enumerate exported functions and debug symbols,
+            # then find the closest match
+            
+            module = modobj.get_name()
+            offset = address - modobj.get_base()
+            label = self.create_label(module, None, offset)
+        return label
+
+#==============================================================================
+
 class ThreadDebugOperations (object):
     """
     Encapsulates several useful debugging routines for threads.
@@ -1312,7 +1847,7 @@ class ThreadDebugOperations (object):
         @type    depth: int
         @keyword depth: Maximum depth of stack trace.
         
-        @rtype:  list of tuple( int, int, str )
+        @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread
             as a tuple of ( return address, frame pointer, module filename ).
         """
@@ -1341,7 +1876,7 @@ class ThreadDebugOperations (object):
                     lib = "0x%.08x" % lib.lpBaseOfDll
             trace.append( (fp, ra, lib) )
             fp = aProcess.peek_uint(fp)
-        return trace
+        return tuple(trace)
 
     def get_stack_frame(self, max_size = None):
         """
@@ -1575,11 +2110,11 @@ class ProcessDebugOperations (object):
     """
     Encapsulates several useful debugging routines for processes.
 
+    @group Properties:
+        get_peb, get_main_module, get_image_base, get_image_name
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
-    @group Properties:
-        get_peb, get_main_module, get_image_base, get_image_name
     @group Miscellaneous:
         flush_instruction_cache, peek_pointers_in_data
     """
@@ -1941,10 +2476,10 @@ class ProcessContainer (object):
         """
         @type  anObject: L{Process}, L{Thread}, int
         @param anObject:
-             - I{int}: Global ID of the process to look for.
-             - I{int}: Global ID of the thread to look for.
-             - I{Process}: Process object to look for.
-             - I{Thread}: Thread object to look for.
+             - C{int}: Global ID of the process to look for.
+             - C{int}: Global ID of the thread to look for.
+             - C{Process}: Process object to look for.
+             - C{Thread}: Thread object to look for.
         
         @rtype:  bool
         @return: C{True} if the snapshot contains
@@ -2391,18 +2926,25 @@ class ProcessContainer (object):
                 found.append( (aProcess, aModule) )
         return found
 
-    # FIXME
-    # Proper filename matching is needed here.
     def find_processes_by_filename(self, filename):
         """
         @rtype:  list( L{Process} )
         @return: List of processes matching the given main module filename.
         """
-        found = list()
-        for aProcess in self.iter_processes():
-            imagename = aProcess.get_filename()
-            if imagename and imagename.endswith(filename):
-                found.append( (aProcess, imagename) )
+        found    = list()
+        filename = filename.lower()
+        if FileHandle.path_is_absolute(filename):
+            for aProcess in self.iter_processes():
+                imagename = aProcess.get_filename()
+                if imagename and imagename.lower() == filename:
+                    found.append( (aProcess, imagename) )
+        else:
+            for aProcess in self.iter_processes():
+                imagename = aProcess.get_filename()
+                if imagename:
+                    imagename = FileHandle.pathname_to_filename(imagename)
+                    if imagename.lower() == filename:
+                        found.append( (aProcess, imagename) )
         return found
 
 #------------------------------------------------------------------------------
@@ -2430,8 +2972,7 @@ class ProcessContainer (object):
             aProcess = Process(dwProcessId, hProcess)
             self.__add_process(aProcess)
             aProcess.fileName = event.get_filename()
-        aProcess.notify_create_process(event)   # pass it to the process
-        return True
+        return aProcess.notify_create_process(event)   # pass it to the process
 
     def notify_exit_process(self, event):
         """
@@ -2447,14 +2988,17 @@ class ProcessContainer (object):
 
 #==============================================================================
 
+# TODO
+# + Add the ability to enumerate exported functions.
+
 class Module (object):
     """
     Interface with a DLL library loaded in the context of another process.
     
     @group Properties:
-        get_base, get_filename
+        get_base, get_filename, get_name
     @group Symbols:
-        resolve_exported_symbol
+        get_label, resolve
     @group Handle:
         get_handle, open_handle, close_handle
     
@@ -2500,11 +3044,40 @@ class Module (object):
         """
         @rtype:  str
         @return: Module filename.
+            Returns C{None} if unknown.
         """
         if self.fileName is None:
             if self.hFile not in (None, win32.INVALID_HANDLE_VALUE):
                 self.fileName = self.hFile.get_filename()
         return self.fileName
+
+    def get_name(self):
+        """
+        @rtype:  str
+        @return: Module name, as used in labels.
+        
+        @warning: Names are B{NOT} guaranteed to be unique.
+            
+            If you need unique identification for a loaded module,
+            use the base address instead.
+        
+        @see: L{get_label}
+        """
+        pathname = self.get_filename()
+        if pathname:
+            filename = FileHandle.pathname_to_filename(pathname)
+            if filename:
+                filename = filename.lower()
+                filepart, extpart = FileHandle.split_extension(filename)
+                if filepart and extpart and extpart == '.dll':
+                    modName = filepart
+                else:
+                    modName = filename
+            else:
+                modName = pathname
+        else:
+            modName = "0x%x" % self.get_base()
+        return modName
 
     def open_handle(self):
         """
@@ -2547,51 +3120,67 @@ class Module (object):
 
 #------------------------------------------------------------------------------
 
+    def get_label(self, function = None, offset = None):
+        """
+        Retrieves the label for the given function of this module or the module
+        base address if no function name is given.
+        
+        @type  function: str
+        @param function: (Optional) Exported function name.
+        
+        @type  offset: int
+        @param offset: (Optional) Offset from the module base address.
+        
+        @rtype:  str
+        @return: Label for the module base address, plus the offset if given.
+        """
+        return SymbolOperations.create_label(self.get_name(), function, offset)
+
     # TODO
     # A better solution would be to map a view of the file,
     # parse the PE header and get all the exported symbols.
-    # The next step would be to get the debugging symbols too.
-    # A SymbolContainer class would be in order :)
-    def resolve_exported_symbol(self, symbolname):
+    def resolve(self, function):
         """
-        Resolves a symbol exported by this module.
+        Resolves a function exported by this module.
         
-        @type  symbolname: str
-        @param symbolname: Name of the symbol.
+        @type  function: str or int
+        @param function:
+            str: Name of the function.
+            int: Ordinal of the function.
         
         @rtype:  int
-        @return: Memory address of the exported symbol in the process.
+        @return: Memory address of the exported function in the process.
             Returns None on error.
         """
 
-        # Unknown DLL filename, there's nothing we can do
+        # Unknown DLL filename, there's nothing we can do.
         filename = self.get_filename()
         if not filename:
             return None
 
-        # If the DLL is already mapped locally, resolve the symbol
+        # If the DLL is already mapped locally, resolve the function.
         try:
-            hlib   = win32.GetModuleHandle(filename)
-            symbol = win32.GetProcAddress(hlib, symbolname)
+            hlib    = win32.GetModuleHandle(filename)
+            address = win32.GetProcAddress(hlib, function)
         except WindowsError, e:
 
-            # Load the DLL locally, resolve the symbol and unload it.
+            # Load the DLL locally, resolve the function and unload it.
             try:
                 hlib = win32.LoadLibraryEx(filename,
                                          win32.DONT_RESOLVE_DLL_REFERENCES)
                 try:
-                    symbol = win32.GetProcAddress(hlib, symbolname)
+                    address = win32.GetProcAddress(hlib, function)
                 finally:
                     win32.FreeLibrary(hlib)
             except WindowsError, e:
                 return None
 
-        # A NULL pointer means the symbol was not found.
-        if symbol == win32.NULL:
+        # A NULL pointer means the function was not found.
+        if address == win32.NULL:
             return None
 
         # Compensate for DLL base relocations locally and remotely.
-        return symbol - hlib + self.lpBaseOfDll
+        return address - hlib + self.lpBaseOfDll
 
 #==============================================================================
 
@@ -3087,8 +3676,8 @@ class Thread (ThreadDebugOperations):
 
 #==============================================================================
 
-class Process (MemoryOperations, ProcessDebugOperations, \
-                                             ThreadContainer, ModuleContainer):
+class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
+                                          ThreadContainer, ModuleContainer):
     """
     Interface to a process. Contains threads and modules snapshots.
     
@@ -3357,19 +3946,19 @@ class Process (MemoryOperations, ProcessDebugOperations, \
                             "Cannot resolve kernel32.dll in the remote process"
 
         # Resolve kernel32.dll!LoadLibraryA
-        pllib = aModule.resolve_exported_symbol('LoadLibraryA')
+        pllib = aModule.resolve('LoadLibraryA')
         if not pllib:
             raise RuntimeError, \
                 "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
 
         # Resolve kernel32.dll!GetProcAddress
-        pgpad = aModule.resolve_exported_symbol('GetProcAddress')
+        pgpad = aModule.resolve('GetProcAddress')
         if not pgpad:
             raise RuntimeError, \
              "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
 
         # Resolve kernel32.dll!VirtualFree
-        pvf = aModule.resolve_exported_symbol('VirtualFree')
+        pvf = aModule.resolve('VirtualFree')
         if not pvf:
             raise RuntimeError, \
              "Cannot resolve kernel32.dll!VirtualFree in the remote process"

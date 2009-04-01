@@ -2569,7 +2569,7 @@ class IO_STATUS_BLOCK(Structure):
     def Pointer(self):
         return PVOID(self.Status)
 
-#--- API function calls -------------------------------------------------------
+#--- kernel32.dll -------------------------------------------------------------
 
 # DWORD WINAPI GetLastError(void);
 def GetLastError():
@@ -2891,6 +2891,23 @@ def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
     return hFile
 CreateFile = CreateFileA
 
+# BOOL WINAPI FlushFileBuffers(
+#   __in  HANDLE hFile
+# );
+def FlushFileBuffers(hFile):
+    success = ctypes.windll.kernel32.FlushFileBuffers(hFile)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# BOOL WINAPI FlushViewOfFile(
+#   __in  LPCVOID lpBaseAddress,
+#   __in  SIZE_T dwNumberOfBytesToFlush
+# );
+def FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush = 0):
+    success = ctypes.windll.kernel32.FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush)
+    if success == FALSE:
+        raise ctypes.WinError()
+
 # DWORD WINAPI SearchPath(
 #   __in_opt   LPCTSTR lpPath,
 #   __in       LPCTSTR lpFileName,
@@ -2959,133 +2976,6 @@ def SetSearchPathMode(Flags):
     if success == FALSE:
         raise ctypes.WinError()
 
-# NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
-#   IN SYSDBG_COMMAND Command,
-#   IN PVOID InputBuffer OPTIONAL,
-#   IN ULONG InputBufferLength,
-#   OUT PVOID OutputBuffer OPTIONAL,
-#   IN ULONG OutputBufferLength,
-#   OUT PULONG ReturnLength OPTIONAL
-# );
-def NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength):
-    if InputBufferLength is None:
-        if InputBuffer == NULL:
-            InputBufferLength = 0
-        else:
-            InputBufferLength = sizeof(InputBuffer)
-    if OutputBufferLength is None:
-        if OutputBuffer == NULL:
-            OutputBufferLength = 0
-        else:
-            OutputBufferLength = sizeof(OutputBuffer)
-    if InputBuffer != NULL:
-        InputBuffer = ctypes.byref(InputBuffer)
-    if OutputBuffer != NULL:
-        OutputBuffer = ctypes.byref(OutputBuffer)
-    if ReturnLength != NULL:
-        ReturnLength = ctypes.byref(ULONG(ReturnLength))
-    ntstatus = ctypes.windll.ntdll.NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength)
-    # TODO this function should not return the ntstatus
-    # instead it should allocate it's own memory when possible
-    # and return the data as a python object
-#    if ntstatus != 0:
-#        raise ctypes.WinError(ntstatus ^ 0xFFFFFFFF)
-    return ntstatus
-ZwSystemDebugControl = NtSystemDebugControl
-
-# NTSTATUS WINAPI NtQueryInformationProcess(
-#   __in       HANDLE ProcessHandle,
-#   __in       PROCESSINFOCLASS ProcessInformationClass,
-#   __out      PVOID ProcessInformation,
-#   __in       ULONG ProcessInformationLength,
-#   __out_opt  PULONG ReturnLength
-# );
-def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformationLength = None):
-    if ProcessInformationLength is not None:
-        ProcessInformation = ctypes.create_string_buffer("", ProcessInformationLength)
-    else:
-        if   ProcessInformationClass == ProcessBasicInformation:
-            ProcessInformation = PROCESS_BASIC_INFORMATION()
-            ProcessInformationLength = sizeof(PROCESS_BASIC_INFORMATION)
-        elif ProcessInformationClass == ProcessImageFileName:
-            unicode_buffer = ctypes.create_unicode_buffer(u"", 0x1000)
-            ProcessInformation = UNICODE_STRING(0, 0x1000, ctypes.addressof(unicode_buffer))
-            ProcessInformationLength = sizeof(UNICODE_STRING)
-        elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
-            ProcessInformation = DWORD()
-            ProcessInformationLength = sizeof(DWORD)
-        else:
-            raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
-    ReturnLength = ULONG(0)
-    ntstatus = ctypes.windll.ntdll.NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
-    if ntstatus != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
-    if   ProcessInformationClass == ProcessBasicInformation:
-        retval = ProcessInformation
-    elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
-        retval = ProcessInformation.value
-    elif ProcessInformationClass == ProcessImageFileName:
-        vptr = ctypes.c_void_p(ProcessInformation.Buffer)
-        cptr = ctypes.cast( vptr, ctypes.c_wchar * ProcessInformation.Length )
-        retval = cptr.contents.raw
-    else:
-        retval = ProcessInformation.raw[:ReturnLength.value]
-    return retval
-ZwQueryInformationProcess = NtQueryInformationProcess
-
-# NTSTATUS WINAPI NtQueryInformationThread(
-#   __in       HANDLE ThreadHandle,
-#   __in       THREADINFOCLASS ThreadInformationClass,
-#   __out      PVOID ThreadInformation,
-#   __in       ULONG ThreadInformationLength,
-#   __out_opt  PULONG ReturnLength
-# );
-def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformationLength = None):
-    if ThreadInformationLength is not None:
-        ThreadInformation = ctypes.create_string_buffer("", ThreadInformationLength)
-    else:
-        if   ThreadInformationClass == ThreadBasicInformation:
-            ThreadInformation = THREAD_BASIC_INFORMATION()
-            ThreadInformationLength = sizeof(THREAD_BASIC_INFORMATION)
-        elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
-            ThreadInformation = DWORD()
-            ThreadInformationLength = sizeof(DWORD)
-        elif ThreadInformationClass == ThreadPerformanceCount:
-            ThreadInformation = LONGLONG()  # LARGE_INTEGER
-            ThreadInformationLength = sizeof(LONGLONG)
-        else:
-            raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
-    ReturnLength = ULONG(0)
-    ntstatus = ctypes.windll.ntdll.NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
-    if ntstatus != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
-    if   ThreadInformationClass == ThreadBasicInformation:
-        retval = ThreadInformation
-    elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
-        retval = ThreadInformation.value
-    elif ThreadInformationClass == ThreadPerformanceCount:
-        retval = ThreadInformation.value
-    else:
-        retval = ThreadInformation.raw[:ReturnLength.value]
-    return retval
-ZwQueryInformationThread = NtQueryInformationThread
-
-# NTSTATUS 
-#   NtQueryInformationFile(
-#     IN HANDLE  FileHandle,
-#     OUT PIO_STATUS_BLOCK  IoStatusBlock,
-#     OUT PVOID  FileInformation,
-#     IN ULONG  Length,
-#     IN FILE_INFORMATION_CLASS  FileInformationClass
-#     );
-def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Length):
-    IoStatusBlock = IO_STATUS_BLOCK()
-    status = NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
-    if status != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
-    return IoStatusBlock.Information
-ZwQueryInformationFile = NtQueryInformationFile
-
 # BOOL WINAPI DeviceIoControl(
 #   __in         HANDLE hDevice,
 #   __in         DWORD dwIoControlCode,
@@ -3141,12 +3031,71 @@ def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation,
 #   LPTSTR lpBuffer,
 #   LPTSTR* lpFilePart
 # );
-def GetFullPathName(lpFileName, nBufferLength = MAX_PATH):
+def GetFullPathNameA(lpFileName, nBufferLength = MAX_PATH):
     lpFileName  = ctypes.create_string_buffer(lpFileName, nBufferLength)
     lpBuffer    = ctypes.create_string_buffer('', nBufferLength)
     lpFilePart  = ctypes.c_char_p()
     success = ctypes.windll.kernel32.GetFullPathNameA(ctypes.byref(lpFileName), nBufferLength, ctypes.byref(lpBuffer), ctypes.byref(lpFilePart))
-    return success, lpBuffer, lpFilePart
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpBuffer.value, lpFilePart.value
+def GetFullPathNameW(lpFileName, nBufferLength = MAX_PATH):
+    lpFileName  = ctypes.create_unicode_buffer(lpFileName, nBufferLength)
+    lpBuffer    = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpFilePart  = ctypes.c_wchar_p()
+    success = ctypes.windll.kernel32.GetFullPathNameW(ctypes.byref(lpFileName), nBufferLength, ctypes.byref(lpBuffer), ctypes.byref(lpFilePart))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpBuffer.value, lpFilePart.value
+GetFullPathName = GetFullPathNameA
+
+# DWORD WINAPI GetTempPath(
+#   __in   DWORD nBufferLength,
+#   __out  LPTSTR lpBuffer
+# );
+def GetTempPathA():
+    nBufferLength = ctypes.windll.kernel32.GetTempPathA(0, NULL)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_string_buffer("", nBufferLength)
+    nCopied = ctypes.windll.kernel32.GetTempPathA(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+def GetTempPathW():
+    nBufferLength = ctypes.windll.kernel32.GetTempPathW(0, NULL)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_unicode_buffer(u"", nBufferLength)
+    nCopied = ctypes.windll.kernel32.GetTempPathW(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+GetTempPath = GetTempPathA
+
+# UINT WINAPI GetTempFileName(
+#   __in   LPCTSTR lpPathName,
+#   __in   LPCTSTR lpPrefixString,
+#   __in   UINT uUnique,
+#   __out  LPTSTR lpTempFileName
+# );
+def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
+    if lpPathName in (None, NULL):
+        lpPathName = GetTempPathA()
+    lpTempFileName = ctypes.create_string_buffer("", MAX_PATH)
+    uUnique = ctypes.windll.kernel32.GetTempFileNameA(lpPathName, lpPrefixString, uUnique, ctypes.byref(lpTempFileName))
+    if uUnique == 0:
+        raise ctypes.WinError()
+    return lpTempFileName.value, uUnique
+def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
+    if lpPathName in (None, NULL):
+        lpPathName = GetTempPathW()
+    lpTempFileName = ctypes.create_unicode_buffer(u"", MAX_PATH)
+    uUnique = ctypes.windll.kernel32.GetTempFileNameW(lpPathName, lpPrefixString, uUnique, ctypes.byref(lpTempFileName))
+    if uUnique == 0:
+        raise ctypes.WinError()
+    return lpTempFileName.value, uUnique
+GetTempFileName = GetTempFileNameA
 
 # LPWSTR *CommandLineToArgvW(
 #     LPCWSTR lpCmdLine,
@@ -3843,127 +3792,6 @@ def SetThreadContext(hThread, lpContext):
     if success == FALSE:
         raise ctypes.WinError()
 
-# BOOL WINAPI OpenProcessToken(
-#   __in   HANDLE ProcessHandle,
-#   __in   DWORD DesiredAccess,
-#   __out  PHANDLE TokenHandle
-# );
-def OpenProcessToken(ProcessHandle, DesiredAccess):
-    TokenHandle = DWORD(0)
-    success = ctypes.windll.advapi32.OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
-    if success == FALSE:
-        raise ctypes.WinError()
-    return TokenHandle.value
-
-# BOOL WINAPI OpenThreadToken(
-#   __in   HANDLE ThreadHandle,
-#   __in   DWORD DesiredAccess,
-#   __in   BOOL OpenAsSelf,
-#   __out  PHANDLE TokenHandle
-# );
-def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
-    if OpenAsSelf:
-        OpenAsSelf = TRUE
-    else:
-        OpenAsSelf = FALSE
-    TokenHandle = DWORD(0)
-    success = ctypes.windll.advapi32.OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
-    if success == FALSE:
-        raise ctypes.WinError()
-    return TokenHandle.value
-
-# BOOL WINAPI LookupPrivilegeValue(
-#   __in_opt  LPCTSTR lpSystemName,
-#   __in      LPCTSTR lpName,
-#   __out     PLUID lpLuid
-# );
-def LookupPrivilegeValue(lpSystemName, lpName):
-    if lpSystemName != NULL:
-        lpSystemName = ctypes.c_char_p(lpSystemName)
-    lpName       = ctypes.create_string_buffer(lpName)
-    lpLuid       = LUID()
-    success = ctypes.windll.advapi32.LookupPrivilegeValueA(lpSystemName, ctypes.byref(lpName), ctypes.byref(lpLuid))
-    if success == FALSE:
-        raise ctypes.WinError()
-    return lpLuid
-
-# BOOL WINAPI LookupPrivilegeName(
-#   __in_opt   LPCTSTR lpSystemName,
-#   __in       PLUID lpLuid,
-#   __out_opt  LPTSTR lpName,
-#   __inout    LPDWORD cchName
-# );
-def LookupPrivilegeName(lpSystemName, lpLuid):
-    if lpSystemName != NULL:
-        lpSystemName = ctypes.c_char_p(lpSystemName)
-    cchName = DWORD(0)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
-    lpName = ctypes.create_string_buffer("", cchName.value)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
-    return str(lpName)#[:cchName.value]
-
-# BOOL WINAPI AdjustTokenPrivileges(
-#   __in       HANDLE TokenHandle,
-#   __in       BOOL DisableAllPrivileges,
-#   __in_opt   PTOKEN_PRIVILEGES NewState,
-#   __in       DWORD BufferLength,
-#   __out_opt  PTOKEN_PRIVILEGES PreviousState,
-#   __out_opt  PDWORD ReturnLength
-# );
-def AdjustTokenPrivileges(TokenHandle, NewState = ()):
-    #
-    # I don't know how to allocate variable sized structures in ctypes :(
-    # so this hack will work by using always TOKEN_PRIVILEGES of one element
-    # and calling the API many times. This also means the PreviousState
-    # parameter won't be supported yet as it's too much hassle. In a future
-    # version I look forward to implementing this function correctly.
-    #
-    if not NewState:
-        success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, TRUE, NULL, 0, NULL, 0)
-        if success == FALSE:
-            raise ctypes.WinError()
-    else:
-        success = True
-        for (privilege, enabled) in NewState:
-            if not isinstance(privilege, LUID):
-                privilege = LookupPrivilegeValue(NULL, privilege)
-            if enabled == True:
-                flags = SE_PRIVILEGE_ENABLED
-            elif enabled == False:
-                flags = SE_PRIVILEGE_REMOVED
-            elif enabled == None:
-                flags = 0
-            else:
-                flags = enabled
-            laa = LUID_AND_ATTRIBUTES(privilege, flags)
-            tp  = TOKEN_PRIVILEGES(1, laa)
-            success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, 0)
-            if success == FALSE:
-                raise ctypes.WinError()
-
-# BOOL WINAPI EnumProcesses(
-#   __out  DWORD *pProcessIds,
-#   __in   DWORD cb,
-#   __out  DWORD *pBytesReturned
-# );
-def EnumProcesses():
-    size = 0x1000
-    while 1:
-        ProcessIds = (DWORD * size)()
-        cbBytesReturned = DWORD()
-        cbBytesReturned.value = size
-        retval = ctypes.windll.psapi.EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
-        if retval == 0:
-            raise ctypes.WinError()
-        if cbBytesReturned.value != size:
-            break
-        size = size + 0x1000
-    return [ long(dwProcessId) for dwProcessId in ProcessIds ]
-
 # HANDLE WINAPI CreateToolhelp32Snapshot(
 #   __in  DWORD dwFlags,
 #   __in  DWORD th32ProcessID
@@ -4212,3 +4040,640 @@ def IsWow64Process(hProcess):
     if success == FALSE:
         raise ctypes.WinError()
     return Wow64Process
+
+#--- ntdll.dll ----------------------------------------------------------------
+
+# NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
+#   IN SYSDBG_COMMAND Command,
+#   IN PVOID InputBuffer OPTIONAL,
+#   IN ULONG InputBufferLength,
+#   OUT PVOID OutputBuffer OPTIONAL,
+#   IN ULONG OutputBufferLength,
+#   OUT PULONG ReturnLength OPTIONAL
+# );
+def NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength):
+    if InputBufferLength is None:
+        if InputBuffer == NULL:
+            InputBufferLength = 0
+        else:
+            InputBufferLength = sizeof(InputBuffer)
+    if OutputBufferLength is None:
+        if OutputBuffer == NULL:
+            OutputBufferLength = 0
+        else:
+            OutputBufferLength = sizeof(OutputBuffer)
+    if InputBuffer != NULL:
+        InputBuffer = ctypes.byref(InputBuffer)
+    if OutputBuffer != NULL:
+        OutputBuffer = ctypes.byref(OutputBuffer)
+    if ReturnLength != NULL:
+        ReturnLength = ctypes.byref(ULONG(ReturnLength))
+    ntstatus = ctypes.windll.ntdll.NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength)
+    # TODO this function should not return the ntstatus
+    # instead it should allocate it's own memory when possible
+    # and return the data as a python object
+#    if ntstatus != 0:
+#        raise ctypes.WinError(ntstatus ^ 0xFFFFFFFF)
+    return ntstatus
+ZwSystemDebugControl = NtSystemDebugControl
+
+# NTSTATUS WINAPI NtQueryInformationProcess(
+#   __in       HANDLE ProcessHandle,
+#   __in       PROCESSINFOCLASS ProcessInformationClass,
+#   __out      PVOID ProcessInformation,
+#   __in       ULONG ProcessInformationLength,
+#   __out_opt  PULONG ReturnLength
+# );
+def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformationLength = None):
+    if ProcessInformationLength is not None:
+        ProcessInformation = ctypes.create_string_buffer("", ProcessInformationLength)
+    else:
+        if   ProcessInformationClass == ProcessBasicInformation:
+            ProcessInformation = PROCESS_BASIC_INFORMATION()
+            ProcessInformationLength = sizeof(PROCESS_BASIC_INFORMATION)
+        elif ProcessInformationClass == ProcessImageFileName:
+            unicode_buffer = ctypes.create_unicode_buffer(u"", 0x1000)
+            ProcessInformation = UNICODE_STRING(0, 0x1000, ctypes.addressof(unicode_buffer))
+            ProcessInformationLength = sizeof(UNICODE_STRING)
+        elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
+            ProcessInformation = DWORD()
+            ProcessInformationLength = sizeof(DWORD)
+        else:
+            raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
+    ReturnLength = ULONG(0)
+    ntstatus = ctypes.windll.ntdll.NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
+    if ntstatus != 0:
+        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+    if   ProcessInformationClass == ProcessBasicInformation:
+        retval = ProcessInformation
+    elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
+        retval = ProcessInformation.value
+    elif ProcessInformationClass == ProcessImageFileName:
+        vptr = ctypes.c_void_p(ProcessInformation.Buffer)
+        cptr = ctypes.cast( vptr, ctypes.c_wchar * ProcessInformation.Length )
+        retval = cptr.contents.raw
+    else:
+        retval = ProcessInformation.raw[:ReturnLength.value]
+    return retval
+ZwQueryInformationProcess = NtQueryInformationProcess
+
+# NTSTATUS WINAPI NtQueryInformationThread(
+#   __in       HANDLE ThreadHandle,
+#   __in       THREADINFOCLASS ThreadInformationClass,
+#   __out      PVOID ThreadInformation,
+#   __in       ULONG ThreadInformationLength,
+#   __out_opt  PULONG ReturnLength
+# );
+def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformationLength = None):
+    if ThreadInformationLength is not None:
+        ThreadInformation = ctypes.create_string_buffer("", ThreadInformationLength)
+    else:
+        if   ThreadInformationClass == ThreadBasicInformation:
+            ThreadInformation = THREAD_BASIC_INFORMATION()
+            ThreadInformationLength = sizeof(THREAD_BASIC_INFORMATION)
+        elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
+            ThreadInformation = DWORD()
+            ThreadInformationLength = sizeof(DWORD)
+        elif ThreadInformationClass == ThreadPerformanceCount:
+            ThreadInformation = LONGLONG()  # LARGE_INTEGER
+            ThreadInformationLength = sizeof(LONGLONG)
+        else:
+            raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
+    ReturnLength = ULONG(0)
+    ntstatus = ctypes.windll.ntdll.NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
+    if ntstatus != 0:
+        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+    if   ThreadInformationClass == ThreadBasicInformation:
+        retval = ThreadInformation
+    elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
+        retval = ThreadInformation.value
+    elif ThreadInformationClass == ThreadPerformanceCount:
+        retval = ThreadInformation.value
+    else:
+        retval = ThreadInformation.raw[:ReturnLength.value]
+    return retval
+ZwQueryInformationThread = NtQueryInformationThread
+
+# NTSTATUS 
+#   NtQueryInformationFile(
+#     IN HANDLE  FileHandle,
+#     OUT PIO_STATUS_BLOCK  IoStatusBlock,
+#     OUT PVOID  FileInformation,
+#     IN ULONG  Length,
+#     IN FILE_INFORMATION_CLASS  FileInformationClass
+#     );
+def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Length):
+    IoStatusBlock = IO_STATUS_BLOCK()
+    status = NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
+    if status != 0:
+        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+    return IoStatusBlock.Information
+ZwQueryInformationFile = NtQueryInformationFile
+
+#--- advapi32.dll -------------------------------------------------------------
+
+# BOOL WINAPI OpenProcessToken(
+#   __in   HANDLE ProcessHandle,
+#   __in   DWORD DesiredAccess,
+#   __out  PHANDLE TokenHandle
+# );
+def OpenProcessToken(ProcessHandle, DesiredAccess):
+    TokenHandle = DWORD(0)
+    success = ctypes.windll.advapi32.OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return TokenHandle.value
+
+# BOOL WINAPI OpenThreadToken(
+#   __in   HANDLE ThreadHandle,
+#   __in   DWORD DesiredAccess,
+#   __in   BOOL OpenAsSelf,
+#   __out  PHANDLE TokenHandle
+# );
+def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
+    if OpenAsSelf:
+        OpenAsSelf = TRUE
+    else:
+        OpenAsSelf = FALSE
+    TokenHandle = DWORD(0)
+    success = ctypes.windll.advapi32.OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return TokenHandle.value
+
+# BOOL WINAPI LookupPrivilegeValue(
+#   __in_opt  LPCTSTR lpSystemName,
+#   __in      LPCTSTR lpName,
+#   __out     PLUID lpLuid
+# );
+def LookupPrivilegeValue(lpSystemName, lpName):
+    if lpSystemName != NULL:
+        lpSystemName = ctypes.c_char_p(lpSystemName)
+    lpName       = ctypes.create_string_buffer(lpName)
+    lpLuid       = LUID()
+    success = ctypes.windll.advapi32.LookupPrivilegeValueA(lpSystemName, ctypes.byref(lpName), ctypes.byref(lpLuid))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpLuid
+
+# BOOL WINAPI LookupPrivilegeName(
+#   __in_opt   LPCTSTR lpSystemName,
+#   __in       PLUID lpLuid,
+#   __out_opt  LPTSTR lpName,
+#   __inout    LPDWORD cchName
+# );
+def LookupPrivilegeName(lpSystemName, lpLuid):
+    if lpSystemName != NULL:
+        lpSystemName = ctypes.c_char_p(lpSystemName)
+    cchName = DWORD(0)
+    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
+    if success == FALSE:
+        raise ctypes.WinError()
+    lpName = ctypes.create_string_buffer("", cchName.value)
+    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return str(lpName)#[:cchName.value]
+
+# BOOL WINAPI AdjustTokenPrivileges(
+#   __in       HANDLE TokenHandle,
+#   __in       BOOL DisableAllPrivileges,
+#   __in_opt   PTOKEN_PRIVILEGES NewState,
+#   __in       DWORD BufferLength,
+#   __out_opt  PTOKEN_PRIVILEGES PreviousState,
+#   __out_opt  PDWORD ReturnLength
+# );
+def AdjustTokenPrivileges(TokenHandle, NewState = ()):
+    #
+    # I don't know how to allocate variable sized structures in ctypes :(
+    # so this hack will work by using always TOKEN_PRIVILEGES of one element
+    # and calling the API many times. This also means the PreviousState
+    # parameter won't be supported yet as it's too much hassle. In a future
+    # version I look forward to implementing this function correctly.
+    #
+    if not NewState:
+        success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, TRUE, NULL, 0, NULL, 0)
+        if success == FALSE:
+            raise ctypes.WinError()
+    else:
+        success = True
+        for (privilege, enabled) in NewState:
+            if not isinstance(privilege, LUID):
+                privilege = LookupPrivilegeValue(NULL, privilege)
+            if enabled == True:
+                flags = SE_PRIVILEGE_ENABLED
+            elif enabled == False:
+                flags = SE_PRIVILEGE_REMOVED
+            elif enabled == None:
+                flags = 0
+            else:
+                flags = enabled
+            laa = LUID_AND_ATTRIBUTES(privilege, flags)
+            tp  = TOKEN_PRIVILEGES(1, laa)
+            success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, 0)
+            if success == FALSE:
+                raise ctypes.WinError()
+
+#--- psapi.dll ----------------------------------------------------------------
+
+# BOOL WINAPI EnumProcesses(
+#   __out  DWORD *pProcessIds,
+#   __in   DWORD cb,
+#   __out  DWORD *pBytesReturned
+# );
+def EnumProcesses():
+    size = 0x1000
+    while 1:
+        ProcessIds = (DWORD * size)()
+        cbBytesReturned = DWORD()
+        cbBytesReturned.value = size
+        retval = ctypes.windll.psapi.EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
+        if retval == 0:
+            raise ctypes.WinError()
+        if cbBytesReturned.value != size:
+            break
+        size = size + 0x1000
+    return [ long(dwProcessId) for dwProcessId in ProcessIds ]
+
+#--- shlwapi.dll --------------------------------------------------------------
+
+# LPTSTR PathAddBackslash(      
+#     LPTSTR lpszPath
+# );
+def PathAddBackslashA(lpszPath):
+    lpszPath = ctypes.create_string_buffer(lpszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathAddBackslashA(lpszPath)
+    return lpszPath.value
+def PathAddBackslashW(lpszPath):
+    lpszPath = ctypes.create_unicode_buffer(lpszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathAddBackslashW(lpszPath)
+    return lpszPath.value
+PathAddBackslash = PathAddBackslashA
+
+# BOOL PathAddExtension(      
+#     LPTSTR pszPath,
+#     LPCTSTR pszExtension
+# );
+def PathAddExtensionA(lpszPath, pszExtension = None):
+    if pszExtension is None:
+        pszExtension = NULL
+    lpszPath = ctypes.create_string_buffer(lpszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathAddExtensionA(lpszPath, pszExtension)
+    if success == FALSE:
+        return None
+    return lpszPath.value
+def PathAddExtensionW(lpszPath, pszExtension = None):
+    if pszExtension is None:
+        pszExtension = NULL
+    lpszPath = ctypes.create_unicode_buffer(lpszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathAddExtensionW(lpszPath, pszExtension)
+    if success == FALSE:
+        return None
+    return lpszPath.value
+PathAddExtension = PathAddExtensionA
+
+# BOOL PathAppend(      
+#     LPTSTR pszPath,
+#     LPCTSTR pszMore
+# );
+def PathAppendA(lpszPath, pszMore = None):
+    if pszMore is None:
+        pszMore = NULL
+    lpszPath = ctypes.create_string_buffer(lpszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathAppendA(lpszPath, pszMore)
+    if success == FALSE:
+        return None
+    return lpszPath.value
+def PathAppendW(lpszPath, pszMore = None):
+    if pszMore is None:
+        pszMore = NULL
+    lpszPath = ctypes.create_unicode_buffer(lpszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathAppendW(lpszPath, pszMore)
+    if success == FALSE:
+        return None
+    return lpszPath.value
+PathAppend = PathAppendA
+
+# LPTSTR PathCombine(      
+#     LPTSTR lpszDest,
+#     LPCTSTR lpszDir,
+#     LPCTSTR lpszFile
+# );
+def PathCombineA(lpszDir, lpszFile):
+    lpszDest = ctypes.create_string_buffer("", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
+    retval = ctypes.windll.shlwapi.PathCombineA(lpszDest, lpszDir, lpszFile)
+    if retval == NULL:
+        return None
+    return lpszDest.value
+def PathCombineW(lpszDir, lpszFile):
+    lpszDest = ctypes.create_unicode_buffer(u"", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
+    retval = ctypes.windll.shlwapi.PathCombineW(lpszDest, lpszDir, lpszFile)
+    if retval == NULL:
+        return None
+    return lpszDest.value
+PathCombine = PathCombineA
+
+# BOOL PathCanonicalize(      
+#     LPTSTR lpszDst,
+#     LPCTSTR lpszSrc
+# );
+def PathCanonicalizeA(lpszSrc):
+    lpszDst = ctypes.create_string_buffer("", MAX_PATH)
+    success = ctypes.windll.shlwapi.PathCanonicalizeA(ctypes.byref(lpszDst), lpszSrc)
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpszDst.value
+def PathCanonicalizeW(lpszSrc):
+    lpszDst = ctypes.create_unicode_buffer(u"", MAX_PATH)
+    success = ctypes.windll.shlwapi.PathCanonicalizeW(ctypes.byref(lpszDst), lpszSrc)
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpszDst.value
+PathCanonicalize = PathCanonicalizeA
+
+# BOOL PathFileExists(      
+#     LPCTSTR pszPath
+# );
+def PathFileExistsA(pszPath):
+    return bool( ctypes.windll.shlwapi.PathFileExistsA(pszPath) )
+def PathFileExistsW(pszPath):
+    return bool( ctypes.windll.shlwapi.PathFileExistsW(pszPath) )
+PathFileExists = PathFileExistsA
+
+# LPTSTR PathFindExtension(      
+#     LPCTSTR pszPath
+# );
+def PathFindExtensionA(pszPath):
+    pszPath = ctypes.c_char_p(pszPath)
+    pszPathExtension = ctypes.windll.shlwapi.PathFindExtensionA(pszPath)
+    pszPathExtension = ctypes.c_void_p(pszPathExtension)
+    pszPathExtension = ctypes.cast(pszPathExtension, ctypes.c_char_p)
+    return pszPathExtension.value
+def PathFindExtensionW(pszPath):
+    pszPath = ctypes.c_wchar_p(pszPath)
+    pszPathExtension = ctypes.windll.shlwapi.PathFindExtensionW(pszPath)
+    pszPathExtension = ctypes.c_void_p(pszPathExtension)
+    pszPathExtension = ctypes.cast(pszPathExtension, ctypes.c_wchar_p)
+    return pszPathExtension.value
+PathFindExtension = PathFindExtensionA
+
+# LPTSTR PathFindFileName(      
+#     LPCTSTR pszPath
+# );
+def PathFindFileNameA(pszPath):
+    pszPath = ctypes.c_char_p(pszPath)
+    pszPathFilename = ctypes.windll.shlwapi.PathFindFileNameA(pszPath)
+    pszPathFilename = ctypes.c_void_p(pszPathFilename)
+    pszPathFilename = ctypes.cast(pszPathFilename, ctypes.c_char_p)
+    return pszPathFilename.value
+def PathFindFileNameW(pszPath):
+    pszPath = ctypes.c_wchar_p(pszPath)
+    pszPathFilename = ctypes.windll.shlwapi.PathFindFileNameW(pszPath)
+    pszPathFilename = ctypes.c_void_p(pszPathFilename)
+    pszPathFilename = ctypes.cast(pszPathFilename, ctypes.c_wchar_p)
+    return pszPathFilename.value
+PathFindFileName = PathFindFileNameA
+
+# LPTSTR PathFindNextComponent(      
+#     LPCTSTR pszPath
+# );
+def PathFindNextComponentA(pszPath):
+    pszPath = ctypes.c_char_p(pszPath)
+    pszPathNext = ctypes.windll.shlwapi.PathFindNextComponentA(pszPath)
+    pszPathNext = ctypes.c_void_p(pszPathNext)
+    pszPathNext = ctypes.cast(pszPathNext, ctypes.c_char_p)
+    return pszPathNext.value    # may return None
+def PathFindNextComponentW(pszPath):
+    pszPath = ctypes.c_wchar_p(pszPath)
+    pszPathNext = ctypes.windll.shlwapi.PathFindNextComponentW(pszPath)
+    pszPathNext = ctypes.c_void_p(pszPathNext)
+    pszPathNext = ctypes.cast(pszPathNext, ctypes.c_wchar_p)
+    return pszPathNext.value    # may return None
+PathFindNextComponent = PathFindNextComponentA
+
+# BOOL PathFindOnPath(      
+#     LPTSTR pszFile,
+#     LPCTSTR *ppszOtherDirs
+# );
+def PathFindOnPathA(pszFile, ppszOtherDirs = None):
+    pszFile = ctypes.create_string_buffer(pszFile, MAX_PATH)
+    if not ppszOtherDirs:
+        ppszOtherDirs = NULL
+    else:
+        ppszArray = ""
+        for pszOtherDirs in ppszOtherDirs:
+            if pszOtherDirs:
+                ppszArray = "%s%s\0" % (ppszArray, pszOtherDirs)
+        ppszArray = ppszArray + "\0"
+        ppszOtherDirs = ctypes.byref( ctypes.create_string_buffer(ppszArray) )
+    success = ctypes.windll.shlwapi.PathFindOnPathA(pszFile, ppszOtherDirs)
+    if success == FALSE:
+        return None
+    return pszFile.value
+def PathFindOnPathW(pszFile, ppszOtherDirs = None):
+    pszFile = ctypes.create_unicode_buffer(pszFile, MAX_PATH)
+    if not ppszOtherDirs:
+        ppszOtherDirs = NULL
+    else:
+        ppszArray = u""
+        for pszOtherDirs in ppszOtherDirs:
+            if pszOtherDirs:
+                ppszArray = u"%s%s\0" % (ppszArray, pszOtherDirs)
+        ppszArray = ppszArray + u"\0"
+        ppszOtherDirs = ctypes.byref( ctypes.create_unicode_buffer(ppszArray) )
+    success = ctypes.windll.shlwapi.PathFindOnPathW(pszFile, ppszOtherDirs)
+    if success == FALSE:
+        return None
+    return pszFile.value
+PathFindOnPath = PathFindOnPathA
+
+# LPTSTR PathGetArgs(      
+#     LPCTSTR pszPath
+# );
+def PathGetArgsA(pszPath):
+    pszPath = ctypes.windll.shlwapi.PathGetArgsA(pszPath)
+    pszPath = ctypes.c_void_p(pszPath)
+    pszPath = ctypes.cast(pszPath, ctypes.c_char_p)
+    return pszPath.value
+def PathGetArgsW(pszPath):
+    pszPath = ctypes.windll.shlwapi.PathGetArgsW(pszPath)
+    pszPath = ctypes.c_void_p(pszPath)
+    pszPath = ctypes.cast(pszPath, ctypes.c_wchar_p)
+    return pszPath.value
+PathGetArgs = PathGetArgsA
+
+# BOOL PathIsContentType(      
+#     LPCTSTR pszPath,
+#     LPCTSTR pszContentType
+# );
+def PathIsContentTypeA(pszPath, pszContentType):
+    return bool( ctypes.windll.shlwapi.PathIsContentTypeA(pszPath, pszContentType) )
+def PathIsContentTypeW(pszPath, pszContentType):
+    return bool( ctypes.windll.shlwapi.PathIsContentTypeW(pszPath, pszContentType) )
+PathIsContentType = PathIsContentTypeA
+
+# BOOL PathIsDirectory(      
+#     LPCTSTR pszPath
+# );
+def PathIsDirectoryA(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsDirectoryA(pszPath) )
+def PathIsDirectoryW(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsDirectoryW(pszPath) )
+PathIsDirectory = PathIsDirectoryA
+
+# BOOL PathIsDirectoryEmpty(      
+#     LPCTSTR pszPath
+# );
+def PathIsDirectoryEmptyA(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsDirectoryEmptyA(pszPath) )
+def PathIsDirectoryEmptyW(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsDirectoryEmptyW(pszPath) )
+PathIsDirectoryEmpty = PathIsDirectoryEmptyA
+
+# BOOL PathIsNetworkPath(      
+#     LPCTSTR pszPath
+# );
+def PathIsNetworkPathA(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsNetworkPathA(pszPath) )
+def PathIsNetworkPathW(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsNetworkPathW(pszPath) )
+PathIsNetworkPath = PathIsNetworkPathA
+
+# BOOL PathIsRelative(      
+#     LPCTSTR lpszPath
+# );
+def PathIsRelativeA(lpszPath):
+    return bool( ctypes.windll.shlwapi.PathIsRelativeA(lpszPath) )
+def PathIsRelativeW(lpszPath):
+    return bool( ctypes.windll.shlwapi.PathIsRelativeW(lpszPath) )
+PathIsRelative = PathIsRelativeA
+
+# BOOL PathIsRoot(      
+#     LPCTSTR pPath
+# );
+def PathIsRootA(pPath):
+    return bool( ctypes.windll.shlwapi.PathIsRootA(pPath) )
+def PathIsRootW(pPath):
+    return bool( ctypes.windll.shlwapi.PathIsRootW(pPath) )
+PathIsRoot = PathIsRootA
+
+# BOOL PathIsSameRoot(      
+#     LPCTSTR pszPath1,
+#     LPCTSTR pszPath2
+# );
+def PathIsSameRootA(pszPath1, pszPath2):
+    return bool( ctypes.windll.shlwapi.PathIsSameRootA(pszPath1, pszPath2) )
+def PathIsSameRootW(pszPath1, pszPath2):
+    return bool( ctypes.windll.shlwapi.PathIsSameRootW(pszPath1, pszPath2) )
+PathIsSameRoot = PathIsSameRootA
+
+# BOOL PathIsUNC(      
+#     LPCTSTR pszPath
+# );
+def PathIsUNCA(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsUNCA(pszPath) )
+def PathIsUNCW(pszPath):
+    return bool( ctypes.windll.shlwapi.PathIsUNCW(pszPath) )
+PathIsUNC = PathIsUNCA
+
+# XXX PathMakePretty turns filenames into all lowercase.
+# I'm not sure how well that might work on Wine. 
+
+# BOOL PathMakePretty(      
+#     LPCTSTR pszPath
+# );
+def PathMakePrettyA(pszPath):
+    pszPath = ctypes.create_string_buffer(pszPath)
+    ctypes.windll.shlwapi.PathMakePrettyA(ctypes.byref(pszPath))
+    return pszPath.value
+def PathMakePrettyW(pszPath):
+    pszPath = ctypes.create_unicode_buffer(pszPath)
+    ctypes.windll.shlwapi.PathMakePrettyW(ctypes.byref(pszPath))
+    return pszPath.value
+PathMakePretty = PathMakePrettyA
+
+# void PathRemoveArgs(      
+#     LPTSTR pszPath
+# );
+def PathRemoveArgsA(pszPath):
+    pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveArgsA(pszPath)
+    return pszPath.value
+def PathRemoveArgsW(pszPath):
+    pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveArgsW(pszPath)
+    return pszPath.value
+PathRemoveArgs = PathRemoveArgsA
+
+# void PathRemoveBackslash(      
+#     LPTSTR pszPath
+# );
+def PathRemoveBackslashA(pszPath):
+    pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveBackslashA(pszPath)
+    return pszPath.value
+def PathRemoveBackslashW(pszPath):
+    pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveBackslashW(pszPath)
+    return pszPath.value
+PathRemoveBackslash = PathRemoveBackslashA
+
+# void PathRemoveExtension(      
+#     LPTSTR pszPath
+# );
+def PathRemoveExtensionA(pszPath):
+    pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveExtensionA(pszPath)
+    return pszPath.value
+def PathRemoveExtensionW(pszPath):
+    pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveExtensionW(pszPath)
+    return pszPath.value
+PathRemoveExtension = PathRemoveExtensionA
+
+# void PathRemoveFileSpec(      
+#     LPTSTR pszPath
+# );
+def PathRemoveFileSpecA(pszPath):
+    pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveFileSpecA(pszPath)
+    return pszPath.value
+def PathRemoveFileSpecW(pszPath):
+    pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
+    ctypes.windll.shlwapi.PathRemoveFileSpecW(pszPath)
+    return pszPath.value
+PathRemoveFileSpec = PathRemoveFileSpecA
+
+# BOOL PathRenameExtension(      
+#     LPTSTR pszPath,
+#     LPCTSTR pszExt
+# );
+def PathRenameExtensionA(pszPath, pszExt):
+    pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathRenameExtensionA(pszPath, pszExt)
+    if success == FALSE:
+        return None
+    return pszPath.value
+def PathRenameExtensionW(pszPath, pszExt):
+    pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
+    success = ctypes.windll.shlwapi.PathRenameExtensionW(pszPath, pszExt)
+    if success == FALSE:
+        return None
+    return pszPath.value
+PathRenameExtension = PathRenameExtensionA
+
+# BOOL PathUnExpandEnvStrings(      
+#     LPCTSTR pszPath,
+#     LPTSTR pszBuf,
+#     UINT cchBuf
+# );
+def PathUnExpandEnvStringsA(pszPath):
+    pszBuf = ctypes.create_string_buffer("", MAX_PATH)
+    cchBuf = MAX_PATH
+    ctypes.windll.shlwapi.PathUnExpandEnvStringsA(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
+    return pszBuf.value
+def PathUnExpandEnvStringsW(pszPath):
+    pszBuf = ctypes.create_unicode_buffer(u"", MAX_PATH)
+    cchBuf = MAX_PATH
+    ctypes.windll.shlwapi.PathUnExpandEnvStringsW(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
+    return pszBuf.value

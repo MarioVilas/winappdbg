@@ -36,6 +36,7 @@ __all__ =   [
                 'CrashContainer',
             ]
 
+from system import FileHandle
 from textio import HexDump, CrashDump
 import win32
 
@@ -80,51 +81,98 @@ class Crash (object):
     @type registersPeek: dict( str S{->} str )
     @ivar registersPeek: Dictionary mapping register names to the data they point to.
     
-    @type debugString: str
+    @type labelPC: None or str
+    @ivar labelPC: Label pointing to the program counter.
+
+        I{None} or invalid if unapplicable or unable to retrieve.
+    
+    @type debugString: None or str
     @ivar debugString: Debug string sent by the debugee.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type exceptionCode: int
+    @type exceptionCode: None or int
     @ivar exceptionCode: Exception code as defined by the Win32 API.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type exceptionName: str
+    @type exceptionName: None or str
     @ivar exceptionName: Exception code user-friendly name.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type exceptionAddress: int
+    @type exceptionAddress: None or int
     @ivar exceptionAddress: Memory address where the exception occured.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type firstChance: bool
+    @type exceptionLabel: None or str
+    @ivar exceptionLabel: Label pointing to the exception address.
+
+        I{None} or invalid if unapplicable or unable to retrieve.
+    
+    @type firstChance: None or bool
     @ivar firstChance: True for first chance exceptions, False for second chance.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type modFileName: str
+    @type modFileName: None or str
     @ivar modFileName: File name of module where the program counter points to.
+
+        I{None} or invalid if unapplicable or unable to retrieve.
     
-    @type lpBaseOfDll: int
+    @type lpBaseOfDll: None or int
     @ivar lpBaseOfDll: Base of module where the program counter points to.
+
+        I{None} if unapplicable or unable to retrieve.
     
-    @type stackTrace: list( int, int, str )
-    @ivar stackTrace: Stack trace of the current thread as a tuple of ( return address, frame pointer, module filename ).
+    @type stackTrace: None or tuple of tuple( int, int, str )
+    @ivar stackTrace:
+        Stack trace of the current thread as a tuple of
+        ( return address, frame pointer, module filename ).
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type stackTracePC: tuple( int )
-    @ivar stackTracePC: List of return addresses in the stack trace.
-        Converted to tuple to make it hashable.
+    @type stackTracePC: None or tuple( int... )
+    @ivar stackTracePC: Tuple of return addresses in the stack trace.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type stackFrame: str
+    @type stackTraceLabels: None or tuple( str... )
+    @ivar stackTraceLabels:
+        Tuple of labels pointing to the return addresses in the stack trace.
+
+        I{None} or empty if unapplicable or unable to retrieve.
+    
+    @type stackFrame: None or str
     @ivar stackFrame: Data pointed to by the stack pointer.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type stackPeek: dict( int S{->} str )
+    @type stackPeek: None or dict( int S{->} str )
     @ivar stackPeek: Dictionary mapping stack offsets to the data they point to.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type faultCode: str
+    @type faultCode: None or str
     @ivar faultCode: Data pointed to by the program counter.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type faultMem: str
+    @type faultMem: None or str
     @ivar faultMem: Data pointed to by the exception address.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type faultPeek: dict( intS{->} str )
+    @type faultPeek: None or dict( intS{->} str )
     @ivar faultPeek: Dictionary mapping guessed pointers at L{faultMem} to the data they point to.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     
-    @type faultDisasm: 
+    @type faultDisasm: None or tuple of tuple( long, int, str, str )
     @ivar faultDisasm: Dissassembly around the program counter.
+
+        I{None} or empty if unapplicable or unable to retrieve.
     """
 
     def __init__(self, event):
@@ -154,8 +202,11 @@ class Crash (object):
         self.firstChance        = None
         self.modFileName        = None
         self.lpBaseOfDll        = None
+        self.labelPC            = None
+        self.exceptionLabel     = None
         self.stackTrace         = None
         self.stackTracePC       = None
+        self.stackTraceLabels   = None
         self.stackFrame         = None
         self.stackPeek          = None
         self.faultCode          = None
@@ -178,9 +229,16 @@ class Crash (object):
             self.modFileName = aModule.get_filename()
             self.lpBaseOfDll = aModule.get_base()
 
+        self.labelPC        = process.create_label_from_address(self.pc)
+        self.exceptionLabel = process.create_label_from_address(
+                                                         self.exceptionAddress)
+
         self.stackTrace     = thread.get_stack_trace()
         stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
-        self.stackTracePC   = tuple(stackTracePC)   # now it's hashable
+        self.stackTracePC   = tuple(stackTracePC)
+        stackTraceLabels    = [ process.create_label_from_address(ra) \
+                                                  for ra in self.stackTracePC ]
+        self.stackTraceLabels = tuple(stackTraceLabels)
 
         try:
             self.stackFrame = thread.get_stack_frame()
@@ -250,13 +308,21 @@ class Crash (object):
         @rtype:  (opaque)
         @return: Crash unique key.
         """
-        return      (
-                    self.eventCode,
-                    self.exceptionCode,
-                    self.pc,
-                    self.stackTracePC,
-                    self.debugString,
-                    )
+        if self.labelPC:
+            eip = self.labelPC
+        else:
+            eip = self.pc
+        if self.stackTraceLabels:
+            trace = self.stackTraceLabels
+        else:
+            trace = self.stackTracePC
+        return  (
+                self.eventCode,
+                self.exceptionCode,
+                eip,
+                trace,
+                self.debugString,
+                )
 
     def briefReport(self):
         """
@@ -264,26 +330,40 @@ class Crash (object):
         @return: Short description of the event.
         """
         if self.exceptionCode is not None:
-            if self.firstChance:
-                chance_str = 'first'
+            if self.exceptionDescription:
+                what = self.exceptionDescription
+            elif self.exceptionName:
+                what = self.exceptionName
             else:
-                chance_str = 'second'
-            msg = "%s (%s chance) at 0x%.8x" % (
-                                                   self.exceptionDescription,
-##                                                   self.exceptionName,
-                                                   chance_str,
-                                                   self.exceptionAddress
-                                                  )
+                what = "Exception 0x%.8x" % self.exceptionCode
+            if self.firstChance:
+                chance = 'first'
+            else:
+                chance = 'second'
+            if self.exceptionLabel:
+                where = self.exceptionLabel
+            elif self.exceptionAddress:
+                where = "0x%.8x" % self.exceptionAddress
+            elif self.labelPC:
+                where = self.labelPC
+            else:
+                where = "0x%.8x" % self.pc
+            msg = "%s (%s chance) at %s" % (what, chance, where)
         elif self.debugString is not None:
-            msg = "Debug string from 0x%.8x: %r" % (
-                                                    self.pc,
-                                                    self.debugString
-                                                   )
+            if self.labelPC:
+                where = self.labelPC
+            else:
+                where = "0x%.8x" % self.pc
+            msg = "Debug string from %s: %r" % (where, self.debugString)
         else:
-            msg = "%s (0x%.8x) at 0x%.8x" % (
+            if self.labelPC:
+                where = self.labelPC
+            else:
+                where = "0x%.8x" % self.pc
+            msg = "%s (0x%.8x) at %s" % (
                                              self.eventName,
                                              self.eventCode,
-                                             self.pc
+                                             where
                                             )
         return msg
 
@@ -299,14 +379,12 @@ class Crash (object):
             msg += '\nNotes:\n'
             msg += self.notesReport()
 
-        if self.modFileName:
-            fn = self.modFileName
-            if '\\' in fn:
-                fn = fn[ fn.rfind('\\') + 1 : ]
-            elif '/' in fn:
-                fn = fn[ fn.rfind('/') + 1 : ]
-            print 3
-            msg += '\nRunning in %s (0x%.8x)\n' % (fn, self.lpBaseOfDll)
+        if not self.labelPC:
+            if self.modFileName:
+                fn = FileHandle.pathname_to_filename(self.modFileName)
+                msg += '\nRunning in %s (0x%.8x)\n' % (fn, self.lpBaseOfDll)
+            else:
+                msg += '\nRunning in module at 0x%.8x\n' % self.lpBaseOfDll
 
         if self.registers:
             msg += '\nRegisters:\n'
@@ -561,7 +639,7 @@ class CrashContainer (object):
         Adds a new crash to the container.
         If the crash appears to be already known, it's ignored.
         
-        @see: L{Crask.key}
+        @see: L{Crash.key}
         
         @type crash:  L{Crash}
         @param crash: Crash object to add.
@@ -639,8 +717,8 @@ class CrashContainer (object):
         """
         Marshalls a Crash object to be used in the database.
         
-        @type  key: L{Crash}
-        @param key: Object to convert.
+        @type  value: L{Crash}
+        @param value: Object to convert.
         
         @rtype:  str
         @return: Converted object.
@@ -652,8 +730,8 @@ class CrashContainer (object):
         """
         Unmarshalls a Crash object read from the database.
         
-        @type  key: str
-        @param key: Object to convert.
+        @type  value: str
+        @param value: Object to convert.
         
         @rtype:  L{Crash}
         @return: Converted object.
