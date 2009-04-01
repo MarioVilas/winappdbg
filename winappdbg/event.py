@@ -127,17 +127,18 @@ class Event (object):
         @return: Process where the event occured.
         """
         # We can't assume the Process object will be in the System snapshot.
-        # The user may have cleared the snapshot, or some debug events could
-        # have been missed (it seems to happen sometimes when automatically
-        # following processes created by the debuguee, and I could swear the
-        # bug is not in my code but in the Win32 API).
+        # The user may have cleared or otherwise modified the snapshot.
+        # Also some process creation events are missed on Wine.
         pid     = self.get_pid()
         system  = self.debug.system
         if system.has_process(pid):
             process = system.get_process(pid)
         else:
+##            print "Process notification missed! ID: %x" % pid       # XXX
             process = Process(pid)
             system._ProcessContainer__add_process(process)
+##            process.scan_threads()    # not needed
+            process.scan_modules()
         return process
 
     def get_thread(self):
@@ -147,13 +148,14 @@ class Event (object):
         @rtype:  L{Thread}
         @return: Thread where the event occured.
         """
-        # We can't assume the Process object will be in the System snapshot.
+        # We can't assume the Thread object will be in the Process snapshot.
         # See the comments of get_process.
         tid     = self.get_tid()
         process = self.get_process()
         if process.has_thread(tid):
             thread = process.get_thread(tid)
         else:
+##            print "Thread notification missed! ID: %x" % tid        # XXX
             thread = Thread(tid)
             process._ThreadContainer__add_thread(thread)
         return thread
