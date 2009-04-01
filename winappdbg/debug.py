@@ -130,7 +130,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         
         @raise WindowsError: Raises an exception on error.
         """
-        DebugActiveProcess(dwProcessId)
+        win32.DebugActiveProcess(dwProcessId)
         self.__manuallyStartedProcessesSet.add(dwProcessId)
         self.__debugeeCount += 1
 
@@ -186,7 +186,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             self.__manuallyStartedProcessesSet.remove(dwProcessId)
 
         try:
-            DebugActiveProcessStop(dwProcessId)
+            win32.DebugActiveProcessStop(dwProcessId)
             self.__debugeeCount -= 1
         except Exception:
              if not bIgnoreExceptions:
@@ -403,7 +403,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             self.__manuallyStartedProcessesSet.remove(dwProcessId)
         else:
             self.__debugeeCount += 1
-        return True
+        return self.system.notify_create_process(event)
 
     def notify_create_thread(self, event):
         """
@@ -453,7 +453,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         bCallHandler = BreakpointContainer.notify_exit_process(self, event)
         bCallHandler = bCallHandler and self.system.notify_exit_process(event)
-
         return bCallHandler
 
     def notify_exit_thread(self, event):
@@ -473,6 +472,8 @@ class Debug (EventDispatcher, BreakpointContainer):
                                   event.get_process().notify_exit_thread(event)
         return bCallHandler
 
+    # TODO
+    # Breakpoints should be notified when the DLL they are on is removed.
     def notify_unload_dll(self, event):
         """
         Notify the unload of a module.
