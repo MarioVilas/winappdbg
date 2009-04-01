@@ -535,12 +535,12 @@ def parse_cmdline(argv):
             parser.error(str(e))
 
     # return the parsed command line options and arguments
-    return (options, args)
+    return (parser, options, args)
 
 # TODO
 # * Create a new crash dump file for each debugged executable
 def main(args):
-    (options, args) = parse_cmdline(args)
+    (parser, options, args) = parse_cmdline(args)
 
     if options.verbose:
         print DebugLog.log_text("Crash logger started, %s" % time.ctime())
