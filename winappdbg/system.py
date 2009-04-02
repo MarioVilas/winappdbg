@@ -46,6 +46,12 @@ Instrumentation library.
 # to manipulate processes and threads
 # without the need for the debugger
 
+# FIXME
+# I've been told the host process for the latest versions of VMWare
+# can't be instrumented, because they try to stop code injection into the VMs.
+# The solution appears to be to run the debugger from a user account that
+# belongs to the VMware group. I haven't yet confirmed this.
+
 __all__ =   [
                 # Instrumentation classes.
                 'System',
@@ -540,14 +546,17 @@ class ModuleContainer (object):
         """
         bases = self.get_module_bases()
         bases.sort()
-        bases.insert(0, 0x00000000)
-        bases.append(   0xFFFFFFFF)
-        for i in xrange(len(bases)-1):
-            begin, end = bases[i:i+2]
-            if begin <= address <= end:
-                if not self.has_module(begin):
-                    break
-                return self.get_module(begin)
+        bases.append(0x100000000)   # invalid, > 4 gb. address space
+        if address >= bases[0]:
+            for i in xrange(len(bases)-1):  # -1 because last base is fake
+                begin, end = bases[i:i+2]
+                if begin <= address <= end:
+                    module = self.get_module(begin)
+                    here   = module.is_address_here(address)
+                    if here is False:
+                        break
+                    else:   # True or None
+                        return module
         return None
 
     # FIXME
@@ -575,19 +584,25 @@ class ModuleContainer (object):
             me = win32.Module32First(hSnapshot)
             while me is not None:
                 lpBaseAddress = me.modBaseAddr
-                szModule      = me.szModule
+                fileName      = me.szExePath
+                if not fileName:
+                    fileName  = me.szModule
+                    if not fileName:
+                        fileName = None
                 found_bases.add(lpBaseAddress)
                 if not self.has_module(lpBaseAddress):
-                    if szModule:
-                        aModule = Module(lpBaseAddress, fileName = szModule)
-                    else:
-                        aModule = Module(lpBaseAddress)
+                    aModule = Module(lpBaseAddress, fileName = fileName,
+                                           SizeOfImage = me.modBaseSize,
+                                           process = self)
                     self.__add_module(aModule)
                 else:
-                    if szModule:
-                        aModule = self.get_module(lpBaseAddress)
-                        if not aModule.fileName:
-                            aModule.fileName = szModule
+                    aModule = self.get_module(lpBaseAddress)
+                    if not aModule.fileName:
+                        aModule.fileName    = fileName
+                    if not aModule.SizeOfImage:
+                        aModule.SizeOfImage = me.modBaseSize
+                    if not aModule.process:
+                        aModule.process     = self
                 me = win32.Module32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
@@ -627,18 +642,23 @@ class ModuleContainer (object):
     def __add_loaded_module(self, event):
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
-        if self.has_module(lpBaseOfDll):
+        if not self.has_module(lpBaseOfDll):
+            fileName = event.get_filename()
+            if not fileName:
+                fileName = None
+            aModule  = Module(lpBaseOfDll, hFile, fileName = fileName,
+                                                   process = self)
+            self.__add_module(aModule)
+        else:
             aModule = self.get_module(lpBaseOfDll)
             if hFile != win32.INVALID_HANDLE_VALUE:
                 aModule.hFile = hFile
+            if not aModule.process:
+                aModule.process = self
             if not aModule.fileName:
                 fileName = event.get_filename()
                 if fileName:
                     aModule.fileName = fileName
-        else:
-            fileName = event.get_filename()
-            aModule  = Module(lpBaseOfDll, hFile, fileName)
-            self.__add_module(aModule)
 
     def notify_create_process(self, event):
         """
@@ -2267,6 +2287,11 @@ class ProcessDebugOperations (object):
         """
         return self.get_peb().ImageBaseAddress
 
+    # TODO
+    # Still not working sometimes, I need more implementations.
+    # Example: PIFSvc.exe from Symantec, under Windows XP.
+    # Note that using the toolhelp api won't help, it also fails.
+    # My guess is tasklist.exe uses undocumented apis (at ntdll?).
     def get_image_name(self):
         """
         @rtype:  int
@@ -3003,9 +3028,10 @@ class Module (object):
     Interface with a DLL library loaded in the context of another process.
     
     @group Properties:
-        get_base, get_filename, get_name
+        get_base, get_filename, get_name, get_size, get_entry_point,
+        get_process, get_pid
     @group Symbols:
-        get_label, resolve
+        get_label, resolve, is_address_here
     @group Handle:
         get_handle, open_handle, close_handle
     
@@ -3013,43 +3039,107 @@ class Module (object):
     @cvar unknown: Suggested tag for unknown modules.
     
     @type lpBaseOfDll: int
-    @ivar lpBaseOfDll: Base of DLL module. Use L{get_base} instead.
+    @ivar lpBaseOfDll: Base of DLL module.
+        Use L{get_base} instead.
     
     @type hFile: L{FileHandle}
-    @ivar hFile: Handle to the module file. Use L{get_handle} instead.
+    @ivar hFile: Handle to the module file.
+        Use L{get_handle} instead.
     
     @type fileName: str
-    @ivar fileName: Module filename. Use L{get_filename} instead.
+    @ivar fileName: Module filename.
+        Use L{get_filename} instead.
+    
+    @type SizeOfImage: int
+    @ivar SizeOfImage: Size of the module.
+        Use L{get_size} instead.
+    
+    @type EntryPoint: int
+    @ivar EntryPoint: Entry point of the module.
+        Use L{get_entry_point} instead.
+    
+    @type process: L{Process}
+    @ivar process: Process where the module is loaded.
+        Use L{get_process} instead.
     """
 
     unknown = '<unknown>'
 
-    def __init__(self, lpBaseOfDll = win32.NULL, hFile = None, fileName = None):
+    def __init__(self, lpBaseOfDll, hFile = None, fileName    = None,
+                                                  SizeOfImage = None,
+                                                  EntryPoint  = None,
+                                                  process     = None):
         """
         @type  lpBaseOfDll: str
-        @param lpBaseOfDll: Remote base address for module.
+        @param lpBaseOfDll: Base address of the module.
         
         @type  hFile: L{FileHandle}
-        @param hFile: Handle to the module file.
+        @param hFile: (Optional) Handle to the module file.
         
         @type  fileName: str
-        @param fileName: Module filename.
+        @param fileName: (Optional) Module filename.
+        
+        @type  SizeOfImage: int
+        @param SizeOfImage: (Optional) Size of the module.
+        
+        @type  EntryPoint: int
+        @param EntryPoint: (Optional) Entry point of the module.
+        
+        @type  process: L{Process}
+        @param process: (Optional) Process where the module is loaded.
         """
         super(Module, self).__init__(self)
         self.lpBaseOfDll    = lpBaseOfDll
         self.hFile          = hFile
         self.fileName       = fileName
+        self.SizeOfImage    = SizeOfImage
+        self.EntryPoint     = EntryPoint
+        self.process        = process
 
     def get_base(self):
         """
-        @rtype:  int
+        @rtype:  int or None
         @return: Base address of the module.
+            Returns C{None} if unknown.
         """
         return self.lpBaseOfDll
 
+    def get_size(self):
+        """
+        @rtype:  int or None
+        @return: Base size of the module.
+            Returns C{None} if unknown.
+        """
+        if not self.SizeOfImage:
+            self.__get_size_and_entry_point()
+        return self.SizeOfImage
+
+    def get_entry_point(self):
+        """
+        @rtype:  int or None
+        @return: Entry point of the module.
+            Returns C{None} if unknown.
+        """
+        if not self.EntryPoint:
+            self.__get_size_and_entry_point()
+        return self.EntryPoint
+
+    def __get_size_and_entry_point(self):
+        "Get the size and entry point of the module using the Win32 API."
+        process = self.get_process()
+        if process:
+            try:
+                handle = process.get_handle()
+                base   = self.get_base()
+                mi     = win32.GetModuleInformation(handle, base)
+                self.SizeOfImage = mi.SizeOfImage
+                self.EntryPoint  = mi.EntryPoint
+            except WindowsError:
+                pass
+
     def get_filename(self):
         """
-        @rtype:  str
+        @rtype:  str or None
         @return: Module filename.
             Returns C{None} if unknown.
         """
@@ -3085,6 +3175,26 @@ class Module (object):
         else:
             modName = "0x%x" % self.get_base()
         return modName
+
+    def get_process(self):
+        """
+        @rtype:  L{Process} or None
+        @return: Parent Process object.
+            Returns C{None} on error.
+        """
+        return self.process
+
+    def get_pid(self):
+        """
+        @rtype:  int or None
+        @return: Parent process global ID.
+            Returns C{None} on error.
+        """
+        if self.process is None:
+            return None
+        return self.process.get_pid()
+
+#------------------------------------------------------------------------------
 
     def open_handle(self):
         """
@@ -3188,6 +3298,24 @@ class Module (object):
 
         # Compensate for DLL base relocations locally and remotely.
         return address - hlib + self.lpBaseOfDll
+
+    def is_address_here(self, address):
+        """
+        Tries to determine if the given address belongs to this module.
+        
+        @type  address: int
+        @param address: Memory address.
+        
+        @rtype:  bool or None
+        @return: C{True} if the address belongs to the module,
+            C{False} if it doesn't,
+            and C{None} if it can't be determined.
+        """
+        base = self.get_base()
+        size = self.get_size()
+        if base and size:
+            return base <= address < (base + size)
+        return None
 
 #==============================================================================
 
