@@ -33,7 +33,15 @@
 
 # $Id$
 
-from winappdbg import System
+# TODO
+# Get the names of the services running in each process.
+
+# TODO
+# How about showing some colors?
+# It'd be useful when using a search string, to highlight the matching parts.
+# Also to show processes run by SYSTEM or other users with different colors.
+
+from winappdbg import System, FileHandle
 
 import optparse
 
@@ -76,10 +84,10 @@ def main(argv):
 
     # Prepare the format string for the output.
     w = len(str(pid_list[-1]))
-    fmt = "%%%dd %%s" % w
+    fmt = " %%%dd %%s" % w
 
-##    # Print the output table header
-##    print ("%%%ds Filename\n" % w) % "PID"
+    # Print the output table header
+    print (" %%%ds Filename\n" % w) % "PID"
 
     # Enumerate the processes in the snapshot.
     for pid in pid_list:
@@ -93,14 +101,12 @@ def main(argv):
 
         # Get the process filename (or pathname).
         else:
-            try:
-                fileName = p.get_filename()
-                if showFilenameOnly:
-##                    fileName = os.path.basename(fileName)
-                    fileName = fileName[fileName.rfind('\\')+1:]
-            except WindowsError:
-##                raise   # XXX
-                fileName = '<unknown>'
+            fileName = p.get_filename()
+            if not fileName:
+##                fileName = "<unknown>"
+                fileName = ""
+            elif showFilenameOnly:
+                fileName = FileHandle.pathname_to_filename(fileName)
 
         # Filter the output with the search string.
         if searchString and searchString not in fileName.lower():
