@@ -184,6 +184,12 @@ class Crash (object):
         @param event: Event object for crash.
         """
 
+        # TODO
+        # Not all event types need all this info.
+        # Review which events need what info and fetch only that.
+        # Maybe it could be user-defined too?
+        # The goal is to reduce the database size.
+
         self.timeStamp          = time.time()
 
         self.notes              = list()
