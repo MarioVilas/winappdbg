@@ -21,8 +21,8 @@ def print_heap_blocks( pid ):
             entry = Heap32First( heap.th32ProcessID, heap.th32HeapID )
             while entry is not None:
                 
-                # print the heap id and the entry address and size
-                print "%.8x\t%.8x\t%.8x\t" % \
+                # Print the heap id and the entry address and size
+                print "%.8x\t%.8x\t%.8x" % \
                       (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
                 
                 # Next entry in the heap
