@@ -45,7 +45,14 @@ Event handling library.
     ExceptionEvent
 """
 
-__all__ = [ 'EventFactory', 'EventHandler' ]
+__all__ = [
+            # Factory of Event objects and all of it's subclasses.
+            # Users should not need to instance Event objects directly.
+            'EventFactory',
+            
+            # Base class for user-defined event handlers.
+            'EventHandler'
+          ]
 
 import win32
 from breakpoint import ApiHook

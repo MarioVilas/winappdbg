@@ -37,15 +37,6 @@ Main module.
 """
 
 __all__ =   [
-                # from system.py
-                'Module',
-                'Thread',
-                'Process',
-                'System',
-
-                # from event.py
-                'EventHandler',
-
                 # the main debugger class
                 'Debug',
             ]

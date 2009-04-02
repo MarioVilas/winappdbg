@@ -47,6 +47,14 @@ Blog:    U{http://breakingcode.wordpress.com}
 
 # List of all public symbols
 __all__ =   [
+                # from breakpoint import *
+##                'Breakpoint',
+##                'CodeBreakpoint',
+##                'PageBreakpoint',
+##                'HardwareBreakpoint',
+                'DebugRegister',
+##                'ApiHook',
+##                'BreakpointContainer',
                 
                 # from crash import *
                 'Crash',
@@ -54,11 +62,20 @@ __all__ =   [
                 
                 # from debug import *
                 'Debug',
-                'EventHandler',
+                
+                # from system import *
                 'Module',
                 'Thread',
                 'Process',
                 'System',
+                'Handle',
+                'ProcesHandle',
+                'ThreadHandle',
+                'FileHandle',
+
+                # from debug import *
+                'EventHandler',
+##                'EventFactory',
                 
                 # from textio import *
                 'DebugLog',
@@ -71,7 +88,10 @@ __all__ =   [
             ]
 
 # Import all public symbols
+from breakpoint import *
 from crash import *
 from debug import *
+from event import *
+from system import *
 from textio import *
 import win32

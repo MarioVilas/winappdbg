@@ -32,7 +32,10 @@ Crash logger.
 """
 
 __all__ =   [
+                # Object that represents a crash in the debugee.
                 'Crash',
+                
+                # Container that can store Crash objects in a database. 
                 'CrashContainer',
             ]
 

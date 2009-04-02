@@ -47,10 +47,17 @@ Instrumentation library.
 # without the need for the debugger
 
 __all__ =   [
+                # Instrumentation classes.
                 'System',
                 'Process',
                 'Thread',
                 'Module',
+                
+                # Win32 handle wrapper classes.
+                'Handle',
+                'ProcesHandle',
+                'ThreadHandle',
+                'FileHandle',
             ]
 
 import win32
