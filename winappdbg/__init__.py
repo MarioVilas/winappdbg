@@ -69,7 +69,7 @@ __all__ =   [
                 'Process',
                 'System',
                 'Handle',
-                'ProcesHandle',
+                'ProcessHandle',
                 'ThreadHandle',
                 'FileHandle',
 

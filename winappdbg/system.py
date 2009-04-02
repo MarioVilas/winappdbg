@@ -55,7 +55,7 @@ __all__ =   [
                 
                 # Win32 handle wrapper classes.
                 'Handle',
-                'ProcesHandle',
+                'ProcessHandle',
                 'ThreadHandle',
                 'FileHandle',
             ]
