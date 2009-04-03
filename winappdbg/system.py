@@ -376,7 +376,7 @@ class ModuleContainer (object):
     @group Modules snapshot:
         scan_modules,
         get_module, get_module_bases, get_module_count,
-        get_module_from_address, get_module_from_name,
+        get_module_at_address, get_module_by_name,
         has_module, iter_modules, iter_module_addresses,
         clear_modules
     
@@ -479,7 +479,7 @@ class ModuleContainer (object):
 
 #------------------------------------------------------------------------------
 
-    def get_module_from_name(self, modName):
+    def get_module_by_name(self, modName):
         """
         @type  modName: int
         @param modName:
@@ -535,7 +535,7 @@ class ModuleContainer (object):
         # Module not found.
         return None
 
-    def get_module_from_address(self, address):
+    def get_module_at_address(self, address):
         """
         @type  address: int
         @param address: Memory address to query.
@@ -1428,17 +1428,28 @@ class SymbolOperations (object):
         U{https://apps.sourceforge.net/trac/winappdbg/wiki/Labels}
     
     @group Labels:
-        create_label,
-        create_label_from_address,
+        parse_label,
         split_label,
-        split_label_fuzzy,
-        resolve_label
+        sanitize_label,
+        resolve_label,
+        get_label_at_address,
+        split_label_strict,
+        split_label_fuzzy
     """
 
+    def __init__(self):
+        super(SymbolOperations, self).__init__()
+        
+        # Replace split_label with the fuzzy version on object instances.
+        self.split_label = self.__use_fuzzy_mode
+
     @staticmethod
-    def create_label(module = None, function = None, offset = None):
+    def parse_label(module = None, function = None, offset = None):
         """
         Creates a label from a module and a function name, plus an offset.
+        
+        @warning: This method only parses the label, it doesn't make sure the
+            label actually points to a valid memory location.
         
         @type  module: None or str
         @param module: (Optional) Module name.
@@ -1446,7 +1457,7 @@ class SymbolOperations (object):
         @type  function: None, str or int
         @param function: (Optional) Function name or ordinal.
         
-        @type  offset: None or str
+        @type  offset: None or int
         @param offset: (Optional) Offset value.
             
             If C{function} is specified, offset from the function.
@@ -1504,19 +1515,22 @@ class SymbolOperations (object):
         return label
 
     @staticmethod
-    def split_label(label):
+    def split_label_strict(label):
         """
-        Splits a label created with L{create_label}.
+        Splits a label created with L{parse_label}.
         
         To parse labels with a less strict syntax, use the L{split_label_fuzzy}
         method instead.
         
+        @warning: This method only parses the label, it doesn't make sure the
+            label actually points to a valid memory location.
+        
         @type  label: str
         @param label: Label to split.
         
-        @rtype:  tuple( str, str, str )
+        @rtype:  tuple( str or None, str or int or None, int or None )
         @return: Tuple containing the C{module} name,
-            the C{function} name, and the C{offset} value.
+            the C{function} name or ordinal, and the C{offset} value.
             
             If the label doesn't specify a module,
             then C{module} is C{None}.
@@ -1552,23 +1566,23 @@ class SymbolOperations (object):
             try:
                 module, function = label.split('!')
             except ValueError:
-                raise ValueError, "Invalid label: %s" % label
+                raise ValueError, "Malformed label: %s" % label
 
             # module ! function
             if function:
                 if '+' in module:
-                    raise ValueError, "Invalid label: %s" % label
+                    raise ValueError, "Malformed label: %s" % label
 
                 # module ! function + offset
                 if '+' in function:
                     try:
                         function, offset = function.split('+')
                     except ValueError:
-                        raise ValueError, "Invalid label: %s" % label
+                        raise ValueError, "Malformed label: %s" % label
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Invalid label: %s" % label
+                        raise ValueError, "Malformed label: %s" % label
                 else:
 
                     # module ! offset
@@ -1584,11 +1598,11 @@ class SymbolOperations (object):
                     try:
                         module, offset = module.split('+')
                     except ValueError:
-                        raise ValueError, "Invalid label: %s" % label
+                        raise ValueError, "Malformed label: %s" % label
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Invalid label: %s" % label
+                        raise ValueError, "Malformed label: %s" % label
 
                 else:
 
@@ -1647,11 +1661,32 @@ class SymbolOperations (object):
         """
         Splits a label entered as user input.
         
-        It's more flexible in it's syntax parsing than the L{split_label}
-        module, as it allows the exclamation mark (B{C{!}}) to be omitted.
+        It's more flexible in it's syntax parsing than the L{split_label_strict}
+        method, as it allows the exclamation mark (B{C{!}}) to be omitted. The
+        ambiguity is resolved by searching the modules in the snapshot to guess
+        if a label refers to a module or a function. It also tries to rebuild
+        labels when they contain hardcoded addresses.
         
-        The ambiguity is resolved by searching the modules in the snapshot to
-        guess if a label refers to a module or a function.
+        @warning: This method only parses the label, it doesn't make sure the
+            label actually points to a valid memory location.
+        
+        @type  label: str
+        @param label: Label to split.
+        
+        @rtype:  tuple( str or None, str or int or None, int or None )
+        @return: Tuple containing the C{module} name,
+            the C{function} name or ordinal, and the C{offset} value.
+            
+            If the label doesn't specify a module,
+            then C{module} is C{None}.
+            
+            If the label doesn't specify a function,
+            then C{function} is C{None}.
+            
+            If the label doesn't specify an offset,
+            then C{offset} is C{0}.
+        
+        @raise ValueError: The label is malformed.
         """
         module = function = None
         offset = 0
@@ -1686,14 +1721,15 @@ class SymbolOperations (object):
             try:
                 prefix, offset = label.split('+')
             except ValueError:
-                raise ValueError, "Invalid label: %s" % label
+                raise ValueError, "Malformed label: %s" % label
             try:
                 offset = HexInput.integer(offset)
             except ValueError:
-                raise ValueError, "Invalid label: %s" % label
+                raise ValueError, "Malformed label: %s" % label
             label = prefix
 
-        modobj = self.get_module_from_name(label)
+        # This parses both filenames and base addresses.
+        modobj = self.get_module_by_name(label)
         if modobj:
 
             # module
@@ -1702,17 +1738,37 @@ class SymbolOperations (object):
 
         else:
 
+            # TODO
+            # If 0xAAAAAAAA + 0xBBBBBBBB is given,
+            # A is interpreted as a module base address,
+            # and B as an offset.
+            # If that fails, it'd be good to add A+B and try to
+            # use the nearest loaded module. 
+
             # offset
+            # base address + offset (when no module has that base address)
             try:
-                offset = HexInput.integer(label)
+                address = HexInput.integer()
+
+                if offset:
+                    # If 0xAAAAAAAA + 0xBBBBBBBB is given,
+                    # A is interpreted as a module base address,
+                    # and B as an offset.
+                    # If that fails, we get here, meaning no module was found
+                    # at A. Then add up A+B and work with that as a hardcoded
+                    # address.
+                    offset = address + offset
+                else:
+                    # If the label is a hardcoded address, we get here.
+                    offset = address
 
                 # If only a hardcoded address is given,
-                # rebuild the label using create_label_from_address.
+                # rebuild the label using get_label_at_address.
                 # Then parse it again, but this time strictly,
                 # both because there is no need for fuzzy syntax and
                 # to prevent an infinite recursion if there's a bug here.
                 try:
-                    new_label = self.create_label_from_address(offset)
+                    new_label = self.get_label_at_address(offset)
                     module, function, offset = self.split_label(new_label)
                 except ValueError:
                     pass
@@ -1734,6 +1790,65 @@ class SymbolOperations (object):
             offset = None
 
         return (module, function, offset)
+
+    @classmethod
+    def split_label(cls, label):
+        """
+        Splits a label into it's C{module}, C{function} and C{offset}
+        components, as used in L{parse_label}.
+        
+        When called as a static method, the strict syntax mode is used:
+            
+            C{winappdbg.Process.split_label( "kernel32!CreateFileA" )}
+        
+        When called as an instance method, the fuzzy syntax mode is used:
+            
+            C{aProcessInstance.split_label( "CreateFileA" )}
+        
+        @see: L{split_label_strict}, L{split_label_fuzzy}
+        
+        @type  label: str
+        @param label: Label to split.
+        
+        @rtype:  tuple( str or None, str or int or None, int or None )
+        @return: Tuple containing the C{module} name,
+            the C{function} name or ordinal, and the C{offset} value.
+            
+            If the label doesn't specify a module,
+            then C{module} is C{None}.
+            
+            If the label doesn't specify a function,
+            then C{function} is C{None}.
+            
+            If the label doesn't specify an offset,
+            then C{offset} is C{0}.
+        
+        @raise ValueError: The label is malformed.
+        """
+        
+        # This function is overwritten by __init__
+        # so here is the static implementation only.
+        return cls.split_label_strict(label)
+
+    # The split_label method is replaced with this function by __init__.
+    def __use_fuzzy_mode(self, label):
+        '@see: L{split_label_fuzzy}'    # if introspection fails
+        return self.split_label_fuzzy(label)
+    __use_fuzzy_mode.__doc__ = split_label.__doc__
+
+    def sanitize_label(self, label):
+        """
+        Converts a label taken from user input into a well-formed label.
+        
+        @type  label: str
+        @param label: Label taken from user input.
+        
+        @rtype:  str
+        @return: Sanitized label.
+        """
+        (module, function, offset) = self.split_label_fuzzy(label)
+        label = self.parse_label(module, function, offset)
+        return label
 
     def resolve_label(self, label):
         """
@@ -1769,7 +1884,7 @@ class SymbolOperations (object):
         
         # Resolve the module.
         if module:
-            modobj = self.get_module_from_name(module)
+            modobj = self.get_module_by_name(module)
             if not modobj:
                 msg = "Module %s not found" % module
                 raise RuntimeError, msg
@@ -1801,28 +1916,30 @@ class SymbolOperations (object):
             address = address + offset
         return address
 
-    def create_label_from_address(self, address):
+    def get_label_at_address(self, address, offset = None):
         """
         Creates a label from the given memory address.
+        
+        @warning: This method uses the name of the nearest currently loaded
+            module. If that module is unloaded later, the label becomes
+            impossible to resolve.
         
         @type  address: int
         @param address: Memory address.
         
+        @type  offset: None or int
+        @param offset: (Optional) Offset value.
+        
         @rtype:  str
         @return: Label pointing to the given address.
         """
-        modobj = self.get_module_from_address(address)
-        if modobj is None:
-            label = self.create_label(None, None, address)
+        if offset:
+            address = address + offset
+        modobj = self.get_module_at_address(address)
+        if modobj:
+            label = modobj.get_label_at_address(address)
         else:
-            
-            # TODO
-            # enumerate exported functions and debug symbols,
-            # then find the closest match
-            
-            module = modobj.get_name()
-            offset = address - modobj.get_base()
-            label = self.create_label(module, None, offset)
+            label = self.parse_label(None, None, address)
         return label
 
 #==============================================================================
@@ -1892,7 +2009,7 @@ class ThreadDebugOperations (object):
             ra  = aProcess.peek_uint(fp + 4)
             if ra == 0:
                 break
-            lib = aProcess.get_module_from_address(ra)
+            lib = aProcess.get_module_at_address(ra)
             if lib is None:
                 lib = ""
             else:
@@ -2941,7 +3058,7 @@ class ProcessContainer (object):
         """
         found = list()
         for aProcess in self.iter_processes():
-            aModule = aProcess.get_module_from_name(fileName)
+            aModule = aProcess.get_module_by_name(fileName)
             if aModule is not None:
                 found.append( (aProcess, aModule) )
         return found
@@ -2953,7 +3070,7 @@ class ProcessContainer (object):
         """
         found = list()
         for aProcess in self.iter_processes():
-            aModule = aProcess.get_module_from_address(address)
+            aModule = aProcess.get_module_at_address(address)
             if aModule is not None:
                 found.append( (aProcess, aModule) )
         return found
@@ -3031,7 +3148,7 @@ class Module (object):
         get_base, get_filename, get_name, get_size, get_entry_point,
         get_process, get_pid
     @group Symbols:
-        get_label, resolve, is_address_here
+        get_label, get_label_at_address, is_address_here, resolve
     @group Handle:
         get_handle, open_handle, close_handle
     
@@ -3251,7 +3368,57 @@ class Module (object):
         @rtype:  str
         @return: Label for the module base address, plus the offset if given.
         """
-        return SymbolOperations.create_label(self.get_name(), function, offset)
+        return SymbolOperations.parse_label(self.get_name(), function, offset)
+
+    def get_label_at_address(self, address, offset = None):
+        """
+        Creates a label from the given memory address.
+        
+        If the address belongs to the module, the label is made relative to
+        it's base address.
+        
+        @type  address: int
+        @param address: Memory address.
+        
+        @type  offset: None or int
+        @param offset: (Optional) Offset value.
+        
+        @rtype:  str
+        @return: Label pointing to the given address.
+        """
+        
+        # Add the offset to the address.
+        if offset:
+            address = address + offset
+        
+        # TODO
+        # enumerate exported functions and debug symbols,
+        # then find the closest match
+        
+        # Make the label relative to the base address.
+        module = self.get_name()
+        offset = address - self.get_base()
+        label  = self.parse_label(module, None, offset)
+        
+        return label
+
+    def is_address_here(self, address):
+        """
+        Tries to determine if the given address belongs to this module.
+        
+        @type  address: int
+        @param address: Memory address.
+        
+        @rtype:  bool or None
+        @return: C{True} if the address belongs to the module,
+            C{False} if it doesn't,
+            and C{None} if it can't be determined.
+        """
+        base = self.get_base()
+        size = self.get_size()
+        if base and size:
+            return base <= address < (base + size)
+        return None
 
     # TODO
     # A better solution would be to map a view of the file,
@@ -3298,24 +3465,6 @@ class Module (object):
 
         # Compensate for DLL base relocations locally and remotely.
         return address - hlib + self.lpBaseOfDll
-
-    def is_address_here(self, address):
-        """
-        Tries to determine if the given address belongs to this module.
-        
-        @type  address: int
-        @param address: Memory address.
-        
-        @rtype:  bool or None
-        @return: C{True} if the address belongs to the module,
-            C{False} if it doesn't,
-            and C{None} if it can't be determined.
-        """
-        base = self.get_base()
-        size = self.get_size()
-        if base and size:
-            return base <= address < (base + size)
-        return None
 
 #==============================================================================
 
@@ -3908,28 +4057,71 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
 #------------------------------------------------------------------------------
 
-    # Ambiguous, we have two implementations of __iter__():
-    #     ThreadContainer.__contains__()
-    #     ModuleContainer.__contains__()
     def __contains__(self, anObject):
-        return ThreadContainer.__contains__(self, anObject)
-    __contains__.__doc__ = ThreadContainer.__contains__.__doc__
+        """
+        The same as: C{self.has_thread(anObject) or self.has_module(anObject)}
+        
+        @type  anObject: L{Thread}, L{Module} or int
+        @param anObject: Object to look for.
+            Can be a Thread, Module, thread global ID or module base address.
 
-    # Ambiguous, we have two implementations of __iter__():
-    #     ThreadContainer.__iter__()
-    #     ModuleContainer.__iter__()
-    def __iter__(self):
-        return ThreadContainer.__iter__(self)
-    __iter__.__doc__ = ThreadContainer.__iter__.__doc__
+        @rtype:  bool
+        @return: C{True} if the requested object was found in the snapshot.
+        """
+        return ThreadContainer.__contains__(self, anObject) or \
+               ModuleContainer.__contains__(self, anObject)
 
-    # Ambiguous, we have two implementations of __len__():
-    #     ThreadContainer.__len__()
-    #     ModuleContainer.__len__()
     def __len__(self):
-        return ThreadContainer.__len__(self)
-    __len__.__doc__ = ThreadContainer.__len__.__doc__
+        """
+        @see:    L{get_thread_count}, L{get_module_count}
+        @rtype:  int
+        @return: Count of L{Thread} and L{Module} objects in this snapshot.
+        """
+        return ThreadContainer.__len__(self) + \
+               ModuleContainer.__len__(self)
 
-    # (Oh, the delights of Python's multiple inheritance...)
+    class __ThreadsAndModulesIterator (object):
+        """
+        Iterator object for L{Process} objects.
+        Iterates through L{Thread} objects first, L{Module} objects next.
+        """
+        
+        def __init__(self, container):
+            """
+            @type  container: L{Process}
+            @param container: L{Thread} and L{Module} container.
+            """
+            self.__container = container
+            self.__iterator  = None
+            self.__state     = 0
+        
+        def next(self):
+            'x.next() -> the next value, or raise StopIteration'
+            if self.__state == 0:
+                self.__iterator = container.iter_threads()
+                self.__state    = 1
+            if self.__state == 1:
+                try:
+                    return self.__iterator.next()
+                except StopIteration:
+                    self.__iterator = container.iter_modules()
+                    self.__state    = 2
+            if self.__state == 2:
+                try:
+                    return self.__iterator.next()
+                except StopIteration:
+                    self.__iterator = None
+                    self.__state    = 3
+            raise StopIteration
+
+    def __iter__(self):
+        """
+        @see:    L{iter_threads}, L{iter_modules}
+        @rtype:  iterator
+        @return: Iterator of L{Thread} and L{Module} objects in this snapshot.
+            All threads are iterated first, then all modules.
+        """
+        return self.__ThreadsAndModulesIterator(self)
 
 #------------------------------------------------------------------------------
 
@@ -4072,10 +4264,10 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
 
         # Resolve kernel32.dll
-        aModule = self.get_module_from_name('kernel32.dll')
+        aModule = self.get_module_by_name('kernel32.dll')
         if aModule is None:
             self.scan_modules()
-            aModule = self.get_module_from_name('kernel32.dll')
+            aModule = self.get_module_by_name('kernel32.dll')
         if aModule is None:
             raise RuntimeError, \
                             "Cannot resolve kernel32.dll in the remote process"

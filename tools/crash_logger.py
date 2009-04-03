@@ -179,9 +179,9 @@ class LoggingEventHandler(EventHandler):
             try:
 
                 # Set user-defined breakpoints for this process.
-                event.debug.break_at_symbol_list(dwProcessId, self.break_at[1],
+                event.debug.break_at_label_list(dwProcessId, self.break_at[1],
                                                only_for_this_module = baseName)
-                event.debug.stalk_at_symbol_list(dwProcessId, self.stalk_at[1],
+                event.debug.stalk_at_label_list(dwProcessId, self.stalk_at[1],
                                                only_for_this_module = baseName)
             finally:
 
@@ -325,7 +325,7 @@ class LoggingEventHandler(EventHandler):
             if address == aProcess.get_system_breakpoint():
                 msg = "System breakpoint hit"
             else:
-                aModule = aProcess.get_module_from_address(address)
+                aModule = aProcess.get_module_at_address(address)
                 if aModule is not None:
                     modFileName = aModule.fileName
                     if modFileName == Module.unknown:
@@ -505,15 +505,15 @@ def parse_cmdline(argv):
         try:
             mixed_list   = HexInput.mixed_list_file(options.break_at)
             address_list = list()
-            symbol_list  = list()
+            label_list   = list()
             for x in mixed_list:
                 if type(x) == type(''):
-                    symbol_list.append(x)
+                    label_list.append(x)
                 elif type(x) == type(0):
                     address_list.append(x)
                 else:
                     parser.error("invalid address in breakpoint list file: %r" % x)
-            options.break_at = (address_list, symbol_list)
+            options.break_at = (address_list, label_list)
         except ValueError, e:
             parser.error(str(e))
     if options.stalk_at:
@@ -522,15 +522,15 @@ def parse_cmdline(argv):
         try:
             mixed_list   = HexInput.mixed_list_file(options.stalk_at)
             address_list = list()
-            symbol_list  = list()
+            label_list   = list()
             for x in mixed_list:
                 if type(x) == type(''):
-                    symbol_list.append(x)
+                    label_list.append(x)
                 elif type(x) == type(0):
                     address_list.append(x)
                 else:
                     parser.error("invalid address in one-shot breakpoint list file: %r" % x)
-            options.stalk_at = (address_list, symbol_list)
+            options.stalk_at = (address_list, label_list)
         except ValueError, e:
             parser.error(str(e))
 

@@ -233,19 +233,19 @@ class Crash (object):
         elif self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
             self.debugString = event.get_debug_string()
 
-        aModule = process.get_module_from_address(self.pc)
+        aModule = process.get_module_at_address(self.pc)
         if aModule is not None:
             self.modFileName = aModule.get_filename()
             self.lpBaseOfDll = aModule.get_base()
 
-        self.labelPC        = process.create_label_from_address(self.pc)
-        self.exceptionLabel = process.create_label_from_address(
+        self.labelPC        = process.get_label_at_address(self.pc)
+        self.exceptionLabel = process.get_label_at_address(
                                                          self.exceptionAddress)
 
         self.stackTrace     = thread.get_stack_trace()
         stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
         self.stackTracePC   = tuple(stackTracePC)
-        stackTraceLabels    = [ process.create_label_from_address(ra) \
+        stackTraceLabels    = [ process.get_label_at_address(ra) \
                                                   for ra in self.stackTracePC ]
         self.stackTraceLabels = tuple(stackTraceLabels)
 

@@ -1235,7 +1235,7 @@ class ApiHook(object):
     """
     Stub that handles pre and post API hook callbacks.
     
-    @see: L{Debug.break_at_exported_symbol}
+    @see: L{Debug.break_at_label}
     """
 
     def __init__(self, eventHandler, procName, paramCount = 0):
@@ -1360,7 +1360,7 @@ class ApiHook(object):
         @type  modName: str
         @param modName: Module name.
         """
-        debug.hook_exported_symbol(pid, modName, self.procName, self)
+        debug.hook_exported_function(pid, modName, self.procName, self)
 
     def unhook(self, debug, pid, modName):
         """
@@ -1377,7 +1377,7 @@ class ApiHook(object):
         @type  modName: str
         @param modName: Module name.
         """
-        debug.unhook_exported_symbol(pid, modName, self.procName)
+        debug.unhook_exported_function(pid, modName, self.procName)
 
 #==============================================================================
 
@@ -1390,9 +1390,9 @@ class BreakpointContainer (object):
         dont_break_at, dont_stalk_at, dont_watch_variable, dont_watch_buffer
     
     @group Symbols:
-        resolve_exported_symbol,
-        break_at_exported_symbol, dont_break_at_exported_symbol,
-        break_at_address_list, break_at_symbol_list
+        resolve_label,
+        break_at_label, dont_break_at_label,
+        break_at_address_list, break_at_label_list
     
     @group Advanced breakpoint use:
         define_code_breakpoint,
@@ -2576,50 +2576,50 @@ class BreakpointContainer (object):
 #------------------------------------------------------------------------------
 
     @processidparam
-    def resolve_exported_symbol(self, pid, modName, procName):
+    def resolve_exported_function(self, pid, modName, procName):
         """
         Resolves the exported DLL function for the given process.
         
-        @see: hook_exported_symbol, unhook_exported_symbol
+        @see: hook_exported_function, unhook_exported_function
         
         @type  pid: int
         @param pid: Process global ID.
         
         @type  modName: str
-        @param modName: Name of the module that exports the symbol.
+        @param modName: Name of the module that exports the function.
         
         @type  procName: str
-        @param procName: Name of the exported symbol to resolve.
+        @param procName: Name of the exported function to resolve.
         
         @rtype:  int, None
-        @return: On success, the address of the exported symbol.
+        @return: On success, the address of the exported function.
             On failure, returns None.
         """
         aProcess = self.system.get_process(pid)
-        aModule = aProcess.get_module_from_name(modName)
+        aModule = aProcess.get_module_by_name(modName)
         if not aModule:
             aProcess.scan_modules()
-            aModule = aProcess.get_module_from_name(modName)
+            aModule = aProcess.get_module_by_name(modName)
         if aModule:
-            address = aModule.resolve_exported_symbol(procName)
+            address = aModule.resolve(procName)
             return address
         return None
 
     @processidparam
-    def break_at_exported_symbol(self, pid, modName, procName, action = None):
+    def break_at_exported_function(self, pid, modName, procName, action = None):
         """
         Sets a code breakpoint at the given exported DLL function.
         
-        @see: L{break_at}, L{dont_break_at_exported_symbol}
+        @see: L{break_at}, L{dont_break_at_exported_function}
         
         @type  pid: int
         @param pid: Process global ID.
         
         @type  modName: str
-        @param modName: Name of the module that exports the symbol.
+        @param modName: Name of the module that exports the function.
         
         @type  procName: str
-        @param procName: Name of the exported symbol to hook.
+        @param procName: Name of the exported function to hook.
         
         @type    action: function
         @keyword action: (Optional) Action callback function.
@@ -2627,37 +2627,37 @@ class BreakpointContainer (object):
             See L{define_code_breakpoint} for more details.
         
         @rtype:  int
-        @return: The address of the exported symbol.
+        @return: The address of the exported function.
         
-        @raise RuntimeError: When the exported symbol can't be found.
+        @raise RuntimeError: When the exported function can't be found.
         """
-        address = self.resolve_exported_symbol(pid, modName, procName)
+        address = self.resolve_exported_function(pid, modName, procName)
         if address is None:
-            raise RuntimeError, "Exported symbol not found: %s" % procName
+            raise RuntimeError, "Exported function not found: %s" % procName
         self.break_at(pid, address, action)
         return address
 
     @processidparam
-    def dont_break_at_exported_symbol(self, pid, modName, procName):
+    def dont_break_at_exported_function(self, pid, modName, procName):
         """
         Clears a code breakpoint at the given exported DLL function.
         
-        @see: L{break_at}, L{break_at_exported_symbol}
+        @see: L{break_at}, L{break_at_exported_function}
         
         @type  pid: int
         @param pid: Process global ID.
         
         @type  modName: str
-        @param modName: Name of the module that exports the symbol.
+        @param modName: Name of the module that exports the function.
         
         @type  procName: str
-        @param procName: Name of the exported symbol to hook.
+        @param procName: Name of the exported function to hook.
         
-        @raise RuntimeError: When the exported symbol can't be found.
+        @raise RuntimeError: When the exported function can't be found.
         """
-        address = self.resolve_exported_symbol(pid, modName, procName)
+        address = self.resolve_exported_function(pid, modName, procName)
         if address is None:
-            raise RuntimeError, "Exported symbol not found: %s" % procName
+            raise RuntimeError, "Exported function not found: %s" % procName
         self.dont_break_at(pid, address)
 
     @processidparam
@@ -2707,7 +2707,7 @@ class BreakpointContainer (object):
         """
         Clears a code breakpoint set by L{break_at} or L{stalk_at}.
         
-        @see: L{dont_break_at_exported_symbol}
+        @see: L{dont_break_at_exported_function}
         
         @type  pid: int
         @param pid: Process global ID.
@@ -2763,50 +2763,31 @@ class BreakpointContainer (object):
         for address in address_list:
             self.stalk_at(pid, address, action)
 
-    def __split_symbol(self, symbol):
-        """
-        Splits the module and procedure from an exported symbol name.
-        
-        @type  symbol: str
-        @param symbol: Symbol to split
-        
-        @rtype:  tuple( str, str )
-        @return: Tuple containing the module and procedure names.
-        """
-        if '!' in symbol:
-            pos       = symbol.find('!')
-            module    = symbol[         : pos ]
-            procedure = symbol[ pos + 1 :     ]
-        else:
-            module    = '*'
-            procedure = symbol
-        return ( module.strip(), procedure.strip() )
-
-    def __break_or_stalk_at_symbol_list(self, pid, symbol_list, action = None,
+    def __break_or_stalk_at_label_list(self, pid, label_list,   action = None,
                                                   only_for_this_module = None,
                                                                 bBreak = True):
         """
-        Internally used by break_at_symbol_list() and stalk_at_symbol_list().
+        Internally used by break_at_label_list() and stalk_at_label_list().
         
         @type  pid: int
         @param pid: Process global ID.
         
-        @type  symbol_list: list( str )
-        @param symbol_list: List of target exported symbols.
+        @type  label_list: list( str )
+        @param label_list: List of target labels.
         
         @type    action: function
         @keyword action: (Optional) Action callback function.
         
         @type    only_for_this_module: L{Module}
         @keyword only_for_this_module: (Optional)
-            Only apply for symbols that can be resolved on the given module.
-            Skip all other symbols.
+            Only apply for labels that belong to the given module.
+            Skip all other labels.
         
         @type    bBreak: bool
         @keyword bBreak: True to L{break_at}, False to L{stalk_at}.
         
         @rtype:  set( int )
-        @return: All resolved symbols where a code breakpoint was set.
+        @return: All resolved labels where a code breakpoint was set.
         """
         aProcess = self.system.get_process(pid)
         resolved = set()
@@ -2814,74 +2795,73 @@ class BreakpointContainer (object):
             method = self.break_at
         else:
             method = self.stalk_at
+                
+        # Discard repeated labels.
+        label_list = set( label_list )
 
-        # Filter symbols by module.
+        # Filter labels by module.
         if only_for_this_module:
-            aModule = aProcess.get_module_from_name(only_for_this_module)
-            for symbol in symbol_list:
-                (module, procedure) = self.__split_symbol(symbol)
+            aModule = aProcess.get_module_by_name(only_for_this_module)
+            for label in label_list:
+                (module, procedure, offset) = aProcess.split_label(label)
 
-                # Discard symbols belonging to other modules.
-                if module != '*' and module != only_for_this_module:
+                # Discard labels belonging to other modules.
+                if module and module != only_for_this_module:
                     continue
 
-                # Resolve the symbol.
-                address = aModule.resolve_exported_symbol(procedure)
+                # Resolve the label.
+                try:
+                    label   = aProcess.parse_label(module, procedure, offset)
+                    address = aProcess.resolve_label(label)
+                except ValueError:
+                    continue    # Discard invalid labels.
                 
-                # Discard missing or repeated symbols.
+                # Discard missing or redundant labels.
                 if address is None or address in resolved:
                     continue
                 
-                # Remember resolved symbols.
+                # Remember resolved labels.
                 resolved.add(address)
                 
                 # Set the breakpoint.
                 method(pid, address, action)
 
-        # Resolve symbols in all modules.
+        # Resolve labels in all modules.
         else:
-            for symbol in symbol_list:
-                (module, procedure) = self.__split_symbol(symbol)
+            for label in label_list:
 
-                # Resolve the symbol in all known modules.
-                if module == '*':
-                    procedure = symbol
-                    for aModule in aProcess.iter_modules():
-                        address = aModule.resolve_exported_symbol(procedure)
-                        if address is None or address in resolved:
-                            continue
-                        resolved.add(address)
-                        method(pid, address, action)
+                # Resolve the label.
+                try:
+                    address = aProcess.resolve_label(label)
+                except ValueError:
+                    continue    # Discard invalid labels.
+                
+                # Discard missing or redundant labels.
+                if address is None or address in resolved:
+                    continue
+                
+                # Remember resolved labels.
+                resolved.add(address)
+                
+                # Set the breakpoint.
+                method(pid, address, action)
 
-                # Resolve the symbol in the module it belongs to.
-                else:
-                    aModule = aProcess.get_module_from_name(module)
-                    if aModule is None:
-                        aProcess.scan_modules()
-                        aModule = aProcess.get_module_from_name(module)
-                    if aModule is not None:
-                        address = aModule.resolve_exported_symbol(procedure)
-                        if address is None or address in resolved:
-                            continue
-                        resolved.add(address)
-                        method(pid, address, action)
-
-        # Return the resolved symbols.
+        # Return the resolved addresses.
         return resolved
 
     @processidparam
-    def break_at_symbol_list(self, pid, symbol_list,            action = None,
+    def break_at_label_list(self, pid, label_list,              action = None,
                                                   only_for_this_module = None):
         """
-        Sets code breakpoints at the given exported symbols.
+        Sets code breakpoints at the given labels.
         
         @see: L{break_at}
         
         @type  pid: int
         @param pid: Process global ID.
         
-        @type  symbol_list: list( str )
-        @param symbol_list: List of target exported symbols.
+        @type  label_list: list( str )
+        @param label_list: List of target labels.
         
         @type    action: function
         @keyword action: (Optional) Action callback function.
@@ -2890,28 +2870,28 @@ class BreakpointContainer (object):
         
         @type    only_for_this_module: L{Module}
         @keyword only_for_this_module: (Optional)
-            Only apply for symbols that can be resolved on the given module.
-            Skip all other symbols.
+            Only apply for labels that can be resolved on the given module.
+            Skip all other labels.
         
         @rtype:  set( int )
-        @return: All resolved symbols where a code breakpoint was set.
+        @return: All memory addresses where a code breakpoint was set.
         """
-        return self.__break_or_stalk_at_symbol_list(pid, symbol_list, action,
+        return self.__break_or_stalk_at_label_list(pid, label_list, action,
                                           only_for_this_module, bBreak = True)
 
     @processidparam
-    def stalk_at_symbol_list(self, pid, symbol_list,            action = None,
+    def stalk_at_label_list(self, pid, label_list,              action = None,
                                                   only_for_this_module = None):
         """
-        Sets one-shot code breakpoints at the given exported symbols.
+        Sets one-shot code breakpoints at the given labels.
         
         @see: L{break_at}
         
         @type  pid: int
         @param pid: Process global ID.
         
-        @type  symbol_list: list( str )
-        @param symbol_list: List of target exported symbols.
+        @type  label_list: list( str )
+        @param label_list: List of target labels.
         
         @type    action: function
         @keyword action: (Optional) Action callback function.
@@ -2920,13 +2900,13 @@ class BreakpointContainer (object):
         
         @type    only_for_this_module: L{Module}
         @keyword only_for_this_module: (Optional)
-            Only apply for symbols that can be resolved on the given module.
-            Skip all other symbols.
+            Only apply for labels that can be resolved on the given module.
+            Skip all other labels.
         
         @rtype:  set( int )
-        @return: All resolved symbols where a code breakpoint was set.
+        @return: All memory addresses where a code breakpoint was set.
         """
-        return self.__break_or_stalk_at_symbol_list(pid, symbol_list, action,
+        return self.__break_or_stalk_at_label_list(pid, label_list, action,
                                           only_for_this_module, bBreak = False)
 
     @threadidparam
