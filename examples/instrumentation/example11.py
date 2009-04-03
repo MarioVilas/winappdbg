@@ -3,7 +3,7 @@
 
 from winappdbg import System, Process
 
-def print_api_address( pid, dllname, exportname ):
+def print_api_address( pid, dllname, apiname ):
     
     # Request debug privileges
     System.request_debug_privileges()
@@ -14,19 +14,17 @@ def print_api_address( pid, dllname, exportname ):
     # Lookup it's modules
     process.scan_modules()
     
-    # See if the module is loaded
-    if not process.has_module( dllname ):
+    # Get the module
+    module = process.get_module_by_name( dllname )
+    if not module:
         print "Module not found: %s" % dllname
         return
     
-    # Get the module
-    module = process.get_module( dllname )
-    
     # Resolve the requested API function address
-    address = module.resolve( exportname )
+    address = module.resolve( apiname )
     
     # Print the address
-    print "%s!%s == 0x%.08x" % ( dllname, exportname, address )
+    print "%s!%s == 0x%.08x" % ( dllname, apiname, address )
 
 # When invoked from the command line,
 # the first argument is a process ID,
@@ -36,5 +34,5 @@ if __name__ == "__main__":
     import sys
     pid         = int( sys.argv[1] )
     dllname     = sys.argv[2]
-    exportname  = sys.argv[3]
-    print_api_address( pid, dllname, exportname )
+    apiname     = sys.argv[3]
+    print_api_address( pid, dllname, apiname )
