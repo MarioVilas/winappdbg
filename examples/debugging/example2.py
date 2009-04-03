@@ -1,5 +1,5 @@
 # Example #2
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example_#2:_attaching_to_a_process_and_waiting_for_it_to_finish
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example2attachingtoaprocessandwaitingforittofinish
 
 from winappdbg import Debug
 

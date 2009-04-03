@@ -1,5 +1,5 @@
 # Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#3:_enumerating_threads_and_DLL_modules_in_a_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example3enumeratingthreadsandDLLmodulesinaprocess
 
 from winappdbg import Process
 

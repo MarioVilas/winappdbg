@@ -1,5 +1,5 @@
 # Example #2
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#2:_starting_a_new_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example2startinganewprocess
 
 from winappdbg import System
 

@@ -1,5 +1,5 @@
 # Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#9:_print_a_thread&#x27;s_code_disassembly
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example9printathreadscodedisassembly
 
 from winappdbg import Thread, CrashDump, System
 
@@ -16,8 +16,11 @@ def print_thread_disassembly( tid ):
     
     # Get the thread's currently running code
     try:
-        eip  = thread.get_pc()
-        code = thread.disassemble_around( eip )
+        code = thread.disassemble_around_pc()
+        
+        # You could alternatively do this:
+        # eip  = thread.get_pc()
+        # code = thread.disassemble_around( eip )
     
     # Resume the thread execution
     finally:

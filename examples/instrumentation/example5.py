@@ -1,5 +1,5 @@
 # Example #5
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#5:_reading_the_process_memory
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example5readingtheprocessmemory
 
 from winappdbg import Process
 

@@ -1,9 +1,9 @@
 # Example #11
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#11:_resolve_an_API_function_in_a_process
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example11resolveanAPIfunctioninaprocess
 
 from winappdbg import System, Process
 
-def print_api_address( pid, dllname, symbolname ):
+def print_api_address( pid, dllname, exportname ):
     
     # Request debug privileges
     System.request_debug_privileges()
@@ -14,11 +14,19 @@ def print_api_address( pid, dllname, symbolname ):
     # Lookup it's modules
     process.scan_modules()
     
+    # See if the module is loaded
+    if not process.has_module( dllname ):
+        print "Module not found: %s" % dllname
+        return
+    
+    # Get the module
+    module = process.get_module( dllname )
+    
     # Resolve the requested API function address
-    address = process.resolve_exported_symbol( dllname, symbolname )
+    address = module.resolve( exportname )
     
     # Print the address
-    print "%s!%s == 0x%.08x" % ( dllname, symbolname, address )
+    print "%s!%s == 0x%.08x" % ( dllname, exportname, address )
 
 # When invoked from the command line,
 # the first argument is a process ID,
@@ -28,5 +36,5 @@ if __name__ == "__main__":
     import sys
     pid         = int( sys.argv[1] )
     dllname     = sys.argv[2]
-    symbolname  = sys.argv[3]
-    print_api_address( pid, dllname, symbolname )
+    exportname  = sys.argv[3]
+    print_api_address( pid, dllname, exportname )

@@ -1,5 +1,5 @@
 # Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example_#1:_enumerating_running_processes
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example1enumeratingrunningprocesses
 
 from winappdbg import System
 
