@@ -1,5 +1,5 @@
 # Example #8
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example8printathreadscontext
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example8:printathreadscontext
 
 from winappdbg import Thread, CrashDump, System
 

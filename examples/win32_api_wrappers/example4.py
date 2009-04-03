@@ -1,5 +1,5 @@
 # Example #4
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example4enumeratingmodulesusingtheToolhelplibrary
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example4:enumeratingmodulesusingtheToolhelplibrary
 
 from winappdbg import Handle
 from winappdbg.win32 import *

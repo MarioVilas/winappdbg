@@ -1,5 +1,5 @@
 # Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example3attachingtoaprocessbyfilename
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example3:attachingtoaprocessbyfilename
 
 from winappdbg import Debug
 

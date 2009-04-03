@@ -1,5 +1,5 @@
 # Example #6
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example6loadingaDLLintotheprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example6:loadingaDLLintotheprocess
 
 from winappdbg import Process
 

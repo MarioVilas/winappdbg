@@ -1,5 +1,5 @@
 # Example #11
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example11resolveanAPIfunctioninaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example11:resolveanAPIfunctioninaprocess
 
 from winappdbg import System, Process
 

@@ -1,5 +1,5 @@
-# Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example3killingaprocessbyattachingtoit
+# Example #4
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example4:killingaprocessbyattachingtoit
 
 from winappdbg import Debug
 

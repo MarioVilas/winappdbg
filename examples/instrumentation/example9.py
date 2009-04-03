@@ -1,5 +1,5 @@
 # Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example9printathreadscodedisassembly
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example9:printathreadscodedisassembly
 
 from winappdbg import Thread, CrashDump, System
 

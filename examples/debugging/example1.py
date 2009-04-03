@@ -1,5 +1,5 @@
 # Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example1startinganewprocessandwaitingforittofinish
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example1:startinganewprocessandwaitingforittofinish
 
 from winappdbg import Debug
 

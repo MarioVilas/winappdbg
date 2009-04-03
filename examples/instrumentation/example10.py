@@ -1,5 +1,5 @@
 # Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example10enumerateallmodulesinaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example10:enumerateallmodulesinaprocess
 
 from winappdbg import System, Process
 

@@ -1,5 +1,5 @@
 # Example #7
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7freezeallthreadsinaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7:freezeallthreadsinaprocess
 
 from winappdbg import Process, System
 
