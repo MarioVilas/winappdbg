@@ -70,6 +70,9 @@ class Event (object):
     @type eventName: str
     @cvar eventName: User-friendly name of the event.
     
+    @type eventDescription: str
+    @cvar eventDescription: User-friendly description of the event.
+    
     @type debug: L{Debug}
     @ivar debug: Debug object that received the event.
     
@@ -80,7 +83,8 @@ class Event (object):
     @ivar continueStatus: Continue status to pass to L{win32.ContinueDebugEvent}.
     """
 
-    eventName = 'Unknown event'
+    eventName        = 'Unknown event'
+    eventDescription = 'A debug event of an unknown type has occured.'
 
     def __init__(self, debug, raw):
         """
@@ -100,6 +104,13 @@ class Event (object):
         @return: User-friendly name of the event.
         """
         return self.eventName
+
+    def get_event_description(self):
+        """
+        @rtype:  str
+        @return: User-friendly description of the event.
+        """
+        return self.eventDescription
 
     def get_code(self):
         """
@@ -182,7 +193,8 @@ class ExceptionEvent (Event):
         Mapping of exception constants to user-friendly strings.
     """
 
-    eventName = 'Exception event'
+    eventName        = 'Exception event'
+    eventDescription = 'An exception was raised by the debugee.'
 
     __exceptionName = {
         win32.EXCEPTION_ACCESS_VIOLATION          : 'EXCEPTION_ACCESS_VIOLATION',
@@ -378,7 +390,8 @@ class ExceptionEvent (Event):
 #==============================================================================
 
 class CreateThreadEvent (Event):
-    eventName = 'Thread creation event'
+    eventName        = 'Thread creation event'
+    eventDescription = 'A new thread has started.'
 
     def get_thread_handle(self):
         """
@@ -419,7 +432,8 @@ class CreateThreadEvent (Event):
 #==============================================================================
 
 class CreateProcessEvent (Event):
-    eventName = 'Process creation event'
+    eventName        = 'Process creation event'
+    eventDescription = 'A new process has started.'
 
     def get_file_handle(self):
         """
@@ -561,7 +575,8 @@ class CreateProcessEvent (Event):
 #==============================================================================
 
 class ExitThreadEvent (Event):
-    eventName = 'Thread termination event'
+    eventName        = 'Thread termination event'
+    eventDescription = 'A thread has finished executing.'
 
     def get_exit_code(self):
         """
@@ -573,7 +588,8 @@ class ExitThreadEvent (Event):
 #==============================================================================
 
 class ExitProcessEvent (Event):
-    eventName = 'Process termination event'
+    eventName        = 'Process termination event'
+    eventDescription = 'A process has finished executing.'
 
     def get_exit_code(self):
         """
@@ -585,7 +601,8 @@ class ExitProcessEvent (Event):
 #==============================================================================
 
 class LoadDLLEvent (Event):
-    eventName = 'Module load event'
+    eventName        = 'Module load event'
+    eventDescription = 'A new DLL library was loaded by the debugee.'
 
     def get_module_base(self):
         """
@@ -653,7 +670,8 @@ class LoadDLLEvent (Event):
 #==============================================================================
 
 class UnloadDLLEvent (Event):
-    eventName = 'Module unload event'
+    eventName        = 'Module unload event'
+    eventDescription = 'A DLL library was unloaded by the debugee.'
 
     def get_module_base(self):
         """
@@ -672,7 +690,8 @@ class UnloadDLLEvent (Event):
 #==============================================================================
 
 class OutputDebugStringEvent (Event):
-    eventName = 'Debug string output event'
+    eventName        = 'Debug string output event'
+    eventDescription = 'The debugee sent a message to the debugger.'
 
     def get_debug_string(self):
         """
@@ -688,7 +707,9 @@ class OutputDebugStringEvent (Event):
 #==============================================================================
 
 class RIPEvent (Event):
-    eventName = 'RIP event'
+    eventName        = 'RIP event'
+    eventDescription = 'An error has occured and the process ' \
+                       'can no longer be debugged.'
 
     def get_rip_error(self):
         """
@@ -1151,7 +1172,7 @@ class EventDispatcher (object):
             bCallHandler = pre_handler(event)
 
         # Call the user-defined event handler only if the pre-notify
-        #  method was defined and returned True.
+        #  method was not defined, or was and it returned True.
         try:
             if bCallHandler and self.__eventHandler is not None:
                 returnValue = self.__eventHandler(event)

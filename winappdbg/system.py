@@ -379,9 +379,6 @@ class ModuleContainer (object):
         get_module_at_address, get_module_by_name,
         has_module, iter_modules, iter_module_addresses,
         clear_modules
-    
-    @group Debugging:
-        get_system_breakpoint
     """
 
     def __init__(self):
@@ -558,18 +555,6 @@ class ModuleContainer (object):
                     else:   # True or None
                         return module
         return None
-
-    # FIXME
-    # In Wine, the system breakpoint seems to be somewhere in kernel32.
-    # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
-    def get_system_breakpoint(self):
-        """
-        @rtype:  int
-        @return: Memory address of the system breakpoint
-            within the process address space.
-            Returns C{None} on error.
-        """
-        return self.resolve_label("ntdll!DbgBreakPoint")
 
     def scan_modules(self):
         """
@@ -1435,6 +1420,9 @@ class SymbolOperations (object):
         get_label_at_address,
         split_label_strict,
         split_label_fuzzy
+    
+    @group Debugging:
+        get_system_breakpoint
     """
 
     def __init__(self):
@@ -1708,7 +1696,7 @@ class SymbolOperations (object):
 
         # If an exclamation sign is present, we know we can parse it strictly.
         if '!' in label:
-            return self.split_label(label)
+            return self.split_label_strict(label)
 
 ##        # Try to parse it strictly, on error do it the fuzzy way.
 ##        try:
@@ -1769,7 +1757,8 @@ class SymbolOperations (object):
                 # to prevent an infinite recursion if there's a bug here.
                 try:
                     new_label = self.get_label_at_address(offset)
-                    module, function, offset = self.split_label(new_label)
+                    module, function, offset = \
+                                             self.split_label_strict(new_label)
                 except ValueError:
                     pass
 
@@ -1941,6 +1930,18 @@ class SymbolOperations (object):
         else:
             label = self.parse_label(None, None, address)
         return label
+
+    # FIXME
+    # In Wine, the system breakpoint seems to be somewhere in kernel32.
+    # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
+    def get_system_breakpoint(self):
+        """
+        @rtype:  int
+        @return: Memory address of the system breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        return self.resolve_label("ntdll!DbgBreakPoint")
 
 #==============================================================================
 
