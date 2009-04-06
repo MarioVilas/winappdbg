@@ -1097,19 +1097,19 @@ class EventDispatcher (object):
     __postExceptionNotifyCallbackName = {
     }
 
-    def __init__(self, eventHandler):
+    def __init__(self, eventHandler = None):
         """
         Event dispatcher.
         
         @type  eventHandler: L{EventHandler}
-        @param eventHandler: Event handler object.
+        @param eventHandler: (Optional) Event handler object.
 
         @note: The L{eventHandler} parameter may be any callable Python object
             (for example a function, or an instance method).
             However you'll probably find it more convenient to use an instance
             of a subclass of L{EventHandler} here.
         """
-        if not callable(eventHandler):
+        if eventHandler is not None and not callable(eventHandler):
             raise TypeError, "Invalid event handler"
         self.__eventHandler = eventHandler
 

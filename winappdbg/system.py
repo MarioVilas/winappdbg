@@ -1410,7 +1410,7 @@ class SymbolOperations (object):
         loaded, or when module filenames can't be retrieved.
         
         Read more on labels here:
-        U{https://apps.sourceforge.net/trac/winappdbg/wiki/Labels}
+        U{https://apps.sourceforge.net/trac/winappdbg/wiki/HowLabelsWork}
     
     @group Labels:
         parse_label,
@@ -1736,7 +1736,7 @@ class SymbolOperations (object):
             # offset
             # base address + offset (when no module has that base address)
             try:
-                address = HexInput.integer()
+                address = HexInput.integer(label)
 
                 if offset:
                     # If 0xAAAAAAAA + 0xBBBBBBBB is given,
@@ -3399,7 +3399,7 @@ class Module (object):
         # Make the label relative to the base address.
         module = self.get_name()
         offset = address - self.get_base()
-        label  = self.parse_label(module, None, offset)
+        label  = SymbolOperations.parse_label(module, None, offset)
         
         return label
 
@@ -4099,13 +4099,13 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         def next(self):
             'x.next() -> the next value, or raise StopIteration'
             if self.__state == 0:
-                self.__iterator = container.iter_threads()
+                self.__iterator = self.__container.iter_threads()
                 self.__state    = 1
             if self.__state == 1:
                 try:
                     return self.__iterator.next()
                 except StopIteration:
-                    self.__iterator = container.iter_modules()
+                    self.__iterator = self.__container.iter_modules()
                     self.__state    = 2
             if self.__state == 2:
                 try:
@@ -4140,7 +4140,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         
         @raise WindowsError: On error an exception is raised.
         """
-        TerminateProcess(self.get_handle(), dwExitCode)
+        win32.TerminateProcess(self.get_handle(), dwExitCode)
 
     def debug_break(self):
         """
