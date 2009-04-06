@@ -16,11 +16,11 @@ def print_thread_disassembly( tid ):
     
     # Get the thread's currently running code
     try:
-        code = thread.disassemble_around_pc()
+        eip  = thread.get_pc()
+        code = thread.disassemble_around( eip )
         
-        # You could alternatively do this:
-        # eip  = thread.get_pc()
-        # code = thread.disassemble_around( eip )
+        # You can also do this:
+        # code = thread.disassemble_around_pc()
     
     # Resume the thread execution
     finally:
@@ -32,6 +32,7 @@ def print_thread_disassembly( tid ):
 
 # When invoked from the command line,
 # the first argument is a thread ID
+# (use example3.py to enumerate threads)
 if __name__ == "__main__":
     import sys
     tid = int( sys.argv[1] )

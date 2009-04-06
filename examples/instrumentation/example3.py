@@ -3,7 +3,7 @@
 
 from winappdbg import Process
 
-def enum_threads( pid ):
+def print_threads_and_modules( pid ):
     
     # Instance a Process object
     process = Process( pid )
@@ -15,7 +15,7 @@ def enum_threads( pid ):
     
     # Now we can enumerate the threads in the process...
     print "Threads:"
-    for thread in process:
+    for thread in process.iter_threads():
         print "\t%d" % thread.get_tid()
     
     # ...and the modules in the process
@@ -28,4 +28,4 @@ def enum_threads( pid ):
 if __name__ == "__main__":
     import sys
     pid = int( sys.argv[1] )
-    enum_threads( pid )
+    print_threads_and_modules( pid )
