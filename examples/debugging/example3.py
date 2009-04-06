@@ -16,10 +16,10 @@ debug.system.scan_processes()
 
 # For all processes that match the requested filename...
 for ( process, name ) in debug.system.find_processes_by_filename( filename ):
-    print name
+    print process.get_pid(), name
     
     # Attach to the process
     debug.attach( process.get_pid() )
 
-# Wait for the debugees to finish
+# Wait for all the debugees to finish
 debug.loop()

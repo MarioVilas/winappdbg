@@ -21,6 +21,10 @@ def print_thread_disassembly( tid ):
         
         # You can also do this:
         # code = thread.disassemble_around_pc()
+        
+        # Or even this:
+        # process = thread.get_process()
+        # code    = process.disassemble_around(eip)
     
     # Resume the thread execution
     finally:
