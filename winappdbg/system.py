@@ -1001,21 +1001,33 @@ class ThreadContainer (object):
 # * This methods do not take into account that code breakpoints change the
 #   memory. This object should talk to BreakpointContainer to retrieve the
 #   original memory contents where code breakpoints are enabled.
-# * Add a method to return the memory map for a given process.
 # * A memory cache could be implemented here.
 class MemoryOperations (object):
     """
     Encapsulates the capabilities to manipulate the memory of a process.
-    
+
     @group Memory allocation:
         malloc, free, mprotect, mquery
+    @group Memory information:
+        pageSize, mquery, get_memory_map
     @group Memory read:
         read, read_char, read_uint, read_structure,
         peek, peek_char, peek_uint, peek_string
     @group Memory write:
         write, write_char, write_uint,
         poke, poke_char, poke_uint
+    
+    @type pageSize: int
+    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
+        automatically updated on runtime when importing the module.
     """
+
+    # Try to get the pageSize value on runtime,
+    # ignoring exceptions on failure.
+    try:
+        pageSize = win32.GetSystemInfo().dwPageSize
+    except WindowsError:
+        pageSize = 0x1000
 
     # FIXME
     # * under Wine reading from an unmapped address returns nulls
@@ -1319,6 +1331,8 @@ class MemoryOperations (object):
         """
         Allocates memory into the address space of the process.
         
+        @see: L{free}
+        
         @type  dwSize: int
         @param dwSize: Number of bytes to allocate.
         
@@ -1379,6 +1393,8 @@ class MemoryOperations (object):
         """
         Frees memory from the address space of the process.
         
+        @see: L{malloc}
+        
         @type  lpAddress: int
         @param lpAddress: Address of memory to free.
         
@@ -1390,6 +1406,37 @@ class MemoryOperations (object):
         """
         success = win32.VirtualFreeEx(self.get_handle(), lpAddress, dwSize)
         return bool(success)
+
+#------------------------------------------------------------------------------
+
+    def get_memory_map(self, minAddr = 0, maxAddr = 0x100000000):
+        """
+        Produces a memory map to the process address space.
+        Optionally restrict the map to the given address range.
+        
+        @see: L{mquery}
+        
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+        
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+        
+        @rtype:  list( L{MEMORY_BASIC_INFORMATION} )
+        @return: List of MEMORY_BASIC_INFORMATION structures.
+        """
+        if minAddr > maxAddr:
+            minAddr, maxAddr = maxAddr, minAddr
+        currentAddr = minAddr
+        memoryMap   = list()
+        while currentAddr <= maxAddr:
+            try:
+                mbi = self.mquery(currentAddr)
+            except WindowsError:
+                break
+            memoryMap.append(mbi)
+            currentAddr = mbi.BaseAddress + mbi.RegionSize
+        return memoryMap
 
 #==============================================================================
 

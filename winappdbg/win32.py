@@ -1736,8 +1736,8 @@ class SYSTEM_INFO(Structure):
 class MEMORY_BASIC_INFORMATION(Structure):
     _pack_ = 1
     _fields_ = [
-        ('BaseAddress',         LPVOID),
-        ('AllocationBase',      LPVOID),
+        ('BaseAddress',         DWORD),     # remote pointer
+        ('AllocationBase',      DWORD),     # remote pointer
         ('AllocationProtect',   DWORD),
         ('RegionSize',          DWORD),
         ('State',               DWORD),
