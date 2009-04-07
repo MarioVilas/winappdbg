@@ -1229,13 +1229,167 @@ class HardwareBreakpoint (Breakpoint):
 
 #==============================================================================
 
-# For a more complete support of API hooking, check out Universal Hooker at:
-# http://oss.coresecurity.com/projects/uhooker.htm
-class ApiHook(object):
+class Hook (object):
     """
-    Stub that handles pre and post API hook callbacks.
+    Stub that handles pre and post function hook callbacks.
     
-    @see: L{Debug.break_at_label}
+    @see: L{Debug.hook_function}, L{Debug.hook_exported_function}
+    """
+
+    def __init__(self, preCB = None, postCB = None, paramCount = 0):
+        """
+        @type  preCB: function
+        @param preCB: (Optional) Callback triggered on function entry.
+            
+            The signature for the callback can be something like this::
+                
+                def pre_LoadLibraryEx(event, *params):
+                    ra   = params[0]        # return address
+                    argv = params[1:]       # function parameters
+                    
+                    # (...)
+            
+            But if you passed the right number of arguments, you can also
+            use a signature like this::
+                
+                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+                    szFilename = event.get_process().peek_string(lpFilename)
+                    
+                    # (...)
+            
+            In the above example, the value for C{paramCount} would be C{3}.
+        
+        @type  postCB: function
+        @param postCB: (Optional) Callback triggered on function exit.
+            
+            The signature for the callback would be something like this::
+                
+                def post_LoadLibraryEx(event, return_value):
+                    
+                    # (...)
+        
+        @type  paramCount: int
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs.
+        """
+        self.__paramCount = paramCount + 1
+        self.__preCB      = preCB
+        self.__postCB     = postCB
+
+    # FIXME
+    #
+    # By using break_at() to set a process-wide breakpoint on the function's
+    # return address, we might hit a race condition when more than one thread
+    # is being debugged.
+    #
+    # Hardware breakpoints should be used instead. But since a thread can run
+    # out of those, we need to fall back to this method when needed.
+    def __call__(self, event):
+        """
+        Handles the breakpoint event on entry of the function.
+        
+        @type  event: L{ExceptionEvent}
+        @param event: Breakpoint hit event.
+        """
+
+        # Get the parameters from the stack.
+        aThread = event.get_thread()
+        params  = aThread.get_stack_dwords(self.__paramCount)
+        if len(params) != self.__paramCount:
+            msg = "Hooked function got %d arguments, expected %d"
+            msg = msg % (len(params), self.__paramCount)
+            raise RuntimeError, msg
+
+        # Set a one shot code breakpoint at the return address.
+        if params and self.__postCB is not None:
+            event.debug.stalk_at(event.get_pid(), params[0],
+                                                         self.__postCallAction)
+
+        # Call the "pre" callback.
+        self.__callHandler(self.__preCB, event, *params)
+
+    def __postCallAction(self, event):
+        """
+        Handles the breakpoint event on return from the function.
+        
+        @type  event: L{ExceptionEvent}
+        @param event: Breakpoint hit event.
+        """
+
+        # Remove the one shot code breakpoint at the return address.
+        pid     = event.get_pid()
+        address = event.get_exception_address()
+        event.debug.erase_code_breakpoint(pid, address)
+
+        # Call the "post" callback.
+        aThread = event.get_thread()
+        ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
+        retval  = ctx['Eax']
+        self.__callHandler(self.__postCB, event, retval)
+
+    def __callHandler(self, callback, event, *params):
+        """
+        Calls a "pre" or "post" handler, if set.
+        
+        @type  callback: function
+        @param callback: Callback function to call.
+        
+        @type  event: L{ExceptionEvent}
+        @param event: Breakpoint hit event.
+        
+        @type  params: tuple
+        @param params: Parameters for the callback function.
+        """
+        if callback is not None:
+            callback(event, *params)
+
+    def hook(self, debug, pid, address):
+        """
+        Install the function hook at a given process and address.
+        
+        @see: L{unhook}
+        
+        @warning: Do not call from an function hook callback.
+        
+        @type  debug: L{Debug}
+        @param debug: Debug object.
+        
+        @type  pid: int
+        @param pid: Process ID.
+        
+        @type  address: int
+        @param address: Function address.
+        """
+        return debug.break_at(pid, address, self)
+
+    def unhook(self, debug, pid, address):
+        """
+        Remove the function hook at a given process and address.
+        
+        @see: L{hook}
+        
+        @warning: Do not call from an function hook callback.
+        
+        @type  debug: L{Debug}
+        @param debug: Debug object.
+        
+        @type  pid: int
+        @param pid: Process ID.
+        
+        @type  address: int
+        @param address: Function address.
+        """
+        return debug.dont_break_at(pid, address)
+
+#------------------------------------------------------------------------------
+
+class ApiHook (Hook):
+    """
+    Stub that handles pre and post API hook callbacks from L{EventHandler}.
+    
+    @see: L{EventHandler.apiHooks}
     """
 
     def __init__(self, eventHandler, procName, paramCount = 0):
@@ -1275,75 +1429,11 @@ class ApiHook(object):
             Parameters are read from the stack and assumed to be DWORDs.
             The first parameter of the pre callback is always the return address.
         """
-        self.procName   = procName
-        self.paramCount = paramCount + 1
-        self.preCB      = getattr(eventHandler, 'pre_%s' % procName, None)
-        self.postCB     = getattr(eventHandler, 'post_%s' % procName, None)
+        self.__procName = procName
 
-    # FIXME
-    #
-    # By using break_at() to set a process-wide breakpoint on the function's
-    # return address, we might hit a race condition when more than one thread
-    # is being debugged.
-    #
-    # Hardware breakpoints should be used instead. But since a thread can run
-    # out of those, we need to fall back to this method when needed.
-    def __call__(self, event):
-        """
-        Handles the breakpoint event on the entry of the API function.
-        
-        @type  event: L{Event}
-        @param event: Breakpoint hit event.
-        """
-
-        # Set a one shot code breakpoint at the return address.
-        pid     = event.get_pid()
-        aThread = event.get_thread()
-        params  = aThread.get_stack_dwords(self.paramCount)
-        if len(params) != self.paramCount:
-            msg = "%s got %d arguments, expected %d"
-            msg = msg % (self.procName, len(params), self.paramCount)
-            raise RuntimeError, msg
-        if params and self.postCB is not None:
-            event.debug.stalk_at(pid, params[0], self.__postCallAction)
-
-        # Call the "pre" handler.
-        self.__callHandler(self.preCB, event, *params)
-
-    def __postCallAction(self, event):
-        """
-        Handles the breakpoint event on the return from the API function.
-        
-        @type  event: L{Event}
-        @param event: Breakpoint hit event.
-        """
-
-        # Remove the one shot code breakpoint at the return address.
-        pid     = event.get_pid()
-        address = event.get_exception_address()
-        event.debug.erase_code_breakpoint(pid, address)
-
-        # Call the "post" handler.
-        aThread = event.get_thread()
-        ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
-        retval  = ctx['Eax']
-        self.__callHandler(self.postCB, event, retval)
-
-    def __callHandler(self, callback, event, *params):
-        """
-        Calls a "pre" or "post" handler, if set.
-        
-        @type  callback: function
-        @param callback: Callback function to call.
-        
-        @type  event: L{Event}
-        @param event: Breakpoint hit event.
-        
-        @type  params: tuple
-        @param params: Parameters for the callback function.
-        """
-        if callback is not None:
-            callback(event, *params)
+        preCB  = getattr(eventHandler, 'pre_%s' % procName, None)
+        postCB = getattr(eventHandler, 'post_%s' % procName, None)
+        Hook.__init__(self, preCB, postCB)
 
     def hook(self, debug, pid, modName):
         """
@@ -1360,7 +1450,8 @@ class ApiHook(object):
         @type  modName: str
         @param modName: Module name.
         """
-        debug.hook_exported_function(pid, modName, self.procName, self)
+        address = debug.resolve_exported_function(pid, modName, self.__procName)
+        Hook.hook(self, debug, pid, address)
 
     def unhook(self, debug, pid, modName):
         """
@@ -1377,7 +1468,8 @@ class ApiHook(object):
         @type  modName: str
         @param modName: Module name.
         """
-        debug.unhook_exported_function(pid, modName, self.procName)
+        address = debug.resolve_exported_function(pid, modName, self.__procName)
+        Hook.unhook(self, debug, pid, address)
 
 #==============================================================================
 
@@ -1387,7 +1479,9 @@ class BreakpointContainer (object):
     
     @group Simple breakpoint use:
         break_at, stalk_at, watch_variable, watch_buffer,
-        dont_break_at, dont_stalk_at, dont_watch_variable, dont_watch_buffer
+        hook_function, hook_exported_function,
+        dont_break_at, dont_stalk_at, dont_watch_variable, dont_watch_buffer,
+        unhook_function, unhook_exported_function
     
     @group Symbols:
         resolve_label,
@@ -2580,8 +2674,6 @@ class BreakpointContainer (object):
         """
         Resolves the exported DLL function for the given process.
         
-        @see: hook_exported_function, unhook_exported_function
-        
         @type  pid: int
         @param pid: Process global ID.
         
@@ -2718,6 +2810,141 @@ class BreakpointContainer (object):
         self.erase_code_breakpoint(pid, address)
 
     dont_stalk_at = dont_break_at
+
+    @processidparam
+    def hook_function(self, pid, address,          preCB = None, postCB = None,
+                                                               paramCount = 0):
+        """
+        Sets a function hook at the given address.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  address: int
+        @param address: Function address.
+        
+        @type  preCB: function
+        @param preCB: (Optional) Callback triggered on function entry.
+            
+            The signature for the callback can be something like this::
+                
+                def pre_LoadLibraryEx(event, *params):
+                    ra   = params[0]        # return address
+                    argv = params[1:]       # function parameters
+                    
+                    # (...)
+            
+            But if you passed the right number of arguments, you can also
+            use a signature like this::
+                
+                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+                    szFilename = event.get_process().peek_string(lpFilename)
+                    
+                    # (...)
+            
+            In the above example, the value for C{paramCount} would be C{3}.
+        
+        @type  postCB: function
+        @param postCB: (Optional) Callback triggered on function exit.
+            
+            The signature for the callback would be something like this::
+                
+                def post_LoadLibraryEx(event, return_value):
+                    
+                    # (...)
+        
+        @type  paramCount: int
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs.
+        """
+        hookObj = Hook(preCB, postCB, paramCount)
+        self.break_at(pid, address, hookObj)
+
+    @processidparam
+    def unhook_function(self, pid, address):
+        """
+        Removes a function hook set by L{hook_function}.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  address: int
+        @param address: Function address.
+        """
+        self.dont_break_at(pid, address)
+
+    @processidparam
+    def hook_exported_function(self, pid, modName, procName,
+                                  preCB = None, postCB = None, paramCount = 0):
+        """
+        Sets a function hook at the given exporeted procedure.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  modName: str
+        @param modName: Module name.
+        
+        @type  procName: str
+        @param procName: Function name.
+        
+        @type  preCB: function
+        @param preCB: (Optional) Callback triggered on function entry.
+            
+            The signature for the callback can be something like this::
+                
+                def pre_LoadLibraryEx(event, *params):
+                    ra   = params[0]        # return address
+                    argv = params[1:]       # function parameters
+                    
+                    # (...)
+            
+            But if you passed the right number of arguments, you can also
+            use a signature like this::
+                
+                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+                    szFilename = event.get_process().peek_string(lpFilename)
+                    
+                    # (...)
+            
+            In the above example, the value for C{paramCount} would be C{3}.
+        
+        @type  postCB: function
+        @param postCB: (Optional) Callback triggered on function exit.
+            
+            The signature for the callback would be something like this::
+                
+                def post_LoadLibraryEx(event, return_value):
+                    
+                    # (...)
+        
+        @type  paramCount: int
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs.
+        """
+        address = self.resolve_exported_function(pid, modName, procName)
+        self.hook_function(pid, address, preCB, postCB, paramCount)
+
+    @processidparam
+    def unhook_exported_function(self, pid, modName, procName):
+        """
+        Removes a function hook set by L{hook_function}.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  modName: str
+        @param modName: Module name.
+        
+        @type  procName: str
+        @param procName: Function name.
+        """
+        address = self.resolve_exported_function(pid, modName, procName)
+        self.unhook_function(pid, address)
 
     @processidparam
     def break_at_address_list(self, pid, address_list, action = None):

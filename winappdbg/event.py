@@ -936,6 +936,9 @@ class EventHandler (object):
                 
                 # (more libraries can go here...)
             }
+        
+        For a more complete support of API hooking, you can also check out
+        Universal Hooker at U{http://oss.coresecurity.com/projects/uhooker.htm}
     """
 
 #------------------------------------------------------------------------------
