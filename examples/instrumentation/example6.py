@@ -1,7 +1,7 @@
 # $Id$
 
-# Example #7
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7:loadingaDLLintotheprocess
+# Example #6
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example6:loadingaDLLintotheprocess
 
 from winappdbg import Process
 
