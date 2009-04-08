@@ -1,36 +1,44 @@
+# $Id$
 # Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example10:resolveanAPIfunctioninaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example10:printathreadscodedisassembly
 
-from winappdbg import Process
+from winappdbg import Thread, CrashDump, System
 
-def print_api_address( pid, modName, procName ):
+def print_thread_disassembly( tid ):
     
     # Request debug privileges
     System.request_debug_privileges()
     
-    # Instance a Process object
-    process = Process( pid )
+    # Instance a Thread object
+    thread = Thread( tid )
     
-    # Lookup it's modules
-    process.scan_modules()
+    # Suspend the thread execution
+    thread.suspend()
     
-    # Get the module
-    module = process.get_module_by_name( modName )
-    if not module:
-        print "Module not found: %s" % modName
-        return
+    # Get the thread's currently running code
+    try:
+        eip  = thread.get_pc()
+        code = thread.disassemble_around( eip )
+        
+        # You can also do this:
+        # code = thread.disassemble_around_pc()
+        
+        # Or even this:
+        # process = thread.get_process()
+        # code    = process.disassemble_around(eip)
     
-    # Resolve the requested API function address
-    address = module.resolve( procName )
+    # Resume the thread execution
+    finally:
+        thread.resume()
     
-    # Print the address
-    print "%s!%s == 0x%.08x" % ( modName, procName, address )
+    # Display the thread context
+    print
+    print CrashDump.dump_code( code, eip ),
 
 # When invoked from the command line,
-# the first argument is a process ID
+# the first argument is a thread ID
+# (use example3.py to enumerate threads)
 if __name__ == "__main__":
     import sys
-    pid      = int( sys.argv[1] )
-    modName  = sys.argv[2]
-    procName = sys.argv[3]
-    print_api_address( pid, modName, procName )
+    tid = int( sys.argv[1] )
+    print_thread_disassembly( tid )

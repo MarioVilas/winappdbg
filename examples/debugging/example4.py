@@ -1,3 +1,4 @@
+# $Id$
 # Example #4
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example4:killingaprocessbyattachingtoit
 

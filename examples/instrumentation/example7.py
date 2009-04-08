@@ -1,46 +1,22 @@
+# $Id$
 # Example #7
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7:freezeallthreadsinaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7:loadingaDLLintotheprocess
 
-from winappdbg import Process, System
+from winappdbg import Process
 
-def freeze_threads( pid ):
-    
-    # Request debug privileges
-    System.request_debug_privileges()
+def load_dll( pid, filename ):
     
     # Instance a Process object
     process = Process( pid )
     
-    # Lookup the threads in the process
-    process.scan_threads()
-    
-    # For each thread in the process...
-    for thread in process:
-        
-        # Suspend the thread execution
-        thread.suspend()
-
-def unfreeze_threads( pid ):
-    
-    # Request debug privileges
-    System.request_debug_privileges()
-    
-    # Instance a Process object
-    process = Process( pid )
-    
-    # Lookup the threads in the process
-    process.scan_threads()
-    
-    # For each thread in the process...
-    for thread in process:
-        
-        # Resume the thread execution
-        thread.resume()
+    # Load the DLL library in the process
+    process.inject_dll( filename )
 
 # When invoked from the command line,
-# the first argument is a process ID
+# the first argument is a process ID,
+# the second argument is a DLL filename
 if __name__ == "__main__":
     import sys
-    pid = int( sys.argv[1] )
-    freeze_threads( pid )
-##    unfreeze_threads( pid )   # to reverse the effect
+    pid      = int( sys.argv[1] )
+    filename = sys.argv[2]
+    load_dll( pid, filename )

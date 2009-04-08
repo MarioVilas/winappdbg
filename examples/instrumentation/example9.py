@@ -1,9 +1,10 @@
+# $Id$
 # Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example9:printathreadscodedisassembly
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example9:printathreadscontext
 
 from winappdbg import Thread, CrashDump, System
 
-def print_thread_disassembly( tid ):
+def print_thread_context( tid ):
     
     # Request debug privileges
     System.request_debug_privileges()
@@ -14,17 +15,9 @@ def print_thread_disassembly( tid ):
     # Suspend the thread execution
     thread.suspend()
     
-    # Get the thread's currently running code
+    # Get the thread context
     try:
-        eip  = thread.get_pc()
-        code = thread.disassemble_around( eip )
-        
-        # You can also do this:
-        # code = thread.disassemble_around_pc()
-        
-        # Or even this:
-        # process = thread.get_process()
-        # code    = process.disassemble_around(eip)
+        context = thread.get_context()
     
     # Resume the thread execution
     finally:
@@ -32,7 +25,7 @@ def print_thread_disassembly( tid ):
     
     # Display the thread context
     print
-    print CrashDump.dump_code( code, eip ),
+    print CrashDump.dump_registers( context ),
 
 # When invoked from the command line,
 # the first argument is a thread ID
@@ -40,4 +33,4 @@ def print_thread_disassembly( tid ):
 if __name__ == "__main__":
     import sys
     tid = int( sys.argv[1] )
-    print_thread_disassembly( tid )
+    print_thread_context( tid )

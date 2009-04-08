@@ -1,35 +1,47 @@
+# $Id$
 # Example #8
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example8:printathreadscontext
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example8:freezeallthreadsinaprocess
 
-from winappdbg import Thread, CrashDump, System
+from winappdbg import Process, System
 
-def print_thread_context( tid ):
+def freeze_threads( pid ):
     
     # Request debug privileges
     System.request_debug_privileges()
     
-    # Instance a Thread object
-    thread = Thread( tid )
+    # Instance a Process object
+    process = Process( pid )
     
-    # Suspend the thread execution
-    thread.suspend()
+    # Lookup the threads in the process
+    process.scan_threads()
     
-    # Get the thread context
-    try:
-        context = thread.get_context()
+    # For each thread in the process...
+    for thread in process:
+        
+        # Suspend the thread execution
+        thread.suspend()
+
+def unfreeze_threads( pid ):
     
-    # Resume the thread execution
-    finally:
+    # Request debug privileges
+    System.request_debug_privileges()
+    
+    # Instance a Process object
+    process = Process( pid )
+    
+    # Lookup the threads in the process
+    process.scan_threads()
+    
+    # For each thread in the process...
+    for thread in process:
+        
+        # Resume the thread execution
         thread.resume()
-    
-    # Display the thread context
-    print
-    print CrashDump.dump_registers( context ),
 
 # When invoked from the command line,
-# the first argument is a thread ID
-# (use example3.py to enumerate threads)
+# the first argument is a process ID
 if __name__ == "__main__":
     import sys
-    tid = int( sys.argv[1] )
-    print_thread_context( tid )
+    pid = int( sys.argv[1] )
+    freeze_threads( pid )
+##    unfreeze_threads( pid )   # to reverse the effect
