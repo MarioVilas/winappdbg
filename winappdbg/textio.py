@@ -45,6 +45,8 @@ __all__ =   [
                 'CrashDump',
             ]
 
+import win32
+
 import time
 import struct
 
@@ -468,3 +470,91 @@ class CrashDump (object):
                 star = ' '
             result += fmt % (star, addr, dump, code)
         return result
+
+    @staticmethod
+    def dump_memory_map(memoryMap):
+        """
+        Dump the memory map of a process.
+        
+        @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
+        @param memoryMap: Memory map returned by L{Process.get_memory_map}.
+        
+        @rtype:  str
+        @return: Text suitable for logging.
+        """
+        
+        # Output the header of the table.
+        output = "Address   \tSize      \tState     \tAccess    \tType\n"
+    
+        # For each memory block in the map...
+        for mbi in memoryMap:
+            
+            # Address and size of memory block.
+            BaseAddress = "0x%.08x" % mbi.BaseAddress
+            RegionSize  = "0x%.08x" % mbi.RegionSize
+            
+            # State (free or allocated).
+            if   mbi.State == win32.MEM_RESERVE:
+                State   = "Reserved  "
+            elif mbi.State == win32.MEM_COMMIT:
+                State   = "Commited  "
+            elif mbi.State == win32.MEM_FREE:
+                State   = "Free      "
+            else:
+                State   = "Unknown   "
+            
+            # Page protection bits (R/W/X/G).
+            if mbi.State != win32.MEM_COMMIT:
+                Protect = "          "
+            else:
+    ##            Protect = "0x%.08x" % mbi.Protect
+                if   mbi.Protect & win32.PAGE_NOACCESS:
+                    Protect = "--- "
+                elif mbi.Protect & win32.PAGE_READONLY:
+                    Protect = "R-- "
+                elif mbi.Protect & win32.PAGE_READWRITE:
+                    Protect = "RW- "
+                elif mbi.Protect & win32.PAGE_WRITECOPY:
+                    Protect = "RC- "
+                elif mbi.Protect & win32.PAGE_EXECUTE:
+                    Protect = "--X "
+                elif mbi.Protect & win32.PAGE_EXECUTE_READ:
+                    Protect = "R-- "
+                elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
+                    Protect = "RW- "
+                elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
+                    Protect = "RCX "
+                else:
+                    Protect = "??? "
+                if   mbi.Protect & win32.PAGE_GUARD:
+                    Protect += "G"
+                else:
+                    Protect += "-"
+                if   mbi.Protect & win32.PAGE_NOCACHE:
+                    Protect += "N"
+                else:
+                    Protect += "-"
+                if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+                    Protect += "W"
+                else:
+                    Protect += "-"
+                Protect += "   "
+           
+            # Type (file mapping, executable image, or private memory).
+            if   mbi.Type == win32.MEM_IMAGE:
+                Type    = "Image     "
+            elif mbi.Type == win32.MEM_MAPPED:
+                Type    = "Mapped    "
+            elif mbi.Type == win32.MEM_PRIVATE:
+                Type    = "Private   "
+            elif mbi.Type == 0:
+                Type    = "          "
+            else:
+                Type    = "Unknown   "
+            
+            # Output a row in the table.
+            fmt = "%s\t%s\t%s\t%s\t%s\n"
+            output += fmt % ( BaseAddress, RegionSize, State, Protect, Type )
+
+        # Return the output table.
+        return output
