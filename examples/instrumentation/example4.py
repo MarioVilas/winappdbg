@@ -1,4 +1,5 @@
 # $Id$
+
 # Example #4
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example4:killingaprocess
 
