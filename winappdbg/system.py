@@ -1833,13 +1833,13 @@ class SymbolOperations (object):
         Splits a label into it's C{module}, C{function} and C{offset}
         components, as used in L{parse_label}.
         
-        When called as a static method, the strict syntax mode is used:
+        When called as a static method, the strict syntax mode is used::
             
-            C{winappdbg.Process.split_label( "kernel32!CreateFileA" )}
+            winappdbg.Process.split_label( "kernel32!CreateFileA" )
         
-        When called as an instance method, the fuzzy syntax mode is used:
+        When called as an instance method, the fuzzy syntax mode is used::
             
-            C{aProcessInstance.split_label( "CreateFileA" )}
+            aProcessInstance.split_label( "CreateFileA" )
         
         @see: L{split_label_strict}, L{split_label_fuzzy}
         
@@ -1868,7 +1868,6 @@ class SymbolOperations (object):
 
     # The split_label method is replaced with this function by __init__.
     def __use_fuzzy_mode(self, label):
-        '@see: L{split_label_fuzzy}'    # if introspection fails
         return self.split_label_fuzzy(label)
     __use_fuzzy_mode.__doc__ = split_label.__doc__
 
