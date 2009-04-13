@@ -113,6 +113,97 @@ class LoggingEventHandler(EventHandler):
         if self.verbose:
             print DebugLog.log_event(event, text)
 
+
+    def __break_or_stalk_at_label_list(self, debug, pid, label_list,
+                                                                action = None,
+                                                  only_for_this_module = None,
+                                                                bBreak = True):
+        """
+        Sets breakpoints from the breakpoint list files.
+        
+        @type  debug: L{Debug}
+        @param debug: Debug object.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  label_list: list( str )
+        @param label_list: List of target labels.
+        
+        @type    action: function
+        @keyword action: (Optional) Action callback function.
+        
+        @type    only_for_this_module: L{Module}
+        @keyword only_for_this_module: (Optional)
+            Only apply for labels that belong to the given module.
+            Skip all other labels.
+        
+        @type    bBreak: bool
+        @keyword bBreak: True to L{break_at}, False to L{stalk_at}.
+        
+        @rtype:  set( int )
+        @return: All resolved labels where a code breakpoint was set.
+        """
+        aProcess = debug.system.get_process(pid)
+        resolved = set()
+        if bBreak:
+            method = debug.break_at
+        else:
+            method = debug.stalk_at
+                
+        # Discard repeated labels.
+        label_list = set( label_list )
+
+        # Filter labels by module.
+        if only_for_this_module:
+            aModule = aProcess.get_module_by_name(only_for_this_module)
+            for label in label_list:
+                (module, procedure, offset) = aProcess.split_label(label)
+
+                # Discard labels belonging to other modules.
+                if module and module != only_for_this_module:
+                    continue
+
+                # Resolve the label.
+                try:
+                    label   = aProcess.parse_label(module, procedure, offset)
+                    address = aProcess.resolve_label(label)
+                except ValueError:
+                    continue    # Discard invalid labels.
+                
+                # Discard missing or redundant labels.
+                if address is None or address in resolved:
+                    continue
+                
+                # Remember resolved labels.
+                resolved.add(address)
+                
+                # Set the breakpoint.
+                method(pid, address, action)
+
+        # Resolve labels in all modules.
+        else:
+            for label in label_list:
+
+                # Resolve the label.
+                try:
+                    address = aProcess.resolve_label(label)
+                except ValueError:
+                    continue    # Discard invalid labels.
+                
+                # Discard missing or redundant labels.
+                if address is None or address in resolved:
+                    continue
+                
+                # Remember resolved labels.
+                resolved.add(address)
+                
+                # Set the breakpoint.
+                method(pid, address, action)
+
+        # Return the resolved addresses.
+        return resolved
+
 #-- Events --------------------------------------------------------------------
 
     # Handle all events not handled by the following class methods.
@@ -138,8 +229,10 @@ class LoggingEventHandler(EventHandler):
 
             # Set user-defined breakpoints for this process.
             pid = event.get_pid()
-            event.debug.break_at_address_list(pid, self.break_at[0])
-            event.debug.stalk_at_address_list(pid, self.stalk_at[0])
+            self.__break_or_stalk_at_label_list(event.debug, pid,
+                                              self.break_at[0], bBreak = True)
+            self.__break_or_stalk_at_label_list(event.debug, pid,
+                                              self.stalk_at[0], bBreak = False)
 
         finally:
 
@@ -179,10 +272,14 @@ class LoggingEventHandler(EventHandler):
             try:
 
                 # Set user-defined breakpoints for this process.
-                event.debug.break_at_label_list(dwProcessId, self.break_at[1],
+
+                self.__break_or_stalk_at_label_list(event.debug, pid,
+                                              self.break_at[1], bBreak = True,
                                                only_for_this_module = baseName)
-                event.debug.stalk_at_label_list(dwProcessId, self.stalk_at[1],
+                self.__break_or_stalk_at_label_list(event.debug, pid,
+                                              self.stalk_at[1], bBreak = False,
                                                only_for_this_module = baseName)
+
             finally:
 
                 # Log the event to standard output.
