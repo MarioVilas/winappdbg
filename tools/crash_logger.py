@@ -116,7 +116,7 @@ class LoggingEventHandler(EventHandler):
 
     def __break_or_stalk_at_label_list(self, debug, pid, label_list,
                                                                 action = None,
-                                                  only_for_this_module = None,
+                                                               aModule = None,
                                                                 bBreak = True):
         """
         Sets breakpoints from the breakpoint list files.
@@ -133,8 +133,8 @@ class LoggingEventHandler(EventHandler):
         @type    action: function
         @keyword action: (Optional) Action callback function.
         
-        @type    only_for_this_module: L{Module}
-        @keyword only_for_this_module: (Optional)
+        @type    aModule: L{Module}
+        @keyword aModule: (Optional)
             Only apply for labels that belong to the given module.
             Skip all other labels.
         
@@ -155,23 +155,25 @@ class LoggingEventHandler(EventHandler):
         label_list = set( label_list )
 
         # Filter labels by module.
-        if only_for_this_module:
-            aModule = aProcess.get_module_by_name(only_for_this_module)
+        if aModule is not None:
             for label in label_list:
-                (module, procedure, offset) = aProcess.split_label(label)
-
-                # Discard labels belonging to other modules.
-                if module and module != only_for_this_module:
-                    continue
-
+                
                 # Resolve the label.
                 try:
-                    label   = aProcess.parse_label(module, procedure, offset)
-                    address = aProcess.resolve_label(label)
-                except ValueError:
-                    continue    # Discard invalid labels.
+                    if aModule is not None:
+                        address = aModule.resolve_label(label)
+                    else:
+                        address = debug.resolve_label(label)
                 
-                # Discard missing or redundant labels.
+                # Ignore labels that cause errors.
+                except ValueError:
+                    continue
+                except RuntimeError:
+                    continue
+                except WindowsError:
+                    continue
+                
+                # Ignore missing or redundant labels.
                 if address is None or address in resolved:
                     continue
                 
@@ -225,18 +227,26 @@ class LoggingEventHandler(EventHandler):
 
     # Handle the create process events.
     def create_process(self, event):
+
+        # Set user-defined breakpoints for this process.
         try:
+            dwProcessId = event.get_pid()
+            for address in self.break_at[0]:
+                event.debug.break_at(dwProcessId, address)
+            for address in self.stalk_at[0]:
+                event.debug.stalk_at(dwProcessId, address)
 
-            # Set user-defined breakpoints for this process.
-            pid = event.get_pid()
-            self.__break_or_stalk_at_label_list(event.debug, pid,
-                                              self.break_at[0], bBreak = True)
-            self.__break_or_stalk_at_label_list(event.debug, pid,
-                                              self.stalk_at[0], bBreak = False)
+            aModule = event.get_module()
+            if aModule is not None:
+                self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
+                                              self.break_at[1], bBreak = True,
+                                               aModule = aModule)
+                self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
+                                              self.stalk_at[1], bBreak = False,
+                                               aModule = aModule)
 
+        # Log the event to standard output.
         finally:
-
-            # Log the event to standard output.
             if self.verbose:
                 lpStartAddress = event.get_start_address()
                 szFilename = event.get_filename()
@@ -262,37 +272,31 @@ class LoggingEventHandler(EventHandler):
     def load_dll(self, event):
         dwProcessId = event.get_pid()
         aModule     = event.get_module()
-        lpBaseOfDll = aModule.get_base()
-        fileName    = aModule.get_filename()
 
-        # The filename could be determined.
-        if fileName:
-            baseName = FileHandle.pathname_to_filename(fileName)
-
-            try:
-
-                # Set user-defined breakpoints for this process.
+        try:
+            
+            # Set user-defined breakpoints for this process.
+            if aModule is not None:
                 self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
                                               self.break_at[1], bBreak = True,
-                                               only_for_this_module = baseName)
+                                               aModule = aModule)
                 self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
                                               self.stalk_at[1], bBreak = False,
-                                               only_for_this_module = baseName)
+                                               aModule = aModule)
 
-            finally:
-
-                # Log the event to standard output.
+        finally:
+    
+            # Log the event to standard output.
+            lpBaseOfDll = aModule.get_base()
+            fileName    = aModule.get_filename()
+            if fileName:
                 if self.verbose:
                     msg = "Loaded %s at 0x%.8x" % (fileName, lpBaseOfDll)
                     self.__log(event, msg)
-
-        # The filename could NOT be determined.
-        else:
-
-            # Log the event to standard output.
-            if self.verbose:
-                msg = "Loaded a new module at 0x%.8x" % lpBaseOfDll
-                self.__log(event, msg)
+            else:
+                if self.verbose:
+                    msg = "Loaded a new module at 0x%.8x" % lpBaseOfDll
+                    self.__log(event, msg)
 
     # Handle the exit process events.
     def exit_process(self, event):
@@ -421,13 +425,9 @@ class LoggingEventHandler(EventHandler):
             if address == aProcess.get_system_breakpoint():
                 msg = "System breakpoint hit"
             else:
-                aModule = aProcess.get_module_at_address(address)
-                if aModule is not None:
-                    modFileName = aModule.fileName
-                    if modFileName == Module.unknown:
-                        lpBaseOfDll = aModule.lpBaseOfDll
-                        modFileName = '<unknown: %.8x>' % lpBaseOfDll
-                    msg = "Breakpoint event at 0x%.8x (%s)" % (address, modFileName)
+                label = aProcess.get_label_at_address(address)
+                if label:
+                    msg = "Breakpoint event at %s" % label
                 else:
                     msg = "Breakpoint event at 0x%.8x" % address
             self.__log(event, msg)

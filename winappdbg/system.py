@@ -631,7 +631,12 @@ class ModuleContainer (object):
             fileName = event.get_filename()
             if not fileName:
                 fileName = None
+            if hasattr(event, 'get_start_address'):
+                EntryPoint = event.get_start_address()
+            else:
+                EntryPoint = None
             aModule  = Module(lpBaseOfDll, hFile, fileName = fileName,
+                                                EntryPoint = EntryPoint,
                                                    process = self)
             self.__add_module(aModule)
         else:
@@ -640,6 +645,9 @@ class ModuleContainer (object):
                 aModule.hFile = hFile
             if not aModule.process:
                 aModule.process = self
+            if aModule.EntryPoint is None and \
+                                           hasattr(event, 'get_start_address'):
+                aModule.EntryPoint = event.get_start_address()
             if not aModule.fileName:
                 fileName = event.get_filename()
                 if fileName:
@@ -3312,6 +3320,26 @@ class Module (object):
                 self.fileName = self.hFile.get_filename()
         return self.fileName
 
+    def __filename_to_modname(self, pathname):
+        """
+        @type  pathname: str
+        @param pathname: Pathname to a module.
+        
+        @rtype:  str
+        @return: Module name.
+        """
+        filename = FileHandle.pathname_to_filename(pathname)
+        if filename:
+            filename = filename.lower()
+            filepart, extpart = FileHandle.split_extension(filename)
+            if filepart and extpart and extpart == '.dll':
+                modName = filepart
+            else:
+                modName = filename
+        else:
+            modName = pathname
+        return modName
+
     def get_name(self):
         """
         @rtype:  str
@@ -3326,19 +3354,40 @@ class Module (object):
         """
         pathname = self.get_filename()
         if pathname:
-            filename = FileHandle.pathname_to_filename(pathname)
-            if filename:
-                filename = filename.lower()
-                filepart, extpart = FileHandle.split_extension(filename)
-                if filepart and extpart and extpart == '.dll':
-                    modName = filepart
-                else:
-                    modName = filename
-            else:
-                modName = pathname
+            modName = self.__filename_to_modname(pathname)
         else:
             modName = "0x%x" % self.get_base()
         return modName
+
+    def match_name(self, name):
+        """
+        rtype:  bool
+        return: C{True} if the given name could refer to this module.
+            The given name may not be exactly the same returned by L{get_name}.
+        """
+        
+        # If the given name is exactly our name, return True.
+        # Comparison is case insensitive.
+        my_name = self.get_name().lower()
+        if name.lower() == my_name:
+            return True
+        
+        # If the given name is a base address, compare it with ours.
+        try:
+            base = HexInput.integer(name)
+        except ValueError:
+            base = None
+        if base is not None and base == self.get_base():
+            return True
+        
+        # If the given name is a filename, convert it to a module name.
+        # Then compare it with ours, case insensitive.
+        modName = self.__filename_to_modname(name)
+        if modName.lower() == my_name:
+            return True
+
+        # No match.
+        return False
 
     def get_process(self):
         """
@@ -3441,6 +3490,7 @@ class Module (object):
         # TODO
         # enumerate exported functions and debug symbols,
         # then find the closest match
+        # (don't forget the entry point keyword "start")
         
         # Make the label relative to the base address.
         module = self.get_name()
@@ -3512,6 +3562,60 @@ class Module (object):
 
         # Compensate for DLL base relocations locally and remotely.
         return address - hlib + self.lpBaseOfDll
+
+    def resolve_label(self, label):
+        """
+        Resolves a label for this module only. If the label refers to another
+        module, an exception is raised.
+        
+        @type  label: str
+        @param label: Label to resolve.
+        
+        @rtype:  int
+        @return: Memory address pointed to by the label.
+        
+        @raise ValueError: The label is malformed or impossible to resolve.
+        @raise RuntimeError: Cannot resolve the module or function.
+        """
+        
+        # Split the label into it's components.
+        # Use the fuzzy mode whenever possible.
+        aProcess = self.get_process()
+        if aProcess is not None:
+            (module, procedure, offset) = aProcess.split_label(label)
+        else:
+            (module, procedure, offset) = Process.split_label(label)
+        
+        # If a module name is given that doesn't match ours,
+        # raise an exception.
+        if module and not self.match_name(module):
+            raise RuntimeError, "Label does not belong to this module"
+        
+        # Resolve the procedure if given.
+        if procedure:
+            address = self.resolve(procedure)
+            if address is None:
+                
+                # If it's the keyword "start" use the entry point.
+                if procedure == "start":
+                    address = self.get_entry_point()
+                
+                # The procedure was not found.
+                if address is None:
+                    if not module:
+                        module = self.get_name()
+                    msg = "Can't find procedure %s in module %s"
+                    msg = msg % (procedure, module)
+                    raise RuntimeError, msg
+
+        # If no procedure is given use the base address of the module.
+        else:
+            address = self.get_base()
+        
+        # Add the offset if given and return the resolved address.
+        if offset:
+            address = address + offset
+        return address
 
 #==============================================================================
 
