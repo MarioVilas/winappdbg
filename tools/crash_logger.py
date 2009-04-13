@@ -272,11 +272,10 @@ class LoggingEventHandler(EventHandler):
             try:
 
                 # Set user-defined breakpoints for this process.
-
-                self.__break_or_stalk_at_label_list(event.debug, pid,
+                self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
                                               self.break_at[1], bBreak = True,
                                                only_for_this_module = baseName)
-                self.__break_or_stalk_at_label_list(event.debug, pid,
+                self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
                                               self.stalk_at[1], bBreak = False,
                                                only_for_this_module = baseName)
 
