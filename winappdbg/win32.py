@@ -4446,7 +4446,7 @@ GetModuleFileNameEx = GetModuleFileNameExA
 def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
     if lpmodinfo is None:
         lpmodinfo = MODULEINFO()
-    success = ctypes.windll.psapi.GetModuleInformation(hProcess, hModule, lpmodinfo, ctypes.sizeof(lpmodinfo))
+    success = ctypes.windll.psapi.GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), ctypes.sizeof(lpmodinfo))
     if success == FALSE:
         raise ctypes.WinError()
     return lpmodinfo
