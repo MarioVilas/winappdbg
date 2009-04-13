@@ -567,8 +567,11 @@ class CrashContainer (object):
             self.__keys = dict()
 
     def __del__(self):
-        if self.__filename:
-            self.__db.close()
+        try:
+            if self.__filename:
+                self.__db.close()
+        except:
+            pass
 
     def __contains__(self, crash):
         """
