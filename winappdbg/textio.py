@@ -435,9 +435,10 @@ class CrashDump (object):
         return result
 
     # TODO
-    # Instead of a star when EIP points to, it would be better to show
+    # + Instead of a star when EIP points to, it would be better to show
     # any register value (or other values like the exception address) that
     # points to a location in the dissassembled code.
+    # + It'd be very useful to show some labels here.
     @staticmethod
     def dump_code(disassembly, pc = None, bLowercase = True):
         """
