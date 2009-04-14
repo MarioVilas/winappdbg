@@ -59,7 +59,7 @@ __all__ = [
 
     ]
 
-from system import processidparam, threadidparam, MemoryOperations
+from system import processidparam, threadidparam, System
 import win32
 
 #==============================================================================
@@ -561,7 +561,7 @@ class PageBreakpoint (Breakpoint):
     """
 
     typeName = 'page breakpoint'
-    pageSize = MemoryOperations.pageSize
+    pageSize = System.pageSize
 
     @classmethod
     def align_address_to_page_start(cls, address):
