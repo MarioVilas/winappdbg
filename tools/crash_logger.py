@@ -563,9 +563,9 @@ def parse_cmdline(argv):
     # TODO
     # * autogenerate a default crash dump file from the executable file
     output = optparse.OptionGroup(parser, "Output options")
-    output.add_option("-v", "--verbose", action="store_true", default=True,
+    output.add_option("-v", "--verbose", action="store_true", dest="verbose",
                       help="Log events to standard output [default]")
-    output.add_option("-q", "--quiet", action="store_false", default=False, dest="verbose",
+    output.add_option("-q", "--quiet", action="store_false", dest="verbose",
                       help="Do not log events to standard output")
     output.add_option("-f", "--file", default="crashes.db",
                       help="Specify a crash dump file [default: %default]")
@@ -578,6 +578,8 @@ def parse_cmdline(argv):
         argv = argv + [ '--help' ]
     (options, args) = parser.parse_args(argv)
     options.heap = False            # XXX HACK remove when --heap is fully functional
+    if options.verbose is None:
+        options.verbose = True
     if options.exec_mode is None:
         options.exec_mode = "console"
     if options.exec_mode == "attach":
