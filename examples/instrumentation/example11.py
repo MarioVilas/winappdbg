@@ -56,7 +56,9 @@ def print_api_address( pid, modName, procName ):
     print "%s!%s == 0x%.08x" % ( modName, procName, address )
 
 # When invoked from the command line,
-# the first argument is a process ID
+# the first argument is a process ID,
+# the second argunemt is a module name,
+# the third argument is a procedure name
 if __name__ == "__main__":
     import sys
     pid      = int( sys.argv[1] )
