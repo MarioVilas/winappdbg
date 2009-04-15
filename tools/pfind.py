@@ -40,7 +40,7 @@ import optparse
 
 from winappdbg import Process, System, HexDump, HexInput, win32
 
-#------------------------------------------------------------------------------
+#==============================================================================
 
 class Search (object):
     
@@ -105,6 +105,8 @@ class Search (object):
     def search(self, data):
         raise NotImplementedError
 
+#------------------------------------------------------------------------------
+
 class StringSearch (Search):
 
     name    = "string"
@@ -119,6 +121,8 @@ class StringSearch (Search):
         pos = data.find(self.string, self.end)
         self.update(pos, pos + len(self.pattern))
 
+#------------------------------------------------------------------------------
+
 class TextSearch (StringSearch):
 
     name    = "istring"
@@ -132,6 +136,8 @@ class TextSearch (StringSearch):
     def search(self, data):
         super(TextSearch, self).search( data.lower() )
 
+#------------------------------------------------------------------------------
+
 class HexSearch (StringSearch):
     
     name    = "hexa"
@@ -141,6 +147,8 @@ class HexSearch (StringSearch):
 
     def initialize_pattern(self):
         self.string = HexInput.hexadecimal(self.pattern)
+
+#------------------------------------------------------------------------------
 
 class RegExpSearch (Search):
 
@@ -159,6 +167,8 @@ class RegExpSearch (Search):
         else:
             self.update( * match.span() )
 
+#------------------------------------------------------------------------------
+
 class PatternSearch (RegExpSearch):
     name    = "pattern"
     desc    = "hexadecimal pattern"
@@ -166,10 +176,9 @@ class PatternSearch (RegExpSearch):
               " address 0x%(address).08x (%(size)d bytes)"
     
     def initialize_pattern(self):
-        converted_pattern = HexInput.pattern(self.pattern)
-        self.regexp = re.compile(converted_pattern)
+        self.regexp = re.compile( HexInput.pattern(self.pattern) )
 
-#------------------------------------------------------------------------------
+#==============================================================================
 
 class Main (object):
     
@@ -177,7 +186,6 @@ class Main (object):
         self.argv = argv
     
     def parse_cmdline(self):
-        'Parse the command line options.'
         
         # An empty command line causes the help message to be shown
         if len(self.argv) == 1:
@@ -268,7 +276,6 @@ class Main (object):
             try:
                 searchers[index] = cls( searchers[index], index )
             except Exception, e:
-                raise
                 msg = cls.init_error_msg(index, searchers[index], e)
                 self.parser.error(msg)
     
