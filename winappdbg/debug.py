@@ -111,7 +111,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         Attaches to an existing process for debugging.
         
-        @see: L{start}, L{detach}
+        @see: L{detach}, L{execv}, L{execl}
         
         @type  dwProcessId: int
         @param dwProcessId: Global ID of a process to attach to.

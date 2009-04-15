@@ -173,7 +173,7 @@ class HexInput (object):
             
             "B8 0? ?0 ?? ??"
         
-        Is converted to this regular expression:
+        Is converted to this regular expression::
             
             "\xB8...."
         

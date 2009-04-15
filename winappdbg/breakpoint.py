@@ -1476,7 +1476,7 @@ class BreakpointContainer (object):
         unhook_function
     
     @group Symbols:
-        resolve_label, resolve_exported_function,
+        resolve_label, resolve_exported_function
     
     @group Advanced breakpoint use:
         define_code_breakpoint,
