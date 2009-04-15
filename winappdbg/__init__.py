@@ -34,7 +34,9 @@ by Mario Vilas (mvilas at gmail.com)
 
 Project: U{http://sourceforge.net/projects/winappdbg/}
 
-Wiki:    U{http://apps.sourceforge.net/trac/winappdbg/wiki/}
+Web:     U{http://winappdbg.sourceforge.net/}
+
+Forum:   U{http://apps.sourceforge.net/phpbb/winappdbg/}
 
 Blog:    U{http://breakingcode.wordpress.com}
 
