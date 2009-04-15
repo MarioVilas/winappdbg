@@ -650,11 +650,9 @@ def main(args):
     # Create the debug object
     debug = Debug(eventHandler)
     if   options.exec_mode == "execute":
-        lpCmdLine   = debug.system.argv_to_cmdline(args[1:])
-        mainProcess = debug.start(lpCmdLine, bFollow = True, bConsole = False)
+        mainProcess = debug.execv(args[1:], bFollow = True, bConsole = False)
     elif options.exec_mode == "console":
-        lpCmdLine   = debug.system.argv_to_cmdline(args[1:])
-        mainProcess = debug.start(lpCmdLine, bFollow = True, bConsole = True)
+        mainProcess = debug.execv(args[1:], bFollow = True, bConsole = True)
     elif options.exec_mode == "attach":
         try:
             dwProcessId = HexInput.integer( args[1] )

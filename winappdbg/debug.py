@@ -207,11 +207,49 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##                traceback.print_exc()
 ##                print
 
-    def start(self, lpCmdLine,                               bConsole = False,
+    def execv(self, argv,                                    bConsole = False,
                                                               bFollow = False,
                                                            bSuspended = False):
         """
         Starts a new process for debugging.
+        
+        This method uses a list of arguments. To use a command line string
+        instead, use L{execl}.
+        
+        @see: L{attach}, L{detach}
+        
+        @type  argv: list( str... )
+        @param argv: List of command line arguments to pass to the debugee.
+            The first element must be the debugee executable filename.
+        
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
+        
+        @type    bFollow: bool
+        @keyword bFollow: True to automatically attach to child processes.
+        
+        @type    bSuspended: bool
+        @keyword bSuspended: True to suspend the main thread before any code is
+            executed in the debugee.
+        
+        @rtype:  L{Process}
+        @return: A new Process object.
+        
+        @raise WindowsError: Raises an exception on error.
+        """
+        lpCmdLine = self.system.argv_to_cmdline(argv)
+        return self.execl(lpCmdLine,   bConsole = bConsole,
+                                        bFollow = bFollow,
+                                     bSuspended = bSuspended)
+
+    def execl(self, lpCmdLine,                               bConsole = False,
+                                                              bFollow = False,
+                                                           bSuspended = False):
+        """
+        Starts a new process for debugging.
+        
+        This method uses a command line string. To use a list of arguments
+        instead, use L{execv}.
         
         @see: L{attach}, L{detach}
         
