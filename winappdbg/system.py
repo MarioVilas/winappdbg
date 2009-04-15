@@ -1014,28 +1014,15 @@ class MemoryOperations (object):
     """
     Encapsulates the capabilities to manipulate the memory of a process.
 
-    @group Memory allocation:
-        malloc, free, mprotect, mquery
-    @group Memory information:
-        pageSize, mquery, get_memory_map
+    @group Memory mapping:
+        get_memory_map, malloc, free, mprotect, mquery
     @group Memory read:
         read, read_char, read_uint, read_structure,
         peek, peek_char, peek_uint, peek_string
     @group Memory write:
         write, write_char, write_uint,
         poke, poke_char, poke_uint
-    
-    @type pageSize: int
-    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
-        automatically updated on runtime when importing the module.
     """
-
-    # Try to get the pageSize value on runtime,
-    # ignoring exceptions on failure.
-    try:
-        pageSize = win32.GetSystemInfo().dwPageSize
-    except WindowsError:
-        pageSize = 0x1000
 
     # FIXME
     # * under Wine reading from an unmapped address returns nulls
@@ -2869,10 +2856,16 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads.
         """
+        our_pid    = win32.GetProcessId( win32.GetCurrentProcess() )
         dead_pids  = set( self.get_process_ids() )
         found_tids = set()
 
+        # Ignore our own process if it's in the snapshot for some reason
+        if our_pid in dead_pids:
+            dead_pids.remove(our_pid)
+
         # Take a snapshot of all processes and threads
+        # (excluding our own)
         dwFlags   = win32.TH32CS_SNAPPROCESS | win32.TH32CS_SNAPTHREAD
         hSnapshot = win32.CreateToolhelp32Snapshot(dwFlags)
         try:
@@ -2881,33 +2874,35 @@ class ProcessContainer (object):
             pe = win32.Process32First(hSnapshot)
             while pe is not None:
                 dwProcessId = pe.th32ProcessID
-                if dwProcessId in dead_pids:
-                    dead_pids.remove(dwProcessId)
-                if not self.has_process(dwProcessId):
-                    aProcess = Process(dwProcessId)
-                    self.__add_process(aProcess)
-                elif pe.szExeFile:
-                    aProcess = self.get_process(dwProcessId)
-                    if not aProcess.fileName:
-                        aProcess.fileName = pe.szExeFile
+                if dwProcessId != our_pid:
+                    if dwProcessId in dead_pids:
+                        dead_pids.remove(dwProcessId)
+                    if not self.has_process(dwProcessId):
+                        aProcess = Process(dwProcessId)
+                        self.__add_process(aProcess)
+                    elif pe.szExeFile:
+                        aProcess = self.get_process(dwProcessId)
+                        if not aProcess.fileName:
+                            aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
 
             # Add all the threads
             te = win32.Thread32First(hSnapshot)
             while te is not None:
                 dwProcessId = te.th32OwnerProcessID
-                if dwProcessId in dead_pids:
-                    dead_pids.remove(dwProcessId)
-                if self.has_process(dwProcessId):
-                    aProcess = self.get_process(dwProcessId)
-                else:
-                    aProcess = Process(dwProcessId)
-                    self.__add_process(aProcess)
-                dwThreadId = te.th32ThreadID
-                found_tids.add(dwThreadId)
-                if not aProcess.has_thread(dwThreadId):
-                    aThread = Thread(dwThreadId, process = aProcess)
-                    aProcess._ThreadContainer__add_thread(aThread)
+                if dwProcessId != our_pid:
+                    if dwProcessId in dead_pids:
+                        dead_pids.remove(dwProcessId)
+                    if self.has_process(dwProcessId):
+                        aProcess = self.get_process(dwProcessId)
+                    else:
+                        aProcess = Process(dwProcessId)
+                        self.__add_process(aProcess)
+                    dwThreadId = te.th32ThreadID
+                    found_tids.add(dwThreadId)
+                    if not aProcess.has_thread(dwThreadId):
+                        aThread = Thread(dwThreadId, process = aProcess)
+                        aProcess._ThreadContainer__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
 
         # Always close the snapshot handle before returning
@@ -2942,21 +2937,25 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes.
         """
+        our_pid   = win32.GetProcessId( win32.GetCurrentProcess() )
         dead_pids = set( self.get_process_ids() )
+        if our_pid in dead_pids:
+            dead_pids.remove(our_pid)
         hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPPROCESS)
         try:
             pe = win32.Process32First(hSnapshot)
             while pe is not None:
                 dwProcessId = pe.th32ProcessID
-                if dwProcessId in dead_pids:
-                    dead_pids.remove(dwProcessId)
-                if not self.has_process(dwProcessId):
-                    aProcess = Process(dwProcessId)
-                    self.__add_process(aProcess)
-                elif pe.szExeFile:
-                    aProcess = self.get_process(dwProcessId)
-                    if not aProcess.fileName:
-                        aProcess.fileName = pe.szExeFile
+                if dwProcessId != our_pid:
+                    if dwProcessId in dead_pids:
+                        dead_pids.remove(dwProcessId)
+                    if not self.has_process(dwProcessId):
+                        aProcess = Process(dwProcessId)
+                        self.__add_process(aProcess)
+                    elif pe.szExeFile:
+                        aProcess = self.get_process(dwProcessId)
+                        if not aProcess.fileName:
+                            aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
@@ -2975,16 +2974,25 @@ class ProcessContainer (object):
             may be missing, outdated or slower to obtain. This could be a good
             tradeoff under some circumstances.
         """
-        new_pid_list = win32.EnumProcesses()
-        old_pid_list = self.get_process_ids()
-        for pid in new_pid_list:
-            if not self.has_process(pid):
-                aProcess = Process(pid)
-                self.__add_process(aProcess)
-        new_pid_list = set(new_pid_list)
-        for pid in old_pid_list:
-            if pid not in new_pid_list:
-                self.__del_process(pid)
+        
+        # Get the new and old list of pids
+        new_pids = set( win32.EnumProcesses() )
+        old_pids = set( self.get_process_ids() )
+        
+        # Ignore our own pid
+        our_pid  = win32.GetProcessId( win32.GetCurrentProcess() )
+        if our_pid in new_pids:
+            new_pids.remove(our_pid)
+        if our_pid in old_pids:
+            old_pids.remove(our_pid)
+        
+        # Add newly found pids
+        for pid in new_pids.difference(old_pids):
+            self.__add_process( Process(pid) )
+        
+        # Remove missing pids
+        for pid in old_pids.difference(new_pids):
+            self.__del_process(pid)
 
     def clear_dead_processes(self):
         """
@@ -4537,12 +4545,21 @@ class System (ProcessContainer):
     Contains a snapshot of processes.
     
     @group Global settings:
+        pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
         enable_step_on_branch_mode
+    
+    @type pageSize: int
+    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
+        automatically updated on runtime when importing the module.
     """
 
-##    def __init__(self):
-##        super(System, self).__init__()
+    # Try to get the pageSize value on runtime,
+    # ignoring exceptions on failure.
+    try:
+        pageSize = win32.GetSystemInfo().dwPageSize
+    except WindowsError:
+        pageSize = 0x1000
 
 #------------------------------------------------------------------------------
 

@@ -287,14 +287,9 @@ class Main (object):
         self.system = System()
         self.system.scan_processes()
         
-        # Get our own process ID, we'll filter it out the targets list
-        our_pid = win32.GetProcessId( win32.GetCurrentProcess() )
-        
         # If no targets were given, search on all processes
         if not self.targets:
             self.targets = self.system.get_process_ids()
-            if our_pid in self.targets:
-                self.targets.remove(our_pid)
         
         # If targets were given, search only on those processes
         else:
@@ -302,14 +297,12 @@ class Main (object):
             for token in self.targets:
                 try:
                     pid = HexInput.integer(token)
-                    if not self.system.has_process(pid) or pid == our_pid:
+                    if not self.system.has_process(pid):
                         self.parser.error("process not found: %s" % token)
                     expanded_targets.add(pid)
                 except ValueError:
                     found   = self.system.find_processes_by_filename(token)
                     pidlist = [process.get_pid() for (process, _) in found]
-                    if our_pid in pidlist:
-                        pidlist.remove(our_pid)
                     if not pidlist:
                         self.parser.error("process not found: %s" % token)
                     expanded_targets.update(pidlist)
