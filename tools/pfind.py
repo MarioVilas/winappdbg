@@ -287,26 +287,36 @@ class Main (object):
         self.system = System()
         self.system.scan_processes()
         
+        # Get our own process ID, we'll filter it out the targets list
+        our_pid = win32.GetProcessId( win32.GetCurrentProcess() )
+        
         # If no targets were given, search on all processes
         if not self.targets:
             self.targets = self.system.get_process_ids()
+            if our_pid in self.targets:
+                self.targets.remove(our_pid)
         
         # If targets were given, search only on those processes
         else:
-            expanded_targets = list()
+            expanded_targets = set()
             for token in self.targets:
                 try:
                     pid = HexInput.integer(token)
-                    if not self.system.has_process(pid):
+                    if not self.system.has_process(pid) or pid == our_pid:
                         self.parser.error("process not found: %s" % token)
-                    expanded_targets.append(pid)
+                    expanded_targets.add(pid)
                 except ValueError:
-                    plist = self.system.find_processes_by_filename(token)
-                    if not plist:
+                    found   = self.system.find_processes_by_filename(token)
+                    pidlist = [process.get_pid() for (process, _) in found]
+                    if our_pid in pidlist:
+                        pidlist.remove(our_pid)
+                    if not pidlist:
                         self.parser.error("process not found: %s" % token)
-                    for process, _ in plist:
-                        expanded_targets.append(process.get_pid())
-            self.targets = expanded_targets
+                    expanded_targets.update(pidlist)
+            self.targets = list( expanded_targets )
+        
+        # Sort the targets list
+        self.targets.sort()
     
     def do_search(self):
         
