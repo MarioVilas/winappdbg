@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #6
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example6:usingtheEventHandlerclass
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example6:tracingexecution
 
 from winappdbg import Debug, EventHandler, CrashDump, win32
 
