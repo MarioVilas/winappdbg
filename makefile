@@ -65,6 +65,7 @@ bdist:
 
 # Clean up
 clean:
+	python setup.py clean
 	if exist build del /s /q build
 	if exist html del /s /q html
 	if exist pdf del /s /q pdf
