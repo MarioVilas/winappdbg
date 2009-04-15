@@ -143,7 +143,7 @@ class HexInput (object):
         return result
 
     @staticmethod
-    def binary(token):
+    def hexadecimal(token):
         """
         Convert a strip of hexadecimal numbers into binary data.
         
@@ -153,10 +153,7 @@ class HexInput (object):
         @rtype:  str
         @return: Parsed string value.
         """
-        token = token.replace(' ', '')
-        token = token.replace('\t', '')
-        token = token.replace('\r', '')
-        token = token.replace('\n', '')
+        token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
             raise ValueError, "Missing characters in hex data"
         data = ''
@@ -166,6 +163,49 @@ class HexInput (object):
             s = struct.pack('<B', d)
             data += s
         return data
+
+    @staticmethod
+    def pattern(token):
+        """
+        Convert an hexadecimal search pattern into a POSIX regular expression.
+        
+        For example, the following pattern::
+            
+            "B8 0? ?0 ?? ??"
+        
+        Is converted to this regular expression:
+            
+            "\xB8...."
+        
+        And would match the following data::
+            
+            "B8 0D F0 AD BA"    # mov eax, 0xBAADF00D
+        
+        @type  token: str
+        @param token: String to parse.
+        
+        @rtype:  str
+        @return: Parsed string value.
+        """
+        token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
+        if len(token) % 2 != 0:
+            raise ValueError, "Missing characters in hex data"
+        regexp = ''
+        for i in xrange(0, len(token), 2):
+            x = token[i:i+2]
+            if x == '??':
+                regexp += '.'
+            elif x[0] == '?':
+                f = '\\x%%.1x%s' % x[1]
+                x = ''.join([ f % c for c in xrange(0, 0x10) ])
+                regexp = '%s[%s]' % (regexp, x)
+            elif x[1] == '?':
+                f = '\\x%s%%.1x' % x[0]
+                x = ''.join([ f % c for c in xrange(0, 0x10) ])
+                regexp = '%s[%s]' % (regexp, x)
+            else:
+                regexp = '%s\\x%s' % (regexp, x)
+        return regexp
 
     @classmethod
     def integer_list_file(cls, filename):

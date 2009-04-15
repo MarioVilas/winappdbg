@@ -40,218 +40,349 @@ import optparse
 
 from winappdbg import Process, System, HexDump, HexInput, win32
 
-def parse_cmdline(argv):
-    'Parse the command line options.'
+#------------------------------------------------------------------------------
 
-    # An empty command line causes the help message to be shown
-    if len(argv) == 1:
-        argv = argv + ['-h']
+class Search (object):
+    
+    name    = "query"
+    desc    = "search query"
+    errfmt  = "bad %(desc)s #%(count)d (%(pattern)r): %(text)s"
+    showfmt = "Found element #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
+    
+    def __init__(self, pattern, count):
+        self.pattern = pattern
+        self.count   = count
+        self.restart()
+        self.initialize_pattern()
 
-    # Usage string
-    usage  = "%prog [options] <QUERY> <target process IDs or names...>" 
-    parser = optparse.OptionParser(usage=usage)
+    def restart(self):
+        self.start = -1
+        self.end   = 0
 
-    # Options to set the search method
-    search = optparse.OptionGroup(parser, "What to search")
-##                "Specify how to understand the query string.")
-    search.add_option("-s", "--string",
-                      action="store_const", const="s", dest="search_method",
-                      help="QUERY is a literal string (case sensitive)   [default]")
-    search.add_option("-t", "--text",
-                      action="store_const", const="t", dest="search_method",
-                      help="QUERY is a literal string (case insensitive)")
-    search.add_option("-x", "--hex",
-                      action="store_const", const="x", dest="search_method",
-                      help="QUERY is hexadecimal data")
-##    search.add_option("-p", "--pattern",
-##                      action="store_const", const="p", dest="search_method",
-##                      help="QUERY is an hexadecimal pattern")
-    search.add_option("-r", "--regexp",
-                      action="store_const", const="r", dest="search_method",
-                      help="QUERY is a POSIX regular expression")
-    parser.add_option_group(search)
+    def shift(self, delta):
+        self.start = self.start - delta
+        self.end   = self.end   - delta
+        if self.start < 0:
+            self.start = -1
+        if self.end < 0:
+            self.end   = 0
+    
+    def update(self, start, end):
+        if start < 0:
+            if self.start >= 0:
+                self.end = self.end + 1
+            self.start = -1
+        else:
+            self.start = start
+            self.end   = end
+    
+    def found(self):
+        return self.start >= 0
+    
+    @classmethod
+    def init_error_msg(cls, count, pattern, text):
+        desc = cls.desc
+        return cls.errfmt % vars()
 
-    # Options to control the search internals
-    engine = optparse.OptionGroup(parser, "How to search")
-##                "Tweak the internals of the search mechanism.")
-    engine.add_option("-m", "--memory-pages",
-                      action="store", type="int", metavar="NUMBER",
-                      help="maximum number of consecutive memory pages"\
-                           " to read [default: 2, use 0 for no limit]")
-    parser.add_option_group(engine)
+    def message(self, pid, address, data = None):
+        if self.start < 0:
+            raise StopIteration
+        count   = self.count + 1
+        address = address + self.start
+        size    = self.end - self.start
+        msg     = self.showfmt % vars()
+        if data is not None:
+            msg += "\n"
+            p = self.start & 0xFFFFFFF0
+            q = (self.end & 0xFFFFFFF0) + 0x10
+            msg += HexDump.hexblock( data[p:q] )
+        return msg
+    
+    def initialize_pattern(self):
+        raise NotImplementedError
 
-    # Options to set the output type
-    output = optparse.OptionGroup(parser, "What to show")
-##                "Control the output.")
-    output.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                      help="Verbose output")
-    output.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                      help="Brief output [default]")
-##    output.add_option("-c", "--color", action="store_true",
-##                      help="Colorful output")
-    parser.add_option_group(output)
+    def search(self, data):
+        raise NotImplementedError
 
-    # Default values
-    parser.set_defaults(
-        search_method = "s",
-         memory_pages = 2,
-              verbose = False,
-        )
+class StringSearch (Search):
 
-    # Parse the command line and check for validity
-    (options, argv) = parser.parse_args(argv)
-    if len(argv) == 1:
-        parser.error("missing query string")
-    query   = argv[1]
-    targets = argv[2:]
+    name    = "string"
+    desc    = "case sensitive string"
+    showfmt = "Found string #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
+    
+    def initialize_pattern(self):
+        self.string = self.pattern
+    
+    def search(self, data):
+        pos = data.find(self.string, self.end)
+        self.update(pos, pos + len(self.pattern))
 
-    # Convert hex dumps into strings
-    if options.search_method == "x":
-        options.search_method = "s"
-        try:
-            query = HexInput.binary(query)
-        except ValueError:
-            parser.error("invalid hexadecimal data")
+class TextSearch (StringSearch):
 
-##    # Convert hex patterns into regular expressions
-##    elif options.search_method == "p":
-##        options.search_method = "r"
-##        
-##        # TODO
+    name    = "istring"
+    desc    = "case insensitive string"
+    showfmt = "Found text #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
+    
+    def initialize_pattern(self):
+        self.string = self.pattern.lower()
 
-    # Compile regular expressions
-    elif options.search_method == "r":
-        try:
-            query = re.compile(query)
-        except re.error, e:
-            parser.error("bad regular expression %r: %s" % (query, e))
+    def search(self, data):
+        super(TextSearch, self).search( data.lower() )
 
-    # Return the options and arguments
-    return (options, query, targets)
+class HexSearch (StringSearch):
+    
+    name    = "hexa"
+    desc    = "hexadecimal data"
+    showfmt = "Found data #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
 
-def main(argv):
-    'Main function.'
+    def initialize_pattern(self):
+        self.string = HexInput.hexadecimal(self.pattern)
 
-    # Banner
-    print "Process memory finder"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+class RegExpSearch (Search):
 
-    # Parse the command line
-    (options, query, targets) = parse_cmdline(argv)
+    name    = "regexp"
+    desc    = "regular expression"
+    showfmt = "Matched regexp #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
+    
+    def initialize_pattern(self):
+        self.regexp = re.compile(self.pattern)
+    
+    def search(self, data):
+        match = self.regexp.search(data, self.end)
+        if match is None:
+            self.update(-1, 0)
+        else:
+            self.update( * match.span() )
 
-    # Take a process snapshot
-    system = System()
-    system.scan_processes()
+class PatternSearch (RegExpSearch):
+    name    = "pattern"
+    desc    = "hexadecimal pattern"
+    showfmt = "Found pattern #%(count)d at process %(pid)d," \
+              " address 0x%(address).08x (%(size)d bytes)"
+    
+    def initialize_pattern(self):
+        converted_pattern = HexInput.pattern(self.pattern)
+        self.regexp = re.compile(converted_pattern)
 
-    # If no targets were given, search on all processes
-    if not targets:
-        expanded_targets = system.get_process_ids()
+#------------------------------------------------------------------------------
 
-    # If targets were given, search only on those processes
-    else:
-        expanded_targets = list()
-        for token in targets:
+class Main (object):
+    
+    def __init__(self, argv):
+        self.argv = argv
+    
+    def parse_cmdline(self):
+        'Parse the command line options.'
+        
+        # An empty command line causes the help message to be shown
+        if len(self.argv) == 1:
+            self.argv = self.argv + ['-h']
+        
+        # Usage string
+        usage  = "%prog [options] <target process IDs or names...>" 
+        self.parser = optparse.OptionParser(usage=usage)
+        
+        # Options to set the search method
+        search = optparse.OptionGroup(self.parser, "What to search",
+                    "(at least one of these switches must be used)")
+        search.add_option("-s", "--string", action="append", metavar="VALUE",
+                          help="where VALUE is case sensitive text")
+        search.add_option("-i", "--istring", action="append", metavar="VALUE",
+                          help="where VALUE is case insensitive text")
+        search.add_option("-x", "--hexa", action="append", metavar="VALUE",
+                          help="where VALUE is hexadecimal data")
+        search.add_option("-p", "--pattern", action="append", metavar="VALUE",
+                          help="where VALUE is an hexadecimal pattern")
+        search.add_option("-r", "--regexp", action="append", metavar="VALUE",
+                          help="where VALUE is a POSIX regular expression")
+        self.parser.add_option_group(search)
+        
+        # Options to control the search internals
+        engine = optparse.OptionGroup(self.parser, "How to search")
+##                    "Tweak the internals of the search mechanism.")
+        engine.add_option("-m", "--memory-pages",
+                          action="store", type="int", metavar="NUMBER",
+                          help="maximum number of consecutive memory pages" \
+                               " to read (matches larger than this won't"   \
+                               " be found)         "   \
+                               "[default: 2, use 0 for no limit]")
+        self.parser.add_option_group(engine)
+        
+        # Options to set the output type
+        output = optparse.OptionGroup(self.parser, "What to show")
+##                    "Control the output.")
+        output.add_option("-v", "--verbose", action="store_true", dest="verbose",
+                          help="verbose output")
+        output.add_option("-q", "--quiet", action="store_false", dest="verbose",
+                          help="brief output [default]")
+##        output.add_option("-c", "--color", action="store_true",
+##                          help="Colorful output")
+        self.parser.add_option_group(output)
+        
+        # Default values
+        self.parser.set_defaults(
+                   string = [],
+                  istring = [],
+                     hexa = [],
+                  pattern = [],
+                   regexp = [],
+             memory_pages = 2,
+                  verbose = False,
+                    color = False,
+            )
+        
+        # Parse the command line and check for validity
+        (self.options, self.targets) = self.parser.parse_args(self.argv)
+        
+        # Our script's filename is not a target, skip it
+        self.targets = self.targets[1:]
+        
+        # Fail if no search query was entered
+        if not self.options.string  and \
+           not self.options.istring and \
+           not self.options.hexa    and \
+           not self.options.pattern and \
+           not self.options.regexp:
+               self.parser.error("at least one search switch must be used")
+    
+    def prepare_input(self):
+        
+        # Build the lists of search objects
+        self.build_searchers_list(StringSearch)
+        self.build_searchers_list(TextSearch)
+        self.build_searchers_list(HexSearch)
+        self.build_searchers_list(PatternSearch)
+        self.build_searchers_list(RegExpSearch)
+        
+        # Build the list of target pids
+        self.build_targets_list()
+    
+    def build_searchers_list(self, cls):
+        searchers = getattr(self.options, cls.name)
+        for index in xrange(len(searchers)):
             try:
-                pid = HexInput.integer(token)
-                if not system.has_process(pid):
-                    parser.error("process not found: %s" % token)
-                expanded_targets.append(pid)
-            except ValueError:
-                plist = system.find_processes_by_filename(token)
-                if not plist:
-                    parser.error("process not found: %s" % token)
-                for process, _ in plist:
-                    expanded_targets.append(process.get_pid())
-
-    # For each target process...
-    for pid in expanded_targets:
+                searchers[index] = cls( searchers[index], index )
+            except Exception, e:
+                raise
+                msg = cls.init_error_msg(index, searchers[index], e)
+                self.parser.error(msg)
+    
+    def build_targets_list(self):
         
-        # Try to open the process, skip on error
-        try:
-            process = Process(pid)
-            process.get_handle()
-        except WindowsError:
-            print "Can't open process %d, skipping" % pid
-            continue
+        # Take a process snapshot
+        self.system = System()
+        self.system.scan_processes()
         
-        # Get a list of allocated memory regions
-        # If an allocation limit is set, break down the regions
-        memory = list()
-        for mbi in process.get_memory_map():
-            if mbi.State == win32.MEM_COMMIT and \
+        # If no targets were given, search on all processes
+        if not self.targets:
+            self.targets = self.system.get_process_ids()
+        
+        # If targets were given, search only on those processes
+        else:
+            expanded_targets = list()
+            for token in self.targets:
+                try:
+                    pid = HexInput.integer(token)
+                    if not self.system.has_process(pid):
+                        self.parser.error("process not found: %s" % token)
+                    expanded_targets.append(pid)
+                except ValueError:
+                    plist = self.system.find_processes_by_filename(token)
+                    if not plist:
+                        self.parser.error("process not found: %s" % token)
+                    for process, _ in plist:
+                        expanded_targets.append(process.get_pid())
+            self.targets = expanded_targets
+    
+    def do_search(self):
+        
+        # For each target process...
+        for self.pid in self.targets:
+            
+            # Try to open the process, skip on error
+            try:
+                self.process = Process(self.pid)
+                self.process.get_handle()
+            except WindowsError:
+                print "Can't open process %d, skipping" % self.pid
+                continue
+            
+            # Get a list of allocated memory regions
+            memory = list()
+            for mbi in self.process.get_memory_map():
+                if mbi.State == win32.MEM_COMMIT and \
                                             not mbi.Protect & win32.PAGE_GUARD:
-                if options.memory_pages == 0:
                     memory.append( (mbi.BaseAddress, mbi.RegionSize) )
-                else:
-                    start = mbi.BaseAddress
-                    end   = start + mbi.RegionSize
-                    step  = system.pageSize * options.memory_pages
-                    for address in xrange(start, end, step):
-                        memory.append( (address, min(step, end - address)) )
-        
-        # Perform the search on each memory region
-        if options.search_method == "t":
-            query = query.lower()
-        for (address, size) in memory:
-##            if options.verbose:
-##                print "Searching region at 0x%.08x (size 0x%.08x)" % \
-##                                                                (address, size)
             
-            # Read the memory
-            data = process.read(address, size)
-            if options.search_method == "t":
-                data_lower = data.lower()
+            # If no allocation limit is set,
+            # read entire regions and search on them
+            if self.options.memory_pages <= 0:
+                for (address, size) in memory:
+                    data = self.process.read(address, size)
+                    self.search_block(data, address, 0)
             
-            # Find each occurence of the query
-            p = -1
-            q = 0
+            # If an allocation limit is set,
+            # read blocks within regions to search
+            else:
+                step = self.system.pageSize
+                size = step * self.options.memory_pages
+                for (address, total_size) in memory:
+                    end    = address + total_size
+                    shift  = 0
+                    buffer = self.process.read(address, min(size, total_size))
+                    while 1:
+                        self.search_block(buffer, address, shift)
+                        shift   = step
+                        address = address + step
+                        if address >= end:
+                            break
+                        buffer  = buffer[step:]
+                        buffer  = buffer + self.process.read(address, step)
+    
+    def search_block(self, data, address, shift):
+        self.search_block_with(self.options.string,  data, address, shift)
+        self.search_block_with(self.options.istring, data, address, shift)
+        self.search_block_with(self.options.hexa,    data, address, shift)
+        self.search_block_with(self.options.pattern, data, address, shift)
+        self.search_block_with(self.options.regexp,  data, address, shift)
+    
+    def search_block_with(self, searchers_list, data, address, shift):
+        for searcher in searchers_list:
+            if shift == 0:
+                searcher.restart()
+            else:
+                searcher.shift(shift)
             while 1:
-                
-                # Case sensitive text search
-                # (This includes hex data search, see parse_cmdline)
-                if options.search_method == "s":
-                    p = data.find(query, q)
-                    if p >= 0:
-                        q = p + len(query)
-                    else:
-                        q = 0
-                
-                # Case insensitive text search
-                elif options.search_method == "t":
-                    p = data_lower.find(query, q)
-                    if p >= 0:
-                        q = p + len(query)
-                    else:
-                        q = 0
-                
-    ##            # Hex pattern search
-    ##            elif options.search_method == "p":
-    ##                # TODO
-                
-                # Regular expression search
-                elif options.search_method == "r":
-                    m = query.search(data, q)
-                    if m is not None:
-                        p = m.start()
-                        q = m.end()
-                    else:
-                        p = -1
-                        q = 0
-                
-                # Quit the loop when the pattern can't be found anymore
-                if p < 0:
+                searcher.search(data)
+                if not searcher.found():
                     break
-                
-                # Print the pattern found
-                msg = ("Found at process %d address 0x%.08x,"
-                       " %d bytes") % (pid, address + p, q - p)
-                if options.verbose:
-                    msg += "\n"
-                    ap = p & 0xFFFFFFF0
-                    aq = (q & 0xFFFFFFF0) + 0x10
-                    msg += HexDump.hexblock(data[ap:aq])
-                print msg
+                if self.options.verbose:
+                    print searcher.message(self.pid, address, data)
+                else:
+                    print searcher.message(self.pid, address)
+    
+    def run(self):
+        
+        # Banner
+        print "Process memory finder"
+        print "by Mario Vilas (mvilas at gmail.com)"
+        print
+        
+        # Parse the command line
+        self.parse_cmdline()
+        
+        # Prepare the input
+        self.prepare_input()
+        
+        # Perform the search on the selected targets
+        self.do_search()
+
+#------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     try:
@@ -259,4 +390,4 @@ if __name__ == '__main__':
         psyco.full()
     except ImportError:
         pass
-    main( sys.argv )
+    Main( sys.argv ).run()

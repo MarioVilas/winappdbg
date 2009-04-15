@@ -78,7 +78,7 @@ def main():
         print "Read %d bytes from %s" % (len(data), filename)
     else:
         try:
-            data = HexInput.binary(filename)
+            data = HexInput.hexadecimal(filename)
         except Exception:
             print "Invalid filename or hex block: %s" % filename
             return
