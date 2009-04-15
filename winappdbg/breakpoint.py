@@ -1424,9 +1424,9 @@ class ApiHook (Hook):
         """
         self.__procName = procName
 
-        preCB  = getattr(eventHandler, 'pre_%s' % procName, None)
+        preCB  = getattr(eventHandler, 'pre_%s'  % procName, None)
         postCB = getattr(eventHandler, 'post_%s' % procName, None)
-        Hook.__init__(self, preCB, postCB)
+        Hook.__init__(self, preCB, postCB, paramCount)
 
     def hook(self, debug, pid, modName):
         """

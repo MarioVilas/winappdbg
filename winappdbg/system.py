@@ -1986,6 +1986,9 @@ class SymbolOperations (object):
 
 #==============================================================================
 
+# TODO
+# + fetch special registers (MMX, XMM, 3DNow!, etc)
+
 class ThreadDebugOperations (object):
     """
     Encapsulates several useful debugging routines for threads.
@@ -2291,6 +2294,9 @@ class ThreadDebugOperations (object):
         return aProcess.disassemble_around(self.get_pc(), dwSize)
 
 #==============================================================================
+
+# TODO
+# + remote GetLastError
 
 class ProcessDebugOperations (object):
     """

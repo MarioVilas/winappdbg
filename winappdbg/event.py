@@ -997,10 +997,9 @@ class EventHandler (object):
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
-        new_apiHooks = dict()
+        self.__apiHooks = dict()
         for lib, hooks in self.apiHooks.iteritems():
-            new_apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
-        self.apiHooks = new_apiHooks
+            self.__apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
 
     def __setApiHooksForDll(self, event):
         """
@@ -1008,11 +1007,11 @@ class EventHandler (object):
         
         This method must be called whenever a DLL is loaded.
         """
-        if self.apiHooks:
+        if self.__apiHooks:
             fileName = event.get_module().get_filename()
             if fileName:
                 lib_name = FileHandle.pathname_to_filename(fileName).lower()
-                for hook_lib, hook_api_list in self.apiHooks.iteritems():
+                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:
                             hook_api_stub.hook(event.debug, event.get_pid(),
