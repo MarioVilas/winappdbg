@@ -97,6 +97,8 @@ class Search (object):
             p = self.start & 0xFFFFFFF0
             q = (self.end & 0xFFFFFFF0) + 0x10
             msg += HexDump.hexblock( data[p:q] )
+            if msg.endswith('\n'):
+                msg = msg[:-len('\n')]
         return msg
     
     def initialize_pattern(self):
@@ -317,6 +319,8 @@ class Main (object):
                 self.process.get_handle()
             except WindowsError:
                 print "Can't open process %d, skipping" % self.pid
+                if self.options.verbose:
+                    print
                 continue
             
             # Get a list of allocated memory regions
@@ -370,6 +374,7 @@ class Main (object):
                     break
                 if self.options.verbose:
                     print searcher.message(self.pid, address, data)
+                    print
                 else:
                     print searcher.message(self.pid, address)
     
