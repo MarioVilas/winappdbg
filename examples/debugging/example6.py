@@ -43,17 +43,20 @@ class MyEventHandler( EventHandler ):
         # Set the trap flag
         event.get_thread().set_tf()
     
+    
     # Create process events go here
     def create_process( self, event ):
         
         # Start tracing the main thread
         self.__trace( event )
     
+    
     # Create thread events go here
     def create_thread( self, event ):
         
         # Start tracing the new thread
         self.__trace( event )
+    
     
     # Single step events go here
     def single_step( self, event ):
@@ -69,6 +72,7 @@ class MyEventHandler( EventHandler ):
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
         print "0x%.08x: %s" % ( code[0], code[2].lower() )
+
 
 def simple_debugger( argv ):
     
