@@ -32,18 +32,19 @@
 
 from winappdbg import Debug, EventHandler
 
-
+# This function will be called when our breakpoint is hit
 def action_callback( event ):
     
-    # Get some event information
+    # Get the return address of the call
     address = event.get_thread().get_stack_dwords(1)[0]
-    tid     = event.get_tid()
+    
+    # Get the process and thread IDs
     pid     = event.get_pid()
+    tid     = event.get_tid()
     
     # Show a message to the user
     message = "kernel32!CreateFileW called from 0x%.08x by thread %d at process %d"
-    message = message % ( address, tid, pid )
-    print message
+    print message % ( address, tid, pid )
 
 
 class MyEventHandler( EventHandler ):
@@ -56,26 +57,33 @@ class MyEventHandler( EventHandler ):
         # If it's kernel32.dll...
         if module.match_name("kernel32.dll"):
             
+            # Get the process ID
+            pid = event.get_pid()
+            
             # Get the address of CreateFile
             address = module.resolve( "CreateFileW" )
             
             # Set a breakpoint at CreateFile
-            event.debug.break_at( event.get_pid(), address, action_callback )
+            event.debug.break_at( pid, address, action_callback )
             
             # If you use stalk_at instead of break_at,
             # the message will only be shown once
             #
-            # event.debug.stalk_at( event.get_pid(), address, action_callback )
+            # event.debug.stalk_at( pid, address, action_callback )
 
-    
+
 def simple_debugger( argv ):
     
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
     
-    # Start a new process for debugging,
-    # and automatically attach to it's child processes
-    debug.execv( argv, bFollow = True )
+    # Start a new process for debugging
+    debug.execv( argv )
+    
+    # If you start the new process like this instead, the
+    # debugger will automatically attach to the child processes
+    #
+    # debug.execv( argv, bFollow = True )
     
     # Wait for the debugee to finish
     debug.loop()
