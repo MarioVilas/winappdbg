@@ -191,6 +191,13 @@ class ExceptionEvent (Event):
     @type exceptionDescription: dict( int S{->} str )
     @cvar exceptionDescription:
         Mapping of exception constants to user-friendly strings.
+    
+    @type breakpoint: L{Breakpoint}
+    @ivar breakpoint:
+        If the exception was caused by one of our breakpoints, this member
+        contains the a reference to the breakpoint object. Otherwise it's
+        not defined. It should only be used from the condition or action
+        callback routines, instead of the event handler.
     """
 
     eventName        = 'Exception event'
@@ -548,7 +555,7 @@ class CreateProcessEvent (Event):
             lpRemoteFilenamePtr = self.raw.u.CreateProcessInfo.lpImageName
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
-                fUnicode    = self.raw.u.CreateProcessInfo.fUnicode
+                fUnicode    = bool( self.raw.u.CreateProcessInfo.fUnicode )
                 szFilename  = aProcess.peek_string(lpFilename, fUnicode)
 
             # Try to get it from Process.get_image_name().
@@ -659,7 +666,7 @@ class LoadDLLEvent (Event):
             lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
-                fUnicode    = self.raw.u.LoadDll.fUnicode
+                fUnicode    = bool( self.raw.u.LoadDll.fUnicode )
                 szFilename  = aProcess.peek_string(lpFilename, fUnicode)
                 if not szFilename:
                     szFilename = None
@@ -701,7 +708,7 @@ class OutputDebugStringEvent (Event):
         """
         return self.get_process().peek_string(
                                     self.raw.u.DebugString.lpDebugStringData,
-                                    self.raw.u.DebugString.fUnicode,
+                                    bool( self.raw.u.DebugString.fUnicode ),
                                     self.raw.u.DebugString.nDebugStringLength)
 
 #==============================================================================

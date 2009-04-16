@@ -37,7 +37,7 @@ from winappdbg import Debug, EventHandler
 def action_callback( event ):
     
     # Get the return address of the call
-    address = event.get_thread().get_stack_dwords(1)[0]
+    address = event.get_thread().read_stack_dwords(1)[0]
     
     # Get the process and thread IDs
     pid     = event.get_pid()

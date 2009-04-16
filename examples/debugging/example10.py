@@ -28,24 +28,64 @@
 # $Id$
 
 # Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example9:hookingafunction
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example10:watchingavariable
 
 from winappdbg import Debug, EventHandler
 
 
-# This function will be called when the hooked function is entered
-def wsprintf( event, ra, lpOut, lpFmt ):
+# This function will be called when the breakpoint is hit
+def entering( event ):
     
-    # Get the format string
-    lpFmt = event.get_process().peek_string( lpFmt, fUnicode = True )
+    # Get the thread object
+    thread = event.get_thread()
     
-    # Get the vararg parameters
-    count      = lpFmt.replace( '%%', '%' ).count( '%' )
-    parameters = event.get_thread().read_stack_dwords( count, offset = 3 )
+    # Get the thread ID
+    tid = thread.get_tid()
+    
+    # Get the return address location (the top of the stack)
+    stack_top = thread.get_sp()
+    
+    # Get the return address and the parameters from the stack
+    return_address, hModule, lpProcName = thread.read_stack_dwords( 3 )
+    
+    # Get the string from the process memory
+    procedure_name = event.get_process().peek_string( lpProcName )
+    
+    # Watch the DWORD at the top of the stack
+    event.debug.watch_variable( tid, stack_top, 4, returning )
     
     # Show a message to the user
-    showparams = ", ".join( [ hex(x) for x in parameters ] )
-    print "wsprintf( %r, %s );" % ( lpFmt, showparams )
+    message = "%.08x: GetProcAddress(0x%.08x, %r);"
+    print message % ( return_address, hModule, procedure_name )
+
+
+# This function will be called when the variable is accessed
+def returning( event ):
+    
+    # Get the thread object
+    thread = event.get_thread()
+    
+    # Get the thread ID
+    tid = thread.get_tid()
+    
+    # Get the thread context (that is, the register values)
+    context = thread.get_context()
+    
+    # Get the address of the watched variable
+    variable_address = event.breakpoint.get_address()
+    
+    # Stop watching the variable
+    event.debug.dont_watch_variable( tid, variable_address )
+    
+    # Get the return value (in EAX)
+    return_value = context[ 'Eax' ]
+    
+    # Get the return address (in the stack)
+    return_address = event.get_process().read_uint( variable_address )
+    
+    # Show a message to the user
+    message = "%.08x: GetProcAddress() returned 0x%.08x"
+    print message % ( return_address, return_value )
 
 
 class MyEventHandler( EventHandler ):
@@ -55,17 +95,17 @@ class MyEventHandler( EventHandler ):
         # Get the new module object
         module = event.get_module()
         
-        # If it's user32...
-        if module.match_name("user32.dll"):
+        # If it's kernel32...
+        if module.match_name("kernel32.dll"):
             
             # Get the process ID
             pid = event.get_pid()
             
-            # Get the address of wsprintf
-            address = module.resolve( "wsprintfW" )
+            # Get the address of GetProcAddress
+            address = module.resolve( "GetProcAddress" )
             
-            # Hook the wsprintf function
-            event.debug.hook_function( pid, address, wsprintf, paramCount = 2 )
+            # Set a breakpoint at the entry of the GetProcAddress function
+            event.debug.break_at( pid, address, entering )
 
 
 def simple_debugger( argv ):

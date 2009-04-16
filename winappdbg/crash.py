@@ -253,12 +253,12 @@ class Crash (object):
             self.stackFrame = thread.get_stack_frame()
             stackFrame = self.stackFrame
         except Exception, e:
-            self.stackFrame = thread.get_stack_data()
+            self.stackFrame = thread.peek_stack_data()
             stackFrame = self.stackFrame[:64]
         if stackFrame:
             self.stackPeek = process.peek_pointers_in_data(stackFrame)
 
-        self.faultCode = thread.get_code_bytes()
+        self.faultCode = thread.peek_code_bytes()
 
         self.faultDisasm = thread.disassemble_around_pc(32)
 

@@ -524,7 +524,6 @@ class ModuleContainer (object):
         try:
             baseAddress = HexInput.integer(modName)
         except ValueError:
-            raise
             return None
         if self.has_module(baseAddress):
             return self.get_module(baseAddress)
@@ -1308,16 +1307,15 @@ class MemoryOperations (object):
         
         @rtype:  str, unicode
         @return: String read from the process memory space.
+            It doesn't include the terminating null character.
             Returns an empty string on failure.
         """
-        szString = ''
-        if lpBaseAddress != win32.NULL:
-            szString = self.peek(lpBaseAddress, dwMaxSize)
-            if fUnicode:
-                szString = szString[:szString.find('\x00\x00') + 2]
-                szString = unicode(szString, 'U16', 'ignore')
-            else:
-                szString = szString[:szString.find('\x00') + 1]
+        szString = self.peek(lpBaseAddress, dwMaxSize)
+        if fUnicode:
+            szString = unicode(szString, 'U16', 'ignore')
+            szString = ctypes.create_unicode_buffer(szString).value
+        else:
+            szString = ctypes.create_string_buffer(szString).value
         return szString
 
 #------------------------------------------------------------------------------
@@ -2003,10 +2001,10 @@ class ThreadDebugOperations (object):
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
     @group Stack:
-        get_stack_data, get_stack_dwords, get_stack_frame, get_stack_range,
-        get_stack_trace
+        read_stack_data, read_stack_dwords,
+        get_stack_frame, get_stack_range, get_stack_trace
     @group Miscellaneous:
-        get_teb, get_code_bytes,
+        get_teb, read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers
     """
 
@@ -2075,7 +2073,7 @@ class ThreadDebugOperations (object):
 
     def get_stack_frame(self, max_size = None):
         """
-        Tries to read the contents of the current stack frame.
+        Reads the contents of the current stack frame.
         Only works for functions with standard prologue and epilogue.
         
         @type    depth: int
@@ -2107,7 +2105,25 @@ class ThreadDebugOperations (object):
             size = max_size
         return aProcess.peek(sp, size)
 
-    def get_stack_data(self, size = 128, offset = 0):
+    def read_stack_data(self, size = 128, offset = 0):
+        """
+        Reads the contents of the top of the stack.
+        
+        @type  size: int
+        @param size: Number of bytes to read.
+        
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+        
+        @rtype:  str
+        @return: Stack data.
+        
+        @raise WindowsError: Could not read the requested data.
+        """
+        aProcess = self.get_process()
+        return aProcess.read(self.get_sp() + offset, size)
+
+    def peek_stack_data(self, size = 128, offset = 0):
         """
         Tries to read the contents of the top of the stack.
         
@@ -2119,12 +2135,30 @@ class ThreadDebugOperations (object):
         
         @rtype:  str
         @return: Stack data.
-            Returns an empty string on error.
+            Returned data may be less than the requested size.
         """
         aProcess = self.get_process()
         return aProcess.peek(self.get_sp() + offset, size)
 
-    def get_stack_dwords(self, count, offset = 0):
+    def read_stack_dwords(self, count, offset = 0):
+        """
+        Reads DWORDs from the top of the stack.
+        
+        @type  count: int
+        @param count: Number of DWORDs to read.
+        
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+        
+        @rtype:  tuple( int... )
+        @return: Tuple of integers read from the stack.
+        
+        @raise WindowsError: Could not read the requested data.
+        """
+        stackData = self.read_stack_data(count * 4, offset)
+        return struct.unpack('<'+('L'*count), stackData)
+
+    def peek_stack_dwords(self, count, offset = 0):
         """
         Tries to read DWORDs from the top of the stack.
         
@@ -2138,14 +2172,31 @@ class ThreadDebugOperations (object):
         @return: Tuple of integers read from the stack.
             May be less than the requested number of DWORDs.
         """
-        stackData = self.get_stack_data(count * 4, offset)
+        stackData = self.peek_stack_data(count * 4, offset)
         if len(stackData) & 3:
             stackData = stackData[:-len(stackData) & 3]
         if not stackData:
             return ()
         return struct.unpack('<'+('L'*count), stackData)
 
-    def get_code_bytes(self, size = 128, offset = 0):
+    def read_code_bytes(self, size = 128, offset = 0):
+        """
+        Tries to read some bytes of the code currently being executed.
+        
+        @type  size: int
+        @param size: Number of bytes to read.
+        
+        @type  offset: int
+        @param offset: Offset from the program counter to begin reading.
+        
+        @rtype:  str
+        @return: Bytes read from the process memory.
+        
+        @raise WindowsError: Could not read the requested data.
+        """
+        return self.get_process().read(self.get_pc() + offset, size)
+
+    def peek_code_bytes(self, size = 128, offset = 0):
         """
         Tries to read some bytes of the code currently being executed.
         
@@ -2159,8 +2210,7 @@ class ThreadDebugOperations (object):
         @return: Bytes read from the process memory.
             May be less than the requested number of bytes.
         """
-        aProcess = self.get_process()
-        return aProcess.peek(self.get_pc() + offset, size)
+        return self.get_process().peek(self.get_pc() + offset, size)
 
     def peek_pointers_in_registers(self, peekSize = 16):
         """
