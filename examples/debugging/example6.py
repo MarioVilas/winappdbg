@@ -32,6 +32,7 @@
 
 from winappdbg import Debug, EventHandler, CrashDump, win32
 
+
 class MyEventHandler( EventHandler ):
     
     # This private method enables the tracing mode

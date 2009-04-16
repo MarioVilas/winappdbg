@@ -32,6 +32,7 @@
 
 from winappdbg import Debug, EventHandler
 
+
 class MyEventHandler( EventHandler ):
     
     

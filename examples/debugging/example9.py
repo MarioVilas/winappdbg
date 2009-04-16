@@ -27,25 +27,25 @@
 
 # $Id$
 
-# Example #8
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example8:settingabreakpoint
+# Example #9
+# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example9:hookingafunction
 
 from winappdbg import Debug, EventHandler
 
 
-# This function will be called when our breakpoint is hit
-def action_callback( event ):
+# This function will be called when the hooked function is entered
+def wsprintf( event, ra, lpOut, lpFmt ):
     
-    # Get the return address of the call
-    address = event.get_thread().get_stack_dwords(1)[0]
+    # Get the format string
+    lpFmt = event.get_process().peek_string( lpFmt, fUnicode = True )
     
-    # Get the process and thread IDs
-    pid     = event.get_pid()
-    tid     = event.get_tid()
+    # Get the vararg parameters
+    count      = lpFmt.replace( '%%', '%' ).count( '%' )
+    parameters = event.get_thread().get_stack_dwords( count, offset = 3 )
     
     # Show a message to the user
-    message = "kernel32!CreateFileW called from 0x%.08x by thread %d at process %d"
-    print message % ( address, tid, pid )
+    showparams = ", ".join( [ hex(x) for x in parameters ] )
+    print "wsprintf( %r, %s );" % ( lpFmt, showparams )
 
 
 class MyEventHandler( EventHandler ):
@@ -55,22 +55,17 @@ class MyEventHandler( EventHandler ):
         # Get the new module object
         module = event.get_module()
         
-        # If it's kernel32.dll...
-        if module.match_name("kernel32.dll"):
+        # If it's user32...
+        if module.match_name("user32.dll"):
             
             # Get the process ID
             pid = event.get_pid()
             
-            # Get the address of CreateFile
-            address = module.resolve( "CreateFileW" )
+            # Get the address of wsprintf
+            address = module.resolve( "wsprintfW" )
             
-            # Set a breakpoint at CreateFile
-            event.debug.break_at( pid, address, action_callback )
-            
-            # If you use stalk_at instead of break_at,
-            # the message will only be shown once
-            #
-            # event.debug.stalk_at( pid, address, action_callback )
+            # Hook the wsprintf function
+            event.debug.hook_function( pid, address, wsprintf, paramCount = 2 )
 
 
 def simple_debugger( argv ):
@@ -80,11 +75,6 @@ def simple_debugger( argv ):
     
     # Start a new process for debugging
     debug.execv( argv )
-    
-    # If you start the new process like this instead, the
-    # debugger will automatically attach to the child processes
-    #
-    # debug.execv( argv, bFollow = True )
     
     # Wait for the debugee to finish
     debug.loop()
