@@ -3058,49 +3058,81 @@ class BreakpointContainer (object):
         
         # Get the base address and size in pages required for this buffer.
         base  = PageBreakpoint.align_address_to_page_start(address)
+        limit = PageBreakpoint.align_address_to_page_end(address + size)
         pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
         
-        # Do we already have a page breakpoint there?
-        if self.has_page_breakpoint(pid, base):
+        try:
             
-            # Get the breakpoint.
-            bp = self._BreakpointContainer__get_page_bp(pid, base)
+            # For each page:
+            #  + if a page breakpoint exists reuse it
+            #  + if it doesn't exist define it
             
-            # Get the breakpoint's condition.
-            condition = bp.get_condition()
+            bset            = set()     # all breakpoints used
+            nset            = set()     # newly defined breakpoints
+            cset            = set()     # condition objects
+            last_free_base  = base      # last address where no bp was defined
+            for page_addr in xrange(base, limit, System.pageSize):
+                if self.has_page_breakpoint(pid, page_addr):
+                    
+                    # Cover "holes" with no page breakpoints defined.
+                    if last_free_base != page_addr:
+                        condition     = BufferWatch()
+                        size_in_bytes = page_addr - last_free_base
+                        size_in_pages = size_in_bytes / System.pageSize
+                        self.define_page_breakpoint(pid, last_free_base,
+                                          size_in_pages, condition = condition)
+                        bp = self.__get_page_bp(pid, last_free_base)
+                        bset.add(bp)
+                        nset.add(bp)
+                        cset.add(condition)
+                    
+                    # Reuse the breakpoint defined at this page.
+                    bp = self.__get_page_bp(pid, page_addr)
+                    if bp not in bset:
+                        condition = bp.get_condition()
+                        if not isinstance(condition, BufferWatch):
+                            # this shouldn't happen unless you tinkered with it
+                            # or defined your own page breakpoints manually.
+                            msg = "Can't watch buffer at page 0x%.08x"
+                            raise RuntimeError, msg % page_addr
+                        bset.add(bp)
+                        cset.add(condition)
+                    
+                    # Remember the page next to our last known breakpoint.
+                    last_free_base = page_addr + System.pageSize
             
-            # If it's not a BufferWatch or compatible, raise an exception
-            # with a nice error message instead of just crashing.
-            # (Shouldn't happen unless you defined page breakpoints manually)
-            if not hasattr(condition, 'add') or not hasattr(condition, 'span'):
-                msg = "Can't set buffer watch at 0x%.08x-0x%.08x"
-                raise RuntimeError, msg % (address, address + size)
+            # Cover the last "hole" in the range of pages.
+            if last_free_base != limit:
+                condition     = BufferWatch()
+                size_in_bytes = limit - last_free_base
+                size_in_pages = size_in_bytes / System.pageSize
+                self.define_page_breakpoint(pid, last_free_base, size_in_pages,
+                                                         condition = condition)
+                bset.add(bp)
+                nset.add(bp)
+                cset.add(condition)
             
-            # Add the new buffer to the watch.
-            condition.add(address, size, action)
-            
-            # Did the required range of watched pages change?
-            n_base, n_pages = condition.span()
-            if n_base < bp.get_address() or n_pages > bp.get_size_in_pages():
-                
-                # Erase the previous breakpoint and define a new one.
-                self.erase_page_breakpoint(pid, base)
-                self.define_page_breakpoint(pid, n_base, n_pages, condition)
-                self.enable_page_breakpoint(pid, n_base)
-            
-            # If not, was the breakpoint previously disabled?
-            # (This shouldn't happen unless you tinker with it)
-            elif bp.is_disabled():
-                
-                # Re-enable the breakpoint.
-                self.enable_page_breakpoint(pid, base)
+            # For each breakpoint, enable it if needed.
+            for bp in bset:
+                if bp.is_disabled() or bp.is_one_shot():
+                    bp.enable()
         
-        # There was no breakpoint here, define a new one.
-        else:
-            condition = BufferWatch()
-            condition.add(address, size, action)
-            self.define_page_breakpoint(pid, base, pages, condition)
-            self.enable_page_breakpoint(pid, base)
+        # On error...
+        except:
+            
+            # Erase the newly defined breakpoints.
+            for bp in nset:
+                try:
+                    self.erase_page_breakpoint(pid, bp.get_address())
+                except:
+                    pass
+            
+            # Pass the exception to the caller
+            raise
+        
+        # For each condition object, add the new buffer.
+        for condition in cset:
+            condition.remove(address, size)
 
     @processidparam
     def dont_watch_buffer(self, pid, address, size):
@@ -3119,57 +3151,42 @@ class BreakpointContainer (object):
         @param size: Size in bytes of buffer to stop watching.
         """
         
-        # Get the address of the first page where the buffer is.
-        # Now we can locate the page breakpoint.
-        base = PageBreakpoint.align_address_start(address)
+        # Check the size isn't zero or negative.
+        if size < 1:
+            raise ValueError, "Bad size for buffer watch: %r" % size
         
-        # If no page breakpoint is defined here, raise an exception.
-        if not self.has_page_breakpoint(pid, base):
-            msg = "No buffer watch set at 0x%.08x-0x%.08x"
-            raise RuntimeError, msg % (address, address + size)
+        # Get the base address and size in pages required for this buffer.
+        base  = PageBreakpoint.align_address_to_page_start(address)
+        limit = PageBreakpoint.align_address_to_page_end(address + size)
+        pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
         
-        # Get the breakpoint.
-        bp = self._BreakpointContainer__get_page_bp(pid, base)
+        # For each page, get the breakpoint and it's condition object.
+        dset = set()     # breakpoints queued for erasing
+        cset = set()     # condition objects
+        for page_addr in xrange(base, limit, System.pageSize):
+            if self.has_page_breakpoint(pid, page_addr):
+                bp = self.__get_page_bp(pid, page_addr)
+                condition = bp.get_condition()
+                if condition not in cset:
+                    if not isinstance(condition, BufferWatch):
+                        # this shouldn't happen unless you tinkered with it
+                        # or defined your own page breakpoints manually.
+                        continue
+                    cset.add(condition)
+                    if condition.count() == 1:
+                        dset.add(bp)
         
-        # Get the breakpoint's condition.
-        condition = bp.get_condition()
+        # For each condition, remove the buffer.
+        for condition in cset:
+            if condition.exists(address, size):
+                condition.remove(address, size)
         
-        # If it's not a BufferWatch or compatible, raise an exception
-        # with a nice error message instead of just crashing.
-        # (Shouldn't happen unless you defined page breakpoints manually)
-        if  not hasattr(condition, 'remove') or \
-            not hasattr(condition, 'exists') or \
-            not hasattr(condition, 'span'):
-                msg = "Can't remove buffer watch at 0x%.08x-0x%.08x"
-                raise RuntimeError, msg % (address, address + size)
-        
-        # Remove the watch.
-        # If no watch had been set for this buffer, an exception is raised.
-        condition.remove(address, size)
-        
-        # Get the new required range of watched pages
-        n_base, n_pages = condition.span()
-        
-        # Is the range null?
-        if (n_base, n_pages) == (0, 0):
-            
-            # Erase the page breakpoint.
-            self.erase_page_breakpoint(pid, base)
-        
-        # Did the range change?
-        elif n_base < bp.get_address() or n_pages > bp.get_size_in_pages():
-            
-            # Erase the previous breakpoint and define a new one.
-            self.erase_page_breakpoint(pid, base)
-            self.define_page_breakpoint(pid, n_base, n_pages, condition)
-            self.enable_page_breakpoint(pid, n_base)
-        
-        # Was the original page breakpoint disabled?
-        # (This shouldn't happen unless you tinker with it)
-        elif bp.is_disabled():
-            
-            # Re-enable the breakpoint.
-            self.enable_page_breakpoint(pid, base)
+        # For each breakpoint, if no buffers are on watch, erase it.
+        for bp in dset:
+            try:
+                self.erase_page_breakpoint(pid, bp.get_address())
+            except WindowsError:
+                pass
 
 #------------------------------------------------------------------------------
 
