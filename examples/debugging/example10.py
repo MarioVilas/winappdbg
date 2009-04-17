@@ -27,7 +27,7 @@
 
 # $Id$
 
-# Example #9
+# Example #10
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example10:watchingavariable
 
 from winappdbg import Debug, EventHandler
