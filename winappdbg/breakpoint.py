@@ -3052,19 +3052,19 @@ class BreakpointContainer (object):
             See L{define_page_breakpoint} for more details.
         """
         
-        # Check the size isn't negative.
+        # Check the size isn't zero or negative.
         if size < 1:
             raise ValueError, "Bad size for buffer watch: %r" % size
         
         # Get the base address and size in pages required for this buffer.
-        base  = PageBreakpoint.align_address_start(address)
+        base  = PageBreakpoint.align_address_to_page_start(address)
         pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
         
         # Do we already have a page breakpoint there?
         if self.has_page_breakpoint(pid, base):
             
             # Get the breakpoint.
-            bp = self._BreakpointContainer__get_page_bp(pid, address)
+            bp = self._BreakpointContainer__get_page_bp(pid, base)
             
             # Get the breakpoint's condition.
             condition = bp.get_condition()
@@ -3077,7 +3077,7 @@ class BreakpointContainer (object):
                 raise RuntimeError, msg % (address, address + size)
             
             # Add the new buffer to the watch.
-            condition.add(address, size)
+            condition.add(address, size, action)
             
             # Did the required range of watched pages change?
             n_base, n_pages = condition.span()
@@ -3098,7 +3098,7 @@ class BreakpointContainer (object):
         # There was no breakpoint here, define a new one.
         else:
             condition = BufferWatch()
-            condition.add(address, size)
+            condition.add(address, size, action)
             self.define_page_breakpoint(pid, base, pages, condition)
             self.enable_page_breakpoint(pid, base)
 
@@ -3129,7 +3129,7 @@ class BreakpointContainer (object):
             raise RuntimeError, msg % (address, address + size)
         
         # Get the breakpoint.
-        bp = self._BreakpointContainer__get_page_bp(pid, address)
+        bp = self._BreakpointContainer__get_page_bp(pid, base)
         
         # Get the breakpoint's condition.
         condition = bp.get_condition()
