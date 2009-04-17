@@ -51,8 +51,10 @@ __all__ = [
     # Debug registers manipulation
     'DebugRegister',
 
-    # API hooking action stub
+    # Hooks and watches
+    'Hook',
     'ApiHook',
+    'BufferWatch',
 
     # Breakpoint container capabilities
     'BreakpointContainer',
@@ -130,8 +132,8 @@ class Breakpoint (object):
         @type  size: 
         @param size: Size of breakpoint in bytes (defaults to 1).
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
             
             The callback signature is::
                 
@@ -142,8 +144,8 @@ class Breakpoint (object):
             and the return value is a boolean
             (True to dispatch the event, False otherwise).
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
             
@@ -281,8 +283,8 @@ class Breakpoint (object):
         
         @see: L{__init__}
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
         """
         if condition in (False, None):
             condition = True
@@ -330,8 +332,8 @@ class Breakpoint (object):
         """
         Sets a new action callback for the breakpoint.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
         """
         self.__action = action
 
@@ -488,11 +490,11 @@ class CodeBreakpoint (Breakpoint):
         @type  address: int
         @param address: Memory address for breakpoint.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
         """
         Breakpoint.__init__(self, address, len(self.int3), condition, action)
         self.__previousValue = self.int3
@@ -641,11 +643,11 @@ class PageBreakpoint (Breakpoint):
         @type  pages: int
         @param address: Size of breakpoint in pages.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
         """
         Breakpoint.__init__(self, address, pages * self.pageSize, condition,
                                                                         action)
@@ -1110,11 +1112,11 @@ class HardwareBreakpoint (Breakpoint):
                
                Eight (8) bytes in size.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
         """
         if   sizeFlag == self.WATCH_BYTE:
             size = 1
@@ -1461,6 +1463,112 @@ class ApiHook (Hook):
 
 #==============================================================================
 
+class BufferWatch(object):
+    """
+    Used by L{Debug.watch_buffer}.
+    
+    This class acts as a condition callback for page breakpoints.
+    It emulates page breakpoints that can overlap and/or take up less
+    than a page's size.
+    
+    @see: L{Debug.watch_buffer}
+    """
+    
+    def __init__(self):
+        self.__ranges = dict()
+    
+    def add(self, address, size, action = None):
+        """
+        @type  address: int
+        @param address: Memory address of buffer to watch.
+        
+        @type  size: int
+        @param size: Size in bytes of buffer to watch.
+        
+        @type  action: function
+        @param action: (Optional) Action callback function.
+            
+            See L{define_page_breakpoint} for more details.
+        """
+        key = (address, address + size)
+        if self.__ranges.has_key(key):
+            msg = "Buffer from 0x%.08x to 0x%.08x is already being watched"
+            raise RuntimeError, msg % key
+        self.__ranges[key] = action
+    
+    def remove(self, address, size):
+        """
+        @type  address: int
+        @param address: Memory address of buffer to stop watching.
+        
+        @type  size: int
+        @param size: Size in bytes of buffer to stop watching.
+        """
+        key = (address, address + size)
+        if not self.__ranges.has_key(key):
+            msg = "No buffer watch set at 0x%.08x-0x%.08x"
+            raise RuntimeError, msg % key
+        del self.__ranges[key]
+    
+    def exists(self, address, size):
+        """
+        @type  address: int
+        @param address: Memory address of buffer being watched.
+        
+        @type  size: int
+        @param size: Size in bytes of buffer being watched.
+        
+        @rtype:  bool
+        @return: C{True} if the buffer is being watched, C{False} otherwise.
+        """
+        key = (address, address + size)
+        return self.__ranges.has_key(key)
+    
+    def span(self):
+        """
+        @rtype:  tuple( int, int )
+        @return:
+            Base address and size in pages required to watch all the buffers.
+        """
+        min_start = 0
+        max_end   = 0
+        for ((start, end), action) in self.__ranges.iteritems():
+            if start < min_start:
+                min_start = start
+            if end > max_end:
+                max_end = end
+        base  = PageBreakpoint.align_address_to_page_start(min_start)
+        size  = max_end - min_start
+        pages = PageBreakpoint.get_buffer_size_in_pages(min_start, size)
+        return ( base, pages )
+    
+    def __call__(self, event):
+        """
+        Breakpoint condition callback.
+        
+        This method will also call the action callbacks for each
+        buffer being watched.
+        
+        @type  event: L{ExceptionEvent}
+        @param event: Guard page exception event.
+        
+        @rtype:  bool
+        @return: C{True} if the address being accessed belongs
+            to at least one of the buffers that was being watched
+            and had no action callback.
+        """
+        address    = event.get_exception_information(1)
+        bCondition = False
+        for ((start, end), action) in self.__ranges.iteritems():
+            bMatched = ( start <= address < end )
+            if bMatched and action is not None:
+                action(event)
+            else:
+                bCondition = bCondition or bMatched
+        return bCondition
+
+#==============================================================================
+
 class BreakpointContainer (object):
     """
     Encapsulates the capability to contain Breakpoint objects.
@@ -1649,8 +1757,8 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of the code instruction to break at.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
             
             The callback signature is::
                 
@@ -1661,8 +1769,8 @@ class BreakpointContainer (object):
             and the return value is a boolean
             (True to dispatch the event, False otherwise).
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
             
@@ -1709,8 +1817,8 @@ class BreakpointContainer (object):
         @type  pages: int
         @param pages: Number of pages to watch.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
             
             The callback signature is::
                 
@@ -1721,8 +1829,8 @@ class BreakpointContainer (object):
             and the return value is a boolean
             (True to dispatch the event, False otherwise).
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
             
@@ -1809,8 +1917,8 @@ class BreakpointContainer (object):
                
                Eight (8) bytes in size.
         
-        @type    condition: function
-        @keyword condition: (Optional) Condition callback function.
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
             
             The callback signature is::
                 
@@ -1821,8 +1929,8 @@ class BreakpointContainer (object):
             and the return value is a boolean
             (True to dispatch the event, False otherwise).
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
             
@@ -2759,8 +2867,8 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of code instruction to break at.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             
             See L{define_code_breakpoint} for more details.
         """
@@ -2780,8 +2888,8 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of code instruction to break at.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             
             See L{define_code_breakpoint} for more details.
         """
@@ -2886,8 +2994,8 @@ class BreakpointContainer (object):
         @param size: Size of variable to watch. The only supported sizes are:
             byte (1), word (2), dword (4) and qword (8).
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             
             See L{define_hardware_breakpoint} for more details.
         """
@@ -2938,21 +3046,64 @@ class BreakpointContainer (object):
         @type  size: int
         @param size: Size in bytes of buffer to watch.
         
-        @type    action: function
-        @keyword action: (Optional) Action callback function.
+        @type  action: function
+        @param action: (Optional) Action callback function.
             
             See L{define_page_breakpoint} for more details.
         """
+        
+        # Check the size isn't negative.
         if size < 1:
             raise ValueError, "Bad size for buffer watch: %r" % size
-        base        = PageBreakpoint.align_address_start(address)
-        pages       = PageBreakpoint.get_buffer_size_in_pages(address, size)
-        condition   = self.__WatchBufferCondition(address, size)
-        self.define_page_breakpoint(pid, base, pages, condition, action)
-        self.enable_page_breakpoint(pid, base)
+        
+        # Get the base address and size in pages required for this buffer.
+        base  = PageBreakpoint.align_address_start(address)
+        pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
+        
+        # Do we already have a page breakpoint there?
+        if self.has_page_breakpoint(pid, base):
+            
+            # Get the breakpoint.
+            bp = self._BreakpointContainer__get_page_bp(pid, address)
+            
+            # Get the breakpoint's condition.
+            condition = bp.get_condition()
+            
+            # If it's not a BufferWatch or compatible, raise an exception
+            # with a nice error message instead of just crashing.
+            # (Shouldn't happen unless you defined page breakpoints manually)
+            if not hasattr(condition, 'add') or not hasattr(condition, 'span'):
+                msg = "Can't set buffer watch at 0x%.08x-0x%.08x"
+                raise RuntimeError, msg % (address, address + size)
+            
+            # Add the new buffer to the watch.
+            condition.add(address, size)
+            
+            # Did the required range of watched pages change?
+            n_base, n_pages = condition.span()
+            if n_base < bp.get_address() or n_pages > bp.get_size_in_pages():
+                
+                # Erase the previous breakpoint and define a new one.
+                self.erase_page_breakpoint(pid, base)
+                self.define_page_breakpoint(pid, n_base, n_pages, condition)
+                self.enable_page_breakpoint(pid, n_base)
+            
+            # If not, was the breakpoint previously disabled?
+            # (This shouldn't happen unless you tinker with it)
+            elif bp.is_disabled():
+                
+                # Re-enable the breakpoint.
+                self.enable_page_breakpoint(pid, base)
+        
+        # There was no breakpoint here, define a new one.
+        else:
+            condition = BufferWatch()
+            condition.add(address, size)
+            self.define_page_breakpoint(pid, base, pages, condition)
+            self.enable_page_breakpoint(pid, base)
 
     @processidparam
-    def dont_watch_buffer(self, pid, address):
+    def dont_watch_buffer(self, pid, address, size):
         """
         Clears a page breakpoint set by L{watch_buffer}.
         
@@ -2962,41 +3113,63 @@ class BreakpointContainer (object):
         @param pid: Process global ID.
         
         @type  address: int
-        @param address: Memory address of buffer to watch.
+        @param address: Memory address of buffer to stop watching.
+        
+        @type  size: int
+        @param size: Size in bytes of buffer to stop watching.
         """
+        
+        # Get the address of the first page where the buffer is.
+        # Now we can locate the page breakpoint.
         base = PageBreakpoint.align_address_start(address)
-        self.erase_page_breakpoint(pid, base)
-
-    class __WatchBufferCondition(object):
-        """
-        Simple check for buffer size in page breakpoints.
         
-        @see: L{Debug.watch_buffer}
-        """
+        # If no page breakpoint is defined here, raise an exception.
+        if not self.has_page_breakpoint(pid, base):
+            msg = "No buffer watch set at 0x%.08x-0x%.08x"
+            raise RuntimeError, msg % (address, address + size)
         
-        def __init__(self, ptr, size):
-            """
-            @type ptr: int
-            @param ptr: Address of buffer.
-            
-            @type  size: int
-            @param size: Size of buffer in bytes.
-            """
-            self.min = ptr
-            self.max = ptr + size
+        # Get the breakpoint.
+        bp = self._BreakpointContainer__get_page_bp(pid, address)
         
-        def __call__(self, event):
-            """
-            Breakpoint condition callback.
+        # Get the breakpoint's condition.
+        condition = bp.get_condition()
+        
+        # If it's not a BufferWatch or compatible, raise an exception
+        # with a nice error message instead of just crashing.
+        # (Shouldn't happen unless you defined page breakpoints manually)
+        if  not hasattr(condition, 'remove') or \
+            not hasattr(condition, 'exists') or \
+            not hasattr(condition, 'span'):
+                msg = "Can't remove buffer watch at 0x%.08x-0x%.08x"
+                raise RuntimeError, msg % (address, address + size)
+        
+        # Remove the watch.
+        # If no watch had been set for this buffer, an exception is raised.
+        condition.remove(address, size)
+        
+        # Get the new required range of watched pages
+        n_base, n_pages = condition.span()
+        
+        # Is the range null?
+        if (n_base, n_pages) == (0, 0):
             
-            @type  event: L{ExceptionEvent}
-            @param event: Guard page exception event.
+            # Erase the page breakpoint.
+            self.erase_page_breakpoint(pid, base)
+        
+        # Did the range change?
+        elif n_base < bp.get_address() or n_pages > bp.get_size_in_pages():
             
-            @rtype:  bool
-            @return: True if the address being accessed belongs to the buffer.
-            """
-            address = event.get_exception_information(1)
-            return self.min <= address < self.max
+            # Erase the previous breakpoint and define a new one.
+            self.erase_page_breakpoint(pid, base)
+            self.define_page_breakpoint(pid, n_base, n_pages, condition)
+            self.enable_page_breakpoint(pid, n_base)
+        
+        # Was the original page breakpoint disabled?
+        # (This shouldn't happen unless you tinker with it)
+        elif bp.is_disabled():
+            
+            # Re-enable the breakpoint.
+            self.enable_page_breakpoint(pid, base)
 
 #------------------------------------------------------------------------------
 

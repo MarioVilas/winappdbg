@@ -843,8 +843,8 @@ class ThreadContainer (object):
         @type  name: str, None
         @param name: Name to look for. Use C{None} to find nameless threads.
         
-        @type    bExactMatch: bool
-        @keyword bExactMatch: C{True} if the name must be
+        @type  bExactMatch: bool
+        @param bExactMatch: C{True} if the name must be
             B{exactly} as given, C{False} if the name can be
             loosely matched.
             
@@ -888,8 +888,8 @@ class ThreadContainer (object):
         @type  lpParameter: int
         @param lpParameter: Optional argument for the new thread.
         
-        @type    bSuspended: bool
-        @keyword bSuspended: C{True} if the new thread should be suspended.
+        @type  bSuspended: bool
+        @param bSuspended: C{True} if the new thread should be suspended.
             In that case use L{Thread.resume} to start execution.
         """
         if bSuspended:
@@ -1298,12 +1298,12 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
         
-        @type    fUnicode: bool
-        @keyword fUnicode: C{True} is the string is expected to be Unicode,
+        @type  fUnicode: bool
+        @param fUnicode: C{True} is the string is expected to be Unicode,
             C{False} if it's expected to be ANSI.
         
-        @type    dwMaxSize: int
-        @keyword dwMaxSize: Maximum allowed string length to read, in bytes.
+        @type  dwMaxSize: int
+        @param dwMaxSize: Maximum allowed string length to read, in bytes.
         
         @rtype:  str, unicode
         @return: String read from the process memory space.
@@ -2037,8 +2037,8 @@ class ThreadDebugOperations (object):
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
         
-        @type    depth: int
-        @keyword depth: Maximum depth of stack trace.
+        @type  depth: int
+        @param depth: Maximum depth of stack trace.
         
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread
@@ -2071,26 +2071,21 @@ class ThreadDebugOperations (object):
             fp = aProcess.peek_uint(fp)
         return tuple(trace)
 
-    def get_stack_frame(self, max_size = None):
+    def get_stack_frame_range(self):
         """
-        Reads the contents of the current stack frame.
+        Returns the starting and ending addresses of the stack frame.
         Only works for functions with standard prologue and epilogue.
         
-        @type    depth: int
-        @keyword depth: Maximum depth of stack trace.
-        
-        @rtype:  str
-        @return: Stack frame data.
-            May return an empty string.
+        @rtype:  tuple( int, int )
+        @return: Stack frame range.
+            May not be accurate, depending on the compiler used.
         
         @raise RuntimeError: The stack frame is invalid,
             or the function doesn't have a standard prologue
             and epilogue.
         
-        @raise WindowsError: An error occured when reading
-            data from the process memory.
+        @raise WindowsError: An error occured when getting the thread context.
         """
-        aProcess = self.get_process()
         sb, sl   = self.get_stack_range()
         sp       = self.get_sp()
         fp       = self.get_fp()
@@ -2098,12 +2093,36 @@ class ThreadDebugOperations (object):
         if not sb <= sp < sl:
             raise RuntimeError, 'Stack pointer lies outside the stack'
         if not sb <= fp < sl:
-            raise RuntimeError, 'No valid frame pointer found'
-        if size < 0:
+            raise RuntimeError, 'Frame pointer lies outside the stack'
+        if sp > fp:
             raise RuntimeError, 'No valid stack frame found'
+        return (sp, fp)
+
+    def get_stack_frame(self, max_size = None):
+        """
+        Reads the contents of the current stack frame.
+        Only works for functions with standard prologue and epilogue.
+        
+        @type  max_size: int
+        @param max_size: (Optional) Maximum amount of bytes to read.
+        
+        @rtype:  str
+        @return: Stack frame data.
+            May not be accurate, depending on the compiler used.
+            May return an empty string.
+        
+        @raise RuntimeError: The stack frame is invalid,
+            or the function doesn't have a standard prologue
+            and epilogue.
+        
+        @raise WindowsError: An error occured when getting the thread context
+            or reading data from the process memory.
+        """
+        sp, fp   = self.get_stack_frame_range()
+        size     = fp - sp
         if max_size and size > max_size:
             size = max_size
-        return aProcess.peek(sp, size)
+        return self.get_process().peek(sp, size)
 
     def read_stack_data(self, size = 128, offset = 0):
         """

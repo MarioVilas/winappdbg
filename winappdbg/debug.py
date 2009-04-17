@@ -71,8 +71,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param eventHandler:
             (Optional, recommended) Custom event handler object.
         
-        @type    bKillOnExit: bool
-        @keyword bKillOnExit: (Optional) Global kill on exit mode.
+        @type  bKillOnExit: bool
+        @param bKillOnExit: (Optional) Global kill on exit mode.
             True to kill the process on exit, False to detach.
             Ignored under Windows 2000 and below.
         
@@ -158,8 +158,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @type  dwProcessId: int
         @param dwProcessId: Global ID of a process to detach from.
         
-        @type    bIgnoreExceptions: bool
-        @keyword bIgnoreExceptions: True to ignore any exceptions that may be
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: True to ignore any exceptions that may be
             raised when detaching.
         
         @raise WindowsError: Raises an exception on error, unless
@@ -191,8 +191,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         
         @see: L{attach}, L{detach}
         
-        @type    bIgnoreExceptions: bool
-        @keyword bIgnoreExceptions: True to ignore any exceptions that may be
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: True to ignore any exceptions that may be
             raised when detaching.
         
         @raise WindowsError: Raises an exception on error, unless
@@ -222,14 +222,14 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param argv: List of command line arguments to pass to the debugee.
             The first element must be the debugee executable filename.
         
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
+        @type  bConsole: bool
+        @param bConsole: True to inherit the console of the debugger.
         
-        @type    bFollow: bool
-        @keyword bFollow: True to automatically attach to child processes.
+        @type  bFollow: bool
+        @param bFollow: True to automatically attach to child processes.
         
-        @type    bSuspended: bool
-        @keyword bSuspended: True to suspend the main thread before any code is
+        @type  bSuspended: bool
+        @param bSuspended: True to suspend the main thread before any code is
             executed in the debugee.
         
         @rtype:  L{Process}
@@ -260,14 +260,14 @@ class Debug (EventDispatcher, BreakpointContainer):
             Tokens including double quote characters must be escaped with a
             backslash.
         
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
+        @type  bConsole: bool
+        @param bConsole: True to inherit the console of the debugger.
         
-        @type    bFollow: bool
-        @keyword bFollow: True to automatically attach to child processes.
+        @type  bFollow: bool
+        @param bFollow: True to automatically attach to child processes.
         
-        @type    bSuspended: bool
-        @keyword bSuspended: True to suspend the main thread before any code is
+        @type  bSuspended: bool
+        @param bSuspended: True to suspend the main thread before any code is
             executed in the debugee.
         
         @rtype:  L{Process}
