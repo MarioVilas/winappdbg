@@ -506,6 +506,7 @@ class CodeBreakpoint (Breakpoint):
         @type  aProcess: L{Process}
         @param aProcess: Process object.
         """
+        # XXX maybe if the previous value is \xCC we shouldn't trust it?
         self.__previousValue = aProcess.read(self.get_address(), 1)
         aProcess.write(self.get_address(), self.int3)
 
@@ -518,25 +519,33 @@ class CodeBreakpoint (Breakpoint):
         """
         aProcess.write(self.get_address(), self.__previousValue)
 
-    def disable(self, aProcess, aThread):
-        self.__clear_bp(aProcess)
+    def __cancel_running_state(self, aThread):
+        """
+        Clear the trap flag if the breakpoint is in RUNNING state.
+        """
         if self.is_running():
             aThread.clear_tf()
+
+    def disable(self, aProcess, aThread):
+        try:
+            self.__clear_bp(aProcess)
+        finally:
+            self.__cancel_running_state(aThread)
         super(CodeBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        if self.is_running():
-            aThread.clear_tf()
+        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(CodeBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(CodeBreakpoint, self).one_shot(aProcess, aThread)
 
-    # FIXME race condition here
+    # FIXME race condition here (however unlikely)
     # If another thread runs on over the target address while
     # the breakpoint is in RUNNING state, we'll miss it. There
     # is a solution to this but it's somewhat complicated, so
@@ -691,18 +700,28 @@ class PageBreakpoint (Breakpoint):
         flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)
         aProcess.mprotect(lpAddress, self.get_size(), flNewProtect)
 
-    def disable(self, aProcess, aThread):
-        self.__clear_bp(aProcess)
+    def __cancel_running_state(self, aThread):
+        """
+        Clear the trap flag if the breakpoint is in RUNNING state.
+        """
         if self.is_running():
             aThread.clear_tf()
+
+    def disable(self, aProcess, aThread):
+        try:
+            self.__clear_bp(aProcess)
+        finally:
+            self.__cancel_running_state(aThread)
         super(PageBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).one_shot(aProcess, aThread)
@@ -1176,6 +1195,13 @@ class HardwareBreakpoint (Breakpoint):
             aThread.set_context(ctx)
             aThread.resume()
 
+    def __cancel_running_state(self, aThread):
+        """
+        Clear the trap flag if the breakpoint is in RUNNING state.
+        """
+        if self.is_running():
+            aThread.clear_tf()
+
     def get_slot(self):
         """
         @rtype:  int
@@ -1201,16 +1227,19 @@ class HardwareBreakpoint (Breakpoint):
         return self.__watch
 
     def disable(self, aProcess, aThread):
-        self.__clear_bp(aThread)
-        if self.is_running():
-            aThread.clear_tf()
+        try:
+            self.__clear_bp(aThread)
+        finally:
+            self.__cancel_running_state(aThread)
         super(HardwareBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
         self.__set_bp(aThread)
         super(HardwareBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
         self.__set_bp(aThread)
         super(HardwareBreakpoint, self).one_shot(aProcess, aThread)
 
@@ -1541,6 +1570,13 @@ class BufferWatch(object):
         size  = max_end - min_start
         pages = PageBreakpoint.get_buffer_size_in_pages(min_start, size)
         return ( base, pages )
+    
+    def count(self):
+        """
+        @rtype:  int
+        @return: Number of buffers being watched.
+        """
+        return len(self.__ranges)
     
     def __call__(self, event):
         """
@@ -2854,6 +2890,17 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    def __set_code_bp(pid, address, action):
+        "Auxiliary function used by L{break_at} and L{stalk_at}."
+        if self.has_code_breakpoint(pid, address):
+            bp = self.__get_code_bp(pid, address)
+            if bp.get_action() != action:
+                bp.set_action(action)
+        else:
+            self.define_code_breakpoint(pid, address, True, action)
+            bp = self.__get_code_bp(pid, address)
+        return bp
+
     @processidparam
     def stalk_at(self, pid, address, action = None):
         """
@@ -2872,8 +2919,9 @@ class BreakpointContainer (object):
             
             See L{define_code_breakpoint} for more details.
         """
-        self.define_code_breakpoint(pid, address, True, action)
-        self.enable_one_shot_code_breakpoint(pid, address)
+        bp = self.__set_code_bp(pid, address, action)
+        if not bp.is_one_shot():
+            self.enable_one_shot_code_breakpoint(pid, address)
 
     @processidparam
     def break_at(self, pid, address, action = None):
@@ -2893,13 +2941,14 @@ class BreakpointContainer (object):
             
             See L{define_code_breakpoint} for more details.
         """
-        self.define_code_breakpoint(pid, address, True, action)
-        self.enable_code_breakpoint(pid, address)
+        bp = self.__set_code_bp(pid, address, action)
+        if not bp.is_enabled():
+            self.enable_code_breakpoint(pid, address)
 
     @processidparam
     def dont_break_at(self, pid, address):
         """
-        Clears a code breakpoint set by L{break_at} or L{stalk_at}.
+        Clears a code breakpoint set by L{break_at}.
         
         @type  pid: int
         @param pid: Process global ID.
@@ -2907,9 +2956,22 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of code instruction to break at.
         """
-        self.erase_code_breakpoint(pid, address)
+        if self.has_code_breakpoint(pid, address):
+            self.erase_code_breakpoint(pid, address)
 
-    dont_stalk_at = dont_break_at
+    @processidparam
+    def dont_stalk_at(self, pid, address):
+        """
+        Clears a code breakpoint set by L{stalk_at}.
+        
+        @type  pid: int
+        @param pid: Process global ID.
+        
+        @type  address: int
+        @param address: Memory address of code instruction to break at.
+        """
+        if self.has_code_breakpoint(pid, address):
+            self.erase_code_breakpoint(pid, address)
 
     @processidparam
     def hook_function(self, pid, address,          preCB = None, postCB = None,
@@ -2999,6 +3061,10 @@ class BreakpointContainer (object):
             
             See L{define_hardware_breakpoint} for more details.
         """
+        
+        # TODO
+        # Maybe we could merge the breakpoints instead of overwriting them.
+        
         if size == 1:
             sizeFlag = self.BP_WATCH_BYTE
         elif size == 2:
@@ -3009,9 +3075,20 @@ class BreakpointContainer (object):
             sizeFlag = self.BP_WATCH_QWORD
         else:
             raise ValueError, "Bad size for variable watch: %r" % size
-        self.define_hardware_breakpoint(tid, address,
-                   self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
-        self.enable_hardware_breakpoint(tid, address)
+        if self.has_hardware_breakpoint(tid, address):
+            bp = self.__get_hardware_bp(tid, address)
+            if  bp.get_trigger() != self.BP_BREAK_ON_ACCESS or \
+                bp.get_watch()   != sizeFlag:
+                    self.erase_hardware_breakpoint(tid, address)
+                    self.define_hardware_breakpoint(tid, address,
+                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
+                    bp = self.__get_hardware_bp(tid, address)
+        else:
+            self.define_hardware_breakpoint(tid, address,
+                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
+            bp = self.__get_hardware_bp(tid, address)
+        if not bp.is_enabled():
+            self.enable_hardware_breakpoint(tid, address)
 
     @threadidparam
     def dont_watch_variable(self, tid, address):
@@ -3026,7 +3103,8 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of variable to watch.
         """
-        self.erase_hardware_breakpoint(tid, address)
+        if self.has_hardware_breakpoint(tid, address):
+            self.erase_hardware_breakpoint(tid, address)
 
     # TODO
     # Check for overlapping page breakpoints.
@@ -3067,26 +3145,13 @@ class BreakpointContainer (object):
             #  + if a page breakpoint exists reuse it
             #  + if it doesn't exist define it
             
-            bset            = set()     # all breakpoints used
-            nset            = set()     # newly defined breakpoints
-            cset            = set()     # condition objects
-            last_free_base  = base      # last address where no bp was defined
+            bset = set()     # all breakpoints used
+            nset = set()     # newly defined breakpoints
+            cset = set()     # condition objects
             for page_addr in xrange(base, limit, System.pageSize):
+                
+                # If a breakpoints exists, reuse it.
                 if self.has_page_breakpoint(pid, page_addr):
-                    
-                    # Cover "holes" with no page breakpoints defined.
-                    if last_free_base != page_addr:
-                        condition     = BufferWatch()
-                        size_in_bytes = page_addr - last_free_base
-                        size_in_pages = size_in_bytes / System.pageSize
-                        self.define_page_breakpoint(pid, last_free_base,
-                                          size_in_pages, condition = condition)
-                        bp = self.__get_page_bp(pid, last_free_base)
-                        bset.add(bp)
-                        nset.add(bp)
-                        cset.add(condition)
-                    
-                    # Reuse the breakpoint defined at this page.
                     bp = self.__get_page_bp(pid, page_addr)
                     if bp not in bset:
                         condition = bp.get_condition()
@@ -3097,20 +3162,15 @@ class BreakpointContainer (object):
                             raise RuntimeError, msg % page_addr
                         bset.add(bp)
                         cset.add(condition)
-                    
-                    # Remember the page next to our last known breakpoint.
-                    last_free_base = page_addr + System.pageSize
-            
-            # Cover the last "hole" in the range of pages.
-            if last_free_base != limit:
-                condition     = BufferWatch()
-                size_in_bytes = limit - last_free_base
-                size_in_pages = size_in_bytes / System.pageSize
-                self.define_page_breakpoint(pid, last_free_base, size_in_pages,
-                                                         condition = condition)
-                bset.add(bp)
-                nset.add(bp)
-                cset.add(condition)
+                
+                # If it doesn't, define it.
+                else:
+                    condition = BufferWatch()
+                    self.define_page_breakpoint(pid, last_free_base,
+                                        System.pageSize, condition = condition)
+                    bset.add(bp)
+                    nset.add(bp)
+                    cset.add(condition)
             
             # For each breakpoint, enable it if needed.
             for bp in bset:
@@ -3132,7 +3192,7 @@ class BreakpointContainer (object):
         
         # For each condition object, add the new buffer.
         for condition in cset:
-            condition.remove(address, size)
+            condition.add(address, size)
 
     @processidparam
     def dont_watch_buffer(self, pid, address, size):
@@ -3161,7 +3221,8 @@ class BreakpointContainer (object):
         pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
         
         # For each page, get the breakpoint and it's condition object.
-        dset = set()     # breakpoints queued for erasing
+        # For each condition, remove the buffer.
+        # For each breakpoint, if no buffers are on watch, erase it.
         cset = set()     # condition objects
         for page_addr in xrange(base, limit, System.pageSize):
             if self.has_page_breakpoint(pid, page_addr):
@@ -3173,20 +3234,13 @@ class BreakpointContainer (object):
                         # or defined your own page breakpoints manually.
                         continue
                     cset.add(condition)
-                    if condition.count() == 1:
-                        dset.add(bp)
-        
-        # For each condition, remove the buffer.
-        for condition in cset:
-            if condition.exists(address, size):
-                condition.remove(address, size)
-        
-        # For each breakpoint, if no buffers are on watch, erase it.
-        for bp in dset:
-            try:
-                self.erase_page_breakpoint(pid, bp.get_address())
-            except WindowsError:
-                pass
+                    if condition.exists(address, size):
+                        condition.remove(address, size)
+                    if condition.count() == 0:
+                        try:
+                            self.erase_page_breakpoint(pid, bp.get_address())
+                        except WindowsError:
+                            pass
 
 #------------------------------------------------------------------------------
 
