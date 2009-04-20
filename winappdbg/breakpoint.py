@@ -2890,7 +2890,7 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    def __set_code_bp(pid, address, action):
+    def __set_code_bp(self, pid, address, action):
         "Auxiliary function used by L{break_at} and L{stalk_at}."
         if self.has_code_breakpoint(pid, address):
             bp = self.__get_code_bp(pid, address)
