@@ -43,33 +43,44 @@ def main():
     print "by Mario Vilas (mvilas at gmail.com)"
     print
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
         script = os.path.basename(sys.argv[0])
-        print "  %s <pid>" % script
-        print "  %s <process.exe>" % script
+        print "Usage:"
+        print "  %s <pid>..." % script
+        print "  %s <process.exe>..." % script
         return
 
     System.request_debug_privileges()
 
-    try:
-        pid = HexInput.integer(sys.argv[1])
-    except:
-        s = System()
-        s.scan_processes()
-        pl = s.find_processes_by_filename(sys.argv[1])
-        if not pl:
-            print "Process not found: %s" % sys.argv[1]
-            return
-        if len(pl) > 1:
-            print "Multiple processes found for %s" % sys.argv[1]
+    targets = set()
+    for token in sys.argv[1:]:
+        try:
+            pid = HexInput.integer(token)
+            targets.add(pid)
+        except:
+            s = System()
+            s.scan_processes()
+            pl = s.find_processes_by_filename(token)
+            if not pl:
+                print "Process not found: %s" % token
+                return
             for p,n in pl:
-                print "\t%12d: %s" % (p,n)
-            return
-        pid = pl[0][0].get_pid()
+                pid = p.get_pid()
+                targets.add(pid)
 
-    p = Process(pid)
-    memoryMap = p.get_memory_map()
-    print CrashDump.dump_memory_map(memoryMap),
+    targets = list(targets)
+    targets.sort()
+
+    for pid in targets:
+        process   = Process(pid)
+        fileName  = process.get_filename()
+        memoryMap = process.get_memory_map()
+        if fileName:
+            print "Memory map for %d (%s):" % (pid, fileName)
+        else:
+            print "Memory map for %d:" % pid
+        print
+        print CrashDump.dump_memory_map(memoryMap)
 
 if __name__ == '__main__':
     try:
