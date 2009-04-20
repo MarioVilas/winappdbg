@@ -54,9 +54,9 @@ import ctypes
 class Debug (EventDispatcher, BreakpointContainer):
     """
     The main debugger class.
-    
+
     @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
-    
+
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
         processes being debugged. Processes not being debugged in this snapshot
@@ -66,21 +66,21 @@ class Debug (EventDispatcher, BreakpointContainer):
     def __init__(self, eventHandler = None, bKillOnExit = False):
         """
         Debugger object.
-        
+
         @type  eventHandler: L{EventHandler}
         @param eventHandler:
             (Optional, recommended) Custom event handler object.
-        
+
         @type  bKillOnExit: bool
         @param bKillOnExit: (Optional) Global kill on exit mode.
             True to kill the process on exit, False to detach.
             Ignored under Windows 2000 and below.
-        
+
         @note: The L{eventHandler} parameter may be any callable Python object
             (for example a function, or an instance method).
             However you'll probably find it more convenient to use an instance
             of a subclass of L{EventHandler} here.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         EventDispatcher.__init__(self, eventHandler)
@@ -110,15 +110,15 @@ class Debug (EventDispatcher, BreakpointContainer):
     def attach(self, dwProcessId):
         """
         Attaches to an existing process for debugging.
-        
+
         @see: L{detach}, L{execv}, L{execl}
-        
+
         @type  dwProcessId: int
         @param dwProcessId: Global ID of a process to attach to.
-        
+
         @rtype:  L{Process}
         @return: A new Process object.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         win32.DebugActiveProcess(dwProcessId)
@@ -152,16 +152,16 @@ class Debug (EventDispatcher, BreakpointContainer):
     def detach(self, dwProcessId, bIgnoreExceptions = False):
         """
         Detaches from a process currently being debugged.
-        
+
         @see: L{attach}, L{detach_from_all}
-        
+
         @type  dwProcessId: int
         @param dwProcessId: Global ID of a process to detach from.
-        
+
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: True to ignore any exceptions that may be
             raised when detaching.
-        
+
         @raise WindowsError: Raises an exception on error, unless
             bIgnoreExceptions is True.
         """
@@ -188,13 +188,13 @@ class Debug (EventDispatcher, BreakpointContainer):
     def detach_from_all(self, bIgnoreExceptions = False):
         """
         Detaches from all processes currently being debugged.
-        
+
         @see: L{attach}, L{detach}
-        
+
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: True to ignore any exceptions that may be
             raised when detaching.
-        
+
         @raise WindowsError: Raises an exception on error, unless
             bIgnoreExceptions is True.
         """
@@ -212,29 +212,29 @@ class Debug (EventDispatcher, BreakpointContainer):
                                                            bSuspended = False):
         """
         Starts a new process for debugging.
-        
+
         This method uses a list of arguments. To use a command line string
         instead, use L{execl}.
-        
+
         @see: L{attach}, L{detach}
-        
+
         @type  argv: list( str... )
         @param argv: List of command line arguments to pass to the debugee.
             The first element must be the debugee executable filename.
-        
+
         @type  bConsole: bool
         @param bConsole: True to inherit the console of the debugger.
-        
+
         @type  bFollow: bool
         @param bFollow: True to automatically attach to child processes.
-        
+
         @type  bSuspended: bool
         @param bSuspended: True to suspend the main thread before any code is
             executed in the debugee.
-        
+
         @rtype:  L{Process}
         @return: A new Process object.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         lpCmdLine = self.system.argv_to_cmdline(argv)
@@ -247,32 +247,32 @@ class Debug (EventDispatcher, BreakpointContainer):
                                                            bSuspended = False):
         """
         Starts a new process for debugging.
-        
+
         This method uses a command line string. To use a list of arguments
         instead, use L{execv}.
-        
+
         @see: L{attach}, L{detach}
-        
+
         @type  lpCmdLine: str
         @param lpCmdLine: Command line string to execute.
             The first token must be the debugee executable filename.
             Tokens with spaces must be enclosed in double quotes.
             Tokens including double quote characters must be escaped with a
             backslash.
-        
+
         @type  bConsole: bool
         @param bConsole: True to inherit the console of the debugger.
-        
+
         @type  bFollow: bool
         @param bFollow: True to automatically attach to child processes.
-        
+
         @type  bSuspended: bool
         @param bSuspended: True to suspend the main thread before any code is
             executed in the debugee.
-        
+
         @rtype:  L{Process}
         @return: A new Process object.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         aProcess = self.system.start_process(lpCmdLine,
@@ -296,16 +296,16 @@ class Debug (EventDispatcher, BreakpointContainer):
     def wait(self, dwMilliseconds = None):
         """
         Waits for the next debug event and returns an L{Event} object.
-        
+
         @see: L{cont}, L{dispatch}, L{loop}
-        
+
         @type  dwMilliseconds: int
         @param dwMilliseconds: Timeout in milliseconds.
             Use INFINITE or None for no timeout.
-        
+
         @rtype:  L{Event}
         @return: An event that occured in one of the debugees.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         if dwMilliseconds is None:
@@ -320,12 +320,12 @@ class Debug (EventDispatcher, BreakpointContainer):
     def dispatch(self, event):
         """
         Calls the debug event notify callbacks.
-        
+
         @see: L{cont}, L{loop}, L{wait}
-        
+
         @type  event: L{Event}
         @param event: Event object returned by wait().
-        
+
         @raise WindowsError: Raises an exception on error.
         """
 
@@ -338,22 +338,22 @@ class Debug (EventDispatcher, BreakpointContainer):
     def cont(self, event):
         """
         Resumes execution after processing a debug event.
-        
+
         @see: dispatch(), loop(), wait()
-        
+
         @type  event: L{Event}
         @param event: Event object returned by wait().
-        
+
         @raise WindowsError: Raises an exception on error.
         """
-        
+
         # If the process is still alive, flush the instruction cache.
         if not isinstance(event, ExitProcessEvent):
             try:
                 event.get_process().flush_instruction_cache()
             except WindowsError:
                 pass
-        
+
         # Continue execution of the debugee.
         dwProcessId      = event.get_pid()
         dwThreadId       = event.get_tid()
@@ -363,17 +363,17 @@ class Debug (EventDispatcher, BreakpointContainer):
     def loop(self, dwMilliseconds = 1000):
         """
         Main debugging loop.
-        
+
         @see: L{cont}, L{dispatch}, L{wait}
-            
+
             U{http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx}
-        
+
         @type  dwMilliseconds: int
         @param dwMilliseconds: Timeout for each wait, in milliseconds.
             Use INFINITE or None for no timeout.
             It's NOT recommended to use no timeout, as the user may be unable
             to cancel your program by pressing Control-C.
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         while self.get_debugee_count() > 0:
@@ -404,9 +404,9 @@ class Debug (EventDispatcher, BreakpointContainer):
     def clear(self):
         """
         Detach from all processes and clean up internal structures.
-        
+
         @see: L{System}
-        
+
         @raise WindowsError: Raises an exception on error.
         """
         self.erase_all_breakpoints()

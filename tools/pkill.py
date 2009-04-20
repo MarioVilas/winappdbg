@@ -57,7 +57,7 @@ def main(argv):
 
     # Scan for active processes.
     # This is needed both to translate names to IDs, and to validate the user-supplied IDs.
-    s = System()    
+    s = System()
     s.request_debug_privileges()
     s.scan_processes()
 

@@ -99,7 +99,7 @@ PPVOID      = POINTER(PVOID)
 #     LONG HighPart;
 #   } u;
 #   LONGLONG QuadPart;
-# } LARGE_INTEGER, 
+# } LARGE_INTEGER,
 #  *PLARGE_INTEGER;
 
 # XXX TODO
@@ -336,7 +336,7 @@ SECTION_MAP_WRITE               = 0x0002
 SECTION_MAP_READ                = 0x0004
 SECTION_MAP_EXECUTE             = 0x0008
 SECTION_EXTEND_SIZE             = 0x0010
-SECTION_MAP_EXECUTE_EXPLICIT    = 0x0020 # not included in SECTION_ALL_ACCESS 
+SECTION_MAP_EXECUTE_EXPLICIT    = 0x0020 # not included in SECTION_ALL_ACCESS
 
 SECTION_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED|SECTION_QUERY|\
                  SECTION_MAP_WRITE |      \
@@ -365,9 +365,9 @@ OPEN_EXISTING                    = 3
 OPEN_ALWAYS                      = 4
 TRUNCATE_EXISTING                = 5
 
-FILE_ATTRIBUTE_READONLY          = 0x00000001  
-FILE_ATTRIBUTE_NORMAL            = 0x00000080  
-FILE_ATTRIBUTE_TEMPORARY         = 0x00000100  
+FILE_ATTRIBUTE_READONLY          = 0x00000001
+FILE_ATTRIBUTE_NORMAL            = 0x00000080
+FILE_ATTRIBUTE_TEMPORARY         = 0x00000100
 
 FILE_FLAG_WRITE_THROUGH          = 0x80000000
 FILE_FLAG_NO_BUFFERING           = 0x20000000
@@ -376,14 +376,14 @@ FILE_FLAG_SEQUENTIAL_SCAN        = 0x08000000
 FILE_FLAG_DELETE_ON_CLOSE        = 0x04000000
 FILE_FLAG_OVERLAPPED             = 0x40000000
 
-FILE_ATTRIBUTE_READONLY          = 0x00000001  
-FILE_ATTRIBUTE_HIDDEN            = 0x00000002  
-FILE_ATTRIBUTE_SYSTEM            = 0x00000004  
-FILE_ATTRIBUTE_DIRECTORY         = 0x00000010  
-FILE_ATTRIBUTE_ARCHIVE           = 0x00000020  
-FILE_ATTRIBUTE_DEVICE            = 0x00000040  
-FILE_ATTRIBUTE_NORMAL            = 0x00000080  
-FILE_ATTRIBUTE_TEMPORARY         = 0x00000100  
+FILE_ATTRIBUTE_READONLY          = 0x00000001
+FILE_ATTRIBUTE_HIDDEN            = 0x00000002
+FILE_ATTRIBUTE_SYSTEM            = 0x00000004
+FILE_ATTRIBUTE_DIRECTORY         = 0x00000010
+FILE_ATTRIBUTE_ARCHIVE           = 0x00000020
+FILE_ATTRIBUTE_DEVICE            = 0x00000040
+FILE_ATTRIBUTE_NORMAL            = 0x00000080
+FILE_ATTRIBUTE_TEMPORARY         = 0x00000100
 
 # Debug events
 EXCEPTION_DEBUG_EVENT       = 1
@@ -643,7 +643,7 @@ ProcessImageFileName                = 27
 ProcessExecuteFlags                 = 34
 
 # NtQueryInformationThread constants
-# 
+#
 ThreadBasicInformation          = 0
 ThreadTimes                     = 1
 ThreadPriority                  = 2
@@ -699,9 +699,9 @@ class THREADNAME_INFO(Structure):
 #   USHORT Length;
 #   USHORT MaximumLength;
 #   PWSTR Buffer;
-# } LSA_UNICODE_STRING, 
-#  *PLSA_UNICODE_STRING, 
-#  UNICODE_STRING, 
+# } LSA_UNICODE_STRING,
+#  *PLSA_UNICODE_STRING,
+#  UNICODE_STRING,
 #  *PUNICODE_STRING;
 class UNICODE_STRING(Structure):
     _fields_ = [
@@ -794,7 +794,7 @@ LIST_ENTRY._fields_ = [
 #   BYTE         Reserved1[8];
 #   PVOID        Reserved2[3];
 #   LIST_ENTRY   InMemoryOrderModuleList;
-# } PEB_LDR_DATA, 
+# } PEB_LDR_DATA,
 #  *PPEB_LDR_DATA;
 ##class PEB_LDR_DATA(Structure):
 ##    _pack_ = 1
@@ -811,7 +811,7 @@ LIST_ENTRY._fields_ = [
 #   PVOID            Reserved2[10];
 #   UNICODE_STRING   ImagePathName;
 #   UNICODE_STRING   CommandLine;
-# } RTL_USER_PROCESS_PARAMETERS, 
+# } RTL_USER_PROCESS_PARAMETERS,
 #  *PRTL_USER_PROCESS_PARAMETERS;
 ##class RTL_USER_PROCESS_PARAMETERS(Structure):
 ##    _pack_ = 1
@@ -862,7 +862,7 @@ LIST_ENTRY._fields_ = [
 #   PVOID   ReservedForOle;
 #   PVOID   Reserved5[4];
 #   PVOID   TlsExpansionSlots;
-# } TEB, 
+# } TEB,
 #  *PTEB;
 ##class TEB(Structure):
 ##    _pack_ = 1
@@ -986,7 +986,7 @@ class CURDIR(Structure):
 #   PVOID          Reserved2[10];
 #   UNICODE_STRING ImagePathName;
 #   UNICODE_STRING CommandLine;
-# } RTL_USER_PROCESS_PARAMETERS, 
+# } RTL_USER_PROCESS_PARAMETERS,
 # *PRTL_USER_PROCESS_PARAMETERS;
 class RTL_USER_PROCESS_PARAMETERS(Structure):
     _fields_ = [
@@ -1182,7 +1182,7 @@ RTL_CRITICAL_SECTION_DEBUG._fields_ = [
 #    +0x0bc ImageSubsystemMinorVersion : Uint4B
 #    +0x0c0 ImageProcessAffinityMask : Uint4B
 #    +0x0c4 GdiHandleBuffer  : [34] Uint4B
-#    +0x14c PostProcessInitRoutine : Ptr32     void 
+#    +0x14c PostProcessInitRoutine : Ptr32     void
 #    +0x150 TlsExpansionBitmap : Ptr32 Void
 #    +0x154 TlsExpansionBitmapBits : [32] Uint4B
 #    +0x1d4 SessionId        : Uint4B
@@ -1379,7 +1379,7 @@ class GDI_TEB_BATCH(Structure):
         ("Offset",  ULONG),
         ("HDC",     ULONG),
         ("Buffer",  ULONG * 310),
-]    
+]
 
 # kd> dt _TEB
 #    +0x000 NtTib            : _NT_TIB
@@ -1621,14 +1621,14 @@ class TEB(Structure):
 
 # From http://catch22.net/tuts/tips2
 #
-# typedef struct  
-# { 
-#     ULONG      ExitStatus; 
-#     PVOID      PebBaseAddress; 
-#     ULONG      AffinityMask; 
-#     ULONG      BasePriority; 
-#     ULONG_PTR  UniqueProcessId; 
-#     ULONG_PTR  InheritedFromUniqueProcessId; 
+# typedef struct
+# {
+#     ULONG      ExitStatus;
+#     PVOID      PebBaseAddress;
+#     ULONG      AffinityMask;
+#     ULONG      BasePriority;
+#     ULONG_PTR  UniqueProcessId;
+#     ULONG_PTR  InheritedFromUniqueProcessId;
 # } PROCESS_BASIC_INFORMATION;
 class PROCESS_BASIC_INFORMATION(Structure):
     _fields_ = [
@@ -2130,7 +2130,7 @@ class DEBUG_EVENT(Structure):
 #       DWORD BaseHi  :8;
 #     } Bits;
 #   } HighWord;
-# } LDT_ENTRY, 
+# } LDT_ENTRY,
 #  *PLDT_ENTRY;
 
 class _LDT_ENTRY_BYTES_(Structure):
@@ -2484,7 +2484,7 @@ class MODULEENTRY32(Structure):
 #   DWORD     dwResvd;
 #   DWORD     th32ProcessID;
 #   ULONG_PTR th32HeapID;
-# } HEAPENTRY32, 
+# } HEAPENTRY32,
 # *PHEAPENTRY32;
 class HEAPENTRY32(Structure):
     _fields_ = [
@@ -2504,7 +2504,7 @@ class HEAPENTRY32(Structure):
 #   DWORD     th32ProcessID;
 #   ULONG_PTR th32HeapID;
 #   DWORD     dwFlags;
-# } HEAPLIST32, 
+# } HEAPLIST32,
 #  *PHEAPLIST32;
 class HEAPLIST32(Structure):
     _fields_ = [
@@ -4108,7 +4108,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
     return retval
 ZwQueryInformationThread = NtQueryInformationThread
 
-# NTSTATUS 
+# NTSTATUS
 #   NtQueryInformationFile(
 #     IN HANDLE  FileHandle,
 #     OUT PIO_STATUS_BLOCK  IoStatusBlock,
@@ -4482,7 +4482,7 @@ GetProcessImageFileName = GetProcessImageFileNameA
 
 #--- shlwapi.dll --------------------------------------------------------------
 
-# LPTSTR PathAddBackslash(      
+# LPTSTR PathAddBackslash(
 #     LPTSTR lpszPath
 # );
 def PathAddBackslashA(lpszPath):
@@ -4495,7 +4495,7 @@ def PathAddBackslashW(lpszPath):
     return lpszPath.value
 PathAddBackslash = PathAddBackslashA
 
-# BOOL PathAddExtension(      
+# BOOL PathAddExtension(
 #     LPTSTR pszPath,
 #     LPCTSTR pszExtension
 # );
@@ -4517,7 +4517,7 @@ def PathAddExtensionW(lpszPath, pszExtension = None):
     return lpszPath.value
 PathAddExtension = PathAddExtensionA
 
-# BOOL PathAppend(      
+# BOOL PathAppend(
 #     LPTSTR pszPath,
 #     LPCTSTR pszMore
 # );
@@ -4539,7 +4539,7 @@ def PathAppendW(lpszPath, pszMore = None):
     return lpszPath.value
 PathAppend = PathAppendA
 
-# LPTSTR PathCombine(      
+# LPTSTR PathCombine(
 #     LPTSTR lpszDest,
 #     LPCTSTR lpszDir,
 #     LPCTSTR lpszFile
@@ -4558,7 +4558,7 @@ def PathCombineW(lpszDir, lpszFile):
     return lpszDest.value
 PathCombine = PathCombineA
 
-# BOOL PathCanonicalize(      
+# BOOL PathCanonicalize(
 #     LPTSTR lpszDst,
 #     LPCTSTR lpszSrc
 # );
@@ -4576,7 +4576,7 @@ def PathCanonicalizeW(lpszSrc):
     return lpszDst.value
 PathCanonicalize = PathCanonicalizeA
 
-# BOOL PathFileExists(      
+# BOOL PathFileExists(
 #     LPCTSTR pszPath
 # );
 def PathFileExistsA(pszPath):
@@ -4585,7 +4585,7 @@ def PathFileExistsW(pszPath):
     return bool( ctypes.windll.shlwapi.PathFileExistsW(pszPath) )
 PathFileExists = PathFileExistsA
 
-# LPTSTR PathFindExtension(      
+# LPTSTR PathFindExtension(
 #     LPCTSTR pszPath
 # );
 def PathFindExtensionA(pszPath):
@@ -4602,7 +4602,7 @@ def PathFindExtensionW(pszPath):
     return pszPathExtension.value
 PathFindExtension = PathFindExtensionA
 
-# LPTSTR PathFindFileName(      
+# LPTSTR PathFindFileName(
 #     LPCTSTR pszPath
 # );
 def PathFindFileNameA(pszPath):
@@ -4619,7 +4619,7 @@ def PathFindFileNameW(pszPath):
     return pszPathFilename.value
 PathFindFileName = PathFindFileNameA
 
-# LPTSTR PathFindNextComponent(      
+# LPTSTR PathFindNextComponent(
 #     LPCTSTR pszPath
 # );
 def PathFindNextComponentA(pszPath):
@@ -4636,7 +4636,7 @@ def PathFindNextComponentW(pszPath):
     return pszPathNext.value    # may return None
 PathFindNextComponent = PathFindNextComponentA
 
-# BOOL PathFindOnPath(      
+# BOOL PathFindOnPath(
 #     LPTSTR pszFile,
 #     LPCTSTR *ppszOtherDirs
 # );
@@ -4672,7 +4672,7 @@ def PathFindOnPathW(pszFile, ppszOtherDirs = None):
     return pszFile.value
 PathFindOnPath = PathFindOnPathA
 
-# LPTSTR PathGetArgs(      
+# LPTSTR PathGetArgs(
 #     LPCTSTR pszPath
 # );
 def PathGetArgsA(pszPath):
@@ -4687,7 +4687,7 @@ def PathGetArgsW(pszPath):
     return pszPath.value
 PathGetArgs = PathGetArgsA
 
-# BOOL PathIsContentType(      
+# BOOL PathIsContentType(
 #     LPCTSTR pszPath,
 #     LPCTSTR pszContentType
 # );
@@ -4697,7 +4697,7 @@ def PathIsContentTypeW(pszPath, pszContentType):
     return bool( ctypes.windll.shlwapi.PathIsContentTypeW(pszPath, pszContentType) )
 PathIsContentType = PathIsContentTypeA
 
-# BOOL PathIsDirectory(      
+# BOOL PathIsDirectory(
 #     LPCTSTR pszPath
 # );
 def PathIsDirectoryA(pszPath):
@@ -4706,7 +4706,7 @@ def PathIsDirectoryW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryW(pszPath) )
 PathIsDirectory = PathIsDirectoryA
 
-# BOOL PathIsDirectoryEmpty(      
+# BOOL PathIsDirectoryEmpty(
 #     LPCTSTR pszPath
 # );
 def PathIsDirectoryEmptyA(pszPath):
@@ -4715,7 +4715,7 @@ def PathIsDirectoryEmptyW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryEmptyW(pszPath) )
 PathIsDirectoryEmpty = PathIsDirectoryEmptyA
 
-# BOOL PathIsNetworkPath(      
+# BOOL PathIsNetworkPath(
 #     LPCTSTR pszPath
 # );
 def PathIsNetworkPathA(pszPath):
@@ -4724,7 +4724,7 @@ def PathIsNetworkPathW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsNetworkPathW(pszPath) )
 PathIsNetworkPath = PathIsNetworkPathA
 
-# BOOL PathIsRelative(      
+# BOOL PathIsRelative(
 #     LPCTSTR lpszPath
 # );
 def PathIsRelativeA(lpszPath):
@@ -4733,7 +4733,7 @@ def PathIsRelativeW(lpszPath):
     return bool( ctypes.windll.shlwapi.PathIsRelativeW(lpszPath) )
 PathIsRelative = PathIsRelativeA
 
-# BOOL PathIsRoot(      
+# BOOL PathIsRoot(
 #     LPCTSTR pPath
 # );
 def PathIsRootA(pPath):
@@ -4742,7 +4742,7 @@ def PathIsRootW(pPath):
     return bool( ctypes.windll.shlwapi.PathIsRootW(pPath) )
 PathIsRoot = PathIsRootA
 
-# BOOL PathIsSameRoot(      
+# BOOL PathIsSameRoot(
 #     LPCTSTR pszPath1,
 #     LPCTSTR pszPath2
 # );
@@ -4752,7 +4752,7 @@ def PathIsSameRootW(pszPath1, pszPath2):
     return bool( ctypes.windll.shlwapi.PathIsSameRootW(pszPath1, pszPath2) )
 PathIsSameRoot = PathIsSameRootA
 
-# BOOL PathIsUNC(      
+# BOOL PathIsUNC(
 #     LPCTSTR pszPath
 # );
 def PathIsUNCA(pszPath):
@@ -4762,9 +4762,9 @@ def PathIsUNCW(pszPath):
 PathIsUNC = PathIsUNCA
 
 # XXX PathMakePretty turns filenames into all lowercase.
-# I'm not sure how well that might work on Wine. 
+# I'm not sure how well that might work on Wine.
 
-# BOOL PathMakePretty(      
+# BOOL PathMakePretty(
 #     LPCTSTR pszPath
 # );
 def PathMakePrettyA(pszPath):
@@ -4777,7 +4777,7 @@ def PathMakePrettyW(pszPath):
     return pszPath.value
 PathMakePretty = PathMakePrettyA
 
-# void PathRemoveArgs(      
+# void PathRemoveArgs(
 #     LPTSTR pszPath
 # );
 def PathRemoveArgsA(pszPath):
@@ -4790,7 +4790,7 @@ def PathRemoveArgsW(pszPath):
     return pszPath.value
 PathRemoveArgs = PathRemoveArgsA
 
-# void PathRemoveBackslash(      
+# void PathRemoveBackslash(
 #     LPTSTR pszPath
 # );
 def PathRemoveBackslashA(pszPath):
@@ -4803,7 +4803,7 @@ def PathRemoveBackslashW(pszPath):
     return pszPath.value
 PathRemoveBackslash = PathRemoveBackslashA
 
-# void PathRemoveExtension(      
+# void PathRemoveExtension(
 #     LPTSTR pszPath
 # );
 def PathRemoveExtensionA(pszPath):
@@ -4816,7 +4816,7 @@ def PathRemoveExtensionW(pszPath):
     return pszPath.value
 PathRemoveExtension = PathRemoveExtensionA
 
-# void PathRemoveFileSpec(      
+# void PathRemoveFileSpec(
 #     LPTSTR pszPath
 # );
 def PathRemoveFileSpecA(pszPath):
@@ -4829,7 +4829,7 @@ def PathRemoveFileSpecW(pszPath):
     return pszPath.value
 PathRemoveFileSpec = PathRemoveFileSpecA
 
-# BOOL PathRenameExtension(      
+# BOOL PathRenameExtension(
 #     LPTSTR pszPath,
 #     LPCTSTR pszExt
 # );
@@ -4847,7 +4847,7 @@ def PathRenameExtensionW(pszPath, pszExt):
     return pszPath.value
 PathRenameExtension = PathRenameExtensionA
 
-# BOOL PathUnExpandEnvStrings(      
+# BOOL PathUnExpandEnvStrings(
 #     LPCTSTR pszPath,
 #     LPTSTR pszBuf,
 #     UINT cchBuf

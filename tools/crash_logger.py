@@ -120,27 +120,27 @@ class LoggingEventHandler(EventHandler):
                                                                 bBreak = True):
         """
         Sets breakpoints from the breakpoint list files.
-        
+
         @type  debug: L{Debug}
         @param debug: Debug object.
-        
+
         @type  pid: int
         @param pid: Process global ID.
-        
+
         @type  label_list: list( str )
         @param label_list: List of target labels.
-        
+
         @type    action: function
         @keyword action: (Optional) Action callback function.
-        
+
         @type    aModule: L{Module}
         @keyword aModule: (Optional)
             Only apply for labels that belong to the given module.
             Skip all other labels.
-        
+
         @type    bBreak: bool
         @keyword bBreak: True to L{break_at}, False to L{stalk_at}.
-        
+
         @rtype:  set( int )
         @return: All resolved labels where a code breakpoint was set.
         """
@@ -150,21 +150,21 @@ class LoggingEventHandler(EventHandler):
             method = debug.break_at
         else:
             method = debug.stalk_at
-                
+
         # Discard repeated labels.
         label_list = set( label_list )
 
         # Filter labels by module.
         if aModule is not None:
             for label in label_list:
-                
+
                 # Resolve the label.
                 try:
                     if aModule is not None:
                         address = aModule.resolve_label(label)
                     else:
                         address = debug.resolve_label(label)
-                
+
                 # Ignore labels that cause errors.
                 except ValueError:
                     continue
@@ -172,14 +172,14 @@ class LoggingEventHandler(EventHandler):
                     continue
                 except WindowsError:
                     continue
-                
+
                 # Ignore missing or redundant labels.
                 if address is None or address in resolved:
                     continue
-                
+
                 # Remember resolved labels.
                 resolved.add(address)
-                
+
                 # Set the breakpoint.
                 method(pid, address, action)
 
@@ -192,14 +192,14 @@ class LoggingEventHandler(EventHandler):
                     address = aProcess.resolve_label(label)
                 except ValueError:
                     continue    # Discard invalid labels.
-                
+
                 # Discard missing or redundant labels.
                 if address is None or address in resolved:
                     continue
-                
+
                 # Remember resolved labels.
                 resolved.add(address)
-                
+
                 # Set the breakpoint.
                 method(pid, address, action)
 
@@ -274,7 +274,7 @@ class LoggingEventHandler(EventHandler):
         aModule     = event.get_module()
 
         try:
-            
+
             # Set user-defined breakpoints for this process.
             if aModule is not None:
                 self.__break_or_stalk_at_label_list(event.debug, dwProcessId,
@@ -285,7 +285,7 @@ class LoggingEventHandler(EventHandler):
                                                aModule = aModule)
 
         finally:
-    
+
             # Log the event to standard output.
             lpBaseOfDll = aModule.get_base()
             fileName    = aModule.get_filename()

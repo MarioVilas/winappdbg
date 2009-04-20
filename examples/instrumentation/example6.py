@@ -33,10 +33,10 @@
 from winappdbg import Process
 
 def load_dll( pid, filename ):
-    
+
     # Instance a Process object
     process = Process( pid )
-    
+
     # Load the DLL library in the process
     process.inject_dll( filename )
 

@@ -34,18 +34,18 @@ from winappdbg import Debug, EventHandler
 
 
 class MyEventHandler( EventHandler ):
-    
-    
+
+
     # Here we set which API calls we want to intercept
     apiHooks = {
-        
+
         # Hooks for the kernel32 library
         'kernel32.dll' : [
                            #  Function            Parameters
                            ( 'CreateFileA'     ,   7  ),
                            ( 'CreateFileW'     ,   7  ),
                          ],
-        
+
         # Hooks for the advapi32 library
         'advapi32.dll' : [
                            #  Function            Parameters
@@ -53,65 +53,65 @@ class MyEventHandler( EventHandler ):
                            ( 'RegCreateKeyExW' ,   9  ),
                          ],
     }
-    
-    
+
+
     # Now we can simply define a method for each hooked API.
     # Methods beginning with "pre_" are called when entering the API,
     # and methods beginning with "post_" when returning from the API.
-    
-    
+
+
     def pre_CreateFileA( self, event, ra, lpFileName, dwDesiredAccess,
              dwShareMode, lpSecurityAttributes, dwCreationDisposition,
                                 dwFlagsAndAttributes, hTemplateFile ):
-        
+
         self.__print_opening_ansi( event, "file", lpFileName )
-    
+
     def pre_CreateFileW( self, event, ra, lpFileName, dwDesiredAccess,
              dwShareMode, lpSecurityAttributes, dwCreationDisposition,
                                 dwFlagsAndAttributes, hTemplateFile ):
-        
+
         self.__print_opening_unicode( event, "file", lpFileName )
-    
+
     def pre_RegCreateKeyExA( self, event, ra, hKey, lpSubKey, Reserved,
-                                        lpClass, dwOptions, samDesired, 
+                                        lpClass, dwOptions, samDesired,
                                        lpSecurityAttributes, phkResult,
                                                      lpdwDisposition ):
-        
+
         self.__print_opening_ansi( event, "key", lpSubKey )
-    
+
     def pre_RegCreateKeyExW( self, event, ra, hKey, lpSubKey, Reserved,
-                                        lpClass, dwOptions, samDesired, 
+                                        lpClass, dwOptions, samDesired,
                                        lpSecurityAttributes, phkResult,
                                                      lpdwDisposition ):
-        
+
         self.__print_opening_unicode( event, "key", lpSubKey )
-    
-    
+
+
     def post_CreateFileA( self, event, retval ):
         self.__print_success( event, retval )
-    
+
     def post_CreateFileW( self, event, retval ):
         self.__print_success( event, retval )
-    
+
     def post_RegCreateKeyExA( self, event, retval ):
         self.__print_success( event, retval )
-    
+
     def post_RegCreateKeyExW( self, event, retval ):
         self.__print_success( event, retval )
-    
-    
+
+
     # Some helper private methods...
-    
+
     def __print_opening_ansi( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer )
         tid    = event.get_tid()
         print  "%d: Opening %s: %s" % (tid, tag, string)
-    
+
     def __print_opening_unicode( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer, fUnicode = True )
         tid    = event.get_tid()
         print  "%d: Opening %s: %s" % (tid, tag, string)
-    
+
     def __print_success( self, event, retval ):
         tid = event.get_tid()
         if retval:
@@ -121,13 +121,13 @@ class MyEventHandler( EventHandler ):
 
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

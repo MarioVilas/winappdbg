@@ -124,10 +124,10 @@ class HexInput (object):
     def integer(token):
         """
         Convert numeric strings into integers.
-        
+
         @type  token: str
         @param token: String to parse.
-        
+
         @rtype:  int
         @return: Parsed integer value.
         """
@@ -146,10 +146,10 @@ class HexInput (object):
     def hexadecimal(token):
         """
         Convert a strip of hexadecimal numbers into binary data.
-        
+
         @type  token: str
         @param token: String to parse.
-        
+
         @rtype:  str
         @return: Parsed string value.
         """
@@ -168,22 +168,22 @@ class HexInput (object):
     def pattern(token):
         """
         Convert an hexadecimal search pattern into a POSIX regular expression.
-        
+
         For example, the following pattern::
-            
+
             "B8 0? ?0 ?? ??"
-        
+
         Is converted to this regular expression::
-            
+
             "\xB8...."
-        
+
         And would match the following data::
-            
+
             "B8 0D F0 AD BA"    # mov eax, 0xBAADF00D
-        
+
         @type  token: str
         @param token: String to parse.
-        
+
         @rtype:  str
         @return: Parsed string value.
         """
@@ -211,9 +211,9 @@ class HexInput (object):
     def integer_list_file(cls, filename):
         """
         Read a list of integers from a file.
-        
+
         The file format is:
-        
+
          - # begins comments
          - leading and trailing spaces are ignored
          - integers can be specified as:
@@ -221,10 +221,10 @@ class HexInput (object):
             - hexadecimal numbers ("0x100" is 256)
             - binary numbers ("0b100" is 4)
             - octal numbers ("0100" is 64)
-        
+
         @type  filename: str
         @param filename: Name of the file to read.
-        
+
         @rtype:  list( int )
         @return: List of integers read from file.
         """
@@ -250,9 +250,9 @@ class HexInput (object):
     def mixed_list_file(cls, filename):
         """
         Read a list of mixed values from a file.
-        
+
         The file format is:
-        
+
          - # begins comments
          - leading and trailing spaces are ignored
          - strings cannot span over a single line
@@ -261,10 +261,10 @@ class HexInput (object):
             - hexadecimal numbers ("0x100" is 256)
             - binary numbers ("0b100" is 4)
             - octal numbers ("0100" is 64)
-        
+
         @type  filename: str
         @param filename: Name of the file to read.
-        
+
         @rtype:  list
         @return: List of integers and strings read from file.
         """
@@ -289,7 +289,7 @@ class HexInput (object):
 class CrashDump (object):
     """
     Static functions for crash dumps.
-    
+
     @type reg_template: str
     @cvar reg_template: Template for the L{dump_registers} method.
     """
@@ -306,10 +306,10 @@ class CrashDump (object):
         """
         Dump the x86 processor flags.
         The output mimics that of the WinDBG debugger.
-        
+
         @type  efl: int
         @param efl: Value of the eFlags register.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -367,10 +367,10 @@ class CrashDump (object):
         """
         Dump the x86 processor register values.
         The output mimics that of the WinDBG debugger.
-        
+
         @type  registers: dict( str S{->} int )
         @param registers: Dictionary mapping register names to their values.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -384,13 +384,13 @@ class CrashDump (object):
     def dump_registers_peek(registers, data, separator = ' ', width = 16):
         """
         Dump data pointed to by the given registers, if any.
-        
+
         @type  registers: dict( str S{->} int )
         @param registers: Dictionary mapping register names to their values.
-        
+
         @type  data: dict( str S{->} str )
         @param data: Dictionary mapping register names to the data they point to.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -411,13 +411,13 @@ class CrashDump (object):
     def dump_data_peek(data, base = 0, separator = ' ', width = 16):
         """
         Dump data from pointers guessed within the given binary data.
-        
+
         @type  data: str
         @param data: Dictionary mapping offsets to the data they point to.
-        
+
         @type  base: int
         @param base: Base offset.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -435,10 +435,10 @@ class CrashDump (object):
     def dump_stack_peek(data, separator = ' ', width = 16):
         """
         Dump data from pointers guessed within the given stack dump.
-        
+
         @type  data: str
         @param data: Dictionary mapping stack offsets to the data they point to.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -459,11 +459,11 @@ class CrashDump (object):
     def dump_stack_trace(stack_trace):
         """
         Dump a stack trace.
-        
+
         @type  stack_trace: list( int, int, str )
         @param stack_trace: Stack trace as a tuple of
             ( return address, frame pointer, module filename )
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -483,11 +483,11 @@ class CrashDump (object):
     def dump_code(disassembly, pc = None, bLowercase = True):
         """
         Dump a disassembly. Optionally mark where the program counter is.
-        
+
         @type  disassembly: tuple( int, int, str, str )
         @param disassembly: Disassembly dump as returned by
             L{Process.disassemble} or L{Thread.disassemble_around_pc}.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -516,24 +516,24 @@ class CrashDump (object):
     def dump_memory_map(memoryMap):
         """
         Dump the memory map of a process.
-        
+
         @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
         @param memoryMap: Memory map returned by L{Process.get_memory_map}.
-        
+
         @rtype:  str
         @return: Text suitable for logging.
         """
-        
+
         # Output the header of the table.
         output = "Address   \tSize      \tState     \tAccess    \tType\n"
-    
+
         # For each memory block in the map...
         for mbi in memoryMap:
-            
+
             # Address and size of memory block.
             BaseAddress = "0x%.08x" % mbi.BaseAddress
             RegionSize  = "0x%.08x" % mbi.RegionSize
-            
+
             # State (free or allocated).
             if   mbi.State == win32.MEM_RESERVE:
                 State   = "Reserved  "
@@ -543,7 +543,7 @@ class CrashDump (object):
                 State   = "Free      "
             else:
                 State   = "Unknown   "
-            
+
             # Page protection bits (R/W/X/G).
             if mbi.State != win32.MEM_COMMIT:
                 Protect = "          "
@@ -580,7 +580,7 @@ class CrashDump (object):
                 else:
                     Protect += "-"
                 Protect += "   "
-           
+
             # Type (file mapping, executable image, or private memory).
             if   mbi.Type == win32.MEM_IMAGE:
                 Type    = "Image     "
@@ -592,7 +592,7 @@ class CrashDump (object):
                 Type    = "          "
             else:
                 Type    = "Unknown   "
-            
+
             # Output a row in the table.
             fmt = "%s\t%s\t%s\t%s\t%s\n"
             output += fmt % ( BaseAddress, RegionSize, State, Protect, Type )

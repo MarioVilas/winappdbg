@@ -37,7 +37,7 @@ def print_modules( pid ):
     print "Modules for process %d:" % pid
     print
     print "Address     Size        Path"
-    
+
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
 
@@ -47,12 +47,12 @@ def print_modules( pid ):
     # Enumerate the modules
     module = Module32First( hSnapshot )
     while module is not None:
-        
+
         # Print the module address, size and pathname
         print "%.8x    %.8x    %s" % ( module.modBaseAddr,
                                        module.modBaseSize,
                                        module.szExePath )
-        
+
         # Next module in the process
         module = Module32Next( hSnapshot )
 

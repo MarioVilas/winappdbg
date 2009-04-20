@@ -35,25 +35,25 @@ from winappdbg import Debug, EventHandler
 
 # This function will be called when the breakpoint is hit
 def entering( event ):
-    
+
     # Get the thread object
     thread = event.get_thread()
-    
+
     # Get the thread ID
     tid = thread.get_tid()
-    
+
     # Get the return address location (the top of the stack)
     stack_top = thread.get_sp()
-    
+
     # Get the return address and the parameters from the stack
     return_address, hModule, lpProcName = thread.read_stack_dwords( 3 )
-    
+
     # Get the string from the process memory
     procedure_name = event.get_process().peek_string( lpProcName )
-    
+
     # Watch the DWORD at the top of the stack
     event.debug.watch_variable( tid, stack_top, 4, returning )
-    
+
     # Show a message to the user
     message = "%.08x: GetProcAddress(0x%.08x, %r);"
     print message % ( return_address, hModule, procedure_name )
@@ -61,61 +61,61 @@ def entering( event ):
 
 # This function will be called when the variable is accessed
 def returning( event ):
-    
+
     # Get the thread object
     thread = event.get_thread()
-    
+
     # Get the thread ID
     tid = thread.get_tid()
-    
+
     # Get the thread context (that is, the register values)
     context = thread.get_context()
-    
+
     # Get the address of the watched variable
     variable_address = event.breakpoint.get_address()
-    
+
     # Stop watching the variable
     event.debug.dont_watch_variable( tid, variable_address )
-    
+
     # Get the return value (in EAX)
     return_value = context[ 'Eax' ]
-    
+
     # Get the return address (in the stack)
     return_address = event.get_process().read_uint( variable_address )
-    
+
     # Show a message to the user
     message = "%.08x: GetProcAddress() returned 0x%.08x"
     print message % ( return_address, return_value )
 
 
 class MyEventHandler( EventHandler ):
-    
+
     def load_dll( self, event ):
-        
+
         # Get the new module object
         module = event.get_module()
-        
+
         # If it's kernel32...
         if module.match_name("kernel32.dll"):
-            
+
             # Get the process ID
             pid = event.get_pid()
-            
+
             # Get the address of GetProcAddress
             address = module.resolve( "GetProcAddress" )
-            
+
             # Set a breakpoint at the entry of the GetProcAddress function
             event.debug.break_at( pid, address, entering )
 
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

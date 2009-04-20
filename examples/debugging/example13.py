@@ -33,19 +33,19 @@
 from winappdbg import System, Process
 
 def print_label_address( pid, label ):
-    
+
     # Request debug privileges
     System.request_debug_privileges()
-    
+
     # Instance a Process object
     process = Process( pid )
-    
+
     # Lookup it's modules
     process.scan_modules()
-    
+
     # Resolve the requested label address
     address = process.resolve_label( label )
-    
+
     # Print the address
     print "%s == 0x%.08x" % ( label, address )
 

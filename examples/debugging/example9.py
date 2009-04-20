@@ -35,47 +35,47 @@ from winappdbg import Debug, EventHandler
 
 # This function will be called when the hooked function is entered
 def wsprintf( event, ra, lpOut, lpFmt ):
-    
+
     # Get the format string
     lpFmt = event.get_process().peek_string( lpFmt, fUnicode = True )
-    
+
     # Get the vararg parameters
     count      = lpFmt.replace( '%%', '%' ).count( '%' )
     parameters = event.get_thread().read_stack_dwords( count, offset = 3 )
-    
+
     # Show a message to the user
     showparams = ", ".join( [ hex(x) for x in parameters ] )
     print "wsprintf( %r, %s );" % ( lpFmt, showparams )
 
 
 class MyEventHandler( EventHandler ):
-    
+
     def load_dll( self, event ):
-        
+
         # Get the new module object
         module = event.get_module()
-        
+
         # If it's user32...
         if module.match_name("user32.dll"):
-            
+
             # Get the process ID
             pid = event.get_pid()
-            
+
             # Get the address of wsprintf
             address = module.resolve( "wsprintfW" )
-            
+
             # Hook the wsprintf function
             event.debug.hook_function( pid, address, wsprintf, paramCount = 2 )
 
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

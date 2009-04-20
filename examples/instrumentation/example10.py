@@ -33,32 +33,32 @@
 from winappdbg import Thread, CrashDump, System
 
 def print_thread_disassembly( tid ):
-    
+
     # Request debug privileges
     System.request_debug_privileges()
-    
+
     # Instance a Thread object
     thread = Thread( tid )
-    
+
     # Suspend the thread execution
     thread.suspend()
-    
+
     # Get the thread's currently running code
     try:
         eip  = thread.get_pc()
         code = thread.disassemble_around( eip )
-        
+
         # You can also do this:
         # code = thread.disassemble_around_pc()
-        
+
         # Or even this:
         # process = thread.get_process()
         # code    = process.disassemble_around(eip)
-    
+
     # Resume the thread execution
     finally:
         thread.resume()
-    
+
     # Display the thread context
     print
     print CrashDump.dump_code( code, eip ),

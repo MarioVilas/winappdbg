@@ -27,15 +27,15 @@
 
 # $Id$
 
-""" 
+"""
 Crash logger.
 """
 
 __all__ =   [
                 # Object that represents a crash in the debugee.
                 'Crash',
-                
-                # Container that can store Crash objects in a database. 
+
+                # Container that can store Crash objects in a database.
                 'CrashContainer',
             ]
 
@@ -59,119 +59,119 @@ except ImportError:
 class Crash (object):
     """
     Represents a crash, bug, or another interesting event in the debugee.
-    
+
     @type timeStamp: float
     @ivar timeStamp: Timestamp as returned by time.time().
-    
+
     @type notes: list( str )
     @ivar notes: List of strings, each string is a note.
-    
+
     @type eventCode: int
     @ivar eventCode: Event code as defined by the Win32 API.
-    
+
     @type eventName: str
     @ivar eventName: Event code user-friendly name.
-    
+
     @type pid: int
     @ivar pid: Process global ID.
-    
+
     @type tid: int
     @ivar tid: Thread global ID.
-    
+
     @type registers: dict( str S{->} int )
     @ivar registers: Dictionary mapping register names to their values.
-    
+
     @type registersPeek: dict( str S{->} str )
     @ivar registersPeek: Dictionary mapping register names to the data they point to.
-    
+
     @type labelPC: None or str
     @ivar labelPC: Label pointing to the program counter.
 
         I{None} or invalid if unapplicable or unable to retrieve.
-    
+
     @type debugString: None or str
     @ivar debugString: Debug string sent by the debugee.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type exceptionCode: None or int
     @ivar exceptionCode: Exception code as defined by the Win32 API.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type exceptionName: None or str
     @ivar exceptionName: Exception code user-friendly name.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type exceptionAddress: None or int
     @ivar exceptionAddress: Memory address where the exception occured.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type exceptionLabel: None or str
     @ivar exceptionLabel: Label pointing to the exception address.
 
         I{None} or invalid if unapplicable or unable to retrieve.
-    
+
     @type firstChance: None or bool
     @ivar firstChance: True for first chance exceptions, False for second chance.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type modFileName: None or str
     @ivar modFileName: File name of module where the program counter points to.
 
         I{None} or invalid if unapplicable or unable to retrieve.
-    
+
     @type lpBaseOfDll: None or int
     @ivar lpBaseOfDll: Base of module where the program counter points to.
 
         I{None} if unapplicable or unable to retrieve.
-    
+
     @type stackTrace: None or tuple of tuple( int, int, str )
     @ivar stackTrace:
         Stack trace of the current thread as a tuple of
         ( return address, frame pointer, module filename ).
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type stackTracePC: None or tuple( int... )
     @ivar stackTracePC: Tuple of return addresses in the stack trace.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type stackTraceLabels: None or tuple( str... )
     @ivar stackTraceLabels:
         Tuple of labels pointing to the return addresses in the stack trace.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type stackFrame: None or str
     @ivar stackFrame: Data pointed to by the stack pointer.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type stackPeek: None or dict( int S{->} str )
     @ivar stackPeek: Dictionary mapping stack offsets to the data they point to.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type faultCode: None or str
     @ivar faultCode: Data pointed to by the program counter.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type faultMem: None or str
     @ivar faultMem: Data pointed to by the exception address.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type faultPeek: None or dict( intS{->} str )
     @ivar faultPeek: Dictionary mapping guessed pointers at L{faultMem} to the data they point to.
 
         I{None} or empty if unapplicable or unable to retrieve.
-    
+
     @type faultDisasm: None or tuple of tuple( long, int, str, str )
     @ivar faultDisasm: Dissassembly around the program counter.
 
@@ -278,7 +278,7 @@ class Crash (object):
     def pc(self):
         """
         Value of the program counter register.
-        
+
         @rtype:  int
         """
         return self.registers['Eip']
@@ -287,7 +287,7 @@ class Crash (object):
     def sp(self):
         """
         Value of the stack pointer register.
-        
+
         @rtype:  int
         """
         return self.registers['Esp']
@@ -296,7 +296,7 @@ class Crash (object):
     def fp(self):
         """
         Value of the frame pointer register.
-        
+
         @rtype:  int
         """
         return self.registers['Ebp']
@@ -307,13 +307,13 @@ class Crash (object):
     def key(self):
         """
         Generates an approximately unique key for the Crash object.
-        
+
         This key can be used as an heuristic to determine if two crashes were
         caused by the same software error. Ideally it should be treated as an
         opaque object.
-        
+
         @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/CrashKey}
-        
+
         @rtype:  (opaque)
         @return: Crash unique key.
         """
@@ -457,7 +457,7 @@ class Crash (object):
     def addNote(self, msg):
         """
         Add a note to the crash event.
-        
+
         @type msg:  str
         @param msg: Note text.
         """
@@ -472,7 +472,7 @@ class Crash (object):
     def getNotes(self):
         """
         Get the list of notes of this crash event.
-        
+
         @rtype:  list( str )
         @return: List of notes.
         """
@@ -481,7 +481,7 @@ class Crash (object):
     def iterNotes(self):
         """
         Iterate the notes of this crash event.
-        
+
         @rtype:  listiterator
         @return: Iterator of the list of notes.
         """
@@ -499,7 +499,7 @@ class Crash (object):
 class CrashContainer (object):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates.
-    
+
     @see: L{Crash.key}
     """
 
@@ -523,7 +523,7 @@ class CrashContainer (object):
         """
         Iterator of Crash objects. Returned by L{CrashContainer.__iter__}.
         """
-        
+
         def __init__(self, container):
             """
             @type  container: L{CrashContainer}
@@ -538,7 +538,7 @@ class CrashContainer (object):
             #
             self.__container = container
             self.__keys_iter = container.iterkeys()
-        
+
         def next(self):
             """
             @rtype:  L{Crash}
@@ -553,7 +553,7 @@ class CrashContainer (object):
         @type  filename: str
         @param filename: (Optional) File name for crash database.
             If no filename is specified, the container is be volatile.
-            
+
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
         """
@@ -577,7 +577,7 @@ class CrashContainer (object):
         """
         @type  crash: L{Crash}
         @param crash: Crash object.
-        
+
         @rtype:  bool
         @return: I{True} if the Crash object is in the container.
         """
@@ -609,7 +609,7 @@ class CrashContainer (object):
         """
         @type  key: L{Crash} unique key.
         @param key: Key of the crash to get.
-        
+
         @rtype:  bool
         @return: I{True} if a matching Crash object is in the container.
         """
@@ -619,11 +619,11 @@ class CrashContainer (object):
         """
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} object keys.
-        
+
         @see:     L{get}
         @warning: A B{copy} of each object is returned,
             so any changes made to them will be lost.
-            
+
             To preserve changes do the following:
                 1. Keep a reference to the object.
                 2. Delete the object from the set.
@@ -635,10 +635,10 @@ class CrashContainer (object):
         """
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
-        
+
         @warning: A B{copy} of each object is returned,
             so any changes made to them will be lost.
-            
+
             To preserve changes do the following:
                 1. Keep a reference to the object.
                 2. Delete the object from the set.
@@ -650,9 +650,9 @@ class CrashContainer (object):
         """
         Adds a new crash to the container.
         If the crash appears to be already known, it's ignored.
-        
+
         @see: L{Crash.key}
-        
+
         @type crash:  L{Crash}
         @param crash: Crash object to add.
         """
@@ -666,7 +666,7 @@ class CrashContainer (object):
     def remove(self, crash):
         """
         Removes a crash from the container.
-        
+
         @type crash:  L{Crash}
         @param crash: Crash object to remove.
         """
@@ -678,17 +678,17 @@ class CrashContainer (object):
     def get(self, key):
         """
         Retrieves a crash from the container.
-        
+
         @type  key: L{Crash} unique key.
         @param key: Key of the crash to get.
-        
+
         @rtype:  L{Crash} object.
         @return: Crash matching the given key.
-        
+
         @see:     L{iterkeys}
         @warning: A B{copy} of each object is returned,
             so any changes made to them will be lost.
-            
+
             To preserve changes do the following:
                 1. Keep a reference to the object.
                 2. Delete the object from the set.
@@ -702,10 +702,10 @@ class CrashContainer (object):
     def __marshall_key(self, key):
         """
         Marshalls a Crash key to be used in the database.
-        
+
         @type  key: (opaque object)
         @param key: Key to convert.
-        
+
         @rtype:  str
         @return: Converted key.
         """
@@ -716,10 +716,10 @@ class CrashContainer (object):
     def __unmarshall_key(self, key):
         """
         Unmarshalls a Crash key read from the database.
-        
+
         @type  key: str
         @param key: Key to convert.
-        
+
         @rtype:  (opaque object)
         @return: Converted key.
         """
@@ -728,10 +728,10 @@ class CrashContainer (object):
     def __marshall_value(self, value):
         """
         Marshalls a Crash object to be used in the database.
-        
+
         @type  value: L{Crash}
         @param value: Object to convert.
-        
+
         @rtype:  str
         @return: Converted object.
         """
@@ -741,10 +741,10 @@ class CrashContainer (object):
     def __unmarshall_value(self, value):
         """
         Unmarshalls a Crash object read from the database.
-        
+
         @type  value: str
         @param value: Object to convert.
-        
+
         @rtype:  L{Crash}
         @return: Converted object.
         """

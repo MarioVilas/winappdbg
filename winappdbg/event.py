@@ -49,7 +49,7 @@ __all__ = [
             # Factory of Event objects and all of it's subclasses.
             # Users should not need to instance Event objects directly.
             'EventFactory',
-            
+
             # Base class for user-defined event handlers.
             'EventHandler'
           ]
@@ -66,19 +66,19 @@ import ctypes
 class Event (object):
     """
     Event object.
-    
+
     @type eventName: str
     @cvar eventName: User-friendly name of the event.
-    
+
     @type eventDescription: str
     @cvar eventDescription: User-friendly description of the event.
-    
+
     @type debug: L{Debug}
     @ivar debug: Debug object that received the event.
-    
+
     @type raw: L{DEBUG_EVENT}
     @ivar raw: Raw DEBUG_EVENT structure as used by the Win32 API.
-    
+
     @type continueStatus: int
     @ivar continueStatus: Continue status to pass to L{win32.ContinueDebugEvent}.
     """
@@ -90,7 +90,7 @@ class Event (object):
         """
         @type  debug: L{Debug}
         @param debug: Debug object that received the event.
-        
+
         @type  raw: L{DEBUG_EVENT}
         @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
         """
@@ -162,7 +162,7 @@ class Event (object):
     def get_thread(self):
         """
         @see: L{get_tid}
-        
+
         @rtype:  L{Thread}
         @return: Thread where the event occured.
         """
@@ -183,15 +183,15 @@ class Event (object):
 class ExceptionEvent (Event):
     """
     Exception event.
-    
+
     @type exceptionName: dict( int S{->} str )
     @cvar exceptionName:
         Mapping of exception constants to their names.
-    
+
     @type exceptionDescription: dict( int S{->} str )
     @cvar exceptionDescription:
         Mapping of exception constants to user-friendly strings.
-    
+
     @type breakpoint: L{Breakpoint}
     @ivar breakpoint:
         If the exception was caused by one of our breakpoints, this member
@@ -296,10 +296,10 @@ class ExceptionEvent (Event):
     def is_noncontinuable(self):
         """
         @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
-        
+
         @rtype:  bool
         @return: True if the exception is noncontinuable.
-            
+
             Attempting to continue a noncontinuable exception results in an
             EXCEPTION_NONCONTINUABLE_EXCEPTION exception to be raised.
         """
@@ -331,7 +331,7 @@ class ExceptionEvent (Event):
         """
         @type  index: int
         @param index: Index into the exception information block.
-        
+
         @rtype:  int
         @return: Exception information DWORD.
         """
@@ -358,15 +358,15 @@ class ExceptionEvent (Event):
     def get_raw_exception_record_list(self):
         """
         Traverses the exception record linked list and builds a Python list.
-        
+
         Nested exception records are received for nested exceptions. This
         happens when an exception is raised in the debugee while trying to
         handle a previous exception.
-        
+
         @rtype:  list( L{EXCEPTION_RECORD} )
         @return:
             List of raw exception record structures as used by the Win32 API.
-            
+
             There is always at least one exception record, so the list is
             never empty. All other methods of this class read from the first
             exception record only, that is, the most recent exception.
@@ -428,10 +428,10 @@ class CreateThreadEvent (Event):
         """
         @rtype:  int
         @return: Pointer to the first instruction to execute in this thread.
-            
+
             Returns NULL when the debugger attached to a process and the thread
             already existed.
-            
+
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
         return self.raw.u.CreateThread.lpStartAddress
@@ -502,9 +502,9 @@ class CreateProcessEvent (Event):
         """
         @rtype:  int
         @return: Pointer to the first instruction to execute in this process.
-            
+
             Returns NULL when the debugger attaches to a process.
-            
+
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
         return self.raw.u.CreateProcessInfo.lpStartAddress
@@ -737,12 +737,12 @@ class RIPEvent (Event):
 class EventFactory (object):
     """
     Factory of L{Event} objects.
-    
+
     @type baseEvent: L{Event}
     @cvar baseEvent:
         Base class for Event objects.
         It's used for unknown event codes.
-    
+
     @type eventClasses: dict( int S{->} L{Event} )
     @cvar eventClasses:
         Dictionary that maps event codes to L{Event} subclasses.
@@ -766,10 +766,10 @@ class EventFactory (object):
         """
         @type  debug: L{Debug}
         @param debug: Debug object that received the event.
-        
+
         @type  raw: L{DEBUG_EVENT}
         @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
-        
+
         @rtype: L{Event}
         @returns: An Event object or one of it's subclasses,
             depending on the event type.
@@ -791,81 +791,81 @@ class EventFactory (object):
 class EventHandler (object):
     """
     Base class for debug event handlers.
-    
+
     Your program should subclass it to implement it's own event handling.
-    
+
     The signature for event handlers is the following::
-        
+
         def event_handler(self, event):
-    
+
     Where B{event} is an L{Event} object.
-    
+
     Each event handler is named after the event they handle.
     This is the list of all valid event handler names:
-    
+
      - event:
-       
+
        Receives an L{Event} object or an object of any of it's subclasses,
        and handles any event for which no handler was defined.
-       
+
      - unknown_event:
-       
+
        Receives an L{Event} object or an object of any of it's subclasses,
        and handles any event unknown to the debugging engine. (This is not
        likely to happen unless the Win32 debugging API is changed in future
        versions of Windows).
-       
+
      - exception
-       
+
        Receives an L{ExceptionEvent} object and handles any exception for
        which no handler was defined. See above for exception handlers.
-       
+
      - unknown_exception
-       
+
        Receives an L{ExceptionEvent} object and handles any exception unknown
        to the debugging engine. This usually happens for C++ exceptions, which
        are not standardized and may change from one compiler to the next.
-       
+
        Currently we have partial support for C++ exceptions thrown by Microsoft
        compilers.
-       
+
        Also see: U{RaiseException<http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
-       
+
      - create_thread
-       
+
        Receives a L{CreateThreadEvent} object.
-       
+
      - create_process
-       
+
        Receives a L{CreateProcessEvent} object.
-       
+
      - exit_thread
-       
+
        Receives a L{ExitThreadEvent} object.
-       
+
      - exit_process
-       
+
        Receives a L{ExitProcessEvent} object.
-       
+
      - load_dll
-       
+
        Receives a L{LoadDLLEvent} object.
-       
+
      - unload_dll
-       
+
        Receives an L{UnloadDLLEvent} object.
-       
+
      - output_string
-       
+
        Receives an L{OutputDebugStringEvent} object.
-       
+
      - rip
-       
+
        Receives a L{RIPEvent} object.
-       
+
     This is the list of all valid exception handler names
     (they all receive an L{ExceptionEvent} object):
-    
+
      - access_violation
      - array_bounds_exceeded
      - breakpoint
@@ -892,58 +892,58 @@ class EventHandler (object):
      - privileged_instruction
      - single_step
      - stack_overflow
-    
-    
-    
+
+
+
     @type apiHooks: dict( str S{->} tuple( str, int ) )
     @cvar apiHooks:
         Dictionary that maps module names to tuples of ( procedure name, parameter count ).
-        
+
         All procedures listed here will be hooked for calls from the debuguee.
         When this happens, the corresponding event handler is notified both
         when the procedure is entered and when it's left by the debugee.
-        
+
         For example, if the procedure name is "LoadLibraryEx" the event handler
         routines must be defined as "pre_LoadLibraryEx" and "post_LoadLibraryEx"
         in your class.
-        
+
         The signature for the routines can be something like this::
-            
+
             def pre_LoadLibraryEx(event, *params):
                 ra   = params[0]        # return address
                 argv = params[1:]       # function parameters
-                
+
                 # (...)
-            
+
             def post_LoadLibrary(event, return_value):
-                
+
                 # (...)
-        
+
         But since you can also specify the number of arguments, this signature
         works too (four arguments in this case)::
-            
+
             def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
                 szFilename = event.get_process().peek_string(lpFilename)
-                
+
                 # (...)
-        
+
         Note that the number of parameters to pull from the stack includes the
         return address. The apiHooks dictionary for the example above would
         look like this::
-            
+
             apiHook = {
-                
+
                 "kernel32.dll" : (
-                    
+
                     #   Procedure name      Parameter count
                     (   "LoadLibraryEx",    4 ),
-                    
+
                     # (more procedures can go here...)
                 ),
-                
+
                 # (more libraries can go here...)
             }
-        
+
         For a more complete support of API hooking, you can also check out
         Universal Hooker at U{http://oss.coresecurity.com/projects/uhooker.htm}
     """
@@ -1011,7 +1011,7 @@ class EventHandler (object):
     def __setApiHooksForDll(self, event):
         """
         Hook the requested API calls (in self.apiHooks).
-        
+
         This method must be called whenever a DLL is loaded.
         """
         if self.__apiHooks:
@@ -1027,7 +1027,7 @@ class EventHandler (object):
     def __call__(self, event):
         """
         Dispatch debug events.
-        
+
         @type  event: L{Event}
         @param event: Event object.
         """
@@ -1109,7 +1109,7 @@ class EventDispatcher (object):
     def __init__(self, eventHandler = None):
         """
         Event dispatcher.
-        
+
         @type  eventHandler: L{EventHandler}
         @param eventHandler: (Optional) Event handler object.
 

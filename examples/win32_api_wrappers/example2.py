@@ -36,10 +36,10 @@ import thread
 from winappdbg import win32
 
 def processKiller(dwProcessId):
-    
+
     # Attach to the process
     win32.DebugActiveProcess( dwProcessId )
-    
+
     # Quit the current thread
     thread.exit()
 

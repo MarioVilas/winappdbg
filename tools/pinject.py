@@ -55,7 +55,7 @@ def main():
     try:
         pid = HexInput.integer(sys.argv[1])
     except Exception:
-        s = System()        
+        s = System()
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:

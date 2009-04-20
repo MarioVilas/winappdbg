@@ -34,40 +34,40 @@ from winappdbg import Debug, EventHandler, CrashDump, win32
 
 
 class MyEventHandler( EventHandler ):
-    
+
     # This private method enables the tracing mode
     def __trace( self, event ):
-        
+
         # Enable the step on branch mode (optional)
         # event.debug.system.enable_step_on_branch_mode()
-        
+
         # Set the trap flag
         event.get_thread().set_tf()
-    
-    
+
+
     # Create process events go here
     def create_process( self, event ):
-        
+
         # Start tracing the main thread
         self.__trace( event )
-    
-    
+
+
     # Create thread events go here
     def create_thread( self, event ):
-        
+
         # Start tracing the new thread
         self.__trace( event )
-    
-    
+
+
     # Single step events go here
     def single_step( self, event ):
-        
+
         # The debugee mustn't see this exception
         event.continueStatus = win32.DBG_CONTINUE
-        
+
         # Continue tracing
         self.__trace( event )
-        
+
         # Show the user where we're running
         thread = event.get_thread()
         pc     = thread.get_pc()
@@ -76,13 +76,13 @@ class MyEventHandler( EventHandler ):
 
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

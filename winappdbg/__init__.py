@@ -57,14 +57,14 @@ __all__ =   [
                 'DebugRegister',
 ##                'ApiHook',
 ##                'BreakpointContainer',
-                
+
                 # from crash import *
                 'Crash',
                 'CrashContainer',
-                
+
                 # from debug import *
                 'Debug',
-                
+
                 # from system import *
                 'Module',
                 'Thread',
@@ -78,13 +78,13 @@ __all__ =   [
                 # from debug import *
                 'EventHandler',
 ##                'EventFactory',
-                
+
                 # from textio import *
                 'DebugLog',
                 'HexDump',
                 'HexInput',
                 'CrashDump',
-                
+
                 # import win32
                 'win32',
             ]

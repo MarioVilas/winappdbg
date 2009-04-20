@@ -34,22 +34,22 @@ from winappdbg import Handle
 from winappdbg.win32 import *
 
 def print_drivers( fFullPath = False ):
-    
+
     # Get the list of loaded device drivers
     ImageBaseList = EnumDeviceDrivers()
     print "Device drivers found: %d" % len(ImageBaseList)
     print
     print "Image base\tFile name"
-    
+
     # For each device driver...
     for ImageBase in ImageBaseList:
-        
+
         # Get the device driver filename
         if fFullPath:
             DriverName = GetDeviceDriverFileName(ImageBase)
         else:
             DriverName = GetDeviceDriverBaseName(ImageBase)
-        
+
         # Print the device driver image base and filename
         print "%.08x\t%s" % (ImageBase, DriverName)
 

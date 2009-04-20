@@ -33,35 +33,35 @@
 from winappdbg import Debug
 
 def my_event_handler( event ):
-    
+
     # Get the event name
     name = event.get_event_name()
-    
+
     # Get the event code
     code = event.get_code()
-    
+
     # Get the process ID where the event occured
     pid = event.get_pid()
-    
+
     # Get the thread ID where the event occured
     tid = event.get_tid()
-    
+
     # Get the value of EIP at the thread
     pc = event.get_thread().get_pc()
-    
+
     # Show something to the user
     format_string = "%s (0x%.08x) at address 0x%.08x, process %d, thread %d"
     message = format_string % ( name, code, pc, pid, tid )
     print message
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the event handler callback
     debug = Debug( my_event_handler )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

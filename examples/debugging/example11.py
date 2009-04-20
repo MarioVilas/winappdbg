@@ -34,28 +34,28 @@ from winappdbg import Debug, EventHandler, win32
 
 
 class MyHook (object):
-    
+
     # Keep record of the buffers we watch
     def __init__(self):
         self.__watched = dict()
-    
-    
+
+
     # This function will be called when entering the hooked function
     def entering( self, event, ra, hModule, lpProcName ):
-        
+
         # Ignore calls using ordinals intead of names
         if lpProcName & 0xFFFF0000 == 0:
             print "GetProcAddress( %d )" % lpProcName
             return
-        
+
         # Get the procedure name
         procName = event.get_process().peek_string( lpProcName )
         print "GetProcAddress( %r );" % procName
-        
+
         # Ignore calls using an empty string
         if not procName:
             return
-        
+
         # Watch the procedure name buffer for access
         pid     = event.get_pid()
         address = lpProcName
@@ -63,30 +63,30 @@ class MyHook (object):
         action  = self.accessed
         print "Watching 0x%.08x - 0x%.08x" % (address, address + size)
         event.debug.watch_buffer( pid, address, size, action )
-        
+
         # Remember the location of the buffer
         self.__watched[ event.get_tid() ] = ( address, size )
-    
-    
+
+
     # This function will be called when leaving the hooked function
     def leaving( self, event, return_value ):
-        
+
         # Get the thread ID
         tid = thread.get_tid()
-        
+
         # Get the buffer location
         ( address, size ) = self.__watched[ tid ]
-        
+
         # Stop watching the buffer
         event.debug.dont_watch_buffer( event.get_pid(), address, size )
-        
+
         # Forget the buffer location
         del self.__watched[ tid ]
-    
-    
+
+
     # This function will be called every time the procedure name buffer is accessed
     def accessed( self, event ):
-        
+
         # Show the user where we're running
         thread = event.get_thread()
         pc     = thread.get_pc()
@@ -95,38 +95,38 @@ class MyHook (object):
 
 
 class MyEventHandler( EventHandler ):
-    
+
     # Called guard page exceptions NOT raised by our breakpoints
     def guard_page( self, event ):
         print event.get_exception_name()
-    
+
     # Called on DLL load events
     def load_dll( self, event ):
-        
+
         # Get the new module object
         module = event.get_module()
-        
+
         # If it's kernel32...
         if module.match_name("kernel32.dll"):
-            
+
             # Get the process ID
             pid = event.get_pid()
-            
+
             # Get the address of wsprintf
             address = module.resolve( "GetProcAddress" )
-            
+
             # Hook the wsprintf function
             event.debug.hook_function( pid, address, MyHook().entering, paramCount = 2 )
 
 
 def simple_debugger( argv ):
-    
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    
+
     # Start a new process for debugging
     debug.execv( argv )
-    
+
     # Wait for the debugee to finish
     debug.loop()
 

@@ -58,7 +58,7 @@ __all__ =   [
                 'Process',
                 'Thread',
                 'Module',
-                
+
                 # Win32 handle wrapper classes.
                 'Handle',
                 'ProcessHandle',
@@ -89,7 +89,7 @@ except ImportError:
 class Handle (object):
     """
     Encapsulates win32 handles to avoid leaking them.
-    
+
     @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
     """
 
@@ -97,7 +97,7 @@ class Handle (object):
         """
         @type  aHandle: int
         @param aHandle: Win32 handle object.
-        
+
         @type  bOwnership: bool
         @param bOwnership:
            True if we own the handle and we need to close it.
@@ -149,7 +149,7 @@ class Handle (object):
     def wait(self, dwMilliseconds = None):
         """
         Wait for the win32 object to be signaled.
-        
+
         @type  dwMilliseconds: int
         @param dwMilliseconds: (Optional) Timeout value in milliseconds.
         """
@@ -164,7 +164,7 @@ class Handle (object):
 class ProcessHandle (Handle):
     """
     Win32 process handle.
-    
+
     @see: L{Handle}
     """
 
@@ -180,7 +180,7 @@ class ProcessHandle (Handle):
 class ThreadHandle (Handle):
     """
     Win32 thread handle.
-    
+
     @see: L{Handle}
     """
 
@@ -198,7 +198,7 @@ class ThreadHandle (Handle):
 class FileHandle (Handle):
     """
     Win32 file handle.
-    
+
     @see: L{Handle}
     """
 
@@ -237,7 +237,7 @@ class FileHandle (Handle):
         """
         @type  pathname: str
         @param pathname: Absolute path.
-        
+
         @rtype:  str
         @return: Relative path.
         """
@@ -248,7 +248,7 @@ class FileHandle (Handle):
         """
         @type  filename: str
         @param filename: Relative path.
-        
+
         @rtype:  str
         @return: Absolute path.
         """
@@ -258,10 +258,10 @@ class FileHandle (Handle):
     def path_is_relative(path):
         """
         @see: L{path_is_absolute}
-        
+
         @type  path: str
         @param path: Absolute or relative path.
-        
+
         @rtype:  bool
         @return: C{True} if the path is relative, C{False} if it's absolute.
         """
@@ -271,10 +271,10 @@ class FileHandle (Handle):
     def path_is_absolute(path):
         """
         @see: L{path_is_relative}
-        
+
         @type  path: str
         @param path: Absolute or relative path.
-        
+
         @rtype:  bool
         @return: C{True} if the path is absolute, C{False} if it's relative.
         """
@@ -285,7 +285,7 @@ class FileHandle (Handle):
         """
         @type  pathname: str
         @param pathname: Absolute path.
-        
+
         @rtype:  tuple( str, str )
         @return:
             Tuple containing the file and extension components of the filename.
@@ -299,7 +299,7 @@ class FileHandle (Handle):
         """
         @type  pathname: str
         @param pathname: Absolute path.
-        
+
         @rtype:  tuple( str, str )
         @return: Tuple containing the path to the file and the base filename.
         """
@@ -311,10 +311,10 @@ class FileHandle (Handle):
     def split_path(path):
         """
         @see: L{join_path}
-        
+
         @type  path: str
         @param path: Absolute or relative path.
-        
+
         @rtype:  list( str... )
         @return: List of path components.
         """
@@ -331,10 +331,10 @@ class FileHandle (Handle):
     def join_path(*components):
         """
         @see: L{split_path}
-        
+
         @type  components: tuple( str... )
         @param components: Path components.
-        
+
         @rtype:  str
         @return: Absolute or relative path.
         """
@@ -351,10 +351,10 @@ class FileHandle (Handle):
 def dllbaseparam(f):
     """
     Decorator to perform type checking on the C{lpBaseOfDll} parameter.
-    
+
     @warning: This is only useful for debugging the debugger itself,
         otherwise the code should be commented out.
-    
+
     @see: U{http://www.canonical.org/~kragen/isinstance/}
     """
     return f
@@ -372,7 +372,7 @@ def dllbaseparam(f):
 class ModuleContainer (object):
     """
     Encapsulates the capability to contain Module objects.
-    
+
     @group Modules snapshot:
         scan_modules,
         get_module, get_module_bases, get_module_count,
@@ -391,7 +391,7 @@ class ModuleContainer (object):
         @param anObject:
             C{Module}: Module object to look for.
             C{int}: Base address of the DLL to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains
             a L{Module} object with the same base address.
@@ -421,7 +421,7 @@ class ModuleContainer (object):
         """
         @type  lpBaseOfDll: int
         @param lpBaseOfDll: Base address of the DLL to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains a
             L{Module} object with the given base address.
@@ -433,7 +433,7 @@ class ModuleContainer (object):
         """
         @type  lpBaseOfDll: int
         @param lpBaseOfDll: Base address of the DLL to look for.
-        
+
         @rtype:  L{Module}
         @return: Module object with the given base address.
         """
@@ -483,33 +483,33 @@ class ModuleContainer (object):
             Name of the module to look for, as returned by L{Module.get_name}.
             If two or more modules with the same name are loaded, only one
             of the matching modules is returned.
-            
+
             You can also pass a full pathname to the DLL file.
             This works correctly even if two modules with the same name
             are loaded from different paths.
-        
+
         @rtype:  L{Module}
         @return: C{Module} object that best matches the given name.
             Returns C{None} if no C{Module} can be found.
         """
-        
+
         # Convert modName to lowercase.
         # This helps make case insensitive string comparisons.
         modName = modName.lower()
-        
+
         # modName is an absolute pathname.
         if FileHandle.path_is_absolute(modName):
             for lib in self.iter_modules():
                 if modName == lib.get_filename().lower():
                     return lib
             return None     # Stop trying to match the name.
-        
+
         # Get all the module names.
         # This prevents having to iterate through the module list
         #  more than once.
         modDict = [ ( lib.get_name(), lib ) for lib in self.iter_modules() ]
         modDict = dict(modDict)
-        
+
         # modName is a base filename.
         if modDict.has_key(modName):
             return modDict[modName]
@@ -535,7 +535,7 @@ class ModuleContainer (object):
         """
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  L{Module}
         @return: C{Module} object that best matches the given address.
             Returns C{None} if no C{Module} can be found.
@@ -655,7 +655,7 @@ class ModuleContainer (object):
     def notify_create_process(self, event):
         """
         Notify the load of the main module.
-        
+
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
@@ -665,7 +665,7 @@ class ModuleContainer (object):
     def notify_load_dll(self, event):
         """
         Notify the load of a new module.
-        
+
         @type  event: L{LoadDLLEvent}
         @param event: Load DLL event.
         """
@@ -675,7 +675,7 @@ class ModuleContainer (object):
     def notify_unload_dll(self, event):
         """
         Notify the release of a loaded module.
-        
+
         @type  event: L{UnloadDLLEvent}
         @param event: Unload DLL event.
         """
@@ -710,7 +710,7 @@ def threadidparam(f):
 class ThreadContainer (object):
     """
     Encapsulates the capability to contain Thread objects.
-    
+
     @group Instrumentation:
         start_thread
     @group Threads snapshot:
@@ -731,7 +731,7 @@ class ThreadContainer (object):
         @param anObject:
              - C{int}: Global ID of the thread to look for.
              - C{Thread}: Thread object to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains
             a L{Thread} object with the same ID.
@@ -783,7 +783,7 @@ class ThreadContainer (object):
         """
         @type  dwThreadId: int
         @param dwThreadId: Global ID of the thread to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains a
             L{Thread} object with the given global ID.
@@ -795,7 +795,7 @@ class ThreadContainer (object):
         """
         @type  dwThreadId: int
         @param dwThreadId: Global ID of the thread to look for.
-        
+
         @rtype:  L{Thread}
         @return: Thread object with the given global ID.
         """
@@ -839,17 +839,17 @@ class ThreadContainer (object):
     def find_threads_by_name(self, name, bExactMatch = True):
         """
         Find threads by name, using different search methods.
-        
+
         @type  name: str, None
         @param name: Name to look for. Use C{None} to find nameless threads.
-        
+
         @type  bExactMatch: bool
         @param bExactMatch: C{True} if the name must be
             B{exactly} as given, C{False} if the name can be
             loosely matched.
-            
+
             This parameter is ignored when C{name} is C{None}.
-        
+
         @rtype:  list( L{Thread} )
         @return: All threads matching the given name.
         """
@@ -881,13 +881,13 @@ class ThreadContainer (object):
     def start_thread(self, lpStartAddress, lpParameter=0,  bSuspended = False):
         """
         Remotely creates a new thread in the process.
-        
+
         @type  lpStartAddress: int
         @param lpStartAddress: Start address for the new thread.
-        
+
         @type  lpParameter: int
         @param lpParameter: Optional argument for the new thread.
-        
+
         @type  bSuspended: bool
         @param bSuspended: C{True} if the new thread should be suspended.
             In that case use L{Thread.resume} to start execution.
@@ -973,7 +973,7 @@ class ThreadContainer (object):
     def notify_create_process(self, event):
         """
         Notify the creation of the main thread of this process.
-        
+
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
@@ -983,7 +983,7 @@ class ThreadContainer (object):
     def notify_create_thread(self, event):
         """
         Notify the creation of a new thread in this process.
-        
+
         @type  event: L{CreateThreadEvent}
         @param event: Create thread event.
         """
@@ -993,7 +993,7 @@ class ThreadContainer (object):
     def notify_exit_thread(self, event):
         """
         Notify the termination of a thread.
-        
+
         @type  event: L{ExitThreadEvent}
         @param event: Exit thread event.
         """
@@ -1030,18 +1030,18 @@ class MemoryOperations (object):
     def read(self, lpBaseAddress, nSize):
         """
         Reads from the memory of the process.
-        
+
         @see: L{peek}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @type  nSize: int
         @param nSize: Number of bytes to read.
-        
+
         @rtype:  str
         @return: Bytes read from the process memory.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         data = win32.ReadProcessMemory(self.get_handle(), lpBaseAddress, nSize)
@@ -1054,15 +1054,15 @@ class MemoryOperations (object):
     def write(self, lpBaseAddress, lpBuffer):
         """
         Writes to the memory of the process.
-        
+
         @see: L{poke}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  lpBuffer: int
         @param lpBuffer: Bytes to write.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         r = win32.WriteProcessMemory(self.get_handle(), lpBaseAddress, lpBuffer)
@@ -1072,15 +1072,15 @@ class MemoryOperations (object):
     def read_uint(self, lpBaseAddress):
         """
         Reads a single uint from the memory of the process.
-        
+
         @see: L{peek}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @rtype:  int
         @return: Integer value read from the process memory.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         packedDword     = self.read(lpBaseAddress, 4)
@@ -1092,15 +1092,15 @@ class MemoryOperations (object):
     def write_uint(self, lpBaseAddress, unpackedDword):
         """
         Writes a single uint to the memory of the process.
-        
+
         @see: L{poke_uint}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  unpackedDword: int, long
         @param unpackedDword: Value to write.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         packedDword     = struct.pack('<L', unpackedDword)
@@ -1111,15 +1111,15 @@ class MemoryOperations (object):
     def read_char(self, lpBaseAddress):
         """
         Reads a single character to the memory of the process.
-        
+
         @see: L{write_char}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @rtype:  int
         @return: Character value read from the process memory.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         return ord( self.read(lpBaseAddress, 1) )
@@ -1127,15 +1127,15 @@ class MemoryOperations (object):
     def write_char(self, lpBaseAddress, char):
         """
         Writes a single character to the memory of the process.
-        
+
         @see: L{write_char}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  char: int
         @param char: Character to write.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         self.write(lpBaseAddress, chr(char))
@@ -1143,19 +1143,19 @@ class MemoryOperations (object):
     def read_structure(self, lpBaseAddress, stype):
         """
         Reads a ctypes structure from the memory of the process.
-        
+
         @see: L{read}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  stype: ctypes.Structure or a subclass.
         @param stype: Structure definition.
-        
+
         @rtype:  int
         @return: Structure instance filled in with data
             read from the process memory.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
@@ -1168,15 +1168,15 @@ class MemoryOperations (object):
     def peek(self, lpBaseAddress, nSize):
         """
         Reads the memory of the process.
-        
+
         @see: L{read}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @type  nSize: int
         @param nSize: Number of bytes to read.
-        
+
         @rtype:  str
         @return: Bytes read from the process memory.
             Returns an empty string on error.
@@ -1193,15 +1193,15 @@ class MemoryOperations (object):
     def poke(self, lpBaseAddress, lpBuffer):
         """
         Writes to the memory of the process.
-        
+
         @see: L{write}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  lpBuffer: str
         @param lpBuffer: Bytes to write.
-        
+
         @rtype:  int
         @return: Number of bytes written.
             May be less than the number of bytes to write.
@@ -1216,12 +1216,12 @@ class MemoryOperations (object):
     def peek_uint(self, lpBaseAddress):
         """
         Reads a single uint from the memory of the process.
-        
+
         @see: L{read_uint}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @rtype:  int
         @return: Integer value read from the process memory.
             Returns zero on error.
@@ -1235,15 +1235,15 @@ class MemoryOperations (object):
     def poke_uint(self, lpBaseAddress, unpackedDword):
         """
         Writes a single uint to the memory of the process.
-        
+
         @see: L{write_uint}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  unpackedDword: int, long
         @param unpackedDword: Value to write.
-        
+
         @rtype:  int
         @return: Number of bytes written.
             May be less than the number of bytes to write.
@@ -1255,12 +1255,12 @@ class MemoryOperations (object):
     def peek_char(self, lpBaseAddress):
         """
         Reads a single character from the memory of the process.
-        
+
         @see: L{read_char}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @rtype:  int
         @return: Character read from the process memory.
             Returns zero on error.
@@ -1273,15 +1273,15 @@ class MemoryOperations (object):
     def poke_char(self, lpBaseAddress, char):
         """
         Writes a single character to the memory of the process.
-        
+
         @see: L{write_char}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
-        
+
         @type  char: str
         @param char: Character to write.
-        
+
         @rtype:  int
         @return: Number of bytes written.
             May be less than the number of bytes to write.
@@ -1292,19 +1292,19 @@ class MemoryOperations (object):
         """
         Tries to read an ASCII or Unicode string
         from the address space of the process.
-        
+
         @see: L{peek}
-        
+
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
-        
+
         @type  fUnicode: bool
         @param fUnicode: C{True} is the string is expected to be Unicode,
             C{False} if it's expected to be ANSI.
-        
+
         @type  dwMaxSize: int
         @param dwMaxSize: Maximum allowed string length to read, in bytes.
-        
+
         @rtype:  str, unicode
         @return: String read from the process memory space.
             It doesn't include the terminating null character.
@@ -1323,21 +1323,21 @@ class MemoryOperations (object):
     def malloc(self, dwSize, lpAddress = win32.NULL):
         """
         Allocates memory into the address space of the process.
-        
+
         @see: L{free}
-        
+
         @type  dwSize: int
         @param dwSize: Number of bytes to allocate.
-        
+
         @type  lpAddress: int
         @param lpAddress: (Optional)
             Desired address for the newly allocated memory.
             This is only a hint, the memory could still be allocated somewhere
             else.
-        
+
         @rtype:  int
         @return: Address of the newly allocated memory.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         return win32.VirtualAllocEx(self.get_handle(), lpAddress, dwSize)
@@ -1345,21 +1345,21 @@ class MemoryOperations (object):
     def mprotect(self, lpAddress, dwSize, flNewProtect):
         """
         Set memory protection in the address space of the process.
-        
+
         @see: U{http://msdn.microsoft.com/en-us/library/aa366899.aspx}
-        
+
         @type  lpAddress: int
         @param lpAddress: Address of memory to protect.
-        
+
         @type  dwSize: int
         @param dwSize: Number of bytes to protect.
-        
+
         @type  flNewProtect: int
         @param flNewProtect: New protect flags.
-        
+
         @rtype:  int
         @return: Old protect flags.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         return win32.VirtualProtectEx(self.get_handle(), lpAddress, dwSize,
@@ -1369,15 +1369,15 @@ class MemoryOperations (object):
         """
         Query memory information from the address space of the process.
         Returns a L{MEMORY_BASIC_INFORMATION} structure.
-        
+
         @see: U{http://msdn.microsoft.com/en-us/library/aa366907(VS.85).aspx}
-        
+
         @type  lpAddress: int
         @param lpAddress: Address of memory to query.
-        
+
         @rtype:  L{MEMORY_BASIC_INFORMATION}
         @return: Memory region information.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         return win32.VirtualQueryEx(self.get_handle(), lpAddress)
@@ -1385,15 +1385,15 @@ class MemoryOperations (object):
     def free(self, lpAddress, dwSize = 0):
         """
         Frees memory from the address space of the process.
-        
+
         @see: L{malloc}
-        
+
         @type  lpAddress: int
         @param lpAddress: Address of memory to free.
-        
+
         @type  dwSize: int
         @param dwSize: (Optional) Number of bytes to free.
-        
+
         @rtype:  bool
         @return: C{True} on success, C{False} on error.
         """
@@ -1406,15 +1406,15 @@ class MemoryOperations (object):
         """
         Produces a memory map to the process address space.
         Optionally restrict the map to the given address range.
-        
+
         @see: L{mquery}
-        
+
         @type  minAddr: int
         @param minAddr: (Optional) Starting address in address range to query.
-        
+
         @type  maxAddr: int
         @param maxAddr: (Optional) Ending address in address range to query.
-        
+
         @rtype:  list( L{MEMORY_BASIC_INFORMATION} )
         @return: List of MEMORY_BASIC_INFORMATION structures.
         """
@@ -1440,18 +1440,18 @@ class MemoryOperations (object):
 class SymbolOperations (object):
     """
     Encapsulates symbol operations capabilities.
-    
+
     Requires a L{ModuleContainer}.
-    
+
     @note: Labels are an approximated way of referencing memory locations
         across different executions of the same process, or different processes
         with common modules. They are not meant to be perfectly unique, and
         some errors may occur when multiple modules with the same name are
         loaded, or when module filenames can't be retrieved.
-        
+
         Read more on labels here:
         U{https://apps.sourceforge.net/trac/winappdbg/wiki/HowLabelsWork}
-    
+
     @group Labels:
         parse_label,
         split_label,
@@ -1460,14 +1460,14 @@ class SymbolOperations (object):
         get_label_at_address,
         split_label_strict,
         split_label_fuzzy
-    
+
     @group Debugging:
         get_system_breakpoint
     """
 
     def __init__(self):
         super(SymbolOperations, self).__init__()
-        
+
         # Replace split_label with the fuzzy version on object instances.
         self.split_label = self.__use_fuzzy_mode
 
@@ -1475,27 +1475,27 @@ class SymbolOperations (object):
     def parse_label(module = None, function = None, offset = None):
         """
         Creates a label from a module and a function name, plus an offset.
-        
+
         @warning: This method only parses the label, it doesn't make sure the
             label actually points to a valid memory location.
-        
+
         @type  module: None or str
         @param module: (Optional) Module name.
-        
+
         @type  function: None, str or int
         @param function: (Optional) Function name or ordinal.
-        
+
         @type  offset: None or int
         @param offset: (Optional) Offset value.
-            
+
             If C{function} is specified, offset from the function.
-            
+
             If C{function} is C{None}, offset from the module.
-        
+
         @rtype:  str
         @return:
             Label representing the given function in the given module.
-        
+
         @raise ValueError:
             The module or function name contain invalid characters.
         """
@@ -1546,34 +1546,34 @@ class SymbolOperations (object):
     def split_label_strict(label):
         """
         Splits a label created with L{parse_label}.
-        
+
         To parse labels with a less strict syntax, use the L{split_label_fuzzy}
         method instead.
-        
+
         @warning: This method only parses the label, it doesn't make sure the
             label actually points to a valid memory location.
-        
+
         @type  label: str
         @param label: Label to split.
-        
+
         @rtype:  tuple( str or None, str or int or None, int or None )
         @return: Tuple containing the C{module} name,
             the C{function} name or ordinal, and the C{offset} value.
-            
+
             If the label doesn't specify a module,
             then C{module} is C{None}.
-            
+
             If the label doesn't specify a function,
             then C{function} is C{None}.
-            
+
             If the label doesn't specify an offset,
             then C{offset} is C{0}.
-        
+
         @raise ValueError: The label is malformed.
         """
         module = function = None
         offset = 0
-        
+
         # Special case: None
         if not label:
             label = "0x0"
@@ -1584,11 +1584,11 @@ class SymbolOperations (object):
             label = label.replace('\t', '')
             label = label.replace('\r', '')
             label = label.replace('\n', '')
-            
+
             # Special case: empty label.
             if not label:
                 label = "0x0"
-        
+
         # * ! *
         if '!' in label:
             try:
@@ -1620,7 +1620,7 @@ class SymbolOperations (object):
                     except ValueError:
                         pass
             else:
-                
+
                 # module + offset !
                 if '+' in module:
                     try:
@@ -1650,7 +1650,7 @@ class SymbolOperations (object):
 
         # *
         else:
-            
+
             # offset
             try:
                 offset = HexInput.integer(label)
@@ -1688,37 +1688,37 @@ class SymbolOperations (object):
     def split_label_fuzzy(self, label):
         """
         Splits a label entered as user input.
-        
+
         It's more flexible in it's syntax parsing than the L{split_label_strict}
         method, as it allows the exclamation mark (B{C{!}}) to be omitted. The
         ambiguity is resolved by searching the modules in the snapshot to guess
         if a label refers to a module or a function. It also tries to rebuild
         labels when they contain hardcoded addresses.
-        
+
         @warning: This method only parses the label, it doesn't make sure the
             label actually points to a valid memory location.
-        
+
         @type  label: str
         @param label: Label to split.
-        
+
         @rtype:  tuple( str or None, str or int or None, int or None )
         @return: Tuple containing the C{module} name,
             the C{function} name or ordinal, and the C{offset} value.
-            
+
             If the label doesn't specify a module,
             then C{module} is C{None}.
-            
+
             If the label doesn't specify a function,
             then C{function} is C{None}.
-            
+
             If the label doesn't specify an offset,
             then C{offset} is C{0}.
-        
+
         @raise ValueError: The label is malformed.
         """
         module = function = None
         offset = 0
-        
+
         # Special case: None
         if not label:
             label = "0x0"
@@ -1729,7 +1729,7 @@ class SymbolOperations (object):
             label = label.replace('\t', '')
             label = label.replace('\r', '')
             label = label.replace('\n', '')
-            
+
             # Special case: empty label.
             if not label:
                 label = "0x0"
@@ -1771,7 +1771,7 @@ class SymbolOperations (object):
             # A is interpreted as a module base address,
             # and B as an offset.
             # If that fails, it'd be good to add A+B and try to
-            # use the nearest loaded module. 
+            # use the nearest loaded module.
 
             # offset
             # base address + offset (when no module has that base address)
@@ -1827,11 +1827,11 @@ Splits a label into it's C{module}, C{function} and C{offset}
 components, as used in L{parse_label}.
 
 When called as a static method, the strict syntax mode is used::
-    
+
     winappdbg.Process.split_label( "kernel32!CreateFileA" )
 
 When called as an instance method, the fuzzy syntax mode is used::
-    
+
     aProcessInstance.split_label( "CreateFileA" )
 
 @see: L{split_label_strict}, L{split_label_fuzzy}
@@ -1843,23 +1843,23 @@ When called as an instance method, the fuzzy syntax mode is used::
 @return:
     Tuple containing the C{module} name,
     the C{function} name or ordinal, and the C{offset} value.
-    
+
     If the label doesn't specify a module,
     then C{module} is C{None}.
-    
+
     If the label doesn't specify a function,
     then C{function} is C{None}.
-    
+
     If the label doesn't specify an offset,
     then C{offset} is C{0}.
 
 @raise ValueError: The label is malformed.
         """
-        
+
         # XXX
         # Docstring indentation was removed so epydoc doesn't complain
         # when parsing the docs for __use_fuzzy_mode().
-        
+
         # This function is overwritten by __init__
         # so here is the static implementation only.
         return cls.split_label_strict(label)
@@ -1873,10 +1873,10 @@ When called as an instance method, the fuzzy syntax mode is used::
     def sanitize_label(self, label):
         """
         Converts a label taken from user input into a well-formed label.
-        
+
         @type  label: str
         @param label: Label taken from user input.
-        
+
         @rtype:  str
         @return: Sanitized label.
         """
@@ -1887,42 +1887,42 @@ When called as an instance method, the fuzzy syntax mode is used::
     def resolve_label(self, label):
         """
         Resolve the memory address of the given label.
-        
+
         @note:
             If multiple modules with the same name are loaded,
             the label may be resolved at any of them. For a more precise
             way to resolve functions use the base address to get the L{Module}
             object (see L{Process.get_module}) and then call L{Module.resolve}.
-            
+
             If no module name is specified in the label, the function may be
             resolved in any loaded module. If you want to resolve all functions
             with that name in all processes, call L{Process.iter_modules} to
             iterate through all loaded modules, and then try to resolve the
             function in each one of them using L{Module.resolve}.
-        
+
         @type  label: str
         @param label: Label to resolve.
-        
+
         @rtype:  int
         @return: Memory address pointed to by the label.
-        
+
         @raise ValueError: The label is malformed or impossible to resolve.
         @raise RuntimeError: Cannot resolve the module or function.
         """
         # Default address if no module or function are given.
         # An offset may be added later.
         address = 0
-        
+
         # Split the label into module, function and offset components.
         module, function, offset = self.split_label_fuzzy(label)
-        
+
         # Resolve the module.
         if module:
             modobj = self.get_module_by_name(module)
             if not modobj:
                 msg = "Module %s not found" % module
                 raise RuntimeError, msg
-    
+
             # Resolve the function.
             if function:
                 address = modobj.resolve(function)
@@ -1953,17 +1953,17 @@ When called as an instance method, the fuzzy syntax mode is used::
     def get_label_at_address(self, address, offset = None):
         """
         Creates a label from the given memory address.
-        
+
         @warning: This method uses the name of the nearest currently loaded
             module. If that module is unloaded later, the label becomes
             impossible to resolve.
-        
+
         @type  address: int
         @param address: Memory address.
-        
+
         @type  offset: None or int
         @param offset: (Optional) Offset value.
-        
+
         @rtype:  str
         @return: Label pointing to the given address.
         """
@@ -1996,7 +1996,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 class ThreadDebugOperations (object):
     """
     Encapsulates several useful debugging routines for threads.
-    
+
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
@@ -2015,7 +2015,7 @@ class ThreadDebugOperations (object):
         """
         Returns a copy of the TEB.
         To dereference pointers in it call L{Process.read_structure}.
-        
+
         @rtype:  L{TEB}
         @return: TEB structure.
         """
@@ -2036,10 +2036,10 @@ class ThreadDebugOperations (object):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
-        
+
         @type  depth: int
         @param depth: Maximum depth of stack trace.
-        
+
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread
             as a tuple of ( return address, frame pointer, module filename ).
@@ -2075,15 +2075,15 @@ class ThreadDebugOperations (object):
         """
         Returns the starting and ending addresses of the stack frame.
         Only works for functions with standard prologue and epilogue.
-        
+
         @rtype:  tuple( int, int )
         @return: Stack frame range.
             May not be accurate, depending on the compiler used.
-        
+
         @raise RuntimeError: The stack frame is invalid,
             or the function doesn't have a standard prologue
             and epilogue.
-        
+
         @raise WindowsError: An error occured when getting the thread context.
         """
         sb, sl   = self.get_stack_range()
@@ -2102,19 +2102,19 @@ class ThreadDebugOperations (object):
         """
         Reads the contents of the current stack frame.
         Only works for functions with standard prologue and epilogue.
-        
+
         @type  max_size: int
         @param max_size: (Optional) Maximum amount of bytes to read.
-        
+
         @rtype:  str
         @return: Stack frame data.
             May not be accurate, depending on the compiler used.
             May return an empty string.
-        
+
         @raise RuntimeError: The stack frame is invalid,
             or the function doesn't have a standard prologue
             and epilogue.
-        
+
         @raise WindowsError: An error occured when getting the thread context
             or reading data from the process memory.
         """
@@ -2127,16 +2127,16 @@ class ThreadDebugOperations (object):
     def read_stack_data(self, size = 128, offset = 0):
         """
         Reads the contents of the top of the stack.
-        
+
         @type  size: int
         @param size: Number of bytes to read.
-        
+
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
-        
+
         @rtype:  str
         @return: Stack data.
-        
+
         @raise WindowsError: Could not read the requested data.
         """
         aProcess = self.get_process()
@@ -2145,13 +2145,13 @@ class ThreadDebugOperations (object):
     def peek_stack_data(self, size = 128, offset = 0):
         """
         Tries to read the contents of the top of the stack.
-        
+
         @type  size: int
         @param size: Number of bytes to read.
-        
+
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
-        
+
         @rtype:  str
         @return: Stack data.
             Returned data may be less than the requested size.
@@ -2162,16 +2162,16 @@ class ThreadDebugOperations (object):
     def read_stack_dwords(self, count, offset = 0):
         """
         Reads DWORDs from the top of the stack.
-        
+
         @type  count: int
         @param count: Number of DWORDs to read.
-        
+
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
-        
+
         @rtype:  tuple( int... )
         @return: Tuple of integers read from the stack.
-        
+
         @raise WindowsError: Could not read the requested data.
         """
         stackData = self.read_stack_data(count * 4, offset)
@@ -2180,13 +2180,13 @@ class ThreadDebugOperations (object):
     def peek_stack_dwords(self, count, offset = 0):
         """
         Tries to read DWORDs from the top of the stack.
-        
+
         @type  count: int
         @param count: Number of DWORDs to read.
-        
+
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
-        
+
         @rtype:  tuple( int... )
         @return: Tuple of integers read from the stack.
             May be less than the requested number of DWORDs.
@@ -2201,16 +2201,16 @@ class ThreadDebugOperations (object):
     def read_code_bytes(self, size = 128, offset = 0):
         """
         Tries to read some bytes of the code currently being executed.
-        
+
         @type  size: int
         @param size: Number of bytes to read.
-        
+
         @type  offset: int
         @param offset: Offset from the program counter to begin reading.
-        
+
         @rtype:  str
         @return: Bytes read from the process memory.
-        
+
         @raise WindowsError: Could not read the requested data.
         """
         return self.get_process().read(self.get_pc() + offset, size)
@@ -2218,13 +2218,13 @@ class ThreadDebugOperations (object):
     def peek_code_bytes(self, size = 128, offset = 0):
         """
         Tries to read some bytes of the code currently being executed.
-        
+
         @type  size: int
         @param size: Number of bytes to read.
-        
+
         @type  offset: int
         @param offset: Offset from the program counter to begin reading.
-        
+
         @rtype:  str
         @return: Bytes read from the process memory.
             May be less than the requested number of bytes.
@@ -2235,10 +2235,10 @@ class ThreadDebugOperations (object):
         """
         Tries to guess which values in the registers are valid pointers,
         and reads some data from them.
-        
+
         @type  peekSize: int
         @param peekSize: Number of bytes to read from each pointer found.
-        
+
         @rtype:  dict( str S{->} str )
         @return: Dictionary mapping register names to the data they point to.
         """
@@ -2259,19 +2259,19 @@ class ThreadDebugOperations (object):
         """
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
-        
+
         @type  data: str
         @param data: Binary data to find pointers in.
-        
+
         @type  peekSize: int
         @param peekSize: Number of bytes to read from each pointer found.
-        
+
         @type  peekStep: int
         @param peekStep: Expected data alignment.
             Tipically you specify 1 when data alignment is unknown,
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
-        
+
         @rtype:  dict( str S{->} str )
         @return: Dictionary mapping stack offsets to the data they point to.
         """
@@ -2288,13 +2288,13 @@ class ThreadDebugOperations (object):
     def disassemble_string(lpAddress, code):
         """
         Disassemble instructions from a block of binary code.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where the code was read from.
-        
+
         @type  code: str
         @param code: Binary code to disassemble.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2308,13 +2308,13 @@ class ThreadDebugOperations (object):
     def disassemble(self, lpAddress, dwSize):
         """
         Disassemble instructions from the address space of the process.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where to read the code from.
-        
+
         @type  dwSize: int
         @param dwSize: Size of binary code to disassemble.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2329,14 +2329,14 @@ class ThreadDebugOperations (object):
     def disassemble_around(self, lpAddress, dwSize = 64):
         """
         Disassemble around the given address.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where to read the code from.
-        
+
         @type  dwSize: int
         @param dwSize: Delta offset.
             Code will be read from lpAddress - dwSize to lpAddress + dwSize.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2352,11 +2352,11 @@ class ThreadDebugOperations (object):
     def disassemble_around_pc(self, dwSize = 64):
         """
         Disassemble around the program counter of the given thread.
-        
+
         @type  dwSize: int
         @param dwSize: Delta offset.
             Code will be read from pc - dwSize to pc + dwSize.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2390,13 +2390,13 @@ class ProcessDebugOperations (object):
     def disassemble_string(lpAddress, code):
         """
         Disassemble instructions from a block of binary code.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where the code was read from.
-        
+
         @type  code: str
         @param code: Binary code to disassemble.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2410,13 +2410,13 @@ class ProcessDebugOperations (object):
     def disassemble(self, lpAddress, dwSize):
         """
         Disassemble instructions from the address space of the process.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where to read the code from.
-        
+
         @type  dwSize: int
         @param dwSize: Size of binary code to disassemble.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2433,14 +2433,14 @@ class ProcessDebugOperations (object):
     def disassemble_around(self, lpAddress, dwSize = 64):
         """
         Disassemble around the given address.
-        
+
         @type  lpAddress: int
         @param lpAddress: Memory address where to read the code from.
-        
+
         @type  dwSize: int
         @param dwSize: Delta offset.
             Code will be read from lpAddress - dwSize to lpAddress + dwSize.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2464,16 +2464,16 @@ class ProcessDebugOperations (object):
     def disassemble_around_pc(self, dwThreadId, dwSize = 64):
         """
         Disassemble around the program counter of the given thread.
-        
+
         @type  dwThreadId: int
         @param dwThreadId: Global thread ID.
             The program counter for this thread will be used as the disassembly
             address.
-        
+
         @type  dwSize: int
         @param dwSize: Delta offset.
             Code will be read from pc - dwSize to pc + dwSize.
-        
+
         @rtype:  list of tuple( long, int, str, str )
         @return: List of tuples. Each tuple represents an assembly instruction
             and contains:
@@ -2492,9 +2492,9 @@ class ProcessDebugOperations (object):
         Flush the instruction cache. This is required if the process memory is
         modified and one or more threads are executing nearby the modified
         memory region.
-        
+
         @see: U{http://blogs.msdn.com/oldnewthing/archive/2003/12/08/55954.aspx#55958}
-        
+
         @raise WindowsError: Raises exception on error.
         """
         win32.FlushInstructionCache(self.get_handle())
@@ -2505,7 +2505,7 @@ class ProcessDebugOperations (object):
         """
         Returns a copy of the PEB.
         To dereference pointers in it call L{Process.read_structure}.
-        
+
         @rtype:  L{PEB}
         @return: PEB structure.
         """
@@ -2536,7 +2536,7 @@ class ProcessDebugOperations (object):
         """
         @rtype:  int
         @return: Filename of the process main module.
-            
+
             This method does it's best to retrieve the filename.
             However sometimes this is not possible, so C{None} may
             be returned instead.
@@ -2631,7 +2631,7 @@ class ProcessDebugOperations (object):
         """
         @type  name: str
         @param name: Native (NT) absolute pathname.
-        
+
         @rtype:  str
         @return: Win32 absolute pathname.
         """
@@ -2664,19 +2664,19 @@ class ProcessDebugOperations (object):
         """
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
-        
+
         @type  data: str
         @param data: Binary data to find pointers in.
-        
+
         @type  peekSize: int
         @param peekSize: Number of bytes to read from each pointer found.
-        
+
         @type  peekStep: int
         @param peekStep: Expected data alignment.
             Tipically you specify 1 when data alignment is unknown,
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
-        
+
         @rtype:  dict( str S{->} str )
         @return: Dictionary mapping stack offsets to the data they point to.
         """
@@ -2718,7 +2718,7 @@ def processidparam(f):
 class ProcessContainer (object):
     """
     Encapsulates the capability to contain Process objects.
-    
+
     @group Instrumentation:
         start_process, argv_to_cmdline, cmdline_to_argv
     @group Processes snapshot:
@@ -2752,7 +2752,7 @@ class ProcessContainer (object):
              - C{int}: Global ID of the thread to look for.
              - C{Process}: Process object to look for.
              - C{Thread}: Thread object to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains
             a L{Process} or L{Thread} object with the same ID.
@@ -2808,7 +2808,7 @@ class ProcessContainer (object):
         """
         @type  dwProcessId: int
         @param dwProcessId: Global ID of the process to look for.
-        
+
         @rtype:  bool
         @return: C{True} if the snapshot contains a
             L{Process} object with the given global ID.
@@ -2820,7 +2820,7 @@ class ProcessContainer (object):
         """
         @type  dwProcessId: int
         @param dwProcessId: Global ID of the process to look for.
-        
+
         @rtype:  L{Process}
         @return: Process object with the given global ID.
         """
@@ -2865,11 +2865,11 @@ class ProcessContainer (object):
     def argv_to_cmdline(self, argv):
         """
         Convert a list of arguments to a single command line string.
-        
+
         @type  argv: list( str )
         @param argv: List of argument strings.
             The first element is the program to execute.
-        
+
         @rtype:  str
         @return: Command line string.
         """
@@ -2885,11 +2885,11 @@ class ProcessContainer (object):
     def cmdline_to_argv(self, lpCmdLine):
         """
         Convert a single command line string to a list of arguments.
-        
+
         @type  lpCmdLine: str
         @param lpCmdLine: Command line string.
             The first token is the program to execute.
-        
+
         @rtype:  list( str )
         @return: List of argument strings.
         """
@@ -2901,8 +2901,8 @@ class ProcessContainer (object):
             bFollow     = False,
             bSuspended  = False
         ):
-        'Starts a new process for debugging.'        
-        if not lpCmdLine:        
+        'Starts a new process for debugging.'
+        if not lpCmdLine:
             raise ValueError, "Missing command line to execute!"
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
@@ -3049,30 +3049,30 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes.
         Only the PID is retrieved for each process.
-        
+
         Dead processes are removed.
         Threads and modules of living processes are ignored.
-        
+
         @note: This method may be faster for scanning, but some information
             may be missing, outdated or slower to obtain. This could be a good
             tradeoff under some circumstances.
         """
-        
+
         # Get the new and old list of pids
         new_pids = set( win32.EnumProcesses() )
         old_pids = set( self.get_process_ids() )
-        
+
         # Ignore our own pid
         our_pid  = win32.GetProcessId( win32.GetCurrentProcess() )
         if our_pid in new_pids:
             new_pids.remove(our_pid)
         if our_pid in old_pids:
             old_pids.remove(our_pid)
-        
+
         # Add newly found pids
         for pid in new_pids.difference(old_pids):
             self.__add_process( Process(pid) )
-        
+
         # Remove missing pids
         for pid in old_pids.difference(new_pids):
             self.__del_process(pid)
@@ -3129,7 +3129,7 @@ class ProcessContainer (object):
     def clear(self):
         """
         Clear this snapshot.
-        
+
         @see: L{clear_processes}
         """
         self.clear_processes()
@@ -3248,7 +3248,7 @@ class ProcessContainer (object):
     def notify_create_process(self, event):
         """
         Notify the creation of a new process.
-        
+
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
@@ -3272,7 +3272,7 @@ class ProcessContainer (object):
     def notify_exit_process(self, event):
         """
         Notify the termination of a process.
-        
+
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
         """
@@ -3289,7 +3289,7 @@ class ProcessContainer (object):
 class Module (object):
     """
     Interface with a DLL library loaded in the context of another process.
-    
+
     @group Properties:
         get_base, get_filename, get_name, get_size, get_entry_point,
         get_process, get_pid
@@ -3297,30 +3297,30 @@ class Module (object):
         get_label, get_label_at_address, is_address_here, resolve
     @group Handle:
         get_handle, open_handle, close_handle
-    
+
     @type unknown: str
     @cvar unknown: Suggested tag for unknown modules.
-    
+
     @type lpBaseOfDll: int
     @ivar lpBaseOfDll: Base of DLL module.
         Use L{get_base} instead.
-    
+
     @type hFile: L{FileHandle}
     @ivar hFile: Handle to the module file.
         Use L{get_handle} instead.
-    
+
     @type fileName: str
     @ivar fileName: Module filename.
         Use L{get_filename} instead.
-    
+
     @type SizeOfImage: int
     @ivar SizeOfImage: Size of the module.
         Use L{get_size} instead.
-    
+
     @type EntryPoint: int
     @ivar EntryPoint: Entry point of the module.
         Use L{get_entry_point} instead.
-    
+
     @type process: L{Process}
     @ivar process: Process where the module is loaded.
         Use L{get_process} instead.
@@ -3335,19 +3335,19 @@ class Module (object):
         """
         @type  lpBaseOfDll: str
         @param lpBaseOfDll: Base address of the module.
-        
+
         @type  hFile: L{FileHandle}
         @param hFile: (Optional) Handle to the module file.
-        
+
         @type  fileName: str
         @param fileName: (Optional) Module filename.
-        
+
         @type  SizeOfImage: int
         @param SizeOfImage: (Optional) Size of the module.
-        
+
         @type  EntryPoint: int
         @param EntryPoint: (Optional) Entry point of the module.
-        
+
         @type  process: L{Process}
         @param process: (Optional) Process where the module is loaded.
         """
@@ -3415,7 +3415,7 @@ class Module (object):
         """
         @type  pathname: str
         @param pathname: Pathname to a module.
-        
+
         @rtype:  str
         @return: Module name.
         """
@@ -3435,12 +3435,12 @@ class Module (object):
         """
         @rtype:  str
         @return: Module name, as used in labels.
-        
+
         @warning: Names are B{NOT} guaranteed to be unique.
-            
+
             If you need unique identification for a loaded module,
             use the base address instead.
-        
+
         @see: L{get_label}
         """
         pathname = self.get_filename()
@@ -3457,13 +3457,13 @@ class Module (object):
             C{True} if the given name could refer to this module.
             It may not be exactly the same returned by L{get_name}.
         """
-        
+
         # If the given name is exactly our name, return True.
         # Comparison is case insensitive.
         my_name = self.get_name().lower()
         if name.lower() == my_name:
             return True
-        
+
         # If the given name is a base address, compare it with ours.
         try:
             base = HexInput.integer(name)
@@ -3471,7 +3471,7 @@ class Module (object):
             base = None
         if base is not None and base == self.get_base():
             return True
-        
+
         # If the given name is a filename, convert it to a module name.
         # Then compare it with ours, case insensitive.
         modName = self.__filename_to_modname(name)
@@ -3546,13 +3546,13 @@ class Module (object):
         """
         Retrieves the label for the given function of this module or the module
         base address if no function name is given.
-        
+
         @type  function: str
         @param function: (Optional) Exported function name.
-        
+
         @type  offset: int
         @param offset: (Optional) Offset from the module base address.
-        
+
         @rtype:  str
         @return: Label for the module base address, plus the offset if given.
         """
@@ -3561,43 +3561,43 @@ class Module (object):
     def get_label_at_address(self, address, offset = None):
         """
         Creates a label from the given memory address.
-        
+
         If the address belongs to the module, the label is made relative to
         it's base address.
-        
+
         @type  address: int
         @param address: Memory address.
-        
+
         @type  offset: None or int
         @param offset: (Optional) Offset value.
-        
+
         @rtype:  str
         @return: Label pointing to the given address.
         """
-        
+
         # Add the offset to the address.
         if offset:
             address = address + offset
-        
+
         # TODO
         # enumerate exported functions and debug symbols,
         # then find the closest match
         # (don't forget the entry point keyword "start")
-        
+
         # Make the label relative to the base address.
         module = self.get_name()
         offset = address - self.get_base()
         label  = SymbolOperations.parse_label(module, None, offset)
-        
+
         return label
 
     def is_address_here(self, address):
         """
         Tries to determine if the given address belongs to this module.
-        
+
         @type  address: int
         @param address: Memory address.
-        
+
         @rtype:  bool or None
         @return: C{True} if the address belongs to the module,
             C{False} if it doesn't,
@@ -3615,12 +3615,12 @@ class Module (object):
     def resolve(self, function):
         """
         Resolves a function exported by this module.
-        
+
         @type  function: str or int
         @param function:
             str: Name of the function.
             int: Ordinal of the function.
-        
+
         @rtype:  int
         @return: Memory address of the exported function in the process.
             Returns None on error.
@@ -3659,17 +3659,17 @@ class Module (object):
         """
         Resolves a label for this module only. If the label refers to another
         module, an exception is raised.
-        
+
         @type  label: str
         @param label: Label to resolve.
-        
+
         @rtype:  int
         @return: Memory address pointed to by the label.
-        
+
         @raise ValueError: The label is malformed or impossible to resolve.
         @raise RuntimeError: Cannot resolve the module or function.
         """
-        
+
         # Split the label into it's components.
         # Use the fuzzy mode whenever possible.
         aProcess = self.get_process()
@@ -3677,21 +3677,21 @@ class Module (object):
             (module, procedure, offset) = aProcess.split_label(label)
         else:
             (module, procedure, offset) = Process.split_label(label)
-        
+
         # If a module name is given that doesn't match ours,
         # raise an exception.
         if module and not self.match_name(module):
             raise RuntimeError, "Label does not belong to this module"
-        
+
         # Resolve the procedure if given.
         if procedure:
             address = self.resolve(procedure)
             if address is None:
-                
+
                 # If it's the keyword "start" use the entry point.
                 if procedure == "start":
                     address = self.get_entry_point()
-                
+
                 # The procedure was not found.
                 if address is None:
                     if not module:
@@ -3703,7 +3703,7 @@ class Module (object):
         # If no procedure is given use the base address of the module.
         else:
             address = self.get_base()
-        
+
         # Add the offset if given and return the resolved address.
         if offset:
             address = address + offset
@@ -3714,7 +3714,7 @@ class Module (object):
 class Thread (ThreadDebugOperations):
     """
     Interface to a thread in another process.
-    
+
     @group Properties:
         get_tid, get_pid, get_exit_code,
         is_alive,
@@ -3735,16 +3735,16 @@ class Thread (ThreadDebugOperations):
         Flags
     @group Handle:
         get_handle, open_handle, close_handle
-    
+
     @type dwThreadId: int
     @ivar dwThreadId: Global thread ID. Use L{get_tid} instead.
-    
+
     @type hThread: L{ThreadHandle}
     @ivar hThread: Handle to the thread. Use L{get_handle} instead.
-    
+
     @type process: L{Process}
     @ivar process: Parent process object. Use L{get_process} instead.
-    
+
     @type pInjectedMemory: int
     @ivar pInjectedMemory: If the thread was created by L{Process.inject_code},
         this member contains a pointer to the memory buffer for the injected
@@ -3758,10 +3758,10 @@ class Thread (ThreadDebugOperations):
         """
         @type  dwThreadId: int
         @param dwThreadId: Global thread ID.
-        
+
         @type  hThread: L{ThreadHandle}
         @param hThread: (Optional) Handle to the thread.
-        
+
         @type  process: L{Process}
         @param process: (Optional) Parent Process object.
         """
@@ -3790,7 +3790,7 @@ class Thread (ThreadDebugOperations):
         """
         @rtype:  int
         @return: Parent process global ID.
-        
+
         @raise WindowsError: An error occured when calling a Win32 API function.
         @raise RuntimeError: The parent process ID can't be found.
         """
@@ -3885,7 +3885,7 @@ class Thread (ThreadDebugOperations):
     def wait(self, dwTimeout = None):
         """
         Waits for the thread to finish executing.
-        
+
         @type  dwTimeout: int
         @param dwTimeout: (Optional) Timeout value in milliseconds.
         """
@@ -3894,10 +3894,10 @@ class Thread (ThreadDebugOperations):
     def kill(self, dwExitCode = 0):
         """
         Terminates the thread execution.
-        
+
         @note: If the C{lpInjectedMemory} member contains a valid pointer,
         the memory is freed.
-        
+
         @type  dwExitCode: int
         @param dwExitCode: (Optional) Thread exit code.
         """
@@ -3913,7 +3913,7 @@ class Thread (ThreadDebugOperations):
     def suspend(self):
         """
         Suspends the thread execution.
-        
+
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
@@ -3922,7 +3922,7 @@ class Thread (ThreadDebugOperations):
     def resume(self):
         """
         Resumes the thread execution.
-        
+
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
@@ -3958,7 +3958,7 @@ class Thread (ThreadDebugOperations):
         """
         @rtype:  dict( str S{->} int )
         @return: Dictionary mapping register names to their values.
-        
+
         @see: L{set_context}
         """
         return win32.GetThreadContext(self.get_handle(), ContextFlags)
@@ -3966,9 +3966,9 @@ class Thread (ThreadDebugOperations):
     def set_context(self, context):
         """
         Sets the values of the registers.
-        
+
         @see: L{get_context}
-        
+
         @type  context:  dict( str S{->} int )
         @param context: Dictionary mapping register names to their values.
         """
@@ -3985,7 +3985,7 @@ class Thread (ThreadDebugOperations):
     def set_pc(self, pc):
         """
         Sets the value of the program counter register.
-        
+
         @type  pc: int
         @param pc: Value of the program counter register.
         """
@@ -4004,7 +4004,7 @@ class Thread (ThreadDebugOperations):
     def set_sp(self, sp):
         """
         Sets the value of the stack pointer register.
-        
+
         @type  sp: int
         @param sp: Value of the stack pointer register.
         """
@@ -4023,7 +4023,7 @@ class Thread (ThreadDebugOperations):
     def set_fp(self, fp):
         """
         Sets the value of the frame pointer register.
-        
+
         @type  fp: int
         @param fp: Value of the frame pointer register.
         """
@@ -4035,7 +4035,7 @@ class Thread (ThreadDebugOperations):
         """
         @type  register: str
         @param register: Register name.
-        
+
         @rtype:  int
         @return: Value of the requested register.
         """
@@ -4046,10 +4046,10 @@ class Thread (ThreadDebugOperations):
     def set_register(self, register, value):
         """
         Sets the value of a specific register.
-        
+
         @type  register: str
         @param register: Register name.
-        
+
         @rtype:  int
         @return: Register value.
         """
@@ -4078,7 +4078,7 @@ class Thread (ThreadDebugOperations):
         """
         @type  FlagMask: int
         @param FlagMask: (Optional) Bitwise-AND mask.
-        
+
         @rtype:  int
         @return: Flags register contents, optionally masking out some bits.
         """
@@ -4088,10 +4088,10 @@ class Thread (ThreadDebugOperations):
     def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
         """
         Sets the flags register, optionally masking some bits.
-        
+
         @type  eflags: int
         @param eflags: Flags register contents.
-        
+
         @type  FlagMask: int
         @param FlagMask: (Optional) Bitwise-AND mask.
         """
@@ -4103,7 +4103,7 @@ class Thread (ThreadDebugOperations):
         """
         @type  FlagBit: int
         @param FlagBit: One of the L{Flags}.
-        
+
         @rtype:  bool
         @return: Boolean value of the requested flag.
         """
@@ -4112,10 +4112,10 @@ class Thread (ThreadDebugOperations):
     def set_flag_value(self, FlagBit, FlagValue):
         """
         Sets a single flag, leaving the others intact.
-        
+
         @type  FlagBit: int
         @param FlagBit: One of the L{Flags}.
-        
+
         @type  FlagValue: bool
         @param FlagValue: Boolean value of the flag.
         """
@@ -4207,29 +4207,29 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
                                           ThreadContainer, ModuleContainer):
     """
     Interface to a process. Contains threads and modules snapshots.
-    
+
     @group Properties:
         get_pid, get_filename, get_exit_code,
         is_alive, is_debugged
-    
+
     @group Instrumentation:
         kill, wait, inject_code, inject_dll
-    
+
     @group Debugging:
         debug_break
-    
+
     @group Processes snapshot:
         scan, clear
-    
+
     @group Handle:
         get_handle, open_handle, close_handle
-    
+
     @type dwProcessId: int
     @ivar dwProcessId: Global process ID. Use L{get_pid} instead.
-    
+
     @type hProcess: L{ProcessHandle}
     @ivar hProcess: Handle to the process. Use L{get_handle} instead.
-    
+
     @type fileName: str
     @ivar fileName: Filename of the main module. Use L{get_filename} instead.
     """
@@ -4238,10 +4238,10 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         @type  dwProcessId: int
         @param dwProcessId: Global process ID.
-        
+
         @type  hProcess: L{ProcessHandle}
         @param hProcess: Handle to the process.
-        
+
         @type  fileName: str
         @param fileName: (Optional) Filename of the main module.
         """
@@ -4303,7 +4303,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def __contains__(self, anObject):
         """
         The same as: C{self.has_thread(anObject) or self.has_module(anObject)}
-        
+
         @type  anObject: L{Thread}, L{Module} or int
         @param anObject: Object to look for.
             Can be a Thread, Module, thread global ID or module base address.
@@ -4328,7 +4328,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         Iterator object for L{Process} objects.
         Iterates through L{Thread} objects first, L{Module} objects next.
         """
-        
+
         def __init__(self, container):
             """
             @type  container: L{Process}
@@ -4337,7 +4337,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.__container = container
             self.__iterator  = None
             self.__state     = 0
-        
+
         def next(self):
             'x.next() -> the next value, or raise StopIteration'
             if self.__state == 0:
@@ -4371,7 +4371,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def wait(self, dwTimeout = None):
         """
         Waits for the process to finish executing.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         self.get_handle().wait(dwTimeout)
@@ -4379,7 +4379,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def kill(self, dwExitCode = 0):
         """
         Terminates the execution of the process.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         win32.TerminateProcess(self.get_handle(), dwExitCode)
@@ -4387,7 +4387,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def debug_break(self):
         """
         Triggers the system breakpoint in the process.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         win32.DebugBreakProcess(self.get_handle())
@@ -4442,12 +4442,12 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def inject_code(self, payload, lpParameter = 0):
         """
         Injects relocatable code into the process memory and executes it.
-        
+
         @see: L{inject_dll}
-        
+
         @type  payload: str
         @param payload: Relocatable code to run in a new thread.
-        
+
         @type  lpParameter: int
         @param lpParameter: (Optional) Parameter to be pushed in the stack.
         """
@@ -4490,18 +4490,18 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def inject_dll(self, dllname, procname = None, lpParameter = 0, dwTimeout = None):
         """
         Injects a DLL into the process memory.
-        
+
         @see: L{inject_code}
-        
+
         @type  dllname: str
         @param dllname: Name of the DLL module to load.
-        
+
         @type  procname: str
         @param procname: (Optional) Procedure to call when the DLL is loaded.
-        
+
         @type  lpParameter: int
         @param lpParameter: (Optional) Parameter to the C{procname} procedure.
-        
+
         @type  dwTimeout: int
         @param dwTimeout: (Optional) Timeout value in milliseconds.
         """
@@ -4611,7 +4611,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def notify_create_process(self, event):
         """
         Notify the creation of a new process.
-        
+
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
@@ -4627,12 +4627,12 @@ class System (ProcessContainer):
     """
     Interface to a batch of processes, plus some system wide settings.
     Contains a snapshot of processes.
-    
+
     @group Global settings:
         pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
         enable_step_on_branch_mode
-    
+
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
@@ -4651,7 +4651,7 @@ class System (ProcessContainer):
     def request_debug_privileges(bIgnoreExceptions = False):
         """
         Requests debug privileges.
-        
+
         This may be needed to debug processes running as SYSTEM
         (such as services) since Windows XP.
         """
@@ -4676,22 +4676,22 @@ class System (ProcessContainer):
     def set_kill_on_exit_mode(self, bKillOnExit = False):
         """
         Automatically detach from processes when the current thread dies.
-        
+
         Works on the following platforms:
-         
+
          - Microsoft Windows XP and above.
          - Wine (Windows Emulator).
-        
+
         Fails on the following platforms:
-         
+
          - Microsoft Windows 2000 and below.
          - ReactOS.
-        
+
         @type  bKillOnExit: bool
         @param bKillOnExit: C{True} to automatically kill processes when the
             debugger thread dies. C{False} to automatically detach from
             processes when the debugger thread dies.
-        
+
         @rtype:  bool
         @return: C{True} on success, C{False} on error.
         """
@@ -4713,7 +4713,7 @@ class System (ProcessContainer):
         """
         When tracing, call this on every single step event
         for step on branch mode.
-        
+
         @warning:
             This has a HARDCODED value for a machine specific register (MSR).
             It could potentially brick your machine.
