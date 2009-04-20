@@ -28,13 +28,13 @@
 # $Id$
 
 """
-Breakpoints library.
+Breakpoints module.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/HowBreakpointsWork}
 
 @group Breakpoints: Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint
+@group Breakpoint wrappers: Hook, ApiHook, BufferWatch
 @group Debug registers manipulation: DebugRegister
-@group API hooking action stub: ApiHook
 @group Breakpoint container capabilities: BreakpointContainer
 """
 
@@ -61,674 +61,8 @@ __all__ = [
 
     ]
 
-from system import processidparam, threadidparam, System
+from system import processidparam, threadidparam, System, MemoryAddresses
 import win32
-
-#==============================================================================
-
-class Breakpoint (object):
-    """
-    Base class for breakpoints.
-    Here's the breakpoints state machine.
-
-    @see: L{CodeBreakpoint}, L{PageBreakpoint}, L{HardwareBreakpoint}
-
-    @group Breakpoint states:
-        DISABLED, ENABLED, ONESHOT, RUNNING
-    @group State machine:
-        hit, disable, enable, one_shot, running,
-        is_disabled, is_enabled, is_one_shot, is_running,
-        get_state, get_state_name
-    @group Information:
-        get_address, get_size, is_here
-    @group Conditional breakpoints:
-        is_conditional, is_unconditional,
-        get_condition, set_condition, eval_condition
-    @group Automatic breakpoints:
-        is_automatic, is_interactive,
-        get_action, set_action, run_action
-
-    @cvar DISABLED: Disabled S{->} Enabled, OneShot, Running
-    @cvar ENABLED:  Enabled  S{->} Disabled, Running
-    @cvar ONESHOT:  OneShot  S{->} Disabled
-    @cvar RUNNING:  Running  S{->} Enabled, Disabled
-
-    @type DISABLED: int
-    @type ENABLED:  int
-    @type ONESHOT:  int
-    @type RUNNING:  int
-
-    @type stateNames: dict E{lb} int S{->} str E{rb}
-    @cvar stateNames: User-friendly names for each breakpoint state.
-
-    @type typeName: str
-    @cvar typeName: User friendly breakpoint type string.
-    """
-
-    # I don't think transitions Enabled <-> OneShot should be allowed... plus
-    #  it would require special handling to avoid setting the same bp twice
-
-    DISABLED    = 0
-    ENABLED     = 1
-    ONESHOT     = 2
-    RUNNING     = 3
-
-    typeName    = 'breakpoint'
-
-    stateNames  = {
-        DISABLED    :   'disabled',
-        ENABLED     :   'enabled',
-        ONESHOT     :   'one shot',
-        RUNNING     :   'running',
-    }
-
-    def __init__(self, address, size = 1, condition = True, action = None):
-        """
-        Breakpoint object.
-
-        @type  address:
-        @param address: Memory address for breakpoint.
-
-        @type  size:
-        @param size: Size of breakpoint in bytes (defaults to 1).
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
-            The callback signature is::
-
-                def condition_callback(event):
-                    return True     # returns True or False
-
-            Where B{event} is an L{Event} object,
-            and the return value is a boolean
-            (True to dispatch the event, False otherwise).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-            If specified, the event is handled by this callback instead of
-            being dispatched normally.
-
-            The callback signature is::
-
-                def action_callback(event):
-                    pass        # no return value
-
-            Where B{event} is an L{Event} object.
-        """
-        self.__address   = address
-        self.__size      = size
-        self.__state     = self.DISABLED
-
-        self.set_condition(condition)
-        self.set_action(action)
-
-    def __repr__(self):
-        if self.is_disabled():
-            state = 'Disabled'
-        else:
-            state = 'Active (%s)' % self.get_state_name()
-        if self.get_condition() is True:
-            condition = 'unconditional'
-        else:
-            condition = 'conditional'
-        name = self.typeName
-        size = self.get_size()
-        if size == 1:
-            address = "0x%.08x" % self.get_address()
-        else:
-            begin   = self.get_address()
-            end     = begin + size
-            address = "range 0x%.08x-0x%.08x" % (begin, end)
-        msg = "<%s %s %s at remote address %s>"
-        msg = msg % (state, condition, name, address)
-        return msg
-
-#------------------------------------------------------------------------------
-
-    def is_disabled(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint is in DISABLED state.
-        """
-        return self.get_state() == self.DISABLED
-
-    def is_enabled(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint is in ENABLED state.
-        """
-        return self.get_state() == self.ENABLED
-
-    def is_one_shot(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint is in ONESHOT state.
-        """
-        return self.get_state() == self.ONESHOT
-
-    def is_running(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint is in RUNNING state.
-        """
-        return self.get_state() == self.RUNNING
-
-    def is_here(self, address):
-        """
-        @rtype:  bool
-        @return: True if the address is within the range of the breakpoint.
-        """
-        begin = self.get_address()
-        end   = begin + self.get_size()
-        return begin <= address < end
-
-    def get_address(self):
-        """
-        @rtype:  int
-        @return: The target memory address for the breakpoint.
-        """
-        return self.__address
-
-    def get_size(self):
-        """
-        @rtype:  int
-        @return: The size in bytes of the breakpoint.
-        """
-        return self.__size
-
-    def get_state(self):
-        """
-        @rtype:  int
-        @return: The current state of the breakpoint
-            (L{DISABLED}, L{ENABLED}, L{ONESHOT}, L{RUNNING}).
-        """
-        return self.__state
-
-    def get_state_name(self):
-        """
-        @rtype:  str
-        @return: The name of the current state of the breakpoint.
-        """
-        return self.stateNames[ self.get_state() ]
-
-#------------------------------------------------------------------------------
-
-    def is_conditional(self):
-        """
-        @see: L{__init__}
-        @rtype:  bool
-        @return: True if the breakpoint is has a condition callback defined.
-        """
-        return self.__condition is not True
-
-    def is_unconditional(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint is doesn't have a condition callback defined.
-        """
-        return self.__condition is True
-
-    def get_condition(self):
-        """
-        @rtype:  bool, function
-        @return: Returns the condition callback for conditional breakpoints.
-            Returns True for unconditional breakpoints.
-        """
-        return self.__condition
-
-    def set_condition(self, condition = True):
-        """
-        Sets a new condition callback for the breakpoint.
-
-        @see: L{__init__}
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-        """
-        if condition in (False, None):
-            condition = True
-        self.__condition = condition
-
-    def eval_condition(self, event):
-        """
-        Evaluates the breakpoint condition, if any was set.
-
-        @type  event: L{Event}
-        @param event: Debug event triggered by the breakpoint.
-
-        @rtype:  bool
-        @return: True to dispatch the event, False otherwise.
-        """
-        if self.__condition in (True, False, None):
-            return self.__condition
-        return self.__condition(event)
-
-#------------------------------------------------------------------------------
-
-    def is_automatic(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint has an action callback defined.
-        """
-        return self.__action is not None
-
-    def is_interactive(self):
-        """
-        @rtype:  bool
-        @return: True if the breakpoint doesn't have an action callback defined.
-        """
-        return self.__action is None
-
-    def get_action(self):
-        """
-        @rtype:  bool, function
-        @return: Returns the action callback for automatic breakpoints.
-            Returns None for interactive breakpoints.
-        """
-        return self.__action
-
-    def set_action(self, action = None):
-        """
-        Sets a new action callback for the breakpoint.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-        """
-        self.__action = action
-
-    def run_action(self, event):
-        """
-        Executes the breakpoint action callback, if any was set.
-
-        @type  event: L{Event}
-        @param event: Debug event triggered by the breakpoint.
-        """
-        if self.__action is not None:
-            return bool( self.__action(event) )
-        return True
-
-#------------------------------------------------------------------------------
-
-    def __bad_transition(self, state):
-        """
-        Raise an exception for an invalid state transition.
-
-        @see: L{stateNames}
-
-        @type  state: int
-        @param state: Intended breakpoint state.
-
-        @raise Exception: Always.
-        """
-        statemsg = ""
-        oldState = self.stateNames[ self.get_state() ]
-        newState = self.stateNames[ state ]
-        msg = "Invalid state transition (%s -> %s)" \
-              " for breakpoint at address 0x%08x"
-        msg = msg % (oldState, newState, self.get_address())
-        raise AssertionError, msg
-
-    def disable(self, aProcess, aThread):
-        """
-        Transition to Disabled state.
-          - Enabled, OneShot, Running S{->} Disabled
-          - Can be forced by the user.
-          - Transition from running state may require special handling
-            by the breakpoint implementation class.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
-##        if self.__state not in (self.ENABLED, self.ONESHOT, self.RUNNING):
-##            self.__bad_transition(self.DISABLED)
-        self.__state = self.DISABLED
-
-    def enable(self, aProcess, aThread):
-        """
-        Transition to Enabled state.
-          - Disabled, Running S{->} Enabled
-          - Can be forced by the user.
-          - Transition from running state may require special handling
-            by the breakpoint implementation class.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
-##        if self.__state not in (self.DISABLED, self.RUNNING):
-##            self.__bad_transition(self.ENABLED)
-        self.__state = self.ENABLED
-
-    def one_shot(self, aProcess, aThread):
-        """
-        Transition to OneShot state.
-          - Disabled S{->} OneShot
-          - Can be forced by the user.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
-##        if self.__state != self.DISABLED:
-##            self.__bad_transition(self.ONESHOT)
-        self.__state = self.ONESHOT
-
-    def running(self, aProcess, aThread):
-        """
-        Transition to Running state.
-          - Enabled S{->} Running
-          - Only occurs on breakpoint hit.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
-        if self.__state != self.ENABLED:
-            self.__bad_transition(self.RUNNING)
-        self.__state = self.RUNNING
-
-    def hit(self, event):
-        """
-        Notify a breakpoint that it's been hit.
-        This triggers the corresponding state transition.
-
-        @type  event: L{Event}
-        @param event: Debug event to handle (depends on the breakpoint type).
-
-        @raise AssertionError: Disabled breakpoints can't be hit.
-        """
-        aProcess = event.get_process()
-        aThread  = event.get_thread()
-        state    = self.get_state()
-
-        if state == self.ENABLED:
-            self.running(aProcess, aThread)
-
-        elif state == self.RUNNING:
-            self.enable(aProcess, aThread)
-
-        elif state == self.ONESHOT:
-            self.disable(aProcess, aThread)
-
-        elif state == self.DISABLED:
-            # this should not happen
-            msg = "Hit a disabled breakpoint at address 0x%08x"
-            msg = msg % self.get_address()
-            raise AssertionError, msg
-
-#==============================================================================
-
-class CodeBreakpoint (Breakpoint):
-    """
-    Code execution breakpoints (using an int3 opcode).
-
-    @see: L{Debug.break_at}
-
-    @type int3: str
-    @cvar int3: Breakpoint instruction for Intel x86 processors.
-    """
-
-    typeName = 'code breakpoint'
-    int3     = '\xCC'
-
-    def __init__(self, address, condition = True, action = None):
-        """
-        Code breakpoint object.
-
-        @see: L{Breakpoint.__init__}
-
-        @type  address: int
-        @param address: Memory address for breakpoint.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-        """
-        Breakpoint.__init__(self, address, len(self.int3), condition, action)
-        self.__previousValue = self.int3
-
-    def __set_bp(self, aProcess):
-        """
-        Write a breakpoint instruction in the target address.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-        """
-        # XXX maybe if the previous value is \xCC we shouldn't trust it?
-        self.__previousValue = aProcess.read(self.get_address(), 1)
-        aProcess.write(self.get_address(), self.int3)
-
-    def __clear_bp(self, aProcess):
-        """
-        Restore the original byte at the target address.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-        """
-        aProcess.write(self.get_address(), self.__previousValue)
-
-    def __cancel_running_state(self, aThread):
-        """
-        Clear the trap flag if the breakpoint is in RUNNING state.
-        """
-        if self.is_running():
-            aThread.clear_tf()
-
-    def disable(self, aProcess, aThread):
-        try:
-            self.__clear_bp(aProcess)
-        finally:
-            self.__cancel_running_state(aThread)
-        super(CodeBreakpoint, self).disable(aProcess, aThread)
-
-    def enable(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
-        if not self.is_enabled() and not self.is_one_shot():
-            self.__set_bp(aProcess)
-        super(CodeBreakpoint, self).enable(aProcess, aThread)
-
-    def one_shot(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
-        if not self.is_enabled() and not self.is_one_shot():
-            self.__set_bp(aProcess)
-        super(CodeBreakpoint, self).one_shot(aProcess, aThread)
-
-    # FIXME race condition here (however unlikely)
-    # If another thread runs on over the target address while
-    # the breakpoint is in RUNNING state, we'll miss it. There
-    # is a solution to this but it's somewhat complicated, so
-    # I'm leaving it for the next version of the debugger. :(
-    def running(self, aProcess, aThread):
-        self.__clear_bp(aProcess)
-        aThread.set_tf()
-        super(CodeBreakpoint, self).running(aProcess, aThread)
-
-#==============================================================================
-
-class PageBreakpoint (Breakpoint):
-    """
-    Page access breakpoint (using guard pages).
-
-    @see: L{Debug.watch_buffer}
-
-    @type pageSize: int
-    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
-        automatically updated on runtime when importing the module.
-    """
-
-    typeName = 'page breakpoint'
-    pageSize = System.pageSize
-
-    @classmethod
-    def align_address_to_page_start(cls, address):
-        """
-        Align the given address to the start of the page it occupies.
-
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  int
-        @return: Aligned memory address.
-        """
-        return address - ( address % cls.pageSize )
-
-    @classmethod
-    def align_address_to_page_end(cls, address):
-        """
-        Align the given address to the end of the page it occupies.
-
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  int
-        @return: Aligned memory address.
-        """
-        return address + cls.pageSize - ( address % cls.pageSize )
-
-    @classmethod
-    def align_address_range(cls, begin, end):
-        """
-        Align the given address range to the start and end of the page(s) it occupies.
-
-        @type  begin: int
-        @param begin: Memory address of the beginning of the buffer.
-
-        @type  end: int
-        @param end: Memory address of the end of the buffer.
-
-        @rtype:  tuple( int, int )
-        @return: Aligned memory addresses.
-        """
-        if end > begin:
-            begin, end = end, begin
-        return (
-            cls.align_address_to_page_start(begin),
-            cls.align_address_to_page_end(end)
-            )
-
-    @classmethod
-    def get_buffer_size_in_pages(cls, address, size):
-        """
-        Get the number of pages in use by the given buffer.
-
-        @type  address: int
-        @param address: Aligned memory address.
-
-        @type  size: int
-        @param size: Buffer size.
-
-        @rtype:  int
-        @return: Buffer size in number of pages.
-        """
-        if size < 0:
-            size    = -size
-            address = address - size
-        begin, end = cls.align_address_range(address, address + size)
-        return (end - begin) / cls.pageSize
-
-#------------------------------------------------------------------------------
-
-    def __init__(self, address, pages = 1, condition = True, action = None):
-        """
-        Page breakpoint object.
-
-        @see: L{Breakpoint.__init__}
-
-        @type  address: int
-        @param address: Memory address for breakpoint.
-
-        @type  pages: int
-        @param address: Size of breakpoint in pages.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-        """
-        Breakpoint.__init__(self, address, pages * self.pageSize, condition,
-                                                                        action)
-##        if (address & 0x00000FFF) != 0:
-        if long(address) / self.pageSize != float(address) / self.pageSize:
-            msg   = "Address of page breakpoint "               \
-                    "must be aligned to a page size boundary "  \
-                    "(value 0x%.08x received)" % address
-            raise ValueError, msg
-
-    def get_size_in_pages(self):
-        """
-        @rtype:  int
-        @return: The size in pages of the breakpoint.
-        """
-        # The size is always a multiple of the page size.
-        return self.get_size() / self.pageSize
-
-    def __set_bp(self, aProcess):
-        """
-        Set the target pages as guard pages.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-        """
-        lpAddress    = self.get_address()
-        dwSize       = self.get_size()
-        flNewProtect = aProcess.mquery(lpAddress).Protect
-        flNewProtect = flNewProtect | win32.PAGE_GUARD
-        aProcess.mprotect(lpAddress, dwSize, flNewProtect)
-
-    def __clear_bp(self, aProcess):
-        """
-        Restore the original permissions of the target pages.
-
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-        """
-        lpAddress    = self.get_address()
-        flNewProtect = aProcess.mquery(lpAddress).Protect
-        flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)
-        aProcess.mprotect(lpAddress, self.get_size(), flNewProtect)
-
-    def __cancel_running_state(self, aThread):
-        """
-        Clear the trap flag if the breakpoint is in RUNNING state.
-        """
-        if self.is_running():
-            aThread.clear_tf()
-
-    def disable(self, aProcess, aThread):
-        try:
-            self.__clear_bp(aProcess)
-        finally:
-            self.__cancel_running_state(aThread)
-        super(PageBreakpoint, self).disable(aProcess, aThread)
-
-    def enable(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
-        if not self.is_enabled() and not self.is_one_shot():
-            self.__set_bp(aProcess)
-        super(PageBreakpoint, self).enable(aProcess, aThread)
-
-    def one_shot(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
-        if not self.is_enabled() and not self.is_one_shot():
-            self.__set_bp(aProcess)
-        super(PageBreakpoint, self).one_shot(aProcess, aThread)
-
-    def running(self, aProcess, aThread):
-        aThread.set_tf()
-        super(PageBreakpoint, self).running(aProcess, aThread)
 
 #==============================================================================
 
@@ -756,7 +90,7 @@ class DebugRegister (object):
     @cvar BREAK_ON_ACCESS: Break on read or write.
 
     @type BREAK_ON_IO_ACCESS: int
-    @cvar BREAK_ON_IO_ACCESS: Not used by current hardware.
+    @cvar BREAK_ON_IO_ACCESS: Break on I/O port access.
 
     @type WATCH_BYTE: int
     @cvar WATCH_BYTE: Watch a byte.
@@ -949,11 +283,11 @@ class DebugRegister (object):
     @classmethod
     def clear_bp(cls, ctx, register):
         """
-        Clear a hardware breakpoint.
+        Clears a hardware breakpoint.
 
         @see: find_slot, set_bp
 
-        @type  ctx: dict
+        @type  ctx: dict( str S{->} int )
         @param ctx: Thread context dictionary.
 
         @type  register: int
@@ -965,11 +299,11 @@ class DebugRegister (object):
     @classmethod
     def set_bp(cls, ctx, register, address, trigger, watch):
         """
-        Set a hardware breakpoint.
+        Sets a hardware breakpoint.
 
         @see: clear_bp, find_slot
 
-        @type  ctx: dict
+        @type  ctx: dict( str S{->} int )
         @param ctx: Thread context dictionary.
 
         @type  register: int
@@ -979,10 +313,10 @@ class DebugRegister (object):
         @param address: Memory address.
 
         @type  trigger: int
-        @param trigger: Trigger flag.
+        @param trigger: Trigger flag. See L{HardwareBreakpoint.validTriggers}.
 
         @type  watch: int
-        @param watch: Watch flag.
+        @param watch: Watch flag. See L{HardwareBreakpoint.validWatchSizes}.
         """
         Dr7 = ctx['Dr7']
         Dr7 |= cls.enableMask[register]
@@ -998,11 +332,11 @@ class DebugRegister (object):
     @classmethod
     def find_slot(cls, ctx):
         """
-        Find an empty slot to set a hardware breakpoint.
+        Finds an empty slot to set a hardware breakpoint.
 
         @see: clear_bp, set_bp
 
-        @type  ctx: dict
+        @type  ctx: dict( str S{->} int )
         @param ctx: Thread context dictionary.
 
         @rtype:  int
@@ -1015,6 +349,601 @@ class DebugRegister (object):
                 return slot
             slot += 1
         return None
+
+#==============================================================================
+
+class Breakpoint (object):
+    """
+    Base class for breakpoints.
+    Here's the breakpoints state machine.
+
+    @see: L{CodeBreakpoint}, L{PageBreakpoint}, L{HardwareBreakpoint}
+
+    @group Breakpoint states:
+        DISABLED, ENABLED, ONESHOT, RUNNING
+    @group State machine:
+        hit, disable, enable, one_shot, running,
+        is_disabled, is_enabled, is_one_shot, is_running,
+        get_state, get_state_name
+    @group Information:
+        get_address, get_size, is_here
+    @group Conditional breakpoints:
+        is_conditional, is_unconditional,
+        get_condition, set_condition, eval_condition
+    @group Automatic breakpoints:
+        is_automatic, is_interactive,
+        get_action, set_action, run_action
+
+    @cvar DISABLED: I{Disabled} S{->} Enabled, OneShot
+    @cvar ENABLED:  I{Enabled}  S{->} I{Running}, Disabled
+    @cvar ONESHOT:  I{OneShot}  S{->} I{Disabled}
+    @cvar RUNNING:  I{Running}  S{->} I{Enabled}, Disabled
+
+    @type DISABLED: int
+    @type ENABLED:  int
+    @type ONESHOT:  int
+    @type RUNNING:  int
+
+    @type stateNames: dict E{lb} int S{->} str E{rb}
+    @cvar stateNames: User-friendly names for each breakpoint state.
+
+    @type typeName: str
+    @cvar typeName: User friendly breakpoint type string.
+    """
+
+    # I don't think transitions Enabled <-> OneShot should be allowed... plus
+    #  it would require special handling to avoid setting the same bp twice
+
+    DISABLED    = 0
+    ENABLED     = 1
+    ONESHOT     = 2
+    RUNNING     = 3
+
+    typeName    = 'breakpoint'
+
+    stateNames  = {
+        DISABLED    :   'disabled',
+        ENABLED     :   'enabled',
+        ONESHOT     :   'one shot',
+        RUNNING     :   'running',
+    }
+
+    def __init__(self, address, size = 1, condition = True, action = None):
+        """
+        Breakpoint object.
+
+        @type  address: int
+        @param address: Memory address for breakpoint.
+
+        @type  size: int
+        @param size: Size of breakpoint in bytes (defaults to 1).
+
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
+
+            The callback signature is::
+
+                def condition_callback(event):
+                    return True     # returns True or False
+
+            Where B{event} is an L{Event} object,
+            and the return value is a boolean
+            (C{True} to dispatch the event, C{False} otherwise).
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+            If specified, the event is handled by this callback instead of
+            being dispatched normally.
+
+            The callback signature is::
+
+                def action_callback(event):
+                    pass        # no return value
+
+            Where B{event} is an L{Event} object.
+        """
+        self.__address   = address
+        self.__size      = size
+        self.__state     = self.DISABLED
+
+        self.set_condition(condition)
+        self.set_action(action)
+
+    def __repr__(self):
+        if self.is_disabled():
+            state = 'Disabled'
+        else:
+            state = 'Active (%s)' % self.get_state_name()
+        if self.get_condition() is True:
+            condition = 'unconditional'
+        else:
+            condition = 'conditional'
+        name = self.typeName
+        size = self.get_size()
+        if size == 1:
+            address = "0x%.08x" % self.get_address()
+        else:
+            begin   = self.get_address()
+            end     = begin + size
+            address = "range 0x%.08x-0x%.08x" % (begin, end)
+        msg = "<%s %s %s at remote address %s>"
+        msg = msg % (state, condition, name, address)
+        return msg
+
+#------------------------------------------------------------------------------
+
+    def is_disabled(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint is in L{DISABLED} state.
+        """
+        return self.get_state() == self.DISABLED
+
+    def is_enabled(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint is in L{ENABLED} state.
+        """
+        return self.get_state() == self.ENABLED
+
+    def is_one_shot(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint is in L{ONESHOT} state.
+        """
+        return self.get_state() == self.ONESHOT
+
+    def is_running(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint is in L{RUNNING} state.
+        """
+        return self.get_state() == self.RUNNING
+
+    def is_here(self, address):
+        """
+        @rtype:  bool
+        @return: C{True} if the address is within the range of the breakpoint.
+        """
+        begin = self.get_address()
+        end   = begin + self.get_size()
+        return begin <= address < end
+
+    def get_address(self):
+        """
+        @rtype:  int
+        @return: The target memory address for the breakpoint.
+        """
+        return self.__address
+
+    def get_size(self):
+        """
+        @rtype:  int
+        @return: The size in bytes of the breakpoint.
+        """
+        return self.__size
+
+    def get_state(self):
+        """
+        @rtype:  int
+        @return: The current state of the breakpoint
+            (L{DISABLED}, L{ENABLED}, L{ONESHOT}, L{RUNNING}).
+        """
+        return self.__state
+
+    def get_state_name(self):
+        """
+        @rtype:  str
+        @return: The name of the current state of the breakpoint.
+        """
+        return self.stateNames[ self.get_state() ]
+
+#------------------------------------------------------------------------------
+
+    def is_conditional(self):
+        """
+        @see: L{__init__}
+        @rtype:  bool
+        @return: C{True} if the breakpoint has a condition callback defined.
+        """
+        return self.__condition is not True
+
+    def is_unconditional(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint doesn't have a condition callback defined.
+        """
+        return self.__condition is True
+
+    def get_condition(self):
+        """
+        @rtype:  bool, function
+        @return: Returns the condition callback for conditional breakpoints.
+            Returns C{True} for unconditional breakpoints.
+        """
+        return self.__condition
+
+    def set_condition(self, condition = True):
+        """
+        Sets a new condition callback for the breakpoint.
+
+        @see: L{__init__}
+
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
+        """
+        if condition in (False, None):
+            condition = True
+        self.__condition = condition
+
+    def eval_condition(self, event):
+        """
+        Evaluates the breakpoint condition, if any was set.
+
+        @type  event: L{Event}
+        @param event: Debug event triggered by the breakpoint.
+
+        @rtype:  bool
+        @return: C{True} to dispatch the event, C{False} otherwise.
+        """
+        if self.__condition in (True, False, None):
+            return self.__condition
+        return self.__condition(event)
+
+#------------------------------------------------------------------------------
+
+    def is_automatic(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the breakpoint has an action callback defined.
+        """
+        return self.__action is not None
+
+    def is_interactive(self):
+        """
+        @rtype:  bool
+        @return:
+            C{True} if the breakpoint doesn't have an action callback defined.
+        """
+        return self.__action is None
+
+    def get_action(self):
+        """
+        @rtype:  bool, function
+        @return: Returns the action callback for automatic breakpoints.
+            Returns C{None} for interactive breakpoints.
+        """
+        return self.__action
+
+    def set_action(self, action = None):
+        """
+        Sets a new action callback for the breakpoint.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+        """
+        self.__action = action
+
+    def run_action(self, event):
+        """
+        Executes the breakpoint action callback, if any was set.
+
+        @type  event: L{Event}
+        @param event: Debug event triggered by the breakpoint.
+        """
+        if self.__action is not None:
+            return bool( self.__action(event) )
+        return True
+
+#------------------------------------------------------------------------------
+
+    def __bad_transition(self, state):
+        """
+        Raises an C{AssertionError} exception for an invalid state transition.
+
+        @see: L{stateNames}
+
+        @type  state: int
+        @param state: Intended breakpoint state.
+
+        @raise Exception: Always.
+        """
+        statemsg = ""
+        oldState = self.stateNames[ self.get_state() ]
+        newState = self.stateNames[ state ]
+        msg = "Invalid state transition (%s -> %s)" \
+              " for breakpoint at address 0x%08x"
+        msg = msg % (oldState, newState, self.get_address())
+        raise AssertionError, msg
+
+    def disable(self, aProcess, aThread):
+        """
+        Transition to L{DISABLED} state.
+          - When hit: OneShot S{->} Disabled
+          - Forced by user: Enabled, OneShot, Running S{->} Disabled
+          - Transition from running state may require special handling
+            by the breakpoint implementation class.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
+##        if self.__state not in (self.ENABLED, self.ONESHOT, self.RUNNING):
+##            self.__bad_transition(self.DISABLED)
+        self.__state = self.DISABLED
+
+    def enable(self, aProcess, aThread):
+        """
+        Transition to L{ENABLED} state.
+          - When hit: Running S{->} Enabled
+          - Forced by user: Disabled, Running S{->} Enabled
+          - Transition from running state may require special handling
+            by the breakpoint implementation class.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
+##        if self.__state not in (self.DISABLED, self.RUNNING):
+##            self.__bad_transition(self.ENABLED)
+        self.__state = self.ENABLED
+
+    def one_shot(self, aProcess, aThread):
+        """
+        Transition to L{ONESHOT} state.
+          - Forced by user: Disabled S{->} OneShot
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
+##        if self.__state != self.DISABLED:
+##            self.__bad_transition(self.ONESHOT)
+        self.__state = self.ONESHOT
+
+    def running(self, aProcess, aThread):
+        """
+        Transition to L{RUNNING} state.
+          - When hit: Enabled S{->} Running
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
+        if self.__state != self.ENABLED:
+            self.__bad_transition(self.RUNNING)
+        self.__state = self.RUNNING
+
+    def hit(self, event):
+        """
+        Notify a breakpoint that it's been hit.
+        This triggers the corresponding state transition.
+
+        @see: L{disable}, L{enable}, L{one_shot}, L{running}
+
+        @type  event: L{Event}
+        @param event: Debug event to handle (depends on the breakpoint type).
+
+        @raise AssertionError: Disabled breakpoints can't be hit.
+        """
+        aProcess = event.get_process()
+        aThread  = event.get_thread()
+        state    = self.get_state()
+
+        if state == self.ENABLED:
+            self.running(aProcess, aThread)
+
+        elif state == self.RUNNING:
+            self.enable(aProcess, aThread)
+
+        elif state == self.ONESHOT:
+            self.disable(aProcess, aThread)
+
+        elif state == self.DISABLED:
+            # this should not happen
+            msg = "Hit a disabled breakpoint at address 0x%08x"
+            msg = msg % self.get_address()
+            raise AssertionError, msg
+
+#==============================================================================
+
+class CodeBreakpoint (Breakpoint):
+    """
+    Code execution breakpoints (using an int3 opcode).
+
+    @see: L{Debug.break_at}
+
+    @type int3: str
+    @cvar int3: Breakpoint instruction for Intel x86 processors.
+    """
+
+    typeName = 'code breakpoint'
+    int3     = '\xCC'
+
+    def __init__(self, address, condition = True, action = None):
+        """
+        Code breakpoint object.
+
+        @see: L{Breakpoint.__init__}
+
+        @type  address: int
+        @param address: Memory address for breakpoint.
+
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+        """
+        Breakpoint.__init__(self, address, len(self.int3), condition, action)
+        self.__previousValue = self.int3
+
+    def __set_bp(self, aProcess):
+        """
+        Writes a breakpoint instruction in the target address.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
+        # XXX maybe if the previous value is \xCC we shouldn't trust it?
+        self.__previousValue = aProcess.read(self.get_address(), 1)
+        aProcess.write(self.get_address(), self.int3)
+
+    def __clear_bp(self, aProcess):
+        """
+        Restores the original byte at the target address.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
+        aProcess.write(self.get_address(), self.__previousValue)
+
+    def __cancel_running_state(self, aThread):
+        """
+        Clears the trap flag if the breakpoint is in L{RUNNING} state.
+        """
+        if self.is_running():
+            aThread.clear_tf()
+
+    def disable(self, aProcess, aThread):
+        try:
+            self.__clear_bp(aProcess)
+        finally:
+            self.__cancel_running_state(aThread)
+        super(CodeBreakpoint, self).disable(aProcess, aThread)
+
+    def enable(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aProcess)
+        super(CodeBreakpoint, self).enable(aProcess, aThread)
+
+    def one_shot(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aProcess)
+        super(CodeBreakpoint, self).one_shot(aProcess, aThread)
+
+    # FIXME race condition here (however unlikely)
+    # If another thread runs on over the target address while
+    # the breakpoint is in RUNNING state, we'll miss it. There
+    # is a solution to this but it's somewhat complicated, so
+    # I'm leaving it for the next version of the debugger. :(
+    def running(self, aProcess, aThread):
+        self.__clear_bp(aProcess)
+        aThread.set_tf()
+        super(CodeBreakpoint, self).running(aProcess, aThread)
+
+#==============================================================================
+
+class PageBreakpoint (Breakpoint):
+    """
+    Page access breakpoint (using guard pages).
+
+    @see: L{Debug.watch_buffer}
+    """
+
+    typeName = 'page breakpoint'
+
+#------------------------------------------------------------------------------
+
+    def __init__(self, address, pages = 1, condition = True, action = None):
+        """
+        Page breakpoint object.
+
+        @see: L{Breakpoint.__init__}
+
+        @type  address: int
+        @param address: Memory address for breakpoint.
+
+        @type  pages: int
+        @param address: Size of breakpoint in pages.
+
+        @type  condition: function
+        @param condition: (Optional) Condition callback function.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+        """
+        Breakpoint.__init__(self, address, pages * System.pageSize,  condition,
+                                                                        action)
+##        if (address & 0x00000FFF) != 0:
+        if long(address) / self.pageSize != float(address) / System.pageSize:
+            msg   = "Address of page breakpoint "               \
+                    "must be aligned to a page size boundary "  \
+                    "(value 0x%.08x received)" % address
+            raise ValueError, msg
+
+    def get_size_in_pages(self):
+        """
+        @rtype:  int
+        @return: The size in pages of the breakpoint.
+        """
+        # The size is always a multiple of the page size.
+        return self.get_size() / System.pageSize
+
+    def __set_bp(self, aProcess):
+        """
+        Sets the target pages as guard pages.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
+        lpAddress    = self.get_address()
+        dwSize       = self.get_size()
+        flNewProtect = aProcess.mquery(lpAddress).Protect
+        flNewProtect = flNewProtect | win32.PAGE_GUARD
+        aProcess.mprotect(lpAddress, dwSize, flNewProtect)
+
+    def __clear_bp(self, aProcess):
+        """
+        Restores the original permissions of the target pages.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
+        lpAddress    = self.get_address()
+        flNewProtect = aProcess.mquery(lpAddress).Protect
+        flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)
+        aProcess.mprotect(lpAddress, self.get_size(), flNewProtect)
+
+    def __cancel_running_state(self, aThread):
+        """
+        Clears the trap flag if the breakpoint is in L{RUNNING} state.
+        """
+        if self.is_running():
+            aThread.clear_tf()
+
+    def disable(self, aProcess, aThread):
+        try:
+            self.__clear_bp(aProcess)
+        finally:
+            self.__cancel_running_state(aThread)
+        super(PageBreakpoint, self).disable(aProcess, aThread)
+
+    def enable(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aProcess)
+        super(PageBreakpoint, self).enable(aProcess, aThread)
+
+    def one_shot(self, aProcess, aThread):
+        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aProcess)
+        super(PageBreakpoint, self).one_shot(aProcess, aThread)
+
+    def running(self, aProcess, aThread):
+        aThread.set_tf()
+        super(PageBreakpoint, self).running(aProcess, aThread)
 
 #==============================================================================
 
@@ -1038,7 +967,7 @@ class HardwareBreakpoint (Breakpoint):
     @cvar BREAK_ON_ACCESS: Break on read or write.
 
     @type BREAK_ON_IO_ACCESS: int
-    @cvar BREAK_ON_IO_ACCESS: Not used by current hardware.
+    @cvar BREAK_ON_IO_ACCESS: Break on I/O port access.
 
     @type WATCH_BYTE: int
     @cvar WATCH_BYTE: Watch a byte.
@@ -1162,7 +1091,7 @@ class HardwareBreakpoint (Breakpoint):
 
     def __clear_bp(self, aThread):
         """
-        Clear this breakpoint from the debug registers.
+        Clears this breakpoint from the debug registers.
 
         @type  aThread: L{Thread}
         @param aThread: Thread object.
@@ -1177,7 +1106,7 @@ class HardwareBreakpoint (Breakpoint):
 
     def __set_bp(self, aThread):
         """
-        Set this breakpoint in the debug registers.
+        Sets this breakpoint in the debug registers.
 
         @type  aThread: L{Thread}
         @param aThread: Thread object.
@@ -1197,7 +1126,7 @@ class HardwareBreakpoint (Breakpoint):
 
     def __cancel_running_state(self, aThread):
         """
-        Clear the trap flag if the breakpoint is in RUNNING state.
+        Clears the trap flag if the breakpoint is in L{RUNNING} state.
         """
         if self.is_running():
             aThread.clear_tf()
@@ -1206,7 +1135,7 @@ class HardwareBreakpoint (Breakpoint):
         """
         @rtype:  int
         @return: The debug register number used by this breakpoint,
-            or None if the breakpoint is not active.
+            or C{None} if the breakpoint is not active.
         """
         return self.__slot
 
@@ -1252,9 +1181,12 @@ class HardwareBreakpoint (Breakpoint):
 
 class Hook (object):
     """
-    Stub that handles pre and post function hook callbacks.
+    Used by L{Debug.hook_function}.
 
-    @see: L{Debug.hook_function}
+    This class acts as an action callback for code breakpoints set at the
+    beginning of a function. It automatically retrieves the parameters from
+    the stack, sets a breakpoint at the return address and retrieves the
+    return value from the function call.
     """
 
     def __init__(self, preCB = None, postCB = None, paramCount = 0):
@@ -1340,7 +1272,7 @@ class Hook (object):
         # Remove the one shot code breakpoint at the return address.
         pid     = event.get_pid()
         address = event.get_exception_address()
-        event.debug.erase_code_breakpoint(pid, address)
+        event.debug.dont_stalk_at(pid, address)
 
         # Call the "post" callback.
         aThread = event.get_thread()
@@ -1366,7 +1298,7 @@ class Hook (object):
 
     def hook(self, debug, pid, address):
         """
-        Install the function hook at a given process and address.
+        Installs the function hook at a given process and address.
 
         @see: L{unhook}
 
@@ -1385,7 +1317,7 @@ class Hook (object):
 
     def unhook(self, debug, pid, address):
         """
-        Remove the function hook at a given process and address.
+        Removes the function hook at a given process and address.
 
         @see: L{hook}
 
@@ -1406,7 +1338,12 @@ class Hook (object):
 
 class ApiHook (Hook):
     """
-    Stub that handles pre and post API hook callbacks from L{EventHandler}.
+    Used by L{EventHandler}.
+
+    This class acts as an action callback for code breakpoints set at the
+    beginning of a function. It automatically retrieves the parameters from
+    the stack, sets a breakpoint at the return address and retrieves the
+    return value from the function call.
 
     @see: L{EventHandler.apiHooks}
     """
@@ -1456,7 +1393,7 @@ class ApiHook (Hook):
 
     def hook(self, debug, pid, modName):
         """
-        Install the API hook on a given process and module.
+        Installs the API hook on a given process and module.
 
         @warning: Do not call from an API hook callback.
 
@@ -1474,7 +1411,7 @@ class ApiHook (Hook):
 
     def unhook(self, debug, pid, modName):
         """
-        Remove the API hook from the given process and module.
+        Removes the API hook from the given process and module.
 
         @warning: Do not call from an API hook callback.
 
@@ -1499,8 +1436,6 @@ class BufferWatch(object):
     This class acts as a condition callback for page breakpoints.
     It emulates page breakpoints that can overlap and/or take up less
     than a page's size.
-
-    @see: L{Debug.watch_buffer}
     """
 
     def __init__(self):
@@ -1508,6 +1443,8 @@ class BufferWatch(object):
 
     def add(self, address, size, action = None):
         """
+        Adds a buffer to the watch object.
+
         @type  address: int
         @param address: Memory address of buffer to watch.
 
@@ -1527,6 +1464,8 @@ class BufferWatch(object):
 
     def remove(self, address, size):
         """
+        Removes a buffer from the watch object.
+
         @type  address: int
         @param address: Memory address of buffer to stop watching.
 
@@ -1566,9 +1505,9 @@ class BufferWatch(object):
                 min_start = start
             if end > max_end:
                 max_end = end
-        base  = PageBreakpoint.align_address_to_page_start(min_start)
+        base  = MemoryAddresses.align_address_to_page_start(min_start)
         size  = max_end - min_start
-        pages = PageBreakpoint.get_buffer_size_in_pages(min_start, size)
+        pages = MemoryAddresses.get_buffer_size_in_pages(min_start, size)
         return ( base, pages )
 
     def count(self):
@@ -1621,6 +1560,12 @@ class BreakpointContainer (object):
         define_code_breakpoint,
         define_page_breakpoint,
         define_hardware_breakpoint,
+        has_code_breakpoint,
+        has_page_breakpoint,
+        has_hardware_breakpoint,
+        get_code_breakpoint,
+        get_page_breakpoint,
+        get_hardware_breakpoint,
         erase_code_breakpoint,
         erase_page_breakpoint,
         erase_hardware_breakpoint,
@@ -1653,6 +1598,13 @@ class BreakpointContainer (object):
         enable_one_shot_process_breakpoints,
         disable_process_breakpoints,
         erase_process_breakpoints
+
+    @group Event notifications (private):
+        notify_guard_page,
+        notify_breakpoint,
+        notify_single_step,
+        notify_exit_thread,
+        notify_exit_process
 
     @group Breakpoint types:
         BP_TYPE_ANY, BP_TYPE_CODE, BP_TYPE_PAGE, BP_TYPE_HARDWARE
@@ -1742,36 +1694,6 @@ class BreakpointContainer (object):
             if bp in bpset:
                 bpset.remove(bp)
 
-    def __ranges_intersect(self, begin, end, old_begin, old_end):
-        return  (old_begin <= begin < old_end) or \
-                (old_begin < end <= old_end)   or \
-                (begin <= old_begin < end)     or \
-                (begin < old_end <= end)
-
-    def __get_code_bp(self, pid, address):
-        key = (pid, address)
-        if not self.__codeBP.has_key(key):
-            msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % (pid, address)
-        return self.__codeBP[key]
-
-    def __get_page_bp(self, pid, address):
-        key = (pid, address)
-        if not self.__pageBP.has_key(key):
-            msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % (pid, address)
-        return self.__pageBP[key]
-
-    def __get_hardware_bp(self, tid, address):
-        if not self.__hardwareBP.has_key(tid):
-            msg = "No hardware breakpoints set for thread %d"
-            raise KeyError, msg % tid
-        for bp in self.__hardwareBP[tid]:
-            if bp.is_here(address):
-                return bp
-        msg = "No hardware breakpoint at thread %d, address %.08x"
-        raise KeyError, msg % (tid, address)
-
 #------------------------------------------------------------------------------
 
     @processidparam
@@ -1782,6 +1704,7 @@ class BreakpointContainer (object):
 
         @see:
             L{has_code_breakpoint},
+            L{get_code_breakpoint},
             L{enable_code_breakpoint},
             L{enable_one_shot_code_breakpoint},
             L{disable_code_breakpoint},
@@ -1839,6 +1762,7 @@ class BreakpointContainer (object):
 
         @see:
             L{has_page_breakpoint},
+            L{get_page_breakpoint},
             L{enable_page_breakpoint},
             L{enable_one_shot_page_breakpoint},
             L{disable_page_breakpoint},
@@ -1908,6 +1832,7 @@ class BreakpointContainer (object):
 
         @see:
             L{has_hardware_breakpoint},
+            L{get_hardware_breakpoint},
             L{enable_hardware_breakpoint},
             L{enable_one_shot_hardware_breakpoint},
             L{disable_hardware_breakpoint},
@@ -1977,8 +1902,8 @@ class BreakpointContainer (object):
 
             Where B{event} is an L{Event} object.
 
-        @rtype:  L{PageBreakpoint}
-        @return: The page breakpoint object.
+        @rtype:  L{HardwareBreakpoint}
+        @return: The hardware breakpoint object.
         """
         thread  = self.system.get_thread(dwThreadId)
         bp      = HardwareBreakpoint(address, triggerFlag, sizeFlag, condition,
@@ -1991,7 +1916,8 @@ class BreakpointContainer (object):
             for oldbp in bpSet:
                 old_begin = oldbp.get_address()
                 old_end   = old_begin + oldbp.get_size()
-                if self.__ranges_intersect(begin, end, old_begin, old_end):
+                if MemoryAddresses.do_ranges_intersect(begin, end, old_begin,
+                                                                     old_end):
                     msg = "Already exists (TID %d) : %r" % (dwThreadId, oldbp)
                     raise KeyError, msg
         else:
@@ -2009,6 +1935,7 @@ class BreakpointContainer (object):
 
         @see:
             L{define_code_breakpoint},
+            L{get_code_breakpoint},
             L{erase_code_breakpoint},
             L{enable_code_breakpoint},
             L{enable_one_shot_code_breakpoint},
@@ -2032,6 +1959,7 @@ class BreakpointContainer (object):
 
         @see:
             L{define_page_breakpoint},
+            L{get_page_breakpoint},
             L{erase_page_breakpoint},
             L{enable_page_breakpoint},
             L{enable_one_shot_page_breakpoint},
@@ -2055,6 +1983,7 @@ class BreakpointContainer (object):
 
         @see:
             L{define_hardware_breakpoint},
+            L{get_hardware_breakpoint},
             L{erase_hardware_breakpoint},
             L{enable_hardware_breakpoint},
             L{enable_one_shot_hardware_breakpoint},
@@ -2078,80 +2007,102 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
-    def erase_code_breakpoint(self, dwProcessId, address):
+    def get_code_breakpoint(self, dwProcessId, address):
         """
-        Erases the code breakpoint at the given address.
+        Returns the internally used breakpoint object,
+        for the code breakpoint defined at the given address.
+
+        @warning: It's usually best to call the L{Debug} methods
+            instead of accessing the breakpoint objects directly.
 
         @see:
             L{define_code_breakpoint},
             L{has_code_breakpoint},
             L{enable_code_breakpoint},
             L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint}
+            L{disable_code_breakpoint},
+            L{erase_code_breakpoint}
 
         @type  dwProcessId: int
         @param dwProcessId: Process global ID.
 
         @type  address: int
-        @param address: Memory address of breakpoint.
-        """
-        bp = self.__get_code_bp(dwProcessId, address)
-        if not bp.is_disabled():
-            self.disable_code_breakpoint(dwProcessId, address)
-        del self.__codeBP[ (dwProcessId, address) ]
+        @param address: Memory address where the breakpoint is defined.
 
-    @processidparam
-    def erase_page_breakpoint(self, dwProcessId, address):
+        @rtype:  L{CodeBreakpoint}
+        @return: The code breakpoint object.
         """
-        Erases the page breakpoint at the given address.
+        key = (dwProcessId, address)
+        if not self.__codeBP.has_key(key):
+            msg = "No breakpoint at process %d, address %.08x"
+            raise KeyError, msg % key
+        return self.__codeBP[key]
+
+    def get_page_breakpoint(self, dwProcessId, address):
+        """
+        Returns the internally used breakpoint object,
+        for the page breakpoint defined at the given address.
+
+        @warning: It's usually best to call the L{Debug} methods
+            instead of accessing the breakpoint objects directly.
 
         @see:
             L{define_page_breakpoint},
             L{has_page_breakpoint},
             L{enable_page_breakpoint},
             L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint}
+            L{disable_page_breakpoint},
+            L{erase_page_breakpoint}
 
         @type  dwProcessId: int
         @param dwProcessId: Process global ID.
 
         @type  address: int
-        @param address: Memory address of breakpoint.
-        """
-        bp    = self.__get_page_bp(dwProcessId, address)
-        begin = bp.get_address()
-        end   = begin + bp.get_size()
-        if not bp.is_disabled():
-            self.disable_page_breakpoint(dwProcessId, address)
-        for address in xrange(begin, end, bp.pageSize):
-            del self.__pageBP[ (dwProcessId, address) ]
+        @param address: Memory address where the breakpoint is defined.
 
-    @threadidparam
-    def erase_hardware_breakpoint(self, dwThreadId, address):
+        @rtype:  L{PageBreakpoint}
+        @return: The page breakpoint object.
         """
-        Erases the hardware breakpoint at the given address.
+        key = (dwProcessId, address)
+        if not self.__pageBP.has_key(key):
+            msg = "No breakpoint at process %d, address %.08x"
+            raise KeyError, msg % key
+        return self.__pageBP[key]
+
+    def get_hardware_breakpoint(self, dwThreadId, address):
+        """
+        Returns the internally used breakpoint object,
+        for the code breakpoint defined at the given address.
+
+        @warning: It's usually best to call the L{Debug} methods
+            instead of accessing the breakpoint objects directly.
 
         @see:
             L{define_hardware_breakpoint},
             L{has_hardware_breakpoint},
+            L{get_code_breakpoint},
             L{enable_hardware_breakpoint},
             L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint}
+            L{disable_hardware_breakpoint},
+            L{erase_hardware_breakpoint}
 
         @type  dwThreadId: int
         @param dwThreadId: Thread global ID.
 
         @type  address: int
-        @param address: Memory address of breakpoint.
+        @param address: Memory address where the breakpoint is defined.
+
+        @rtype:  L{HardwareBreakpoint}
+        @return: The hardware breakpoint object.
         """
-        bp = self.__get_hardware_bp(dwThreadId, address)
-        if not bp.is_disabled():
-            self.disable_hardware_breakpoint(dwThreadId, address)
-        bpSet = self.__hardwareBP[dwThreadId]
-        bpSet.remove(bp)
-        if not bpSet:
-            del self.__hardwareBP[dwThreadId]
+        if not self.__hardwareBP.has_key(dwThreadId):
+            msg = "No hardware breakpoints set for thread %d"
+            raise KeyError, msg % dwThreadId
+        for bp in self.__hardwareBP[dwThreadId]:
+            if bp.is_here(address):
+                return bp
+        msg = "No hardware breakpoint at thread %d, address %.08x"
+        raise KeyError, msg % (dwThreadId, address)
 
 #------------------------------------------------------------------------------
 
@@ -2185,6 +2136,7 @@ class BreakpointContainer (object):
         @see:
             L{define_page_breakpoint},
             L{has_page_breakpoint},
+            L{get_page_breakpoint},
             L{enable_one_shot_page_breakpoint},
             L{disable_page_breakpoint}
             L{erase_page_breakpoint},
@@ -2207,6 +2159,7 @@ class BreakpointContainer (object):
         @see:
             L{define_hardware_breakpoint},
             L{has_hardware_breakpoint},
+            L{get_hardware_breakpoint},
             L{enable_one_shot_hardware_breakpoint},
             L{disable_hardware_breakpoint}
             L{erase_hardware_breakpoint},
@@ -2230,6 +2183,7 @@ class BreakpointContainer (object):
         @see:
             L{define_code_breakpoint},
             L{has_code_breakpoint},
+            L{get_code_breakpoint},
             L{enable_code_breakpoint},
             L{disable_code_breakpoint}
             L{erase_code_breakpoint},
@@ -2252,6 +2206,7 @@ class BreakpointContainer (object):
         @see:
             L{define_page_breakpoint},
             L{has_page_breakpoint},
+            L{get_page_breakpoint},
             L{enable_page_breakpoint},
             L{disable_page_breakpoint}
             L{erase_page_breakpoint},
@@ -2274,6 +2229,7 @@ class BreakpointContainer (object):
         @see:
             L{define_hardware_breakpoint},
             L{has_hardware_breakpoint},
+            L{get_hardware_breakpoint},
             L{enable_hardware_breakpoint},
             L{disable_hardware_breakpoint}
             L{erase_hardware_breakpoint},
@@ -2296,6 +2252,7 @@ class BreakpointContainer (object):
         @see:
             L{define_code_breakpoint},
             L{has_code_breakpoint},
+            L{get_code_breakpoint},
             L{enable_code_breakpoint}
             L{enable_one_shot_code_breakpoint},
             L{erase_code_breakpoint},
@@ -2320,6 +2277,7 @@ class BreakpointContainer (object):
         @see:
             L{define_page_breakpoint},
             L{has_page_breakpoint},
+            L{get_page_breakpoint},
             L{enable_page_breakpoint}
             L{enable_one_shot_page_breakpoint},
             L{erase_page_breakpoint},
@@ -2344,6 +2302,7 @@ class BreakpointContainer (object):
         @see:
             L{define_hardware_breakpoint},
             L{has_hardware_breakpoint},
+            L{get_hardware_breakpoint},
             L{enable_hardware_breakpoint}
             L{enable_one_shot_hardware_breakpoint},
             L{erase_hardware_breakpoint},
@@ -2363,13 +2322,93 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    @processidparam
+    def erase_code_breakpoint(self, dwProcessId, address):
+        """
+        Erases the code breakpoint at the given address.
+
+        @see:
+            L{define_code_breakpoint},
+            L{has_code_breakpoint},
+            L{get_code_breakpoint},
+            L{enable_code_breakpoint},
+            L{enable_one_shot_code_breakpoint},
+            L{disable_code_breakpoint}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of breakpoint.
+        """
+        bp = self.__get_code_bp(dwProcessId, address)
+        if not bp.is_disabled():
+            self.disable_code_breakpoint(dwProcessId, address)
+        del self.__codeBP[ (dwProcessId, address) ]
+
+    @processidparam
+    def erase_page_breakpoint(self, dwProcessId, address):
+        """
+        Erases the page breakpoint at the given address.
+
+        @see:
+            L{define_page_breakpoint},
+            L{has_page_breakpoint},
+            L{get_page_breakpoint},
+            L{enable_page_breakpoint},
+            L{enable_one_shot_page_breakpoint},
+            L{disable_page_breakpoint}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of breakpoint.
+        """
+        bp    = self.__get_page_bp(dwProcessId, address)
+        begin = bp.get_address()
+        end   = begin + bp.get_size()
+        if not bp.is_disabled():
+            self.disable_page_breakpoint(dwProcessId, address)
+        for address in xrange(begin, end, bp.pageSize):
+            del self.__pageBP[ (dwProcessId, address) ]
+
+    @threadidparam
+    def erase_hardware_breakpoint(self, dwThreadId, address):
+        """
+        Erases the hardware breakpoint at the given address.
+
+        @see:
+            L{define_hardware_breakpoint},
+            L{has_hardware_breakpoint},
+            L{get_hardware_breakpoint},
+            L{enable_hardware_breakpoint},
+            L{enable_one_shot_hardware_breakpoint},
+            L{disable_hardware_breakpoint}
+
+        @type  dwThreadId: int
+        @param dwThreadId: Thread global ID.
+
+        @type  address: int
+        @param address: Memory address of breakpoint.
+        """
+        bp = self.__get_hardware_bp(dwThreadId, address)
+        if not bp.is_disabled():
+            self.disable_hardware_breakpoint(dwThreadId, address)
+        bpSet = self.__hardwareBP[dwThreadId]
+        bpSet.remove(bp)
+        if not bpSet:
+            del self.__hardwareBP[dwThreadId]
+
+#------------------------------------------------------------------------------
+
     def get_all_breakpoints(self):
         """
         Returns all breakpoint objects as a list of tuples.
 
         Each tuple contains:
          - Process global ID to which the breakpoint applies.
-         - Thread global ID to which the breakpoint applies, or None.
+         - Thread global ID to which the breakpoint applies, or C{None}.
          - The L{Breakpoint} object itself.
 
         @note: If you're only interested in a specific breakpoint type, or in
@@ -3135,9 +3174,9 @@ class BreakpointContainer (object):
             raise ValueError, "Bad size for buffer watch: %r" % size
 
         # Get the base address and size in pages required for this buffer.
-        base  = PageBreakpoint.align_address_to_page_start(address)
-        limit = PageBreakpoint.align_address_to_page_end(address + size)
-        pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
+        base  = MemoryAddresses.align_address_to_page_start(address)
+        limit = MemoryAddresses.align_address_to_page_end(address + size)
+        pages = MemoryAddresses.get_buffer_size_in_pages(address, size)
 
         try:
 
@@ -3216,9 +3255,9 @@ class BreakpointContainer (object):
             raise ValueError, "Bad size for buffer watch: %r" % size
 
         # Get the base address and size in pages required for this buffer.
-        base  = PageBreakpoint.align_address_to_page_start(address)
-        limit = PageBreakpoint.align_address_to_page_end(address + size)
-        pages = PageBreakpoint.get_buffer_size_in_pages(address, size)
+        base  = MemoryAddresses.align_address_to_page_start(address)
+        limit = MemoryAddresses.align_address_to_page_end(address + size)
+        pages = MemoryAddresses.get_buffer_size_in_pages(address, size)
 
         # For each page, get the breakpoint and it's condition object.
         # For each condition, remove the buffer.
@@ -3260,7 +3299,7 @@ class BreakpointContainer (object):
 
         @rtype:  int, None
         @return: On success, the address of the exported function.
-            On failure, returns None.
+            On failure, returns C{None}.
         """
         aProcess = self.system.get_process(pid)
         aModule = aProcess.get_module_by_name(modName)
@@ -3280,7 +3319,7 @@ class BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  label: int
+        @type  label: str
         @param label: Label to resolve.
 
         @rtype:  int

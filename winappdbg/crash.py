@@ -28,7 +28,7 @@
 # $Id$
 
 """
-Crash logger.
+Crash logging module.
 """
 
 __all__ =   [
@@ -87,95 +87,96 @@ class Crash (object):
     @type labelPC: None or str
     @ivar labelPC: Label pointing to the program counter.
 
-        I{None} or invalid if unapplicable or unable to retrieve.
+        C{None} or invalid if unapplicable or unable to retrieve.
 
     @type debugString: None or str
     @ivar debugString: Debug string sent by the debugee.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type exceptionCode: None or int
     @ivar exceptionCode: Exception code as defined by the Win32 API.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type exceptionName: None or str
     @ivar exceptionName: Exception code user-friendly name.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type exceptionAddress: None or int
     @ivar exceptionAddress: Memory address where the exception occured.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type exceptionLabel: None or str
     @ivar exceptionLabel: Label pointing to the exception address.
 
-        I{None} or invalid if unapplicable or unable to retrieve.
+        C{None} or invalid if unapplicable or unable to retrieve.
 
     @type firstChance: None or bool
-    @ivar firstChance: True for first chance exceptions, False for second chance.
+    @ivar firstChance:
+        C{True} for first chance exceptions, C{False} for second chance.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type modFileName: None or str
     @ivar modFileName: File name of module where the program counter points to.
 
-        I{None} or invalid if unapplicable or unable to retrieve.
+        C{None} or invalid if unapplicable or unable to retrieve.
 
     @type lpBaseOfDll: None or int
     @ivar lpBaseOfDll: Base of module where the program counter points to.
 
-        I{None} if unapplicable or unable to retrieve.
+        C{None} if unapplicable or unable to retrieve.
 
     @type stackTrace: None or tuple of tuple( int, int, str )
     @ivar stackTrace:
         Stack trace of the current thread as a tuple of
         ( return address, frame pointer, module filename ).
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type stackTracePC: None or tuple( int... )
     @ivar stackTracePC: Tuple of return addresses in the stack trace.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type stackTraceLabels: None or tuple( str... )
     @ivar stackTraceLabels:
         Tuple of labels pointing to the return addresses in the stack trace.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type stackFrame: None or str
     @ivar stackFrame: Data pointed to by the stack pointer.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type stackPeek: None or dict( int S{->} str )
     @ivar stackPeek: Dictionary mapping stack offsets to the data they point to.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type faultCode: None or str
     @ivar faultCode: Data pointed to by the program counter.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type faultMem: None or str
     @ivar faultMem: Data pointed to by the exception address.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type faultPeek: None or dict( intS{->} str )
     @ivar faultPeek: Dictionary mapping guessed pointers at L{faultMem} to the data they point to.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
 
     @type faultDisasm: None or tuple of tuple( long, int, str, str )
     @ivar faultDisasm: Dissassembly around the program counter.
 
-        I{None} or empty if unapplicable or unable to retrieve.
+        C{None} or empty if unapplicable or unable to retrieve.
     """
 
     def __init__(self, event):
@@ -312,7 +313,7 @@ class Crash (object):
         caused by the same software error. Ideally it should be treated as an
         opaque object.
 
-        @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/CrashKey}
+        @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/CrashKey}
 
         @rtype:  (opaque)
         @return: Crash unique key.
@@ -490,7 +491,7 @@ class Crash (object):
     def hasNotes(self):
         """
         @rtype:  bool
-        @return: True if there are notes for this crash event.
+        @return: C{True} if there are notes for this crash event.
         """
         return bool( self.notes )
 
@@ -579,7 +580,7 @@ class CrashContainer (object):
         @param crash: Crash object.
 
         @rtype:  bool
-        @return: I{True} if the Crash object is in the container.
+        @return: C{True} if the Crash object is in the container.
         """
         return self.has_key( crash.key() )
 
@@ -601,7 +602,7 @@ class CrashContainer (object):
     def __bool__(self):
         """
         @rtype:  bool
-        @return: I{False} if the container is empty.
+        @return: C{False} if the container is empty.
         """
         return bool(self.__keys)
 
@@ -611,7 +612,7 @@ class CrashContainer (object):
         @param key: Key of the crash to get.
 
         @rtype:  bool
-        @return: I{True} if a matching Crash object is in the container.
+        @return: C{True} if a matching L{Crash} object is in the container.
         """
         return self.__keys.has_key(key)
 
@@ -653,7 +654,7 @@ class CrashContainer (object):
 
         @see: L{Crash.key}
 
-        @type crash:  L{Crash}
+        @type  crash: L{Crash}
         @param crash: Crash object to add.
         """
         if crash not in self:
@@ -667,7 +668,7 @@ class CrashContainer (object):
         """
         Removes a crash from the container.
 
-        @type crash:  L{Crash}
+        @type  crash: L{Crash}
         @param crash: Crash object to remove.
         """
         key  = crash.key()

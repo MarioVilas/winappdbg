@@ -28,7 +28,7 @@
 # $Id$
 
 """
-Main module.
+Debugging module.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
@@ -57,6 +57,23 @@ class Debug (EventDispatcher, BreakpointContainer):
 
     @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
+    @group Debugging:
+        attach, detach, detach_from_all, execv, execl, clear
+
+    @group Debugging loop:
+        loop, wait, dispatch, cont, get_debugee_count
+
+    @group Event notifications (private):
+        notify_create_process,
+        notify_create_thread,
+        notify_load_dll,
+        notify_exit_process,
+        notify_exit_thread,
+        notify_unload_dll,
+        notify_rip,
+        notify_debug_control_c,
+        notify_ms_vc_exception
+
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
         processes being debugged. Processes not being debugged in this snapshot
@@ -73,7 +90,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  bKillOnExit: bool
         @param bKillOnExit: (Optional) Global kill on exit mode.
-            True to kill the process on exit, False to detach.
+            C{True} to kill the process on exit, C{False} to detach.
             Ignored under Windows 2000 and below.
 
         @note: The L{eventHandler} parameter may be any callable Python object
@@ -159,11 +176,11 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param dwProcessId: Global ID of a process to detach from.
 
         @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: True to ignore any exceptions that may be
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
             raised when detaching.
 
         @raise WindowsError: Raises an exception on error, unless
-            bIgnoreExceptions is True.
+            C{bIgnoreExceptions} is C{True}.
         """
         try:
             self.disable_process_breakpoints(dwProcessId)
@@ -192,11 +209,11 @@ class Debug (EventDispatcher, BreakpointContainer):
         @see: L{attach}, L{detach}
 
         @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: True to ignore any exceptions that may be
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
             raised when detaching.
 
         @raise WindowsError: Raises an exception on error, unless
-            bIgnoreExceptions is True.
+            C{bIgnoreExceptions} is C{True}.
         """
         for pid in self.system.get_process_ids():
             try:
@@ -226,11 +243,11 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param bConsole: True to inherit the console of the debugger.
 
         @type  bFollow: bool
-        @param bFollow: True to automatically attach to child processes.
+        @param bFollow: C{True} to automatically attach to child processes.
 
         @type  bSuspended: bool
-        @param bSuspended: True to suspend the main thread before any code is
-            executed in the debugee.
+        @param bSuspended: C{True} to suspend the main thread before any code
+            is executed in the debugee.
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -261,14 +278,14 @@ class Debug (EventDispatcher, BreakpointContainer):
             backslash.
 
         @type  bConsole: bool
-        @param bConsole: True to inherit the console of the debugger.
+        @param bConsole: C{True} to inherit the console of the debugger.
 
         @type  bFollow: bool
-        @param bFollow: True to automatically attach to child processes.
+        @param bFollow: C{True} to automatically attach to child processes.
 
         @type  bSuspended: bool
-        @param bSuspended: True to suspend the main thread before any code is
-            executed in the debugee.
+        @param bSuspended: C{True} to suspend the main thread before any code
+            is executed in the debugee.
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -301,7 +318,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  dwMilliseconds: int
         @param dwMilliseconds: Timeout in milliseconds.
-            Use INFINITE or None for no timeout.
+            Use C{INFINITE} or C{None} for no timeout.
 
         @rtype:  L{Event}
         @return: An event that occured in one of the debugees.
@@ -324,7 +341,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @see: L{cont}, L{loop}, L{wait}
 
         @type  event: L{Event}
-        @param event: Event object returned by wait().
+        @param event: Event object returned by L{wait}.
 
         @raise WindowsError: Raises an exception on error.
         """
@@ -342,7 +359,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @see: dispatch(), loop(), wait()
 
         @type  event: L{Event}
-        @param event: Event object returned by wait().
+        @param event: Event object returned by L{wait}.
 
         @raise WindowsError: Raises an exception on error.
         """
@@ -370,7 +387,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  dwMilliseconds: int
         @param dwMilliseconds: Timeout for each wait, in milliseconds.
-            Use INFINITE or None for no timeout.
+            Use C{INFINITE} or C{None} for no timeout.
             It's NOT recommended to use no timeout, as the user may be unable
             to cancel your program by pressing Control-C.
 
@@ -425,7 +442,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Exit process event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
         if dwProcessId in self.__manuallyStartedProcessesSet:
@@ -444,7 +461,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Create thread event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         return event.get_process().notify_create_thread(event)
 
@@ -458,7 +475,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Load DLL event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         return event.get_process().notify_load_dll(event)
 
@@ -472,7 +489,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Exit process event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
         if dwProcessId in self.__manuallyStartedProcessesSet:
@@ -494,7 +511,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Exit thread event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         bCallHandler = BreakpointContainer.notify_exit_thread(self, event)
         bCallHandler = bCallHandler and \
@@ -513,7 +530,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Unload DLL event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         return event.get_process().notify_unload_dll(event)
 
@@ -527,7 +544,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: RIP event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         event.debug.detach( event.get_pid() )
         return True
@@ -548,7 +565,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Debug Ctrl-C exception event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         if event.is_first_chance():
             event.continueStatus = win32.DBG_CONTINUE
@@ -569,7 +586,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param event: Microsoft Visual C exception event.
 
         @rtype:  bool
-        @return: I{True} to call the user-defined handle, I{False} otherwise.
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwType = event.get_exception_information(0)
         if dwType == 0x1000:

@@ -28,7 +28,7 @@
 # $Id$
 
 """
-Windows application debugging engine
+Windows application debugging engine for Python.
 
 by Mario Vilas (mvilas at gmail.com)
 

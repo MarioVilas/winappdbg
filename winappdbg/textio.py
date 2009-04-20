@@ -55,7 +55,15 @@ class DebugLog (object):
 
     @staticmethod
     def log_text(text):
-        'Log lines of text, inserting a timestamp.'
+        """
+        Log lines of text, inserting a timestamp.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
         if text.endswith('\n'):
             text = text[:-len('\n')]
         #text  = text.replace('\n', '\n\t\t')           # text CSV
@@ -66,7 +74,18 @@ class DebugLog (object):
 
     @classmethod
     def log_event(cls, event, text):
-        'Log lines of text associated with a debug event.'
+        """
+        Log lines of text associated with a debug event.
+
+        @type  event: L{Event}
+        @param event: Event object.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
         text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
         #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
         return cls.log_text(text)
@@ -78,7 +97,15 @@ class HexDump (object):
 
     @staticmethod
     def printable(data):
-        'Replace unprintable characters with dots.'
+        """
+        Replace unprintable characters with dots.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @rtype:  str
+        @return: Printable text.
+        """
         result = ''
         for c in data:
             if 32 < ord(c) < 128:
@@ -89,12 +116,40 @@ class HexDump (object):
 
     @staticmethod
     def hexadecimal(data, separator = ''):
-        'Convert binary data to a string of hexadecimal numbers.'
+        """
+        Convert binary data to a string of hexadecimal numbers.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
         return separator.join( [ '%.2x' % ord(c) for c in data ] )
 
     @classmethod
     def hexline(cls, data, separator = ' ', width = None):
-        'Dump a line of hexadecimal numbers from binary data.'
+        """
+        Dump a line of hexadecimal numbers from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of characters to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
         if width is None:
             fmt = '%s  %s\n'
         else:
@@ -103,7 +158,26 @@ class HexDump (object):
 
     @classmethod
     def hexblock(cls, data, address = None, separator = ' ', width = 16):
-        'Dump a block of hexadecimal numbers from binary data.'
+        """
+        Dump a block of hexadecimal numbers from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of characters to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
         result = ''
         if address is None:
             for i in xrange(0, len(data), width):
@@ -173,11 +247,7 @@ class HexInput (object):
 
             "B8 0? ?0 ?? ??"
 
-        Is converted to this regular expression::
-
-            "\xB8...."
-
-        And would match the following data::
+        Would match the following data::
 
             "B8 0D F0 AD BA"    # mov eax, 0xBAADF00D
 
@@ -461,7 +531,7 @@ class CrashDump (object):
         Dump a stack trace.
 
         @type  stack_trace: list( int, int, str )
-        @param stack_trace: Stack trace as a tuple of
+        @param stack_trace: Stack trace as a list of tuples of
             ( return address, frame pointer, module filename )
 
         @rtype:  str

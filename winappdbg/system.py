@@ -28,9 +28,9 @@
 # $Id$
 
 """
-Instrumentation library.
+Instrumentation module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation}
 
 @group Instrumentation:
     System, Process, Thread, Module
@@ -39,10 +39,10 @@ Instrumentation library.
 @group Capabilities (private):
     ModuleContainer, ThreadContainer, ProcessContainer,
     ThreadDebugOperations, ProcessDebugOperations,
-    MemoryOperations
+    MemoryOperations, MemoryAddresses, SymbolOperations
 """
 
-# this library can be imported directly
+# this module can be imported directly
 # to manipulate processes and threads
 # without the need for the debugger
 
@@ -64,6 +64,9 @@ __all__ =   [
                 'ProcessHandle',
                 'ThreadHandle',
                 'FileHandle',
+
+                # Static functions
+                'MemoryAddresses',
             ]
 
 import win32
@@ -122,12 +125,18 @@ class Handle (object):
     def __copy__(self):
         """
         Duplicates the win32 handle when copying the python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
         """
         return self.dup()
 
     def __deepcopy__(self):
         """
         Duplicates the win32 handle when copying the python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
         """
         return self.dup()
 
@@ -346,6 +355,36 @@ class FileHandle (Handle):
             path = ""
         return path
 
+    @staticmethod
+    def native_to_win32_pathname(name):
+        """
+        @type  name: str
+        @param name: Native (NT) absolute pathname.
+
+        @rtype:  str
+        @return: Win32 absolute pathname.
+        """
+        if name.startswith("\\"):
+            if name.startswith("\\??\\"):
+                name = name[ 4: ]
+            else:
+                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                    drive_letter = '%c:' % drive_number
+                    try:
+                        device_native_path = win32.QueryDosDevice(drive_letter)
+                    except WindowsError, e:
+                        if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
+                                          win32.ERROR_PATH_NOT_FOUND):
+                            continue
+                        raise
+                    if not device_native_path.endswith('\\'):
+                        device_native_path += '\\'
+                    if name.startswith(device_native_path):
+                        name = drive_letter + '\\' + \
+                                              name[ len(device_native_path) : ]
+                        break
+        return name
+
 #==============================================================================
 
 def dllbaseparam(f):
@@ -379,6 +418,11 @@ class ModuleContainer (object):
         get_module_at_address, get_module_by_name,
         has_module, iter_modules, iter_module_addresses,
         clear_modules
+
+    @group Event notifications (private):
+        notify_create_process,
+        notify_load_dll,
+        notify_unload_dll
     """
 
     def __init__(self):
@@ -389,8 +433,8 @@ class ModuleContainer (object):
         """
         @type  anObject: L{Module}, int
         @param anObject:
-            C{Module}: Module object to look for.
-            C{int}: Base address of the DLL to look for.
+            - C{Module}: Module object to look for.
+            - C{int}: Base address of the DLL to look for.
 
         @rtype:  bool
         @return: C{True} if the snapshot contains
@@ -462,7 +506,7 @@ class ModuleContainer (object):
     def get_module_bases(self):
         """
         @see:    L{iter_module_addresses}
-        @rtype:  list( int )
+        @rtype:  list( int... )
         @return: List of DLL base addresses in this snapshot.
         """
         return self.__moduleDict.keys()
@@ -713,12 +757,18 @@ class ThreadContainer (object):
 
     @group Instrumentation:
         start_thread
+
     @group Threads snapshot:
         scan_threads,
         get_thread, get_thread_count, get_thread_ids,
         has_thread, iter_threads, iter_thread_ids,
         find_threads_by_name,
         clear_threads, clear_dead_threads, close_thread_handles
+
+    @group Event notifications (private):
+        notify_create_process,
+        notify_create_thread,
+        notify_exit_thread
     """
 
     def __init__(self):
@@ -1004,6 +1054,87 @@ class ThreadContainer (object):
 
 #==============================================================================
 
+class MemoryAddresses (object):
+    """
+    Class to manipulate memory addresses.
+    """
+
+    @staticmethod
+    def align_address_to_page_start(address):
+        """
+        Align the given address to the start of the page it occupies.
+
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  int
+        @return: Aligned memory address.
+        """
+        return address - ( address % System.pageSize )
+
+    @staticmethod
+    def align_address_to_page_end(cls, address):
+        """
+        Align the given address to the end of the page it occupies.
+
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  int
+        @return: Aligned memory address.
+        """
+        return address + System.pageSize - ( address % System.pageSize )
+
+    @classmethod
+    def align_address_range(cls, begin, end):
+        """
+        Align the given address range to the start and end of the page(s) it occupies.
+
+        @type  begin: int
+        @param begin: Memory address of the beginning of the buffer.
+
+        @type  end: int
+        @param end: Memory address of the end of the buffer.
+
+        @rtype:  tuple( int, int )
+        @return: Aligned memory addresses.
+        """
+        if end > begin:
+            begin, end = end, begin
+        return (
+            cls.align_address_to_page_start(begin),
+            cls.align_address_to_page_end(end)
+            )
+
+    @classmethod
+    def get_buffer_size_in_pages(cls, address, size):
+        """
+        Get the number of pages in use by the given buffer.
+
+        @type  address: int
+        @param address: Aligned memory address.
+
+        @type  size: int
+        @param size: Buffer size.
+
+        @rtype:  int
+        @return: Buffer size in number of pages.
+        """
+        if size < 0:
+            size    = -size
+            address = address - size
+        begin, end = cls.align_address_range(address, address + size)
+        return (end - begin) / System.pageSize
+
+    @staticmethod
+    def do_ranges_intersect(begin, end, old_begin, old_end):
+        return  (old_begin <= begin < old_end) or \
+                (old_begin < end <= old_end)   or \
+                (begin <= old_begin < end)     or \
+                (begin < old_end <= end)
+
+#==============================================================================
+
 # TODO
 # * This methods do not take into account that code breakpoints change the
 #   memory. This object should talk to BreakpointContainer to retrieve the
@@ -1015,9 +1146,11 @@ class MemoryOperations (object):
 
     @group Memory mapping:
         get_memory_map, malloc, free, mprotect, mquery
+
     @group Memory read:
         read, read_char, read_uint, read_structure,
         peek, peek_char, peek_uint, peek_string
+
     @group Memory write:
         write, write_char, write_uint,
         poke, poke_char, poke_uint
@@ -1450,7 +1583,7 @@ class SymbolOperations (object):
         loaded, or when module filenames can't be retrieved.
 
         Read more on labels here:
-        U{https://apps.sourceforge.net/trac/winappdbg/wiki/HowLabelsWork}
+        U{http://apps.sourceforge.net/trac/winappdbg/wiki/HowLabelsWork}
 
     @group Labels:
         parse_label,
@@ -1997,14 +2130,21 @@ class ThreadDebugOperations (object):
     """
     Encapsulates several useful debugging routines for threads.
 
+    @group Properties:
+        get_teb
+
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
+
     @group Stack:
+        get_stack_frame, get_stack_frame_range,
+        get_stack_range, get_stack_trace,
         read_stack_data, read_stack_dwords,
-        get_stack_frame, get_stack_range, get_stack_trace
+        peek_stack_data, peek_stack_dwords
+
     @group Miscellaneous:
-        get_teb, read_code_bytes, peek_code_bytes,
+        read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers
     """
 
@@ -2379,9 +2519,11 @@ class ProcessDebugOperations (object):
 
     @group Properties:
         get_peb, get_main_module, get_image_base, get_image_name
+
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
+
     @group Miscellaneous:
         flush_instruction_cache, peek_pointers_in_data
     """
@@ -2574,7 +2716,7 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
-                name = self.native_to_win32_pathname(name)
+                name = FileHandle.native_to_win32_pathname(name)
             except AttributeError:
                 name = None
             except WindowsError:
@@ -2589,7 +2731,7 @@ class ProcessDebugOperations (object):
                 #   \??\C:\WINDOWS\system32\csrss.exe
                 #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
-                name = self.native_to_win32_pathname(name)
+                name = FileHandle.native_to_win32_pathname(name)
             except AttributeError:
                 name = None
             except WindowsError:
@@ -2624,36 +2766,6 @@ class ProcessDebugOperations (object):
 ##                name = None
 
         # return the image filename, or None on error.
-        return name
-
-    @staticmethod
-    def native_to_win32_pathname(name):
-        """
-        @type  name: str
-        @param name: Native (NT) absolute pathname.
-
-        @rtype:  str
-        @return: Win32 absolute pathname.
-        """
-        if name.startswith("\\"):
-            if name.startswith("\\??\\"):
-                name = name[ 4: ]
-            else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
-                    drive_letter = '%c:' % drive_number
-                    try:
-                        device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
-                        if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
-                                          win32.ERROR_PATH_NOT_FOUND):
-                            continue
-                        raise
-                    if not device_native_path.endswith('\\'):
-                        device_native_path += '\\'
-                    if name.startswith(device_native_path):
-                        name = drive_letter + '\\' + \
-                                              name[ len(device_native_path) : ]
-                        break
         return name
 
 #------------------------------------------------------------------------------
@@ -2721,6 +2833,7 @@ class ProcessContainer (object):
 
     @group Instrumentation:
         start_process, argv_to_cmdline, cmdline_to_argv
+
     @group Processes snapshot:
         scan, scan_processes, scan_processes_fast,
         get_process, get_process_count, get_process_ids,
@@ -2730,14 +2843,20 @@ class ProcessContainer (object):
         clear_unattached_processes,
         close_process_handles,
         close_process_and_thread_handles
+
     @group Threads snapshots:
         scan_processes_and_threads,
         get_thread, get_thread_count, get_thread_ids,
         has_thread
+
     @group Modules snapshots:
         scan_modules, find_modules_by_address,
         find_modules_by_base, find_modules_by_name,
         get_module_count
+
+    @group Event notifications (private):
+        notify_create_process,
+        notify_exit_process
     """
 
     def __init__(self):
@@ -2901,7 +3020,29 @@ class ProcessContainer (object):
             bFollow     = False,
             bSuspended  = False
         ):
-        'Starts a new process for debugging.'
+        """
+        Starts a new process for debugging.
+
+        @type  lpCmdLine: str
+        @param lpCmdLine: Command line to execute. Can't be an empty string.
+
+        @type  bConsole: bool
+        @param bConsole: C{True} if the new process should inherit the console.
+
+        @type  bDebug: bool
+        @param bDebug: C{True} to attach to the new process.
+            To debug a process it's best to use the L{Debug} class instead.
+
+        @type  bFollow: bool
+        @param bFollow: C{True} to automatically attach to the child processes
+            of the newly created process. Ignored unless C{bDebug} is C{True}.
+
+        @type  bSuspended: bool
+        @param bSuspended: C{True} if the new process should be suspended.
+
+        @rtype:  L{Process}
+        @return: Process object.
+        """
         if not lpCmdLine:
             raise ValueError, "Missing command line to execute!"
         dwCreationFlags  = 0
@@ -3079,7 +3220,7 @@ class ProcessContainer (object):
 
     def clear_dead_processes(self):
         """
-        Remove Process objects from the snapshot
+        Removes Process objects from the snapshot
         referring to processes no longer running.
         """
         for pid in self.get_process_ids():
@@ -3089,7 +3230,7 @@ class ProcessContainer (object):
 
     def clear_unattached_processes(self):
         """
-        Remove Process objects from the snapshot
+        Removes Process objects from the snapshot
         referring to processes not being debugged.
         """
         for pid in self.get_process_ids():
@@ -3122,13 +3263,13 @@ class ProcessContainer (object):
 
     def clear_processes(self):
         """
-        Remove all L{Process}, L{Thread} and L{Module} objects in this snapshot.
+        Removes all L{Process}, L{Thread} and L{Module} objects in this snapshot.
         """
         self.__processDict = dict()
 
     def clear(self):
         """
-        Clear this snapshot.
+        Clears this snapshot.
 
         @see: L{clear_processes}
         """
@@ -3187,7 +3328,7 @@ class ProcessContainer (object):
     @dllbaseparam
     def find_modules_by_base(self, lpBaseOfDll):
         """
-        @rtype:  list( L{Module} )
+        @rtype:  list( L{Module}... )
         @return: List of Module objects with the given base address.
         """
         found = list()
@@ -3199,7 +3340,7 @@ class ProcessContainer (object):
 
     def find_modules_by_name(self, fileName):
         """
-        @rtype:  list( L{Module} )
+        @rtype:  list( L{Module}... )
         @return: List of Module objects that best match the given filename.
         """
         found = list()
@@ -3211,7 +3352,7 @@ class ProcessContainer (object):
 
     def find_modules_by_address(self, address):
         """
-        @rtype:  list( L{Module} )
+        @rtype:  list( L{Module}... )
         @return: List of Module objects that best match the given address.
         """
         found = list()
@@ -3223,7 +3364,7 @@ class ProcessContainer (object):
 
     def find_processes_by_filename(self, filename):
         """
-        @rtype:  list( L{Process} )
+        @rtype:  list( L{Process}... )
         @return: List of processes matching the given main module filename.
         """
         found    = list()
@@ -3288,13 +3429,14 @@ class ProcessContainer (object):
 
 class Module (object):
     """
-    Interface with a DLL library loaded in the context of another process.
+    Interface to a DLL library loaded in the context of another process.
 
     @group Properties:
         get_base, get_filename, get_name, get_size, get_entry_point,
         get_process, get_pid
     @group Symbols:
-        get_label, get_label_at_address, is_address_here, resolve
+        get_label, get_label_at_address, is_address_here,
+        resolve, resolve_label, match_name
     @group Handle:
         get_handle, open_handle, close_handle
 
@@ -3716,8 +3858,7 @@ class Thread (ThreadDebugOperations):
     Interface to a thread in another process.
 
     @group Properties:
-        get_tid, get_pid, get_exit_code,
-        is_alive,
+        get_tid, get_pid, get_process, get_exit_code, is_alive,
         get_name, set_name
     @group Instrumentation:
         suspend, resume, kill, wait
@@ -3732,6 +3873,7 @@ class Thread (ThreadDebugOperations):
         set_flags, set_flag_value,
         set_pc, set_sp, set_fp,
         set_cf, set_df, set_sf, set_tf, set_zf,
+        clear_cf, clear_df, clear_sf, clear_tf, clear_zf,
         Flags
     @group Handle:
         get_handle, open_handle, close_handle
@@ -3748,7 +3890,7 @@ class Thread (ThreadDebugOperations):
     @type pInjectedMemory: int
     @ivar pInjectedMemory: If the thread was created by L{Process.inject_code},
         this member contains a pointer to the memory buffer for the injected
-        code. Otherwise it's None.
+        code. Otherwise it's C{None}.
 
         The L{kill} method uses this member to free the buffer
         when the injected thread is killed.
@@ -3836,14 +3978,16 @@ class Thread (ThreadDebugOperations):
     def get_name(self):
         """
         @rtype:  str
-        @return: Thread name, or None if the thread is nameless.
+        @return: Thread name, or C{None} if the thread is nameless.
         """
         return self.name
 
     def set_name(self, name = None):
         """
+        Sets the thread's name.
+
         @type  name: str
-        @param name: Thread name, or None if the thread is nameless.
+        @param name: Thread name, or C{None} if the thread is nameless.
         """
         self.name = name
 
@@ -3946,7 +4090,7 @@ class Thread (ThreadDebugOperations):
     def get_exit_code(self):
         """
         @rtype:  int
-        @return: Thread exit code, or STILL_ACTIVE if it's still alive.
+        @return: Thread exit code, or C{STILL_ACTIVE} if it's still alive.
         """
         return win32.GetExitCodeThread(self.get_handle())
 
@@ -4219,10 +4363,13 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         debug_break
 
     @group Processes snapshot:
-        scan, clear
+        scan, clear, __contains__, __iter__, __len__
 
     @group Handle:
         get_handle, open_handle, close_handle
+
+    @group Event notifications (private):
+        notify_create_process
 
     @type dwProcessId: int
     @ivar dwProcessId: Global process ID. Use L{get_pid} instead.
@@ -4417,7 +4564,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def get_exit_code(self):
         """
         @rtype:  int
-        @return: Process exit code, or STILL_ACTIVE if it's still alive.
+        @return: Process exit code, or C{STILL_ACTIVE} if it's still alive.
         """
         return win32.GetExitCodeProcess(self.get_handle())
 
@@ -4673,7 +4820,8 @@ class System (ProcessContainer):
 ##            print
         return False
 
-    def set_kill_on_exit_mode(self, bKillOnExit = False):
+    @staticmethod
+    def set_kill_on_exit_mode(bKillOnExit = False):
         """
         Automatically detach from processes when the current thread dies.
 

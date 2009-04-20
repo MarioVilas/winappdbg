@@ -28,9 +28,9 @@
 # $Id$
 
 """
-Event handling library.
+Event handling module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
+@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging}
 
 @group Event objects:
     Event,
@@ -397,6 +397,10 @@ class ExceptionEvent (Event):
 #==============================================================================
 
 class CreateThreadEvent (Event):
+    """
+    Thread creation event.
+    """
+
     eventName        = 'Thread creation event'
     eventDescription = 'A new thread has started.'
 
@@ -405,8 +409,8 @@ class CreateThreadEvent (Event):
         @rtype:  L{ThreadHandle}
         @return: Thread handle received from the system.
             If it's a valid handle, a new L{ThreadHandle} object is created.
-            Otherwise, the method returns INVALID_HANDLE_VALUE.
-        @note: This method never returns NULL.
+            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
+        @note: This method never returns C{NULL}.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -429,8 +433,8 @@ class CreateThreadEvent (Event):
         @rtype:  int
         @return: Pointer to the first instruction to execute in this thread.
 
-            Returns NULL when the debugger attached to a process and the thread
-            already existed.
+            Returns C{NULL} when the debugger attached to a process
+            and the thread already existed.
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
@@ -439,6 +443,10 @@ class CreateThreadEvent (Event):
 #==============================================================================
 
 class CreateProcessEvent (Event):
+    """
+    Process creation event.
+    """
+
     eventName        = 'Process creation event'
     eventDescription = 'A new process has started.'
 
@@ -447,8 +455,8 @@ class CreateProcessEvent (Event):
         @rtype:  L{FileHandle}
         @return: File handle to the main module.
             If it's a valid handle, a new L{FileHandle} object is created.
-            Otherwise, the method returns INVALID_HANDLE_VALUE.
-        @note: This method never returns NULL.
+            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
+        @note: This method never returns C{NULL}.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
@@ -469,8 +477,8 @@ class CreateProcessEvent (Event):
         @rtype:  L{ProcessHandle}
         @return: Process handle received from the system.
             If it's a valid handle, a new L{ProcessHandle} object is created.
-            Otherwise, the method returns INVALID_HANDLE_VALUE.
-        @note: This method never returns NULL.
+            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
+        @note: This method never returns C{NULL}.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -486,8 +494,8 @@ class CreateProcessEvent (Event):
         @rtype:  L{ThreadHandle}
         @return: Thread handle received from the system.
             If it's a valid handle, a new L{ThreadHandle} object is created.
-            Otherwise, the method returns INVALID_HANDLE_VALUE.
-        @note: This method never returns NULL.
+            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
+        @note: This method never returns C{NULL}.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -503,7 +511,7 @@ class CreateProcessEvent (Event):
         @rtype:  int
         @return: Pointer to the first instruction to execute in this process.
 
-            Returns NULL when the debugger attaches to a process.
+            Returns C{NULL} when the debugger attaches to a process.
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
@@ -541,7 +549,7 @@ class CreateProcessEvent (Event):
         @rtype:  str, None
         @return: This method does it's best to retrieve the filename to
         the main module of the process. However, sometimes that's not
-        possible, and None is returned instead.
+        possible, and C{None} is returned instead.
         """
 
         # Try to get the filename from the file handle.
@@ -582,6 +590,10 @@ class CreateProcessEvent (Event):
 #==============================================================================
 
 class ExitThreadEvent (Event):
+    """
+    Thread termination event.
+    """
+
     eventName        = 'Thread termination event'
     eventDescription = 'A thread has finished executing.'
 
@@ -595,6 +607,10 @@ class ExitThreadEvent (Event):
 #==============================================================================
 
 class ExitProcessEvent (Event):
+    """
+    Process termination event.
+    """
+
     eventName        = 'Process termination event'
     eventDescription = 'A process has finished executing.'
 
@@ -608,6 +624,10 @@ class ExitProcessEvent (Event):
 #==============================================================================
 
 class LoadDLLEvent (Event):
+    """
+    Module load event.
+    """
+
     eventName        = 'Module load event'
     eventDescription = 'A new DLL library was loaded by the debugee.'
 
@@ -630,8 +650,8 @@ class LoadDLLEvent (Event):
         @rtype:  L{FileHandle}
         @return: File handle to the newly loaded DLL.
             If it's a valid handle, a new L{FileHandle} object is created.
-            Otherwise, the method returns INVALID_HANDLE_VALUE.
-        @note: This method never returns NULL.
+            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
+        @note: This method never returns C{NULL}.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
@@ -652,7 +672,7 @@ class LoadDLLEvent (Event):
         @rtype:  str, None
         @return: This method does it's best to retrieve the filename to
         the newly loaded module. However, sometimes that's not
-        possible, and None is returned instead.
+        possible, and C{None} is returned instead.
         """
 
         # Try to get the filename from the file handle.
@@ -677,6 +697,10 @@ class LoadDLLEvent (Event):
 #==============================================================================
 
 class UnloadDLLEvent (Event):
+    """
+    Module unload event.
+    """
+
     eventName        = 'Module unload event'
     eventDescription = 'A DLL library was unloaded by the debugee.'
 
@@ -697,6 +721,10 @@ class UnloadDLLEvent (Event):
 #==============================================================================
 
 class OutputDebugStringEvent (Event):
+    """
+    Debug string output event.
+    """
+
     eventName        = 'Debug string output event'
     eventDescription = 'The debugee sent a message to the debugger.'
 
@@ -714,6 +742,10 @@ class OutputDebugStringEvent (Event):
 #==============================================================================
 
 class RIPEvent (Event):
+    """
+    RIP event.
+    """
+
     eventName        = 'RIP event'
     eventDescription = 'An error has occured and the process ' \
                        'can no longer be debugged.'
@@ -779,10 +811,13 @@ class EventFactory (object):
 
     def __new__(typ, *args, **kwargs):
         """
-        EventFactory is a singleton, you can't really have multiple
-        instances of it. To create this effect, the __new__ operator
-        was overriden to return always the B{class} object instead
+        C{EventFactory} is a singleton, you can't really have multiple
+        instances of it. To create this effect, the C{__new__} operator
+        was overriden to return always the I{class} object instead
         of new I{instances}.
+
+        @rtype:  L{EventFactory}
+        @return: C{EventFactory} class (NOT an instance)
         """
         return EventFactory
 
@@ -803,24 +838,24 @@ class EventHandler (object):
     Each event handler is named after the event they handle.
     This is the list of all valid event handler names:
 
-     - event:
+     - I{event}
 
        Receives an L{Event} object or an object of any of it's subclasses,
        and handles any event for which no handler was defined.
 
-     - unknown_event:
+     - I{unknown_event}
 
        Receives an L{Event} object or an object of any of it's subclasses,
        and handles any event unknown to the debugging engine. (This is not
        likely to happen unless the Win32 debugging API is changed in future
        versions of Windows).
 
-     - exception
+     - I{exception}
 
        Receives an L{ExceptionEvent} object and handles any exception for
        which no handler was defined. See above for exception handlers.
 
-     - unknown_exception
+     - U{unknown_exception}
 
        Receives an L{ExceptionEvent} object and handles any exception unknown
        to the debugging engine. This usually happens for C++ exceptions, which
@@ -829,69 +864,69 @@ class EventHandler (object):
        Currently we have partial support for C++ exceptions thrown by Microsoft
        compilers.
 
-       Also see: U{RaiseException<http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
+       Also see: U{RaiseException()<http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
 
-     - create_thread
+     - I{create_thread}
 
        Receives a L{CreateThreadEvent} object.
 
-     - create_process
+     - I{create_process}
 
        Receives a L{CreateProcessEvent} object.
 
-     - exit_thread
+     - I{exit_thread}
 
        Receives a L{ExitThreadEvent} object.
 
-     - exit_process
+     - I{exit_process}
 
        Receives a L{ExitProcessEvent} object.
 
-     - load_dll
+     - I{load_dll}
 
        Receives a L{LoadDLLEvent} object.
 
-     - unload_dll
+     - I{unload_dll}
 
        Receives an L{UnloadDLLEvent} object.
 
-     - output_string
+     - I{output_string}
 
        Receives an L{OutputDebugStringEvent} object.
 
-     - rip
+     - I{rip}
 
        Receives a L{RIPEvent} object.
 
     This is the list of all valid exception handler names
     (they all receive an L{ExceptionEvent} object):
 
-     - access_violation
-     - array_bounds_exceeded
-     - breakpoint
-     - control_c_exit
-     - datatype_misalignment
-     - debug_control_c
-     - float_denormal_operand
-     - float_divide_by_zero
-     - float_inexact_result
-     - float_invalid_operation
-     - float_overflow
-     - float_stack_check
-     - float_underflow
-     - guard_page
-     - illegal_instruction
-     - in_page_error
-     - integer_divide_by_zero
-     - integer_overflow
-     - invalid_disposition
-     - invalid_handle
-     - ms_vc_exception
-     - noncontinuable_exception
-     - possible_deadlock
-     - privileged_instruction
-     - single_step
-     - stack_overflow
+     - I{access_violation}
+     - I{array_bounds_exceeded}
+     - I{breakpoint}
+     - I{control_c_exit}
+     - I{datatype_misalignment}
+     - I{debug_control_c}
+     - I{float_denormal_operand}
+     - I{float_divide_by_zero}
+     - I{float_inexact_result}
+     - I{float_invalid_operation}
+     - I{float_overflow}
+     - I{float_stack_check}
+     - I{float_underflow}
+     - I{guard_page}
+     - I{illegal_instruction}
+     - I{in_page_error}
+     - I{integer_divide_by_zero}
+     - I{integer_overflow}
+     - I{invalid_disposition}
+     - I{invalid_handle}
+     - I{ms_vc_exception}
+     - I{noncontinuable_exception}
+     - I{possible_deadlock}
+     - I{privileged_instruction}
+     - I{single_step}
+     - I{stack_overflow}
 
 
 
@@ -946,14 +981,23 @@ class EventHandler (object):
 
         For a more complete support of API hooking, you can also check out
         Universal Hooker at U{http://oss.coresecurity.com/projects/uhooker.htm}
+
+
+    @type __eventCallbackName: dict( int S{->} str )
+    @cvar __eventCallbackName:
+        Map of event code constants to the names of the user-defined methods.
+        Unknown codes go to 'unknown_event'.
+
+    @type __exceptionCallbackName: dict( int S{->} str )
+    @cvar __exceptionCallbackName:
+        Map of exception code constants to the names of the user-defined methods.
+        Unknown codes go to 'unknown_exception'.
     """
 
 #------------------------------------------------------------------------------
 
     # Dispatch mechanism.
 
-    # Map of event code constants to the names of the user-defined methods.
-    # Unknown codes go to 'unknown_event'.
     __eventCallbackName = {
         win32.EXCEPTION_DEBUG_EVENT       : 'exception',              # 1
         win32.CREATE_THREAD_DEBUG_EVENT   : 'create_thread',          # 2
@@ -966,8 +1010,6 @@ class EventHandler (object):
         win32.RIP_EVENT                   : 'rip',                    # 9
     }
 
-    # Map of exception code constants to the names of the user-defined methods.
-    # Unknown codes go to 'unknown_exception'.
     __exceptionCallbackName = {
         win32.EXCEPTION_ACCESS_VIOLATION          : 'access_violation',
         win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED     : 'array_bounds_exceeded',
@@ -1012,7 +1054,7 @@ class EventHandler (object):
         """
         Hook the requested API calls (in self.apiHooks).
 
-        This method must be called whenever a DLL is loaded.
+        This method is called automatically whenever a DLL is loaded.
         """
         if self.__apiHooks:
             fileName = event.get_module().get_filename()
