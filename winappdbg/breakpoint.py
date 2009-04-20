@@ -1517,7 +1517,7 @@ class BufferWatch(object):
         @type  action: function
         @param action: (Optional) Action callback function.
 
-            See L{define_page_breakpoint} for more details.
+            See L{Debug.define_page_breakpoint} for more details.
         """
         key = (address, address + size)
         if self.__ranges.has_key(key):
