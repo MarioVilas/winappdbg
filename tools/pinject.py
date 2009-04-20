@@ -50,10 +50,12 @@ def main():
         print "  %s <process.exe> <library.dll>" % script
         return
 
+    System.request_debug_privileges()
+
     try:
         pid = HexInput.integer(sys.argv[1])
     except Exception:
-        s = System()
+        s = System()        
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
@@ -69,8 +71,6 @@ def main():
 
     dll = sys.argv[2]
     print "Using DLL %s" % dll
-
-    System.request_debug_privileges()
 
     p = Process(pid)
     p.scan_modules()

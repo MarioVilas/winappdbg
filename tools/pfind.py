@@ -285,6 +285,7 @@ class Main (object):
         
         # Take a process snapshot
         self.system = System()
+        self.system.request_debug_privileges()
         self.system.scan_processes()
         
         # If no targets were given, search on all processes

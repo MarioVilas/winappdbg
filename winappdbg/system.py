@@ -2901,7 +2901,9 @@ class ProcessContainer (object):
             bFollow     = False,
             bSuspended  = False
         ):
-        'Starts a new process for debugging.'
+        'Starts a new process for debugging.'        
+        if not lpCmdLine:        
+            raise ValueError, "Missing command line to execute!"
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB

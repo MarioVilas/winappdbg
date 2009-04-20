@@ -49,6 +49,8 @@ def main():
         print "  %s <process.exe> <address> <size> [binary output file]" % script
         return
 
+    System.request_debug_privileges()
+
     try:
         pid = HexInput.integer(sys.argv[1])
     except:

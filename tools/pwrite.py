@@ -50,6 +50,8 @@ def main():
         print "  %s <process.exe> <address> {binary input file / hex data}" % script
         return
 
+    System.request_debug_privileges()
+
     try:
         pid = HexInput.integer(sys.argv[1])
     except Exception:
@@ -82,8 +84,6 @@ def main():
         except Exception:
             print "Invalid filename or hex block: %s" % filename
             return
-
-    System.request_debug_privileges()
 
     p = Process(pid)
     p.write(address, data)
