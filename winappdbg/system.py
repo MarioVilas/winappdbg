@@ -4533,6 +4533,48 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         win32.TerminateProcess(self.get_handle(), dwExitCode)
 
+    def suspend(self):
+        """
+        Suspends execution on all threads of the process.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        if self.get_thread_count() == 0:
+            self.scan_threads()
+        suspended = list()
+        try:
+            for aThread in self.iter_threads():
+                aThread.suspend()
+                suspended.append(aThread)
+        except Exception:
+            for aThread in suspended:
+                try:
+                    aThread.resume()
+                except Exception:
+                    pass
+            raise
+
+    def resume(self):
+        """
+        Resumes execution on all threads of the process.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        if self.get_thread_count() == 0:
+            self.scan_threads()
+        resumed = list()
+        try:
+            for aThread in self.iter_threads():
+                aThread.resume()
+                resumed.append(aThread)
+        except Exception:
+            for aThread in resumed:
+                try:
+                    aThread.suspend()
+                except Exception:
+                    pass
+            raise
+
     def debug_break(self):
         """
         Triggers the system breakpoint in the process.

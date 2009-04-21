@@ -347,17 +347,22 @@ class Main (object):
                 step = self.system.pageSize
                 size = step * self.options.memory_pages
                 for (address, total_size) in memory:
-                    end    = address + total_size
-                    shift  = 0
-                    buffer = self.process.read(address, min(size, total_size))
-                    while 1:
-                        self.search_block(buffer, address, shift)
-                        shift   = step
-                        address = address + step
-                        if address >= end:
-                            break
-                        buffer  = buffer[step:]
-                        buffer  = buffer + self.process.read(address, step)
+                    try:
+                        end    = address + total_size
+                        shift  = 0
+                        buffer = self.process.read(address, min(size, total_size))
+                        while 1:
+                            self.search_block(buffer, address, shift)
+                            shift   = step
+                            address = address + step
+                            if address >= end:
+                                break
+                            buffer  = buffer[step:]
+                            buffer  = buffer + self.process.read(address, step)
+                    except WindowsError:
+                        print "Error reading address %.08x, skipping" % address
+                        if self.options.verbose:
+                            print
 
     def search_block(self, data, address, shift):
         self.search_block_with(self.options.string,  data, address, shift)
