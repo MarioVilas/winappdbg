@@ -40,12 +40,12 @@ def print_memory_map( pid ):
     # Get the process memory map
     memoryMap = process.get_memory_map()
 
-    # Now you could do this:
+    # Now you could do this...
     #
-    # from winappdbg import CrashDump
-    # print CrashDump.dump_memory_map( memoryMap ),
+    #   from winappdbg import CrashDump
+    #   print CrashDump.dump_memory_map( memoryMap ),
     #
-    # But for demonstration purposes let's do it manually:
+    # ...but let's do it the hard way:
 
     # For each memory block in the map...
     print "Address   \tSize      \tState     \tAccess    \tType"
