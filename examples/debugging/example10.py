@@ -30,6 +30,8 @@
 # Example #10
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example10:watchingavariable
 
+import traceback
+
 from winappdbg import Debug, EventHandler
 
 
@@ -51,43 +53,58 @@ def entering( event ):
     # Get the string from the process memory
     procedure_name = event.get_process().peek_string( lpProcName )
 
-    # Watch the DWORD at the top of the stack
-    event.debug.watch_variable( tid, stack_top, 4, returning )
-
     # Show a message to the user
     message = "%.08x: GetProcAddress(0x%.08x, %r);"
     print message % ( return_address, hModule, procedure_name )
+
+    # Watch the DWORD at the top of the stack
+    try:
+        event.debug.watch_variable( tid, stack_top, 4, returning )
+
+    # If no more slots are available, set a code breakpoint at the return address
+    except RuntimeError:
+        event.debug.stalk_at( event.get_pid(), return_address, returning_2 )
 
 
 # This function will be called when the variable is accessed
 def returning( event ):
 
-    # Get the thread object
-    thread = event.get_thread()
-
-    # Get the thread ID
-    tid = thread.get_tid()
-
-    # Get the thread context (that is, the register values)
-    context = thread.get_context()
-
     # Get the address of the watched variable
     variable_address = event.breakpoint.get_address()
 
     # Stop watching the variable
-    event.debug.dont_watch_variable( tid, variable_address )
-
-    # Get the return value (in EAX)
-    return_value = context[ 'Eax' ]
+    event.debug.dont_watch_variable( event.get_tid(), variable_address )
 
     # Get the return address (in the stack)
     return_address = event.get_process().read_uint( variable_address )
+
+    # Get the return value (in EAX)
+    return_value = event.get_thread().get_context() [ 'Eax' ]
 
     # Show a message to the user
     message = "%.08x: GetProcAddress() returned 0x%.08x"
     print message % ( return_address, return_value )
 
 
+# This function will be called if we ran out of hardware breakpoints,
+# and we ended up setting a code breakpoint at the return address
+def returning_2( event ):
+
+    # Get the return address from the breakpoint
+    return_address = event.breakpoint.get_address()
+
+    # Remove the code breakpoint
+    event.debug.dont_stalk_at( event.get_pid(), return_address )
+
+    # Get the return value (in EAX)
+    return_value = event.get_thread().get_context() [ 'Eax' ]
+
+    # Show a message to the user
+    message = "%.08x: GetProcAddress() returned 0x%.08x"
+    print message % ( return_address, return_value )
+
+
+# This event handler sets a breakpoint at kernel32!GetProcAddress
 class MyEventHandler( EventHandler ):
 
     def load_dll( self, event ):
