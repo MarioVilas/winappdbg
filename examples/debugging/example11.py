@@ -64,6 +64,11 @@ class MyHook (object):
         action  = self.accessed
         event.debug.watch_buffer( pid, address, size, action )
 
+        # Use stalk_buffer instead of watch_buffer to be notified
+        # only of the first access to the buffer.
+        #
+        # event.debug.stalk_buffer( pid, address, size, action )
+
         # Remember the location of the buffer
         self.__watched[ event.get_tid() ] = ( address, size )
 
@@ -79,6 +84,7 @@ class MyHook (object):
 
         # Stop watching the buffer
         event.debug.dont_watch_buffer( event.get_pid(), address, size )
+        #event.debug.dont_stalk_buffer( event.get_pid(), address, size )
 
         # Forget the buffer location
         del self.__watched[ tid ]

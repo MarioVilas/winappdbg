@@ -67,6 +67,11 @@ class MyEventHandler( EventHandler ):
             # Hook the wsprintf function
             event.debug.hook_function( pid, address, wsprintf, paramCount = 2 )
 
+            # Use stalk_function instead of hook_function
+            # to be notified only the first time the function is called
+            #
+            # event.debug.stalk_function( pid, address, wsprintf, paramCount = 2 )
+
 
 def simple_debugger( argv ):
 

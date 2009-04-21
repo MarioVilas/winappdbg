@@ -59,7 +59,8 @@ def entering( event ):
 
     # Watch the DWORD at the top of the stack
     try:
-        event.debug.watch_variable( tid, stack_top, 4, returning )
+        event.debug.stalk_variable( tid, stack_top, 4, returning )
+        #event.debug.watch_variable( tid, stack_top, 4, returning )
 
     # If no more slots are available, set a code breakpoint at the return address
     except RuntimeError:
@@ -73,7 +74,8 @@ def returning( event ):
     variable_address = event.breakpoint.get_address()
 
     # Stop watching the variable
-    event.debug.dont_watch_variable( event.get_tid(), variable_address )
+    event.debug.dont_stalk_variable( event.get_tid(), variable_address )
+    #event.debug.dont_watch_variable( event.get_tid(), variable_address )
 
     # Get the return address (in the stack)
     return_address = event.get_process().read_uint( variable_address )
