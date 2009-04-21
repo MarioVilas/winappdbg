@@ -46,7 +46,6 @@ import win32
 import os
 import time
 import zlib
-import anydbm
 import traceback
 
 try:
@@ -560,6 +559,7 @@ class CrashContainer (object):
         """
         self.__filename = filename
         if filename:
+            import anydbm
             self.__db   = anydbm.open(filename, 'c')
             self.__keys = dict([ (self.__unmarshall_key(mk), mk) \
                                                   for mk in self.__db.keys() ])

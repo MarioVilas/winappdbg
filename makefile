@@ -6,6 +6,7 @@
 #   Tar and BZip2 (to compress the source packages to tar.bz2 format, also downloadable at gnuwin32)
 #   Epydoc and GraphViz (to generate the docs)
 #   MikTex (or an equivalent Latex package for Windows, to generate pdfs)
+#   py2exe to build the tools into Windows executable files
 
 
 # Epydoc command line options
@@ -39,6 +40,12 @@ dist: sdist bdist
 # Install the module
 install:
 	python setup.py install
+
+
+# Build the tools
+py2exe:
+	python setup.py py2exe
+
 
 
 # Test the documentation

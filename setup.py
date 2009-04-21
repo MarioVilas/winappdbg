@@ -31,6 +31,22 @@ from distutils.core import setup
 from glob import glob
 from os.path import join
 
+try:
+    import py2exe
+except ImportError:
+    pass
+
+console = [
+    'hexdump',
+    'pfind',
+    'pinject',
+    'pkill',
+    'plist',
+    'pmap',
+    'pread',
+    'pwrite',
+]
+
 setup(name          = 'winappdbg',
       version       = '1.0',
       description   = 'Windows application debugging engine',
@@ -39,6 +55,7 @@ setup(name          = 'winappdbg',
       url           = 'U{http://sourceforge.net/projects/winappdbg/',
       packages      = ['winappdbg'],
       scripts       = glob(join('tools', '*.py')),
+      console       = [ join('tools', '%s.py' % x) for x in console ],
       requires      = ['ctypes'],
       platforms     = ['win32', 'cygwin'],
       classifiers   = [
