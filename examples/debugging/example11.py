@@ -45,23 +45,23 @@ class MyHook (object):
 
         # Ignore calls using ordinals intead of names
         if lpProcName & 0xFFFF0000 == 0:
-            print "GetProcAddress( %d )" % lpProcName
             return
 
         # Get the procedure name
         procName = event.get_process().peek_string( lpProcName )
-        print "GetProcAddress( %r );" % procName
 
         # Ignore calls using an empty string
         if not procName:
             return
+
+        # Show a message to the user
+        print "GetProcAddress( %r );" % procName
 
         # Watch the procedure name buffer for access
         pid     = event.get_pid()
         address = lpProcName
         size    = len(procName) + 1
         action  = self.accessed
-        print "Watching 0x%.08x - 0x%.08x" % (address, address + size)
         event.debug.watch_buffer( pid, address, size, action )
 
         # Remember the location of the buffer
