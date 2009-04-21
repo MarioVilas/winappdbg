@@ -40,6 +40,12 @@ def freeze_threads( pid ):
     # Instance a Process object
     process = Process( pid )
 
+    # This would also do the trick...
+    #
+    #   process.suspend()
+    #
+    # ...but let's do it the hard way:
+
     # Lookup the threads in the process
     process.scan_threads()
 
@@ -56,6 +62,12 @@ def unfreeze_threads( pid ):
 
     # Instance a Process object
     process = Process( pid )
+
+    # This would also do the trick...
+    #
+    #   process.resume()
+    #
+    # ...but let's do it the hard way:
 
     # Lookup the threads in the process
     process.scan_threads()
