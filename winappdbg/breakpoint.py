@@ -523,6 +523,17 @@ class Breakpoint (object):
         """
         return self.__size
 
+    def get_span(self):
+        """
+        @rtype:  tuple( int, int )
+        @return:
+            Starting and ending address of the memory range
+            covered by the breakpoint.
+        """
+        address = self.get_address()
+        size    = self.get_size()
+        return ( address, address + size )
+
     def get_state(self):
         """
         @rtype:  int
@@ -876,7 +887,7 @@ class PageBreakpoint (Breakpoint):
         Breakpoint.__init__(self, address, pages * System.pageSize,  condition,
                                                                         action)
 ##        if (address & 0x00000FFF) != 0:
-        if long(address) / self.pageSize != float(address) / System.pageSize:
+        if long(address) / System.pageSize != float(address) / System.pageSize:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
                     "(value 0x%.08x received)" % address
@@ -1098,11 +1109,13 @@ class HardwareBreakpoint (Breakpoint):
         """
         if self.__slot is not None:
             aThread.suspend()
-            ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
-            DebugRegister.clear_bp(ctx, self.__slot)
-            aThread.set_context(ctx)
-            self.__slot = None
-            aThread.resume()
+            try:
+                ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
+                DebugRegister.clear_bp(ctx, self.__slot)
+                aThread.set_context(ctx)
+                self.__slot = None
+            finally:
+                aThread.resume()
 
     def __set_bp(self, aThread):
         """
@@ -1113,16 +1126,18 @@ class HardwareBreakpoint (Breakpoint):
         """
         if self.__slot is None:
             aThread.suspend()
-            ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
-            self.__slot = DebugRegister.find_slot(ctx)
-            if self.__slot is None:
-                msg = "No available hardware breakpoint slots for thread ID %d"
-                msg = msg % aThread.get_tid()
-                raise RuntimeError, msg
-            DebugRegister.set_bp(ctx, self.__slot, self.get_address(),
-                                                   self.__trigger, self.__watch)
-            aThread.set_context(ctx)
-            aThread.resume()
+            try:
+                ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
+                self.__slot = DebugRegister.find_slot(ctx)
+                if self.__slot is None:
+                    msg = "No available hardware breakpoint slots for thread ID %d"
+                    msg = msg % aThread.get_tid()
+                    raise RuntimeError, msg
+                DebugRegister.set_bp(ctx, self.__slot, self.get_address(),
+                                                       self.__trigger, self.__watch)
+                aThread.set_context(ctx)
+            finally:
+                aThread.resume()
 
     def __cancel_running_state(self, aThread):
         """
@@ -1163,21 +1178,25 @@ class HardwareBreakpoint (Breakpoint):
         super(HardwareBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         self.__set_bp(aThread)
+        self.__cancel_running_state(aThread)
         super(HardwareBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         self.__set_bp(aThread)
+        self.__cancel_running_state(aThread)
         super(HardwareBreakpoint, self).one_shot(aProcess, aThread)
 
     def running(self, aProcess, aThread):
         self.__clear_bp(aThread)
-        aThread.set_tf()
         super(HardwareBreakpoint, self).running(aProcess, aThread)
+        aThread.set_tf()
 
 #==============================================================================
+
+# FIXME
+# Functions hooks, as they are implemented now, don't work correctly for
+# recursive functions.
 
 class Hook (object):
     """
@@ -1231,14 +1250,13 @@ class Hook (object):
         self.__preCB      = preCB
         self.__postCB     = postCB
 
-    # FIXME
-    #
     # By using break_at() to set a process-wide breakpoint on the function's
     # return address, we might hit a race condition when more than one thread
     # is being debugged.
     #
     # Hardware breakpoints should be used instead. But since a thread can run
     # out of those, we need to fall back to this method when needed.
+
     def __call__(self, event):
         """
         Handles the breakpoint event on entry of the function.
@@ -1253,17 +1271,50 @@ class Hook (object):
         aThread = event.get_thread()
         params  = aThread.read_stack_dwords(self.__paramCount)
 
-        # Set a one shot code breakpoint at the return address.
+        # If we need to hook the return from the function...
         if params and self.__postCB is not None:
-            event.debug.stalk_at(event.get_pid(), params[0],
-                                                         self.__postCallAction)
+
+            # Try to set a one shot hardware breakpoint at the return address.
+            try:
+                tid = event.get_tid()
+                event.debug.define_hardware_breakpoint(
+                    tid,
+                    params[0],
+                    event.debug.BP_BREAK_ON_EXECUTION,
+                    event.debug.BP_WATCH_BYTE,
+                    True,
+                    self.__postCallAction_hwbp
+                    )
+                event.debug.enable_one_shot_hardware_breakpoint(tid, params[0])
+
+            # If not possible, set a one shot code breakpoint instead.
+            except RuntimeError:
+                event.debug.stalk_at(event.get_pid(), params[0],
+                                                  self.__postCallAction_codebp)
 
         # Call the "pre" callback.
         self.__callHandler(self.__preCB, event, *params)
 
-    def __postCallAction(self, event):
+    def __postCallAction_hwbp(self, event):
         """
-        Handles the breakpoint event on return from the function.
+        Handles hardware breakpoint events on return from the function.
+
+        @type  event: L{ExceptionEvent}
+        @param event: Single step event.
+        """
+
+        # Remove the one shot hardware breakpoint
+        # at the return address location in the stack.
+        tid     = event.get_tid()
+        address = event.breakpoint.get_address()
+        event.debug.erase_hardware_breakpoint(pid, address)
+
+        # Call the "post" callback.
+        self.__postCallAction(event)
+
+    def __postCallAction_codebp(self, event):
+        """
+        Handles code breakpoint events on return from the function.
 
         @type  event: L{ExceptionEvent}
         @param event: Breakpoint hit event.
@@ -1271,10 +1322,19 @@ class Hook (object):
 
         # Remove the one shot code breakpoint at the return address.
         pid     = event.get_pid()
-        address = event.get_exception_address()
+        address = event.breakpoint.get_address()
         event.debug.dont_stalk_at(pid, address)
 
         # Call the "post" callback.
+        self.__postCallAction(event)
+
+    def __postCallAction(self, event):
+        """
+        Calls the "post" callback.
+
+        @type  event: L{ExceptionEvent}
+        @param event: Breakpoint hit event.
+        """
         aThread = event.get_thread()
         ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
         retval  = ctx['Eax']
@@ -1809,14 +1869,14 @@ class BreakpointContainer (object):
         begin   = bp.get_address()
         end     = begin + bp.get_size()
 
-        for address in xrange(begin, end, bp.pageSize):
+        for address in xrange(begin, end, System.pageSize):
             key = (dwProcessId, address)
             if self.__pageBP.has_key(key):
                 msg = "Already exists (PID %d) : %r"
                 msg = msg % (dwProcessId, self.__pageBP[key])
                 raise KeyError, msg
 
-        for address in xrange(begin, end, bp.pageSize):
+        for address in xrange(begin, end, System.pageSize):
             key = (dwProcessId, address)
             self.__pageBP[key] = bp
         return bp
@@ -2125,7 +2185,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_code_bp(dwProcessId, address)
+        bp = self.get_code_breakpoint(dwProcessId, address)
         bp.enable(p, None)
 
     @processidparam
@@ -2148,7 +2208,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_page_bp(dwProcessId, address)
+        bp = self.get_page_breakpoint(dwProcessId, address)
         bp.enable(p, None)
 
     @threadidparam
@@ -2172,7 +2232,7 @@ class BreakpointContainer (object):
         """
         t  = self.system.get_thread(dwThreadId)
         p  = t.get_process()
-        bp = self.__get_hardware_bp(dwThreadId, address)
+        bp = self.get_hardware_breakpoint(dwThreadId, address)
         bp.enable(p, t)
 
     @processidparam
@@ -2195,7 +2255,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_code_bp(dwProcessId, address)
+        bp = self.get_code_breakpoint(dwProcessId, address)
         bp.one_shot(p, None)
 
     @processidparam
@@ -2218,7 +2278,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_page_bp(dwProcessId, address)
+        bp = self.get_page_breakpoint(dwProcessId, address)
         bp.one_shot(p, None)
 
     @threadidparam
@@ -2241,7 +2301,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         t  = self.system.get_thread(dwThreadId)
-        bp = self.__get_hardware_bp(dwThreadId, address)
+        bp = self.get_hardware_breakpoint(dwThreadId, address)
         bp.one_shot(None, t)
 
     @processidparam
@@ -2264,7 +2324,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_code_bp(dwProcessId, address)
+        bp = self.get_code_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
         bp.disable(p, None)
@@ -2289,7 +2349,7 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
-        bp = self.__get_page_bp(dwProcessId, address)
+        bp = self.get_page_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
         bp.disable(p, None)
@@ -2315,7 +2375,7 @@ class BreakpointContainer (object):
         """
         t  = self.system.get_thread(dwThreadId)
         p  = t.get_process()
-        bp = self.__get_hardware_bp(dwThreadId, address)
+        bp = self.get_hardware_breakpoint(dwThreadId, address)
         if bp.is_running():
             self.__del_running_bp(dwThreadId, bp)
         bp.disable(p, t)
@@ -2341,7 +2401,7 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of breakpoint.
         """
-        bp = self.__get_code_bp(dwProcessId, address)
+        bp = self.get_code_breakpoint(dwProcessId, address)
         if not bp.is_disabled():
             self.disable_code_breakpoint(dwProcessId, address)
         del self.__codeBP[ (dwProcessId, address) ]
@@ -2365,12 +2425,12 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of breakpoint.
         """
-        bp    = self.__get_page_bp(dwProcessId, address)
+        bp    = self.get_page_breakpoint(dwProcessId, address)
         begin = bp.get_address()
         end   = begin + bp.get_size()
         if not bp.is_disabled():
             self.disable_page_breakpoint(dwProcessId, address)
-        for address in xrange(begin, end, bp.pageSize):
+        for address in xrange(begin, end, System.pageSize):
             del self.__pageBP[ (dwProcessId, address) ]
 
     @threadidparam
@@ -2392,7 +2452,7 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of breakpoint.
         """
-        bp = self.__get_hardware_bp(dwThreadId, address)
+        bp = self.get_hardware_breakpoint(dwThreadId, address)
         if not bp.is_disabled():
             self.disable_hardware_breakpoint(dwThreadId, address)
         bpSet = self.__hardwareBP[dwThreadId]
@@ -2767,7 +2827,7 @@ class BreakpointContainer (object):
 
             # Ignore disabled and running breakpoints.
             # (This should not happen anyway)
-            if bp.is_enabled() or bp.is_oneshot():
+            if bp.is_enabled() or bp.is_one_shot():
 
                 # Hit the breakpoint.
                 bp.hit(event)
@@ -2929,16 +2989,42 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    def __set_code_bp(self, pid, address, action):
-        "Auxiliary function used by L{break_at} and L{stalk_at}."
+    def __set_break(self, pid, address, action):
+        """
+        Used by L{break_at} and L{stalk_at}.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of code instruction to break at.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+
+            See L{define_code_breakpoint} for more details.
+        """
         if self.has_code_breakpoint(pid, address):
-            bp = self.__get_code_bp(pid, address)
+            bp = self.get_code_breakpoint(pid, address)
             if bp.get_action() != action:
                 bp.set_action(action)
         else:
             self.define_code_breakpoint(pid, address, True, action)
-            bp = self.__get_code_bp(pid, address)
+            bp = self.get_code_breakpoint(pid, address)
         return bp
+
+    def __clear_break(self, pid, address):
+        """
+        Used by L{dont_break_at} and L{dont_stalk_at}.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of code breakpoint.
+        """
+        if self.has_code_breakpoint(pid, address):
+            self.erase_code_breakpoint(pid, address)
 
     @processidparam
     def stalk_at(self, pid, address, action = None):
@@ -2958,7 +3044,7 @@ class BreakpointContainer (object):
 
             See L{define_code_breakpoint} for more details.
         """
-        bp = self.__set_code_bp(pid, address, action)
+        bp = self.__set_break(pid, address, action)
         if not bp.is_one_shot():
             self.enable_one_shot_code_breakpoint(pid, address)
 
@@ -2980,7 +3066,7 @@ class BreakpointContainer (object):
 
             See L{define_code_breakpoint} for more details.
         """
-        bp = self.__set_code_bp(pid, address, action)
+        bp = self.__set_break(pid, address, action)
         if not bp.is_enabled():
             self.enable_code_breakpoint(pid, address)
 
@@ -2995,8 +3081,7 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of code instruction to break at.
         """
-        if self.has_code_breakpoint(pid, address):
-            self.erase_code_breakpoint(pid, address)
+        self.__clear_break(pid, address)
 
     @processidparam
     def dont_stalk_at(self, pid, address):
@@ -3009,8 +3094,9 @@ class BreakpointContainer (object):
         @type  address: int
         @param address: Memory address of code instruction to break at.
         """
-        if self.has_code_breakpoint(pid, address):
-            self.erase_code_breakpoint(pid, address)
+        self.__clear_break(pid, address)
+
+#------------------------------------------------------------------------------
 
     @processidparam
     def hook_function(self, pid, address,          preCB = None, postCB = None,
@@ -3064,7 +3150,58 @@ class BreakpointContainer (object):
         self.break_at(pid, address, hookObj)
 
     @processidparam
-    def unhook_function(self, pid, address):
+    def stalk_function(self, pid, address,         preCB = None, postCB = None,
+                                                               paramCount = 0):
+        """
+        Sets a one-shot function hook at the given address.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Function address.
+
+        @type  preCB: function
+        @param preCB: (Optional) Callback triggered on function entry.
+
+            The signature for the callback can be something like this::
+
+                def pre_LoadLibraryEx(event, *params):
+                    ra   = params[0]        # return address
+                    argv = params[1:]       # function parameters
+
+                    # (...)
+
+            But if you passed the right number of arguments, you can also
+            use a signature like this::
+
+                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+                    szFilename = event.get_process().peek_string(lpFilename)
+
+                    # (...)
+
+            In the above example, the value for C{paramCount} would be C{3}.
+
+        @type  postCB: function
+        @param postCB: (Optional) Callback triggered on function exit.
+
+            The signature for the callback would be something like this::
+
+                def post_LoadLibraryEx(event, return_value):
+
+                    # (...)
+
+        @type  paramCount: int
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs.
+        """
+        hookObj = Hook(preCB, postCB, paramCount)
+        self.stalk_at(pid, address, hookObj)
+
+    @processidparam
+    def dont_hook_function(self, pid, address):
         """
         Removes a function hook set by L{hook_function}.
 
@@ -3076,7 +3213,86 @@ class BreakpointContainer (object):
         """
         self.dont_break_at(pid, address)
 
+    # alias
+    unhook_function = dont_hook_function
+
+    @processidparam
+    def dont_stalk_function(self, pid, address):
+        """
+        Removes a function hook set by L{stalk_function}.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Function address.
+        """
+        self.dont_stalk_at(pid, address)
+
 #------------------------------------------------------------------------------
+
+    def __set_variable_watch(self, tid, address, size, action):
+        """
+        Used by L{watch_variable} and L{stalk_variable}.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @type  address: int
+        @param address: Memory address of variable to watch.
+
+        @type  size: int
+        @param size: Size of variable to watch. The only supported sizes are:
+            byte (1), word (2), dword (4) and qword (8).
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+
+            See L{define_hardware_breakpoint} for more details.
+
+        @rtype:  L{HardwareBreakpoint}
+        @return: Hardware breakpoint at the requested address.
+        """
+
+        # TODO
+        # Maybe we could merge the breakpoints instead of overwriting them.
+
+        if size == 1:
+            sizeFlag = self.BP_WATCH_BYTE
+        elif size == 2:
+            sizeFlag = self.BP_WATCH_WORD
+        elif size == 4:
+            sizeFlag = self.BP_WATCH_DWORD
+        elif size == 8:
+            sizeFlag = self.BP_WATCH_QWORD
+        else:
+            raise ValueError, "Bad size for variable watch: %r" % size
+        if self.has_hardware_breakpoint(tid, address):
+            bp = self.get_hardware_breakpoint(tid, address)
+            if  bp.get_trigger() != self.BP_BREAK_ON_ACCESS or \
+                bp.get_watch()   != sizeFlag:
+                    self.erase_hardware_breakpoint(tid, address)
+                    self.define_hardware_breakpoint(tid, address,
+                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
+                    bp = self.get_hardware_breakpoint(tid, address)
+        else:
+            self.define_hardware_breakpoint(tid, address,
+                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
+            bp = self.get_hardware_breakpoint(tid, address)
+        return bp
+
+    def __clear_variable_watch(self, tid, address):
+        """
+        Used by L{dont_watch_variable} and L{dont_stalk_variable}.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @type  address: int
+        @param address: Memory address of variable to stop watching.
+        """
+        if self.has_hardware_breakpoint(tid, address):
+            self.erase_hardware_breakpoint(tid, address)
 
     @threadidparam
     def watch_variable(self, tid, address, size, action = None):
@@ -3100,59 +3316,68 @@ class BreakpointContainer (object):
 
             See L{define_hardware_breakpoint} for more details.
         """
-
-        # TODO
-        # Maybe we could merge the breakpoints instead of overwriting them.
-
-        if size == 1:
-            sizeFlag = self.BP_WATCH_BYTE
-        elif size == 2:
-            sizeFlag = self.BP_WATCH_WORD
-        elif size == 4:
-            sizeFlag = self.BP_WATCH_DWORD
-        elif size == 8:
-            sizeFlag = self.BP_WATCH_QWORD
-        else:
-            raise ValueError, "Bad size for variable watch: %r" % size
-        if self.has_hardware_breakpoint(tid, address):
-            bp = self.__get_hardware_bp(tid, address)
-            if  bp.get_trigger() != self.BP_BREAK_ON_ACCESS or \
-                bp.get_watch()   != sizeFlag:
-                    self.erase_hardware_breakpoint(tid, address)
-                    self.define_hardware_breakpoint(tid, address,
-                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
-                    bp = self.__get_hardware_bp(tid, address)
-        else:
-            self.define_hardware_breakpoint(tid, address,
-                               self.BP_BREAK_ON_ACCESS, sizeFlag, True, action)
-            bp = self.__get_hardware_bp(tid, address)
+        bp = self.__set_variable_watch(tid, address, size, action)
         if not bp.is_enabled():
             self.enable_hardware_breakpoint(tid, address)
 
     @threadidparam
-    def dont_watch_variable(self, tid, address):
+    def stalk_variable(self, tid, address, size, action = None):
         """
-        Clears a hardware breakpoint set by L{watch_variable}.
+        Sets a one-shot hardware breakpoint at the given thread,
+        address and size.
 
-        @see: L{watch_variable}
+        @see: L{dont_watch_variable}
 
         @type  tid: int
         @param tid: Thread global ID.
 
         @type  address: int
         @param address: Memory address of variable to watch.
-        """
-        if self.has_hardware_breakpoint(tid, address):
-            self.erase_hardware_breakpoint(tid, address)
 
-    # TODO
-    # Check for overlapping page breakpoints.
-    @processidparam
-    def watch_buffer(self, pid, address, size, action = None):
-        """
-        Sets a page breakpoint and notifies when the given buffer is accessed.
+        @type  size: int
+        @param size: Size of variable to watch. The only supported sizes are:
+            byte (1), word (2), dword (4) and qword (8).
 
-        @see: L{dont_watch_variable}
+        @type  action: function
+        @param action: (Optional) Action callback function.
+
+            See L{define_hardware_breakpoint} for more details.
+        """
+        bp = self.__set_variable_watch(tid, address, size, action)
+        if not bp.is_one_shot():
+            self.enable_one_shot_hardware_breakpoint(tid, address)
+
+    @threadidparam
+    def dont_watch_variable(self, tid, address):
+        """
+        Clears a hardware breakpoint set by L{watch_variable}.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @type  address: int
+        @param address: Memory address of variable to stop watching.
+        """
+        self.__clear_variable_watch(tid, address)
+
+    @threadidparam
+    def dont_stalk_variable(self, tid, address):
+        """
+        Clears a hardware breakpoint set by L{stalk_variable}.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @type  address: int
+        @param address: Memory address of variable to stop watching.
+        """
+        self.__clear_variable_watch(tid, address)
+
+#------------------------------------------------------------------------------
+
+    def __set_buffer_watch(self, pid, address, size, action, bOneShot):
+        """
+        Used by L{watch_buffer} and L{stalk_buffer}.
 
         @type  pid: int
         @param pid: Process global ID.
@@ -3167,11 +3392,22 @@ class BreakpointContainer (object):
         @param action: (Optional) Action callback function.
 
             See L{define_page_breakpoint} for more details.
+
+        @type  bOneShot: bool
+        @param bOneShot:
+            C{True} to set a one-shot breakpoint,
+            C{False} to set a normal breakpoint.
         """
+
+        # TODO
+        # Check for overlapping page breakpoints.
 
         # Check the size isn't zero or negative.
         if size < 1:
             raise ValueError, "Bad size for buffer watch: %r" % size
+
+        # Get the process object.
+        aProcess = self.system.get_process(pid)
 
         # Get the base address and size in pages required for this buffer.
         base  = MemoryAddresses.align_address_to_page_start(address)
@@ -3191,30 +3427,36 @@ class BreakpointContainer (object):
 
                 # If a breakpoints exists, reuse it.
                 if self.has_page_breakpoint(pid, page_addr):
-                    bp = self.__get_page_bp(pid, page_addr)
+                    bp = self.get_page_breakpoint(pid, page_addr)
                     if bp not in bset:
                         condition = bp.get_condition()
-                        if not isinstance(condition, BufferWatch):
-                            # this shouldn't happen unless you tinkered with it
-                            # or defined your own page breakpoints manually.
-                            msg = "Can't watch buffer at page 0x%.08x"
-                            raise RuntimeError, msg % page_addr
+                        if not condition in cset:
+                            if not isinstance(condition, BufferWatch):
+                                # this shouldn't happen unless you tinkered with it
+                                # or defined your own page breakpoints manually.
+                                msg = "Can't watch buffer at page 0x%.08x"
+                                raise RuntimeError, msg % page_addr
+                            cset.add(condition)
                         bset.add(bp)
-                        cset.add(condition)
 
                 # If it doesn't, define it.
                 else:
                     condition = BufferWatch()
-                    self.define_page_breakpoint(pid, last_free_base,
-                                        System.pageSize, condition = condition)
+                    bp = self.define_page_breakpoint(pid, page_addr, 1,
+                                                     condition = condition)
                     bset.add(bp)
                     nset.add(bp)
                     cset.add(condition)
 
             # For each breakpoint, enable it if needed.
-            for bp in bset:
-                if bp.is_disabled() or bp.is_one_shot():
-                    bp.enable()
+            if bOneShot:
+                for bp in bset:
+                    if not bp.is_one_shot():
+                        bp.one_shot(aProcess, None)
+            else:
+                for bp in bset:
+                    if not bp.is_enabled():
+                        bp.enable(aProcess, None)
 
         # On error...
         except:
@@ -3231,14 +3473,11 @@ class BreakpointContainer (object):
 
         # For each condition object, add the new buffer.
         for condition in cset:
-            condition.add(address, size)
+            condition.add(address, size, action)
 
-    @processidparam
-    def dont_watch_buffer(self, pid, address, size):
+    def __clear_buffer_watch(self, pid, address, size):
         """
-        Clears a page breakpoint set by L{watch_buffer}.
-
-        @see: L{watch_buffer}
+        Used by L{dont_watch_buffer} and L{dont_stalk_buffer}.
 
         @type  pid: int
         @param pid: Process global ID.
@@ -3265,7 +3504,7 @@ class BreakpointContainer (object):
         cset = set()     # condition objects
         for page_addr in xrange(base, limit, System.pageSize):
             if self.has_page_breakpoint(pid, page_addr):
-                bp = self.__get_page_bp(pid, page_addr)
+                bp = self.get_page_breakpoint(pid, page_addr)
                 condition = bp.get_condition()
                 if condition not in cset:
                     if not isinstance(condition, BufferWatch):
@@ -3280,6 +3519,85 @@ class BreakpointContainer (object):
                             self.erase_page_breakpoint(pid, bp.get_address())
                         except WindowsError:
                             pass
+
+    @processidparam
+    def watch_buffer(self, pid, address, size, action = None):
+        """
+        Sets a page breakpoint and notifies when the given buffer is accessed.
+
+        @see: L{dont_watch_variable}
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of buffer to watch.
+
+        @type  size: int
+        @param size: Size in bytes of buffer to watch.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+
+            See L{define_page_breakpoint} for more details.
+        """
+        self.__set_buffer_watch(pid, address, size, action, False)
+
+    @processidparam
+    def stalk_buffer(self, pid, address, size, action = None):
+        """
+        Sets a one-shot page breakpoint and notifies
+        when the given buffer is accessed.
+
+        @see: L{dont_watch_variable}
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of buffer to watch.
+
+        @type  size: int
+        @param size: Size in bytes of buffer to watch.
+
+        @type  action: function
+        @param action: (Optional) Action callback function.
+
+            See L{define_page_breakpoint} for more details.
+        """
+        self.__set_buffer_watch(pid, address, size, action, True)
+
+    @processidparam
+    def dont_watch_buffer(self, pid, address, size):
+        """
+        Clears a page breakpoint set by L{watch_buffer}.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of buffer to stop watching.
+
+        @type  size: int
+        @param size: Size in bytes of buffer to stop watching.
+        """
+        self.__clear_buffer_watch(pid, address, size)
+
+    @processidparam
+    def dont_stalk_buffer(self, pid, address, size):
+        """
+        Clears a page breakpoint set by L{stalk_buffer}.
+
+        @type  pid: int
+        @param pid: Process global ID.
+
+        @type  address: int
+        @param address: Memory address of buffer to stop watching.
+
+        @type  size: int
+        @param size: Size in bytes of buffer to stop watching.
+        """
+        self.__clear_buffer_watch(pid, address, size)
 
 #------------------------------------------------------------------------------
 

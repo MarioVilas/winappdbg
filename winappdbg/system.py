@@ -1073,7 +1073,7 @@ class MemoryAddresses (object):
         return address - ( address % System.pageSize )
 
     @staticmethod
-    def align_address_to_page_end(cls, address):
+    def align_address_to_page_end(address):
         """
         Align the given address to the end of the page it occupies.
 
@@ -1553,6 +1553,8 @@ class MemoryOperations (object):
         """
         if minAddr > maxAddr:
             minAddr, maxAddr = maxAddr, minAddr
+        minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
+        maxAddr     = MemoryAddresses.align_address_to_page_end(maxAddr)
         currentAddr = minAddr
         memoryMap   = list()
         while currentAddr <= maxAddr:
