@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Event handling module.
 
@@ -44,6 +42,8 @@ Event handling module.
     RIPEvent,
     ExceptionEvent
 """
+
+__revision__ = "$Id$"
 
 __all__ = [
             # Factory of Event objects and all of it's subclasses.

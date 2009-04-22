@@ -27,47 +27,117 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+__revision__ = "$Id$"
+
 from distutils.core import setup
 from glob import glob
 from os.path import join
 
+# Use py2exe if installed
 try:
     import py2exe
 except ImportError:
     pass
 
-console = [
-    'hexdump',
-    'pfind',
-    'pinject',
-    'pkill',
-    'plist',
-    'pmap',
-    'pread',
-    'pwrite',
-]
+# Get the list of supported database modules
+import anydbm
+try:
+    _names = anydbm._names
+except NameError:
+    _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
+dbnames = []
+for name in _names:
+    try:
+        __import__(name)
+        dbnames.append(name)
+    except ImportError:
+        pass
 
-setup(name          = 'winappdbg',
-      version       = '1.0',
-      description   = 'Windows application debugging engine',
-      author        = 'Mario Vilas',
-      author_email  = 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
-      url           = 'U{http://sourceforge.net/projects/winappdbg/',
-      packages      = ['winappdbg'],
-      scripts       = glob(join('tools', '*.py')),
-      console       = [ join('tools', '%s.py' % x) for x in console ],
-      requires      = ['ctypes'],
-      platforms     = ['win32', 'cygwin'],
-      classifiers   = [
-                      'Development Status :: 5 - Production/Stable',
-                      'Environment :: Console',
-                      'Environment :: Win32 (MS Windows)',
-                      'Intended Audience :: Developers',
-                      'Natural Language :: English',
-                      'Operating System :: Microsoft :: Windows',
-                      'Programming Language :: Python',
-                      'Topic :: Software Development :: Bug Tracking',
-                      'Topic :: Software Development :: Debuggers',
-                      'Topic :: Software Development :: Libraries :: Python Modules',
-                      ],
-     )
+# Text describing the module (reStructured text)
+long_description = \
+"""What is WinAppDbg?
+==================
+
+The WinAppDbg python module allows developers to quickly code instrumentation
+scripts in Python under a Windows environment.
+
+It uses ctypes to wrap many Win32 API calls related to debugging, and provides
+an object-oriented abstraction layer to manipulate threads, libraries and
+processes, attach your script as a debugger, trace execution, hook API calls,
+handle events in your debugee and set breakpoints of different kinds (code,
+hardware and memory). Additionally it has no native code at all, making it
+easier to maintain or modify than other debuggers on Windows.
+
+The intended audience are QA engineers and software security auditors wishing to
+test / fuzz Windows applications with quickly coded Python scripts. Several
+ready to use utilities are shipped and can be used for this purposes.
+
+Current features also include disassembling x86 native code (using the open
+source diStorm project, see http://ragestorm.net/distorm/), debugging multiple
+processes simultaneously and produce a detailed log of application crashes,
+useful for fuzzing and automated testing.
+
+
+Where can I find WinAppDbg?
+===========================
+
+The WinAppDbg project is currently hosted at Sourceforge, and can be found at:
+
+    http://winappdbg.sourceforge.net/
+
+
+Package details
+===============
+"""
+
+# Get the list of scripts in the "tools" folder
+scripts = glob(join('tools', '*.py'))
+
+# Set the options for py2exe
+options = {
+    'py2exe': {
+        'dist_dir'      :   'dist/py2exe',
+        'optimize'      :   2,
+        'compressed'    :   1,
+        'packages'      :   ['encodings', 'anydbm', 'whichdb'] + dbnames,
+        'excludes'      :   ['socket'],
+    }
+}
+
+# Set the parameters for the setup script
+params = {
+
+    # Setup instructions
+    requires      : ['ctypes'],
+    packages      : ['winappdbg'],
+    scripts       : scripts,
+    console       : scripts,
+    options       : options,
+
+    # Metadata
+    name          : 'winappdbg',
+    version       : '1.1',
+    description   : 'Windows application debugging engine',
+    long_description : long_description,
+    author        : 'Mario Vilas',
+    author_email  : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
+    url           : 'http://winappdbg.sourceforge.net/',
+    download_url  : 'http://sourceforge.net/projects/winappdbg/',
+    platforms     : ['win32', 'cygwin'],
+    classifiers   : [
+                    'License :: OSI Approved :: BSD License',
+                    'Development Status :: 5 - Production/Stable',
+                    'Environment :: Console',
+                    'Environment :: Win32 (MS Windows)',
+                    'Intended Audience :: Developers',
+                    'Natural Language :: English',
+                    'Operating System :: Microsoft :: Windows',
+                    'Programming Language :: Python',
+                    'Topic :: Software Development :: Bug Tracking',
+                    'Topic :: Software Development :: Debuggers',
+                    'Topic :: Software Development :: Libraries :: Python Modules',
+                    ],
+    }
+
+# Execute the setup script
+setup(*params)

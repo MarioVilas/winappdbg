@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Functions for text input, logging or text output.
 
@@ -37,6 +35,8 @@ Functions for text input, logging or text output.
     CrashDump,
     DebugLog
 """
+
+__revision__ = "$Id$"
 
 __all__ =   [
                 'DebugLog',

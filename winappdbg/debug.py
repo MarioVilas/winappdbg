@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Debugging module.
 
@@ -35,6 +33,8 @@ Debugging module.
 @group Instrumentation: System, Process, Thread, Module
 @group Debugging: Debug, EventHandler
 """
+
+__revision__ = "$Id$"
 
 __all__ =   [
                 # the main debugger class

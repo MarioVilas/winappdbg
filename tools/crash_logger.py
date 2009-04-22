@@ -84,7 +84,7 @@ class LoggingEventHandler(EventHandler):
     def __init__(self, options):
 
         # Create the crash container.
-        if not options.no_crash_dump_file:
+        if not options.nodb:
             self.knownCrashes = CrashContainer( options.file )
         else:
             self.knownCrashes = CrashContainer()
@@ -517,8 +517,8 @@ def parse_cmdline(argv):
             "\n"
             "\n"
             "  Create a new process (parameters for the target must be escaped):\n"
-            "    %prog [options] -c <executable> [escaped parameters for the target]\n"
-            "    %prog [options] -e <executable> [escaped parameters for the target]\n"
+            "    %prog [options] -c <executable> [parameters for the target]\n"
+            "    %prog [options] -e <executable> [parameters for the target]\n"
             "\n"
             "  Attach to a running process (by filename):\n"
             "    %prog [options] -a <executable>\n"
@@ -569,7 +569,8 @@ def parse_cmdline(argv):
                       help="Do not log events to standard output")
     output.add_option("-f", "--file", default="crashes.db",
                       help="Specify a crash dump file [default: %default]")
-    output.add_option("--no-crash-dump-file", action="store_true", default=False,
+    output.add_option("--nodb", "--no-crash-dump-file", action="store_true",
+                      default=False,
                       help="Supresses the use of a crash dump file")
     parser.add_option_group(output)
 

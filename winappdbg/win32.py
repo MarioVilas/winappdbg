@@ -25,13 +25,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Debugging API wrappers in ctypes.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
+
+__revision__ = "$Id$"
 
 import struct
 import ctypes

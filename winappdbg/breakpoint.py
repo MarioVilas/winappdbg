@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Breakpoints module.
 
@@ -37,6 +35,8 @@ Breakpoints module.
 @group Debug registers manipulation: DebugRegister
 @group Breakpoint container capabilities: BreakpointContainer
 """
+
+__revision__ = "$Id$"
 
 __all__ = [
 

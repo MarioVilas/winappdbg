@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Windows application debugging engine for Python.
 
@@ -46,6 +44,8 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Text input and output: HexInput, HexDump, DebugLog
 @group Win32 API wrappers: win32
 """
+
+__revision__ = "$Id$"
 
 # List of all public symbols
 __all__ =   [

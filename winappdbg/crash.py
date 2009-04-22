@@ -25,11 +25,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Crash logging module.
 """
+
+__revision__ = "$Id$"
 
 __all__ =   [
                 # Object that represents a crash in the debugee.

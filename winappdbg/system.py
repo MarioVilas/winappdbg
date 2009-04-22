@@ -25,8 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-
 """
 Instrumentation module.
 
@@ -51,6 +49,8 @@ Instrumentation module.
 # can't be instrumented, because they try to stop code injection into the VMs.
 # The solution appears to be to run the debugger from a user account that
 # belongs to the VMware group. I haven't yet confirmed this.
+
+__revision__ = "$Id$"
 
 __all__ =   [
                 # Instrumentation classes.
