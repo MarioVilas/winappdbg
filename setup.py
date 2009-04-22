@@ -85,9 +85,6 @@ The WinAppDbg project is currently hosted at Sourceforge, and can be found at:
 
     http://winappdbg.sourceforge.net/
 
-
-Package details
-===============
 """
 
 # Get the list of scripts in the "tools" folder
