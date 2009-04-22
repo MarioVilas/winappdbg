@@ -33,7 +33,7 @@
 from winappdbg import HexDump
 
 def main(argv):
-    print "Hex dumper using Win32DBG"
+    print "Hex dumper using WinAppDbg"
     print "by Mario Vilas (mvilas at gmail.com)"
     print
     if len(argv) != 2:
