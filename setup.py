@@ -100,7 +100,10 @@ options = {
         'optimize'      :   2,
         'compressed'    :   1,
         'packages'      :   ['encodings', 'anydbm', 'whichdb'] + dbnames,
-        'excludes'      :   ['socket'],
+        'excludes'      :   [
+                            'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
+                            'calendar', 'socket', 'pyreadline'
+                            ],
     }
 }
 
@@ -108,36 +111,36 @@ options = {
 params = {
 
     # Setup instructions
-    requires      : ['ctypes'],
-    packages      : ['winappdbg'],
-    scripts       : scripts,
-    console       : scripts,
-    options       : options,
+    'requires'          : ['ctypes'],
+    'packages'          : ['winappdbg'],
+    'scripts'           : scripts,
+    'console'           : scripts,
+    'options'           : options,
 
     # Metadata
-    name          : 'winappdbg',
-    version       : '1.1',
-    description   : 'Windows application debugging engine',
-    long_description : long_description,
-    author        : 'Mario Vilas',
-    author_email  : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
-    url           : 'http://winappdbg.sourceforge.net/',
-    download_url  : 'http://sourceforge.net/projects/winappdbg/',
-    platforms     : ['win32', 'cygwin'],
-    classifiers   : [
-                    'License :: OSI Approved :: BSD License',
-                    'Development Status :: 5 - Production/Stable',
-                    'Environment :: Console',
-                    'Environment :: Win32 (MS Windows)',
-                    'Intended Audience :: Developers',
-                    'Natural Language :: English',
-                    'Operating System :: Microsoft :: Windows',
-                    'Programming Language :: Python',
-                    'Topic :: Software Development :: Bug Tracking',
-                    'Topic :: Software Development :: Debuggers',
-                    'Topic :: Software Development :: Libraries :: Python Modules',
-                    ],
+    'name'              : 'winappdbg',
+    'version'           : '1.1',
+    'description'       : 'Windows application debugging engine',
+    'long_description'  : long_description,
+    'author'            : 'Mario Vilas',
+    'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
+    'url'               : 'http://winappdbg.sourceforge.net/',
+    'download_url'      : 'http://sourceforge.net/projects/winappdbg/',
+    'platforms'         : ['win32', 'cygwin'],
+    'classifiers'       : [
+                        'License :: OSI Approved :: BSD License',
+                        'Development Status :: 5 - Production/Stable',
+                        'Environment :: Console',
+                        'Environment :: Win32 (MS Windows)',
+                        'Intended Audience :: Developers',
+                        'Natural Language :: English',
+                        'Operating System :: Microsoft :: Windows',
+                        'Programming Language :: Python',
+                        'Topic :: Software Development :: Bug Tracking',
+                        'Topic :: Software Development :: Debuggers',
+                        'Topic :: Software Development :: Libraries :: Python Modules',
+                        ],
     }
 
 # Execute the setup script
-setup(*params)
+setup(**params)
