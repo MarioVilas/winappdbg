@@ -3058,18 +3058,16 @@ GetTempFileName = GetTempFileNameA
 def CommandLineToArgvW(lpCmdLine):
     if lpCmdLine is None:
         lpCmdLine = NULL
-    if lpCmdLine != NULL:
-        lpCmdLine = ctypes.byref(lpCmdLine)
     argc = ctypes.c_int(0)
     argv = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
-    if argv == NULL or argc <= 0:
+    if argv == NULL or argc.value <= 0:
         ctypes.WinError()
     try:
         vptr = ctypes.c_void_p(argv)
-        aptr = ctypes.cast(vptr, LPWSTR * argc)
-        argv = [ str( aptr[i].contents ) for i in xrange(0, argc + 1) ]
+        aptr = ctypes.cast(vptr, ctypes.POINTER(ctypes.c_wchar_p * argc.value) )
+        argv = [ aptr.contents[i] for i in xrange(0, argc.value) ]
     finally:
-        LocalFree(argv)
+        LocalFree(vptr)
     return argv
 def CommandLineToArgvA(lpCmdLine):
     if lpCmdLine not in (None, NULL):
