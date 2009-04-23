@@ -49,14 +49,11 @@ __revision__ = "$Id$"
 
 # List of all public symbols
 __all__ =   [
+                # Library version
+                'version',
+
                 # from breakpoint import *
-##                'Breakpoint',
-##                'CodeBreakpoint',
-##                'PageBreakpoint',
-##                'HardwareBreakpoint',
                 'DebugRegister',
-##                'ApiHook',
-##                'BreakpointContainer',
 
                 # from crash import *
                 'Crash',
@@ -97,3 +94,6 @@ from event import *
 from system import *
 from textio import *
 import win32
+
+# Library version
+version = "Version 1.1, revision $Revision$"

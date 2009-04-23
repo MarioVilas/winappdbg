@@ -509,10 +509,10 @@ def parse_cmdline(argv):
 
     # Help message and version string
     version = (
-              "Crash dumper using WinAppDbg\n"
+              "WinAppDbg crash logger\n"
               "by Mario Vilas (mvilas at gmail.com)\n"
-              "Version 1.0"
-              )
+              "%s"
+              ) % version
     usage = (
             "\n"
             "\n"
@@ -593,7 +593,7 @@ def parse_cmdline(argv):
             parser.error("executable filename required")
         if not os.path.exists(args[1]):
             try:
-                args[1] = win32.SearchPath(None, args[1], None)[0]
+                args[1] = win32.SearchPath(None, args[1], 'exe')[0]
             except WindowsError, e:
                 parser.error("error searching for %s: %s" % (args[1], str(e)))
     else:
