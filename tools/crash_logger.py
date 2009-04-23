@@ -593,7 +593,7 @@ def parse_cmdline(argv):
             parser.error("executable filename required")
         if not os.path.exists(args[1]):
             try:
-                args[1] = win32.SearchPath(None, args[1], 'exe')[0]
+                args[1] = win32.SearchPath(None, args[1], '.exe')[0]
             except WindowsError, e:
                 parser.error("error searching for %s: %s" % (args[1], str(e)))
     else:
