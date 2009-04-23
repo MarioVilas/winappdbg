@@ -509,7 +509,7 @@ def parse_cmdline(argv):
 
     # Help message and version string
     version = (
-              "Crash dumper using Win32DBG\n"
+              "Crash dumper using WinAppDbg\n"
               "by Mario Vilas (mvilas at gmail.com)\n"
               "Version 1.0"
               )
