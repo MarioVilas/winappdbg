@@ -511,7 +511,7 @@ def parse_cmdline(argv):
     version = (
               "WinAppDbg crash logger\n"
               "by Mario Vilas (mvilas at gmail.com)\n"
-              "%s, revision $Revision$\n"
+              "%s\n"
               ) % version
     usage = (
             "\n"
