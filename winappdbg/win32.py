@@ -540,6 +540,13 @@ LOAD_IGNORE_CODE_AUTHZ_LEVEL        = 0x00000010
 LOAD_LIBRARY_AS_IMAGE_RESOURCE      = 0x00000020
 LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE  = 0x00000040
 
+# Console control events
+CTRL_C_EVENT        = 0
+CTRL_BREAK_EVENT    = 1
+CTRL_CLOSE_EVENT    = 2
+CTRL_LOGOFF_EVENT   = 5
+CTRL_SHUTDOWN_EVENT = 6
+
 # DEP flags for ProcessExecuteFlags
 MEM_EXECUTE_OPTION_ENABLE               = 1
 MEM_EXECUTE_OPTION_DISABLE              = 2
@@ -3099,12 +3106,18 @@ except Exception:
 #   __in_opt  PHANDLER_ROUTINE HandlerRoutine,
 #   __in      BOOL Add
 # );
-def SetConsoleCtrlHandler(HandlerRoutine, Add = True):
+def SetConsoleCtrlHandler(HandlerRoutine = None, Add = True):
     if Add:
         Add = TRUE
     else:
         Add = FALSE
-    success = ctypes.windll.kernel32.SetConsoleCtrlHandler(HANDLER_ROUTINE(HandlerRoutine), Add)
+    if callable(HandlerRoutine):
+        HandlerRoutine = HANDLER_ROUTINE(HandlerRoutine)
+    elif not HandlerRoutine:
+        HandlerRoutine = NULL
+    else:
+        raise ValueError, "Bad argument for HandlerRoutine: %r" % HandlerRoutine
+    success = ctypes.windll.kernel32.SetConsoleCtrlHandler(HandlerRoutine, Add)
     if success == FALSE:
         raise ctypes.WinError()
 
