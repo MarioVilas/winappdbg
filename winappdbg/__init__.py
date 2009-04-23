@@ -96,4 +96,4 @@ from textio import *
 import win32
 
 # Library version
-version = "Version 1.1, revision $Revision$"
+version = "Version 1.1"
