@@ -56,7 +56,17 @@ except ImportError:
 
 class ConsoleInput (object):
 
-    history_file    = '.pdebug'
+    history_file = '.pdebug'
+
+    register_names = (
+        'eax', 'ebx', 'ecx', 'edx',
+        'esi', 'edi', 'ebp', 'esp',
+        'eip',
+    )
+    segment_names         = ( 'cs', 'ds', 'es', 'fs', 'gs' )
+    register_alias_16     = { 'ax':'Eax', 'bx':'Ebx', 'cx':'Ecx', 'dx':'Edx' }
+    register_alias_8_low  = { 'al':'Eax', 'bl':'Ebx', 'cl':'Ecx', 'dl':'Edx' }
+    register_alias_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
 
 #------------------------------------------------------------------------------
 # Control-C handling
@@ -214,30 +224,32 @@ class ConsoleInput (object):
             command_line = self.lastEvent.debug.system.argv_to_cmdline(argv)
         return command_line
 
-    def input_address(self, token, pid):
-        if pid == self.lastEvent.get_pid():
-            process = self.lastEvent.get_process()
-        else:
+    def input_address(self, token, pid = None, tid = None):
+        address = self.input_register(token, tid)
+        if address is None:
+            if pid is None or pid == self.lastEvent.get_pid():
+                process = self.lastEvent.get_process()
+            else:
+                try:
+                    process = self.lastEvent.debug.system.get_process(pid)
+                except KeyError:
+                    raise CmdError, "process not found (%d)" % pid
             try:
-                process = self.lastEvent.debug.system.get_process(pid)
-            except KeyError:
-                raise CmdError, "process not found (%d)" % pid
-        try:
-            address = process.resolve_label(token)
-        except Exception, e:
-            raise CmdError, "unknown address (%s)" % token
+                address = process.resolve_label(token)
+            except Exception, e:
+                raise CmdError, "unknown address (%s)" % token
         return address
 
-    def input_address_range(self, token, pid):
+    def input_address_range(self, token, pid = None, tid = None):
         if '-' in token:
             try:
                 token_1, token_2 = token.split('-')
             except Exception:
                 raise CmdError, "bad address range: %s" % token
-            address = self.input_address(token_1, pid)
-            size    = self.input_address(token_2, pid) - address
+            address = self.input_address(token_1, pid, tid)
+            size    = self.input_address(token_2, pid, tid) - address
         else:
-            address = self.input_address(token, pid)
+            address = self.input_address(token, pid, tid)
             size    = None
         return address, size
 
@@ -259,13 +271,48 @@ class ConsoleInput (object):
         address, size = self.input_address_range(token_list[0], pid)
         return pid, tid, address, size
 
-    def input_address_and_process(self, token_list):
+    def input_address_and_process(self, token_list, tid = None):
         if len(token_list) > 1:
             pid = self.input_process(token_list[1])
         else:
             pid = self.lastEvent.get_pid()
-        address = self.input_address(token_list[0], pid)
+        address = self.input_address(token_list[0], pid, tid)
         return pid, address
+
+    def input_address_range_and_process(self, token_list, tid = None):
+        if len(token_list) > 1:
+            pid = self.input_process(token_list[1])
+        else:
+            pid = self.lastEvent.get_pid()
+        address, size = self.input_address_range(token_list[0], pid, tid)
+        return pid, address, size
+
+    def input_register(self, token, tid = None):
+        if tid is None:
+            thread = self.lastEvent.get_thread()
+        else:
+            thread = self.lastEvent.debug.system.get_thread(tid)
+        ctx = thread.get_context()
+        
+        token = token.lower()
+        
+        if token in self.register_names:
+            return ctx.get( token.title() )             # eax -> Eax
+         
+        if token in self.segment_names:
+            return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
+        
+        if token in self.register_alias_16.keys():
+            return ctx.get( self.register_alias_16[token] ) & 0x0000FFFF
+        
+        if token in self.register_alias_8_low.keys():
+            return ctx.get( self.register_alias_8_low[token] ) & 0x000000FF
+        
+        if token in self.register_alias_8_high.keys():
+            return \
+               (ctx.get( self.register_alias_8_high[token] ) & 0x0000FF00) >> 8
+        
+        return None
 
 #==============================================================================
 
@@ -820,49 +867,90 @@ class ConsoleCommands (Cmd):
             print winappdbg.CrashDump.dump_code_line(line)
 
     do_u = do_disassemble
-    do_du = do_disassemble
 
     def do_db(self, arg):
         """
         db <address> [process] - show memory contents as bytes
+        db <address-address> [process] - show memory contents as bytes
         """
-        token_list   = self.split_tokens(arg, 1, 2)
-        pid, address = self.input_address_and_process(token_list)
-        process      = self.lastEvent.debug.system.get_process(pid)
-        try:
-            code = process.peek(address, 64)
-        except Exception, e:
-            msg = "can't read address %s"
-            msg = msg % winappdbg.HexDump.address(address)
-            raise CmdError, msg
-        for line in code:
-            print winappdbg.CrashDump.dump_code_line(line)
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 64
+        data = process.peek(address, size)
+        if data:
+            print winappdbg.HexDump.hexblock(data, address),
+
+    do_display = do_db
 
     def do_dw(self, arg):
         """
         dw <address> [process] - show memory contents as words
+        dw <address-address> [process] - show memory contents as words
         """
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 64
+        data = process.peek(address, size)
+        if data:
+            print winappdbg.HexDump.hexblock_word(data, address),
 
     def do_dd(self, arg):
         """
         dd <address> [process] - show memory contents as dwords
+        dd <address-address> [process] - show memory contents as dwords
         """
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 64
+        data = process.peek(address, size)
+        if data:
+            print winappdbg.HexDump.hexblock_dword(data, address),
 
     def do_dq(self, arg):
         """
         dq <address> [process] - show memory contents as qwords
+        dq <address-address> [process] - show memory contents as qwords
         """
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 64
+        data = process.peek(address, size)
+        if data:
+            print winappdbg.HexDump.hexblock_qword(data, address),
 
     def do_ds(self, arg):
         """
         ds <address> [process] - show memory contents as ANSI
         """
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 128
+        data = process.peek_string(address, False, size)
+        if data:
+            print repr(data)
 
     def do_du(self, arg):
         """
         du <address> [process] - show memory contents as Unicode
         """
-
+        token_list         = self.split_tokens(arg, 1, 2)
+        pid, address, size = self.input_address_range_and_process(token_list)
+        process            = self.lastEvent.debug.system.get_process(pid)
+        if not size:
+            size = 256
+        data = process.peek_string(address, True, size)
+        if data:
+            print repr(data)
 
 #==============================================================================
 

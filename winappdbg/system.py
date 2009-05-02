@@ -1535,6 +1535,220 @@ class MemoryOperations (object):
 
 #------------------------------------------------------------------------------
 
+    def is_address_valid(self, address):
+        """
+        Determines if an address is a valid user mode address.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return: C{True} if the address is a valid user mode address.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return True
+
+    def is_address_free(self, address):
+        """
+        Determines if an address belongs to a free page.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return: C{True} if the address belongs to a free page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.State == win32.MEM_FREE
+
+    def is_address_reserved(self, address):
+        """
+        Determines if an address belongs to a reserved page.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return: C{True} if the address belongs to a reserved page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.State == win32.MEM_RESERVE
+
+    def is_address_commited(self, address):
+        """
+        Determines if an address belongs to a commited page.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return: C{True} if the address belongs to a commited page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.State == win32.MEM_COMMIT
+
+    def is_address_readable(self, address):
+        """
+        Determines if an address belongs to a commited and readable page.
+        The page may or may not have additional permissions.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return:
+            C{True} if the address belongs to a commited and readable page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        Protect = mbi.Protect
+        return mbi.State == win32.MEM_COMMIT and \
+            (
+                Protect & win32.PAGE_EXECUTE_READ       or \
+                Protect & win32.PAGE_EXECUTE_READWRITE  or \
+                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
+                Protect & win32.PAGE_READONLY           or \
+                Protect & win32.PAGE_READWRITE          or \
+                Protect & win32.PAGE_WRITECOPY
+            )
+
+    def is_address_writeable(self, address):
+        """
+        Determines if an address belongs to a commited and writeable page.
+        The page may or may not have additional permissions.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return:
+            C{True} if the address belongs to a commited and writeable page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        Protect = mbi.Protect
+        return mbi.State == win32.MEM_COMMIT and \
+            (
+                Protect & win32.PAGE_EXECUTE_READWRITE  or \
+                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
+                Protect & win32.PAGE_READWRITE          or \
+                Protect & win32.PAGE_WRITECOPY
+            )
+
+    def is_address_executable(self, address):
+        """
+        Determines if an address belongs to a commited and executable page.
+        The page may or may not have additional permissions.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return:
+            C{True} if the address belongs to a commited and executable page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        Protect = mbi.Protect
+        return mbi.State == win32.MEM_COMMIT and \
+            (
+                Protect & win32.PAGE_EXECUTE            or \
+                Protect & win32.PAGE_EXECUTE_READ       or \
+                Protect & win32.PAGE_EXECUTE_READWRITE  or \
+                Protect & win32.PAGE_EXECUTE_WRITECOPY
+            )
+
+    def is_address_executable_and_writeable(self, address):
+        """
+        Determines if an address belongs to a commited, writeable and
+        executable page. The page may or may not have additional permissions.
+        
+        Looking for writeable and executable pages is important when
+        exploiting a software vulnerability.
+        
+        @note: Returns always C{False} for kernel mode addresses.
+        
+        @type  address: int
+        @param address: Memory address to query.
+        
+        @rtype:  bool
+        @return:
+            C{True} if the address belongs to a commited, writeable and
+            executable page.
+        
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        Protect = mbi.Protect
+        return mbi.State == win32.MEM_COMMIT and \
+            (
+                Protect & win32.PAGE_EXECUTE_READWRITE  or \
+                Protect & win32.PAGE_EXECUTE_WRITECOPY
+            )
+
     def get_memory_map(self, minAddr = 0, maxAddr = 0x100000000):
         """
         Produces a memory map to the process address space.
@@ -1560,8 +1774,10 @@ class MemoryOperations (object):
         while currentAddr <= maxAddr:
             try:
                 mbi = self.mquery(currentAddr)
-            except WindowsError:
-                break
+            except WindowsError, e:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                    break
+                raise
             memoryMap.append(mbi)
             currentAddr = mbi.BaseAddress + mbi.RegionSize
         return memoryMap

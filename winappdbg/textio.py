@@ -50,171 +50,10 @@ import win32
 import time
 import struct
 
-class DebugLog (object):
-    'Static functions for debug logging.'
-
-    @staticmethod
-    def log_text(text):
-        """
-        Log lines of text, inserting a timestamp.
-
-        @type  text: str
-        @param text: Text to log.
-
-        @rtype:  str
-        @return: Log line.
-        """
-        if text.endswith('\n'):
-            text = text[:-len('\n')]
-        #text  = text.replace('\n', '\n\t\t')           # text CSV
-        ltime = time.strftime("%X")
-        msecs = (time.time() % 1) * 1000
-        return '[%s.%04d] %s' % (ltime, msecs, text)
-        #return '[%s.%04d]\t%s' % (ltime, msecs, text)  # text CSV
-
-    @classmethod
-    def log_event(cls, event, text):
-        """
-        Log lines of text associated with a debug event.
-
-        @type  event: L{Event}
-        @param event: Event object.
-
-        @type  text: str
-        @param text: Text to log.
-
-        @rtype:  str
-        @return: Log line.
-        """
-        text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
-        #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
-        return cls.log_text(text)
-
-#------------------------------------------------------------------------------
-
-class HexDump (object):
-    'Static functions for hexadecimal dumps.'
-
-    @staticmethod
-    def printable(data):
-        """
-        Replace unprintable characters with dots.
-
-        @type  data: str
-        @param data: Binary data.
-
-        @rtype:  str
-        @return: Printable text.
-        """
-        result = ''
-        for c in data:
-            if 32 < ord(c) < 128:
-                result += c
-            else:
-                result += '.'
-        return result
-
-    @staticmethod
-    def hexadecimal(data, separator = ''):
-        """
-        Convert binary data to a string of hexadecimal numbers.
-
-        @type  data: str
-        @param data: Binary data.
-
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
-
-        @rtype:  str
-        @return: Hexadecimal representation.
-        """
-        return separator.join( [ '%.2x' % ord(c) for c in data ] )
-
-    @classmethod
-    def hexline(cls, data, separator = ' ', width = None):
-        """
-        Dump a line of hexadecimal numbers from binary data.
-
-        @type  data: str
-        @param data: Binary data.
-
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
-
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of characters to convert per text line.
-
-        @rtype:  str
-        @return: Multiline output text.
-        """
-        if width is None:
-            fmt = '%s  %s\n'
-        else:
-            fmt = '%%-%ds  %%-%ds\n' % ((len(separator)+2)*width-1, width)
-        return fmt % (cls.hexadecimal(data, separator), cls.printable(data))
-
-    @classmethod
-    def hexblock(cls, data, address = None, separator = ' ', width = 16):
-        """
-        Dump a block of hexadecimal numbers from binary data.
-
-        @type  data: str
-        @param data: Binary data.
-
-        @type  address: str
-        @param address: Memory address where the data was read from.
-
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
-
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of characters to convert per text line.
-
-        @rtype:  str
-        @return: Multiline output text.
-        """
-        result = ''
-        if address is None:
-            for i in xrange(0, len(data), width):
-                result  += cls.hexline(data[i:i+width], separator, width)
-        else:
-            for i in xrange(0, len(data), width):
-                line     = cls.hexline(data[i:i+width], separator, width)
-                result  += '%s: %s' % (cls.address(address), line)
-                address += width
-        return result
-
-    @staticmethod
-    def address(address):
-        """
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  str
-        @return: Text output.
-        """
-        return '0x%.8x' % address
-
-    @staticmethod
-    def integer(integer):
-        """
-        @type  address: int
-        @param address: Integer.
-
-        @rtype:  str
-        @return: Text output.
-        """
-        return '%i' % integer
-
 #------------------------------------------------------------------------------
 
 class HexInput (object):
-    'Static functions for hexadecimal user input.'
+    'Static functions for user input parsing.'
 
     @staticmethod
     def integer(token):
@@ -318,7 +157,7 @@ class HexInput (object):
         @param filename: Name of the file to read.
 
         @rtype:  list( int )
-        @return: List of integers read from file.
+        @return: List of integers read from the file.
         """
         count  = 0
         result = list()
@@ -358,7 +197,7 @@ class HexInput (object):
         @param filename: Name of the file to read.
 
         @rtype:  list
-        @return: List of integers and strings read from file.
+        @return: List of integers and strings read from the file.
         """
         count  = 0
         result = list()
@@ -375,6 +214,438 @@ class HexInput (object):
                     value = line
                 result.append(value)
         return result
+
+#------------------------------------------------------------------------------
+
+class HexOutput (object):
+    'Static functions for user output parsing.'
+
+    @staticmethod
+    def integer(integer):
+        """
+        @type  integer: int
+        @param integer: Integer.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '0x%.8x' % integer
+
+    @staticmethod
+    def hexadecimal(data):
+        """
+        Convert binary data to a string of hexadecimal numbers.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
+        return HexDump.hexadecimal(data, separator = '')
+
+    @classmethod
+    def integer_list_file(cls, filename, values):
+        """
+        Write a list of integers to a file.
+        If a file of the same name exists, it's contents are replaced.
+
+        See L{HexInput.integer_list_file} for a description of the file format.
+
+        @type  filename: str
+        @param filename: Name of the file to write.
+
+        @type:  list( int )
+        @param: List of integers to write to the file.
+        """
+        fd = open(filename, 'w')
+        for integer in values:
+            print >> fd, cls.integer(integer)
+        fd.close()
+
+    @classmethod
+    def mixed_list_file(cls, filename):
+        """
+        Write a list of mixed values to a file.
+        If a file of the same name exists, it's contents are replaced.
+
+        See L{HexInput.mixed_list_file} for a description of the file format.
+
+        @type  filename: str
+        @param filename: Name of the file to write.
+
+        @type:  list( int )
+        @param: List of mixed values to write to the file.
+        """
+        fd = open(filename, 'w')
+        for original in values:
+            try:
+                parsed = cls.integer(original)
+            except TypeError:
+                parsed = repr(original)
+            print >> fd, parsed
+        fd.close()
+
+#------------------------------------------------------------------------------
+
+class DebugLog (object):
+    'Static functions for debug logging.'
+
+    @staticmethod
+    def log_text(text):
+        """
+        Log lines of text, inserting a timestamp.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
+        if text.endswith('\n'):
+            text = text[:-len('\n')]
+        #text  = text.replace('\n', '\n\t\t')           # text CSV
+        ltime = time.strftime("%X")
+        msecs = (time.time() % 1) * 1000
+        return '[%s.%04d] %s' % (ltime, msecs, text)
+        #return '[%s.%04d]\t%s' % (ltime, msecs, text)  # text CSV
+
+    @classmethod
+    def log_event(cls, event, text):
+        """
+        Log lines of text associated with a debug event.
+
+        @type  event: L{Event}
+        @param event: Event object.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
+        text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
+        #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
+        return cls.log_text(text)
+
+#------------------------------------------------------------------------------
+
+class HexDump (object):
+    'Static functions for hexadecimal dumps.'
+
+    @staticmethod
+    def printable(data):
+        """
+        Replace unprintable characters with dots.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @rtype:  str
+        @return: Printable text.
+        """
+        result = ''
+        for c in data:
+            if 32 < ord(c) < 128:
+                result += c
+            else:
+                result += '.'
+        return result
+
+    @staticmethod
+    def hexadecimal(data, separator = ''):
+        """
+        Convert binary data to a string of hexadecimal numbers.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
+        return separator.join( [ '%.2x' % ord(c) for c in data ] )
+
+    @staticmethod
+    def hexa_word(data, separator = ' '):
+        """
+        Convert binary data to a string of hexadecimal WORDs.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each WORD.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
+        if len(data) & 1 != 0:
+            data += '\0'
+        return separator.join( [ '%.4x' % struct.unpack('<H', data[i:i+2])[0] \
+                                           for i in xrange(0, len(data), 2) ] )
+
+    @staticmethod
+    def hexa_dword(data, separator = ' '):
+        """
+        Convert binary data to a string of hexadecimal DWORDs.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each DWORD.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
+        if len(data) & 3 != 0:
+            data += '\0' * (4 - (len(data) & 3))
+        return separator.join( [ '%.8x' % struct.unpack('<L', data[i:i+4])[0] \
+                                           for i in xrange(0, len(data), 4) ] )
+
+    @staticmethod
+    def hexa_qword(data, separator = ' '):
+        """
+        Convert binary data to a string of hexadecimal QWORDs.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each QWORD.
+
+        @rtype:  str
+        @return: Hexadecimal representation.
+        """
+        if len(data) & 7 != 0:
+            data += '\0' * (8 - (len(data) & 7))
+        return separator.join( [ '%.16x' % struct.unpack('<Q', data[i:i+8])[0]\
+                                           for i in xrange(0, len(data), 8) ] )
+
+    @classmethod
+    def hexline(cls, data, separator = ' ', width = None):
+        """
+        Dump a line of hexadecimal numbers from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of characters to convert per text line.
+            This value is also used for padding.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        if width is None:
+            fmt = '%s  %s'
+        else:
+            fmt = '%%-%ds  %%-%ds' % ((len(separator)+2)*width-1, width)
+        return fmt % (cls.hexadecimal(data, separator), cls.printable(data))
+
+    @classmethod
+    def hexblock(cls, data, address = None, separator = ' ', width = 8):
+        """
+        Dump a block of hexadecimal numbers from binary data.
+        Also show a printable text version of the data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of characters to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        return cls.hexblock_cb(cls.hexline, data, address, width * 2,
+                 cb_kwargs = {'width':width, 'separator': separator})
+
+    @classmethod
+    def hexblock_cb(cls, callback, data, address = None, width = 16,
+                                                cb_args = (), cb_kwargs = {}):
+        """
+        Dump a block of binary data using a callback function to convert each
+        line of text.
+
+        @type  callback: function
+        @param callback: Callback function to convert each line of data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address:
+            (Optional) Memory address where the data was read from.
+
+        @type  cb_args: str
+        @param cb_args:
+            (Optional) Arguments to pass to the callback function.
+
+        @type  cb_kwargs: str
+        @param cb_kwargs:
+            (Optional) Keyword arguments to pass to the callback function.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of bytes to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        result = ''
+        if address is None:
+            for i in xrange(0, len(data), width):
+                result = '%s%s\n' % ( result, \
+                             callback(data[i:i+width], *cb_args, **cb_kwargs) )
+        else:
+            for i in xrange(0, len(data), width):
+                result = '%s%s: %s\n' % ( result, cls.address(address), \
+                             callback(data[i:i+width], *cb_args, **cb_kwargs) )
+                address += width
+        return result
+
+    @classmethod
+    def hexblock_byte(cls, data, address = None, separator = ' ', width = 16):
+        """
+        Dump a block of hexadecimal BYTEs from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each BYTE.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of BYTEs to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        return cls.hexblock_cb(cls.hexadecimal, data, address, width,
+                                          cb_kwargs = {'separator': separator})
+
+    @classmethod
+    def hexblock_word(cls, data, address = None, separator = ' ', width = 8):
+        """
+        Dump a block of hexadecimal WORDs from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each WORD.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of WORDs to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        return cls.hexblock_cb(cls.hexa_word, data, address, width * 2,
+                                          cb_kwargs = {'separator': separator})
+
+    @classmethod
+    def hexblock_dword(cls, data, address = None, separator = ' ', width = 4):
+        """
+        Dump a block of hexadecimal DWORDs from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each DWORD.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of DWORDs to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        return cls.hexblock_cb(cls.hexa_dword, data, address, width * 4,
+                                          cb_kwargs = {'separator': separator})
+
+    @classmethod
+    def hexblock_qword(cls, data, address = None, separator = ' ', width = 2):
+        """
+        Dump a block of hexadecimal QWORDs from binary data.
+
+        @type  data: str
+        @param data: Binary data.
+
+        @type  address: str
+        @param address: Memory address where the data was read from.
+
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each QWORD.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of QWORDs to convert per text line.
+
+        @rtype:  str
+        @return: Multiline output text.
+        """
+        return cls.hexblock_cb(cls.hexa_qword, data, address, width * 8,
+                                          cb_kwargs = {'separator': separator})
+
+    @staticmethod
+    def address(address):
+        """
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '%.8x' % address
+
+    @staticmethod
+    def integer(integer):
+        """
+        @type  integer: int
+        @param integer: Integer.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '%11i' % integer
 
 #------------------------------------------------------------------------------
 
