@@ -185,9 +185,31 @@ class HexDump (object):
         else:
             for i in xrange(0, len(data), width):
                 line     = cls.hexline(data[i:i+width], separator, width)
-                result  += '%.8x: %s' % (address, line)
+                result  += '%s: %s' % (cls.address(address), line)
                 address += width
         return result
+
+    @staticmethod
+    def address(address):
+        """
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '0x%.8x' % address
+
+    @staticmethod
+    def integer(integer):
+        """
+        @type  address: int
+        @param address: Integer.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '%i' % integer
 
 #------------------------------------------------------------------------------
 
@@ -554,9 +576,15 @@ class CrashDump (object):
         """
         Dump a disassembly. Optionally mark where the program counter is.
 
-        @type  disassembly: tuple( int, int, str, str )
+        @type  disassembly: list of tuple( int, int, str, str )
         @param disassembly: Disassembly dump as returned by
             L{Process.disassemble} or L{Thread.disassemble_around_pc}.
+
+        @type  pc: int
+        @param pc: (Optional) Program counter.
+
+        @type  bLowercase: bool
+        @param bLowercase: (Optional) If C{True} convert the code to lowercase.
 
         @rtype:  str
         @return: Text suitable for logging.
@@ -580,6 +608,35 @@ class CrashDump (object):
             else:
                 star = ' '
             result += fmt % (star, addr, dump, code)
+        return result
+
+    @staticmethod
+    def dump_code_line(disassembly_line,                  bShowAddress = True,
+                                                            bLowercase = True):
+        """
+        Dump a single line of code. To dump a block of code use L{dump_code}.
+
+        @type  disassembly_line: tuple( int, int, str, str )
+        @param disassembly_line: Single item of the list returned by
+            L{Process.disassemble} or L{Thread.disassemble_around_pc}.
+
+        @type  bShowAddress: int
+        @param bShowAddress: (Optional) If C{True} show the memory address.
+
+        @type  bLowercase: bool
+        @param bLowercase: (Optional) If C{True} convert the code to lowercase.
+
+        @rtype:  str
+        @return: Text suitable for logging.
+        """
+        (addr, size, code, dump) = disassembly_line
+        dump = dump.replace(' ', '')
+        if bLowercase:
+            code = code.lower()
+        if bShowAddress:
+            result = '%.8x %-16s %s' % (addr, dump, code)
+        else:
+            result = '%-16s %s' % (dump, code)
         return result
 
     @staticmethod

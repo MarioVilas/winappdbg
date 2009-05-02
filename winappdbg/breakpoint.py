@@ -61,7 +61,8 @@ __all__ = [
 
     ]
 
-from system import processidparam, threadidparam, System, MemoryAddresses
+from system import processidparam, threadidparam
+from system import Process, System, MemoryAddresses
 import win32
 
 #==============================================================================
@@ -817,28 +818,17 @@ class CodeBreakpoint (Breakpoint):
         """
         aProcess.write(self.get_address(), self.__previousValue)
 
-    def __cancel_running_state(self, aThread):
-        """
-        Clears the trap flag if the breakpoint is in L{RUNNING} state.
-        """
-        if self.is_running():
-            aThread.clear_tf()
-
     def disable(self, aProcess, aThread):
-        try:
+        if not self.is_disabled() and not self.is_running():
             self.__clear_bp(aProcess)
-        finally:
-            self.__cancel_running_state(aThread)
         super(CodeBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(CodeBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(CodeBreakpoint, self).one_shot(aProcess, aThread)
@@ -926,28 +916,17 @@ class PageBreakpoint (Breakpoint):
         flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)
         aProcess.mprotect(lpAddress, self.get_size(), flNewProtect)
 
-    def __cancel_running_state(self, aThread):
-        """
-        Clears the trap flag if the breakpoint is in L{RUNNING} state.
-        """
-        if self.is_running():
-            aThread.clear_tf()
-
     def disable(self, aProcess, aThread):
-        try:
+        if not self.is_disabled():
             self.__clear_bp(aProcess)
-        finally:
-            self.__cancel_running_state(aThread)
         super(PageBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
-        self.__cancel_running_state(aThread)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).one_shot(aProcess, aThread)
@@ -1139,13 +1118,6 @@ class HardwareBreakpoint (Breakpoint):
             finally:
                 aThread.resume()
 
-    def __cancel_running_state(self, aThread):
-        """
-        Clears the trap flag if the breakpoint is in L{RUNNING} state.
-        """
-        if self.is_running():
-            aThread.clear_tf()
-
     def get_slot(self):
         """
         @rtype:  int
@@ -1171,20 +1143,18 @@ class HardwareBreakpoint (Breakpoint):
         return self.__watch
 
     def disable(self, aProcess, aThread):
-        try:
+        if not self.is_disabled():
             self.__clear_bp(aThread)
-        finally:
-            self.__cancel_running_state(aThread)
         super(HardwareBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        self.__set_bp(aThread)
-        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aThread)
         super(HardwareBreakpoint, self).enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
-        self.__set_bp(aThread)
-        self.__cancel_running_state(aThread)
+        if not self.is_enabled() and not self.is_one_shot():
+            self.__set_bp(aThread)
         super(HardwareBreakpoint, self).one_shot(aProcess, aThread)
 
     def running(self, aProcess, aThread):
@@ -1195,8 +1165,24 @@ class HardwareBreakpoint (Breakpoint):
 #==============================================================================
 
 # FIXME
+#
 # Functions hooks, as they are implemented now, don't work correctly for
-# recursive functions.
+# recursive functions. The problem is we don't know when to remove the
+# breakpoint at the return address. Also there could be more than one return
+# address.
+#
+# One possible solution would involve dictionary of lists, where the key
+# would be the thread ID and the value a stack of return addresses. But I
+# still don't know what to do if the "wrong" return address is hit for some
+# reason. Or if both a code and a hardware breakpoint are hit simultaneously.
+#
+# For now, the workaround for the user is to set only the "pre" callback for
+# functions that are known to be recursive.
+#
+# Hooks may also behave oddly if the return address is overwritten by a buffer
+# overflow bug. But it's probably a lesser issue since when you're fuzzing a
+# function for overflows you're usually not interested in the return value
+# anyway.
 
 class Hook (object):
     """
@@ -1753,6 +1739,30 @@ class BreakpointContainer (object):
         for (tid, bpset) in self.__runningBP.iteritems():
             if bp in bpset:
                 bpset.remove(bp)
+                self.system.get_thread(tid).clear_tf()
+
+    def __cleanup_thread(self, event):
+        """
+        Auxiliary method for L{notify_exit_thread} and L{notify_exit_process}.
+        """
+        tid = event.get_tid()
+        if self.__runningBP.has_key(tid):
+            del self.__runningBP[tid]
+        if self.__hardwareBP.has_key(tid):
+            del self.__hardwareBP[tid]
+
+    def __cleanup_process(self, event):
+        """
+        Auxiliary method for L{notify_exit_process}.
+        """
+        pid     = event.get_pid()
+        process = event.get_process()
+        for (bp_pid, bp_address) in self.__codeBP.keys():
+            if bp_pid == pid:
+                del self.__codeBP[(bp_pid, bp_address)]
+        for (bp_pid, bp_address) in self.__pageBP.keys():
+            if bp_pid == pid:
+                del self.__pageBP[(bp_pid, bp_address)]
 
 #------------------------------------------------------------------------------
 
@@ -2186,7 +2196,9 @@ class BreakpointContainer (object):
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_code_breakpoint(dwProcessId, address)
-        bp.enable(p, None)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
+        bp.enable(p, None)        # XXX HACK thread is not used
 
     @processidparam
     def enable_page_breakpoint(self, dwProcessId, address):
@@ -2209,7 +2221,9 @@ class BreakpointContainer (object):
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_page_breakpoint(dwProcessId, address)
-        bp.enable(p, None)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
+        bp.enable(p, None)        # XXX HACK thread is not used
 
     @threadidparam
     def enable_hardware_breakpoint(self, dwThreadId, address):
@@ -2233,6 +2247,8 @@ class BreakpointContainer (object):
         t  = self.system.get_thread(dwThreadId)
         p  = t.get_process()
         bp = self.get_hardware_breakpoint(dwThreadId, address)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
         bp.enable(p, t)
 
     @processidparam
@@ -2256,7 +2272,9 @@ class BreakpointContainer (object):
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_code_breakpoint(dwProcessId, address)
-        bp.one_shot(p, None)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
+        bp.one_shot(p, None)        # XXX HACK process is not used
 
     @processidparam
     def enable_one_shot_page_breakpoint(self, dwProcessId, address):
@@ -2279,7 +2297,9 @@ class BreakpointContainer (object):
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_page_breakpoint(dwProcessId, address)
-        bp.one_shot(p, None)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
+        bp.one_shot(p, None)        # XXX HACK process is not used
 
     @threadidparam
     def enable_one_shot_hardware_breakpoint(self, dwThreadId, address):
@@ -2302,7 +2322,9 @@ class BreakpointContainer (object):
         """
         t  = self.system.get_thread(dwThreadId)
         bp = self.get_hardware_breakpoint(dwThreadId, address)
-        bp.one_shot(None, t)
+        if bp.is_running():
+            self.__del_running_bp_from_all_threads(bp)
+        bp.one_shot(None, t)        # XXX HACK process is not used
 
     @processidparam
     def disable_code_breakpoint(self, dwProcessId, address):
@@ -2327,7 +2349,7 @@ class BreakpointContainer (object):
         bp = self.get_code_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.disable(p, None)
+        bp.disable(p, None)     # XXX HACK thread is not used
 
     @processidparam
     def disable_page_breakpoint(self, dwProcessId, address):
@@ -2352,7 +2374,7 @@ class BreakpointContainer (object):
         bp = self.get_page_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.disable(p, None)
+        bp.disable(p, None)     # XXX HACK thread is not used
 
     @threadidparam
     def disable_hardware_breakpoint(self, dwThreadId, address):
@@ -2485,6 +2507,7 @@ class BreakpointContainer (object):
         @rtype:  list of tuple( pid, tid, bp )
         @return: List of all breakpoints.
         """
+        bplist = list()
 
         # Get the code breakpoints.
         for (pid, bp) in self.get_all_code_breakpoints():
@@ -2533,9 +2556,56 @@ class BreakpointContainer (object):
                 result.append( (tid, bp) )
         return result
 
+    def get_process_breakpoints(self, dwProcessId):
+        """
+        Returns all breakpoint objects for the given process as a list of tuples.
+
+        Each tuple contains:
+         - Process global ID to which the breakpoint applies.
+         - Thread global ID to which the breakpoint applies, or C{None}.
+         - The L{Breakpoint} object itself.
+
+        @note: If you're only interested in a specific breakpoint type, or in
+            breakpoints for a specific process or thread, it's probably faster
+            to call one of the following methods:
+             - L{get_all_code_breakpoints}
+             - L{get_all_page_breakpoints}
+             - L{get_all_hardware_breakpoints}
+             - L{get_process_code_breakpoints}
+             - L{get_process_page_breakpoints}
+             - L{get_process_hardware_breakpoints}
+             - L{get_thread_hardware_breakpoints}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
+        @rtype:  list of tuple( pid, tid, bp )
+        @return: List of all breakpoints for the given process.
+        """
+        bplist = list()
+
+        # Get the code breakpoints.
+        for bp in self.get_process_code_breakpoints(dwProcessId):
+            bplist.append( (dwProcessId, None, bp) )
+
+        # Get the page breakpoints.
+        for bp in self.get_process_page_breakpoints(dwProcessId):
+            bplist.append( (dwProcessId, None, bp) )
+
+        # Get the hardware breakpoints.
+        for (tid, bp) in self.get_process_hardware_breakpoints(dwProcessId):
+            pid = self.system.get_thread(tid).get_pid()
+            bplist.append( (dwProcessId, tid, bp) )
+
+        # Return the list of breakpoints.
+        return bplist
+
     @processidparam
     def get_process_code_breakpoints(self, dwProcessId):
         """
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
@@ -2548,6 +2618,9 @@ class BreakpointContainer (object):
     @processidparam
     def get_process_page_breakpoints(self, dwProcessId):
         """
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
@@ -2560,7 +2633,11 @@ class BreakpointContainer (object):
     @threadidparam
     def get_thread_hardware_breakpoints(self, dwThreadId):
         """
-        @see: get_process_hardware_breakpoints
+        @see: L{get_process_hardware_breakpoints}
+
+        @type  dwThreadId: int
+        @param dwThreadId: Thread global ID.
+
         @rtype:  list of L{HardwareBreakpoint}
         @return: All hardware breakpoints for the given thread.
         """
@@ -2574,7 +2651,11 @@ class BreakpointContainer (object):
     @processidparam
     def get_process_hardware_breakpoints(self, dwProcessId):
         """
-        @see: get_thread_hardware_breakpoints
+        @see: L{get_thread_hardware_breakpoints}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.
+
         @rtype:  list of tuple( int, L{HardwareBreakpoint} )
         @return: All hardware breakpoints for each thread in the given process
             as a list of tuples (tid, bp).
@@ -2705,20 +2786,24 @@ class BreakpointContainer (object):
         """
 
         # enable code breakpoints
-        for bp in self.get_code_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_code_breakpoints(dwProcessId):
             if bp.is_disabled():
                 self.enable_code_breakpoint(dwProcessId, bp.get_address())
 
         # enable page breakpoints
-        for bp in self.get_page_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_page_breakpoints(dwProcessId):
             if bp.is_disabled():
                 self.enable_page_breakpoint(dwProcessId, bp.get_address())
 
         # enable hardware breakpoints
-        aProcess = self.system.get_process(dwProcessId)
+        if self.system.has_process(dwProcessId):
+            aProcess = self.system.get_process(dwProcessId)
+        else:
+            aProcess = Process(dwProcessId)
+            aProcess.scan_threads()
         for aThread in aProcess.iter_threads():
             dwThreadId = aThread.get_tid()
-            for bp in self.get_hardware_breakpoints_for_thread(dwThreadId):
+            for bp in self.get_thread_hardware_breakpoints(dwThreadId):
                 if bp.is_disabled():
                     self.enable_hardware_breakpoint(dwThreadId, bp.get_address())
 
@@ -2731,20 +2816,24 @@ class BreakpointContainer (object):
         """
 
         # enable code breakpoints for one shot
-        for bp in self.get_code_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_code_breakpoints(dwProcessId):
             if bp.is_disabled():
                 self.enable_one_shot_code_breakpoint(dwProcessId, bp.get_address())
 
         # enable page breakpoints for one shot
-        for bp in self.get_page_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_page_breakpoints(dwProcessId):
             if bp.is_disabled():
                 self.enable_one_shot_page_breakpoint(dwProcessId, bp.get_address())
 
         # enable hardware breakpoints for one shot
-        aProcess = self.system.get_process(dwProcessId)
+        if self.system.has_process(dwProcessId):
+            aProcess = self.system.get_process(dwProcessId)
+        else:
+            aProcess = Process(dwProcessId)
+            aProcess.scan_threads()
         for aThread in aProcess.iter_threads():
             dwThreadId = aThread.get_tid()
-            for bp in self.get_hardware_breakpoints_for_thread(dwThreadId):
+            for bp in self.get_thread_hardware_breakpoints(dwThreadId):
                 if bp.is_disabled():
                     self.enable_one_shot_hardware_breakpoint(dwThreadId, bp.get_address())
 
@@ -2757,18 +2846,22 @@ class BreakpointContainer (object):
         """
 
         # disable code breakpoints
-        for bp in self.get_code_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_code_breakpoints(dwProcessId):
             self.disable_code_breakpoint(dwProcessId, bp.get_address())
 
         # disable page breakpoints
-        for bp in self.get_page_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_page_breakpoints(dwProcessId):
             self.disable_page_breakpoint(dwProcessId, bp.get_address())
 
         # disable hardware breakpoints
-        aProcess = self.system.get_process(dwProcessId)
+        if self.system.has_process(dwProcessId):
+            aProcess = self.system.get_process(dwProcessId)
+        else:
+            aProcess = Process(dwProcessId)
+            aProcess.scan_threads()
         for aThread in aProcess.iter_threads():
             dwThreadId = aThread.get_tid()
-            for bp in self.get_hardware_breakpoints_for_thread(dwThreadId):
+            for bp in self.get_thread_hardware_breakpoints(dwThreadId):
                 self.disable_hardware_breakpoint(dwThreadId, bp.get_address())
 
     def erase_process_breakpoints(self, dwProcessId):
@@ -2784,18 +2877,22 @@ class BreakpointContainer (object):
         self.disable_breakpoints_for_process(dwProcessId)
 
         # erase code breakpoints
-        for bp in self.get_code_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_code_breakpoints(dwProcessId):
             self.erase_code_breakpoint(dwProcessId, bp.get_address())
 
         # erase page breakpoints
-        for bp in self.get_page_breakpoints_for_process(dwProcessId):
+        for bp in self.get_process_page_breakpoints(dwProcessId):
             self.erase_page_breakpoint(dwProcessId, bp.get_address())
 
         # erase hardware breakpoints
-        aProcess = self.system.get_process(dwProcessId)
+        if self.system.has_process(dwProcessId):
+            aProcess = self.system.get_process(dwProcessId)
+        else:
+            aProcess = Process(dwProcessId)
+            aProcess.scan_threads()
         for aThread in aProcess.iter_threads():
             dwThreadId = aThread.get_tid()
-            for bp in self.get_hardware_breakpoints_for_thread(dwThreadId):
+            for bp in self.get_thread_hardware_breakpoints(dwThreadId):
                 self.erase_hardware_breakpoint(dwThreadId, bp.get_address())
 
 #------------------------------------------------------------------------------
@@ -2964,11 +3061,7 @@ class BreakpointContainer (object):
         @type  event: L{ExitThreadEvent}
         @param event: Exit thread event.
         """
-        tid = event.get_tid()
-        if self.__runningBP.has_key(tid):
-            del self.__runningBP[tid]
-        if self.__hardwareBP.has_key(tid):
-            del self.__hardwareBP[tid]
+        self.__cleanup_thread(event)
         return True
 
     def notify_exit_process(self, event):
@@ -2978,13 +3071,8 @@ class BreakpointContainer (object):
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
         """
-        pid = event.get_pid()
-        for (bp_pid, bp_address) in self.__codeBP.keys():
-            if bp_pid == pid:
-                del self.__codeBP[(bp_pid, bp_address)]
-        for (bp_pid, bp_address) in self.__pageBP.keys():
-            if bp_pid == pid:
-                del self.__pageBP[(bp_pid, bp_address)]
+        self.__cleanup_process(event)
+        self.__cleanup_thread(event)
         return True
 
 #------------------------------------------------------------------------------

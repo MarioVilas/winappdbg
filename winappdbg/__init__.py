@@ -75,6 +75,7 @@ __all__ =   [
                 # from debug import *
                 'EventHandler',
 ##                'EventFactory',
+                'NoEvent',
 
                 # from textio import *
                 'DebugLog',

@@ -3014,6 +3014,8 @@ class ProcessContainer (object):
         @rtype:  list( str )
         @return: List of argument strings.
         """
+        if not lpCmdLine:
+            return []
         return win32.CommandLineToArgv(lpCmdLine)
 
     def start_process(self, lpCmdLine,
@@ -4107,7 +4109,11 @@ class Thread (ThreadDebugOperations):
 
         @see: L{set_context}
         """
-        return win32.GetThreadContext(self.get_handle(), ContextFlags)
+        self.suspend()
+        try:
+            return win32.GetThreadContext(self.get_handle(), ContextFlags)
+        finally:
+            self.resume()
 
     def set_context(self, context):
         """
@@ -4118,7 +4124,11 @@ class Thread (ThreadDebugOperations):
         @type  context:  dict( str S{->} int )
         @param context: Dictionary mapping register names to their values.
         """
-        win32.SetThreadContext(self.get_handle(), context)
+        self.suspend()
+        try:
+            win32.SetThreadContext(self.get_handle(), context)
+        finally:
+            self.resume()
 
     def get_pc(self):
         """

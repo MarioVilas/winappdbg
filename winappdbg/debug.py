@@ -58,10 +58,12 @@ class Debug (EventDispatcher, BreakpointContainer):
     @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
     @group Debugging:
-        attach, detach, detach_from_all, execv, execl, clear
+        attach, detach, detach_from_all, execv, execl, clear,
+        get_debugee_count, get_debugee_pids,
+        is_debugee, is_debugee_attached, is_debugee_started
 
     @group Debugging loop:
-        loop, wait, dispatch, cont, get_debugee_count
+        loop, wait, dispatch, cont
 
     @group Event notifications (private):
         notify_create_process,
@@ -105,8 +107,8 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         self.system                         = System()
         self.__bKillOnExit                  = bKillOnExit
-        self.__debugeeCount                 = 0
-        self.__manuallyStartedProcessesSet  = set()
+        self.__attachedDebugees             = set()
+        self.__startedDebugees              = set()
 
 ##        self.system.request_debug_privileges(bIgnoreExceptions = True)
         self.system.request_debug_privileges()
@@ -139,8 +141,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         win32.DebugActiveProcess(dwProcessId)
-        self.__manuallyStartedProcessesSet.add(dwProcessId)
-        self.__debugeeCount += 1
+        self.__attachedDebugees.add(dwProcessId)
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -190,12 +191,13 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
-        if dwProcessId in self.__manuallyStartedProcessesSet:
-            self.__manuallyStartedProcessesSet.remove(dwProcessId)
+        if dwProcessId in self.__attachedDebugees:
+            self.__attachedDebugees.remove(dwProcessId)
+        if dwProcessId in self.__startedDebugees:
+            self.__startedDebugees.remove(dwProcessId)
 
         try:
             win32.DebugActiveProcessStop(dwProcessId)
-            self.__debugeeCount -= 1
         except Exception:
              if not bIgnoreExceptions:
                 raise
@@ -206,7 +208,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         Detaches from all processes currently being debugged.
 
-        @see: L{attach}, L{detach}
+        @note: To better handle last debugging event, call L{stop} instead. 
 
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
@@ -215,14 +217,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error, unless
             C{bIgnoreExceptions} is C{True}.
         """
-        for pid in self.system.get_process_ids():
-            try:
-                self.detach(pid)
-            except Exception, e:
-                if not bIgnoreExceptions:
-                    raise
-##                traceback.print_exc()
-##                print
+        for pid in self.get_debugee_pids():
+            self.detach(pid, bIgnoreExceptions = bIgnoreExceptions)
 
     def execv(self, argv,                                    bConsole = False,
                                                               bFollow = False,
@@ -299,8 +295,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             bSuspended  = bSuspended
         )
 
-        self.__manuallyStartedProcessesSet.add(aProcess.get_pid())
-        self.__debugeeCount += 1
+        self.__startedDebugees.add( aProcess.get_pid() )
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
@@ -346,8 +341,19 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
 
+        # Ignore dummy events.
+        if not event:
+            return
+
         # By default, exceptions are handled by the debugee.
-        event.debug.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        else:
+            # Other events need this continue code.
+            # Sometimes other codes can be used and are ignored, sometimes not.
+            # For example, when using the DBG_EXCEPTION_NOT_HANDLED code,
+            # debug strings are sent twice (!)
+            event.continueStatus = win32.DBG_CONTINUE
 
         # Dispatch the debug event.
         return EventDispatcher.dispatch(self, event)
@@ -364,32 +370,85 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
 
-        # If the process is still alive, flush the instruction cache.
-        if not isinstance(event, ExitProcessEvent):
-            try:
-                event.get_process().flush_instruction_cache()
-            except WindowsError:
-                pass
+        # Ignore dummy events.
+        if not event:
+            return
 
-        # Continue execution of the debugee.
+        # Get the event continue status information.
         dwProcessId      = event.get_pid()
         dwThreadId       = event.get_tid()
         dwContinueStatus = event.continueStatus
+
+        # Try to flush the instruction cache.
+        try:
+            if self.system.has_process(dwProcessId):
+                aProcess = self.system.get_process(dwProcessId)
+            else:
+                aProcess = Process(dwProcessId)
+            aProcess.flush_instruction_cache()
+        except WindowsError:
+            pass
+
+        # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
+
+    def stop(self, event = None, bIgnoreExceptions = False):
+        """
+        Stops debugging all processes.
+
+        @note: This method is better than L{detach_from_all} because it can
+            gracefully handle the last debugging event before detaching.
+
+        @type  event: L{Event}
+        @param event: (Optional) Event object returned by L{wait}.
+            By passing this parameter, the last debugging event may be
+            continued gracefully.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when detaching.
+        """
+        # All these try / finally blocks may be masking some exceptions,
+        # but this way we get a better cleanup. Like that battery-powered
+        # rabbit, it just keeps going, and going, and going.
+        try:
+            try:
+                if event:
+                    try:
+                        self.disable_process_breakpoints(event.get_pid())
+                    finally:
+                        self.cont(event)
+            except Exception:
+                if not bIgnoreExceptions:
+                    raise
+        finally:
+            self.detach_from_all(bIgnoreExceptions)
 
     def loop(self, dwMilliseconds = 1000):
         """
-        Main debugging loop.
+        Simple debugging loop.
 
-        @see: L{cont}, L{dispatch}, L{wait}
+        This debugging loop is meant to be useful for most simple scripts.
+        It iterates as long as there is at least one debuguee, or an exception
+        is raised.
+
+        If the latter happens, the debugger detaches from all processes as
+        gracefully as it can before throwing the exception to the caller. 
+
+        This is a trivial example script::
+
+            import sys
+            debug = Debug()
+            debug.execv( sys.argv [ 1 : ] )
+            debug.loop()
+
+        @see: L{cont}, L{dispatch}, L{wait}, L{stop}
 
             U{http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx}
 
         @type  dwMilliseconds: int
         @param dwMilliseconds: Timeout for each wait, in milliseconds.
             Use C{INFINITE} or C{None} for no timeout.
-            It's NOT recommended to use no timeout, as the user may be unable
-            to cancel your program by pressing Control-C.
 
         @raise WindowsError: Raises an exception on error.
         """
@@ -399,14 +458,13 @@ class Debug (EventDispatcher, BreakpointContainer):
             except WindowsError, e:
                 if e.winerror == win32.ERROR_SEM_TIMEOUT:
                     continue
+                self.detach_from_all(event)
                 raise
             try:
                 self.dispatch(event)
             except Exception:
+                self.stop(event)
                 raise
-##                pass
-##                traceback.print_exc()
-##                print
             self.cont(event)
 
     def get_debugee_count(self):
@@ -414,7 +472,51 @@ class Debug (EventDispatcher, BreakpointContainer):
         @rtype:  int
         @return: Number of processes being debugged.
         """
-        return self.__debugeeCount
+        return len(self.__attachedDebugees) + len(self.__startedDebugees)
+
+    def get_debugee_pids(self):
+        """
+        @rtype:  list( int... )
+        @return: Global IDs of processes being debugged.
+        """
+        return list(self.__attachedDebugees) + list(self.__startedDebugees)
+
+    @processidparam
+    def is_debugee(self, dwProcessId):
+        """
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.        
+
+        @rtype:  bool
+        @return: C{True} if the given process is being debugged
+            by this L{Debug} instance.
+        """
+        return self.is_debugee_attached(dwProcessId) or \
+               self.is_debugee_started(dwProcessId)
+
+    @processidparam
+    def is_debugee_started(self, dwProcessId):
+        """
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.        
+
+        @rtype:  bool
+        @return: C{True} if the given process was started for debugging by this
+            L{Debug} instance.
+        """
+        return dwProcessId in self.__startedDebugees
+
+    @processidparam
+    def is_debugee_attached(self, dwProcessId):
+        """
+        @type  dwProcessId: int
+        @param dwProcessId: Process global ID.        
+
+        @rtype:  bool
+        @return: C{True} if the given process is attached to this
+            L{Debug} instance.
+        """
+        return dwProcessId in self.__attachedDebugees
 
 #------------------------------------------------------------------------------
 
@@ -445,10 +547,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
-        if dwProcessId in self.__manuallyStartedProcessesSet:
-            self.__manuallyStartedProcessesSet.remove(dwProcessId)
-        else:
-            self.__debugeeCount += 1
+        if dwProcessId not in self.__attachedDebugees:
+            if dwProcessId not in self.__startedDebugees:
+                self.__startedDebugees.add(dwProcessId)
         return self.system.notify_create_process(event)
 
     def notify_create_thread(self, event):
@@ -492,10 +593,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
-        if dwProcessId in self.__manuallyStartedProcessesSet:
-            self.__manuallyStartedProcessesSet.remove(dwProcessId)
-
-        self.__debugeeCount -= 1
+        if dwProcessId in self.__attachedDebugees:
+            self.__attachedDebugees.remove(dwProcessId)
+        if dwProcessId in self.__startedDebugees:
+            self.__startedDebugees.remove(dwProcessId)
 
         bCallHandler = BreakpointContainer.notify_exit_process(self, event)
         bCallHandler = bCallHandler and self.system.notify_exit_process(event)

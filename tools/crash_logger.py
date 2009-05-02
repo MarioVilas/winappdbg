@@ -34,6 +34,7 @@ __all__ =   [
                 'LoggingEventHandler',
             ]
 
+import winappdbg
 from winappdbg import *
 from winappdbg.system import FileHandle
 
@@ -512,7 +513,7 @@ def parse_cmdline(argv):
               "WinAppDbg crash logger\n"
               "by Mario Vilas (mvilas at gmail.com)\n"
               "%s\n"
-              ) % version
+              ) % winappdbg.version
     usage = (
             "\n"
             "\n"

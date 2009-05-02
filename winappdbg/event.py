@@ -51,7 +51,11 @@ __all__ = [
             'EventFactory',
 
             # Base class for user-defined event handlers.
-            'EventHandler'
+            'EventHandler',
+
+            # Dummy event object that can be used as a placeholder.
+            # It's never returned by the EventFactory.
+            'NoEvent',
           ]
 
 import win32
@@ -112,12 +116,15 @@ class Event (object):
         """
         return self.eventDescription
 
-    def get_code(self):
+    def get_event_code(self):
         """
         @rtype:  int
         @return: Debug event code as defined in the Win32 API.
         """
         return self.raw.dwDebugEventCode
+    
+    # Compatibility with version 1.0
+    get_code = get_event_code
 
     def get_pid(self):
         """
@@ -177,6 +184,49 @@ class Event (object):
             thread = Thread(tid)
             process._ThreadContainer__add_thread(thread)
         return thread
+
+#==============================================================================
+
+# TODO
+# Make sure that process or thread ID -1 is always invalid to the Win32 API.
+# If it turns out it isn't, None has to be returned instead.
+
+class NoEvent (Event):
+    """
+    No event.
+
+    Dummy L{Event} object that can be used as a placeholder when no debug
+    event has occured yet. It's never returned by the L{EventFactory}.
+    """
+
+    eventName        = 'No event'
+    eventDescription = 'No debug event has occured.'
+
+    def __init__(self, debug, raw = None):
+        Event.__init__(self, debug, raw)
+
+    def __len__(self):
+        """
+        Always returns C{0}, so when evaluating the object as a boolean it's
+        always C{False}. This prevents L{Debug.cont} from trying to continue
+        a dummy event.
+        """
+        return 0
+
+    def get_event_code(self):
+        return -1
+
+    def get_pid(self):
+        return -1
+
+    def get_tid(self):
+        return -1
+
+    def get_process(self):
+        return Process(self.get_pid())
+
+    def get_thread(self):
+        return Thread(self.get_tid())
 
 #==============================================================================
 
