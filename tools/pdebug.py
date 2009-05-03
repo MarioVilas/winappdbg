@@ -456,8 +456,8 @@ class ConsoleCommands (Cmd):
             cmd = self.autocomplete(cmd)
         return cmd, arg, line
 
-    def emptyline(self):
-        pass
+##    def emptyline(self):
+##        pass
 
 #------------------------------------------------------------------------------
 # Commands
@@ -654,6 +654,34 @@ class ConsoleCommands (Cmd):
                     process.debug_break()
                 except WindowsError, e:
                     print "Can't force a debug break on process (%d)"
+
+    def do_step(self, arg):
+        """
+        p - step on the current assembly instruction
+        next - step on the current assembly instruction
+        step - step on the current assembly instruction
+        """
+        self.cmdqueue.append('t %s' % arg)
+##        pid     = self.lastEvent.get_pid()
+##        thread  = self.lastEvent.get_thread()
+##        pc      = thread.get_pc()
+##        code    = thread.disassemble(pc, 16)[0]
+##        address = pc + code[1]
+##        self.lastEvent.debug.stalk_at(pid, address)
+##        return True
+
+    do_p = do_step
+    do_next = do_step
+
+    def do_trace(self, arg):
+        """
+        t - trace at the current assembly instruction
+        trace - trace at the current assembly instruction
+        """
+        thread = self.lastEvent.get_thread().set_tf()
+        return True
+
+    do_t = do_trace
 
     def do_bp(self, arg):
         """
@@ -965,6 +993,16 @@ class ConsoleDebuggerEventHandler (winappdbg.EventHandler):
 
     def exception(self, event):
         self.print_exception(event)
+        self.prompt_user()
+
+    def breakpoint(self, event):
+        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        self.print_location(event)
+        self.prompt_user()
+
+    def single_step(self, event):
+        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        self.print_location(event)
         self.prompt_user()
 
     def create_process(self, event):
