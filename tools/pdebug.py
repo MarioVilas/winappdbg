@@ -68,6 +68,19 @@ class ConsoleInput (object):
     register_alias_8_low  = { 'al':'Eax', 'bl':'Ebx', 'cl':'Ecx', 'dl':'Edx' }
     register_alias_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
 
+    jump_instructions = (
+        'jmp', 'jecxz', 'jcxz',
+        'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je',
+        'jz', 'jnc', 'jne', 'jnz', 'jnp', 'jpo', 'jp', 'jpe', 'jg', 'jnle',
+        'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'
+    )
+
+    call_instructions = ( 'call', 'ret', 'retn' )
+    loop_instructions = ( 'loop', 'loopz', 'loopnz', 'loope', 'loopne' )
+
+    control_flow_instructions = call_instructions + loop_instructions + \
+                                jump_instructions
+
 #------------------------------------------------------------------------------
 # Control-C handling
 
@@ -227,17 +240,23 @@ class ConsoleInput (object):
     def input_address(self, token, pid = None, tid = None):
         address = self.input_register(token, tid)
         if address is None:
-            if pid is None or pid == self.lastEvent.get_pid():
-                process = self.lastEvent.get_process()
-            else:
-                try:
-                    process = self.lastEvent.debug.system.get_process(pid)
-                except KeyError:
-                    raise CmdError, "process not found (%d)" % pid
             try:
-                address = process.resolve_label(token)
-            except Exception, e:
-                raise CmdError, "unknown address (%s)" % token
+                address = winappdbg.HexInput.integer(token)
+            except ValueError:
+                try:
+                    address = winappdbg.HexInput.integer('0x%s' % token)
+                except ValueError:
+                    if pid is None or pid == self.lastEvent.get_pid():
+                        process = self.lastEvent.get_process()
+                    else:
+                        try:
+                            process = self.lastEvent.debug.system.get_process(pid)
+                        except KeyError:
+                            raise CmdError, "process not found (%d)" % pid
+                    try:
+                        address = process.resolve_label(token)
+                    except Exception, e:
+                        raise CmdError, "unknown address (%s)" % token
         return address
 
     def input_address_range(self, token, pid = None, tid = None):
@@ -460,6 +479,16 @@ class ConsoleCommands (Cmd):
 ##        pass
 
 #------------------------------------------------------------------------------
+# Hooked Cmd methods
+
+    def preloop(self):
+        self.last_disasm_target  = 'eip'
+        self.last_display_target = 'eip'
+
+    def postcmd(self, stop, line):
+        return stop or self.debuggerExit
+
+#------------------------------------------------------------------------------
 # Commands
 
     def do_help(self, arg):
@@ -661,14 +690,22 @@ class ConsoleCommands (Cmd):
         next - step on the current assembly instruction
         step - step on the current assembly instruction
         """
-        self.cmdqueue.append('t %s' % arg)
-##        pid     = self.lastEvent.get_pid()
-##        thread  = self.lastEvent.get_thread()
-##        pc      = thread.get_pc()
-##        code    = thread.disassemble(pc, 16)[0]
-##        address = pc + code[1]
-##        self.lastEvent.debug.stalk_at(pid, address)
-##        return True
+        if arg:     # XXX this check is to be removed
+            raise CmdError, "too many arguments"
+        pid     = self.lastEvent.get_pid()
+        thread  = self.lastEvent.get_thread()
+        pc      = thread.get_pc()
+        code    = thread.disassemble(pc, 16)[0]
+        size    = code[1]
+        opcode  = code[2].lower()
+        if ' ' in opcode:
+            opcode  = opcode[ : opcode.find(' ') ]
+        if opcode in self.jump_instructions or opcode in ('int', 'ret', 'retn'):
+            return self.do_trace(arg)
+        address = pc + size
+        print hex(pc), hex(address), size
+        self.lastEvent.debug.stalk_at(pid, address)
+        return True
 
     do_p = do_step
     do_next = do_step
@@ -678,6 +715,8 @@ class ConsoleCommands (Cmd):
         t - trace at the current assembly instruction
         trace - trace at the current assembly instruction
         """
+        if arg:     # XXX this check is to be removed
+            raise CmdError, "too many arguments"
         thread = self.lastEvent.get_thread().set_tf()
         return True
 
@@ -882,6 +921,10 @@ class ConsoleCommands (Cmd):
         u <address> [process] - show code disassembly
         disassembly <address> [process] - show code disassembly
         """
+        if arg:
+            self.last_disasm_target = arg
+        else:
+            arg = self.last_disasm_target
         token_list   = self.split_tokens(arg, 1, 2)
         pid, address = self.input_address_and_process(token_list)
         process      = self.lastEvent.debug.system.get_process(pid)
@@ -901,6 +944,10 @@ class ConsoleCommands (Cmd):
         db <address> [process] - show memory contents as bytes
         db <address-address> [process] - show memory contents as bytes
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -917,6 +964,10 @@ class ConsoleCommands (Cmd):
         dw <address> [process] - show memory contents as words
         dw <address-address> [process] - show memory contents as words
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -931,6 +982,10 @@ class ConsoleCommands (Cmd):
         dd <address> [process] - show memory contents as dwords
         dd <address-address> [process] - show memory contents as dwords
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -945,6 +1000,10 @@ class ConsoleCommands (Cmd):
         dq <address> [process] - show memory contents as qwords
         dq <address-address> [process] - show memory contents as qwords
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -958,6 +1017,10 @@ class ConsoleCommands (Cmd):
         """
         ds <address> [process] - show memory contents as ANSI
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -971,6 +1034,10 @@ class ConsoleCommands (Cmd):
         """
         du <address> [process] - show memory contents as Unicode
         """
+        if arg:
+            self.last_display_target = arg
+        else:
+            arg = self.last_display_target
         token_list         = self.split_tokens(arg, 1, 2)
         pid, address, size = self.input_address_range_and_process(token_list)
         process            = self.lastEvent.debug.system.get_process(pid)
@@ -1191,11 +1258,19 @@ class ConsoleDebugger (
         if debug.get_debugee_count() == 0:
             self.prompt_user()
 
-        while not self.debuggerExit and debug.get_debugee_count() > 0:
+        while not self.debuggerExit:
 
             if self.lastEvent:
                 debug.cont(self.lastEvent)
+                lastCode = self.lastEvent.get_event_code()
                 self.lastEvent = winappdbg.NoEvent(debug)
+
+            self.prompt = '> '
+            while not self.debuggerExit and \
+                self.lastEvent.debug.get_debugee_count() <= 0:
+                    self.prompt_user()
+            if self.debuggerExit:
+                break
 
             while 1:
                 try:
