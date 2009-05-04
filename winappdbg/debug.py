@@ -123,6 +123,13 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Number of processes being debugged.
+        """
+        return self.get_debugee_count()
+
 #------------------------------------------------------------------------------
 
     @processidparam
