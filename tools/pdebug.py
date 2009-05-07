@@ -164,8 +164,6 @@ class ConsoleDebugger (Cmd, EventHandler):
 # Input
 
 # TODO
-# * use a better syntax for pids and tids, maybe a prefix like ntsd
-# * also get all pids and tids from the same method, for sanity check
 # * try to guess breakpoints when insufficient data is given
 # * child Cmd instances will have to be used for other prompts, for example
 #   when assembling or editing memory - it may also be a good idea to think
@@ -295,64 +293,27 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Token is an address range, or a single address.
     # The addresses can be integers, labels or registers.
-    def input_address_range(self, token, pid = None, tid = None):
-        if '-' in token:
-            try:
-                token_1, token_2 = token.split('-')
-            except Exception:
-                raise CmdError, "bad address range: %s" % token
+    def input_address_range(self, token_list, pid = None, tid = None):
+        if len(token_list) == 2:
+            token_1, token_2 = token_list
             address = self.input_address(token_1, pid, tid)
-            size    = self.input_address(token_2, pid, tid) - address
-        else:
-            address = self.input_address(token, pid, tid)
-            size    = None
-        return address, size
-
-    # The token list describes a breakpoint of any type.
-    def input_any_breakpoint(self, token_list):
-        if not self.lastEvent:
-            raise CmdError, "no process is being debugged"
-        if len(token_list) > 1:
             try:
-                pid = self.input_process(token_list[1])
-                tid = None
-            except CmdError:
+                size = winappdbg.HexInput.integer(token_2)
+            except ValueError:
+                raise CmdError, "bad address range: %s %s" % (token_1, token_2)
+        elif len(token_list) == 1:
+            token = token_list[0]
+            if '-' in token:
                 try:
-                    tid = self.input_thread(token_list[1])
-                    pid = None
-                except CmdError:
-                    msg = "can't find process or thread (%s)" % token_list[1]
-                    raise CmdError, msg
-        else:
-            pid = self.lastEvent.get_pid()
-            tid = self.lastEvent.get_tid()
-        address, size = self.input_address_range(token_list[0], pid)
-        return pid, tid, address, size
-
-    # The token list contains an address and optionally a process ID or name.
-    # The address can be a integer, a label or a register.
-    def input_address_and_process(self, token_list, tid = None):
-        if len(token_list) > 1:
-            pid = self.input_process(token_list[1])
-        else:
-            if not self.lastEvent:
-                raise CmdError, "no process is being debugged"
-            pid = self.lastEvent.get_pid()
-        address = self.input_address(token_list[0], pid, tid)
-        return pid, address
-
-    # The token list contains an address range (or single address),
-    # and optionally a process ID or name.
-    # The addresses can be integers, labels or registers.
-    def input_address_range_and_process(self, token_list, tid = None):
-        if len(token_list) > 1:
-            pid = self.input_process(token_list[1])
-        else:
-            if not self.lastEvent:
-                raise CmdError, "no process is being debugged"
-            pid = self.lastEvent.get_pid()
-        address, size = self.input_address_range(token_list[0], pid, tid)
-        return pid, address, size
+                    token_1, token_2 = token.split('-')
+                except Exception:
+                    raise CmdError, "bad address range: %s" % token
+                address = self.input_address(token_1, pid, tid)
+                size    = self.input_address(token_2, pid, tid) - address
+            else:
+                address = self.input_address(token, pid, tid)
+                size    = None
+        return address, size
 
     # The token is a register name.
     # Returns None if no register name is matched.
@@ -385,18 +346,26 @@ class ConsoleDebugger (Cmd, EventHandler):
         
         return None
 
+    # Token list contains an address or address range.
+    # The prefix is also parsed looking for process and thread IDs.
+    def input_full_address_range(self, token_list):
+        pid, tid      = self.get_process_and_thread_ids_from_prefix()
+        address, size = self.input_address_range(token_list, pid)
+        return pid, tid, address, size
+
+    # Token list contains a breakpoint.
+    def input_breakpoint(self, token_list):
+        return self.input_full_address_range(token_list)
+
     # Token list contains a memory address, and optional size and process.
     # Sets the results as the default for the next display command.
     def input_display(self, token_list, default_size = 64):
-        pid, address, size = self.input_address_range_and_process(token_list)
+        pid, tid, address, size = self.input_full_address_range(token_list)
         if not size:
             size = default_size
         next_address = winappdbg.HexOutput.integer(address + size)
-        if pid == self.lastEvent.get_pid():
-            self.default_display_target = next_address
-        else:
-            self.default_display_target = '%s %d' % (next_address, pid)
-        return pid, address, size
+        self.default_display_target = next_address
+        return pid, tid, address, size
 
 #------------------------------------------------------------------------------
 # Output
@@ -509,14 +478,50 @@ class ConsoleDebugger (Cmd, EventHandler):
     def print_memory_display(self, arg, method):
         if not arg:
             arg = self.default_display_target
-        token_list         = self.split_tokens(arg, 1, 2)
-        pid, address, size = self.input_display(token_list)
-        data               = self.read_memory(address, size, pid)
+        token_list              = self.split_tokens(arg, 1, 2)
+        pid, tid, address, size = self.input_display(token_list)
+        data                    = self.read_memory(address, size, pid)
         if data:
             print method(data, address),
 
 #------------------------------------------------------------------------------
 # Debugging
+
+    def get_process_from_prefix(self):
+        if self.cmdprefix:
+            pid = self.input_process(self.cmdprefix)
+        else:
+            pid = None
+        return self.get_process(pid)
+
+    def get_thread_from_prefix(self):
+        if self.cmdprefix:
+            tid = self.input_thread(self.cmdprefix)
+        else:
+            tid = None
+        return self.get_thread(tid)
+
+    # Get the process and thread IDs from the prefix and the last event.
+    def get_process_and_thread_ids_from_prefix(self):
+        try:
+            process     = self.get_process_from_prefix()
+            pid         = process.get_pid()
+            tid         = None
+        except CmdError:
+            try:
+                thread  = self.get_thread_from_prefix()
+                pid     = thread.get_pid()
+                tid     = thread.get_tid()
+            except CmdError:
+                raise CmdError, "invalid prefix"
+        return pid, tid
+
+    # Get the process and thread from the prefix and the last event.
+    def get_process_and_thread_from_prefix(self):
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
+        process  = self.get_process(pid)
+        thread   = self.get_thread(tid)
+        return process, thread
 
     def get_process(self, pid = None):
         if pid is None or pid == self.lastEvent.get_pid():
@@ -529,6 +534,18 @@ class ConsoleDebugger (Cmd, EventHandler):
             except KeyError:
                 raise CmdError, "process not found (%d)" % pid
         return process
+
+    def get_thread(self, tid = None):
+        if tid is None or tid == self.lastEvent.get_tid():
+            if self.lastEvent.debug.get_debugee_count() <= 0:
+                raise CmdError, "no process is being debugged"
+            thread = self.lastEvent.get_thread()
+        else:
+            try:
+                thread = self.lastEvent.debug.system.get_thread(tid)
+            except KeyError:
+                raise CmdError, "thread not found (%d)" % pid
+        return thread
 
     def read_memory(self, address, size, pid = None):
         process = self.get_process(pid)
@@ -665,6 +682,20 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.default_display_target = 'eip'
         self.default_edit_target    = 'eip'
 ##        self.default_assemble_target = 'eip'   # one day... *sigh*
+
+    # Parse the prefix and remove it from the command line.
+    # The prefix is stored in self.cmdprefix.
+    def precmd(self, line):
+        prefix = None
+        if line.startswith('~'):
+            pos     = line.find(' ')
+            if pos == 1:
+                pos = line.find(' ', pos + 1)
+            if not pos < 0:
+                prefix  = line[ 1 : pos ].strip()
+                line    = line[ pos : ].strip()
+        self.cmdprefix = prefix
+        return line
 
     # Quit the command prompt if the debuggerExit flag is on.
     def postcmd(self, stop, line):
@@ -974,22 +1005,24 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_bp(self, arg):
         """
-        bp <address> [process] - set a code breakpoint
+        [~process] bp <address> - set a code breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        token_list = self.split_tokens(arg, 1, 2)
-        pid, address = self.input_address_and_process(token_list)
+        token_list = self.split_tokens(arg, 1)
+        process    = self.get_process_from_prefix()
+        pid        = process.get_pid()
+        address    = self.input_address(token_list, pid)
         self.lastEvent.debug.break_at(pid, address)
 
     def do_ba(self, arg):
         """
-        ba <a|w|e> <1|2|4|8> <address> [thread] - set hardware breakpoint
+        [~thread] ba <a|w|e> <1|2|4|8> <address> - set hardware breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
         debug = self.lastEvent.debug
-        token_list = self.split_tokens(arg, 3, 4)
+        token_list = self.split_tokens(arg, 3)
         access  = token_list[0].lower()
         size    = token_list[1]
         address = token_list[2]
@@ -1011,12 +1044,9 @@ class ConsoleDebugger (Cmd, EventHandler):
             size = debug.BP_WATCH_QWORD
         else:
             raise CmdError, "bad breakpoint size: %s" % size
-        if len(token_list) > 4:
-            tid = self.input_thread(token_list[4])
-            pid = debug.system.get_thread(tid).get_pid()
-        else:
-            pid = self.lastEvent.get_pid()
-            tid = self.lastEvent.get_tid()
+        thread  = self.get_thread_from_prefix()
+        tid     = thread.get_tid()
+        pid     = thread.get_pid()
         address = self.input_address(address, pid)
         if debug.has_hardware_breakpoint(tid, address):
             debug.erase_hardware_breakpoint(tid, address)
@@ -1025,16 +1055,14 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_bm(self, arg):
         """
-        bm <address-address> [process] - set memory breakpoint
+        [~process] bm <address-address> - set memory breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        token_list = self.split_tokens(arg, 1, 2)
-        if len(token_list) > 1:
-            pid = self.input_process(token_list[1])
-        else:
-            pid = self.lastEvent.get_pid()
-        address, size = self.input_address_range(token_list[0], pid)
+        token_list    = self.split_tokens(arg, 1, 2)
+        process       = self.get_process_from_prefix()
+        pid           = process.get_pid()
+        address, size = self.input_address_range(token_list, pid)
         self.lastEvent.debug.watch_buffer(pid, address, size)
 
     def do_bl(self, arg):
@@ -1072,15 +1100,16 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_bo(self, arg):
         """
-        bo <address> [process] - make a code breakpoint one-shot
-        bo <address> [thread] - make a hardware breakpoint one-shot
-        bo <address-address> [process] - make a memory breakpoint one-shot
+        [~process] bo <address> - make a code breakpoint one-shot
+        [~thread] bo <address> - make a hardware breakpoint one-shot
+        [~process] bo <address-address> - make a memory breakpoint one-shot
+        [~process] bo <address> <size> - make a memory breakpoint one-shot
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        debug = self.lastEvent.debug
         token_list = self.split_tokens(arg, 1, 2)
-        pid, tid, address, size = self.input_any_breakpoint(token_list)
+        pid, tid, address, size = self.input_breakpoint(token_list)
+        debug = self.lastEvent.debug
         found = False
         if size is None:
             if tid is not None:
@@ -1100,15 +1129,16 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_be(self, arg):
         """
-        be <address> [process] - enable a code breakpoint
-        be <address> [thread] - enable a hardware breakpoint
-        be <address-address> [process] - enable a memory breakpoint
+        [~process] be <address> - enable a code breakpoint
+        [~thread] be <address> - enable a hardware breakpoint
+        [~process] be <address-address> - enable a memory breakpoint
+        [~process] be <address> <size> - enable a memory breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        debug = self.lastEvent.debug
         token_list = self.split_tokens(arg, 1, 2)
-        pid, tid, address, size = self.input_any_breakpoint(token_list)
+        pid, tid, address, size = self.input_breakpoint(token_list)
+        debug = self.lastEvent.debug
         found = False
         if size is None:
             if tid is not None:
@@ -1128,15 +1158,16 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_bd(self, arg):
         """
-        bd <address> [process] - disable a code breakpoint
-        bd <address> [thread] - disable a hardware breakpoint
-        bd <address-address> [process] - disable a memory breakpoint
+        [~process] bd <address> - disable a code breakpoint
+        [~thread] bd <address> - disable a hardware breakpoint
+        [~process] bd <address-address> - disable a memory breakpoint
+        [~process] bd <address> <size> - disable a memory breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        debug = self.lastEvent.debug
         token_list = self.split_tokens(arg, 1, 2)
-        pid, tid, address, size = self.input_any_breakpoint(token_list)
+        pid, tid, address, size = self.input_breakpoint(token_list)
+        debug = self.lastEvent.debug
         found = False
         if size is None:
             if tid is not None:
@@ -1156,15 +1187,16 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_bc(self, arg):
         """
-        bc <address> [process] - clear a code breakpoint
-        bc <address> [thread] - clear a hardware breakpoint
-        bc <address-address> [process] - clear a memory breakpoint
+        [~process] bc <address> - clear a code breakpoint
+        [~thread] bc <address> - clear a hardware breakpoint
+        [~process] bc <address-address> - clear a memory breakpoint
+        [~process] bc <address> <size> - clear a memory breakpoint
         """
         if not self.lastEvent:
             raise CmdError, "no process is being debugged"
-        debug = self.lastEvent.debug
         token_list = self.split_tokens(arg, 1, 2)
-        pid, tid, address, size = self.input_any_breakpoint(token_list)
+        pid, tid, address, size = self.input_breakpoint(token_list)
+        debug = self.lastEvent.debug
         found = False
         if size is None:
             if tid is not None:
@@ -1184,14 +1216,17 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_disassemble(self, arg):
         """
-        u <address> [process] - show code disassembly
-        disassemble <address> [process] - show code disassembly
+        [~thread] u [register] - show code disassembly
+        [~process] u [address] - show code disassembly
+        [~thread] disassemble [register] - show code disassembly
+        [~process] disassemble [address] - show code disassembly
         """
         if not arg:
             arg = self.default_disasm_target
-        token_list   = self.split_tokens(arg, 1, 2)
-        pid, address = self.input_address_and_process(token_list)
-        process      = self.lastEvent.debug.system.get_process(pid)
+        token_list      = self.split_tokens(arg, 1)
+        process, thread = self.get_process_and_thread_from_prefix()
+        pid             = process.get_pid()
+        address         = self.input_address(token_list[0], pid)
         try:
             code = process.disassemble(address, 15*8)[:8]
         except Exception, e:
@@ -1199,13 +1234,10 @@ class ConsoleDebugger (Cmd, EventHandler):
             msg = msg % winappdbg.HexDump.address(address)
             raise CmdError, msg
         if code:
-            last_code = code[-1]
+            last_code    = code[-1]
             next_address = last_code[0] + last_code[1]
             next_address = winappdbg.HexOutput.integer(next_address)
-            if pid == self.lastEvent.get_pid():
-                self.default_disasm_target = next_address
-            else:
-                self.default_disasm_target = '%s %s' % (next_address, pid)
+            self.default_disasm_target = next_address
             for line in code:
                 print winappdbg.CrashDump.dump_code_line(line)
 
@@ -1213,67 +1245,87 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_db(self, arg):
         """
-        db <address> [process] - show memory contents as bytes
-        db <address-address> [process] - show memory contents as bytes
-        display <address> [process] - show memory contents as bytes
-        display <address-address> [process] - show memory contents as bytes
+        [~thread] db <register> - show memory contents as bytes
+        [~thread] db <register-register> - show memory contents as bytes
+        [~thread] db <register> <size> - show memory contents as bytes
+        [~process] db <address> - show memory contents as bytes
+        [~process] db <address-address> - show memory contents as bytes
+        [~process] db <address> <size> - show memory contents as bytes
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock)
 
-    do_display = do_db
-
     def do_dw(self, arg):
         """
-        dw <address> [process] - show memory contents as words
-        dw <address-address> [process] - show memory contents as words
+        [~thread] dw <register> - show memory contents as words
+        [~thread] dw <register-register> - show memory contents as words
+        [~thread] dw <register> <size> - show memory contents as words
+        [~process] dw <address> - show memory contents as words
+        [~process] dw <address-address> - show memory contents as words
+        [~process] dw <address> <size> - show memory contents as words
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_word)
 
     def do_dd(self, arg):
         """
-        dd <address> [process] - show memory contents as dwords
-        dd <address-address> [process] - show memory contents as dwords
+        [~thread] dd <register> - show memory contents as dwords
+        [~thread] dd <register-register> - show memory contents as dwords
+        [~thread] dd <register> <size> - show memory contents as dwords
+        [~process] dd <address> - show memory contents as dwords
+        [~process] dd <address-address> - show memory contents as dwords
+        [~process] dd <address> <size> - show memory contents as dwords
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_dword)
 
     def do_dq(self, arg):
         """
-        dq <address> [process] - show memory contents as qwords
-        dq <address-address> [process] - show memory contents as qwords
+        [~thread] dq <register> - show memory contents as qwords
+        [~thread] dq <register-register> - show memory contents as qwords
+        [~thread] dq <register> <size> - show memory contents as qwords
+        [~process] dq <address> - show memory contents as qwords
+        [~process] dq <address-address> - show memory contents as qwords
+        [~process] dq <address> <size> - show memory contents as qwords
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_qword)
 
+    # XXX TODO
+    # Change the way the default is used with ds and du
+
     def do_ds(self, arg):
         """
-        ds <address> [process] - show memory contents as ANSI
+        [~thread] ds <register> - show memory contents as ANSI string
+        [~process] ds <address> - show memory contents as ANSI string
         """
         if not arg:
             arg = self.default_display_target
-        token_list         = self.split_tokens(arg, 1, 2)
-        pid, address, size = self.input_display(token_list, 256)
-        process            = self.get_process(pid)
-        data               = process.peek_string(address, False, size)
+        token_list              = self.split_tokens(arg, 1)
+        pid, tid, address, size = self.input_display(token_list, 256)
+        process                 = self.get_process(pid)
+        data                    = process.peek_string(address, False, size)
         if data:
             print repr(data)
 
     def do_du(self, arg):
         """
-        du <address> [process] - show memory contents as Unicode
+        [~thread] du <register> - show memory contents as Unicode string
+        [~process] du <address> - show memory contents as Unicode string
         """
         if not arg:
             arg = self.default_display_target
-        token_list         = self.split_tokens(arg, 1, 2)
-        pid, address, size = self.input_display(token_list, 512)
-        process            = self.get_process(pid)
-        data               = process.peek_string(address, True, size)
+        token_list              = self.split_tokens(arg, 1, 2)
+        pid, tid, address, size = self.input_display(token_list, 256)
+        process                 = self.get_process(pid)
+        data                    = process.peek_string(address, True, size)
         if data:
             print repr(data)
 
     def do_register(self, arg):
         """
-        register - print the value of all registers
-        register <register> - print the value of a register
-        register <register>=<value> - change the value of a register
+        [~thread] r - print the value of all registers
+        [~thread] r <register> - print the value of a register
+        [~thread] r <register>=<value> - change the value of a register
+        [~thread] register - print the value of all registers
+        [~thread] register <register> - print the value of a register
+        [~thread] register <register>=<value> - change the value of a register
         """
         # TODO
         # * support threads other than current
@@ -1293,6 +1345,8 @@ class ConsoleDebugger (Cmd, EventHandler):
                 if value is None:
                     raise CmdError, "unknown register: %s" % arg
                 print "%s: %s" % (arg.upper(), winappdbg.HexDump.address(value))
+
+    do_r = do_register
 
 #------------------------------------------------------------------------------
 # Event handling
