@@ -3058,32 +3058,6 @@ def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
     return lpTempFileName.value, uUnique
 GetTempFileName = GetTempFileNameA
 
-# LPWSTR *CommandLineToArgvW(
-#     LPCWSTR lpCmdLine,
-#     int *pNumArgs
-# );
-def CommandLineToArgvW(lpCmdLine):
-    if lpCmdLine is None:
-        lpCmdLine = NULL
-    argc = ctypes.c_int(0)
-    argv = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
-    if argv == NULL or argc.value <= 0:
-        ctypes.WinError()
-    try:
-        vptr = ctypes.c_void_p(argv)
-        aptr = ctypes.cast(vptr, ctypes.POINTER(ctypes.c_wchar_p * argc.value) )
-        argv = [ aptr.contents[i] for i in xrange(0, argc.value) ]
-    finally:
-        LocalFree(vptr)
-    return argv
-def CommandLineToArgvA(lpCmdLine):
-    if lpCmdLine not in (None, NULL):
-        lpCmdLine = unicode(lpCmdLine)
-    argv = CommandLineToArgvW(lpCmdLine)
-    argv = [ str(x) for x in argv ]
-    return argv
-CommandLineToArgv = CommandLineToArgvA
-
 # HLOCAL WINAPI LocalFree(
 #   __in  HLOCAL hMem
 # );
@@ -4238,6 +4212,76 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
             success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, 0)
             if success == FALSE:
                 raise ctypes.WinError()
+
+#--- shell32.dll --------------------------------------------------------------
+
+# LPWSTR *CommandLineToArgvW(
+#     LPCWSTR lpCmdLine,
+#     int *pNumArgs
+# );
+def CommandLineToArgvW(lpCmdLine):
+    if lpCmdLine is None:
+        lpCmdLine = NULL
+    argc = ctypes.c_int(0)
+    argv = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
+    if argv == NULL or argc.value <= 0:
+        ctypes.WinError()
+    try:
+        vptr = ctypes.c_void_p(argv)
+        aptr = ctypes.cast(vptr, ctypes.POINTER(ctypes.c_wchar_p * argc.value) )
+        argv = [ aptr.contents[i] for i in xrange(0, argc.value) ]
+    finally:
+        LocalFree(vptr)
+    return argv
+def CommandLineToArgvA(lpCmdLine):
+    if lpCmdLine not in (None, NULL):
+        lpCmdLine = unicode(lpCmdLine)
+    argv = CommandLineToArgvW(lpCmdLine)
+    argv = [ str(x) for x in argv ]
+    return argv
+CommandLineToArgv = CommandLineToArgvA
+
+# HINSTANCE ShellExecute(      
+#     HWND hwnd,
+#     LPCTSTR lpOperation,
+#     LPCTSTR lpFile,
+#     LPCTSTR lpParameters,
+#     LPCTSTR lpDirectory,
+#     INT nShowCmd
+# );
+def ShellExecuteA(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
+    if not hwnd:
+        hwnd = NULL
+    if not lpOperation:
+        lpOperation = NULL
+    if not lpFile:
+        lpFile = NULL
+    if not lpParameters:
+        lpParameters = NULL
+    if not lpDirectory:
+        lpDirectory = NULL
+    if not nShowCmd:
+        nShowCmd = 0
+    success = ctypes.windll.shell32.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+    if success != 0:
+        ctypes.WinError(success)
+def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
+    if not hwnd:
+        hwnd = NULL
+    if not lpOperation:
+        lpOperation = NULL
+    if not lpFile:
+        lpFile = NULL
+    if not lpParameters:
+        lpParameters = NULL
+    if not lpDirectory:
+        lpDirectory = NULL
+    if not nShowCmd:
+        nShowCmd = 0
+    success = ctypes.windll.shell32.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+    if success != 0:
+        ctypes.WinError(success)
+ShellExecute = ShellExecuteA
 
 #--- psapi.dll ----------------------------------------------------------------
 

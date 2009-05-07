@@ -42,6 +42,7 @@ __all__ =   [
                 'DebugLog',
                 'HexDump',
                 'HexInput',
+                'HexOutput',
                 'CrashDump',
             ]
 
@@ -255,8 +256,8 @@ class HexOutput (object):
         @type  filename: str
         @param filename: Name of the file to write.
 
-        @type:  list( int )
-        @param: List of integers to write to the file.
+        @rtype:  list( int )
+        @return: List of integers to write to the file.
         """
         fd = open(filename, 'w')
         for integer in values:
@@ -274,8 +275,8 @@ class HexOutput (object):
         @type  filename: str
         @param filename: Name of the file to write.
 
-        @type:  list( int )
-        @param: List of mixed values to write to the file.
+        @rtype:  list( int )
+        @return: List of mixed values to write to the file.
         """
         fd = open(filename, 'w')
         for original in values:

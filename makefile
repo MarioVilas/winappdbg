@@ -61,16 +61,16 @@ upx:
 
 # Test the documentation
 #doctest:
-#	epydoc $(EPYDOC_TEST_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+#	epydoc.py $(EPYDOC_TEST_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 
 # Generate the HTML documentation only
 html:
-	epydoc $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+	epydoc.py $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 # Generate the PDF documentation only
 pdf:
-	epydoc $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+	epydoc.py $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 
 # Build the source distribution package

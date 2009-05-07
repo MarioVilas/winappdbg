@@ -78,9 +78,8 @@ import struct
 ##import traceback
 
 try:
-    from distorm import Decode, Decode32Bits
+    from distorm import Decode
 except ImportError:
-    Decode32Bits = None
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
         msg = ("diStorm is not installed or can't be found. "
@@ -2765,7 +2764,7 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        return Decode(lpAddress, code, Decode32Bits)
+        return Decode(lpAddress, code)
 
     def disassemble(self, lpAddress, dwSize):
         """
@@ -3078,7 +3077,7 @@ class ProcessContainer (object):
     """
 
     def __init__(self):
-        super(ProcessContainer, self).__init__(self)
+        super(ProcessContainer, self).__init__()
         self.__processDict = dict()
 
     def __contains__(self, anObject):
@@ -3713,7 +3712,7 @@ class Module (object):
         @type  process: L{Process}
         @param process: (Optional) Process where the module is loaded.
         """
-        super(Module, self).__init__(self)
+        super(Module, self).__init__()
         self.lpBaseOfDll    = lpBaseOfDll
         self.hFile          = hFile
         self.fileName       = fileName
@@ -4127,7 +4126,7 @@ class Thread (ThreadDebugOperations):
         @type  process: L{Process}
         @param process: (Optional) Parent Process object.
         """
-        super(Thread, self).__init__(self)
+        super(Thread, self).__init__()
         self.dwProcessId     = None
         self.dwThreadId      = dwThreadId
         self.hThread         = hThread
@@ -4620,7 +4619,12 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @type  fileName: str
         @param fileName: (Optional) Filename of the main module.
         """
-        super(Process, self).__init__()
+        MemoryOperations.__init__(self)
+        ProcessDebugOperations.__init__(self)
+        SymbolOperations.__init__(self)
+        ThreadContainer.__init__(self)
+        ModuleContainer.__init__(self)
+        
         self.dwProcessId = dwProcessId
         self.hProcess    = hProcess
         self.fileName    = fileName
