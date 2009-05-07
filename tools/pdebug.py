@@ -898,9 +898,9 @@ class ConsoleDebugger (Cmd, EventHandler):
             except Exception, e:
                 print "Error: can't detach from process (%d)" % pid
 
-    def do_start(self, arg):
+    def do_exec(self, arg):
         """
-        start <target> [arguments...] - run a program for debugging 
+        exec <target> [arguments...] - run a program for debugging 
         """
         cmdline = self.input_command_line(arg)
         try:
@@ -911,9 +911,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         except Exception, e:
             raise CmdError, "can't execute"
 
-    def do_startc(self, arg):
+    def do_console(self, arg):
         """
-        startc <target> [arguments...] - run a console program for debugging 
+        console <target> [arguments...] - run a console program for debugging 
         """
         cmdline = self.input_command_line(arg)
         try:

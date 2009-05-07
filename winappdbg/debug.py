@@ -399,10 +399,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
-    # TODO
-    # Check that bKillOnExit really works here by calling stop() and leaving
-    # the thread running to see if the debugees really die or not. Another
-    # thing to try is kill the debugees and after that detach from them.
     def stop(self, event = None, bIgnoreExceptions = True):
         """
         Stops debugging all processes.
@@ -434,19 +430,19 @@ class Debug (EventDispatcher, BreakpointContainer):
                     except Exception:
                         if not bIgnoreExceptions:
                             raise
-            else:
-                try:
+            try:
+                if event:
                     try:
-                        if event:
-                            try:
-                                self.disable_process_breakpoints(event.get_pid())
-                            finally:
-                                self.cont(event)
+                        try:
+                            pid = event.get_pid()
+                            self.disable_process_breakpoints(pid)
+                        finally:
+                            self.cont(event)
                     except Exception:
                         if not bIgnoreExceptions:
                             raise
-                finally:
-                    self.detach_from_all(bIgnoreExceptions)
+            finally:
+                self.detach_from_all(bIgnoreExceptions)
         except Exception:
             if not bIgnoreExceptions:
                 raise
