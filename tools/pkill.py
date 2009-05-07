@@ -33,7 +33,7 @@
 
 __revision__ = "$Id$"
 
-from winappdbg import win32, System, HexInput
+from winappdbg import win32, Process, System, HexInput
 
 import os
 import sys
@@ -65,7 +65,7 @@ def main(argv):
     # Each ID is validated against the list of active processes.
     # Each name is translated to an ID.
     # On error, the program stops before killing any process at all.
-    pid_set = set()
+    targets = set()
     for token in params:
         try:
             pid = HexInput.integer(token)
@@ -77,21 +77,25 @@ def main(argv):
                 print "Error: process not found: %s" % token
                 exit()
             for (process, name) in matched:
-                pid_set.add(process.get_pid())
+                targets.add(process.get_pid())
         else:
             if not s.has_process(pid):
                 print "Error: process not found: 0x%.8x (%d)" % (pid, pid)
                 exit()
-            pid_set.add(pid)
+            targets.add(pid)
+    targets = list(targets)
+    targets.sort()
 
     # Attach to every process.
     # Print a message on errors, but don't stop.
     count = 0
-    for pid in pid_set:
+    next_targets = list()
+    for pid in targets:
         try:
             win32.DebugActiveProcess(pid)
             count += 1
         except WindowsError, e:
+            next_targets.append(pid)
             print "Warning: error attaching to %d: %s" % (pid, str(e))
 
     # Try to call the DebugSetProcessKillOnExit() API.
@@ -110,6 +114,25 @@ def main(argv):
         pass
     except WindowsError, e:
         print "Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e)
+
+    # Try to terminate the processes using the TerminateProcess() API.
+    for pid in next_targets:
+        process = Process(pid)
+        try:
+            # Note we don't really need to call open_handle and close_handle,
+            # but it's good to know exactly which API call it was that failed.
+            process.open_handle()
+            try:
+                process.kill()
+                count += 1
+                try:
+                    process.close_handle()
+                except WindowsError, e:
+                    print "Warning: call to CloseHandle() failed: %s" % str(e)
+            except WindowsError, e:
+                print "Warning: call to TerminateProcess() failed: %s" % str(e)
+        except WindowsError, e:
+            print "Warning: call to OpenProcess() failed: %s" % str(e)
 
     if count == 0:
         print "Failed! No process was killed."

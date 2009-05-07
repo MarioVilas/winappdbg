@@ -399,9 +399,17 @@ class Debug (EventDispatcher, BreakpointContainer):
         # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
-    def stop(self, event = None, bIgnoreExceptions = False):
+    # TODO
+    # Check that bKillOnExit really works here by calling stop() and leaving
+    # the thread running to see if the debugees really die or not. Another
+    # thing to try is kill the debugees and after that detach from them.
+    def stop(self, event = None, bIgnoreExceptions = True):
         """
         Stops debugging all processes.
+        
+        If C{bKillOnExit} was set to C{True} when instancing the C{Debug}
+        object, all debugees are terminated. Otherwise, the debugger detaches
+        from all debugees.
 
         @note: This method is better than L{detach_from_all} because it can
             gracefully handle the last debugging event before detaching.
@@ -415,21 +423,33 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
             raised when detaching.
         """
-        # All these try / finally blocks may be masking some exceptions,
+        # All these try / except/ finally blocks may be masking some errors,
         # but this way we get a better cleanup. Like that battery-powered
         # rabbit, it just keeps going, and going, and going.
         try:
-            try:
-                if event:
+            if self.__bKillOnExit:
+                for pid in self.get_debugee_pids():
                     try:
-                        self.disable_process_breakpoints(event.get_pid())
-                    finally:
-                        self.cont(event)
-            except Exception:
-                if not bIgnoreExceptions:
-                    raise
-        finally:
-            self.detach_from_all(bIgnoreExceptions)
+                        self.system.get_process(pid).kill()
+                    except Exception:
+                        if not bIgnoreExceptions:
+                            raise
+            else:
+                try:
+                    try:
+                        if event:
+                            try:
+                                self.disable_process_breakpoints(event.get_pid())
+                            finally:
+                                self.cont(event)
+                    except Exception:
+                        if not bIgnoreExceptions:
+                            raise
+                finally:
+                    self.detach_from_all(bIgnoreExceptions)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
 
     def loop(self, dwMilliseconds = 1000):
         """
