@@ -27,7 +27,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__revision__ = "$Id: pdebug.py 134 2009-05-07 20:25:49Z qvasimodo $"
+__revision__ = "$Id$"
 
 def do(self, arg):
     print "This is an example command."
