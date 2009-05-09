@@ -480,7 +480,7 @@ class HexDump (object):
         @return: Multiline output text.
         """
         return cls.hexblock_cb(cls.hexline, data, address, width * 2,
-                 cb_kwargs = {'width':width, 'separator': separator})
+                 cb_kwargs = {'width':width * 2, 'separator': separator})
 
     @classmethod
     def hexblock_cb(cls, callback, data, address = None, width = 16,
