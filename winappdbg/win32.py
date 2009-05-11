@@ -33,6 +33,7 @@ Debugging API wrappers in ctypes.
 
 __revision__ = "$Id$"
 
+import time
 import struct
 import ctypes
 
@@ -3109,9 +3110,19 @@ def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
 #   DWORD dwMilliseconds
 # );
 def WaitForSingleObject(hHandle, dwMilliseconds = INFINITE):
-    r = ctypes.windll.kernel32.WaitForSingleObject(hHandle, dwMilliseconds)
-    if r == WAIT_FAILED:
-        raise ctypes.WinError()
+    if not dwMilliseconds and dwMilliseconds != 0:
+        dwMilliseconds = INFINITE
+    if dwMilliseconds != INFINITE:
+        r = ctypes.windll.kernel32.WaitForSingleObject(hHandle, dwMilliseconds)
+        if r == WAIT_FAILED:
+            raise ctypes.WinError()
+    else:
+        while 1:
+            r = ctypes.windll.kernel32.WaitForSingleObject(hHandle, 100)
+            if r == WAIT_FAILED:
+                raise ctypes.WinError()
+            if r != WAIT_TIMEOUT:
+                break
     return r
 
 # DWORD WINAPI WaitForSingleObjectEx(
@@ -3120,13 +3131,23 @@ def WaitForSingleObject(hHandle, dwMilliseconds = INFINITE):
 #   BOOL bAlertable
 # );
 def WaitForSingleObjectEx(hHandle, dwMilliseconds = INFINITE, bAlertable = True):
+    if not dwMilliseconds and dwMilliseconds != 0:
+        dwMilliseconds = INFINITE
     if bAlertable:
         bAlertable = TRUE
     else:
         bAlertable = FALSE
-    r = ctypes.windll.kernel32.WaitForSingleObjectEx(hHandle, dwMilliseconds, bAlertable)
-    if r == WAIT_FAILED:
-        raise ctypes.WinError()
+    if dwMilliseconds != INFINITE:
+        r = ctypes.windll.kernel32.WaitForSingleObjectEx(hHandle, dwMilliseconds, bAlertable)
+        if r == WAIT_FAILED:
+            raise ctypes.WinError()
+    else:
+        while 1:
+            r = ctypes.windll.kernel32.WaitForSingleObjectEx(hHandle, 100, bAlertable)
+            if r == WAIT_FAILED:
+                raise ctypes.WinError()
+            if r != WAIT_TIMEOUT:
+                break
     return r
 
 # DWORD WINAPI WaitForMultipleObjects(
@@ -3136,6 +3157,8 @@ def WaitForSingleObjectEx(hHandle, dwMilliseconds = INFINITE, bAlertable = True)
 #   DWORD dwMilliseconds
 # );
 def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE):
+    if not dwMilliseconds and dwMilliseconds != 0:
+        dwMilliseconds = INFINITE
     nCount          = len(handles)
     lpHandlesType   = DWORD * nCount
     lpHandles       = lpHandlesType(*handles)
@@ -3143,9 +3166,17 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
         bWaitAll    = TRUE
     else:
         bWaitAll    = FALSE
-    r = ctypes.windll.kernel32.WaitForMultipleObjects(ctypes.byref(lpHandles), bWaitAll, dwMilliseconds)
-    if r == WAIT_FAILED:
-        raise ctypes.WinError()
+    if dwMilliseconds != INFINITE:
+        r = ctypes.windll.kernel32.WaitForMultipleObjects(ctypes.byref(lpHandles), bWaitAll, dwMilliseconds)
+        if r == WAIT_FAILED:
+            raise ctypes.WinError()
+    else:
+        while 1:
+            r = ctypes.windll.kernel32.WaitForMultipleObjects(ctypes.byref(lpHandles), bWaitAll, 100)
+            if r == WAIT_FAILED:
+                raise ctypes.WinError()
+            if r != WAIT_TIMEOUT:
+                break
     return r
 
 # DWORD WINAPI WaitForMultipleObjectsEx(
@@ -3156,6 +3187,8 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
 #   BOOL bAlertable
 # );
 def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINITE):
+    if not dwMilliseconds and dwMilliseconds != 0:
+        dwMilliseconds = INFINITE
     nCount          = len(handles)
     lpHandlesType   = DWORD * nCount
     lpHandles       = lpHandlesType(*handles)
@@ -3167,19 +3200,46 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
         bAlertable  = TRUE
     else:
         bAlertable  = FALSE
-    r = ctypes.windll.kernel32.WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bWaitAll, dwMilliseconds, bAlertable)
-    if r == WAIT_FAILED:
-        raise ctypes.WinError()
+    if dwMilliseconds != INFINITE:
+        r = ctypes.windll.kernel32.WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bWaitAll, dwMilliseconds, bAlertable)
+        if r == WAIT_FAILED:
+            raise ctypes.WinError()
+    else:
+        while 1:
+            r = ctypes.windll.kernel32.WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bWaitAll, 100, bAlertable)
+            if r == WAIT_FAILED:
+                raise ctypes.WinError()
+            if r != WAIT_TIMEOUT:
+                break
     return r
 
 # BOOL WaitForDebugEvent(
 #   LPDEBUG_EVENT lpDebugEvent,
 #   DWORD dwMilliseconds
 # );
-def WaitForDebugEvent(lpDebugEvent, dwMilliseconds = INFINITE):
-    success = ctypes.windll.kernel32.WaitForDebugEvent(ctypes.byref(lpDebugEvent), dwMilliseconds)
-    if success == FALSE:
-        raise ctypes.WinError()
+def WaitForDebugEvent(dwMilliseconds = INFINITE):
+    if not dwMilliseconds and dwMilliseconds != 0:
+        dwMilliseconds = INFINITE
+    lpDebugEvent                  = DEBUG_EVENT()
+    lpDebugEvent.dwDebugEventCode = 0
+    lpDebugEvent.dwProcessId      = 0
+    lpDebugEvent.dwThreadId       = 0
+    if dwMilliseconds != INFINITE:
+        success = ctypes.windll.kernel32.WaitForDebugEvent(ctypes.byref(lpDebugEvent), dwMilliseconds)
+        if success == FALSE:
+            raise ctypes.WinError()
+    else:
+        while 1:
+            success = ctypes.windll.kernel32.WaitForDebugEvent(ctypes.byref(lpDebugEvent), 100)
+            if success != FALSE:
+                break
+            code = GetLastError()
+            if code not in (ERROR_SEM_TIMEOUT, WAIT_TIMEOUT):
+                raise ctypes.WinError(code)
+            # XXX HACK
+            # Workaround for the KeyboardInterrupt bug.
+            time.sleep(0.2)
+    return lpDebugEvent
 
 # BOOL ContinueDebugEvent(
 #   DWORD dwProcessId,
@@ -3680,7 +3740,7 @@ def SetProcessPriorityBoost(hProcess, DisablePriorityBoost):
 #   HANDLE hProcess,
 #   PBOOL pbDebuggerPresent
 # );
-def CheckRemoteDebuggerPresent(hProcess, pbDebuggerPresent):
+def CheckRemoteDebuggerPresent(hProcess):
     pbDebuggerPresent = DWORD(0)
     success = ctypes.windll.kernel32.CheckRemoteDebuggerPresent(hProcess, ctypes.byref(pbDebuggerPresent))
     if success == FALSE:
@@ -4241,7 +4301,7 @@ def CommandLineToArgvA(lpCmdLine):
     return argv
 CommandLineToArgv = CommandLineToArgvA
 
-# HINSTANCE ShellExecute(      
+# HINSTANCE ShellExecute(
 #     HWND hwnd,
 #     LPCTSTR lpOperation,
 #     LPCTSTR lpFile,

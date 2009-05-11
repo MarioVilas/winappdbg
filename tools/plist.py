@@ -34,6 +34,10 @@
 __revision__ = "$Id$"
 
 # TODO
+# Show more info on processes, for example the user that spawned them, or if
+# they're being debugged or not.
+
+# TODO
 # Get the names of the services running in each process.
 
 # TODO

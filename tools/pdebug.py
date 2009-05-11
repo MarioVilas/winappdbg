@@ -35,6 +35,7 @@ __revision__ = "$Id$"
 
 import os
 import sys
+import time
 import optparse
 import traceback
 
@@ -66,7 +67,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     command_error_exception = CmdError
 
     # Milliseconds to wait for debug events in the main loop.
-    dwMilliseconds = 1000
+    dwMilliseconds = 100
 
     # History file name.
     history_file = '.pdebug'
@@ -117,38 +118,13 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.debuggerExit = False       # Quit the debugger when True
 
 #------------------------------------------------------------------------------
-# Control-C handling
-
-# FIXME
-# * fix the control-c handling, currently it crashes the python interpreter
-
-##    def control_c_break(self, dwCtrlType = win32.CTRL_C_EVENT):
-##        if dwCtrlType in (win32.CTRL_C_EVENT, win32.CTRL_BREAK_EVENT):
-##            try:
-##                print "User requested debug break."
-##                for process in self.lastEvent.debug.system:
-##                    try:
-##                        process.debug_break()
-##                    except Exception:
-##                        pass
-##            except Exception:
-##                pass
-##            return win32.TRUE
-##        return win32.FALSE
-##
-##    def set_control_c_handler(self):
-##        win32.SetConsoleCtrlHandler(self.control_c_break, True)
-##
-##    def remove_control_c_handler(self):
-##        try:
-##            win32.SetConsoleCtrlHandler(self.control_c_break, False)
-##        except WindowsError:
-##            pass
-
-#------------------------------------------------------------------------------
 # History file
 
     def load_history(self):
+        try:
+            readline
+        except NameError:
+            return
         folder = os.environ.get('USERPROFILE', '')
         if not folder:
             folder = os.environ.get('HOME', '')
@@ -159,20 +135,17 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.history_file = os.path.join(folder, self.history_file)
         try:
             readline.read_history_file(self.history_file)
-        except NameError:
-            pass
         except IOError:
             pass
-        try:
-            atexit.register(self.save_history)
-        except NameError:
-            pass
+        atexit.register(self.save_history)
 
     def save_history(self):
         try:
-            readline.write_history_file(self.history_file)
+            readline
         except NameError:
-            pass
+            return
+        try:
+            readline.write_history_file(self.history_file)
         except IOError:
             pass
 
@@ -356,25 +329,25 @@ class ConsoleDebugger (Cmd, EventHandler):
         else:
             thread = self.lastEvent.debug.system.get_thread(tid)
         ctx = thread.get_context()
-        
+
         token = token.lower()
-        
+
         if token in self.register_names:
             return ctx.get( token.title() )             # eax -> Eax
-         
+
         if token in self.segment_names:
             return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
-        
+
         if token in self.register_alias_16.keys():
             return ctx.get( self.register_alias_16[token] ) & 0x0000FFFF
-        
+
         if token in self.register_alias_8_low.keys():
             return ctx.get( self.register_alias_8_low[token] ) & 0x000000FF
-        
+
         if token in self.register_alias_8_high.keys():
             return \
                (ctx.get( self.register_alias_8_high[token] ) & 0x0000FF00) >> 8
-        
+
         return None
 
     # Token list contains an address or address range.
@@ -387,7 +360,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Token list contains a breakpoint.
     def input_breakpoint(self, token_list):
         pid, tid, address, size = self.input_full_address_range(token_list)
-        if not lastEvent.debug.is_debugee(pid):
+        if not self.lastEvent.debug.is_debugee(pid):
             raise CmdError, "target process is not being debugged"
         return pid, tid, address, size
 
@@ -662,44 +635,44 @@ class ConsoleDebugger (Cmd, EventHandler):
         # The finally clause ensures the thread is resumed before returning.
         thread.suspend()
         try:
-            
+
             # Get the current context.
             ctx = thread.get_context()
-            
+
             # Register name matching is case insensitive.
             register = register.lower()
-            
+
             # Integer 32 bits registers.
             if register in self.register_names:
                 register = token.title()                    # eax -> Eax
-            
+
             # Segment (16 bit) registers.
             if register in self.segment_names:
                 register = 'Seg%s' % token.title()          # cs -> SegCs
                 value    = value & 0x0000FFFF
-            
+
             # Integer 16 bits registers.
             if register in self.register_alias_16.keys():
                 register = self.register_alias_16[token]
                 previous = ctx.get(register) & 0xFFFF0000
                 value    = (value & 0x0000FFFF) | previous
-            
+
             # Integer 8 bits registers (low part).
             if register in self.register_alias_8_low.keys():
                 register = self.register_alias_8_low[token]
                 previous = ctx.get(register) % 0xFFFFFF00
                 value    = (value & 0x000000FF) | previous
-            
+
             # Integer 8 bits registers (high part).
             if register in self.register_alias_8_high.keys():
                 register = self.register_alias_8_high[token]
                 previous = ctx.get(register) % 0xFFFF00FF
                 value    = ((value & 0x000000FF) << 8) | previous
-            
+
             # Set the new context.
             ctx.set(register, value)
             thread.set_context(ctx)
-        
+
         # Resume the thread.
         finally:
             thread.resume()
@@ -818,6 +791,10 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Header for help page.
     doc_header = 'Available commands (type help * or help <command>)'
+
+##    # Read and write directly to stdin and stdout.
+##    # This prevents the use of raw_input and print.
+##    use_rawinput = False
 
     @property
     def prompt(self):
@@ -946,7 +923,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if c not in self.valid_plugin_name_chars:
                 raise CmdError, "invalid plugin name: %r" % name
         name = 'do_%s' % name
-        
+
         # The plugins interface is quite simple.
         #
         # Just place a .py file with the plugin name in the "plugins" folder,
@@ -1034,7 +1011,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_execute(self, arg):
         """
-        execute <target> [arguments...] - run a program for debugging 
+        execute <target> [arguments...] - run a program for debugging
         """
         if self.cmdprefix:
             raise CmdError, "prefix not allowed"
@@ -1049,7 +1026,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_console(self, arg):
         """
-        console <target> [arguments...] - run a console program for debugging 
+        console <target> [arguments...] - run a console program for debugging
         """
         if self.cmdprefix:
             raise CmdError, "prefix not allowed"
@@ -1116,18 +1093,18 @@ class ConsoleDebugger (Cmd, EventHandler):
         pl - show the processes being debugged
         processlist - show the processes being debugged
         """
-        if self.cmdprefix:
-            raise CmdError, "prefix not allowed"
         if arg:
             raise CmdError, "too many arguments"
+        if self.cmdprefix:
+            raise CmdError, "prefix not allowed"
         system = self.lastEvent.debug.system
-        for pid in self.lastEvent.debug.get_debugees_pids():
+        for pid in self.lastEvent.debug.get_debugee_pids():
             if   pid == 0:
                 filename = "System Idle Process"
             elif pid == 4:
                 filename = "System"
             else:
-                filename = system.get_filename()
+                filename = system.get_process(pid).get_filename()
                 filename = winappdbg.FileHandle.pathname_to_filename(filename)
             print "%-12d: %s" % (pid, filename)
 
@@ -1140,7 +1117,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if arg:
             raise CmdError, "too many arguments"
-        if cmdprefix:
+        if self.cmdprefix:
             process = self.get_process_from_prefix()
             for thread in process.iter_threads():
                 tid  = thread.get_tid()
@@ -1148,7 +1125,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                 print "%-12d %s" % (tid, name)
         else:
             system = self.lastEvent.debug.system
-            for pid in self.lastEvent.debug.get_debugees_pids():
+            for pid in self.lastEvent.debug.get_debugee_pids():
                 process = system.get_process(pid)
                 for thread in process.iter_threads():
                     tid  = thread.get_tid()
@@ -1664,7 +1641,6 @@ class ConsoleDebugger (Cmd, EventHandler):
 
 # TODO
 # * add configurable stop/don't stop behavior on events and exceptions
-# * add an option to thwart some basic anti debugging techniques
 
     # Stop for all events, unless stated otherwise.
     def event(self, event):
@@ -1690,33 +1666,33 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.print_event_location(event)
         self.prompt_user()
 
-    # Don't stop for process start. 
+    # Don't stop for process start.
     def create_process(self, event):
         self.print_process_start(event)
         self.print_thread_start(event)
         self.print_module_load(event)
 
-    # Don't stop for process exit. 
+    # Don't stop for process exit.
     def exit_process(self, event):
         self.print_process_end(event)
 
-    # Don't stop for thread creation. 
+    # Don't stop for thread creation.
     def create_thread(self, event):
         self.print_thread_start(event)
 
-    # Don't stop for thread exit. 
+    # Don't stop for thread exit.
     def exit_thread(self, event):
         self.print_thread_end(event)
 
-    # Don't stop for DLL load. 
+    # Don't stop for DLL load.
     def load_dll(self, event):
         self.print_module_load(event)
 
-    # Don't stop for DLL unload. 
+    # Don't stop for DLL unload.
     def unload_dll(self, event):
         self.print_module_unload(event)
 
-    # Don't stop for debug strings. 
+    # Don't stop for debug strings.
     def output_string(self, event):
         self.print_debug_string(event)
 
@@ -1763,12 +1739,17 @@ class ConsoleDebugger (Cmd, EventHandler):
                    help="automatically detach from debugees on exit [default]")
         debugging.add_option("--follow", action="store_true",
                       help="automatically attach to child processes [default]")
+        debugging.add_option("--trusted", action="store_false",
+                                                                dest="hostile",
+                      help="treat debugees as trusted code [default]")
         debugging.add_option("--dont-autodetach", action="store_false",
                                                              dest="autodetach",
                    help="don't automatically detach from debugees on exit")
         debugging.add_option("--dont-follow", action="store_false",
                                                                  dest="follow",
                           help="don't automatically attach to child processes")
+        debugging.add_option("--hostile", action="store_true",
+                      help="treat debugees as hostile code")
         self.parser.add_option_group(debugging)
 
         # Set the default values
@@ -1776,8 +1757,9 @@ class ConsoleDebugger (Cmd, EventHandler):
             attach      = [],
             console     = [],
             windowed    = [],
-            follow      = True,
             autodetach  = True,
+            follow      = True,
+            hostile     = True,
         )
 
         # Parse the command line
@@ -1793,7 +1775,10 @@ class ConsoleDebugger (Cmd, EventHandler):
     def create_debugger(self):
 
         # Instance a debugger
-        debug = winappdbg.Debug(self, bKillOnExit = not self.options.autodetach)
+        debug = winappdbg.Debug(self,
+                                    bKillOnExit  = not self.options.autodetach,
+                                    bHostileCode = self.options.hostile,
+                                    )
 
         # Populate the snapshot of processes
         debug.system.scan()
@@ -1835,14 +1820,10 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Run the debugger.
     # This is the first method called.
     def run(self, argv):
-        self.argv = [x for x in argv]
+        self.argv = list(argv)
         try:
             self.initialize()
-            try:
-                self.main_loop()
-            except KeyboardInterrupt:
-##                self.control_c_break()
-                pass
+            self.main_loop()
         finally:
             self.finalize()
 
@@ -1863,43 +1844,70 @@ class ConsoleDebugger (Cmd, EventHandler):
     def main_loop(self):
         self.debuggerExit = False
         debug = self.lastEvent.debug
-        
-        if debug.get_debugee_count() == 0:
-            self.prompt_user()
 
+        # Loop until the debugger is told to quit.
         while not self.debuggerExit:
 
-            if self.lastEvent:
-                debug.cont(self.lastEvent)
-                lastCode = self.lastEvent.get_event_code()
-                self.lastEvent = winappdbg.NoEvent(debug)
-
-            while not self.debuggerExit and \
-                self.lastEvent.debug.get_debugee_count() <= 0:
-                    self.prompt_user()
-            if self.debuggerExit:
-                break
-
-            while 1:
-                try:
-                    self.lastEvent = debug.wait(self.dwMilliseconds)
-                except WindowsError, e:
-                    if e.winerror == win32.ERROR_SEM_TIMEOUT:
-                        continue
-                    raise
-                break
-
             try:
-                handled = self.lastEvent.debug.dispatch(self.lastEvent)
-                if handled:
-                    break
-            except Exception:
-                traceback.print_exc()
-                self.prompt_user()
+
+                # If for some reason the last event wasn't continued,
+                # continue it here. This won't be done more than once
+                # for a given Event instance, though.
+                if self.lastEvent:
+                    print "*** Warning: " \
+                          "last debug event wasn't properly handled."
+                    lastEvent      = self.lastEvent
+                    self.lastEvent = winappdbg.NoEvent(debug)
+                    try:
+                        debug.cont(lastEvent)
+                    # On error, show the command prompt.
+                    except Exception:
+                        traceback.print_exc()
+                        self.prompt_user()
+
+                # While debugees are attached, handle debug events.
+                # Some debug events may cause the command prompt to be shown.
+                if self.lastEvent.debug.get_debugee_count() > 0:
+                    try:
+
+                        # Get the next debug event.
+                        self.lastEvent = debug.wait()
+
+                        # Dispatch the debug event.
+                        try:
+                            debug.dispatch(self.lastEvent)
+
+                        # Continue the debug event.
+                        finally:
+                            debug.cont(self.lastEvent)
+                            self.lastEvent = winappdbg.NoEvent(debug)
+
+                    # On error, show the command prompt.
+                    except Exception:
+                        traceback.print_exc()
+                        self.prompt_user()
+
+                # While no debugees are attached, show the command prompt.
+                else:
+                    self.prompt_user()
+
+            # When the user presses Ctrl-C send a debug break to all debugees.
+            except KeyboardInterrupt:
+                try:
+                    print "*** User requested debug break"
+                    system = debug.system
+                    for pid in debug.get_debugee_pids():
+                        try:
+                            system.get_process(pid).debug_break()
+                        except:
+                            traceback.print_exc()
+                except:
+                    traceback.print_exc()
 
 #==============================================================================
 
 def main(argv):
+##    sys.setcheckinterval(1)
     return ConsoleDebugger().run(argv)
 
 if __name__ == '__main__':

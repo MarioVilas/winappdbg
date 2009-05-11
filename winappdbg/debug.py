@@ -42,14 +42,28 @@ __all__ =   [
             ]
 
 import win32
-from system import System, Process, Thread, Module, processidparam
-from breakpoint import BreakpointContainer
+from system import System, Process, Thread, Module, processidparam, FileHandle
+from breakpoint import BreakpointContainer, CodeBreakpoint
 from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
+import sys
 import ctypes
 ##import traceback
 
 #==============================================================================
+
+# TODO
+# * Add memory read and write operations, similar to those in the Process
+#   class, but hiding the presence of the code breakpoints.
+# * Add a method to get the memory map of a process, but hiding the presence
+#   of the page breakpoints.
+# * Maybe the previous two features should be implemented at the Process class
+#   instead, but how to communicate with the Debug object without creating
+#   circular references? Perhaps the "overrides" could be set using private
+#   members (so users won't see them), but then there's the problem of the
+#   users being able to access the snapshot (i.e. clear it), which is why it's
+#   not such a great idea to use the snapshot to store data that really belongs
+#   to the Debug class.
 
 class Debug (EventDispatcher, BreakpointContainer):
     """
@@ -63,7 +77,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         is_debugee, is_debugee_attached, is_debugee_started
 
     @group Debugging loop:
-        loop, wait, dispatch, cont
+        loop, next, wait, dispatch, cont
 
     @group Event notifications (private):
         notify_create_process,
@@ -82,7 +96,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         may be outdated.
     """
 
-    def __init__(self, eventHandler = None, bKillOnExit = False):
+    def __init__(self, eventHandler = None,              bKillOnExit = False,
+                                                        bHostileCode = False):
         """
         Debugger object.
 
@@ -94,6 +109,11 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param bKillOnExit: (Optional) Global kill on exit mode.
             C{True} to kill the process on exit, C{False} to detach.
             Ignored under Windows 2000 and below.
+
+        @type  bHostileCode: bool
+        @param bHostileCode: (Optional) Hostile code mode.
+            Set to C{True} to take some basic precautions against anti-debug
+            tricks. Disabled by default.
 
         @note: The L{eventHandler} parameter may be any callable Python object
             (for example a function, or an instance method).
@@ -107,6 +127,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         self.system                         = System()
         self.__bKillOnExit                  = bKillOnExit
+        self.__bHostileCode                 = bHostileCode
         self.__attachedDebugees             = set()
         self.__startedDebugees              = set()
 
@@ -116,8 +137,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     # Detach from all processes on exit.
     def __del__(self):
         try:
-            if not self.__bKillOnExit:
-                self.detach_from_all(bIgnoreExceptions = True)
+            self.stop()
         except Exception, e:
             pass
 ##            traceback.print_exc()
@@ -215,7 +235,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         Detaches from all processes currently being debugged.
 
-        @note: To better handle last debugging event, call L{stop} instead. 
+        @note: To better handle last debugging event, call L{stop} instead.
 
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
@@ -319,7 +339,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @see: L{cont}, L{dispatch}, L{loop}
 
         @type  dwMilliseconds: int
-        @param dwMilliseconds: Timeout in milliseconds.
+        @param dwMilliseconds: (Optional) Timeout in milliseconds.
             Use C{INFINITE} or C{None} for no timeout.
 
         @rtype:  L{Event}
@@ -327,14 +347,11 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if dwMilliseconds is None:
-            dwMilliseconds = win32.INFINITE
-        raw                  = win32.DEBUG_EVENT()
-        raw.dwDebugEventCode = 0
-        raw.dwProcessId      = 0
-        raw.dwThreadId       = 0
-        win32.WaitForDebugEvent(raw, dwMilliseconds)
-        return EventFactory.get(self, raw)
+
+        # Return the next debug event.
+        raw     = win32.WaitForDebugEvent(dwMilliseconds)
+        event   = EventFactory.get(self, raw)
+        return event
 
     def dispatch(self, event):
         """
@@ -402,7 +419,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     def stop(self, event = None, bIgnoreExceptions = True):
         """
         Stops debugging all processes.
-        
+
         If C{bKillOnExit} was set to C{True} when instancing the C{Debug}
         object, all debugees are terminated. Otherwise, the debugger detaches
         from all debugees.
@@ -447,16 +464,41 @@ class Debug (EventDispatcher, BreakpointContainer):
             if not bIgnoreExceptions:
                 raise
 
+    def next(self):
+        """
+        Handles the next debug event.
+
+        @see: L{cont}, L{dispatch}, L{wait}, L{stop}
+
+        @rtype:  L{Event}
+        @return: Handled debug event.
+
+        @raise WindowsError: Raises an exception on error.
+
+            If the wait operation causes an error, debugging is stopped
+            (meaning all debugees are either killed or detached from).
+
+            If the event dispatching causes an error, the event is still
+            continued before returning. This may happen, for example, if the
+            event handler raises an exception nobody catches.
+        """
+        try:
+            event = self.wait()
+        except Exception:
+            self.stop()
+        try:
+            self.dispatch(event)
+        finally:
+            self.cont(event)
+        return event
+
     def loop(self, dwMilliseconds = 1000):
         """
         Simple debugging loop.
 
         This debugging loop is meant to be useful for most simple scripts.
         It iterates as long as there is at least one debuguee, or an exception
-        is raised.
-
-        If the latter happens, the debugger detaches from all processes as
-        gracefully as it can before throwing the exception to the caller. 
+        is raised. Multiple calls are allowed.
 
         This is a trivial example script::
 
@@ -465,7 +507,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             debug.execv( sys.argv [ 1 : ] )
             debug.loop()
 
-        @see: L{cont}, L{dispatch}, L{wait}, L{stop}
+        @see: L{next}, L{stop}
 
             U{http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx}
 
@@ -474,21 +516,16 @@ class Debug (EventDispatcher, BreakpointContainer):
             Use C{INFINITE} or C{None} for no timeout.
 
         @raise WindowsError: Raises an exception on error.
+
+            If the wait operation causes an error, debugging is stopped
+            (meaning all debugees are either killed or detached from).
+
+            If the event dispatching causes an error, the event is still
+            continued before returning. This may happen, for example, if the
+            event handler raises an exception nobody catches.
         """
         while self.get_debugee_count() > 0:
-            try:
-                event = self.wait(dwMilliseconds)
-            except WindowsError, e:
-                if e.winerror == win32.ERROR_SEM_TIMEOUT:
-                    continue
-                self.detach_from_all(event)
-                raise
-            try:
-                self.dispatch(event)
-            except Exception:
-                self.stop(event)
-                raise
-            self.cont(event)
+            self.next(dwMilliseconds)
 
     def get_debugee_count(self):
         """
@@ -508,7 +545,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     def is_debugee(self, dwProcessId):
         """
         @type  dwProcessId: int
-        @param dwProcessId: Process global ID.        
+        @param dwProcessId: Process global ID.
 
         @rtype:  bool
         @return: C{True} if the given process is being debugged
@@ -521,7 +558,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     def is_debugee_started(self, dwProcessId):
         """
         @type  dwProcessId: int
-        @param dwProcessId: Process global ID.        
+        @param dwProcessId: Process global ID.
 
         @rtype:  bool
         @return: C{True} if the given process was started for debugging by this
@@ -533,7 +570,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     def is_debugee_attached(self, dwProcessId):
         """
         @type  dwProcessId: int
-        @param dwProcessId: Process global ID.        
+        @param dwProcessId: Process global ID.
 
         @rtype:  bool
         @return: C{True} if the given process is attached to this
@@ -573,7 +610,22 @@ class Debug (EventDispatcher, BreakpointContainer):
         if dwProcessId not in self.__attachedDebugees:
             if dwProcessId not in self.__startedDebugees:
                 self.__startedDebugees.add(dwProcessId)
-        return self.system.notify_create_process(event)
+
+        retval = self.system.notify_create_process(event)
+
+##        # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
+##        if self.__bHostileCode:
+##            aProcess = self.system.get_process(dwProcessId)
+##            try:
+##                pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
+##                                                 win32.ProcessBasicInformation)
+##                ptr = pbi.PebBaseAddress + 2
+##                if aProcess.peek(ptr, 1) == '\x01':
+##                    aProcess.poke(ptr, '\x00')
+##            except WindowsError:
+##                pass
+
+        return retval
 
     def notify_create_thread(self, event):
         """
@@ -601,7 +653,28 @@ class Debug (EventDispatcher, BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        return event.get_process().notify_load_dll(event)
+
+        # Get the process where the DLL was loaded.
+        aProcess = event.get_process()
+
+        # Pass the event to the process.
+        retval = aProcess.notify_load_dll(event)
+
+        # Check the int3 instruction where the system breakpoint should be.
+        # If missing, restore it. This defeats a simple anti-debugging trick.
+        if self.__bHostileCode:
+            aModule = event.get_module()
+            if aModule.match_name('ntdll.dll'):
+##                address = aModule.resolve('DbgBreakPoint')
+##                address = aModule.resolve('DbgUserBreakPoint')
+                address = aProcess.get_system_breakpoint()
+                if address is not None:
+                    aProcess.poke(address, CodeBreakpoint.int3)
+                address = aProcess.get_user_breakpoint()
+                if address is not None:
+                    aProcess.poke(address, CodeBreakpoint.int3)
+
+        return retval
 
     def notify_exit_process(self, event):
         """
@@ -672,6 +745,28 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         event.debug.detach( event.get_pid() )
         return True
+
+##    def notify_breakpoint(self, event):
+##        """
+##        Notify the debugger of a breakpoint exception event.
+##
+##        @type  event: L{ExceptionEvent}
+##        @param event: Breakpoint exception event.
+##        """
+##        # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
+##        if self.__bHostileCode:
+##            address = event.get_exception_address()
+##            if event.get_process().get_system_breakpoint() == address:
+##                aProcess = self.system.get_process(dwProcessId)
+##                try:
+##                    pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
+##                                                     win32.ProcessBasicInformation)
+##                    ptr = pbi.PebBaseAddress + 2
+##                    if aProcess.peek(ptr, 1) == '\x01':
+##                        aProcess.poke(ptr, '\x00')
+##                except WindowsError:
+##                    pass
+##        return BreakpointContainer.notify_breakpoint(self, event)
 
     def notify_debug_control_c(self, event):
         """

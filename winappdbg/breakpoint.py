@@ -800,13 +800,13 @@ class CodeBreakpoint (Breakpoint):
 
     def __set_bp(self, aProcess):
         """
-        Writes a breakpoint instruction in the target address.
+        Writes a breakpoint instruction at the target address.
 
         @type  aProcess: L{Process}
         @param aProcess: Process object.
         """
         # XXX maybe if the previous value is \xCC we shouldn't trust it?
-        self.__previousValue = aProcess.read(self.get_address(), 1)
+        self.__previousValue = aProcess.read(self.get_address(), len(self.int3))
         aProcess.write(self.get_address(), self.int3)
 
     def __clear_bp(self, aProcess):
@@ -816,7 +816,13 @@ class CodeBreakpoint (Breakpoint):
         @type  aProcess: L{Process}
         @param aProcess: Process object.
         """
-        aProcess.write(self.get_address(), self.__previousValue)
+        # Only restore the previous value if the int3 is still there.
+        address = self.get_address()
+        currentValue = aProcess.read(address, len(self.int3))
+        if currentValue == self.int3:
+            aProcess.write(self.get_address(), self.__previousValue)
+        else:
+            self.__previousValue = currentValue
 
     def disable(self, aProcess, aThread):
         if not self.is_disabled() and not self.is_running():
@@ -844,6 +850,16 @@ class CodeBreakpoint (Breakpoint):
         super(CodeBreakpoint, self).running(aProcess, aThread)
 
 #==============================================================================
+
+# TODO:
+# * If the original page was already a guard page, the exception should be
+#   passed to the debugee instead of being handled by the debugger.
+# * If the original page was already a guard page, it should NOT be converted
+#   to a no-access page when disabling the breakpoint.
+# * If the page permissions were modified after the breakpoint was enabled,
+#   no change should be done on them when disabling the breakpoint. For this
+#   we need to remember the original page permissions instead of blindly
+#   setting and clearing the guard page bit on them.
 
 class PageBreakpoint (Breakpoint):
     """

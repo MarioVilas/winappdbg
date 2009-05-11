@@ -144,7 +144,7 @@ class Handle (object):
         """
         Compatibility with ctypes. Required by the win32 module.
         """
-        return self.value
+        return long(self.value)
 
     def dup(self):
         """
@@ -160,12 +160,13 @@ class Handle (object):
 
         @type  dwMilliseconds: int
         @param dwMilliseconds: (Optional) Timeout value in milliseconds.
+            Use C{INFINITE} or C{None} for no timeout.
         """
         if dwMilliseconds is None:
             dwMilliseconds = win32.INFINITE
         r = win32.WaitForSingleObject(self.value, dwMilliseconds)
         if r != win32.WAIT_OBJECT_0:
-            raise ctypes.WinError()
+            raise ctypes.WinError(r)
 
 #------------------------------------------------------------------------------
 
@@ -1279,9 +1280,9 @@ class MemoryOperations (object):
         @see: L{read}
 
         @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
+        @param lpBaseAddress: Memory address to begin reading.
 
-        @type  stype: ctypes.Structure or a subclass.
+        @type  stype: class ctypes.Structure or a subclass.
         @param stype: Structure definition.
 
         @rtype:  int
@@ -1294,6 +1295,30 @@ class MemoryOperations (object):
         buff = ctypes.create_string_buffer(data)
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
         return ptr.contents
+
+# TODO
+##    def write_structure(self, lpBaseAddress, sStructure):
+##        """
+##        Writes a ctypes structure into the memory of the process.
+##
+##        @see: L{write}
+##
+##        @type  lpBaseAddress: int
+##        @param lpBaseAddress: Memory address to begin writing.
+##
+##        @type  sStructure: ctypes.Structure or a subclass' instance.
+##        @param sStructure: Structure definition.
+##
+##        @rtype:  int
+##        @return: Structure instance filled in with data
+##            read from the process memory.
+##
+##        @raise WindowsError: On error an exception is raised.
+##        """
+##        size = ctypes.sizeof(sStructure)
+##        data = ctypes.create_string_buffer("", size = size)
+##        win32.CopyMemory(ctypes.byref(data), ctypes.byref(sStructure), size)
+##        self.write(lpBaseAddress, data.raw)
 
 #------------------------------------------------------------------------------
 
@@ -1537,13 +1562,13 @@ class MemoryOperations (object):
     def is_address_valid(self, address):
         """
         Determines if an address is a valid user mode address.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return: C{True} if the address is a valid user mode address.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1557,15 +1582,15 @@ class MemoryOperations (object):
     def is_address_free(self, address):
         """
         Determines if an address belongs to a free page.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return: C{True} if the address belongs to a free page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1579,15 +1604,15 @@ class MemoryOperations (object):
     def is_address_reserved(self, address):
         """
         Determines if an address belongs to a reserved page.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return: C{True} if the address belongs to a reserved page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1601,15 +1626,15 @@ class MemoryOperations (object):
     def is_address_commited(self, address):
         """
         Determines if an address belongs to a commited page.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return: C{True} if the address belongs to a commited page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1624,16 +1649,16 @@ class MemoryOperations (object):
         """
         Determines if an address belongs to a commited and readable page.
         The page may or may not have additional permissions.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return:
             C{True} if the address belongs to a commited and readable page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1657,16 +1682,16 @@ class MemoryOperations (object):
         """
         Determines if an address belongs to a commited and writeable page.
         The page may or may not have additional permissions.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return:
             C{True} if the address belongs to a commited and writeable page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1688,16 +1713,16 @@ class MemoryOperations (object):
         """
         Determines if an address belongs to a commited and executable page.
         The page may or may not have additional permissions.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return:
             C{True} if the address belongs to a commited and executable page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1719,20 +1744,20 @@ class MemoryOperations (object):
         """
         Determines if an address belongs to a commited, writeable and
         executable page. The page may or may not have additional permissions.
-        
+
         Looking for writeable and executable pages is important when
         exploiting a software vulnerability.
-        
+
         @note: Returns always C{False} for kernel mode addresses.
-        
+
         @type  address: int
         @param address: Memory address to query.
-        
+
         @rtype:  bool
         @return:
             C{True} if the address belongs to a commited, writeable and
             executable page.
-        
+
         @raise WindowsError: An exception is raised on error.
         """
         try:
@@ -1812,7 +1837,7 @@ class SymbolOperations (object):
         split_label_fuzzy
 
     @group Debugging:
-        get_system_breakpoint
+        get_system_breakpoint, get_user_breakpoint
     """
 
     def __init__(self):
@@ -2338,6 +2363,18 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         return self.resolve_label("ntdll!DbgBreakPoint")
 
+    # I don't know when this breakpoint is actually used...
+    # Immediately after ntdll!DbgUserBreakPoint there's another hardcoded
+    # breakpoint, but it's not exported. I don't know when it's used either.
+    def get_user_breakpoint(self):
+        """
+        @rtype:  int
+        @return: Memory address of the user breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        return self.resolve_label("ntdll!DbgUserBreakPoint")
+
 #==============================================================================
 
 # TODO
@@ -2741,8 +2778,8 @@ class ProcessDebugOperations (object):
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string
 
-    @group Miscellaneous:
-        flush_instruction_cache, peek_pointers_in_data
+    @group Debugging:
+        flush_instruction_cache, debug_break, peek_pointers_in_data
     """
 
     @staticmethod
@@ -2857,6 +2894,16 @@ class ProcessDebugOperations (object):
         @raise WindowsError: Raises exception on error.
         """
         win32.FlushInstructionCache(self.get_handle())
+
+    def debug_break(self):
+        """
+        Triggers the system breakpoint in the process.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        # I wonder which thread actually raises the exception when we do this.
+        # Maybe a hidden thread created by the system when we attach?
+        win32.DebugBreakProcess(self.get_handle())
 
 #------------------------------------------------------------------------------
 
@@ -4251,6 +4298,7 @@ class Thread (ThreadDebugOperations):
 
         @type  dwTimeout: int
         @param dwTimeout: (Optional) Timeout value in milliseconds.
+            Use C{INFINITE} or C{None} for no timeout.
         """
         self.get_handle().wait(dwTimeout)
 
@@ -4586,9 +4634,6 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     @group Instrumentation:
         kill, wait, inject_code, inject_dll
 
-    @group Debugging:
-        debug_break
-
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__
 
@@ -4624,7 +4669,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         SymbolOperations.__init__(self)
         ThreadContainer.__init__(self)
         ModuleContainer.__init__(self)
-        
+
         self.dwProcessId = dwProcessId
         self.hProcess    = hProcess
         self.fileName    = fileName
@@ -4805,18 +4850,20 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
                     pass
             raise
 
-    def debug_break(self):
-        """
-        Triggers the system breakpoint in the process.
-
-        @raise WindowsError: On error an exception is raised.
-        """
-        win32.DebugBreakProcess(self.get_handle())
-
     def is_debugged(self):
         """
+        Tries to determine if the process is being debugged by another process.
+        It may detect other debuggers besides WinAppDbg.
+
         @rtype:  bool
-        @return: C{True} if the process is being debugged.
+        @return: C{True} if the process has a debugger attached.
+
+        @warning:
+            May return inaccurate results when some anti-debug techniques are
+            used by the target process.
+
+        @note: To know if a process currently being debugged by a L{Debug}
+            object, call L{Debug.is_debugee} instead.
         """
         return win32.CheckRemoteDebuggerPresent(self.get_handle())
 
@@ -4826,19 +4873,22 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @return: C{True} if the process is currently running.
         """
         try:
-            hProcess = self.get_handle()
-        except WindowsError:
-            return False
-        try:
-            hProcess.wait(0)
-        except WindowsError:
-            return False
-        return True
+            self.wait(0)
+        except WindowsError, e:
+            return e.winerror == win32.WAIT_TIMEOUT
+        return False
 
     def get_exit_code(self):
         """
         @rtype:  int
         @return: Process exit code, or C{STILL_ACTIVE} if it's still alive.
+
+        @warning: If a process returns C{STILL_ACTIVE} as it's exit code,
+            you may not be able to determine if it's active or not with this
+            method. Use L{is_alive} to check if the process is still active.
+            Alternatively you can call L{get_handle} to get the handle object
+            and then L{ProcessHandle.wait} on it to wait until the process
+            finishes running.
         """
         return win32.GetExitCodeProcess(self.get_handle())
 

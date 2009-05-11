@@ -678,21 +678,23 @@ def main(args):
     try:
         while debug.get_debugee_count() > 0:
             try:
-                event = debug.wait(1000)
-            except WindowsError, e:
-                if e.winerror == win32.ERROR_SEM_TIMEOUT:
-                    continue
-                raise
-            try:
-                debug.dispatch(event)
+                event = debug.wait()
             except Exception:
-                if options.ignore_errors:
+                if not options.ignore_errors and options.verbose:
+                    traceback.print_exc()
+                raise   # don't ignore this error
+            try:
+                try:
+                    debug.dispatch(event)
+                finally:
+                    debug.cont(event)
+            except Exception:
+                if not options.ignore_errors:
                     if options.verbose:
                         traceback.print_exc()
-                else:
                     raise
-            debug.cont(event)
     finally:
+        debug.stop()
         if options.verbose:
             print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
 
