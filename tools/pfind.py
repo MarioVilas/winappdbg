@@ -338,7 +338,15 @@ class Main (object):
             # read entire regions and search on them
             if self.options.memory_pages <= 0:
                 for (address, size) in memory:
-                    data = self.process.read(address, size)
+                    try:
+                        data = self.process.read(address, size)
+                    except WindowsError, e:
+                        msg = "Error reading %.8x-%.8x: %s"
+                        msg = msg % (address, address + size, str(e))
+                        print msg
+                        if self.options.verbose:
+                            print
+                        continue
                     self.search_block(data, address, 0)
 
             # If an allocation limit is set,
@@ -359,8 +367,10 @@ class Main (object):
                                 break
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
-                    except WindowsError:
-                        print "Error reading address %.08x, skipping" % address
+                    except WindowsError, e:
+                        msg = "Error reading %.8x-%.8x: %s"
+                        msg = msg % (address, address + total_size, str(e))
+                        print msg
                         if self.options.verbose:
                             print
 
@@ -382,10 +392,10 @@ class Main (object):
                 if not searcher.found():
                     break
                 if self.options.verbose:
-                    print searcher.message(self.pid, address, data)
+                    print searcher.message(self.pid, address - shift, data)
                     print
                 else:
-                    print searcher.message(self.pid, address)
+                    print searcher.message(self.pid, address - shift)
 
     def run(self):
 
