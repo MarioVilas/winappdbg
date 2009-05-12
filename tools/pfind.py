@@ -96,7 +96,7 @@ class Search (object):
             msg += "\n"
             p = self.start & 0xFFFFFFF0
             q = (self.end & 0xFFFFFFF0) + 0x10
-            msg += HexDump.hexblock( data[p:q] )
+            msg += HexDump.hexblock( data[p:q], address & 0xFFFFFFF0 )
             if msg.endswith('\n'):
                 msg = msg[:-len('\n')]
         return msg
