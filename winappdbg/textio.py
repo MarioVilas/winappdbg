@@ -146,8 +146,9 @@ class HexInput (object):
 
         The file format is:
 
-         - # begins comments
+         - # anywhere in the line begins a comment
          - leading and trailing spaces are ignored
+         - empty lines are ignored
          - integers can be specified as:
             - decimal numbers ("100" is 100)
             - hexadecimal numbers ("0x100" is 256)
@@ -179,14 +180,45 @@ class HexInput (object):
         return result
 
     @classmethod
+    def string_list_file(cls, filename):
+        """
+        Read a list of string values from a file.
+
+        The file format is:
+
+         - # anywhere in the line begins a comment
+         - leading and trailing spaces are ignored
+         - empty lines are ignored
+         - strings cannot span over a single line
+
+        @type  filename: str
+        @param filename: Name of the file to read.
+
+        @rtype:  list
+        @return: List of integers and strings read from the file.
+        """
+        count  = 0
+        result = list()
+        fd     = open(filename, 'r')
+        for line in fd:
+            count = count + 1
+            if '#' in line:
+                line = line[ : line.find('#') ]
+            line = line.strip()
+            if line:
+                result.append(line)
+        return result
+
+    @classmethod
     def mixed_list_file(cls, filename):
         """
         Read a list of mixed values from a file.
 
         The file format is:
 
-         - # begins comments
+         - # anywhere in the line begins a comment
          - leading and trailing spaces are ignored
+         - empty lines are ignored
          - strings cannot span over a single line
          - integers can be specified as:
             - decimal numbers ("100" is 100)
