@@ -3630,8 +3630,9 @@ class ProcessContainer (object):
 
     def find_processes_by_filename(self, filename):
         """
-        @rtype:  list( L{Process}... )
+        @rtype:  list of tuple( L{Process}, str )
         @return: List of processes matching the given main module filename.
+            Each tuple contains a Process object and it's filename.
         """
         found    = list()
         filename = filename.lower()
