@@ -900,7 +900,7 @@ class CrashDump (object):
             for offset in pointers:
                 dumped  = HexDump.hexline(data[offset], separator, width)
                 tag     = tag_fmt % offset
-                result += '%s -> %s' % (tag, dumped)
+                result += '%s -> %s\n' % (tag, dumped)
         return result
 
     @staticmethod
@@ -927,6 +927,7 @@ class CrashDump (object):
     # any register value (or other values like the exception address) that
     # points to a location in the dissassembled code.
     # + It'd be very useful to show some labels here.
+    # + It'd be very useful to show register contents for code at EIP
     @staticmethod
     def dump_code(disassembly, pc = None, bLowercase = True):
         """

@@ -1201,6 +1201,27 @@ class ConsoleDebugger (Cmd, EventHandler):
                 if self.ask_user("You are about to kill the current process."):
                     self.kill_process(pid)
 
+    def do_stack(self, arg):
+        """
+        [~thread] k - show the stack trace
+        [~thread] stack - show the stack trace
+        """
+        if arg:     # XXX TODO add depth parameter
+            raise CmdError, "too many arguments"
+        pid, tid        = self.get_process_and_thread_ids_from_prefix()
+        process         = self.get_process(pid)
+        thread          = process.get_thread(tid)
+        try:
+            stack_trace = thread.get_stack_trace()
+            if stack_trace:
+                print winappdbg.CrashDump.dump_stack_trace(stack_trace)
+            else:
+                print "Can't get stack trace for thread (%d)" % tid
+        except WindowsError, e:
+            print "Can't get stack trace for thread (%d)" % tid
+
+    do_k = do_stack
+
     def do_break(self, arg):
         """
         break - force a debug break in all debugees
