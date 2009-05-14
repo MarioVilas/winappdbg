@@ -32,8 +32,6 @@ Instrumentation module.
 
 @group Instrumentation:
     System, Process, Thread, Module
-@group Handles (private):
-    Handle, ProcessHandle, ThreadHandle, FileHandle
 @group Capabilities (private):
     ModuleContainer, ThreadContainer, ProcessContainer,
     ThreadDebugOperations, ProcessDebugOperations,
@@ -59,14 +57,9 @@ __all__ =   [
                 'Thread',
                 'Module',
 
-                # Win32 handle wrapper classes.
-                'Handle',
-                'ProcessHandle',
-                'ThreadHandle',
-                'FileHandle',
-
                 # Static functions
                 'MemoryAddresses',
+                'PathOperations',
             ]
 
 import win32
@@ -88,158 +81,10 @@ except ImportError:
 
 #==============================================================================
 
-class Handle (object):
+class PathOperations (object):
     """
-    Encapsulates win32 handles to avoid leaking them.
-
-    @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
+    Static methods for filename and pathname manipulation.
     """
-
-    def __init__(self, aHandle = None, bOwnership = True):
-        """
-        @type  aHandle: int
-        @param aHandle: Win32 handle object.
-
-        @type  bOwnership: bool
-        @param bOwnership:
-           True if we own the handle and we need to close it.
-           False if someone else will be calling L{win32.CloseHandle}.
-        """
-        super(Handle, self).__init__()
-        if aHandle == win32.INVALID_HANDLE_VALUE:
-            aHandle = None
-        self.value      = aHandle
-        self.bOwnership = bool(bOwnership)
-
-    def __del__(self):
-        """
-        Closes the win32 handle when the python object is destroyed.
-        """
-        if self.bOwnership and self.value is not None:
-            try:
-                win32.CloseHandle(self.value)
-            except WindowsError:
-                pass
-
-    def __copy__(self):
-        """
-        Duplicates the win32 handle when copying the python object.
-
-        @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
-        """
-        return self.dup()
-
-    def __deepcopy__(self):
-        """
-        Duplicates the win32 handle when copying the python object.
-
-        @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
-        """
-        return self.dup()
-
-    @property
-    def _as_parameter_(self):
-        """
-        Compatibility with ctypes. Required by the win32 module.
-        """
-        return long(self.value)
-
-    def dup(self):
-        """
-        @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
-        """
-        hHandle = win32.DuplicateHandle(self.value)
-        return self.__class__(hHandle, bOwnership = True)
-
-    def wait(self, dwMilliseconds = None):
-        """
-        Wait for the win32 object to be signaled.
-
-        @type  dwMilliseconds: int
-        @param dwMilliseconds: (Optional) Timeout value in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
-        """
-        if dwMilliseconds is None:
-            dwMilliseconds = win32.INFINITE
-        r = win32.WaitForSingleObject(self.value, dwMilliseconds)
-        if r != win32.WAIT_OBJECT_0:
-            raise ctypes.WinError(r)
-
-#------------------------------------------------------------------------------
-
-class ProcessHandle (Handle):
-    """
-    Win32 process handle.
-
-    @see: L{Handle}
-    """
-
-    def get_pid(self):
-        """
-        @rtype:  int
-        @return: Process global ID.
-        """
-        return win32.GetProcessId(self.value)
-
-#------------------------------------------------------------------------------
-
-class ThreadHandle (Handle):
-    """
-    Win32 thread handle.
-
-    @see: L{Handle}
-    """
-
-    def get_tid(self):
-        """
-        @rtype:  int
-        @return: Thread global ID.
-        """
-        return win32.GetThreadId(self.value)
-
-#------------------------------------------------------------------------------
-
-# TODO
-# maybe add file mapping support here?
-class FileHandle (Handle):
-    """
-    Win32 file handle.
-
-    @see: L{Handle}
-    """
-
-    def get_filename(self):
-        """
-        @rtype:  str, None
-        @return: Name of the open file, or C{None} on error.
-        """
-
-        # XXX TO DO update wrapper to avoid using ctypes objects
-        try:
-            dwBufferSize      = 0x1004
-            lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
-            win32.GetFileInformationByHandleEx(self.value,
-                                        win32.FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
-                                        lpFileInformation, dwBufferSize)
-            FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
-            FileName = str(lpFileInformation.raw[4:FileNameLength+4])
-            FileName = FileName.replace('\x00', '')
-            if FileName:
-                return FileName
-        except AttributeError:
-            pass
-##        except WindowsError:
-##            pass
-        return None
-
-#------------------------------------------------------------------------------
-# Static methods for filename and pathname manipulation.
-
-# TODO
-# Maybe these should be moved to a class of it's own?
 
     @staticmethod
     def pathname_to_filename(pathname):
@@ -387,27 +232,6 @@ class FileHandle (Handle):
 
 #==============================================================================
 
-def dllbaseparam(f):
-    """
-    Decorator to perform type checking on the C{lpBaseOfDll} parameter.
-
-    @warning: This is only useful for debugging the debugger itself,
-        otherwise the code should be commented out.
-
-    @see: U{http://www.canonical.org/~kragen/isinstance/}
-    """
-    return f
-##    def d(self, lpBaseOfDll, *argv, **argd):
-##        if isinstance(lpBaseOfDll, Module):
-##            msg = "Expected DLL base address, got Module instead"
-##            raise TypeError, msg
-##        if lpBaseOfDll < 0:
-##            msg = "Invalid DLL base address: %r" % lpBaseOfDll
-##            raise ValueError, msg
-##        return f(self, lpBaseOfDll, *argv, **argd)
-##    d.__doc__ = f.__doc__
-##    return d
-
 class ModuleContainer (object):
     """
     Encapsulates the capability to contain Module objects.
@@ -460,7 +284,6 @@ class ModuleContainer (object):
         """
         return self.get_module_count()
 
-    @dllbaseparam
     def has_module(self, lpBaseOfDll):
         """
         @type  lpBaseOfDll: int
@@ -472,7 +295,6 @@ class ModuleContainer (object):
         """
         return self.__moduleDict.has_key(lpBaseOfDll)
 
-    @dllbaseparam
     def get_module(self, lpBaseOfDll):
         """
         @type  lpBaseOfDll: int
@@ -542,7 +364,7 @@ class ModuleContainer (object):
         modName = modName.lower()
 
         # modName is an absolute pathname.
-        if FileHandle.path_is_absolute(modName):
+        if PathOperations.path_is_absolute(modName):
             for lib in self.iter_modules():
                 if modName == lib.get_filename().lower():
                     return lib
@@ -559,7 +381,7 @@ class ModuleContainer (object):
             return modDict[modName]
 
         # modName is a base filename without extension.
-        filepart, extpart = FileHandle.split_extension(modName)
+        filepart, extpart = PathOperations.split_extension(modName)
         if filepart and extpart and extpart.lower() == ".dll":
             if modDict.has_key(filepart):
                 return modDict[filepart]
@@ -660,7 +482,6 @@ class ModuleContainer (object):
 ##            raise KeyError, msg
         self.__moduleDict[lpBaseOfDll] = aModule
 
-##    @dllbaseparam
     def __del_module(self, lpBaseOfDll):
 ##        if not self.__moduleDict.has_key(lpBaseOfDll):
 ##            msg = "Unknown base address %d" % lpBaseOfDll
@@ -729,27 +550,6 @@ class ModuleContainer (object):
         return True
 
 #==============================================================================
-
-def threadidparam(f):
-    """
-    Decorator to perform type checking on the C{dwThreadId} parameter.
-
-    @warning: This is only useful for debugging the debugger itself,
-        otherwise the code should be commented out.
-
-    @see: U{http://www.canonical.org/~kragen/isinstance/}
-    """
-    return f
-##    def d(self, dwThreadId, *argv, **argd):
-##        if isinstance(dwThreadId, Thread):
-##            msg = "Expected thread ID, got Thread instead"
-##            raise TypeError, msg
-##        if dwThreadId < 0:
-##            msg = "Invalid thread ID: %r" % dwThreadId
-##            raise ValueError, msg
-##        return f(self, dwThreadId, *argv, **argd)
-##    d.__doc__ = f.__doc__
-##    return d
 
 class ThreadContainer (object):
     """
@@ -821,14 +621,12 @@ class ThreadContainer (object):
         aThread.dwProcessId = self.get_pid()
         self.__threadDict[dwThreadId] = aThread
 
-##    @threadidparam
     def __del_thread(self, dwThreadId):
 ##        if not self.__threadDict.has_key(dwThreadId):
 ##            msg = "Unknown thread ID: %d" % dwThreadId
 ##            raise KeyError, msg
         del self.__threadDict[dwThreadId]
 
-    @threadidparam
     def has_thread(self, dwThreadId):
         """
         @type  dwThreadId: int
@@ -840,7 +638,6 @@ class ThreadContainer (object):
         """
         return self.__threadDict.has_key(dwThreadId)
 
-    @threadidparam
     def get_thread(self, dwThreadId):
         """
         @type  dwThreadId: int
@@ -948,7 +745,6 @@ class ThreadContainer (object):
             dwCreationFlags = 0
         hThread, dwThreadId = win32.CreateRemoteThread(self.get_handle(), 0, 0,
                                 lpStartAddress, lpParameter, dwCreationFlags)
-        hThread = ThreadHandle(hThread, bOwnership = True)
         aThread = Thread(dwThreadId, hThread, self)
         self.__add_thread(aThread)
         return aThread
@@ -1808,9 +1604,81 @@ class MemoryOperations (object):
 
 #==============================================================================
 
-# TODO
-# Add symbol support using the debug help API.
-# http://msdn.microsoft.com/en-us/library/ms679291(VS.85).aspx
+class SymbolEnumerator (object):
+
+    def __init__(self):
+        self.symbols = list()
+
+    def __call__(self, SymbolName, SymbolAddress, SymbolSize, UserContext):
+        self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
+        return win32.TRUE
+
+class SymbolContainer (object):
+    """
+    Capability to contain symbols. Used by L{Module}.
+
+    @group Symbols:
+        load_symbols, unload_symbols, get_symbols, iter_symbols,
+        resolve_symbol, get_symbol_at_address
+    """
+
+    def __init__(self):
+        self.__symbols = list()
+
+    # XXX FIXME
+    # I've been told sometimes the debugging symbols APIs don't correctly
+    # handle redirected exports (for example ws2_32!recv).
+    # I haven't been able to reproduce the bug yet.
+    def load_symbols(self):
+        hProcess    = self.get_process().get_handle()
+        hFile       = self.hFile
+        BaseOfDll   = self.get_base()
+        SizeOfDll   = self.get_size()
+        Enumerator  = SymbolEnumerator()
+        win32.SymInitialize(hProcess)
+        try:
+            try:
+                win32.SymLoadModule(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                try:
+                    win32.SymEnumerateSymbols(hProcess, BaseOfDll, Enumerator)
+                finally:
+                    win32.SymUnloadModule(hProcess, BaseOfDll)
+            finally:
+                win32.SymCleanup(hProcess)
+        except WindowsError, e:
+            pass
+        self.__symbols = Enumerator.symbols
+
+    def unload_symbols(self):
+        self.__symbols = list()
+
+    def get_symbols(self):
+        if not self.__symbols:
+            self.load_symbols()
+        return list(self.__symbols)
+
+    def iter_symbols(self):
+        if not self.__symbols:
+            self.load_symbols()
+        return self.__symbols.__iter__()
+
+    def resolve_symbol(self, symbol):
+        symbol = symbol.lower()
+        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+            if symbol == SymbolName.lower():
+                return SymbolAddress
+
+    def get_symbol_at_address(self, address):
+        found = None
+        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+            if SymbolAddress > address:
+                break
+            if SymbolAddress + SymbolSize > address:
+                if not found or found[1] < SymbolAddress:
+                    found = (SymbolName, SymbolAddress, SymbolSize)
+        return found
+
+#==============================================================================
 
 class SymbolOperations (object):
     """
@@ -1835,6 +1703,10 @@ class SymbolOperations (object):
         get_label_at_address,
         split_label_strict,
         split_label_fuzzy
+
+    @group Symbols:
+        load_symbols, unload_symbols, get_symbols, iter_symbols,
+        resolve_symbol, get_symbol_at_address
 
     @group Debugging:
         get_system_breakpoint, get_user_breakpoint
@@ -2375,6 +2247,41 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         return self.resolve_label("ntdll!DbgUserBreakPoint")
 
+    def load_symbols(self):
+        for aModule in self.iter_modules():
+            aModule.load_symbols()
+
+    def unload_symbols(self):
+        for aModule in self.iter_modules():
+            aModule.unload_symbols()
+
+    def get_symbols(self):
+        symbols = list()
+        for aModule in self.iter_modules():
+            for symbol in aModule.iter_symbols():
+                symbols.append(symbol)
+        return symbols
+
+    def iter_symbols(self):
+        for aModule in self.iter_modules():
+            for symbol in aModule.iter_symbols():
+                yield symbol
+
+    def resolve_symbol(self, symbol):
+        symbol = symbol.lower()
+        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+            if symbol == SymbolName.lower():
+                return SymbolAddress
+
+    def get_symbol_at_address(self, address):
+        found = None
+        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+            if SymbolAddress <= address:
+                if SymbolAddress + SymbolSize > address:
+                    if not found or found[1] < SymbolAddress:
+                        found = (SymbolName, SymbolAddress, SymbolSize)
+        return found
+
 #==============================================================================
 
 # TODO
@@ -2742,7 +2649,6 @@ class ThreadDebugOperations (object):
         aProcess = self.get_process()
         return aProcess.disassemble_around(lpAddress, dwSize)
 
-    @threadidparam
     def disassemble_around_pc(self, dwSize = 64):
         """
         Disassemble around the program counter of the given thread.
@@ -2856,7 +2762,6 @@ class ProcessDebugOperations (object):
         disasm_2 = self.disassemble_string(addr_2, data_2)
         return disasm_1 + disasm_2
 
-    @threadidparam
     def disassemble_around_pc(self, dwThreadId, dwSize = 64):
         """
         Disassemble around the program counter of the given thread.
@@ -2980,7 +2885,7 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
-                name = FileHandle.native_to_win32_pathname(name)
+                name = PathOperations.native_to_win32_pathname(name)
             except AttributeError:
                 name = None
             except WindowsError:
@@ -2995,7 +2900,7 @@ class ProcessDebugOperations (object):
                 #   \??\C:\WINDOWS\system32\csrss.exe
                 #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
-                name = FileHandle.native_to_win32_pathname(name)
+                name = PathOperations.native_to_win32_pathname(name)
             except AttributeError:
                 name = None
             except WindowsError:
@@ -3069,27 +2974,6 @@ class ProcessDebugOperations (object):
         return result
 
 #==============================================================================
-
-def processidparam(f):
-    """
-    Decorator to perform type checking on the C{dwProcessId} parameter.
-
-    @warning: This is only useful for debugging the debugger itself,
-        otherwise the code should be commented out.
-
-    @see: U{http://www.canonical.org/~kragen/isinstance/}
-    """
-    return f
-##    def d(self, dwProcessId, *argv, **argd):
-##        if isinstance(dwProcessId, Process):
-##            msg = "Expected process ID, got Process instead"
-##            raise TypeError, msg
-##        if dwProcessId < 0:
-##            msg = "Invalid process ID: %r" % dwProcessId
-##            raise ValueError, msg
-##        return f(self, dwProcessId, *argv, **argd)
-##    d.__doc__ = f.__doc__
-##    return d
 
 class ProcessContainer (object):
     """
@@ -3179,14 +3063,12 @@ class ProcessContainer (object):
 ##            raise KeyError, msg
         self.__processDict[dwProcessId] = aProcess
 
-    @processidparam
     def __del_process(self, dwProcessId):
 ##        if not self.__processDict.has_key(dwProcessId):
 ##            msg = "Unknown process ID %d" % dwProcessId
 ##            raise KeyError, msg
         del self.__processDict[dwProcessId]
 
-    @processidparam
     def has_process(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -3198,7 +3080,6 @@ class ProcessContainer (object):
         """
         return self.__processDict.has_key(dwProcessId)
 
-    @processidparam
     def get_process(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -3322,12 +3203,10 @@ class ProcessContainer (object):
             dwCreationFlags |= win32.DEBUG_PROCESS
         if bDebug and not bFollow:
             dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
-        processInformation = win32.CreateProcess(win32.NULL, lpCmdLine,
+        pi = win32.CreateProcess(win32.NULL, lpCmdLine,
                                              dwCreationFlags = dwCreationFlags)
-        hProcess = ProcessHandle(processInformation.hProcess, bOwnership=True)
-        hThread  = ThreadHandle (processInformation.hThread,  bOwnership=True)
-        aProcess = Process(processInformation.dwProcessId, hProcess)
-        aThread  = Thread (processInformation.dwThreadId,  hThread)
+        aProcess = Process(pi.dwProcessId, pi.hProcess)
+        aThread  = Thread (pi.dwThreadId,  pi.hThread)
         aProcess._ThreadContainer__add_thread(aThread)
         self.__add_process(aProcess)
         return aProcess
@@ -3545,14 +3424,12 @@ class ProcessContainer (object):
 
     # Docs for these methods are taken from the ThreadContainer class.
 
-    @threadidparam
     def has_thread(self, dwThreadId):
         for aProcess in self.iter_processes():
             if aProcess.has_thread(dwThreadId):
                 return True
         return False
 
-    @threadidparam
     def get_thread(self, dwThreadId):
         for aProcess in self.iter_processes():
             if aProcess.has_thread(dwThreadId):
@@ -3591,7 +3468,6 @@ class ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @dllbaseparam
     def find_modules_by_base(self, lpBaseOfDll):
         """
         @rtype:  list( L{Module}... )
@@ -3636,7 +3512,7 @@ class ProcessContainer (object):
         """
         found    = list()
         filename = filename.lower()
-        if FileHandle.path_is_absolute(filename):
+        if PathOperations.path_is_absolute(filename):
             for aProcess in self.iter_processes():
                 imagename = aProcess.get_filename()
                 if imagename and imagename.lower() == filename:
@@ -3645,7 +3521,7 @@ class ProcessContainer (object):
             for aProcess in self.iter_processes():
                 imagename = aProcess.get_filename()
                 if imagename:
-                    imagename = FileHandle.pathname_to_filename(imagename)
+                    imagename = PathOperations.pathname_to_filename(imagename)
                     if imagename.lower() == filename:
                         found.append( (aProcess, imagename) )
         return found
@@ -3694,16 +3570,18 @@ class ProcessContainer (object):
 # TODO
 # + Add the ability to enumerate exported functions.
 
-class Module (object):
+class Module (SymbolContainer):
     """
     Interface to a DLL library loaded in the context of another process.
 
     @group Properties:
         get_base, get_filename, get_name, get_size, get_entry_point,
         get_process, get_pid
-    @group Symbols:
+
+    @group Labels:
         get_label, get_label_at_address, is_address_here,
         resolve, resolve_label, match_name
+
     @group Handle:
         get_handle, open_handle, close_handle
 
@@ -3828,10 +3706,10 @@ class Module (object):
         @rtype:  str
         @return: Module name.
         """
-        filename = FileHandle.pathname_to_filename(pathname)
+        filename = PathOperations.pathname_to_filename(pathname)
         if filename:
             filename = filename.lower()
-            filepart, extpart = FileHandle.split_extension(filename)
+            filepart, extpart = PathOperations.split_extension(filename)
             if filepart and extpart and extpart == '.dll':
                 modName = filepart
             else:
@@ -3923,7 +3801,6 @@ class Module (object):
         hFile = win32.CreateFile(self.get_filename(),
                                            dwShareMode = win32.FILE_SHARE_READ,
                                  dwCreationDisposition = win32.OPEN_EXISTING)
-        hFile = FileHandle(hFile, bOwnership = True)
         try:
             self.close_handle()
         finally:
@@ -3934,8 +3811,9 @@ class Module (object):
         Closes the handle to the module.
         """
         try:
-            if self.hFile not in (None, win32.INVALID_HANDLE_VALUE) and \
-                         not isinstance(self.hFile, Handle):
+            if hasattr(self.hFile, 'close'):
+                self.hFile.close()
+            elif self.hFile not in (None, win32.INVALID_HANDLE_VALUE):
                 win32.CloseHandle(self.hFile)
         finally:
             self.hFile = None
@@ -3988,17 +3866,34 @@ class Module (object):
         if offset:
             address = address + offset
 
-        # TODO
-        # enumerate exported functions and debug symbols,
-        # then find the closest match
-        # (don't forget the entry point keyword "start")
+        # Make the label relative to the base address if no match is found.
+        module      = self.get_name()
+        function    = None
+        offset      = address - self.get_base()
 
-        # Make the label relative to the base address.
-        module = self.get_name()
-        offset = address - self.get_base()
-        label  = SymbolOperations.parse_label(module, None, offset)
+        # Make the label relative to the entrypoint if no other match is found.
+        # Skip if the entry point is unknown or the module isn't an EXE file.
+        if module.lower().endswith('.exe'):
+            start = self.get_entry_point()
+            if start and start < address:
+                function    = "start"
+                offset      = address - start
 
-        return label
+        # Enumerate exported functions and debug symbols,
+        # then find the closest match, if possible.
+        try:
+            symbol = self.get_symbol_at_address(address)
+            if symbol:
+                (SymbolName, SymbolAddress, SymbolSize) = symbol
+                new_offset = address - SymbolAddress
+                if new_offset < offset:
+                    function    = SymbolName
+                    offset      = new_offset
+        except WindowsError, e:
+            pass
+
+        # Parse the label and return it.
+        return SymbolOperations.parse_label(module, function, offset)
 
     def is_address_here(self, address):
         """
@@ -4049,7 +3944,7 @@ class Module (object):
             # Load the DLL locally, resolve the function and unload it.
             try:
                 hlib = win32.LoadLibraryEx(filename,
-                                         win32.DONT_RESOLVE_DLL_REFERENCES)
+                                           win32.DONT_RESOLVE_DLL_REFERENCES)
                 try:
                     address = win32.GetProcAddress(hlib, function)
                 finally:
@@ -4097,8 +3992,11 @@ class Module (object):
             address = self.resolve(procedure)
             if address is None:
 
+                # If it's a symbol, use the symbol.
+                address = self.resolve_symbol(procedure)
+
                 # If it's the keyword "start" use the entry point.
-                if procedure == "start":
+                if address is None and procedure == "start":
                     address = self.get_entry_point()
 
                 # The procedure was not found.
@@ -4265,7 +4163,6 @@ class Thread (ThreadDebugOperations):
         Opens a new handle to the thread.
         """
         hThread = win32.OpenThread(dwDesiredAccess, win32.FALSE, self.dwThreadId)
-        hThread = ThreadHandle(hThread, bOwnership = True)
         try:
             self.close_handle()
         finally:
@@ -4276,8 +4173,9 @@ class Thread (ThreadDebugOperations):
         Closes the handle to the thread.
         """
         try:
-            if self.hThread not in (None, win32.INVALID_HANDLE_VALUE) and \
-                         not isinstance(self.hThread, Handle):
+            if hasattr(self.hThread, 'close'):
+                self.hThread.close()
+            elif self.hProcess not in (None, win32.INVALID_HANDLE_VALUE):
                 win32.CloseHandle(self.hThread)
         finally:
             self.hThread = None
@@ -4697,7 +4595,6 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         hProcess = win32.OpenProcess(win32.PROCESS_ALL_ACCESS, win32.FALSE,
                                                               self.dwProcessId)
-        hProcess = ProcessHandle(hProcess, True)
         try:
             self.close_handle()
         finally:
@@ -4708,8 +4605,9 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         Closes the handle to the process.
         """
         try:
-            if self.hProcess not in (None, win32.INVALID_HANDLE_VALUE) and \
-                             not isinstance(self.hProcess, Handle):
+            if hasattr(self.hProcess, 'close'):
+                self.hProcess.close()
+            elif self.hProcess not in (None, win32.INVALID_HANDLE_VALUE):
                 win32.CloseHandle(self.hProcess)
         finally:
             self.hProcess = None
@@ -5141,8 +5039,6 @@ class System (ProcessContainer):
         except Exception, e:
             if not bIgnoreExceptions:
                 raise
-##            traceback.print_exc()
-##            print
         return False
 
     @staticmethod
@@ -5177,8 +5073,6 @@ class System (ProcessContainer):
             pass
         except WindowsError, e:
             pass
-##            traceback.print_exc()
-##            print
         return False
 
     @staticmethod

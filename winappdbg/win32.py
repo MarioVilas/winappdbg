@@ -42,6 +42,178 @@ POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
 
+#--- Handle wrappers ----------------------------------------------------------
+
+class Handle (object):
+    """
+    Encapsulates win32 handles to avoid leaking them.
+
+    @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
+    """
+
+    def __init__(self, aHandle = None, bOwnership = True):
+        """
+        @type  aHandle: int
+        @param aHandle: Win32 handle object.
+
+        @type  bOwnership: bool
+        @param bOwnership:
+           True if we own the handle and we need to close it.
+           False if someone else will be calling L{CloseHandle}.
+        """
+        super(Handle, self).__init__()
+        if aHandle is not None and type(aHandle) not in (type(0), type(0L)):
+            raise TypeError, "Invalid type for handle value: %s" % type(aHandle)
+        if aHandle == INVALID_HANDLE_VALUE:
+            aHandle = None
+        self.value      = aHandle
+        self.bOwnership = bool(bOwnership)
+
+    def __del__(self):
+        """
+        Closes the win32 handle when the python object is destroyed.
+        """
+        try:
+            self.close()
+        except WindowsError:
+            pass
+
+    def __copy__(self):
+        """
+        Duplicates the win32 handle when copying the python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
+        """
+        return self.dup()
+
+    def __deepcopy__(self):
+        """
+        Duplicates the win32 handle when copying the python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
+        """
+        return self.dup()
+
+    @classmethod
+    def from_param(cls, value):
+        """
+        Compatibility with ctypes.
+        Allows receiving transparently a Handle object from an API call.
+        """
+        return cls(value)
+
+    @property
+    def _as_parameter_(self):
+        """
+        Compatibility with ctypes.
+        Allows passing transparently a Handle object to an API call.
+        """
+        return long(self.value)
+
+    def close(self):
+        """
+        Closes the win32 handle.
+        """
+        if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
+            try:
+                CloseHandle(self.value)
+            finally:
+                self.value = None
+
+    def dup(self):
+        """
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
+        """
+        hHandle = DuplicateHandle(self.value)
+        return self.__class__(hHandle, bOwnership = True)
+
+    def wait(self, dwMilliseconds = None):
+        """
+        Wait for the win32 object to be signaled.
+
+        @type  dwMilliseconds: int
+        @param dwMilliseconds: (Optional) Timeout value in milliseconds.
+            Use C{INFINITE} or C{None} for no timeout.
+        """
+        if dwMilliseconds is None:
+            dwMilliseconds = INFINITE
+        r = WaitForSingleObject(self.value, dwMilliseconds)
+        if r != WAIT_OBJECT_0:
+            raise ctypes.WinError(r)
+
+class ProcessHandle (Handle):
+    """
+    Win32 process handle.
+
+    @see: L{Handle}
+    """
+
+    def get_pid(self):
+        """
+        @rtype:  int
+        @return: Process global ID.
+        """
+        return GetProcessId(self.value)
+
+class ThreadHandle (Handle):
+    """
+    Win32 thread handle.
+
+    @see: L{Handle}
+    """
+
+    def get_tid(self):
+        """
+        @rtype:  int
+        @return: Thread global ID.
+        """
+        return GetThreadId(self.value)
+
+# TODO
+# maybe add file mapping support here?
+class FileHandle (Handle):
+    """
+    Win32 file handle.
+
+    @see: L{Handle}
+    """
+
+    def get_filename(self):
+        """
+        @rtype:  str, None
+        @return: Name of the open file, or C{None} on error.
+        """
+
+        # XXX TO DO update wrapper to avoid using ctypes objects
+        dwBufferSize      = 0x1004
+        lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
+        try:
+            GetFileInformationByHandleEx(self.value,
+                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
+                                         lpFileInformation, dwBufferSize)
+        except AttributeError:
+            return None
+        FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
+        FileName = str(lpFileInformation.raw[4:FileNameLength+4])
+        FileName = FileName.replace('\x00', '')
+        if FileName:
+            return FileName
+        return None
+
+class ProcessInformation (object):
+    """
+    Process information object returned by L{CreateProcess}.
+    """
+
+    def __init__(self, pi):
+        self.hProcess    = ProcessHandle(pi.hProcess)
+        self.hThread     = ThreadHandle(pi.hThread)
+        self.dwProcessId = pi.dwProcessId
+        self.dwThreadId  = pi.dwThreadId
+
 #--- Types --------------------------------------------------------------------
 
 CHAR        = ctypes.c_char
@@ -65,6 +237,7 @@ ULONGLONG   = ctypes.c_ulonglong
 LPVOID      = ctypes.c_void_p
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
+PSTR        = LPSTR
 PWSTR       = LPWSTR
 LPBYTE      = POINTER(BYTE)
 LPSBYTE     = POINTER(SBYTE)
@@ -77,6 +250,7 @@ ULONG_PTR   = POINTER(ULONG)
 BOOL        = DWORD
 BOOLEAN     = BYTE
 UCHAR       = BYTE
+DWORD64     = QWORD
 HANDLE      = DWORD
 HMODULE     = DWORD
 HINSTANCE   = DWORD
@@ -2596,6 +2770,167 @@ class IO_STATUS_BLOCK(Structure):
     def Pointer(self):
         return PVOID(self.Status)
 
+#--- IMAGEHLP_MODULE structure and related ------------------------------------
+
+SYMOPT_ALLOW_ABSOLUTE_SYMBOLS       = 0x00000800
+SYMOPT_ALLOW_ZERO_ADDRESS           = 0x01000000
+SYMOPT_AUTO_PUBLICS                 = 0x00010000
+SYMOPT_CASE_INSENSITIVE             = 0x00000001
+SYMOPT_DEBUG                        = 0x80000000
+SYMOPT_DEFERRED_LOADS               = 0x00000004
+SYMOPT_DISABLE_SYMSRV_AUTODETECT    = 0x02000000
+SYMOPT_EXACT_SYMBOLS                = 0x00000400
+SYMOPT_FAIL_CRITICAL_ERRORS         = 0x00000200
+SYMOPT_FAVOR_COMPRESSED             = 0x00800000
+SYMOPT_FLAT_DIRECTORY               = 0x00400000
+SYMOPT_IGNORE_CVREC                 = 0x00000080
+SYMOPT_IGNORE_IMAGEDIR              = 0x00200000
+SYMOPT_IGNORE_NT_SYMPATH            = 0x00001000
+SYMOPT_INCLUDE_32BIT_MODULES        = 0x00002000
+SYMOPT_LOAD_ANYTHING                = 0x00000040
+SYMOPT_LOAD_LINES                   = 0x00000010
+SYMOPT_NO_CPP                       = 0x00000008
+SYMOPT_NO_IMAGE_SEARCH              = 0x00020000
+SYMOPT_NO_PROMPTS                   = 0x00080000
+SYMOPT_NO_PUBLICS                   = 0x00008000
+SYMOPT_NO_UNQUALIFIED_LOADS         = 0x00000100
+SYMOPT_OVERWRITE                    = 0x00100000
+SYMOPT_PUBLICS_ONLY                 = 0x00004000
+SYMOPT_SECURE                       = 0x00040000
+SYMOPT_UNDNAME                      = 0x00000002
+
+#    typedef enum
+#    {
+#        SymNone = 0,
+#        SymCoff,
+#        SymCv,
+#        SymPdb,
+#        SymExport,
+#        SymDeferred,
+#        SymSym,
+#        SymDia,
+#        SymVirtual,
+#        NumSymTypes
+#    } SYM_TYPE;
+SymNone     = 0
+SymCoff     = 1
+SymCv       = 2
+SymPdb      = 3
+SymExport   = 4
+SymDeferred = 5
+SymSym      = 6
+SymDia      = 7
+SymVirtual  = 8
+NumSymTypes = 9
+
+#    typedef struct _IMAGEHLP_MODULE64 {
+#      DWORD    SizeOfStruct;
+#      DWORD64  BaseOfImage;
+#      DWORD    ImageSize;
+#      DWORD    TimeDateStamp;
+#      DWORD    CheckSum;
+#      DWORD    NumSyms;
+#      SYM_TYPE SymType;
+#      TCHAR    ModuleName[32];
+#      TCHAR    ImageName[256];
+#      TCHAR    LoadedImageName[256];
+#      TCHAR    LoadedPdbName[256];
+#      DWORD    CVSig;
+#      TCHAR    CVData[MAX_PATH*3];
+#      DWORD    PdbSig;
+#      GUID     PdbSig70;
+#      DWORD    PdbAge;
+#      BOOL     PdbUnmatched;
+#      BOOL     DbgUnmatched;
+#      BOOL     LineNumbers;
+#      BOOL     GlobalSymbols;
+#      BOOL     TypeInfo;
+#      BOOL     SourceIndexed;
+#      BOOL     Publics;
+#    } IMAGEHLP_MODULE64, *PIMAGEHLP_MODULE64;
+
+class IMAGEHLP_MODULE (ctypes.Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("BaseOfImage",     DWORD),
+        ("ImageSize",       DWORD),
+        ("TimeDateStamp",   DWORD),
+        ("CheckSum",        DWORD),
+        ("NumSyms",         DWORD),
+        ("SymType",         DWORD),         # SYM_TYPE
+        ("ModuleName",      CHAR * 32),
+        ("ImageName",       CHAR * 256),
+        ("LoadedImageName", CHAR * 256),
+    ]
+
+class IMAGEHLP_MODULE64 (ctypes.Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("BaseOfImage",     DWORD64),
+        ("ImageSize",       DWORD),
+        ("TimeDateStamp",   DWORD),
+        ("CheckSum",        DWORD),
+        ("NumSyms",         DWORD),
+        ("SymType",         DWORD),         # SYM_TYPE
+        ("ModuleName",      CHAR * 32),
+        ("ImageName",       CHAR * 256),
+        ("LoadedImageName", CHAR * 256),
+        ("LoadedPdbName",   CHAR * 256),
+        ("CVSig",           DWORD),
+        ("CVData",          CHAR * (MAX_PATH * 3)),
+        ("PdbSig",          DWORD),
+        ("PdbSig70",        GUID),
+        ("PdbAge",          DWORD),
+        ("PdbUnmatched",    BOOL),
+        ("DbgUnmatched",    BOOL),
+        ("LineNumbers",     BOOL),
+        ("GlobalSymbols",   BOOL),
+        ("TypeInfo",        BOOL),
+        ("SourceIndexed",   BOOL),
+        ("Publics",         BOOL),
+    ]
+
+class IMAGEHLP_MODULEW (ctypes.Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("BaseOfImage",     DWORD),
+        ("ImageSize",       DWORD),
+        ("TimeDateStamp",   DWORD),
+        ("CheckSum",        DWORD),
+        ("NumSyms",         DWORD),
+        ("SymType",         DWORD),         # SYM_TYPE
+        ("ModuleName",      WCHAR * 32),
+        ("ImageName",       WCHAR * 256),
+        ("LoadedImageName", WCHAR * 256),
+    ]
+
+class IMAGEHLP_MODULEW64 (ctypes.Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("BaseOfImage",     DWORD64),
+        ("ImageSize",       DWORD),
+        ("TimeDateStamp",   DWORD),
+        ("CheckSum",        DWORD),
+        ("NumSyms",         DWORD),
+        ("SymType",         DWORD),         # SYM_TYPE
+        ("ModuleName",      WCHAR * 32),
+        ("ImageName",       WCHAR * 256),
+        ("LoadedImageName", WCHAR * 256),
+        ("LoadedPdbName",   WCHAR * 256),
+        ("CVSig",           DWORD),
+        ("CVData",          WCHAR * (MAX_PATH * 3)),
+        ("PdbSig",          DWORD),
+        ("PdbSig70",        GUID),
+        ("PdbAge",          DWORD),
+        ("PdbUnmatched",    BOOL),
+        ("DbgUnmatched",    BOOL),
+        ("LineNumbers",     BOOL),
+        ("GlobalSymbols",   BOOL),
+        ("TypeInfo",        BOOL),
+        ("SourceIndexed",   BOOL),
+        ("Publics",         BOOL),
+    ]
+
 #--- kernel32.dll -------------------------------------------------------------
 
 # DWORD WINAPI GetLastError(void);
@@ -2613,12 +2948,17 @@ def SetLastError(dwErrCode):
 #   __in  DWORD dwType
 # );
 def SetLastErrorEx(dwErrCode, dwType):
-    ctypes.windll.kernel32.SetLastError(dwErrCode, dwType)
+    ctypes.windll.kernel32.SetLastErrorEx(dwErrCode, dwType)
 
 # BOOL WINAPI CloseHandle(
 #   __in  HANDLE hObject
 # );
 def CloseHandle(hHandle):
+    if type(hHandle) not in (type(0), type(0L)):
+        if hasattr(hHandle, 'close'):
+            hHandle.close()
+            return
+        raise TypeError, "Invalid handle type: %s" % type(hHandle)
     success = ctypes.windll.kernel32.CloseHandle(hHandle)
     if success == FALSE:
         raise ctypes.WinError()
@@ -2641,11 +2981,21 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         bInheritHandle = TRUE
     else:
         bInheritHandle = FALSE
+    if type(hSourceProcessHandle) not in (type(0), type(0L)):
+        if hasattr(hSourceProcessHandle, 'value'):
+            hSourceProcessHandle = hSourceProcessHandle.value
+        else:
+            raise TypeError, "Invalid handle type: %s" % type(hSourceProcessHandle)
+    if type(hTargetProcessHandle) not in (type(0), type(0L)):
+        if hasattr(hTargetProcessHandle, 'value'):
+            hTargetProcessHandle = hTargetProcessHandle.value
+        else:
+            raise TypeError, "Invalid handle type: %s" % type(hTargetProcessHandle)
     lpTargetHandle = HANDLE(-1)
     success = ctypes.windll.kernel32.DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bInheritHandle, dwOptions)
     if success == FALSE:
         raise ctypes.WinError()
-    return lpTargetHandle.value
+    return Handle(lpTargetHandle.value)
 
 # BOOL WINAPI SetDllDirectory(
 #   __in_opt  LPCTSTR lpPathName
@@ -2804,7 +3154,7 @@ def OpenFileMapping(dwDesiredAccess, bInheritHandle, lpName):
     hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingA(dwDesiredAccess, bInheritHandle, ctypes.byref(lpName))
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hFileMappingObject
+    return Handle(hFileMappingObject)
 
 # HANDLE WINAPI CreateFileMapping(
 #   __in      HANDLE hFile,
@@ -2820,14 +3170,14 @@ def CreateFileMappingA(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READ
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hFileMappingObject
+    return Handle(hFileMappingObject)
 def CreateFileMappingW(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = NULL):
     if lpName != NULL:
         lpName = ctypes.byref(lpName)
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hFileMappingObject
+    return Handle(hFileMappingObject)
 CreateFileMapping = CreateFileMappingA
 
 # HANDLE WINAPI CreateFile(
@@ -2844,13 +3194,13 @@ def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
     hFile = ctypes.windll.kernel32.CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hFile
+    return Handle(hFile)
 def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = NULL, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = NULL):
     lpFileName = ctypes.byref(lpFileName)
     hFile = ctypes.windll.kernel32.CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hFile
+    return Handle(hFile)
 CreateFile = CreateFileA
 
 # BOOL WINAPI FlushFileBuffers(
@@ -3290,7 +3640,7 @@ def DebugActiveProcessStop(dwProcessId):
 #   __in         LPSTARTUPINFO lpStartupInfo,
 #   __out        LPPROCESS_INFORMATION lpProcessInformation
 # );
-def CreateProcessA(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NULL, lpThreadAttributes=NULL, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=NULL, lpCurrentDirectory=NULL, lpStartupInfo=NULL, lpProcessInformation=NULL):
+def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     if not lpApplicationName:
         lpApplicationName   = NULL
     else:
@@ -3315,7 +3665,7 @@ def CreateProcessA(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NU
         lpThreadAttributes  = ctypes.byref(lpThreadAttributes)
     else:
         lpThreadAttributes  = NULL
-    if not isinstance(lpStartupInfo, STARTUPINFO) and not isinstance(lpStartupInfo, STARTUPINFOEX):
+    if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
         lpStartupInfo.lpReserved   = 0
@@ -3324,17 +3674,16 @@ def CreateProcessA(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NU
         lpStartupInfo.dwFlags      = 0
         lpStartupInfo.cbReserved2  = 0
         lpStartupInfo.lpReserved2  = 0
-    if not isinstance(lpProcessInformation, PROCESS_INFORMATION):
-        lpProcessInformation              = PROCESS_INFORMATION()
-        lpProcessInformation.hProcess     = -1
-        lpProcessInformation.hThread      = -1
-        lpProcessInformation.dwProcessId  = 0
-        lpProcessInformation.dwThreadId   = 0
+    lpProcessInformation              = PROCESS_INFORMATION()
+    lpProcessInformation.hProcess     = INVALID_HANDLE_VALUE
+    lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
+    lpProcessInformation.dwProcessId  = 0
+    lpProcessInformation.dwThreadId   = 0
     success = ctypes.windll.kernel32.CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
     if success == FALSE:
         raise ctypes.WinError()
-    return lpProcessInformation
-def CreateProcessW(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NULL, lpThreadAttributes=NULL, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=NULL, lpCurrentDirectory=NULL, lpStartupInfo=NULL, lpProcessInformation=NULL):
+    return ProcessInformation(lpProcessInformation)
+def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     if not lpApplicationName:
         lpApplicationName   = NULL
     else:
@@ -3359,7 +3708,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NU
         lpThreadAttributes  = ctypes.byref(lpThreadAttributes)
     else:
         lpThreadAttributes  = NULL
-    if not isinstance(lpStartupInfo, STARTUPINFO) and not isinstance(lpStartupInfo, STARTUPINFOEX):
+    if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
         lpStartupInfo.lpReserved   = 0
@@ -3368,16 +3717,15 @@ def CreateProcessW(lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NU
         lpStartupInfo.dwFlags      = 0
         lpStartupInfo.cbReserved2  = 0
         lpStartupInfo.lpReserved2  = 0
-    if not isinstance(lpProcessInformation, PROCESS_INFORMATION):
-        lpProcessInformation              = PROCESS_INFORMATION()
-        lpProcessInformation.hProcess     = -1
-        lpProcessInformation.hThread      = -1
-        lpProcessInformation.dwProcessId  = 0
-        lpProcessInformation.dwThreadId   = 0
+    lpProcessInformation              = PROCESS_INFORMATION()
+    lpProcessInformation.hProcess     = INVALID_HANDLE_VALUE
+    lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
+    lpProcessInformation.dwProcessId  = 0
+    lpProcessInformation.dwThreadId   = 0
     success = ctypes.windll.kernel32.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
     if success == FALSE:
         raise ctypes.WinError()
-    return lpProcessInformation
+    return ProcessInformation(lpProcessInformation)
 CreateProcess = CreateProcessA
 
 # BOOL WINAPI CreateProcessAsUser(
@@ -3393,7 +3741,7 @@ CreateProcess = CreateProcessA
 #   __in         LPSTARTUPINFO lpStartupInfo,
 #   __out        LPPROCESS_INFORMATION lpProcessInformation
 # );
-def CreateProcessAsUser(hToken, lpApplicationName, lpCommandLine=NULL, lpProcessAttributes=NULL, lpThreadAttributes=NULL, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=NULL, lpCurrentDirectory=NULL, lpStartupInfo=NULL, lpProcessInformation=NULL):
+def CreateProcessAsUser(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     if not lpApplicationName:
         lpApplicationName   = NULL
     else:
@@ -3418,7 +3766,7 @@ def CreateProcessAsUser(hToken, lpApplicationName, lpCommandLine=NULL, lpProcess
         lpThreadAttributes  = ctypes.byref(lpThreadAttributes)
     else:
         lpThreadAttributes  = NULL
-    if not isinstance(lpStartupInfo, STARTUPINFO) and not isinstance(lpStartupInfo, STARTUPINFOEX):
+    if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
         lpStartupInfo.lpReserved   = 0
@@ -3427,16 +3775,15 @@ def CreateProcessAsUser(hToken, lpApplicationName, lpCommandLine=NULL, lpProcess
         lpStartupInfo.dwFlags      = 0
         lpStartupInfo.cbReserved2  = 0
         lpStartupInfo.lpReserved2  = 0
-    if not isinstance(lpProcessInformation, PROCESS_INFORMATION):
-        lpProcessInformation              = PROCESS_INFORMATION()
-        lpProcessInformation.hProcess     = -1
-        lpProcessInformation.hThread      = -1
-        lpProcessInformation.dwProcessId  = 0
-        lpProcessInformation.dwThreadId   = 0
+    lpProcessInformation              = PROCESS_INFORMATION()
+    lpProcessInformation.hProcess     = -1
+    lpProcessInformation.hThread      = -1
+    lpProcessInformation.dwProcessId  = 0
+    lpProcessInformation.dwThreadId   = 0
     success = ctypes.windll.kernel32.CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
     if success == FALSE:
         raise ctypes.WinError()
-    return lpProcessInformation
+    return ProcessInformation(lpProcessInformation)
 
 # HANDLE WINAPI OpenProcess(
 #   __in  DWORD dwDesiredAccess,
@@ -3447,7 +3794,7 @@ def OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId):
     hProcess = ctypes.windll.kernel32.OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId)
     if hProcess == NULL:
         raise ctypes.WinError()
-    return hProcess
+    return ProcessHandle(hProcess)
 
 # HANDLE WINAPI OpenThread(
 #   __in  DWORD dwDesiredAccess,
@@ -3458,7 +3805,7 @@ def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
     hThread = ctypes.windll.kernel32.OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId)
     if hThread == NULL:
         raise ctypes.WinError()
-    return hThread
+    return ThreadHandle(hThread)
 
 # DWORD WINAPI SuspendThread(
 #   __in  HANDLE hThread
@@ -3611,7 +3958,7 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
     hThread = ctypes.windll.kernel32.CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
     if hThread == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return hThread, dwThreadId.value
+    return ThreadHandle(hThread), dwThreadId.value
 
 # HANDLE WINAPI GetCurrentProcess(void);
 def GetCurrentProcess():
@@ -3796,10 +4143,10 @@ def SetThreadContext(hThread, lpContext):
 #   __in  DWORD th32ProcessID
 # );
 def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
-    retval = ctypes.windll.kernel32.CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
-    if retval == INVALID_HANDLE_VALUE:
+    hSnapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
+    if hSnapshot == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return retval
+    return Handle(hSnapshot)
 
 # BOOL WINAPI Process32First(
 #   __in     HANDLE hSnapshot,
@@ -4181,7 +4528,7 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
     success = ctypes.windll.advapi32.OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
     if success == FALSE:
         raise ctypes.WinError()
-    return TokenHandle.value
+    return Handle(TokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
 #   __in   HANDLE ThreadHandle,
@@ -4198,7 +4545,7 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     success = ctypes.windll.advapi32.OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
     if success == FALSE:
         raise ctypes.WinError()
-    return TokenHandle.value
+    return Handle(TokenHandle.value)
 
 # BOOL WINAPI LookupPrivilegeValue(
 #   __in_opt  LPCTSTR lpSystemName,
@@ -4977,3 +5324,256 @@ def PathUnExpandEnvStringsW(pszPath):
     cchBuf = MAX_PATH
     ctypes.windll.shlwapi.PathUnExpandEnvStringsW(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
     return pszBuf.value
+
+#--- dbghelp.dll --------------------------------------------------------------
+
+# XXX the ANSI versions of these functions don't end in "A" as expected!
+
+# BOOL WINAPI SymInitialize(
+#   __in      HANDLE hProcess,
+#   __in_opt  PCTSTR UserSearchPath,
+#   __in      BOOL fInvadeProcess
+# );
+def SymInitializeA(hProcess, UserSearchPath = None, fInvadeProcess = False):
+    if not UserSearchPath:
+        UserSearchPath = NULL
+    else:
+        UserSearchPath = ctypes.create_string_buffer(UserSearchPath)
+        UserSearchPath = ctypes.byref(UserSearchPath)
+    if fInvadeProcess:
+        fInvadeProcess = TRUE
+    else:
+        fInvadeProcess = FALSE
+    success = ctypes.windll.dbghelp.SymInitialize(hProcess, UserSearchPath, fInvadeProcess)
+    if success == FALSE:
+        raise ctypes.WinError()
+def SymInitializeW(hProcess, UserSearchPath = None, fInvadeProcess = False):
+    if not UserSearchPath:
+        UserSearchPath = NULL
+    else:
+        UserSearchPath = ctypes.create_unicode_buffer(UserSearchPath)
+        UserSearchPath = ctypes.byref(UserSearchPath)
+    if fInvadeProcess:
+        fInvadeProcess = TRUE
+    else:
+        fInvadeProcess = FALSE
+    success = ctypes.windll.dbghelp.SymInitializeW(hProcess, UserSearchPath, fInvadeProcess)
+    if success == FALSE:
+        raise ctypes.WinError()
+SymInitialize = SymInitializeA
+
+# BOOL WINAPI SymCleanup(
+#   __in  HANDLE hProcess
+# );
+def SymCleanup(hProcess):
+    success = ctypes.windll.dbghelp.SymCleanup(hProcess)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# BOOL WINAPI SymRefreshModuleList(
+#   __in  HANDLE hProcess
+# );
+def SymRefreshModuleList(hProcess):
+    success = ctypes.windll.dbghelp.SymRefreshModuleList(hProcess)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# BOOL WINAPI SymSetParentWindow(
+#   __in  HWND hwnd
+# );
+def SymSetParentWindow(hwnd):
+    success = ctypes.windll.dbghelp.SymSetParentWindow(hwnd)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# DWORD WINAPI SymSetOptions(
+#   __in  DWORD SymOptions
+# );
+def SymSetOptions(SymOptions):
+    success = ctypes.windll.dbghelp.SymSetOptions(SymOptions)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# DWORD WINAPI SymGetOptions(void);
+def SymGetOptions():
+    return ctypes.windll.dbghelp.SymGetOptions()
+
+# DWORD64 WINAPI SymLoadModule(
+#   __in      HANDLE hProcess,
+#   __in_opt  HANDLE hFile,
+#   __in_opt  PCSTR ImageName,
+#   __in_opt  PCSTR ModuleName,
+#   __in      DWORD BaseOfDll,
+#   __in      DWORD SizeOfDll
+# );
+def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
+    if not hFile:
+        hFile = NULL
+    if not ImageName:
+        ImageName = NULL
+    else:
+        ImageName = ctypes.create_string_buffer(ImageName)
+        ImageName = ctypes.byref(ImageName)
+    if not ModuleName:
+        ModuleName = NULL
+    else:
+        ModuleName = ctypes.create_string_buffer(ModuleName)
+        ModuleName = ctypes.byref(ModuleName)
+    if not BaseOfDll:
+        BaseOfDll = NULL
+    if not SizeOfDll:
+        SizeOfDll = NULL
+    lpBaseAddress = ctypes.windll.dbghelp.SymLoadModule(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
+    if lpBaseAddress == NULL:
+        dwErrorCode = GetLastError()
+        if dwErrorCode != ERROR_SUCCESS:
+            raise ctypes.WinError(dwErrorCode)
+    return lpBaseAddress
+
+# BOOL WINAPI SymUnloadModule(
+#   __in  HANDLE hProcess,
+#   __in  DWORD BaseOfDll
+# );
+def SymUnloadModule(hProcess, BaseOfDll):
+    success = ctypes.windll.dbghelp.SymUnloadModule(hProcess, BaseOfDll)
+    if success == FALSE:
+        raise ctypes.WinError()
+
+# BOOL WINAPI SymGetModuleInfo(
+#   __in   HANDLE hProcess,
+#   __in   DWORD dwAddr,
+#   __out  PIMAGEHLP_MODULE ModuleInfo
+# );
+def SymGetModuleInfoA(hProcess, dwAddr):
+    ModuleInfo = IMAGEHLP_MODULE()
+    ModuleInfo.SizeOfStruct = ctypes.sizeof(ModuleInfo)
+    success = ctypes.windll.dbghelp.SymGetModuleInfo(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return ModuleInfo
+def SymGetModuleInfoW(hProcess, dwAddr):
+    ModuleInfo = IMAGEHLP_MODULEW()
+    ModuleInfo.SizeOfStruct = ctypes.sizeof(ModuleInfo)
+    success = ctypes.windll.dbghelp.SymGetModuleInfoW(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return ModuleInfo
+
+# BOOL CALLBACK SymEnumerateModulesProc64(
+#   __in      PCTSTR ModuleName,
+#   __in      DWORD64 BaseOfDll,
+#   __in_opt  PVOID UserContext
+# );
+PSYM_ENUMMODULES_CALLBACK    = ctypes.WINFUNCTYPE(BOOL, ctypes.POINTER(CHAR),  DWORD,   PVOID)
+PSYM_ENUMMODULES_CALLBACKW   = ctypes.WINFUNCTYPE(BOOL, ctypes.POINTER(WCHAR), DWORD,   PVOID)
+PSYM_ENUMMODULES_CALLBACK64  = ctypes.WINFUNCTYPE(BOOL, ctypes.POINTER(CHAR),  DWORD64, PVOID)
+PSYM_ENUMMODULES_CALLBACKW64 = ctypes.WINFUNCTYPE(BOOL, ctypes.POINTER(WCHAR), DWORD64, PVOID)
+
+# BOOL WINAPI SymEnumerateModules64(
+#   __in      HANDLE hProcess,
+#   __in      PSYM_ENUMMODULES_CALLBACK64 EnumModulesCallback,
+#   __in_opt  PVOID UserContext
+# );
+def SymEnumerateModulesA(hProcess, BaseOfDll, EnumModulesCallback, UserContext = None):
+    EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK(EnumModulesCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = NULL
+    success = ctypes.windll.dbghelp.SymEnumerateModules(hProcess, BaseOfDll, EnumModulesCallback, UserContext)
+    if success == FALSE:
+        raise ctypes.WinError()
+def SymEnumerateModulesW(hProcess, BaseOfDll, EnumModulesCallback, UserContext = None):
+    EnumModulesCallback = PSYM_ENUMMODULES_CALLBACKW(EnumModulesCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = NULL
+    success = ctypes.windll.dbghelp.SymEnumerateModulesW(hProcess, BaseOfDll, EnumModulesCallback, UserContext)
+    if success == FALSE:
+        raise ctypes.WinError()
+SymEnumerateModules = SymEnumerateModulesA
+
+# BOOL CALLBACK SymEnumerateSymbolsProc64(
+#   __in      PCTSTR SymbolName,
+#   __in      DWORD64 SymbolAddress,
+#   __in      ULONG SymbolSize,
+#   __in_opt  PVOID UserContext
+# );
+PSYM_ENUMSYMBOLS_CALLBACK    = ctypes.WINFUNCTYPE(BOOL, ctypes.c_char_p,  DWORD,   ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACKW   = ctypes.WINFUNCTYPE(BOOL, ctypes.c_wchar_p, DWORD,   ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACK64  = ctypes.WINFUNCTYPE(BOOL, ctypes.c_char_p,  DWORD64, ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACKW64 = ctypes.WINFUNCTYPE(BOOL, ctypes.c_wchar_p, DWORD64, ULONG, PVOID)
+
+# BOOL WINAPI SymEnumerateSymbols(
+#   __in      HANDLE hProcess,
+#   __in      ULONG BaseOfDll,
+#   __in      PSYM_ENUMSYMBOLS_CALLBACK EnumSymbolsCallback,
+#   __in_opt  PVOID UserContext
+# );
+def SymEnumerateSymbolsA(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
+    EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK(EnumSymbolsCallback)
+    EnumSymbolsCallback.restype = BOOL
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = NULL
+    success = ctypes.windll.dbghelp.SymEnumerateSymbols(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
+    if success == FALSE:
+        raise ctypes.WinError()
+def SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
+    EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACKW(EnumSymbolsCallback)
+    EnumSymbolsCallback.restype = BOOL
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = NULL
+    success = ctypes.windll.dbghelp.SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
+    if success == FALSE:
+        raise ctypes.WinError()
+SymEnumerateSymbols = SymEnumerateSymbolsA
+
+# DWORD64 WINAPI SymLoadModule64(
+#   __in      HANDLE hProcess,
+#   __in_opt  HANDLE hFile,
+#   __in_opt  PCSTR ImageName,
+#   __in_opt  PCSTR ModuleName,
+#   __in      DWORD64 BaseOfDll,
+#   __in      DWORD SizeOfDll
+# );
+
+# XXX TO DO
+
+# BOOL WINAPI SymUnloadModule64(
+#   __in  HANDLE hProcess,
+#   __in  DWORD64 BaseOfDll
+# );
+
+# XXX TO DO
+
+# BOOL WINAPI SymGetModuleInfo64(
+#   __in   HANDLE hProcess,
+#   __in   DWORD64 dwAddr,
+#   __out  PIMAGEHLP_MODULE64 ModuleInfo
+# );
+
+# XXX TO DO
+
+# BOOL WINAPI SymEnumerateSymbols64(
+#   __in      HANDLE hProcess,
+#   __in      ULONG64 BaseOfDll,
+#   __in      PSYM_ENUMSYMBOLS_CALLBACK64 EnumSymbolsCallback,
+#   __in_opt  PVOID UserContext
+# );
+
+# XXX TO DO
+
+# DWORD WINAPI UnDecorateSymbolName(
+#   __in   PCTSTR DecoratedName,
+#   __out  PTSTR UnDecoratedName,
+#   __in   DWORD UndecoratedLength,
+#   __in   DWORD Flags
+# );
+
+# XXX TO DO
+

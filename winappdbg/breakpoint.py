@@ -61,7 +61,6 @@ __all__ = [
 
     ]
 
-from system import processidparam, threadidparam
 from system import Process, System, MemoryAddresses
 import win32
 
@@ -1780,9 +1779,47 @@ class BreakpointContainer (object):
             if bp_pid == pid:
                 del self.__pageBP[(bp_pid, bp_address)]
 
+    def __cleanup_module(self, event):
+        """
+        Auxiliary method for L{notify_unload_dll}.
+        """
+        pid     = event.get_pid()
+        process = event.get_process()
+        module  = event.get_module()
+        for tid in process.iter_thread_ids():
+            if self.__runningBP.has_key(tid):
+                bplist = self.__runningBP[tid]
+                index  = 0
+                while index < len(bplist):
+                    bp = bplist[index]
+                    bp_address = bp.get_address()
+                    if process.get_module_at_address(bp_address) == module:
+                        bp.disable()
+                        del bplist[index]
+                    else:
+                        index += 1
+            if self.__hardwareBP.has_key(tid):
+                bplist = self.__hardwareBP[tid]
+                index  = 0
+                while index < len(bplist):
+                    bp = bplist[index]
+                    bp_address = bp.get_address()
+                    if process.get_module_at_address(bp_address) == module:
+                        bp.disable()
+                        del bplist[index]
+                    else:
+                        index += 1
+        for (bp_pid, bp_address) in self.__codeBP.keys():
+            if bp_pid == pid:
+                if process.get_module_at_address(bp_address) == module:
+                    del self.__codeBP[(bp_pid, bp_address)]
+        for (bp_pid, bp_address) in self.__pageBP.keys():
+            if bp_pid == pid:
+                if process.get_module_at_address(bp_address) == module:
+                    del self.__pageBP[(bp_pid, bp_address)]
+
 #------------------------------------------------------------------------------
 
-    @processidparam
     def define_code_breakpoint(self, dwProcessId, address,   condition = True,
                                                                 action = None):
         """
@@ -1839,7 +1876,6 @@ class BreakpointContainer (object):
         self.__codeBP[key] = bp
         return bp
 
-    @processidparam
     def define_page_breakpoint(self, dwProcessId, address,       pages = 1,
                                                              condition = True,
                                                                 action = None):
@@ -1907,7 +1943,6 @@ class BreakpointContainer (object):
             self.__pageBP[key] = bp
         return bp
 
-    @threadidparam
     def define_hardware_breakpoint(self, dwThreadId, address,
                                               triggerFlag = BP_BREAK_ON_ACCESS,
                                                  sizeFlag = BP_WATCH_DWORD,
@@ -2014,7 +2049,6 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def has_code_breakpoint(self, dwProcessId, address):
         """
         Checks if a code breakpoint is defined at the given address.
@@ -2038,7 +2072,6 @@ class BreakpointContainer (object):
         """
         return self.__codeBP.has_key( (dwProcessId, address) )
 
-    @processidparam
     def has_page_breakpoint(self, dwProcessId, address):
         """
         Checks if a page breakpoint is defined at the given address.
@@ -2062,7 +2095,6 @@ class BreakpointContainer (object):
         """
         return self.__pageBP.has_key( (dwProcessId, address) )
 
-    @threadidparam
     def has_hardware_breakpoint(self, dwThreadId, address):
         """
         Checks if a hardware breakpoint is defined at the given address.
@@ -2192,7 +2224,6 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def enable_code_breakpoint(self, dwProcessId, address):
         """
         Enables the code breakpoint at the given address.
@@ -2216,7 +2247,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.enable(p, None)        # XXX HACK thread is not used
 
-    @processidparam
     def enable_page_breakpoint(self, dwProcessId, address):
         """
         Enables the page breakpoint at the given address.
@@ -2241,7 +2271,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.enable(p, None)        # XXX HACK thread is not used
 
-    @threadidparam
     def enable_hardware_breakpoint(self, dwThreadId, address):
         """
         Enables the hardware breakpoint at the given address.
@@ -2267,7 +2296,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.enable(p, t)
 
-    @processidparam
     def enable_one_shot_code_breakpoint(self, dwProcessId, address):
         """
         Enables the code breakpoint at the given address for only one shot.
@@ -2292,7 +2320,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.one_shot(p, None)        # XXX HACK process is not used
 
-    @processidparam
     def enable_one_shot_page_breakpoint(self, dwProcessId, address):
         """
         Enables the page breakpoint at the given address for only one shot.
@@ -2317,7 +2344,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.one_shot(p, None)        # XXX HACK process is not used
 
-    @threadidparam
     def enable_one_shot_hardware_breakpoint(self, dwThreadId, address):
         """
         Enables the hardware breakpoint at the given address for only one shot.
@@ -2342,7 +2368,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.one_shot(None, t)        # XXX HACK process is not used
 
-    @processidparam
     def disable_code_breakpoint(self, dwProcessId, address):
         """
         Disables the code breakpoint at the given address.
@@ -2367,7 +2392,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.disable(p, None)     # XXX HACK thread is not used
 
-    @processidparam
     def disable_page_breakpoint(self, dwProcessId, address):
         """
         Disables the page breakpoint at the given address.
@@ -2392,7 +2416,6 @@ class BreakpointContainer (object):
             self.__del_running_bp_from_all_threads(bp)
         bp.disable(p, None)     # XXX HACK thread is not used
 
-    @threadidparam
     def disable_hardware_breakpoint(self, dwThreadId, address):
         """
         Disables the hardware breakpoint at the given address.
@@ -2420,7 +2443,6 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def erase_code_breakpoint(self, dwProcessId, address):
         """
         Erases the code breakpoint at the given address.
@@ -2444,7 +2466,6 @@ class BreakpointContainer (object):
             self.disable_code_breakpoint(dwProcessId, address)
         del self.__codeBP[ (dwProcessId, address) ]
 
-    @processidparam
     def erase_page_breakpoint(self, dwProcessId, address):
         """
         Erases the page breakpoint at the given address.
@@ -2471,7 +2492,6 @@ class BreakpointContainer (object):
         for address in xrange(begin, end, System.pageSize):
             del self.__pageBP[ (dwProcessId, address) ]
 
-    @threadidparam
     def erase_hardware_breakpoint(self, dwThreadId, address):
         """
         Erases the hardware breakpoint at the given address.
@@ -2548,7 +2568,6 @@ class BreakpointContainer (object):
         """
         return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.iteritems() ]
 
-    @processidparam
     def get_all_page_breakpoints(self):
         """
         @rtype:  list of tuple( int, L{PageBreakpoint} )
@@ -2560,7 +2579,6 @@ class BreakpointContainer (object):
             result.add( (pid, bp) )
         return list(result)
 
-    @threadidparam
     def get_all_hardware_breakpoints(self):
         """
         @rtype:  list of tuple( int, L{HardwareBreakpoint} )
@@ -2616,7 +2634,6 @@ class BreakpointContainer (object):
         # Return the list of breakpoints.
         return bplist
 
-    @processidparam
     def get_process_code_breakpoints(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -2631,7 +2648,6 @@ class BreakpointContainer (object):
                 result.append(bp)
         return result
 
-    @processidparam
     def get_process_page_breakpoints(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -2646,7 +2662,6 @@ class BreakpointContainer (object):
                 result.append(bp)
         return result
 
-    @threadidparam
     def get_thread_hardware_breakpoints(self, dwThreadId):
         """
         @see: L{get_process_hardware_breakpoints}
@@ -2664,7 +2679,6 @@ class BreakpointContainer (object):
                     result.append(bp)
         return result
 
-    @processidparam
     def get_process_hardware_breakpoints(self, dwProcessId):
         """
         @see: L{get_thread_hardware_breakpoints}
@@ -3091,6 +3105,16 @@ class BreakpointContainer (object):
         self.__cleanup_thread(event)
         return True
 
+    def notify_unload_dll(self, event):
+        """
+        Notify the unloading of a DLL.
+
+        @type  event: L{UnloadDLLEvent}
+        @param event: Unload DLL event.
+        """
+        self.__cleanup_module(event)
+        return True
+
 #------------------------------------------------------------------------------
 
     def __set_break(self, pid, address, action):
@@ -3130,7 +3154,6 @@ class BreakpointContainer (object):
         if self.has_code_breakpoint(pid, address):
             self.erase_code_breakpoint(pid, address)
 
-    @processidparam
     def stalk_at(self, pid, address, action = None):
         """
         Sets a one shot code breakpoint at the given process and address.
@@ -3152,7 +3175,6 @@ class BreakpointContainer (object):
         if not bp.is_one_shot():
             self.enable_one_shot_code_breakpoint(pid, address)
 
-    @processidparam
     def break_at(self, pid, address, action = None):
         """
         Sets a code breakpoint at the given process and address.
@@ -3174,7 +3196,6 @@ class BreakpointContainer (object):
         if not bp.is_enabled():
             self.enable_code_breakpoint(pid, address)
 
-    @processidparam
     def dont_break_at(self, pid, address):
         """
         Clears a code breakpoint set by L{break_at}.
@@ -3187,7 +3208,6 @@ class BreakpointContainer (object):
         """
         self.__clear_break(pid, address)
 
-    @processidparam
     def dont_stalk_at(self, pid, address):
         """
         Clears a code breakpoint set by L{stalk_at}.
@@ -3202,7 +3222,6 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def hook_function(self, pid, address,          preCB = None, postCB = None,
                                                                paramCount = 0):
         """
@@ -3253,7 +3272,6 @@ class BreakpointContainer (object):
         hookObj = Hook(preCB, postCB, paramCount)
         self.break_at(pid, address, hookObj)
 
-    @processidparam
     def stalk_function(self, pid, address,         preCB = None, postCB = None,
                                                                paramCount = 0):
         """
@@ -3304,7 +3322,6 @@ class BreakpointContainer (object):
         hookObj = Hook(preCB, postCB, paramCount)
         self.stalk_at(pid, address, hookObj)
 
-    @processidparam
     def dont_hook_function(self, pid, address):
         """
         Removes a function hook set by L{hook_function}.
@@ -3320,7 +3337,6 @@ class BreakpointContainer (object):
     # alias
     unhook_function = dont_hook_function
 
-    @processidparam
     def dont_stalk_function(self, pid, address):
         """
         Removes a function hook set by L{stalk_function}.
@@ -3398,7 +3414,6 @@ class BreakpointContainer (object):
         if self.has_hardware_breakpoint(tid, address):
             self.erase_hardware_breakpoint(tid, address)
 
-    @threadidparam
     def watch_variable(self, tid, address, size, action = None):
         """
         Sets a hardware breakpoint at the given thread, address and size.
@@ -3424,7 +3439,6 @@ class BreakpointContainer (object):
         if not bp.is_enabled():
             self.enable_hardware_breakpoint(tid, address)
 
-    @threadidparam
     def stalk_variable(self, tid, address, size, action = None):
         """
         Sets a one-shot hardware breakpoint at the given thread,
@@ -3451,7 +3465,6 @@ class BreakpointContainer (object):
         if not bp.is_one_shot():
             self.enable_one_shot_hardware_breakpoint(tid, address)
 
-    @threadidparam
     def dont_watch_variable(self, tid, address):
         """
         Clears a hardware breakpoint set by L{watch_variable}.
@@ -3464,7 +3477,6 @@ class BreakpointContainer (object):
         """
         self.__clear_variable_watch(tid, address)
 
-    @threadidparam
     def dont_stalk_variable(self, tid, address):
         """
         Clears a hardware breakpoint set by L{stalk_variable}.
@@ -3624,7 +3636,6 @@ class BreakpointContainer (object):
                         except WindowsError:
                             pass
 
-    @processidparam
     def watch_buffer(self, pid, address, size, action = None):
         """
         Sets a page breakpoint and notifies when the given buffer is accessed.
@@ -3647,7 +3658,6 @@ class BreakpointContainer (object):
         """
         self.__set_buffer_watch(pid, address, size, action, False)
 
-    @processidparam
     def stalk_buffer(self, pid, address, size, action = None):
         """
         Sets a one-shot page breakpoint and notifies
@@ -3671,7 +3681,6 @@ class BreakpointContainer (object):
         """
         self.__set_buffer_watch(pid, address, size, action, True)
 
-    @processidparam
     def dont_watch_buffer(self, pid, address, size):
         """
         Clears a page breakpoint set by L{watch_buffer}.
@@ -3687,7 +3696,6 @@ class BreakpointContainer (object):
         """
         self.__clear_buffer_watch(pid, address, size)
 
-    @processidparam
     def dont_stalk_buffer(self, pid, address, size):
         """
         Clears a page breakpoint set by L{stalk_buffer}.
@@ -3705,7 +3713,6 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def resolve_exported_function(self, pid, modName, procName):
         """
         Resolves the exported DLL function for the given process.
@@ -3733,7 +3740,6 @@ class BreakpointContainer (object):
             return address
         return None
 
-    @processidparam
     def resolve_label(self, pid, label):
         """
         Resolves a label for the given process.

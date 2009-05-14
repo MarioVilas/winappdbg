@@ -42,7 +42,7 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Debugging: Debug, EventHandler
 @group Crash reporting: Crash, CrashContainer, CrashDump
 @group Text input and output: HexInput, HexDump, DebugLog
-@group Win32 API wrappers: win32
+@group Win32 API wrappers: win32, Handle, ProcessHandle, ThreadHandle, FileHandle
 """
 
 __revision__ = "$Id$"
@@ -67,10 +67,6 @@ __all__ =   [
                 'Thread',
                 'Process',
                 'System',
-                'Handle',
-                'ProcessHandle',
-                'ThreadHandle',
-                'FileHandle',
 
                 # from debug import *
                 'EventHandler',
@@ -85,6 +81,12 @@ __all__ =   [
 
                 # import win32
                 'win32',
+
+                # from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+                'Handle',
+                'ProcessHandle',
+                'ThreadHandle',
+                'FileHandle',
             ]
 
 # Import all public symbols
@@ -95,6 +97,7 @@ from event import *
 from system import *
 from textio import *
 import win32
+from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 # Library version
 version = "Version 1.1"

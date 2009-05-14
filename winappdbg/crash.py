@@ -39,7 +39,7 @@ __all__ =   [
                 'CrashContainer',
             ]
 
-from system import FileHandle
+from system import PathOperations
 from textio import HexDump, CrashDump
 import win32
 
@@ -390,7 +390,7 @@ class Crash (object):
 
         if not self.labelPC:
             if self.modFileName:
-                fn = FileHandle.pathname_to_filename(self.modFileName)
+                fn = PathOperations.pathname_to_filename(self.modFileName)
                 msg += '\nRunning in %s (0x%.8x)\n' % (fn, self.lpBaseOfDll)
             else:
                 msg += '\nRunning in module at 0x%.8x\n' % self.lpBaseOfDll

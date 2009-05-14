@@ -59,9 +59,9 @@ __all__ = [
           ]
 
 import win32
+from win32 import FileHandle, ProcessHandle, ThreadHandle
 from breakpoint import ApiHook
-from system import ProcessHandle, ThreadHandle, FileHandle
-from system import Module, Thread, Process
+from system import Module, Thread, Process, PathOperations
 
 import ctypes
 
@@ -122,7 +122,7 @@ class Event (object):
         @return: Debug event code as defined in the Win32 API.
         """
         return self.raw.dwDebugEventCode
-    
+
     # Compatibility with version 1.0
     get_code = get_event_code
 
@@ -1109,7 +1109,7 @@ class EventHandler (object):
         if self.__apiHooks:
             fileName = event.get_module().get_filename()
             if fileName:
-                lib_name = FileHandle.pathname_to_filename(fileName).lower()
+                lib_name = PathOperations.pathname_to_filename(fileName).lower()
                 for hook_lib, hook_api_list in self.__apiHooks.iteritems():
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:

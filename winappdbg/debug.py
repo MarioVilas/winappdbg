@@ -42,7 +42,7 @@ __all__ =   [
             ]
 
 import win32
-from system import System, Process, Thread, Module, processidparam, FileHandle
+from system import System, Process, Thread, Module
 from breakpoint import BreakpointContainer, CodeBreakpoint
 from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
@@ -83,9 +83,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         notify_create_process,
         notify_create_thread,
         notify_load_dll,
-        notify_exit_process,
-        notify_exit_thread,
-        notify_unload_dll,
         notify_rip,
         notify_debug_control_c,
         notify_ms_vc_exception
@@ -152,7 +149,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
 #------------------------------------------------------------------------------
 
-    @processidparam
     def attach(self, dwProcessId):
         """
         Attaches to an existing process for debugging.
@@ -193,7 +189,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         return aProcess
 
-    @processidparam
     def detach(self, dwProcessId, bIgnoreExceptions = False):
         """
         Detaches from a process currently being debugged.
@@ -492,7 +487,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             self.cont(event)
         return event
 
-    def loop(self, dwMilliseconds = 1000):
+    def loop(self):
         """
         Simple debugging loop.
 
@@ -511,10 +506,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
             U{http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx}
 
-        @type  dwMilliseconds: int
-        @param dwMilliseconds: Timeout for each wait, in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
-
         @raise WindowsError: Raises an exception on error.
 
             If the wait operation causes an error, debugging is stopped
@@ -525,7 +516,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             event handler raises an exception nobody catches.
         """
         while self.get_debugee_count() > 0:
-            self.next(dwMilliseconds)
+            self.next()
 
     def get_debugee_count(self):
         """
@@ -541,7 +532,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         return list(self.__attachedDebugees) + list(self.__startedDebugees)
 
-    @processidparam
     def is_debugee(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -554,7 +544,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         return self.is_debugee_attached(dwProcessId) or \
                self.is_debugee_started(dwProcessId)
 
-    @processidparam
     def is_debugee_started(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -566,7 +555,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         return dwProcessId in self.__startedDebugees
 
-    @processidparam
     def is_debugee_attached(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -729,7 +717,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        return event.get_process().notify_unload_dll(event)
+        bCallHandler = BreakpointContainer.notify_unload_dll(self, event)
+        bCallHandler = bCallHandler and \
+                                event.get_process().notify_unload_dll(event)
 
     def notify_rip(self, event):
         """
