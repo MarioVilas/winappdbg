@@ -54,7 +54,10 @@ import struct
 #------------------------------------------------------------------------------
 
 class HexInput (object):
-    'Static functions for user input parsing.'
+    """
+    Static functions for user input parsing.
+    The counterparts for each method are in the L{HexOutput} class.
+    """
 
     @staticmethod
     def integer(token):
@@ -69,14 +72,30 @@ class HexInput (object):
         """
         token = token.strip()
         if token.startswith('0x'):
-            result = int(token[2:], 16) # hexadecimal
+            result = int(token, 16)     # hexadecimal
         elif token.startswith('0b'):
             result = int(token[2:], 2)  # binary
-        elif token.startswith('0'):
-            result = int(token, 8)      # octal
+##        elif token.startswith('0'):
+##            result = int(token, 8)      # octal
         else:
-            result = int(token)         # decimal
+            try:
+                result = int(token)     # decimal
+            except ValueError:
+                result = int(token, 16) # hexadecimal (no "0x" prefix)
         return result
+
+    @staticmethod
+    def address(token):
+        """
+        Convert numeric strings into memory addresses.
+
+        @type  token: str
+        @param token: String to parse.
+
+        @rtype:  int
+        @return: Parsed integer value.
+        """
+        return int(token, 16)
 
     @staticmethod
     def hexadecimal(token):
@@ -251,7 +270,10 @@ class HexInput (object):
 #------------------------------------------------------------------------------
 
 class HexOutput (object):
-    'Static functions for user output parsing.'
+    """
+    Static functions for user output parsing.
+    The counterparts for each method are in the L{HexInput} class.
+    """
 
     @staticmethod
     def integer(integer):
@@ -263,6 +285,17 @@ class HexOutput (object):
         @return: Text output.
         """
         return '0x%.8x' % integer
+
+    @staticmethod
+    def address(address):
+        """
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return '0x%.8x' % address
 
     @staticmethod
     def hexadecimal(data):
@@ -288,12 +321,31 @@ class HexOutput (object):
         @type  filename: str
         @param filename: Name of the file to write.
 
-        @rtype:  list( int )
-        @return: List of integers to write to the file.
+        @type  values: list( int )
+        @param values: List of integers to write to the file.
         """
         fd = open(filename, 'w')
         for integer in values:
             print >> fd, cls.integer(integer)
+        fd.close()
+
+    @classmethod
+    def string_list_file(cls, filename, values):
+        """
+        Write a list of strings to a file.
+        If a file of the same name exists, it's contents are replaced.
+
+        See L{HexInput.string_list_file} for a description of the file format.
+
+        @type  filename: str
+        @param filename: Name of the file to write.
+
+        @type  values: list( int )
+        @param values: List of strings to write to the file.
+        """
+        fd = open(filename, 'w')
+        for string in values:
+            print >> fd, string
         fd.close()
 
     @classmethod
@@ -307,8 +359,8 @@ class HexOutput (object):
         @type  filename: str
         @param filename: Name of the file to write.
 
-        @rtype:  list( int )
-        @return: List of mixed values to write to the file.
+        @type  values: list( int )
+        @param values: List of mixed values to write to the file.
         """
         fd = open(filename, 'w')
         for original in values:
@@ -800,7 +852,7 @@ class CrashDump (object):
     ##        value   = registers[reg_name]
             dumped  = HexDump.hexline(data[reg_name], separator, width)
     ##        result += '%s->%.8x: %s' % (tag, value, dumped)
-            result += '%s -> %s' % (tag, dumped)
+            result += '%s -> %s\n' % (tag, dumped)
         return result
 
     @staticmethod

@@ -77,6 +77,12 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             print DebugLog.log_event(event, text)
 
+    def __get_location(self, event, address):
+        label = event.get_process().get_label_at_address(address)
+        if label:
+            return label
+        return '0x%.8x' % address
+
     def __set_breakpoints(self, event):
         method = event.debug.break_at
         bplist = self.options.break_at
@@ -146,8 +152,9 @@ class LoggingEventHandler(EventHandler):
                 if not szFilename:
                     szFilename = Module.unknown
                 if lpStartAddress:
-                    msg = "Process %s started, entry point at 0x%.8x"
-                    msg = msg % (szFilename, lpStartAddress)
+                    where = self.__get_location(event, lpStartAddress)
+                    msg = "Process %s started, entry point at %s"
+                    msg = msg % (szFilename, where)
                 else:
                     msg = "Process %s started" % szFilename
                 self.__log(event, msg)
@@ -158,7 +165,8 @@ class LoggingEventHandler(EventHandler):
         # Log the event to standard output.
         if self.options.verbose:
             lpStartAddress = event.get_start_address()
-            msg = "Thread started, entry point at 0x%.8x" % lpStartAddress
+            where = self.__get_location(event, lpStartAddress)
+            msg = "Thread started, entry point at %s" % where
             self.__log(event, msg)
 
     # Handle the load dll events.
@@ -282,7 +290,9 @@ class LoggingEventHandler(EventHandler):
         # Log the event to standard output.
         if self.options.verbose:
             address = event.get_exception_address()
-            self.__log(event, "Single step event at 0x%.8x" % address)
+            where   = self.__get_location(event, address)
+            msg     = "Single step event at %s" % where
+            self.__log(event, msg)
 
     # Handle breakpoints events.
     def breakpoint(self, event):
@@ -298,11 +308,8 @@ class LoggingEventHandler(EventHandler):
             if address == aProcess.get_system_breakpoint():
                 msg = "System breakpoint hit"
             else:
-                label = aProcess.get_label_at_address(address)
-                if label:
-                    msg = "Breakpoint event at %s" % label
-                else:
-                    msg = "Breakpoint event at 0x%.8x" % address
+                where = self.__get_location(event, address)
+                msg = "Breakpoint event at %s" % where
             self.__log(event, msg)
 
 #==============================================================================
