@@ -36,7 +36,6 @@ __all__ =   [
 
 import winappdbg
 from winappdbg import *
-from winappdbg.system import FileHandle
 
 import os
 import re
@@ -101,13 +100,10 @@ class LoggingEventHandler(EventHandler):
                 try:
                     address = aModule.resolve_label(label)
                 except ValueError, e:
-##                    print str(e)        # XXX
                     address = None
                 except RuntimeError, e:
-##                    print str(e)        # XXX
                     address = None
                 except WindowsError, e:
-##                    print str(e)        # XXX
                     address = None
                 if address is not None:
                     self.labelsCache[dwProcessId][label] = address
@@ -531,9 +527,11 @@ def main(args):
                         traceback.print_exc()
                     raise
     finally:
-        debug.stop()
-        if options.verbose:
-            print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
+        try:
+            debug.stop(bIgnoreExceptions = options.ignore_errors)
+        finally:
+            if options.verbose:
+                print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
 
 if __name__ == '__main__':
     try:
