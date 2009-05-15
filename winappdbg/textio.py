@@ -349,7 +349,7 @@ class HexOutput (object):
         fd.close()
 
     @classmethod
-    def mixed_list_file(cls, filename):
+    def mixed_list_file(cls, filename, values):
         """
         Write a list of mixed values to a file.
         If a file of the same name exists, it's contents are replaced.
@@ -906,7 +906,8 @@ class CrashDump (object):
     @staticmethod
     def dump_stack_trace(stack_trace):
         """
-        Dump a stack trace.
+        Dump a stack trace, as returned by L{Thread.get_stack_trace} with the
+        C{bUseLabels} parameter set to C{False}.
 
         @type  stack_trace: list( int, int, str )
         @param stack_trace: Stack trace as a list of tuples of
@@ -920,6 +921,34 @@ class CrashDump (object):
         result = 'Frame pointer  Return address  Module\n'
         for step in stack_trace:
             result += '0x%.8x     0x%.8x      %s\n' % step
+        return result
+
+    @staticmethod
+    def dump_stack_trace_with_labels(stack_trace):
+        """
+        Dump a stack trace, as returned by L{Thread.get_stack_trace} with the
+        C{bUseLabels} parameter set to C{True}.
+
+        @type  stack_trace: list( int, int, str )
+        @param stack_trace: Stack trace as a list of tuples of
+            ( return address, frame pointer, module filename )
+
+        @rtype:  str
+        @return: Text suitable for logging.
+        """
+        if stack_trace is None:
+            return ''
+        max_label  = 0
+        for bp, label in stack_trace:
+            if len(label) > max_label:
+                max_label = len(label)
+        if len('Return address') > max_label:
+            max_label = len('Return address')
+        fmt = '%%s %%-%ds\n' % max_label
+        result = fmt % ('Frame pointer ', 'Return address')
+        for bp, label in stack_trace:
+            bp = '0x%.8x    ' % bp
+            result += fmt % (bp, label)
         return result
 
     # TODO

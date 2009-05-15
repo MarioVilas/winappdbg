@@ -2799,6 +2799,25 @@ SYMOPT_PUBLICS_ONLY                 = 0x00004000
 SYMOPT_SECURE                       = 0x00040000
 SYMOPT_UNDNAME                      = 0x00000002
 
+##SSRVOPT_DWORD
+##SSRVOPT_DWORDPTR
+##SSRVOPT_GUIDPTR
+##
+##SSRVOPT_CALLBACK
+##SSRVOPT_DOWNSTREAM_STORE
+##SSRVOPT_FLAT_DEFAULT_STORE
+##SSRVOPT_FAVOR_COMPRESSED
+##SSRVOPT_NOCOPY
+##SSRVOPT_OVERWRITE
+##SSRVOPT_PARAMTYPE
+##SSRVOPT_PARENTWIN
+##SSRVOPT_PROXY
+##SSRVOPT_RESET
+##SSRVOPT_SECURE
+##SSRVOPT_SETCONTEXT
+##SSRVOPT_TRACE
+##SSRVOPT_UNATTENDED
+
 #    typedef enum
 #    {
 #        SymNone = 0,
@@ -5577,3 +5596,45 @@ SymEnumerateSymbols = SymEnumerateSymbolsA
 
 # XXX TO DO
 
+# BOOL WINAPI SymGetSearchPath(
+#   __in   HANDLE hProcess,
+#   __out  PTSTR SearchPath,
+#   __in   DWORD SearchPathLength
+# );
+def SymGetSearchPathA(hProcess):
+    SearchPathLength = MAX_PATH
+    SearchPath = ctypes.byref(ctypes.create_string_buffer("", SearchPathLength))
+    success = ctypes.windll.dbghelp.SymGetSearchPath(hProcess, SearchPath, SearchPathLength)
+    if success == FALSE:
+        raise ctypes.WinError()
+    return SearchPath.value
+def SymGetSearchPathW(hProcess):
+    SearchPathLength = MAX_PATH
+    SearchPath = ctypes.byref(ctypes.create_unicode_buffer("", SearchPathLength))
+    success = ctypes.windll.dbghelp.SymGetSearchPathW(hProcess, SearchPath, SearchPathLength)
+    if success == FALSE:
+        raise ctypes.WinError()
+    return SearchPath.value
+SymGetSearchPath = SymGetSearchPathA
+
+# BOOL WINAPI SymSetSearchPath(
+#   __in      HANDLE hProcess,
+#   __in_opt  PCTSTR SearchPath
+# );
+def SymSetSearchPathA(hProcess, SearchPath = None):
+    if SearchPath:
+        SearchPath = ctypes.byref(ctypes.create_string_buffer(SearchPath))
+    else:
+        SearchPath = NULL
+    success = ctypes.windll.dbghelp.SymSetSearchPath(hProcess, SearchPath)
+    if success == FALSE:
+        raise ctypes.WinDLL()
+def SymSetSearchPathW(hProcess, SearchPath = None):
+    if SearchPath:
+        SearchPath = ctypes.byref(ctypes.create_unicode_buffer(SearchPath))
+    else:
+        SearchPath = NULL
+    success = ctypes.windll.dbghelp.SymSetSearchPathW(hProcess, SearchPath)
+    if success == FALSE:
+        raise ctypes.WinDLL()
+SymSetSearchPath = SymSetSearchPathA

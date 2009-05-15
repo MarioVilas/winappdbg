@@ -65,6 +65,7 @@ __all__ =   [
 import win32
 from textio import HexInput
 
+import os
 import ctypes
 import struct
 
@@ -244,7 +245,6 @@ class ModuleContainer (object):
         clear_modules
 
     @group Event notifications (private):
-        notify_create_process,
         notify_load_dll,
         notify_unload_dll
     """
@@ -1635,10 +1635,14 @@ class SymbolContainer (object):
         BaseOfDll   = self.get_base()
         SizeOfDll   = self.get_size()
         Enumerator  = SymbolEnumerator()
-        win32.SymInitialize(hProcess)
         try:
+            win32.SymInitialize(hProcess)
             try:
-                win32.SymLoadModule(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                try:
+                    win32.SymLoadModule(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                except WindowsError:
+                    ImageName = self.get_filename()
+                    win32.SymLoadModule(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
                 try:
                     win32.SymEnumerateSymbols(hProcess, BaseOfDll, Enumerator)
                 finally:
@@ -1672,7 +1676,7 @@ class SymbolContainer (object):
         found = None
         for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
             if SymbolAddress > address:
-                break
+                continue
             if SymbolAddress + SymbolSize > address:
                 if not found or found[1] < SymbolAddress:
                     found = (SymbolName, SymbolAddress, SymbolSize)
@@ -2333,7 +2337,7 @@ class ThreadDebugOperations (object):
         teb = self.get_teb()
         return (teb.NtTib.StackBase, teb.NtTib.StackLimit)
 
-    def get_stack_trace(self, depth = 16):
+    def __get_stack_trace(self, depth = 16, bUseLabels = True):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
@@ -2341,9 +2345,15 @@ class ThreadDebugOperations (object):
         @type  depth: int
         @param depth: Maximum depth of stack trace.
 
+        @type  bUseLabels: bool
+        @param bUseLabels: C{True} to use labels, C{False} to use addresses.
+
         @rtype:  tuple of tuple( int, int, str )
-        @return: Stack trace of the thread
-            as a tuple of ( return address, frame pointer, module filename ).
+        @return: Stack trace of the thread as a tuple of
+            ( return address, frame pointer address, module filename )
+            when C{bUseLabels} is C{True}, or a tuple of
+            ( return address, frame pointer label )
+            when C{bUseLabels} is C{False}.
         """
         aProcess = self.get_process()
         sb, sl   = self.get_stack_range()
@@ -2368,9 +2378,44 @@ class ThreadDebugOperations (object):
                 else:
 ##                    lib = "Module at 0x%.08x" % lib.lpBaseOfDll
                     lib = "0x%.08x" % lib.lpBaseOfDll
-            trace.append( (fp, ra, lib) )
+            if bUseLabels:
+                label = aProcess.get_label_at_address(ra)
+                mod, proc, off = aProcess.split_label(label)
+                if not proc:
+                    label = '0x%.8x' % ra
+                trace.append( (fp, label) )
+            else:
+                trace.append( (fp, ra, lib) )
             fp = aProcess.peek_uint(fp)
         return tuple(trace)
+
+    def get_stack_trace(self, depth = 16):
+        """
+        Tries to get a stack trace for the current function.
+        Only works for functions with standard prologue and epilogue.
+
+        @type  depth: int
+        @param depth: Maximum depth of stack trace.
+
+        @rtype:  tuple of tuple( int, int, str )
+        @return: Stack trace of the thread as a tuple of
+            ( return address, frame pointer address, module filename ).
+        """
+        return self.__get_stack_trace(depth, False)
+
+    def get_stack_trace_with_labels(self, depth = 16):
+        """
+        Tries to get a stack trace for the current function.
+        Only works for functions with standard prologue and epilogue.
+
+        @type  depth: int
+        @param depth: Maximum depth of stack trace.
+
+        @rtype:  tuple of tuple( int, int, str )
+        @return: Stack trace of the thread as a tuple of
+            ( return address, frame pointer label ).
+        """
+        return self.__get_stack_trace(depth, True)
 
     def get_stack_frame_range(self):
         """
@@ -4538,9 +4583,6 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
     @group Handle:
         get_handle, open_handle, close_handle
-
-    @group Event notifications (private):
-        notify_create_process
 
     @type dwProcessId: int
     @ivar dwProcessId: Global process ID. Use L{get_pid} instead.

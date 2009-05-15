@@ -1212,11 +1212,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         process         = self.get_process(pid)
         thread          = process.get_thread(tid)
         try:
-            stack_trace = thread.get_stack_trace()
+            stack_trace = thread.get_stack_trace_with_labels()
             if stack_trace:
-                print winappdbg.CrashDump.dump_stack_trace(stack_trace)
+                print winappdbg.CrashDump.dump_stack_trace_with_labels(stack_trace),
             else:
-                print "Can't get stack trace for thread (%d)" % tid
+                print "No stack trace available for thread (%d)" % tid
         except WindowsError, e:
             print "Can't get stack trace for thread (%d)" % tid
 
@@ -1520,10 +1520,12 @@ class ConsoleDebugger (Cmd, EventHandler):
             msg = msg % winappdbg.HexDump.address(address)
             raise CmdError, msg
         if code:
+            label        = process.get_label_at_address(address)
             last_code    = code[-1]
             next_address = last_code[0] + last_code[1]
             next_address = winappdbg.HexOutput.integer(next_address)
             self.default_disasm_target = next_address
+            print "%s:" % label
             for line in code:
                 print winappdbg.CrashDump.dump_code_line(line)
 
