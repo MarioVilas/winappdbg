@@ -3615,9 +3615,6 @@ class ProcessContainer (object):
 
 #==============================================================================
 
-# TODO
-# + Add the ability to enumerate exported functions.
-
 class Module (SymbolContainer):
     """
     Interface to a DLL library loaded in the context of another process.
@@ -3961,9 +3958,6 @@ class Module (SymbolContainer):
             return base <= address < (base + size)
         return None
 
-    # TODO
-    # A better solution would be to map a view of the file,
-    # parse the PE header and get all the exported symbols.
     def resolve(self, function):
         """
         Resolves a function exported by this module.

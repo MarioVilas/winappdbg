@@ -725,8 +725,6 @@ class Debug (EventDispatcher, BreakpointContainer):
                                   event.get_process().notify_exit_thread(event)
         return bCallHandler
 
-    # TODO
-    # Breakpoints should be notified when the DLL they are on is removed.
     def notify_unload_dll(self, event):
         """
         Notify the unload of a module.

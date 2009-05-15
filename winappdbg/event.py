@@ -187,10 +187,6 @@ class Event (object):
 
 #==============================================================================
 
-# TODO
-# Make sure that process or thread ID -1 is always invalid to the Win32 API.
-# If it turns out it isn't, None has to be returned instead.
-
 class NoEvent (Event):
     """
     No event.
