@@ -53,7 +53,10 @@ def print_api_address( pid, modName, procName ):
     address = module.resolve( procName )
 
     # Print the address
-    print "%s!%s == 0x%.08x" % ( modName, procName, address )
+    if address:
+        print "%s!%s == 0x%.08x" % ( modName, procName, address )
+    else:
+        print "Could not resolve %s in module %s" % (procName, modName)
 
 # When invoked from the command line,
 # the first argument is a process ID,
