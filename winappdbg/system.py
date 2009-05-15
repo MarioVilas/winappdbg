@@ -4222,7 +4222,7 @@ class Thread (ThreadDebugOperations):
         try:
             if hasattr(self.hThread, 'close'):
                 self.hThread.close()
-            elif self.hProcess not in (None, win32.INVALID_HANDLE_VALUE):
+            elif self.hThread not in (None, win32.INVALID_HANDLE_VALUE):
                 win32.CloseHandle(self.hThread)
         finally:
             self.hThread = None

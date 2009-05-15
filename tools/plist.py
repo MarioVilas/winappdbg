@@ -38,6 +38,9 @@ __revision__ = "$Id$"
 # they're being debugged or not.
 
 # TODO
+# Show threads in each process (optionally).
+
+# TODO
 # Get the names of the services running in each process.
 
 # TODO
