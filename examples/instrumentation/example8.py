@@ -79,9 +79,17 @@ def unfreeze_threads( pid ):
         thread.resume()
 
 # When invoked from the command line,
-# the first argument is a process ID
+# the first argument is either "f" or "u"
+# the second argument is a process ID
 if __name__ == "__main__":
     import sys
-    pid = int( sys.argv[1] )
-    freeze_threads( pid )
-    #unfreeze_threads( pid )   # to reverse the effect
+    command = sys.argv[1][0].lower()
+    pid = int( sys.argv[2] )
+    if command == 'f':
+        freeze_threads( pid )
+    elif command == 'u':
+        unfreeze_threads( pid )   # to reverse the effect
+    else:
+        script = sys.argv[0]
+        print "%s f <pid> - freeze a process" % script
+        print "%s u <pid> - unfreeze a process" % script
