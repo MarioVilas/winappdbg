@@ -66,6 +66,7 @@ import win32
 from textio import HexInput
 
 import os
+import sys
 import ctypes
 import struct
 
@@ -1650,6 +1651,8 @@ class SymbolContainer (object):
             finally:
                 win32.SymCleanup(hProcess)
         except WindowsError, e:
+##            import traceback        # XXX DEBUG
+##            traceback.print_exc()
             pass
         self.__symbols = Enumerator.symbols
 
@@ -3920,7 +3923,7 @@ class Module (SymbolContainer):
         # Skip if the entry point is unknown or the module isn't an EXE file.
         if module.lower().endswith('.exe'):
             start = self.get_entry_point()
-            if start and start < address:
+            if start and start <= address:
                 function    = "start"
                 offset      = address - start
 
@@ -5043,7 +5046,7 @@ class System (ProcessContainer):
     @group Global settings:
         pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
-        enable_step_on_branch_mode
+        enable_step_on_branch_mode, set_symbol_options
 
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
@@ -5134,3 +5137,21 @@ class System (ProcessContainer):
         return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr,
                                           ctypes.sizeof(win32.SYSDBG_MSR),
                                           win32.NULL, win32.NULL, win32.NULL)
+
+    @staticmethod
+    def set_symbol_options(options = None):
+        """
+        Set the options for the symbol support (dbghelp.dll).
+
+        @type  options: int
+        @param options: Option flags. Use C{None} for the default
+            options in WinAppDbg.
+        """
+        if options is None:
+            options  = win32.SYMOPT_FAIL_CRITICAL_ERRORS
+            options |= win32.SYMOPT_FAVOR_COMPRESSED
+            options |= win32.SYMOPT_INCLUDE_32BIT_MODULES
+            options |= win32.SYMOPT_NO_PROMPTS
+            options |= win32.SYMOPT_UNDNAME
+            options |= win32.SYMOPT_LOAD_LINES
+        return win32.SymSetOptions(options)

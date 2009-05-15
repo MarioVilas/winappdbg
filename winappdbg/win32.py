@@ -5628,7 +5628,7 @@ def SymSetSearchPathA(hProcess, SearchPath = None):
         SearchPath = NULL
     success = ctypes.windll.dbghelp.SymSetSearchPath(hProcess, SearchPath)
     if success == FALSE:
-        raise ctypes.WinDLL()
+        raise ctypes.WinError()
 def SymSetSearchPathW(hProcess, SearchPath = None):
     if SearchPath:
         SearchPath = ctypes.byref(ctypes.create_unicode_buffer(SearchPath))
@@ -5636,5 +5636,5 @@ def SymSetSearchPathW(hProcess, SearchPath = None):
         SearchPath = NULL
     success = ctypes.windll.dbghelp.SymSetSearchPathW(hProcess, SearchPath)
     if success == FALSE:
-        raise ctypes.WinDLL()
+        raise ctypes.WinError()
 SymSetSearchPath = SymSetSearchPathA

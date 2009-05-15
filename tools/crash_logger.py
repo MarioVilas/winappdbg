@@ -148,11 +148,11 @@ class LoggingEventHandler(EventHandler):
                 if not szFilename:
                     szFilename = Module.unknown
                 if lpStartAddress:
-                    where = self.__get_location(event, lpStartAddress)
+                    where = HexOutput.address(lpStartAddress)
                     msg = "Process %s started, entry point at %s"
                     msg = msg % (szFilename, where)
                 else:
-                    msg = "Process %s started" % szFilename
+                    msg = "Attached to process %s" % szFilename
                 self.__log(event, msg)
 
     # Handle the create thread events.
@@ -161,8 +161,11 @@ class LoggingEventHandler(EventHandler):
         # Log the event to standard output.
         if self.options.verbose:
             lpStartAddress = event.get_start_address()
-            where = self.__get_location(event, lpStartAddress)
-            msg = "Thread started, entry point at %s" % where
+            if lpStartAddress:
+                where = self.__get_location(event, lpStartAddress)
+                msg   = "Thread started, entry point at %s" % where
+            else:
+                msg   = "Attached to thread"
             self.__log(event, msg)
 
     # Handle the load dll events.

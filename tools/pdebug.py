@@ -405,15 +405,21 @@ class ConsoleDebugger (Cmd, EventHandler):
     def print_process_start(self, event):
         pid   = event.get_pid()
         start = event.get_start_address()
-        start = event.get_process().get_label_at_address(start)
-        print "Started process %d at %s" % (pid, start)
+        if start:
+            start = winappdbg.HexOutput.address(start)
+            print "Started process %d at %s" % (pid, start)
+        else:
+            print "Attached to process %d" % pid
 
     # Tell the user a thread was started.
     def print_thread_start(self, event):
         tid   = event.get_tid()
         start = event.get_start_address()
-        start = event.get_process().get_label_at_address(start)
-        print "Started thread %d at %s" % (tid, start)
+        if start:
+            start = event.get_process().get_label_at_address(start)
+            print "Started thread %d at %s" % (tid, start)
+        else:
+            print "Attached to thread %d" % tid
 
     # Tell the user a process has finished.
     def print_process_end(self, event):
@@ -1009,9 +1015,9 @@ class ConsoleDebugger (Cmd, EventHandler):
             except Exception, e:
                 print "Error: can't detach from process (%d)" % pid
 
-    def do_execute(self, arg):
+    def do_windowed(self, arg):
         """
-        execute <target> [arguments...] - run a program for debugging
+        windowed <target> [arguments...] - run a windowed program for debugging
         """
         if self.cmdprefix:
             raise CmdError, "prefix not allowed"

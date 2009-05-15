@@ -601,17 +601,22 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         retval = self.system.notify_create_process(event)
 
-##        # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
-##        if self.__bHostileCode:
-##            aProcess = self.system.get_process(dwProcessId)
-##            try:
-##                pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
-##                                                 win32.ProcessBasicInformation)
-##                ptr = pbi.PebBaseAddress + 2
-##                if aProcess.peek(ptr, 1) == '\x01':
-##                    aProcess.poke(ptr, '\x00')
-##            except WindowsError:
-##                pass
+        # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
+        # When we do this, some debugging APIs cease to work as expected.
+        # For example, the system breakpoint isn't hit when we attach.
+        # For that reason we need to define a code breakpoint at the
+        # code location where a new thread is spawned by the debugging
+        # APIs, ntdll!DbgUiRemoteBreakin.
+        if self.__bHostileCode:
+            aProcess = self.system.get_process(dwProcessId)
+            try:
+                pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
+                                                 win32.ProcessBasicInformation)
+                ptr = pbi.PebBaseAddress + 2
+                if aProcess.peek(ptr, 1) == '\x01':
+                    aProcess.poke(ptr, '\x00')
+            except WindowsError:
+                pass
 
         return retval
 
@@ -648,19 +653,36 @@ class Debug (EventDispatcher, BreakpointContainer):
         # Pass the event to the process.
         retval = aProcess.notify_load_dll(event)
 
-        # Check the int3 instruction where the system breakpoint should be.
-        # If missing, restore it. This defeats a simple anti-debugging trick.
+        # Anti-anti-debugging tricks on ntdll.dll.
         if self.__bHostileCode:
             aModule = event.get_module()
             if aModule.match_name('ntdll.dll'):
-##                address = aModule.resolve('DbgBreakPoint')
-##                address = aModule.resolve('DbgUserBreakPoint')
-                address = aProcess.get_system_breakpoint()
-                if address is not None:
-                    aProcess.poke(address, CodeBreakpoint.int3)
-                address = aProcess.get_user_breakpoint()
-                if address is not None:
-                    aProcess.poke(address, CodeBreakpoint.int3)
+
+##                # Check the int3 instruction where
+##                # the system breakpoint should be.
+##                # If missing, restore it. This defeats
+##                # a simple anti-debugging trick.
+####                address = aModule.resolve('DbgBreakPoint')
+####                address = aModule.resolve('DbgUserBreakPoint')
+##                address = aProcess.get_system_breakpoint()
+##                if address is not None:
+##                    aProcess.poke(address, CodeBreakpoint.int3)
+##                address = aProcess.get_user_breakpoint()
+##                if address is not None:
+##                    aProcess.poke(address, CodeBreakpoint.int3)
+
+                # Since we've overwritten the PEB to hide
+                # ourselves, we no longer have the system
+                # breakpoint when attaching to the process.
+                # Set a breakpoint at ntdll!DbgUiRemoteBreakin
+                # instead (that's where the debug API spawns
+                # it's auxiliary threads). This also defeats
+                # a simple anti-debugging trick: the hostile
+                # process could have overwritten the int3
+                # instruction at the system breakpoint.
+                DbgUiRemoteBreakin = 'ntdll!DbgUiRemoteBreakin'
+                DbgUiRemoteBreakin = aProcess.resolve_label(DbgUiRemoteBreakin)
+                self.break_at(aProcess.get_pid(), DbgUiRemoteBreakin)
 
         return retval
 

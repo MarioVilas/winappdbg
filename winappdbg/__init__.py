@@ -77,6 +77,7 @@ __all__ =   [
                 'DebugLog',
                 'HexDump',
                 'HexInput',
+                'HexOutput',
                 'CrashDump',
 
                 # import win32
