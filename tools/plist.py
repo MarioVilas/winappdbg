@@ -45,7 +45,7 @@ __revision__ = "$Id$"
 # It'd be useful when using a search string, to highlight the matching parts.
 # Also to show processes run by SYSTEM or other users with different colors.
 
-from winappdbg import System, FileHandle
+from winappdbg import System, PathOperations
 
 import optparse
 
@@ -110,7 +110,7 @@ def main(argv):
 ##                fileName = "<unknown>"
                 fileName = ""
             elif showFilenameOnly:
-                fileName = FileHandle.pathname_to_filename(fileName)
+                fileName = PathOperations.pathname_to_filename(fileName)
 
         # Filter the output with the search string.
         if searchString and searchString not in fileName.lower():

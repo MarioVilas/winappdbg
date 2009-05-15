@@ -2174,16 +2174,22 @@ When called as an instance method, the fuzzy syntax mode is used::
         if module:
             modobj = self.get_module_by_name(module)
             if not modobj:
-                msg = "Module %s not found" % module
+                msg = "Module %r not found" % module
                 raise RuntimeError, msg
 
-            # Resolve the function.
+            # Resolve the exported function or debugging symbol.
+            # If all else fails, check for the special symbol "start".
             if function:
                 address = modobj.resolve(function)
                 if address is None:
-                    msg = "Function %s not found in module %s"
-                    msg = msg % (function, module)
-                    raise RuntimeError, msg
+                    address = modobj.resolve_symbol(function)
+                    if address is None:
+                        if function == "start":
+                            address = modobj.get_entry_point()
+                        if address is None:
+                            msg = "Symbol %r not found in module %s"
+                            msg = msg % (function, module)
+                            raise RuntimeError, msg
 
             # No function, use the base address.
             else:
@@ -2196,7 +2202,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                 if address is not None:
                     break
             if address is None:
-                msg = "Function %s not found in any module" % function
+                msg = "Function %r not found in any module" % function
                 raise RuntimeError, msg
 
         # Return the address plus the offset.
@@ -3917,12 +3923,11 @@ class Module (SymbolContainer):
         offset      = address - self.get_base()
 
         # Make the label relative to the entrypoint if no other match is found.
-        # Skip if the entry point is unknown or the module isn't an EXE file.
-        if module.lower().endswith('.exe'):
-            start = self.get_entry_point()
-            if start and start <= address:
-                function    = "start"
-                offset      = address - start
+        # Skip if the entry point is unknown.
+        start = self.get_entry_point()
+        if start and start <= address:
+            function    = "start"
+            offset      = address - start
 
         # Enumerate exported functions and debug symbols,
         # then find the closest match, if possible.
@@ -3931,7 +3936,7 @@ class Module (SymbolContainer):
             if symbol:
                 (SymbolName, SymbolAddress, SymbolSize) = symbol
                 new_offset = address - SymbolAddress
-                if new_offset < offset:
+                if new_offset <= offset:
                     function    = SymbolName
                     offset      = new_offset
         except WindowsError, e:
@@ -4313,11 +4318,18 @@ class Thread (ThreadDebugOperations):
 
         @see: L{set_context}
         """
-        self.suspend()
+        # Threads can't be suspended when the exit process event arrives.
+        # Funny thing is, you can still get the context. (?)
+        try:
+            self.suspend()
+            bSuspended = True
+        except WindowsError:
+            bSuspended = False
         try:
             return win32.GetThreadContext(self.get_handle(), ContextFlags)
         finally:
-            self.resume()
+            if bSuspended:
+                self.resume()
 
     def set_context(self, context):
         """

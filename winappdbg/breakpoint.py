@@ -1289,7 +1289,9 @@ class Hook (object):
                 event.debug.enable_one_shot_hardware_breakpoint(tid, params[0])
 
             # If not possible, set a one shot code breakpoint instead.
-            except RuntimeError:
+            except Exception, e:
+##                import traceback        # XXX DEBUG
+##                traceback.print_exc()
                 event.debug.stalk_at(event.get_pid(), params[0],
                                                   self.__postCallAction_codebp)
 
@@ -1788,27 +1790,19 @@ class BreakpointContainer (object):
         module  = event.get_module()
         for tid in process.iter_thread_ids():
             if self.__runningBP.has_key(tid):
-                bplist = self.__runningBP[tid]
-                index  = 0
-                while index < len(bplist):
-                    bp = bplist[index]
+                bplist = list(self.__runningBP[tid])
+                for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
                         bp.disable()
-                        del bplist[index]
-                    else:
-                        index += 1
+                        self.__runningBP[tid].remove(bp)
             if self.__hardwareBP.has_key(tid):
-                bplist = self.__hardwareBP[tid]
-                index  = 0
-                while index < len(bplist):
-                    bp = bplist[index]
+                bplist = list(self.__hardwareBP[tid])
+                for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
                         bp.disable()
-                        del bplist[index]
-                    else:
-                        index += 1
+                        self.__hardwareBP[tid].remove(bp)
         for (bp_pid, bp_address) in self.__codeBP.keys():
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
