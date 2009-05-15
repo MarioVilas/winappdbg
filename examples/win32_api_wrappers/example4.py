@@ -30,7 +30,6 @@
 # Example #4
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example4:enumeratingmodulesusingtheToolhelplibrary
 
-from winappdbg import Handle
 from winappdbg.win32 import *
 
 def print_modules( pid ):
@@ -40,9 +39,6 @@ def print_modules( pid ):
 
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
-
-    # Wrap the handle to make sure it's closed when we finish working with it
-    hSnapshot = Handle(hSnapshot)
 
     # Enumerate the modules
     module = Module32First( hSnapshot )
@@ -55,6 +51,9 @@ def print_modules( pid ):
 
         # Next module in the process
         module = Module32Next( hSnapshot )
+
+    # No need to call CloseHandle, the handle is closed automatically when it goes out of scope
+    return
 
 # When invoked from the command line,
 # take the first argument as a process id

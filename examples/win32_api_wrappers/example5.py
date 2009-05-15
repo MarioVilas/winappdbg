@@ -30,7 +30,6 @@
 # Example #5
 # http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example5:enumeratingdevicedrivers
 
-from winappdbg import Handle
 from winappdbg.win32 import *
 
 def print_drivers( fFullPath = False ):
