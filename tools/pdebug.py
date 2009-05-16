@@ -1822,11 +1822,11 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         # Queue the start commands, if needed
         for cmdline in self.options.windowed:
-            self.cmdqueue.append( 'execute %s' % cmdline )
+            self.cmdqueue.append( 'windowed %s' % cmdline )
 
         # Queue the startc commands, if needed
         for cmdline in self.options.console:
-            self.cmdqueue.append( 'startc %s' % cmdline )
+            self.cmdqueue.append( 'console %s' % cmdline )
 
         # Queue the go command, if other commands were queued before
         if len(self.cmdqueue) > 0:
