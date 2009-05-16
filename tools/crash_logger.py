@@ -431,7 +431,7 @@ def parse_cmdline(argv):
     # Get the list of console programs to execute
     console_targets = list()
     for token in options.console:
-        vector = aystem.cmdline_to_argv(token)
+        vector = system.cmdline_to_argv(token)
         if not vector:
             parser.error("bad use of --console")
         filename = vector[0]
@@ -461,6 +461,10 @@ def parse_cmdline(argv):
             token     = system.argv_to_cmdline(vector)
         windowed_targets.append(token)
     options.windowed = windowed_targets
+
+    # If no targets were set at all, show an error message
+    if not options.attach and not options.console and not options.windowed:
+        parser.error("no targets found!")
 
     # Get the list of breakpoints to set
     if options.break_at:
