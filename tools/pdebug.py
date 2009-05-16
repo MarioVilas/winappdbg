@@ -824,6 +824,9 @@ class ConsoleDebugger (Cmd, EventHandler):
     # The prefix is removed from the line and stored in self.cmdprefix.
     def parseline(self, line):
         self.cmdprefix, line = self.split_prefix(line)
+        line = line.strip()
+        if line and line[0] == '.':
+            line = 'plugin ' + line[1:]
         cmd, arg, line = Cmd.parseline(self, line)
         if cmd:
             cmd = self.autocomplete(cmd)
@@ -1788,7 +1791,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             windowed    = [],
             autodetach  = True,
             follow      = True,
-            hostile     = True,
+            hostile     = False,
         )
 
         # Parse the command line
