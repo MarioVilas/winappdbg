@@ -39,9 +39,14 @@ pid = int( sys.argv[1] )
 
 # Instance a Debug object
 debug = Debug()
+try:
 
-# Attach to a running process
-debug.attach( pid )
+    # Attach to a running process
+    debug.attach( pid )
 
-# Wait for the debugee to finish
-debug.loop()
+    # Wait for the debugee to finish
+    debug.loop()
+
+# Stop the debugger
+finally:
+    debug.stop()

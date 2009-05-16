@@ -58,12 +58,17 @@ def simple_debugger( argv ):
 
     # Instance a Debug object, passing it the event handler callback
     debug = Debug( my_event_handler )
+    try:
 
-    # Start a new process for debugging
-    debug.execv( argv )
+        # Start a new process for debugging
+        debug.execv( argv )
 
-    # Wait for the debugee to finish
-    debug.loop()
+        # Wait for the debugee to finish
+        debug.loop()
+
+    # Stop the debugger
+    finally:
+        debug.stop()
 
 # When invoked from the command line,
 # the first argument is an executable file,

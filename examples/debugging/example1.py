@@ -36,9 +36,14 @@ import sys
 
 # Instance a Debug object
 debug = Debug()
+try:
 
-# Start a new process for debugging
-debug.execv( sys.argv[ 1 : ] )
+    # Start a new process for debugging
+    debug.execv( sys.argv[ 1 : ] )
 
-# Wait for the debugee to finish
-debug.loop()
+    # Wait for the debugee to finish
+    debug.loop()
+
+# Stop the debugger
+finally:
+    debug.stop()
