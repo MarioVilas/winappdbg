@@ -77,17 +77,22 @@ def simple_debugger( argv ):
 
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
+    try:
 
-    # Start a new process for debugging
-    debug.execv( argv )
+        # Start a new process for debugging
+        debug.execv( argv )
 
-    # If you start the new process like this instead, the
-    # debugger will automatically attach to the child processes
-    #
-    # debug.execv( argv, bFollow = True )
+        # If you start the new process like this instead, the
+        # debugger will automatically attach to the child processes
+        #
+        # debug.execv( argv, bFollow = True )
 
-    # Wait for the debugee to finish
-    debug.loop()
+        # Wait for the debugee to finish
+        debug.loop()
+
+    # Stop the debugger
+    finally:
+        debug.stop()
 
 
 # When invoked from the command line,
