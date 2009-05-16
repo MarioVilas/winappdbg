@@ -1612,9 +1612,14 @@ class BreakpointContainer (object):
     Encapsulates the capability to contain Breakpoint objects.
 
     @group Simple breakpoint use:
-        break_at, stalk_at, watch_variable, watch_buffer, hook_function,
-        dont_break_at, dont_stalk_at, dont_watch_variable, dont_watch_buffer,
-        unhook_function
+        break_at, watch_variable, watch_buffer, hook_function,
+        dont_break_at, dont_watch_variable, dont_watch_buffer,
+        dont_hook_function, unhook_function
+
+    @group Stalking:
+        stalk_at, stalk_variable, stalk_buffer, stalk_function,
+        dont_stalk_at, dont_stalk_variable, dont_stalk_buffer,
+        dont_stalk_function
 
     @group Symbols:
         resolve_label, resolve_exported_function
@@ -1647,6 +1652,7 @@ class BreakpointContainer (object):
         get_all_code_breakpoints,
         get_all_page_breakpoints,
         get_all_hardware_breakpoints,
+        get_process_breakpoints,
         get_process_code_breakpoints,
         get_process_page_breakpoints,
         get_process_hardware_breakpoints,

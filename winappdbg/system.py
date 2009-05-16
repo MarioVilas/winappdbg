@@ -33,9 +33,10 @@ Instrumentation module.
 @group Instrumentation:
     System, Process, Thread, Module
 @group Capabilities (private):
-    ModuleContainer, ThreadContainer, ProcessContainer,
+    ModuleContainer, ThreadContainer, ProcessContainer, SymbolContainer,
     ThreadDebugOperations, ProcessDebugOperations,
-    MemoryOperations, MemoryAddresses, SymbolOperations
+    MemoryOperations, MemoryAddresses, SymbolOperations, PathOperations,
+    SymbolEnumerator
 """
 
 # this module can be imported directly
@@ -942,7 +943,10 @@ class MemoryOperations (object):
     Encapsulates the capabilities to manipulate the memory of a process.
 
     @group Memory mapping:
-        get_memory_map, malloc, free, mprotect, mquery
+        get_memory_map, malloc, free, mprotect, mquery,
+        is_address_valid, is_address_free, is_address_reserved,
+        is_address_commited, is_address_readable, is_address_writeable,
+        is_address_executable, is_address_executable_and_writeable
 
     @group Memory read:
         read, read_char, read_uint, read_structure,
@@ -1606,11 +1610,17 @@ class MemoryOperations (object):
 #==============================================================================
 
 class SymbolEnumerator (object):
+    """
+    Internally used by L{SymbolContainer} to enumerate symbols in a module.
+    """
 
     def __init__(self):
         self.symbols = list()
 
     def __call__(self, SymbolName, SymbolAddress, SymbolSize, UserContext):
+        """
+        Callback that receives symbols and stores them in a Python list.
+        """
         self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
         return win32.TRUE
 
@@ -1631,6 +1641,10 @@ class SymbolContainer (object):
     # handle redirected exports (for example ws2_32!recv).
     # I haven't been able to reproduce the bug yet.
     def load_symbols(self):
+        """
+        Loads the debugging symbols for a module.
+        Automatically called by L{get_symbols}.
+        """
         hProcess    = self.get_process().get_handle()
         hFile       = self.hFile
         BaseOfDll   = self.get_base()
@@ -1657,23 +1671,67 @@ class SymbolContainer (object):
         self.__symbols = Enumerator.symbols
 
     def unload_symbols(self):
+        """
+        Unloads the debugging symbols for a module.
+        """
         self.__symbols = list()
 
     def get_symbols(self):
+        """
+        Returns the debugging symbols for a module.
+        The symbols are automatically loaded when needed.
+
+        @rtype:  list of tuple( str, int, int )
+        @return: List of symbols.
+            Each symbol is represented by a tuple that contains:
+                - Symbol name
+                - Symbol memory address
+                - Symbol size in bytes
+        """
         if not self.__symbols:
             self.load_symbols()
         return list(self.__symbols)
 
     def iter_symbols(self):
+        """
+        Returns an iterator for the debugging symbols in a module,
+        in no particular order.
+        The symbols are automatically loaded when needed.
+
+        @rtype:  iterator of tuple( str, int, int )
+        @return: Iterator of symbols.
+            Each symbol is represented by a tuple that contains:
+                - Symbol name
+                - Symbol memory address
+                - Symbol size in bytes
+        """
         if not self.__symbols:
             self.load_symbols()
         return self.__symbols.__iter__()
 
-    def resolve_symbol(self, symbol):
-        symbol = symbol.lower()
-        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
-            if symbol == SymbolName.lower():
-                return SymbolAddress
+    def resolve_symbol(self, symbol, bCaseSensitive = False):
+        """
+        Resolves a debugging symbol's address.
+
+        @type  symbol: str
+        @param symbol: Name of the symbol to resolve.
+
+        @type  bCaseSensitive: bool
+        @param bCaseSensitive: C{True} for case sensitive matches,
+            C{False} for case insensitive.
+
+        @rtype:  int or None
+        @return: Memory address of symbol. C{None} if not found.
+        """
+        if bCaseSensitive:
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                if symbol == SymbolName:
+                    return SymbolAddress
+        else:
+            symbol = symbol.lower()
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                if symbol == SymbolName.lower():
+                    return SymbolAddress
 
     def get_symbol_at_address(self, address):
         found = None
@@ -2314,6 +2372,7 @@ class ThreadDebugOperations (object):
     @group Stack:
         get_stack_frame, get_stack_frame_range,
         get_stack_range, get_stack_trace,
+        get_stack_trace_with_labels,
         read_stack_data, read_stack_dwords,
         peek_stack_data, peek_stack_dwords
 
@@ -4585,7 +4644,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         is_alive, is_debugged
 
     @group Instrumentation:
-        kill, wait, inject_code, inject_dll
+        kill, wait, suspend, resume, inject_code, inject_dll
 
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__

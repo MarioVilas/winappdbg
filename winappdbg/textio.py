@@ -31,6 +31,8 @@ Functions for text input, logging or text output.
 @group Input:
     HexInput
 @group Output:
+    HexOutput
+@group Logging:
     HexDump,
     CrashDump,
     DebugLog
