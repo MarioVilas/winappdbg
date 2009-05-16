@@ -39,30 +39,26 @@ def print_heap_blocks( pid ):
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPHEAPLIST, pid )
 
-    # Catch exceptions so we can call CloseHandle always before returning
-    try:
+    # Enumerate the heaps
+    heap = Heap32ListFirst( hSnapshot )
+    while heap is not None:
 
-        # Enumerate the heaps
-        heap = Heap32ListFirst( hSnapshot )
-        while heap is not None:
+        # For each heap, enumerate the entries
+        entry = Heap32First( heap.th32ProcessID, heap.th32HeapID )
+        while entry is not None:
 
-            # For each heap, enumerate the entries
-            entry = Heap32First( heap.th32ProcessID, heap.th32HeapID )
-            while entry is not None:
+            # Print the heap id and the entry address and size
+            print "%.8x\t%.8x\t%.8x" % \
+                  (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
 
-                # Print the heap id and the entry address and size
-                print "%.8x\t%.8x\t%.8x" % \
-                      (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
+            # Next entry in the heap
+            entry = Heap32Next( entry )
 
-                # Next entry in the heap
-                entry = Heap32Next( entry )
+        # Next heap in the list
+        heap = Heap32ListNext( hSnapshot )
 
-            # Next heap in the list
-            heap = Heap32ListNext( hSnapshot )
-
-    # Always call CloseHandle before returning, so we don't leak a handle
-    finally:
-        CloseHandle( hSnapshot )
+    # No need to call CloseHandle, the handle is closed automatically when it goes out of scope
+    return
 
 # When invoked from the command line,
 # take the first argument as a process id
