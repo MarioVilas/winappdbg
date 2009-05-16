@@ -85,6 +85,9 @@ The WinAppDbg project is currently hosted at Sourceforge, and can be found at:
 
     http://winappdbg.sourceforge.net/
 
+It's also hosted at the Python Package Index (PyPi):
+
+    http://pypi.python.org/pypi/winappdbg/1.2
 """
 
 # Get the list of scripts in the "tools" folder
@@ -116,7 +119,7 @@ params = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.1',
+    'version'           : '1.2',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
