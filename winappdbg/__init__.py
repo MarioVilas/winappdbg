@@ -34,15 +34,17 @@ Project: U{http://sourceforge.net/projects/winappdbg/}
 
 Web:     U{http://winappdbg.sourceforge.net/}
 
-Forum:   U{http://apps.sourceforge.net/phpbb/winappdbg/}
-
 Blog:    U{http://breakingcode.wordpress.com}
 
 @group Instrumentation: System, Process, Thread, Module
-@group Debugging: Debug, EventHandler
+@group Debugging: Debug, EventHandler, NoEvent, DebugRegister
 @group Crash reporting: Crash, CrashContainer, CrashDump
-@group Text input and output: HexInput, HexDump, DebugLog
+@group Text input and output: HexInput, HexOutput, HexDump, DebugLog
 @group Win32 API wrappers: win32, Handle, ProcessHandle, ThreadHandle, FileHandle
+@group Internal use: breakpoint, crash, debug, event, system, textio
+
+@type version: str
+@var  version: This WinAppDbg release version.
 """
 
 __revision__ = "$Id$"

@@ -59,6 +59,15 @@ class Crash (object):
     """
     Represents a crash, bug, or another interesting event in the debugee.
 
+    @group Key:
+        key
+
+    @group Report:
+        briefReport, fullReport, notesReport
+
+    @group Notes:
+        addNote, getNotes, iterNotes, hasNotes, clearNotes
+
     @type timeStamp: float
     @ivar timeStamp: Timestamp as returned by time.time().
 

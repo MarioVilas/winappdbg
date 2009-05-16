@@ -77,12 +77,13 @@ class Debug (EventDispatcher, BreakpointContainer):
         is_debugee, is_debugee_attached, is_debugee_started
 
     @group Debugging loop:
-        loop, next, wait, dispatch, cont
+        loop, next, wait, dispatch, cont, stop
 
     @group Event notifications (private):
         notify_create_process,
         notify_create_thread,
         notify_load_dll,
+        notify_unload_dll,
         notify_rip,
         notify_debug_control_c,
         notify_ms_vc_exception

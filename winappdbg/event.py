@@ -32,6 +32,7 @@ Event handling module.
 
 @group Event objects:
     Event,
+    NoEvent,
     CreateProcessEvent,
     CreateThreadEvent,
     ExitProcessEvent,
@@ -901,7 +902,7 @@ class EventHandler (object):
        Receives an L{ExceptionEvent} object and handles any exception for
        which no handler was defined. See above for exception handlers.
 
-     - U{unknown_exception}
+     - I{unknown_exception}
 
        Receives an L{ExceptionEvent} object and handles any exception unknown
        to the debugging engine. This usually happens for C++ exceptions, which
