@@ -89,8 +89,10 @@ class Crash (object):
     @type registers: dict( str S{->} int )
     @ivar registers: Dictionary mapping register names to their values.
 
-    @type registersPeek: dict( str S{->} str )
+    @type registersPeek: None or dict( str S{->} str )
     @ivar registersPeek: Dictionary mapping register names to the data they point to.
+
+        C{None} if unapplicable or unable to retrieve.
 
     @type labelPC: None or str
     @ivar labelPC: Label pointing to the program counter.
@@ -193,12 +195,6 @@ class Crash (object):
         @param event: Event object for crash.
         """
 
-        # TODO
-        # Not all event types need all this info.
-        # Review which events need what info and fetch only that.
-        # Maybe it could be user-defined too?
-        # The goal is to reduce the database size.
-
         self.timeStamp          = time.time()
 
         self.notes              = list()
@@ -210,9 +206,10 @@ class Crash (object):
         self.eventName          = event.get_event_name()
         self.pid                = event.get_pid()
         self.tid                = event.get_tid()
-        self.registers          = event.get_thread().get_context()
-        self.registersPeek      = thread.peek_pointers_in_registers()
+        self.registers          = thread.get_context()
+        self.labelPC            = process.get_label_at_address(self.pc)
 
+        self.registersPeek      = None
         self.debugString        = None
         self.exceptionCode      = None
         self.exceptionName      = None
@@ -220,7 +217,6 @@ class Crash (object):
         self.firstChance        = None
         self.modFileName        = None
         self.lpBaseOfDll        = None
-        self.labelPC            = None
         self.exceptionLabel     = None
         self.stackTrace         = None
         self.stackTracePC       = None
@@ -232,56 +228,68 @@ class Crash (object):
         self.faultPeek          = None
         self.faultDisasm        = None
 
-        if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
+        if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
+            self.debugString = event.get_debug_string()
+
+        elif self.eventCode in (win32.CREATE_PROCESS_DEBUG_EVENT,
+                                win32.EXIT_PROCESS_DEBUG_EVENT,
+                                win32.LOAD_DLL_DEBUG_EVENT,
+                                win32.UNLOAD_DLL_DEBUG_EVENT):
+            aModule = event.get_module()
+            self.modFileName = event.get_filename()
+            if not self.modFileName:
+                self.modFileName = aModule.get_filename()
+            self.lpBaseOfDll = event.get_module_base()
+            if not self.lpBaseOfDll:
+                self.lpBaseOfDll = aModule.get_base()
+
+        elif self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             self.exceptionCode          = event.get_exception_code()
             self.exceptionName          = event.get_exception_name()
             self.exceptionDescription   = event.get_exception_description()
             self.exceptionAddress       = event.get_exception_address()
             self.firstChance            = event.is_first_chance()
 
-        elif self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
-            self.debugString = event.get_debug_string()
+            self.registersPeek = thread.peek_pointers_in_registers()
 
-        aModule = process.get_module_at_address(self.pc)
-        if aModule is not None:
-            self.modFileName = aModule.get_filename()
-            self.lpBaseOfDll = aModule.get_base()
+            aModule = process.get_module_at_address(self.pc)
+            if aModule is not None:
+                self.modFileName = aModule.get_filename()
+                self.lpBaseOfDll = aModule.get_base()
 
-        self.labelPC        = process.get_label_at_address(self.pc)
-        self.exceptionLabel = process.get_label_at_address(
+            self.exceptionLabel = process.get_label_at_address(
                                                          self.exceptionAddress)
 
-        self.stackTrace     = thread.get_stack_trace()
-        stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
-        self.stackTracePC   = tuple(stackTracePC)
-        stackTraceLabels    = [ process.get_label_at_address(ra) \
-                                                  for ra in self.stackTracePC ]
-        self.stackTraceLabels = tuple(stackTraceLabels)
+            self.stackTrace     = thread.get_stack_trace()
+            stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
+            self.stackTracePC   = tuple(stackTracePC)
+            stackTraceLabels    = [ process.get_label_at_address(ra) \
+                                         for ra in self.stackTracePC ]
+            self.stackTraceLabels = tuple(stackTraceLabels)
 
-        try:
-            self.stackFrame = thread.get_stack_frame()
-            stackFrame = self.stackFrame
-        except Exception, e:
-            self.stackFrame = thread.peek_stack_data()
-            stackFrame = self.stackFrame[:64]
-        if stackFrame:
-            self.stackPeek = process.peek_pointers_in_data(stackFrame)
+            try:
+                self.stackFrame = thread.get_stack_frame()
+                stackFrame = self.stackFrame
+            except Exception, e:
+                self.stackFrame = thread.peek_stack_data()
+                stackFrame = self.stackFrame[:64]
+            if stackFrame:
+                self.stackPeek = process.peek_pointers_in_data(stackFrame)
 
-        self.faultCode = thread.peek_code_bytes()
+            self.faultCode   = thread.peek_code_bytes()
+            self.faultDisasm = thread.disassemble_around_pc(32)
 
-        self.faultDisasm = thread.disassemble_around_pc(32)
-
-        if self.pc != self.exceptionAddress and self.exceptionCode in (
-                    win32.EXCEPTION_ACCESS_VIOLATION,
-                    win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,
-                    win32.EXCEPTION_DATATYPE_MISALIGNMENT,
-                    win32.EXCEPTION_IN_PAGE_ERROR,
-                    win32.EXCEPTION_STACK_OVERFLOW,
-                    win32.EXCEPTION_GUARD_PAGE,
-                    ):
-            self.faultMem = process.peek(self.exceptionAddress, 64)
-            if self.faultMem:
-                self.faultPeek = process.peek_data(self.faultMem)
+            if self.pc != self.exceptionAddress and self.exceptionCode in (
+                        win32.EXCEPTION_ACCESS_VIOLATION,
+                        win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,
+                        win32.EXCEPTION_DATATYPE_MISALIGNMENT,
+                        win32.EXCEPTION_IN_PAGE_ERROR,
+                        win32.EXCEPTION_STACK_OVERFLOW,
+                        win32.EXCEPTION_GUARD_PAGE,
+                        ):
+                self.faultMem = process.peek(self.exceptionAddress, 64)
+                if self.faultMem:
+                    self.faultPeek = process.peek_data(self.faultMem)
 
     @property
     def pc(self):

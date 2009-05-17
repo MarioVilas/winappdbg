@@ -503,8 +503,10 @@ class ConsoleDebugger (Cmd, EventHandler):
             arg = self.default_display_target
         token_list              = self.split_tokens(arg, 1, 2)
         pid, tid, address, size = self.input_display(token_list)
+        label                   = self.get_process(pid).get_label_at_address(address)
         data                    = self.read_memory(address, size, pid)
         if data:
+            print "%s:" % label
             print method(data, address),
 
 #------------------------------------------------------------------------------
@@ -824,6 +826,9 @@ class ConsoleDebugger (Cmd, EventHandler):
     # The prefix is removed from the line and stored in self.cmdprefix.
     def parseline(self, line):
         self.cmdprefix, line = self.split_prefix(line)
+        line = line.strip()
+        if line and line[0] == '.':
+            line = 'plugin ' + line[1:]
         cmd, arg, line = Cmd.parseline(self, line)
         if cmd:
             cmd = self.autocomplete(cmd)
@@ -969,7 +974,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         count = self.lastEvent.debug.get_debugee_count()
         if count > 0:
             if count == 1:
-                msg = "There's one program still running."
+                msg = "There's a program still running."
             else:
                 msg = "There are %s programs still running." % count
             if not self.ask_user(msg):
@@ -1206,6 +1211,21 @@ class ConsoleDebugger (Cmd, EventHandler):
                 pid = self.lastEvent.get_pid()
                 if self.ask_user("You are about to kill the current process."):
                     self.kill_process(pid)
+
+    # XXX FIXME
+    # Fails because normal threads created by inject_dll are stopped
+    # when the process is being debugged. We need to create hidden threads
+    # using an undocumented API call.
+##    def do_modload(self, arg):
+##        """
+##        [~process] modload <filename.dll> - load a DLL module
+##        """
+##        filename = self.split_tokens(arg, 1, 1)[0]
+##        process  = self.get_process_from_prefix()
+##        try:
+##            process.inject_dll(filename)
+##        except RuntimeError:
+##            print "Can't inject module: %r" % filename
 
     def do_stack(self, arg):
         """
@@ -1636,7 +1656,21 @@ class ConsoleDebugger (Cmd, EventHandler):
                 value = self.input_register(arg)
                 if value is None:
                     raise CmdError, "unknown register: %s" % arg
-                print "%s: %s" % (arg.upper(), winappdbg.HexDump.address(value))
+                try:
+                    label   = None
+                    thread  = self.get_thread_from_prefix()
+                    process = thread.get_process()
+                    module  = process.get_module_at_address(value)
+                    if module:
+                        label = module.get_label_at_address(value)
+                except RuntimeError:
+                    label = None
+                reg = arg.upper()
+                val = winappdbg.HexDump.address(value)
+                if label:
+                    print "%s: %s (%s)" % (reg, val, label)
+                else:
+                    print "%s: %s" % (reg, val)
 
     do_r = do_register
 
@@ -1788,7 +1822,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             windowed    = [],
             autodetach  = True,
             follow      = True,
-            hostile     = True,
+            hostile     = False,
         )
 
         # Parse the command line

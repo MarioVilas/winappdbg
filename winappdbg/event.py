@@ -668,6 +668,35 @@ class ExitProcessEvent (Event):
         """
         return self.raw.u.ExitProcess.dwExitCode
 
+    def get_filename(self):
+        """
+        @rtype:  None or str
+        @return: Filename of the main module.
+            C{None} if the filename is unknown.
+        """
+        return self.get_module().get_filename()
+
+    def get_image_base(self):
+        """
+        @rtype:  int
+        @return: Base address of the main module.
+        """
+        return self.get_module_base()
+
+    def get_module_base(self):
+        """
+        @rtype:  int
+        @return: Base address of the main module.
+        """
+        return self.get_module().get_base()
+
+    def get_module(self):
+        """
+        @rtype:  L{Module}
+        @return: Main module of the process.
+        """
+        return self.get_process().get_main_module()
+
 #==============================================================================
 
 class LoadDLLEvent (Event):
@@ -764,6 +793,14 @@ class UnloadDLLEvent (Event):
         @return: Module object for the recently unloaded DLL.
         """
         return self.get_process().get_module( self.get_module_base() )
+
+    def get_filename(self):
+        """
+        @rtype:  None or str
+        @return: Filename of the recently unloaded DLL.
+            C{None} if the filename is unknown.
+        """
+        return self.get_module().get_filename()
 
 #==============================================================================
 

@@ -66,6 +66,7 @@ __all__ =   [
 import win32
 from textio import HexInput
 
+import re
 import os
 import sys
 import ctypes
@@ -2645,7 +2646,7 @@ class ThreadDebugOperations (object):
         """
         return self.get_process().peek(self.get_pc() + offset, size)
 
-    def peek_pointers_in_registers(self, peekSize = 16):
+    def peek_pointers_in_registers(self, peekSize = 16, context = None):
         """
         Tries to guess which values in the registers are valid pointers,
         and reads some data from them.
@@ -2653,18 +2654,34 @@ class ThreadDebugOperations (object):
         @type  peekSize: int
         @param peekSize: Number of bytes to read from each pointer found.
 
+        @type  context: dict( str S{->} int )
+        @param context: (Optional)
+            Dictionary mapping register names to their values.
+            If not given, the current thread context will be used.
+
         @rtype:  dict( str S{->} str )
         @return: Dictionary mapping register names to the data they point to.
         """
-        aProcess  = self.get_process()
-        registers = self.get_context(win32.CONTEXT_INTEGER)
-        data      = dict()
-        for (reg_name, reg_value) in registers.iteritems():
-            if reg_name != 'ContextFlags':
-                if reg_value & 0xFFFF0000:
-                    reg_data = aProcess.peek(reg_value, peekSize)
-                    if reg_data:
-                        data[reg_name] = reg_data
+        peekable_registers = (
+            'Eax', 'Ebx', 'Ecx', 'Edx', 'Esi', 'Edi', 'Ebp'
+        )
+        if not context:
+            context = self.get_context(win32.CONTEXT_CONTROL | \
+                                       win32.CONTEXT_INTEGER)
+        aProcess    = self.get_process()
+        data        = dict()
+        for (reg_name, reg_value) in context.iteritems():
+            if reg_name not in peekable_registers:
+                continue
+##            if reg_name == 'Ebp':
+##                stack_begin, stack_end = self.get_stack_range()
+##                print hex(stack_end), hex(reg_value), hex(stack_begin)
+##                if stack_begin and stack_end and stack_end < stack_begin and \
+##                   stack_begin <= reg_value <= stack_end:
+##                      continue
+            reg_data = aProcess.peek(reg_value, peekSize)
+            if reg_data:
+                data[reg_name] = reg_data
         return data
 
     # TODO
@@ -2801,6 +2818,25 @@ class ProcessDebugOperations (object):
         flush_instruction_cache, debug_break, peek_pointers_in_data
     """
 
+    __hexa_parameter = re.compile('0x[0-9A-Za-z]+')
+
+    def __fixup_labels(self, disasm):
+        for index in xrange(len(disasm)):
+            (address, size, text, dump) = disasm[index]
+            m = self.__hexa_parameter.search(text)
+            while m:
+                s, e = m.span()
+                value = text[s:e]
+                try:
+                    label = self.get_label_at_address( int(value, 0x10) )
+                except Exception, e:
+                    label = None
+                if label:
+                    text = text[:s] + label + text[e:]
+                    e = s + len(value)
+                m = self.__hexa_parameter.search(text, e)
+            disasm[index] = (address, size, text, dump)
+
     @staticmethod
     def disassemble_string(lpAddress, code):
         """
@@ -2840,8 +2876,10 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        data = self.read(lpAddress, dwSize)
-        return self.disassemble_string(lpAddress, data)
+        data   = self.read(lpAddress, dwSize)
+        disasm = self.disassemble_string(lpAddress, data)
+        self.__fixup_labels(disasm)
+        return disasm
 
     # FIXME
     # This algorithm really sucks, I've got to write a better one :P
@@ -2864,16 +2902,19 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        dwDelta = int(dwSize / 2)
-        addr_1 = lpAddress - dwDelta
-        addr_2 = lpAddress
-        size_1 = dwDelta
-        size_2 = dwSize - dwDelta
-        data_1 = self.read(addr_1, size_1)
-        data_2 = self.read(addr_2, size_2)
+        dwDelta  = int(dwSize / 2)
+        addr_1   = lpAddress - dwDelta
+        addr_2   = lpAddress
+        size_1   = dwDelta
+        size_2   = dwSize - dwDelta
+        data     = self.read(addr_1, dwSize)
+        data_1   = data[:size_1]
+        data_2   = data[size_1:]
         disasm_1 = self.disassemble_string(addr_1, data_1)
         disasm_2 = self.disassemble_string(addr_2, data_2)
-        return disasm_1 + disasm_2
+        disasm   = disasm_1 + disasm_2
+        self.__fixup_labels(disasm)
+        return disasm
 
     def disassemble_around_pc(self, dwThreadId, dwSize = 64):
         """
