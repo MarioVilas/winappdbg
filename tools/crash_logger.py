@@ -304,10 +304,10 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             aProcess = event.get_process()
             address  = event.get_exception_address()
-            if address == aProcess.get_system_breakpoint():
-                msg = "System breakpoint hit"
+            where    = self.__get_location(event, address)
+            if aProcess.is_system_defined_breakpoint(address):
+                msg = "System breakpoint hit (%s)" % where
             else:
-                where = self.__get_location(event, address)
                 msg = "Breakpoint event at %s" % where
             self.__log(event, msg)
 

@@ -195,13 +195,17 @@ class Crash (object):
         @param event: Event object for crash.
         """
 
+        # First of all, take the timestamp.
         self.timeStamp          = time.time()
 
+        # Notes are initially empty.
         self.notes              = list()
 
+        # Get the process and thread, but dont't store them in the DB.
         process                 = event.get_process()
         thread                  = event.get_thread()
 
+        # The following properties are always retrieved for all events.
         self.eventCode          = event.get_code()
         self.eventName          = event.get_event_name()
         self.pid                = event.get_pid()
@@ -209,6 +213,7 @@ class Crash (object):
         self.registers          = thread.get_context()
         self.labelPC            = process.get_label_at_address(self.pc)
 
+        # The following properties are only retrieved for some events.
         self.registersPeek      = None
         self.debugString        = None
         self.exceptionCode      = None
@@ -228,9 +233,13 @@ class Crash (object):
         self.faultPeek          = None
         self.faultDisasm        = None
 
+        # Get information for debug string events.
         if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
             self.debugString = event.get_debug_string()
 
+        # Get information for module load and unload events.
+        # For create and exit process events, get the information
+        # for the main module.
         elif self.eventCode in (win32.CREATE_PROCESS_DEBUG_EVENT,
                                 win32.EXIT_PROCESS_DEBUG_EVENT,
                                 win32.LOAD_DLL_DEBUG_EVENT,
@@ -243,23 +252,28 @@ class Crash (object):
             if not self.lpBaseOfDll:
                 self.lpBaseOfDll = aModule.get_base()
 
+        # Get information for exception events.
         elif self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
+
+            # Exception information.
             self.exceptionCode          = event.get_exception_code()
             self.exceptionName          = event.get_exception_name()
             self.exceptionDescription   = event.get_exception_description()
             self.exceptionAddress       = event.get_exception_address()
             self.firstChance            = event.is_first_chance()
+            self.exceptionLabel         = process.get_label_at_address(
+                                                         self.exceptionAddress)
 
+            # Data pointed to by registers.
             self.registersPeek = thread.peek_pointers_in_registers()
 
+            # Module that raised the exception.
             aModule = process.get_module_at_address(self.pc)
             if aModule is not None:
                 self.modFileName = aModule.get_filename()
                 self.lpBaseOfDll = aModule.get_base()
 
-            self.exceptionLabel = process.get_label_at_address(
-                                                         self.exceptionAddress)
-
+            # Stack trace.
             self.stackTrace     = thread.get_stack_trace()
             stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
             self.stackTracePC   = tuple(stackTracePC)
@@ -267,6 +281,7 @@ class Crash (object):
                                          for ra in self.stackTracePC ]
             self.stackTraceLabels = tuple(stackTraceLabels)
 
+            # Contents of the stack frame.
             try:
                 self.stackFrame = thread.get_stack_frame()
                 stackFrame = self.stackFrame
@@ -276,9 +291,12 @@ class Crash (object):
             if stackFrame:
                 self.stackPeek = process.peek_pointers_in_data(stackFrame)
 
+            # Code that raised the exception.
             self.faultCode   = thread.peek_code_bytes()
             self.faultDisasm = thread.disassemble_around_pc(32)
 
+            # For memory related exceptions, get the memory contents
+            # of the location that caused the exception to be raised.
             if self.pc != self.exceptionAddress and self.exceptionCode in (
                         win32.EXCEPTION_ACCESS_VIOLATION,
                         win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,

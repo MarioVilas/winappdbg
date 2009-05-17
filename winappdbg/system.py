@@ -1775,7 +1775,8 @@ class SymbolOperations (object):
         resolve_symbol, get_symbol_at_address
 
     @group Debugging:
-        get_system_breakpoint, get_user_breakpoint
+        get_system_breakpoint, get_user_breakpoint, get_breakin_breakpoint,
+        is_system_defined_breakpoint
     """
 
     def __init__(self):
@@ -2295,6 +2296,22 @@ When called as an instance method, the fuzzy syntax mode is used::
             label = self.parse_label(None, None, address)
         return label
 
+    def is_system_defined_breakpoint(self, address):
+        """
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  bool
+        @return: C{True} if the given address points to a system defined
+            breakpoint. System defined breakpoints are hardcoded into
+            system libraries.
+        """
+        return (
+            address == self.get_system_breakpoint() or \
+            address == self.get_user_breakpoint()   or \
+            address == self.get_breakin_breakpoint()
+        )
+
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
     # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
@@ -2308,8 +2325,6 @@ When called as an instance method, the fuzzy syntax mode is used::
         return self.resolve_label("ntdll!DbgBreakPoint")
 
     # I don't know when this breakpoint is actually used...
-    # Immediately after ntdll!DbgUserBreakPoint there's another hardcoded
-    # breakpoint, but it's not exported. I don't know when it's used either.
     def get_user_breakpoint(self):
         """
         @rtype:  int
@@ -2318,6 +2333,17 @@ When called as an instance method, the fuzzy syntax mode is used::
             Returns C{None} on error.
         """
         return self.resolve_label("ntdll!DbgUserBreakPoint")
+
+    # This breakpoint can only be resolved when the
+    # debugging symbols for ntdll.dll are loaded.
+    def get_breakin_breakpoint(self):
+        """
+        @rtype:  int
+        @return: Memory address of the remote breakin breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        return self.resolve_label("ntdll!DbgUiRemoteBreakin")
 
     def load_symbols(self):
         for aModule in self.iter_modules():
@@ -2372,14 +2398,15 @@ class ThreadDebugOperations (object):
 
     @group Stack:
         get_stack_frame, get_stack_frame_range,
-        get_stack_range, get_stack_trace,
-        get_stack_trace_with_labels,
+        get_stack_limits, get_stack_range,
+        get_stack_trace, get_stack_trace_with_labels,
         read_stack_data, read_stack_dwords,
         peek_stack_data, peek_stack_dwords
 
     @group Miscellaneous:
         read_code_bytes, peek_code_bytes,
-        peek_pointers_in_data, peek_pointers_in_registers
+        peek_pointers_in_data, peek_pointers_in_registers,
+        get_linear_address
     """
 
     # TODO
@@ -2398,13 +2425,65 @@ class ThreadDebugOperations (object):
         aProcess = self.get_process()
         return aProcess.read_structure(tbi.TebBaseAddress, win32.TEB)
 
+    def get_linear_address(self, segment, address):
+        """
+        Translates segment-relative addresses to linear addresses.
+
+        Linear addresses can be used to access a process memory,
+        calling L{Process.read} and L{Process.write}.
+
+        @type  segment: str
+        @param segment: Segment register name.
+
+        @type  address: int
+        @param address: Segment relative memory address.
+
+        @rtype:  int
+        @return: Linear memory address.
+        """
+        selector = self.get_register(segment)
+        ldt      = win32.GetThreadSelectorEntry(self.get_handle(), selector)
+        BaseLow  = ldt.BaseLow
+        BaseMid  = ldt.HighWord.Bytes.BaseMid << 16
+        BaseHi   = ldt.HighWord.Bytes.BaseHi  << 24
+        Base     = BaseLow | BaseMid | BaseHi
+        LimitLow = ldt.LimitLow
+        LimitHi  = ldt.HighWord.Bits.LimitHi  << 16
+        Limit    = LimitLow | LimitHi
+        if address > Limit:
+            raise ValueError, "Address too large for selector: %r" % address
+        return Base + address
+
+    def get_seh_chain(self):
+        """
+        @rtype:  list of tuple( int, int )
+        @return: List of structured exception handlers.
+            Each SEH is represented as a tuple of two addresses:
+                - Address of the SEH block
+                - Address of the SEH callback function
+        """
+        process   = self.get_process()
+        seh_chain = list()
+        try:
+            seh = process.read_uint( self.get_linear_address('SegFs', 0) )
+            while seh != 0xFFFFFFFF:
+                seh_func = process.read_uint( seh + 4 )
+                seh_chain.append( (seh, seh_func) )
+                seh = process.read_uint( seh )
+        except WindowsError, e:
+            print str(e)
+            pass
+        return seh_chain
+
     def get_stack_range(self):
         """
         @rtype:  tuple( int, int )
-        @return: Stack base pointer and stack limit pointer.
+        @return: Stack beginning and end pointers, in memory addresses order.
         """
-        teb = self.get_teb()
-        return (teb.NtTib.StackBase, teb.NtTib.StackLimit)
+        process = self.get_process()
+        begin   = process.read_uint( self.get_linear_address('SegFs', 8) )
+        end     = process.read_uint( self.get_linear_address('SegFs', 4) )
+        return (begin, end)
 
     def __get_stack_trace(self, depth = 16, bUseLabels = True):
         """
@@ -2960,8 +3039,9 @@ class ProcessDebugOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        # I wonder which thread actually raises the exception when we do this.
-        # Maybe a hidden thread created by the system when we attach?
+        # The exception is raised by a new thread.
+        # When continuing the exception, the thread dies by itself.
+        # This thread is hidden from the debugger.
         win32.DebugBreakProcess(self.get_handle())
 
 #------------------------------------------------------------------------------
