@@ -72,8 +72,6 @@ import sys
 import ctypes
 import struct
 
-##import traceback
-
 try:
     from distorm import Decode
 except ImportError:
@@ -3129,11 +3127,7 @@ class ProcessDebugOperations (object):
             try:
                 aModule = self.get_main_module()
                 name    = aModule.get_filename()
-            except KeyError:
-                name = None
-            except AttributeError:
-                name = None
-            except WindowsError:
+            except (KeyError, AttributeError, WindowsError):
                 name = None
 
         # method 2: QueryFullProcessImageName()
@@ -3141,9 +3135,7 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 name = win32.QueryFullProcessImageName(self.get_handle())
-            except AttributeError:
-                name = None
-            except WindowsError:
+            except (AttributeError, WindowsError):
                 name = None
 
         # method 3: GetProcessImageFileName()
@@ -3153,10 +3145,9 @@ class ProcessDebugOperations (object):
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
                 name = PathOperations.native_to_win32_pathname(name)
-            except AttributeError:
-                name = None
-            except WindowsError:
-                name = None
+            except (AttributeError, WindowsError):
+                if not name:
+                    name = None
 
         # method 4: GetModuleFileNameEx()
         # not implemented until Windows 2000.
@@ -3168,10 +3159,9 @@ class ProcessDebugOperations (object):
                 #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
                 name = PathOperations.native_to_win32_pathname(name)
-            except AttributeError:
-                name = None
-            except WindowsError:
-                name = None
+            except (AttributeError, WindowsError):
+                if not name:
+                    name = None
 
 ##        # method 5: NtQueryInformationProcess(ProcessImageFileName)
 ##        # not implemented in W2K.
@@ -3181,10 +3171,7 @@ class ProcessDebugOperations (object):
 ##            try:
 ##                name = win32.NtQueryInformationProcess(self.get_handle(),
 ##                                                win32.ProcessImageFileName)
-##            except AttributeError:
-##                name = None
-##            except WindowsError, e:
-##                print e     # XXX
+##            except (AttributeError, WindowsError):
 ##                name = None
 
 ##        # method 6: PEB.ProcessParameters.ImagePathName
@@ -3196,9 +3183,7 @@ class ProcessDebugOperations (object):
 ##                                             win32.RTL_USER_PROCESS_PARAMETERS)
 ##                name = self.read(rupp.ImagePathName.Buffer,
 ##                                                     rupp.ImagePathName.Length)
-##            except AttributeError:
-##                name = None
-##            except WindowsError:
+##            except (AttributeError, WindowsError):
 ##                name = None
 
         # return the image filename, or None on error.
@@ -5391,9 +5376,7 @@ class System (ProcessContainer):
             # http://msdn.microsoft.com/en-us/library/ms679307.aspx
             win32.DebugSetProcessKillOnExit(bKillOnExit)
             return True
-        except AttributeError:
-            pass
-        except WindowsError, e:
+        except (AttributeError, WindowsError):
             pass
         return False
 
