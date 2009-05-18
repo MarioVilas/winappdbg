@@ -2516,7 +2516,8 @@ class ThreadDebugOperations (object):
         end     = process.read_uint( self.get_linear_address('SegFs', 4) )
         return (begin, end)
 
-    def __get_stack_trace(self, depth = 16, bUseLabels = True):
+    def __get_stack_trace(self, depth = 16, bUseLabels = True,
+                                                           bMakePretty = True):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
@@ -2555,13 +2556,11 @@ class ThreadDebugOperations (object):
                 if lib.fileName:
                     lib = lib.fileName
                 else:
-##                    lib = "Module at 0x%.08x" % lib.lpBaseOfDll
-                    lib = "0x%.08x" % lib.lpBaseOfDll
+                    lib = "0x%.8x" % lib.lpBaseOfDll
             if bUseLabels:
                 label = aProcess.get_label_at_address(ra)
-                mod, proc, off = aProcess.split_label(label)
-                if not proc:
-                    label = '0x%.8x' % ra
+                if bMakePretty:
+                    label = '0x%.8x (%s)' % (ra, label)
                 trace.append( (fp, label) )
             else:
                 trace.append( (fp, ra, lib) )
@@ -2582,13 +2581,21 @@ class ThreadDebugOperations (object):
         """
         return self.__get_stack_trace(depth, False)
 
-    def get_stack_trace_with_labels(self, depth = 16):
+    def get_stack_trace_with_labels(self, depth = 16, bMakePretty = True):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
 
         @type  depth: int
         @param depth: Maximum depth of stack trace.
+
+        @type  bMakePretty: bool
+        @param bMakePretty:
+            C{True} for user readable labels,
+            C{False} for labels that can be passed to L{Process.resolve_label}.
+
+            "Pretty" labels look better when producing output for the user to
+            read, while pure labels are more useful programatically.
 
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread as a tuple of

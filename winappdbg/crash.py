@@ -149,7 +149,14 @@ class Crash (object):
     @type stackTrace: None or tuple of tuple( int, int, str )
     @ivar stackTrace:
         Stack trace of the current thread as a tuple of
-        ( return address, frame pointer, module filename ).
+        ( frame pointer, return address, module filename ).
+
+        C{None} or empty if unapplicable or unable to retrieve.
+
+    @type stackTracePretty: None or tuple of tuple( int, str )
+    @ivar stackTracePretty:
+        Stack trace of the current thread as a tuple of
+        ( frame pointer, return location ).
 
         C{None} or empty if unapplicable or unable to retrieve.
 
@@ -281,6 +288,7 @@ class Crash (object):
 
             # Stack trace.
             self.stackTrace     = thread.get_stack_trace()
+            self.stackTracePretty = thread.get_stack_trace_with_labels()
             stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
             self.stackTracePC   = tuple(stackTracePC)
             stackTraceLabels    = [ process.get_label_at_address(ra) \
@@ -450,7 +458,11 @@ class Crash (object):
 
         if self.stackTrace:
             msg += '\nStack trace:\n'
-            msg += CrashDump.dump_stack_trace(self.stackTrace)
+            if self.stackTracePretty:
+                msg += CrashDump.dump_stack_trace_with_labels(
+                                                         self.stackTracePretty)
+            else:
+                msg += CrashDump.dump_stack_trace(self.stackTrace)
 
         if self.stackFrame:
             if self.stackPeek:

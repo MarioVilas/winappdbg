@@ -842,6 +842,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     def preloop(self):
         self.default_disasm_target  = 'eip'
         self.default_display_target = 'eip'
+        self.last_display_command   = self.do_db
 
     # Put the prefix back in the command line.
     def get_lastcmd(self):
@@ -1556,6 +1557,17 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     do_u = do_disassemble
 
+    def do_d(self, arg):
+        """
+        [~thread] d <register> - show memory contents
+        [~thread] d <register-register> - show memory contents
+        [~thread] d <register> <size> - show memory contents
+        [~process] d <address> - show memory contents
+        [~process] d <address-address> - show memory contents
+        [~process] d <address> <size> - show memory contents
+        """
+        return self.last_display_command(arg)
+
     def do_db(self, arg):
         """
         [~thread] db <register> - show memory contents as bytes
@@ -1566,6 +1578,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] db <address> <size> - show memory contents as bytes
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock)
+        self.last_display_command = self.do_db
 
     def do_dw(self, arg):
         """
@@ -1577,6 +1590,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] dw <address> <size> - show memory contents as words
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_word)
+        self.last_display_command = self.do_dw
 
     def do_dd(self, arg):
         """
@@ -1588,6 +1602,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] dd <address> <size> - show memory contents as dwords
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_dword)
+        self.last_display_command = self.do_dd
 
     def do_dq(self, arg):
         """
@@ -1599,6 +1614,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] dq <address> <size> - show memory contents as qwords
         """
         self.print_memory_display(arg, winappdbg.HexDump.hexblock_qword)
+        self.last_display_command = self.do_dq
 
     # XXX TODO
     # Change the way the default is used with ds and du
@@ -1616,6 +1632,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         data                    = process.peek_string(address, False, size)
         if data:
             print repr(data)
+        self.last_display_command = self.do_ds
 
     def do_du(self, arg):
         """
@@ -1630,6 +1647,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         data                    = process.peek_string(address, True, size)
         if data:
             print repr(data)
+        self.last_display_command = self.do_du
 
     def do_register(self, arg):
         """

@@ -125,7 +125,17 @@ class Event (object):
         return self.raw.dwDebugEventCode
 
     # Compatibility with version 1.0
-    get_code = get_event_code
+    # XXX to be removed in version 1.3
+    def get_code(self):
+        """
+        Alias of L{get_event_code} for backwards compatibility
+        with WinAppDbg version 1.0.
+        Will be phased out in the next version.
+
+        @rtype:  int
+        @return: Debug event code as defined in the Win32 API.
+        """
+        return self.get_event_code()
 
     def get_pid(self):
         """
