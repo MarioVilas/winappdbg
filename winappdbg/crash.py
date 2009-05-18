@@ -149,7 +149,7 @@ class Crash (object):
     @type stackTrace: None or tuple of tuple( int, int, str )
     @ivar stackTrace:
         Stack trace of the current thread as a tuple of
-        ( return address, frame pointer, module filename ).
+        ( frame pointer, return address, module filename ).
 
         C{None} or empty if unapplicable or unable to retrieve.
 
@@ -158,8 +158,15 @@ class Crash (object):
 
         C{None} or empty if unapplicable or unable to retrieve.
 
-    @type stackTraceLabels: None or tuple( str... )
-    @ivar stackTraceLabels:
+    @type stackTraceWithLabels: None or tuple of tuple( int, str )
+    @ivar stackTraceWithLabels:
+        Stack trace of the current thread as a tuple of
+        ( frame pointer, return address label ).
+
+        C{None} or empty if unapplicable or unable to retrieve.
+
+    @type stackTraceLabelsOnly: None or tuple( str... )
+    @ivar stackTraceLabelsOnly:
         Tuple of labels pointing to the return addresses in the stack trace.
 
         C{None} or empty if unapplicable or unable to retrieve.
@@ -280,12 +287,14 @@ class Crash (object):
                 self.lpBaseOfDll = aModule.get_base()
 
             # Stack trace.
-            self.stackTrace     = thread.get_stack_trace()
-            stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
-            self.stackTracePC   = tuple(stackTracePC)
-            stackTraceLabels    = [ process.get_label_at_address(ra) \
-                                         for ra in self.stackTracePC ]
-            self.stackTraceLabels = tuple(stackTraceLabels)
+            self.stackTrace           = thread.get_stack_trace()
+            self.stackTraceWithLabels = thread.get_stack_trace_with_labels()
+            self.stackTracePC         = tuple( [ ra for (fp, ra, lib)  \
+                                                    in self.stackTrace ] )
+            self.stackTraceLabelsOnly = tuple(
+                                        [ process.get_label_at_address(ra) \
+                                          for ra in self.stackTracePC ]
+                                          )
 
             # Contents of the stack frame.
             try:
@@ -314,6 +323,26 @@ class Crash (object):
                 self.faultMem = process.peek(self.exceptionAddress, 64)
                 if self.faultMem:
                     self.faultPeek = process.peek_data(self.faultMem)
+
+    # XXX To be removed in version 1.3
+    def __get_stackTraceLabels(self):
+        return self.stackTraceLabelsOnly
+    def __set_stackTraceLabels(self, value):
+        self.stackTraceLabelsOnly = value
+    def __del_stackTraceLabels(self, value):
+        del self.stackTraceLabelsOnly
+    __doc_stackTraceLabels = """
+Alias of L{stackTraceLabelsOnly} for backwards compatibility
+with WinAppDbg 1.1 and prior.
+Will be phased out in the next version.
+
+@rtype: None or tuple( str... )
+"""
+    stackTraceLabels = property(
+                       __get_stackTraceLabels,
+                       __set_stackTraceLabels,
+                       __del_stackTraceLabels,
+                       __doc_stackTraceLabels)
 
     @property
     def pc(self):
@@ -450,7 +479,10 @@ class Crash (object):
 
         if self.stackTrace:
             msg += '\nStack trace:\n'
-            msg += CrashDump.dump_stack_trace(self.stackTrace)
+            if self.stackTraceWithLabels:
+                msg += CrashDump.dump_stack_trace_with_labels(self.stackTraceWithLabels)
+            else:
+                msg += CrashDump.dump_stack_trace(self.stackTrace)
 
         if self.stackFrame:
             if self.stackPeek:
