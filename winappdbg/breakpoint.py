@@ -892,7 +892,9 @@ class PageBreakpoint (Breakpoint):
         Breakpoint.__init__(self, address, pages * System.pageSize,  condition,
                                                                         action)
 ##        if (address & 0x00000FFF) != 0:
-        if long(address) / System.pageSize != float(address) / System.pageSize:
+        floordiv_align = long(address) // long(System.pageSize)
+        truediv_align  = float(address) / float(System.pagesize)
+        if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
                     "(value 0x%.08x received)" % address
@@ -904,7 +906,7 @@ class PageBreakpoint (Breakpoint):
         @return: The size in pages of the breakpoint.
         """
         # The size is always a multiple of the page size.
-        return self.get_size() / System.pageSize
+        return self.get_size() // System.pageSize
 
     def __set_bp(self, aProcess):
         """

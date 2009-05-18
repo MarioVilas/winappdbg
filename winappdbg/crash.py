@@ -635,7 +635,7 @@ class CrashContainer (object):
         @rtype:  bool
         @return: C{True} if the Crash object is in the container.
         """
-        return crash.key() in self
+        return crash.key() in self.__keys
 
     def __iter__(self):
         """

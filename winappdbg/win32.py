@@ -4735,7 +4735,7 @@ def EnumDeviceDrivers():
     lpcbNeeded = DWORD(size)
     unit       = ctypes.sizeof(LPVOID)
     while 1:
-        lpImageBase = (LPVOID * int(size / unit))()
+        lpImageBase = (LPVOID * (size // unit))()
         success = ctypes.windll.psapi.EnumDeviceDrivers(ctypes.byref(lpImageBase), lpcbNeeded, ctypes.byref(lpcbNeeded))
         if success == FALSE:
             raise ctypes.WinError()
@@ -4743,7 +4743,7 @@ def EnumDeviceDrivers():
         if needed <= size:
             break
         size = needed
-    return [ lpImageBase[index] for index in xrange(0, int(needed / unit)) ]
+    return [ lpImageBase[index] for index in xrange(0, (needed // unit)) ]
 
 # BOOL WINAPI EnumProcesses(
 #   __out  DWORD *pProcessIds,
@@ -4755,7 +4755,7 @@ def EnumProcesses():
     cbBytesReturned = DWORD()
     unit            = ctypes.sizeof(DWORD)
     while 1:
-        ProcessIds = (DWORD * int(size / unit))()
+        ProcessIds = (DWORD * (size // unit))()
         cbBytesReturned.value = size
         success = ctypes.windll.psapi.EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
         if success == FALSE:
@@ -4782,7 +4782,7 @@ def EnumProcessModules(hProcess):
     lpcbNeeded = DWORD(size)
     unit = ctypes.sizeof(HMODULE)
     while 1:
-        lphModule = (HMODULE * int(size / unit))()
+        lphModule = (HMODULE * (size // unit))()
         success = ctypes.windll.psapi.EnumProcessModules(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded))
         if success == FALSE:
             raise ctypes.WinError()
@@ -4790,7 +4790,7 @@ def EnumProcessModules(hProcess):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, int(needed / unit)) ]
+    return [ lphModule[index] for index in xrange(0, int(needed // unit)) ]
 
 # BOOL WINAPI EnumProcessModulesEx(
 #   __in   HANDLE hProcess,
@@ -4804,7 +4804,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
     lpcbNeeded = DWORD(size)
     unit = ctypes.sizeof(HMODULE)
     while 1:
-        lphModule = (HMODULE * int(size / unit))()
+        lphModule = (HMODULE * (size // unit))()
         success = ctypes.windll.psapi.EnumProcessModulesEx(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded), dwFilterFlag)
         if success == FALSE:
             raise ctypes.WinError()
@@ -4812,7 +4812,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, int(needed / unit)) ]
+    return [ lphModule[index] for index in xrange(0, (needed // unit)) ]
 
 # DWORD WINAPI GetDeviceDriverBaseName(
 #   __in   LPVOID ImageBase,

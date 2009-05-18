@@ -921,7 +921,7 @@ class MemoryAddresses (object):
             size    = -size
             address = address - size
         begin, end = cls.align_address_range(address, address + size)
-        return (end - begin) / System.pageSize
+        return int(float(end - begin) / float(System.pageSize))
 
     @staticmethod
     def do_ranges_intersect(begin, end, old_begin, old_end):
@@ -3019,7 +3019,7 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        dwDelta  = int(dwSize / 2)
+        dwDelta  = int(float(dwSize) / 2.0)
         addr_1   = lpAddress - dwDelta
         addr_2   = lpAddress
         size_1   = dwDelta

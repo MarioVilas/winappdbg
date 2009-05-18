@@ -435,7 +435,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
             raised when detaching.
         """
-        # All these try / except/ finally blocks may be masking some errors,
+        # All these try / except / finally blocks may be masking some errors,
         # but this way we get a better cleanup. Like that battery-powered
         # rabbit, it just keeps going, and going, and going.
         try:
