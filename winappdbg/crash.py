@@ -53,6 +53,12 @@ try:
 except ImportError:
     import pickle
 
+try:
+    from pickletools import optimize
+except ImportError:
+    def optimize(picklestring):
+        return picklestring
+
 #==============================================================================
 
 class Crash (object):
@@ -747,7 +753,9 @@ class CrashContainer (object):
         """
         if self.__keys.has_key(key):
             return self.__keys[key]
-        return pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+        key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+        key = optimize(key)
+        return key
 
     def __unmarshall_key(self, key):
         """
@@ -772,6 +780,7 @@ class CrashContainer (object):
         @return: Converted object.
         """
         value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        value = optimize(value)
         return zlib.compress(value, zlib.Z_BEST_COMPRESSION)
 
     def __unmarshall_value(self, value):
