@@ -45,7 +45,7 @@ try:
     _names = anydbm._names
 except NameError:
     _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
-dbnames = []
+dbnames = ['anydbm', 'whichdb']
 for name in _names:
     try:
         __import__(name)
@@ -99,7 +99,7 @@ options = {
         'dist_dir'      :   'dist/py2exe',
         'optimize'      :   2,
         'compressed'    :   1,
-        'packages'      :   ['encodings', 'anydbm', 'whichdb'] + dbnames,
+        'packages'      :   ['encodings'] + dbnames,
         'excludes'      :   [
                             'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
                             'calendar', 'socket', 'pyreadline'
