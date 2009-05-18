@@ -773,7 +773,12 @@ class ConsoleDebugger (Cmd, EventHandler):
         msg = set()
         for name in commands:
             if name != 'do_help':
-                for x in getattr(self, name).__doc__.split('\n'):
+                try:
+                    doc = getattr(self, name).__doc__.split('\n')
+                except Exception:
+                    return ( "No help available when Python"
+                             " is run with the -OO switch." )
+                for x in doc:
                     x = x.strip()
                     if x:
                         msg.add('  %s' % x)

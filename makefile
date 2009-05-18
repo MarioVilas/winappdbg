@@ -46,8 +46,9 @@ install:
 
 
 # Build the tools
+# Don't use the -OO switch here, it breaks pdebug.py
 py2exe:
-	python -OO setup.py py2exe
+	python -O setup.py py2exe
 
 
 # Compress with UPX
