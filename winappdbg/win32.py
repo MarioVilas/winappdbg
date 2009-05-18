@@ -46,7 +46,7 @@ Union       = ctypes.Union
 
 class Handle (object):
     """
-    Encapsulates win32 handles to avoid leaking them.
+    Encapsulates Win32 handles to avoid leaking them.
 
     @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
     """
@@ -58,8 +58,8 @@ class Handle (object):
 
         @type  bOwnership: bool
         @param bOwnership:
-           True if we own the handle and we need to close it.
-           False if someone else will be calling L{CloseHandle}.
+           C{True} if we own the handle and we need to close it.
+           C{False} if someone else will be calling L{CloseHandle}.
         """
         super(Handle, self).__init__()
         if aHandle is not None and type(aHandle) not in (type(0), type(0L)):
@@ -71,7 +71,7 @@ class Handle (object):
 
     def __del__(self):
         """
-        Closes the win32 handle when the python object is destroyed.
+        Closes the Win32 handle when the Python object is destroyed.
         """
         try:
             self.close()
@@ -80,16 +80,16 @@ class Handle (object):
 
     def __copy__(self):
         """
-        Duplicates the win32 handle when copying the python object.
+        Duplicates the Win32 handle when copying the Python object.
 
         @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
+        @return: A new handle to the same Win32 object.
         """
         return self.dup()
 
     def __deepcopy__(self):
         """
-        Duplicates the win32 handle when copying the python object.
+        Duplicates the Win32 handle when copying the Python object.
 
         @rtype:  L{Handle}
         @return: A new handle to the same win32 object.
@@ -114,7 +114,7 @@ class Handle (object):
 
     def close(self):
         """
-        Closes the win32 handle.
+        Closes the Win32 handle.
         """
         if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
             try:
@@ -125,14 +125,14 @@ class Handle (object):
     def dup(self):
         """
         @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
+        @return: A new handle to the same Win32 object.
         """
         hHandle = DuplicateHandle(self.value)
         return self.__class__(hHandle, bOwnership = True)
 
     def wait(self, dwMilliseconds = None):
         """
-        Wait for the win32 object to be signaled.
+        Wait for the Win32 object to be signaled.
 
         @type  dwMilliseconds: int
         @param dwMilliseconds: (Optional) Timeout value in milliseconds.
@@ -183,7 +183,7 @@ class FileHandle (Handle):
 
     def get_filename(self):
         """
-        @rtype:  str, None
+        @rtype:  None or str
         @return: Name of the open file, or C{None} on error.
         """
 
@@ -304,10 +304,6 @@ EXCEPTION_NONCONTINUABLE        = 0x1       # Noncontinuable exception
 EXCEPTION_MAXIMUM_PARAMETERS    = 15        # maximum number of exception parameters
 MAXIMUM_WAIT_OBJECTS            = 64        # Maximum number of wait objects
 MAXIMUM_SUSPEND_COUNT           = 0x7f      # Maximum times thread can be suspended
-
-HW_ACCESS                       = 0x00000003
-HW_EXECUTE                      = 0x00000000
-HW_WRITE                        = 0x00000001
 
 FORMAT_MESSAGE_ALLOCATE_BUFFER  = 0x00000100
 FORMAT_MESSAGE_FROM_SYSTEM      = 0x00001000
@@ -2520,6 +2516,18 @@ class CONTEXT(Structure):
     def __iter__(self):
         return self.__ContextIterator(self)
 
+    @classmethod
+    def from_dict(cls, ctx):
+        'Instance a new CONTEXT from a Python dictionary.'
+        ctx = dict(ctx)
+        if ctx.has_key('ExtendedRegisters'):
+            ExtendedRegistersList = ctx['ExtendedRegisters']
+            ExtendedRegisters = (BYTE * MAXIMUM_SUPPORTED_EXTENSION)()
+            for index in xrange(len(ExtendedRegistersList)):
+                ExtendedRegisters[index] = BYTE(ExtendedRegistersList[index])
+            ctx['ExtendedRegisters'] = ExtendedRegisters
+        return cls(**ctx)
+
     class __ContextIterator:
         'Iterator of CONTEXT structures.'
 
@@ -2991,7 +2999,7 @@ def CloseHandle(hHandle):
 #   __in   BOOL bInheritHandle,
 #   __in   DWORD dwOptions
 # );
-def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHandle = None, dwDesiredAccess = STANDARD_RIGHTS_ALL, bInheritHandle = FALSE, dwOptions = DUPLICATE_SAME_ACCESS):
+def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHandle = None, dwDesiredAccess = STANDARD_RIGHTS_ALL, bInheritHandle = False, dwOptions = DUPLICATE_SAME_ACCESS):
     if hSourceProcessHandle is None:
         hSourceProcessHandle = GetCurrentProcess()
     if hTargetProcessHandle is None:
@@ -4152,7 +4160,7 @@ def GetThreadContext(hThread, ContextFlags = CONTEXT_ALL):
 # );
 def SetThreadContext(hThread, lpContext):
     if not isinstance(lpContext, CONTEXT):
-        lpContext = CONTEXT(**lpContext)
+        lpContext = CONTEXT.from_dict(lpContext)
     success = ctypes.windll.kernel32.SetThreadContext(hThread, ctypes.byref(lpContext))
     if success == FALSE:
         raise ctypes.WinError()
@@ -4868,7 +4876,7 @@ def GetMappedFileNameA(hProcess, lpv):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetMappedFileNameA(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetMappedFileNameA(hProcess, lpv, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
@@ -4879,7 +4887,7 @@ def GetMappedFileNameW(hProcess, lpv):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetMappedFileNameW(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetMappedFileNameW(hProcess, lpv, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):

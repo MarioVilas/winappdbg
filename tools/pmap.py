@@ -50,16 +50,19 @@ def main():
         print "  %s <process.exe>..." % script
         return
 
-    System.request_debug_privileges()
+    s = System()
+    s.request_debug_privileges()
+    s.scan_processes()
 
     targets = set()
     for token in sys.argv[1:]:
         try:
             pid = HexInput.integer(token)
+            if not s.has_process(pid):
+                print "Process not found: %s" % token
+                return
             targets.add(pid)
-        except:
-            s = System()
-            s.scan_processes()
+        except ValueError:
             pl = s.find_processes_by_filename(token)
             if not pl:
                 print "Process not found: %s" % token
@@ -72,15 +75,17 @@ def main():
     targets.sort()
 
     for pid in targets:
-        process   = Process(pid)
-        fileName  = process.get_filename()
-        memoryMap = process.get_memory_map()
+        process         = Process(pid)
+        fileName        = process.get_filename()
+        memoryMap       = process.get_memory_map()
+        mappedFilenames = process.get_mapped_filenames()
         if fileName:
             print "Memory map for %d (%s):" % (pid, fileName)
         else:
             print "Memory map for %d:" % pid
         print
-        print CrashDump.dump_memory_map(memoryMap)
+##        print CrashDump.dump_memory_map(memoryMap),
+        print CrashDump.dump_memory_map(memoryMap, mappedFilenames),
 
 if __name__ == '__main__':
     try:

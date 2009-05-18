@@ -1608,6 +1608,40 @@ class MemoryOperations (object):
             currentAddr = mbi.BaseAddress + mbi.RegionSize
         return memoryMap
 
+    def get_mapped_filenames(self, memoryMap = None):
+        """
+        Retrieves the filenames for memory mapped files in the debugee.
+
+        @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
+        @param memoryMap: (Optional) Memory map returned by L{get_memory_map}.
+            If not given, the current memory map is used.
+
+        @rtype:  dict( int S{->} str )
+        @return: Dictionary mapping memory addresses to file names.
+            Native filenames are converted to Win32 filenames when possible.
+        """
+        hProcess = self.get_handle()
+        if not memoryMap:
+            memoryMap = self.get_memory_map()
+        mappedFilenames = dict()
+        for mbi in memoryMap:
+
+            # this check is redundant, but it saves an API call
+            # just comment it out if it gives problems
+            if mbi.Type not in (win32.MEM_IMAGE, win32.MEM_MAPPED):
+                continue
+
+            baseAddress = mbi.BaseAddress
+            fileName    = ""
+            try:
+                fileName = win32.GetMappedFileName(hProcess, baseAddress)
+                fileName = PathOperations.native_to_win32_pathname(fileName)
+            except WindowsError, e:
+##                    print str(e)    # XXX DEBUG
+                pass
+            mappedFilenames[baseAddress] = fileName
+        return mappedFilenames
+
 #==============================================================================
 
 class SymbolEnumerator (object):
@@ -2397,8 +2431,7 @@ class ThreadDebugOperations (object):
         disassemble_string
 
     @group Stack:
-        get_stack_frame, get_stack_frame_range,
-        get_stack_limits, get_stack_range,
+        get_stack_frame, get_stack_frame_range, get_stack_range,
         get_stack_trace, get_stack_trace_with_labels,
         read_stack_data, read_stack_dwords,
         peek_stack_data, peek_stack_dwords
@@ -3717,7 +3750,7 @@ class ProcessContainer (object):
     def find_modules_by_name(self, fileName):
         """
         @rtype:  list( L{Module}... )
-        @return: List of Module objects that best match the given filename.
+        @return: List of Module objects found.
         """
         found = list()
         for aProcess in self.iter_processes():
@@ -3738,11 +3771,9 @@ class ProcessContainer (object):
                 found.append( (aProcess, aModule) )
         return found
 
-    def find_processes_by_filename(self, filename):
+    def __find_processes_by_filename(self, filename):
         """
-        @rtype:  list of tuple( L{Process}, str )
-        @return: List of processes matching the given main module filename.
-            Each tuple contains a Process object and it's filename.
+        Internally used by L{find_processes_by_filename}.
         """
         found    = list()
         filename = filename.lower()
@@ -3758,6 +3789,20 @@ class ProcessContainer (object):
                     imagename = PathOperations.pathname_to_filename(imagename)
                     if imagename.lower() == filename:
                         found.append( (aProcess, imagename) )
+        return found
+
+    def find_processes_by_filename(self, fileName):
+        """
+        @rtype:  list of tuple( L{Process}, str )
+        @return: List of processes matching the given main module filename.
+            Each tuple contains a Process object and it's filename.
+        """
+        found = self.__find_processes_by_filename(fileName)
+        if not found:
+            fn, ext = PathOperations.split_extension(fileName)
+            if not ext:
+                fileName = '%s.exe' % fn
+                found    = self.__find_processes_by_filename(fileName)
         return found
 
 #------------------------------------------------------------------------------
@@ -5051,6 +5096,12 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
         @type  lpParameter: int
         @param lpParameter: (Optional) Parameter to be pushed in the stack.
+
+        @rtype:  tuple( L{Thread}, int )
+        @return: The injected Thread object
+            and the memory address where the code was written.
+
+        @raise WindowsError: An exception is raised on error.
         """
 
         # Uncomment for debugging...
@@ -5088,9 +5139,13 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     # The shellcode should check for errors, otherwise it just crashes
     # when the DLL can't be loaded or the procedure can't be found.
     # On error the shellcode should execute an int3 instruction.
-    def inject_dll(self, dllname, procname = None, lpParameter = 0, dwTimeout = None):
+    def inject_dll(self, dllname, procname = None, lpParameter = 0,
+                                               bWait = True, dwTimeout = None):
         """
         Injects a DLL into the process memory.
+
+        @warning: Setting C{bWait} to C{True} when the process is frozen by a
+            debug event will cause a deadlock in your debugger.
 
         @see: L{inject_code}
 
@@ -5103,8 +5158,15 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @type  lpParameter: int
         @param lpParameter: (Optional) Parameter to the C{procname} procedure.
 
+        @type  bWait: bool
+        @param bWait: C{True} to wait for the process to finish.
+            C{False} to return immediately.
+
         @type  dwTimeout: int
         @param dwTimeout: (Optional) Timeout value in milliseconds.
+            Ignored if C{bWait} is C{False}.
+
+        @raise WindowsError: An exception is raised on error.
         """
 
         # Resolve kernel32.dll
@@ -5205,7 +5267,36 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         aThread.pInjectedMemory = None
 
         # Wait for the thread to finish.
-        aThread.wait(dwTimeout)
+        if bWait:
+            aThread.wait(dwTimeout)
+
+    def clean_exit(self, dwExitCode = 0, bWait = False, dwTimeout = None):
+        """
+        Injects a new thread to call ExitProcess().
+        Optionally waits for the injected thread to finish.
+
+        @warning: Setting C{bWait} to C{True} when the process is frozen by a
+            debug event will cause a deadlock in your debugger.
+
+        @type  dwExitCode: int
+        @param dwExitCode: Process exit code.
+
+        @type  bWait: bool
+        @param bWait: C{True} to wait for the process to finish.
+            C{False} to return immediately.
+
+        @type  dwTimeout: int
+        @param dwTimeout: (Optional) Timeout value in milliseconds.
+            Ignored if C{bWait} is C{False}.
+
+        @raise WindowsError: An exception is raised on error.
+        """
+        if not dwExitCode:
+            dwExitCode = 0
+        pExitProcess = self.resolve_label('kernel32!ExitProcess')
+        aThread = self.start_thread(pExitProcess, dwExitCode)
+        if bWait:
+            aThread.wait(dwTimeout)
 
 #------------------------------------------------------------------------------
 

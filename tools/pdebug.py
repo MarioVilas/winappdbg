@@ -623,7 +623,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         # Get the thread.
         if tid is None:
-            if self.lastEvent.get_debugee_count() <= 0:
+            if self.lastEvent.debug.get_debugee_count() <= 0:
                 raise CmdError, "no current process set"
             thread = self.lastEvent.get_thread()
         else:
@@ -652,7 +652,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
             # Integer 32 bits registers.
             if register in self.register_names:
-                register = token.title()                    # eax -> Eax
+                register = register.title()                 # eax -> Eax
 
             # Segment (16 bit) registers.
             if register in self.segment_names:
@@ -678,7 +678,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                 value    = ((value & 0x000000FF) << 8) | previous
 
             # Set the new context.
-            ctx.set(register, value)
+            ctx.__setitem__(register, value)
             thread.set_context(ctx)
 
         # Resume the thread.
@@ -1212,20 +1212,19 @@ class ConsoleDebugger (Cmd, EventHandler):
                 if self.ask_user("You are about to kill the current process."):
                     self.kill_process(pid)
 
-    # XXX FIXME
-    # Fails because normal threads created by inject_dll are stopped
-    # when the process is being debugged. We need to create hidden threads
-    # using an undocumented API call.
-##    def do_modload(self, arg):
-##        """
-##        [~process] modload <filename.dll> - load a DLL module
-##        """
-##        filename = self.split_tokens(arg, 1, 1)[0]
-##        process  = self.get_process_from_prefix()
-##        try:
-##            process.inject_dll(filename)
-##        except RuntimeError:
-##            print "Can't inject module: %r" % filename
+    # TODO: create hidden threads using undocumented API calls.
+    def do_modload(self, arg):
+        """
+        [~process] modload <filename.dll> - load a DLL module
+        """
+        filename = self.split_tokens(arg, 1, 1)[0]
+        process  = self.get_process_from_prefix()
+        try:
+            process.inject_dll(filename, bWait=False)
+        except RuntimeError:
+            print "Can't inject module: %r" % filename
+
+    # TODO: modunload
 
     def do_stack(self, arg):
         """
@@ -1688,12 +1687,34 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_find(self, arg):
         """
-        [process] find <string> - find the string in the process memory
+        [~process] f <string> - find the string in the process memory
+        [~process] find <string> - find the string in the process memory
         """
         if not arg:
             raise CmdError, "missing parameter: string"
         process = self.get_process_from_prefix()
         self.find_in_memory(arg, process)
+
+    do_f = do_find
+
+    def do_memory(self, arg):
+        """
+        [~process] m - show the process memory map
+        [~process] memory - show the process memory map
+        """
+        if arg:     # TODO: take min and max addresses
+            raise CmdError, "too many arguments"
+        process = self.get_process_from_prefix()
+        try:
+            memoryMap       = process.get_memory_map()
+            mappedFilenames = process.get_mapped_filenames()
+            print
+            print winappdbg.CrashDump.dump_memory_map(memoryMap, mappedFilenames)
+        except WindowsError, e:
+            msg = "can't get memory information for process (%d)"
+            raise CmdError, msg % process.get_pid()
+
+    do_m = do_memory
 
 #------------------------------------------------------------------------------
 # Event handling

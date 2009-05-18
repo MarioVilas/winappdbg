@@ -1028,40 +1028,53 @@ class CrashDump (object):
         return result
 
     @staticmethod
-    def dump_memory_map(memoryMap):
+    def dump_memory_map(memoryMap, mappedFilenames = None):
         """
-        Dump the memory map of a process.
+        Dump the memory map of a process. Optionally show the filenames for
+        memory mapped files as well.
 
         @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
         @param memoryMap: Memory map returned by L{Process.get_memory_map}.
+
+        @type  mappedFilenames: dict( int S{->} str )
+        @param mappedFilenames: (Optional) Memory mapped filenames
+            returned by L{Process.get_mapped_filenames}.
 
         @rtype:  str
         @return: Text suitable for logging.
         """
 
-        # Output the header of the table.
-        output = "Address   \tSize      \tState     \tAccess    \tType\n"
+        # Table header and row format.
+        if mappedFilenames:
+            fmt    = "%-8s %-8s %-8s %-8s %-8s %s\n"
+            header = ("Address", "Size", "State", "Access", "Type", "File")
+        else:
+            fmt    = "%-10s %-10s %-10s %-10s %-10s\n"
+            header = ("Address", "Size", "State", "Access", "Type")
+
+        # Output the table header.
+        output = fmt % header
 
         # For each memory block in the map...
         for mbi in memoryMap:
 
             # Address and size of memory block.
-            BaseAddress = "0x%.08x" % mbi.BaseAddress
-            RegionSize  = "0x%.08x" % mbi.RegionSize
+            BaseAddress = "%.8x" % mbi.BaseAddress
+            RegionSize  = "%.8x" % mbi.RegionSize
 
             # State (free or allocated).
             if   mbi.State == win32.MEM_RESERVE:
-                State   = "Reserved  "
+                State   = "Reserved"
             elif mbi.State == win32.MEM_COMMIT:
-                State   = "Commited  "
+                State   = "Commited"
             elif mbi.State == win32.MEM_FREE:
-                State   = "Free      "
+                State   = "Free"
             else:
                 State   = "Unknown   "
 
             # Page protection bits (R/W/X/G).
             if mbi.State != win32.MEM_COMMIT:
-                Protect = "          "
+                Protect = ""
             else:
     ##            Protect = "0x%.08x" % mbi.Protect
                 if   mbi.Protect & win32.PAGE_NOACCESS:
@@ -1094,23 +1107,25 @@ class CrashDump (object):
                     Protect += "W"
                 else:
                     Protect += "-"
-                Protect += "   "
 
             # Type (file mapping, executable image, or private memory).
             if   mbi.Type == win32.MEM_IMAGE:
-                Type    = "Image     "
+                Type    = "Image"
             elif mbi.Type == win32.MEM_MAPPED:
-                Type    = "Mapped    "
+                Type    = "Mapped"
             elif mbi.Type == win32.MEM_PRIVATE:
-                Type    = "Private   "
+                Type    = "Private"
             elif mbi.Type == 0:
-                Type    = "          "
+                Type    = ""
             else:
-                Type    = "Unknown   "
+                Type    = "Unknown"
 
             # Output a row in the table.
-            fmt = "%s\t%s\t%s\t%s\t%s\n"
-            output += fmt % ( BaseAddress, RegionSize, State, Protect, Type )
+            if mappedFilenames:
+                FileName = mappedFilenames.get(mbi.BaseAddress, '')
+                output += fmt % ( BaseAddress, RegionSize, State, Protect, Type, FileName)
+            else:
+                output += fmt % ( BaseAddress, RegionSize, State, Protect, Type )
 
         # Return the output table.
         return output

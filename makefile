@@ -30,7 +30,7 @@ UPX_OPT=-v --best --ultra-brute --compress-icons=0 --strip-relocs=0
 
 
 # Build everything
-all: doc dist
+all: clean doc dist
 
 # Generate the documentation
 docs: doc
