@@ -42,6 +42,12 @@ POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
 
+try:
+    callable
+except NameError:
+    def callable(obj):
+        return hasattr(obj, '__call__')
+
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
@@ -2520,7 +2526,7 @@ class CONTEXT(Structure):
     def from_dict(cls, ctx):
         'Instance a new CONTEXT from a Python dictionary.'
         ctx = dict(ctx)
-        if ctx.has_key('ExtendedRegisters'):
+        if 'ExtendedRegisters' in ctx:
             ExtendedRegistersList = ctx['ExtendedRegisters']
             ExtendedRegisters = (BYTE * MAXIMUM_SUPPORTED_EXTENSION)()
             for index in xrange(len(ExtendedRegistersList)):

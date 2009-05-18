@@ -1254,8 +1254,14 @@ class EventDispatcher (object):
             However you'll probably find it more convenient to use an instance
             of a subclass of L{EventHandler} here.
         """
-        if eventHandler is not None and not callable(eventHandler):
-            raise TypeError, "Invalid event handler"
+        if eventHandler is not None:
+            bCallable = hasattr(eventHandler, '__call__')
+            try:
+                bCallable = bCallable or callable(eventHandler)
+            except NameError:
+                pass    # "callable" doesn't exist in Python 3.x
+            if not bCallable:
+                raise TypeError, "Invalid event handler"
         self.__eventHandler = eventHandler
 
     def dispatch(self, event):

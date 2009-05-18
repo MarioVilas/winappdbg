@@ -1114,16 +1114,19 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError, "too many arguments"
         if self.cmdprefix:
             raise CmdError, "prefix not allowed"
-        system = self.lastEvent.debug.system
-        for pid in self.lastEvent.debug.get_debugee_pids():
-            if   pid == 0:
-                filename = "System Idle Process"
-            elif pid == 4:
-                filename = "System"
-            else:
-                filename = system.get_process(pid).get_filename()
-                filename = winappdbg.FileHandle.pathname_to_filename(filename)
-            print "%-12d: %s" % (pid, filename)
+        system   = self.lastEvent.debug.system
+        pid_list = self.lastEvent.debug.get_debugee_pids()
+        if pid_list:
+            print "Process ID   File name"
+            for pid in pid_list:
+                if   pid == 0:
+                    filename = "System Idle Process"
+                elif pid == 4:
+                    filename = "System"
+                else:
+                    filename = system.get_process(pid).get_filename()
+                    filename = winappdbg.PathOperations.pathname_to_filename(filename)
+                print "%-12d %s" % (pid, filename)
 
     do_pl = do_processlist
 
@@ -1141,13 +1144,16 @@ class ConsoleDebugger (Cmd, EventHandler):
                 name = thread.get_name()
                 print "%-12d %s" % (tid, name)
         else:
-            system = self.lastEvent.debug.system
-            for pid in self.lastEvent.debug.get_debugee_pids():
-                process = system.get_process(pid)
-                for thread in process.iter_threads():
-                    tid  = thread.get_tid()
-                    name = thread.get_name()
-                    print "%-12d %s" % (tid, name)
+            system   = self.lastEvent.debug.system
+            pid_list = self.lastEvent.debug.get_debugee_pids()
+            if pid_list:
+                print "Thread ID    Thread name"
+                for pid in pid_list:
+                    process = system.get_process(pid)
+                    for thread in process.iter_threads():
+                        tid  = thread.get_tid()
+                        name = thread.get_name()
+                        print "%-12d %s" % (tid, name)
 
     do_tl = do_threadlist
 

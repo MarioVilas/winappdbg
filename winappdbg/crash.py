@@ -635,7 +635,7 @@ class CrashContainer (object):
         @rtype:  bool
         @return: C{True} if the Crash object is in the container.
         """
-        return self.has_key( crash.key() )
+        return crash.key() in self
 
     def __iter__(self):
         """
@@ -667,7 +667,7 @@ class CrashContainer (object):
         @rtype:  bool
         @return: C{True} if a matching L{Crash} object is in the container.
         """
-        return self.__keys.has_key(key)
+        return key in self.__keys
 
     def iterkeys(self):
         """
@@ -763,7 +763,7 @@ class CrashContainer (object):
         @rtype:  str
         @return: Converted key.
         """
-        if self.__keys.has_key(key):
+        if key in self.__keys:
             return self.__keys[key]
         key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
         key = optimize(key)

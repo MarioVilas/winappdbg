@@ -94,9 +94,9 @@ class LoggingEventHandler(EventHandler):
         dwProcessId = event.get_pid()
         aModule     = event.get_module()
         for label in bplist:
-            if not self.labelsCache.has_key(dwProcessId):
+            if dwProcessId not in self.labelsCache:
                 self.labelsCache[dwProcessId] = dict()
-            if not self.labelsCache[dwProcessId].has_key(label):
+            if label not in self.labelsCache[dwProcessId]:
                 try:
                     address = aModule.resolve_label(label)
                 except ValueError, e:
@@ -195,7 +195,7 @@ class LoggingEventHandler(EventHandler):
 
         # Clear the labels cache for this process.
         dwProcessId = event.get_pid()
-        if self.labelsCache.has_key(dwProcessId):
+        if dwProcessId in self.labelsCache:
             del self.labelsCache[dwProcessId]
 
         # Log the event to standard output.

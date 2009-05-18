@@ -294,7 +294,7 @@ class ModuleContainer (object):
         @return: C{True} if the snapshot contains a
             L{Module} object with the given base address.
         """
-        return self.__moduleDict.has_key(lpBaseOfDll)
+        return lpBaseOfDll in self.__moduleDict
 
     def get_module(self, lpBaseOfDll):
         """
@@ -304,7 +304,7 @@ class ModuleContainer (object):
         @rtype:  L{Module}
         @return: Module object with the given base address.
         """
-        if not self.__moduleDict.has_key(lpBaseOfDll):
+        if lpBaseOfDll not in self.__moduleDict:
             msg = "Unknown DLL base address %.08x"
             msg = msg % lpBaseOfDll
             raise KeyError, msg
@@ -378,13 +378,13 @@ class ModuleContainer (object):
         modDict = dict(modDict)
 
         # modName is a base filename.
-        if modDict.has_key(modName):
+        if modName in modDict:
             return modDict[modName]
 
         # modName is a base filename without extension.
         filepart, extpart = PathOperations.split_extension(modName)
         if filepart and extpart and extpart.lower() == ".dll":
-            if modDict.has_key(filepart):
+            if filepart in modDict:
                 return modDict[filepart]
 
         # modName is a base address.
@@ -478,13 +478,13 @@ class ModuleContainer (object):
 ##            msg = "Expected Module, got %s instead" % typename
 ##            raise TypeError, msg
         lpBaseOfDll = aModule.get_base()
-##        if self.__moduleDict.has_key(lpBaseOfDll):
+##        if lpBaseOfDll in self.__moduleDict:
 ##            msg = "Module already exists: %d" % lpBaseOfDll
 ##            raise KeyError, msg
         self.__moduleDict[lpBaseOfDll] = aModule
 
     def __del_module(self, lpBaseOfDll):
-##        if not self.__moduleDict.has_key(lpBaseOfDll):
+##        if lpBaseOfDll not in self.__moduleDict:
 ##            msg = "Unknown base address %d" % lpBaseOfDll
 ##            raise KeyError, msg
         del self.__moduleDict[lpBaseOfDll]
@@ -616,14 +616,14 @@ class ThreadContainer (object):
 ##            msg = "Expected Thread, got %s instead" % typename
 ##            raise TypeError, msg
         dwThreadId = aThread.dwThreadId
-##        if self.__threadDict.has_key(dwThreadId):
+##        if dwThreadId in self.__threadDict:
 ##            msg = "Already have a Thread object with ID %d" % dwThreadId
 ##            raise KeyError, msg
         aThread.dwProcessId = self.get_pid()
         self.__threadDict[dwThreadId] = aThread
 
     def __del_thread(self, dwThreadId):
-##        if not self.__threadDict.has_key(dwThreadId):
+##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
 ##            raise KeyError, msg
         del self.__threadDict[dwThreadId]
@@ -637,7 +637,7 @@ class ThreadContainer (object):
         @return: C{True} if the snapshot contains a
             L{Thread} object with the given global ID.
         """
-        return self.__threadDict.has_key(dwThreadId)
+        return dwThreadId in self.__threadDict
 
     def get_thread(self, dwThreadId):
         """
@@ -647,7 +647,7 @@ class ThreadContainer (object):
         @rtype:  L{Thread}
         @return: Thread object with the given global ID.
         """
-        if not self.__threadDict.has_key(dwThreadId):
+        if dwThreadId not in self.__threadDict:
             msg = "Unknown thread ID: %d" % dwThreadId
             raise KeyError, msg
         return self.__threadDict[dwThreadId]
@@ -3317,13 +3317,13 @@ class ProcessContainer (object):
 ##            msg = "Expected Process, got %s instead" % typename
 ##            raise TypeError, msg
         dwProcessId = aProcess.dwProcessId
-##        if self.__processDict.has_key(dwProcessId):
+##        if dwProcessId in self.__processDict:
 ##            msg = "Process already exists: %d" % dwProcessId
 ##            raise KeyError, msg
         self.__processDict[dwProcessId] = aProcess
 
     def __del_process(self, dwProcessId):
-##        if not self.__processDict.has_key(dwProcessId):
+##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
 ##            raise KeyError, msg
         del self.__processDict[dwProcessId]
@@ -3337,7 +3337,7 @@ class ProcessContainer (object):
         @return: C{True} if the snapshot contains a
             L{Process} object with the given global ID.
         """
-        return self.__processDict.has_key(dwProcessId)
+        return dwProcessId in self.__processDict
 
     def get_process(self, dwProcessId):
         """
@@ -3347,7 +3347,7 @@ class ProcessContainer (object):
         @rtype:  L{Process}
         @return: Process object with the given global ID.
         """
-        if not self.__processDict.has_key(dwProcessId):
+        if dwProcessId not in self.__processDict:
             msg = "Unknown process ID %d" % dwProcessId
             raise KeyError, msg
         return self.__processDict[dwProcessId]
