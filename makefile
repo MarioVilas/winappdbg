@@ -22,8 +22,8 @@ SDIST_OPT=--formats=zip,bztar
 
 # Windows installer package options
 # (uncomment only for Python 2.6 to generate Vista-compatible installers)
-BDIST_UAC=
-#BDIST_UAC=--user-access-control auto
+#BDIST_UAC=
+BDIST_UAC=--user-access-control auto
 
 # UPX compressor options
 UPX_OPT=-v --best --ultra-brute --compress-icons=0 --strip-relocs=0
