@@ -41,10 +41,10 @@ __all__ =   [
                 'Debug',
             ]
 
-import win32
-from system import System, Process, Thread, Module
-from breakpoint import BreakpointContainer, CodeBreakpoint
-from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
+from . import win32
+from .system import System, Process, Thread, Module
+from .breakpoint import BreakpointContainer, CodeBreakpoint
+from .event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
 import sys
 import ctypes
@@ -139,7 +139,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     def __del__(self):
         try:
             self.stop()
-        except Exception, e:
+        except Exception as e:
             pass
 ##            traceback.print_exc()
 ##            print
@@ -463,7 +463,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             if not bIgnoreExceptions:
                 raise
 
-    def next(self):
+    def __next__(self):
         """
         Handles the next debug event.
 
@@ -520,7 +520,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             event handler raises an exception nobody catches.
         """
         while self.get_debugee_count() > 0:
-            self.next()
+            next(self)
 
     def get_debugee_count(self):
         """

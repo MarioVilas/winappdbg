@@ -74,7 +74,7 @@ class LoggingEventHandler(EventHandler):
 
     def __log(self, event, text):
         if self.options.verbose:
-            print DebugLog.log_event(event, text)
+            print(DebugLog.log_event(event, text))
 
     def __get_location(self, event, address):
         label = event.get_process().get_label_at_address(address)
@@ -99,11 +99,11 @@ class LoggingEventHandler(EventHandler):
             if label not in self.labelsCache[dwProcessId]:
                 try:
                     address = aModule.resolve_label(label)
-                except ValueError, e:
+                except ValueError as e:
                     address = None
-                except RuntimeError, e:
+                except RuntimeError as e:
                     address = None
-                except WindowsError, e:
+                except WindowsError as e:
                     address = None
                 if address is not None:
                     self.labelsCache[dwProcessId][label] = address
@@ -413,7 +413,7 @@ def parse_cmdline(argv):
                 process = Process(dwProcessId)
                 process.open_handle()
                 process.close_handle()
-            except WindowsError, e:
+            except WindowsError as e:
                 parser.error("can't open process %d: %s" % (dwProcessId, e))
             attach_targets.append(dwProcessId)
         else:
@@ -423,7 +423,7 @@ def parse_cmdline(argv):
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
-                except WindowsError, e:
+                except WindowsError as e:
                     parser.error("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append( process.get_pid() )
     options.attach = attach_targets
@@ -438,7 +438,7 @@ def parse_cmdline(argv):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError as e:
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector = ( filename, ) + vector[1:]
             token  = system.argv_to_cmdline(vector)
@@ -455,7 +455,7 @@ def parse_cmdline(argv):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError as e:
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
             token     = system.argv_to_cmdline(vector)
@@ -472,7 +472,7 @@ def parse_cmdline(argv):
             parser.error("breakpoint list file not found: %s" % options.break_at)
         try:
             options.break_at = HexInput.string_list_file(options.break_at)
-        except ValueError, e:
+        except ValueError as e:
             parser.error(str(e))
     else:
         options.break_at = list()
@@ -483,7 +483,7 @@ def parse_cmdline(argv):
             parser.error("one-shot breakpoint list file not found: %s" % options.stalk_at)
         try:
             options.stalk_at = HexInput.string_list_file(options.stalk_at)
-        except ValueError, e:
+        except ValueError as e:
             parser.error(str(e))
     else:
         options.stalk_at = list()
@@ -497,7 +497,7 @@ def main(args):
     (parser, options, args) = parse_cmdline(args)
 
     if options.verbose:
-        print DebugLog.log_text("Crash logger started, %s" % time.ctime())
+        print(DebugLog.log_text("Crash logger started, %s" % time.ctime()))
 
     # Create the event handler
     oldCrashCount = 0
@@ -538,7 +538,7 @@ def main(args):
             debug.stop(bIgnoreExceptions = options.ignore_errors)
         finally:
             if options.verbose:
-                print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
+                print(DebugLog.log_text("Crash logger stopped, %s" % time.ctime()))
 
 if __name__ == '__main__':
     try:

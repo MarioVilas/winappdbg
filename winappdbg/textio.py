@@ -48,7 +48,7 @@ __all__ =   [
                 'CrashDump',
             ]
 
-import win32
+from . import win32
 
 import time
 import struct
@@ -112,9 +112,9 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         data = ''
-        for i in xrange(0, len(token), 2):
+        for i in range(0, len(token), 2):
             x = token[i:i+2]
             d = int(x, 16)
             s = struct.pack('<B', d)
@@ -142,19 +142,19 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         regexp = ''
-        for i in xrange(0, len(token), 2):
+        for i in range(0, len(token), 2):
             x = token[i:i+2]
             if x == '??':
                 regexp += '.'
             elif x[0] == '?':
                 f = '\\x%%.1x%s' % x[1]
-                x = ''.join([ f % c for c in xrange(0, 0x10) ])
+                x = ''.join([ f % c for c in range(0, 0x10) ])
                 regexp = '%s[%s]' % (regexp, x)
             elif x[1] == '?':
                 f = '\\x%s%%.1x' % x[0]
-                x = ''.join([ f % c for c in xrange(0, 0x10) ])
+                x = ''.join([ f % c for c in range(0, 0x10) ])
                 regexp = '%s[%s]' % (regexp, x)
             else:
                 regexp = '%s\\x%s' % (regexp, x)
@@ -193,10 +193,10 @@ class HexInput (object):
             if line:
                 try:
                     value = cls.integer(line)
-                except ValueError, e:
+                except ValueError as e:
                     msg = "Error in line %d of %s: %s"
                     msg = msg % (count, filename, str(e))
-                    raise ValueError, msg
+                    raise ValueError(msg)
                 result.append(value)
         return result
 
@@ -264,7 +264,7 @@ class HexInput (object):
             if line:
                 try:
                     value = cls.integer(line)
-                except ValueError, e:
+                except ValueError as e:
                     value = line
                 result.append(value)
         return result
@@ -328,7 +328,7 @@ class HexOutput (object):
         """
         fd = open(filename, 'w')
         for integer in values:
-            print >> fd, cls.integer(integer)
+            print(cls.integer(integer), file=fd)
         fd.close()
 
     @classmethod
@@ -347,7 +347,7 @@ class HexOutput (object):
         """
         fd = open(filename, 'w')
         for string in values:
-            print >> fd, string
+            print(string, file=fd)
         fd.close()
 
     @classmethod
@@ -370,7 +370,7 @@ class HexOutput (object):
                 parsed = cls.integer(original)
             except TypeError:
                 parsed = repr(original)
-            print >> fd, parsed
+            print(parsed, file=fd)
         fd.close()
 
 #------------------------------------------------------------------------------
@@ -474,7 +474,7 @@ class HexDump (object):
         if len(data) & 1 != 0:
             data += '\0'
         return separator.join( [ '%.4x' % struct.unpack('<H', data[i:i+2])[0] \
-                                           for i in xrange(0, len(data), 2) ] )
+                                           for i in range(0, len(data), 2) ] )
 
     @staticmethod
     def hexa_dword(data, separator = ' '):
@@ -494,7 +494,7 @@ class HexDump (object):
         if len(data) & 3 != 0:
             data += '\0' * (4 - (len(data) & 3))
         return separator.join( [ '%.8x' % struct.unpack('<L', data[i:i+4])[0] \
-                                           for i in xrange(0, len(data), 4) ] )
+                                           for i in range(0, len(data), 4) ] )
 
     @staticmethod
     def hexa_qword(data, separator = ' '):
@@ -514,7 +514,7 @@ class HexDump (object):
         if len(data) & 7 != 0:
             data += '\0' * (8 - (len(data) & 7))
         return separator.join( [ '%.16x' % struct.unpack('<Q', data[i:i+8])[0]\
-                                           for i in xrange(0, len(data), 8) ] )
+                                           for i in range(0, len(data), 8) ] )
 
     @classmethod
     def hexline(cls, data, separator = ' ', width = None):
@@ -602,11 +602,11 @@ class HexDump (object):
         """
         result = ''
         if address is None:
-            for i in xrange(0, len(data), width):
+            for i in range(0, len(data), width):
                 result = '%s%s\n' % ( result, \
                              callback(data[i:i+width], *cb_args, **cb_kwargs) )
         else:
-            for i in xrange(0, len(data), width):
+            for i in range(0, len(data), width):
                 result = '%s%s: %s\n' % ( result, cls.address(address), \
                              callback(data[i:i+width], *cb_args, **cb_kwargs) )
                 address += width
@@ -846,7 +846,7 @@ class CrashDump (object):
         """
         if None in (registers, data):
             return ''
-        names = data.keys()
+        names = list(data.keys())
         names.sort()
         result = ''
         for reg_name in names:
@@ -873,7 +873,7 @@ class CrashDump (object):
         """
         if data is None:
             return ''
-        pointers = data.keys()
+        pointers = list(data.keys())
         pointers.sort()
         result = ''
         for offset in pointers:
@@ -894,7 +894,7 @@ class CrashDump (object):
         """
         if data is None:
             return ''
-        pointers = data.keys()
+        pointers = list(data.keys())
         pointers.sort()
         result = ''
         if pointers:

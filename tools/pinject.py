@@ -39,15 +39,15 @@ import sys
 from winappdbg import Process, System, HexInput
 
 def main():
-    print "Process DLL injector"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process DLL injector")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print()
 
     if len(sys.argv) != 3:
         script = os.path.basename(sys.argv[0])
-        print "Injects a DLL into a running process."
-        print "  %s <pid> <library.dll>" % script
-        print "  %s <process.exe> <library.dll>" % script
+        print("Injects a DLL into a running process.")
+        print("  %s <pid> <library.dll>" % script)
+        print("  %s <process.exe> <library.dll>" % script)
         return
 
     System.request_debug_privileges()
@@ -59,18 +59,18 @@ def main():
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
-            print "Process not found: %s" % sys.argv[1]
+            print("Process not found: %s" % sys.argv[1])
             return
         if len(pl) > 1:
-            print "Multiple processes found for %s" % sys.argv[1]
+            print("Multiple processes found for %s" % sys.argv[1])
             for p,n in pl:
-                print "\t%12d: %s" % (p,n)
+                print("\t%12d: %s" % (p,n))
             return
         pid = pl[0][0].get_pid()
-    print "Using PID %d (0x%x)" % (pid, pid)
+    print("Using PID %d (0x%x)" % (pid, pid))
 
     dll = sys.argv[2]
-    print "Using DLL %s" % dll
+    print("Using DLL %s" % dll)
 
     p = Process(pid)
     p.scan_modules()

@@ -63,8 +63,8 @@ __all__ =   [
                 'PathOperations',
             ]
 
-import win32
-from textio import HexInput
+from . import win32
+from .textio import HexInput
 
 import re
 import os
@@ -79,7 +79,7 @@ except ImportError:
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
         msg = ("diStorm is not installed or can't be found. "
         "Download it from: http://www.ragestorm.net/distorm/")
-        raise NotImplementedError, msg
+        raise NotImplementedError(msg)
 
 #==============================================================================
 
@@ -215,11 +215,11 @@ class PathOperations (object):
             if name.startswith("\\??\\"):
                 name = name[ 4: ]
             else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                for drive_number in range(ord('A'), ord('Z') + 1):
                     drive_letter = '%c:' % drive_number
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
+                    except WindowsError as e:
                         if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
                                           win32.ERROR_PATH_NOT_FOUND):
                             continue
@@ -307,7 +307,7 @@ class ModuleContainer (object):
         if lpBaseOfDll not in self.__moduleDict:
             msg = "Unknown DLL base address %.08x"
             msg = msg % lpBaseOfDll
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__moduleDict[lpBaseOfDll]
 
     def iter_module_addresses(self):
@@ -316,7 +316,7 @@ class ModuleContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of DLL base addresses in this snapshot.
         """
-        return self.__moduleDict.iterkeys()
+        return iter(self.__moduleDict.keys())
 
     def iter_modules(self):
         """
@@ -324,7 +324,7 @@ class ModuleContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Module} objects in this snapshot.
         """
-        return self.__moduleDict.itervalues()
+        return iter(self.__moduleDict.values())
 
     def get_module_bases(self):
         """
@@ -332,7 +332,7 @@ class ModuleContainer (object):
         @rtype:  list( int... )
         @return: List of DLL base addresses in this snapshot.
         """
-        return self.__moduleDict.keys()
+        return list(self.__moduleDict.keys())
 
     def get_module_count(self):
         """
@@ -411,7 +411,7 @@ class ModuleContainer (object):
         bases.sort()
         bases.append(0x100000000)   # invalid, > 4 gb. address space
         if address >= bases[0]:
-            for i in xrange(len(bases)-1):  # -1 because last base is fake
+            for i in range(len(bases)-1):  # -1 because last base is fake
                 begin, end = bases[i:i+2]
                 if begin <= address <= end:
                     module = self.get_module(begin)
@@ -649,7 +649,7 @@ class ThreadContainer (object):
         """
         if dwThreadId not in self.__threadDict:
             msg = "Unknown thread ID: %d" % dwThreadId
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__threadDict[dwThreadId]
 
     def iter_thread_ids(self):
@@ -658,7 +658,7 @@ class ThreadContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of global thread IDs in this snapshot.
         """
-        return self.__threadDict.iterkeys()
+        return iter(self.__threadDict.keys())
 
     def iter_threads(self):
         """
@@ -666,14 +666,14 @@ class ThreadContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Thread} objects in this snapshot.
         """
-        return self.__threadDict.itervalues()
+        return iter(self.__threadDict.values())
 
     def get_thread_ids(self):
         """
         @rtype:  list( int )
         @return: List of global thread IDs in this snapshot.
         """
-        return self.__threadDict.keys()
+        return list(self.__threadDict.keys())
 
     def get_thread_count(self):
         """
@@ -801,7 +801,7 @@ class ThreadContainer (object):
         for aThread in self.iter_threads():
             try:
                 aThread.close_handle()
-            except Exception, e:
+            except Exception as e:
                 pass
 
 #------------------------------------------------------------------------------
@@ -1269,7 +1269,7 @@ class MemoryOperations (object):
         """
         szString = self.peek(lpBaseAddress, dwMaxSize)
         if fUnicode:
-            szString = unicode(szString, 'U16', 'ignore')
+            szString = str(szString, 'U16', 'ignore')
             szString = ctypes.create_unicode_buffer(szString).value
         else:
             szString = ctypes.create_string_buffer(szString).value
@@ -1373,7 +1373,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1395,7 +1395,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1417,7 +1417,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1439,7 +1439,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1463,7 +1463,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1496,7 +1496,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1527,7 +1527,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1562,7 +1562,7 @@ class MemoryOperations (object):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -1598,7 +1598,7 @@ class MemoryOperations (object):
         while currentAddr <= maxAddr:
             try:
                 mbi = self.mquery(currentAddr)
-            except WindowsError, e:
+            except WindowsError as e:
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
@@ -1634,7 +1634,7 @@ class MemoryOperations (object):
             try:
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
-            except WindowsError, e:
+            except WindowsError as e:
 ##                    print str(e)    # XXX DEBUG
                 pass
             mappedFilenames[baseAddress] = fileName
@@ -1697,7 +1697,7 @@ class SymbolContainer (object):
                     win32.SymUnloadModule(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
-        except WindowsError, e:
+        except WindowsError as e:
 ##            import traceback        # XXX DEBUG
 ##            traceback.print_exc()
             pass
@@ -1857,9 +1857,9 @@ class SymbolOperations (object):
 
         # Validate the parameters.
         if module is not None and ('!' in module or '+' in module):
-            raise ValueError, "Invalid module name: %s" % module
+            raise ValueError("Invalid module name: %s" % module)
         if function is not None and ('!' in function or '+' in function):
-            raise ValueError, "Invalid function name: %s" % function
+            raise ValueError("Invalid function name: %s" % function)
 
         # Parse the label.
         if module:
@@ -1940,23 +1940,23 @@ class SymbolOperations (object):
             try:
                 module, function = label.split('!')
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
 
             # module ! function
             if function:
                 if '+' in module:
-                    raise ValueError, "Malformed label: %s" % label
+                    raise ValueError("Malformed label: %s" % label)
 
                 # module ! function + offset
                 if '+' in function:
                     try:
                         function, offset = function.split('+')
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                 else:
 
                     # module ! offset
@@ -1972,11 +1972,11 @@ class SymbolOperations (object):
                     try:
                         module, offset = module.split('+')
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
 
                 else:
 
@@ -2011,12 +2011,12 @@ class SymbolOperations (object):
                     # module?
                     # function?
                     except ValueError:
-                        raise ValueError, "Ambiguous label: %s" % label
+                        raise ValueError("Ambiguous label: %s" % label)
 
                 # module?
                 # function?
                 else:
-                    raise ValueError, "Ambiguous label: %s" % label
+                    raise ValueError("Ambiguous label: %s" % label)
 
         # Convert function ordinal strings into integers.
         if function and function.startswith('#'):
@@ -2095,11 +2095,11 @@ class SymbolOperations (object):
             try:
                 prefix, offset = label.split('+')
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
             try:
                 offset = HexInput.integer(offset)
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
             label = prefix
 
         # This parses both filenames and base addresses.
@@ -2267,7 +2267,7 @@ When called as an instance method, the fuzzy syntax mode is used::
             modobj = self.get_module_by_name(module)
             if not modobj:
                 msg = "Module %r not found" % module
-                raise RuntimeError, msg
+                raise RuntimeError(msg)
 
             # Resolve the exported function or debugging symbol.
             # If all else fails, check for the special symbol "start".
@@ -2281,7 +2281,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                         if address is None:
                             msg = "Symbol %r not found in module %s"
                             msg = msg % (function, module)
-                            raise RuntimeError, msg
+                            raise RuntimeError(msg)
 
             # No function, use the base address.
             else:
@@ -2295,7 +2295,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                     break
             if address is None:
                 msg = "Function %r not found in any module" % function
-                raise RuntimeError, msg
+                raise RuntimeError(msg)
 
         # Return the address plus the offset.
         if offset:
@@ -2482,7 +2482,7 @@ class ThreadDebugOperations (object):
         LimitHi  = ldt.HighWord.Bits.LimitHi  << 16
         Limit    = LimitLow | LimitHi
         if address > Limit:
-            raise ValueError, "Address too large for selector: %r" % address
+            raise ValueError("Address too large for selector: %r" % address)
         return Base + address
 
     def get_seh_chain(self):
@@ -2501,8 +2501,8 @@ class ThreadDebugOperations (object):
                 seh_func = process.read_uint( seh + 4 )
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_uint( seh )
-        except WindowsError, e:
-            print str(e)
+        except WindowsError as e:
+            print(str(e))
             pass
         return seh_chain
 
@@ -2623,11 +2623,11 @@ class ThreadDebugOperations (object):
         fp       = self.get_fp()
         size     = fp - sp
         if not sb <= sp < sl:
-            raise RuntimeError, 'Stack pointer lies outside the stack'
+            raise RuntimeError('Stack pointer lies outside the stack')
         if not sb <= fp < sl:
-            raise RuntimeError, 'Frame pointer lies outside the stack'
+            raise RuntimeError('Frame pointer lies outside the stack')
         if sp > fp:
-            raise RuntimeError, 'No valid stack frame found'
+            raise RuntimeError('No valid stack frame found')
         return (sp, fp)
 
     def get_stack_frame(self, max_size = None):
@@ -2787,7 +2787,7 @@ class ThreadDebugOperations (object):
                                        win32.CONTEXT_INTEGER)
         aProcess    = self.get_process()
         data        = dict()
-        for (reg_name, reg_value) in context.iteritems():
+        for (reg_name, reg_value) in context.items():
             if reg_name not in peekable_registers:
                 continue
 ##            if reg_name == 'Ebp':
@@ -2938,7 +2938,7 @@ class ProcessDebugOperations (object):
     __hexa_parameter = re.compile('0x[0-9A-Za-z]+')
 
     def __fixup_labels(self, disasm):
-        for index in xrange(len(disasm)):
+        for index in range(len(disasm)):
             (address, size, text, dump) = disasm[index]
             m = self.__hexa_parameter.search(text)
             while m:
@@ -2946,7 +2946,7 @@ class ProcessDebugOperations (object):
                 value = text[s:e]
                 try:
                     label = self.get_label_at_address( int(value, 0x10) )
-                except Exception, e:
+                except Exception as e:
                     label = None
                 if label:
                     text = text[:s] + label + text[e:]
@@ -3222,7 +3222,7 @@ class ProcessDebugOperations (object):
         """
         result = dict()
         if len(data) > 0:
-            for i in xrange(0, len(data), peekStep):
+            for i in range(0, len(data), peekStep):
                 packed          = data[i:i+4]
                 if len(packed) == 4:
                     address     = struct.unpack('<L', packed)[0]
@@ -3349,7 +3349,7 @@ class ProcessContainer (object):
         """
         if dwProcessId not in self.__processDict:
             msg = "Unknown process ID %d" % dwProcessId
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__processDict[dwProcessId]
 
     def iter_process_ids(self):
@@ -3358,7 +3358,7 @@ class ProcessContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of global process IDs in this snapshot.
         """
-        return self.__processDict.iterkeys()
+        return iter(self.__processDict.keys())
 
     def iter_processes(self):
         """
@@ -3366,7 +3366,7 @@ class ProcessContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Process} objects in this snapshot.
         """
-        return self.__processDict.itervalues()
+        return iter(self.__processDict.values())
 
     def get_process_ids(self):
         """
@@ -3374,7 +3374,7 @@ class ProcessContainer (object):
         @rtype:  list( int )
         @return: List of global process IDs in this snapshot.
         """
-        return self.__processDict.keys()
+        return list(self.__processDict.keys())
 
     def get_process_count(self):
         """
@@ -3450,7 +3450,7 @@ class ProcessContainer (object):
         @return: Process object.
         """
         if not lpCmdLine:
-            raise ValueError, "Missing command line to execute!"
+            raise ValueError("Missing command line to execute!")
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
@@ -3555,7 +3555,7 @@ class ProcessContainer (object):
         for aProcess in self.iter_processes():
             try:
                 aProcess.scan_modules()
-            except WindowsError, e:
+            except WindowsError as e:
                 # For some reason, scanning the modules of PID 4 always fails.
                 dwProcessId = aProcess.get_pid()
                 if dwProcessId == 4 and e.winerror == 8:
@@ -3650,7 +3650,7 @@ class ProcessContainer (object):
             aProcess = self.get_process(pid)
             try:
                 aProcess.close_handle()
-            except Exception, e:
+            except Exception as e:
                 pass
 
     def close_process_and_thread_handles(self):
@@ -3662,7 +3662,7 @@ class ProcessContainer (object):
             aProcess.close_thread_handles()
             try:
                 aProcess.close_handle()
-            except Exception, e:
+            except Exception as e:
                 pass
 
     def clear_processes(self):
@@ -3694,7 +3694,7 @@ class ProcessContainer (object):
             if aProcess.has_thread(dwThreadId):
                 return aProcess.get_thread(dwThreadId)
         msg = "Unknown thread ID %d" % dwThreadId
-        raise KeyError, msg
+        raise KeyError(msg)
 
     def get_thread_ids(self):
         ids = list()
@@ -4064,7 +4064,7 @@ class Module (SymbolContainer):
         if not self.get_filename():
             msg = "Cannot retrieve filename for module at 0x%.08x"
             msg = msg % self.get_base()
-            raise Exception, msg
+            raise Exception(msg)
 
         hFile = win32.CreateFile(self.get_filename(),
                                            dwShareMode = win32.FILE_SHARE_READ,
@@ -4156,7 +4156,7 @@ class Module (SymbolContainer):
                 if new_offset <= offset:
                     function    = SymbolName
                     offset      = new_offset
-        except WindowsError, e:
+        except WindowsError as e:
             pass
 
         # Parse the label and return it.
@@ -4203,7 +4203,7 @@ class Module (SymbolContainer):
         try:
             hlib    = win32.GetModuleHandle(filename)
             address = win32.GetProcAddress(hlib, function)
-        except WindowsError, e:
+        except WindowsError as e:
 
             # Load the DLL locally, resolve the function and unload it.
             try:
@@ -4213,7 +4213,7 @@ class Module (SymbolContainer):
                     address = win32.GetProcAddress(hlib, function)
                 finally:
                     win32.FreeLibrary(hlib)
-            except WindowsError, e:
+            except WindowsError as e:
                 return None
 
         # A NULL pointer means the function was not found.
@@ -4249,7 +4249,7 @@ class Module (SymbolContainer):
         # If a module name is given that doesn't match ours,
         # raise an exception.
         if module and not self.match_name(module):
-            raise RuntimeError, "Label does not belong to this module"
+            raise RuntimeError("Label does not belong to this module")
 
         # Resolve the procedure if given.
         if procedure:
@@ -4269,7 +4269,7 @@ class Module (SymbolContainer):
                         module = self.get_name()
                     msg = "Can't find procedure %s in module %s"
                     msg = msg % (procedure, module)
-                    raise RuntimeError, msg
+                    raise RuntimeError(msg)
 
         # If no procedure is given use the base address of the module.
         else:
@@ -4346,7 +4346,7 @@ class Thread (ThreadDebugOperations):
         if process is not None and not isinstance(process, Process):
             msg  = "Parent process for Thread must be a Process instance, "
             msg += "got %s instead" % type(process)
-            raise TypeError, msg
+            raise TypeError(msg)
 
     def get_process(self):
         """
@@ -4394,7 +4394,7 @@ class Thread (ThreadDebugOperations):
             win32.CloseHandle(hSnapshot)
         if dwProcessId is None:
             msg = "Cannot find thread ID %d in any process" % dwThreadId
-            raise RuntimeError, msg
+            raise RuntimeError(msg)
         return dwProcessId
 
     def get_tid(self):
@@ -4929,20 +4929,20 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.__iterator  = None
             self.__state     = 0
 
-        def next(self):
+        def __next__(self):
             'x.next() -> the next value, or raise StopIteration'
             if self.__state == 0:
                 self.__iterator = self.__container.iter_threads()
                 self.__state    = 1
             if self.__state == 1:
                 try:
-                    return self.__iterator.next()
+                    return next(self.__iterator)
                 except StopIteration:
                     self.__iterator = self.__container.iter_modules()
                     self.__state    = 2
             if self.__state == 2:
                 try:
-                    return self.__iterator.next()
+                    return next(self.__iterator)
                 except StopIteration:
                     self.__iterator = None
                     self.__state    = 3
@@ -5041,7 +5041,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         try:
             self.wait(0)
-        except WindowsError, e:
+        except WindowsError as e:
             return e.winerror == win32.WAIT_TIMEOUT
         return False
 
@@ -5120,7 +5120,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             aThread.pInjectedMemory = lpStartAddress
 
         # Free the memory on error.
-        except Exception, e:
+        except Exception as e:
             self.free(lpStartAddress)
             raise
 
@@ -5167,26 +5167,22 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.scan_modules()
             aModule = self.get_module_by_name('kernel32.dll')
         if aModule is None:
-            raise RuntimeError, \
-                            "Cannot resolve kernel32.dll in the remote process"
+            raise RuntimeError("Cannot resolve kernel32.dll in the remote process")
 
         # Resolve kernel32.dll!LoadLibraryA
         pllib = aModule.resolve('LoadLibraryA')
         if not pllib:
-            raise RuntimeError, \
-                "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
+            raise RuntimeError("Cannot resolve kernel32.dll!LoadLibraryA in the remote process")
 
         # Resolve kernel32.dll!GetProcAddress
         pgpad = aModule.resolve('GetProcAddress')
         if not pgpad:
-            raise RuntimeError, \
-             "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
+            raise RuntimeError("Cannot resolve kernel32.dll!GetProcAddress in the remote process")
 
         # Resolve kernel32.dll!VirtualFree
         pvf = aModule.resolve('VirtualFree')
         if not pvf:
-            raise RuntimeError, \
-             "Cannot resolve kernel32.dll!VirtualFree in the remote process"
+            raise RuntimeError("Cannot resolve kernel32.dll!VirtualFree in the remote process")
 
         # Shellcode follows...
         code  = ''
@@ -5350,7 +5346,7 @@ class System (ProcessContainer):
             finally:
                 win32.CloseHandle(hToken)
             return True
-        except Exception, e:
+        except Exception as e:
             if not bIgnoreExceptions:
                 raise
         return False

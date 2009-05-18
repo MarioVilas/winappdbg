@@ -37,22 +37,22 @@ from winappdbg import win32, Process, System, HexInput
 
 import os
 import sys
-from thread import exit
+from _thread import exit
 
 def main(argv):
     script = os.path.basename(argv[0])
     params = argv[1:]
 
-    print "Process killer"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process killer")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print()
 
     if len(params) == 0 or '-h' in params or '--help' in params or \
                                                      '/?' in params:
-        print "Usage:"
-        print "    %s <process ID or name> [process ID or name...]"
-        print
-        print "If a process name is given instead of an ID all matching processes are killed."
+        print("Usage:")
+        print("    %s <process ID or name> [process ID or name...]")
+        print()
+        print("If a process name is given instead of an ID all matching processes are killed.")
         exit()
 
     # Scan for active processes.
@@ -74,13 +74,13 @@ def main(argv):
         if pid is None:
             matched = s.find_processes_by_filename(token)
             if not matched:
-                print "Error: process not found: %s" % token
+                print("Error: process not found: %s" % token)
                 exit()
             for (process, name) in matched:
                 targets.add(process.get_pid())
         else:
             if not s.has_process(pid):
-                print "Error: process not found: 0x%.8x (%d)" % (pid, pid)
+                print("Error: process not found: 0x%.8x (%d)" % (pid, pid))
                 exit()
             targets.add(pid)
     targets = list(targets)
@@ -94,9 +94,9 @@ def main(argv):
         try:
             win32.DebugActiveProcess(pid)
             count += 1
-        except WindowsError, e:
+        except WindowsError as e:
             next_targets.append(pid)
-            print "Warning: error attaching to %d: %s" % (pid, str(e))
+            print("Warning: error attaching to %d: %s" % (pid, str(e)))
 
     # Try to call the DebugSetProcessKillOnExit() API.
     #
@@ -112,8 +112,8 @@ def main(argv):
         win32.DebugSetProcessKillOnExit(True)
     except AttributeError:
         pass
-    except WindowsError, e:
-        print "Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e)
+    except WindowsError as e:
+        print("Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e))
 
     # Try to terminate the processes using the TerminateProcess() API.
     for pid in next_targets:
@@ -127,19 +127,19 @@ def main(argv):
                 count += 1
                 try:
                     process.close_handle()
-                except WindowsError, e:
-                    print "Warning: call to CloseHandle() failed: %s" % str(e)
-            except WindowsError, e:
-                print "Warning: call to TerminateProcess() failed: %s" % str(e)
-        except WindowsError, e:
-            print "Warning: call to OpenProcess() failed: %s" % str(e)
+                except WindowsError as e:
+                    print("Warning: call to CloseHandle() failed: %s" % str(e))
+            except WindowsError as e:
+                print("Warning: call to TerminateProcess() failed: %s" % str(e))
+        except WindowsError as e:
+            print("Warning: call to OpenProcess() failed: %s" % str(e))
 
     if count == 0:
-        print "Failed! No process was killed."
+        print("Failed! No process was killed.")
     elif count == 1:
-        print "Successfully killed 1 process."
+        print("Successfully killed 1 process.")
     else:
-        print "Successfully killed %d processes." % count
+        print("Successfully killed %d processes." % count)
 
     # Exit the current thread.
     # This will kill all the processes we have attached to.

@@ -59,10 +59,10 @@ __all__ = [
             'NoEvent',
           ]
 
-import win32
-from win32 import FileHandle, ProcessHandle, ThreadHandle
-from breakpoint import ApiHook
-from system import Module, Thread, Process, PathOperations
+from . import win32
+from .win32 import FileHandle, ProcessHandle, ThreadHandle
+from .breakpoint import ApiHook
+from .system import Module, Thread, Process, PathOperations
 
 import ctypes
 
@@ -393,7 +393,7 @@ class ExceptionEvent (Event):
         @return: Exception information DWORD.
         """
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
-            raise IndexError, "Array index out of range: %s" % repr(index)
+            raise IndexError("Array index out of range: %s" % repr(index))
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         return info[index]
 
@@ -403,13 +403,13 @@ class ExceptionEvent (Event):
         @return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return [ info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
+        return [ info[i] for i in range(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
 
     def get_access_violation_type(self):
         if self.get_exception_code() != win32.EXCEPTION_ACCESS_VIOLATION:
             msg = ("This method is only meaningful"
                    " for access violation exceptions.")
-            raise Exception, msg
+            raise Exception(msg)
         return self.get_exception_information(0)
 
     def get_raw_exception_record_list(self):
@@ -1141,7 +1141,7 @@ class EventHandler (object):
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
         self.__apiHooks = dict()
-        for lib, hooks in self.apiHooks.iteritems():
+        for lib, hooks in self.apiHooks.items():
             self.__apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
 
     def __setApiHooksForDll(self, event):
@@ -1154,7 +1154,7 @@ class EventHandler (object):
             fileName = event.get_module().get_filename()
             if fileName:
                 lib_name = PathOperations.pathname_to_filename(fileName).lower()
-                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
+                for hook_lib, hook_api_list in self.__apiHooks.items():
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:
                             hook_api_stub.hook(event.debug, event.get_pid(),
@@ -1257,11 +1257,11 @@ class EventDispatcher (object):
         if eventHandler is not None:
             bCallable = hasattr(eventHandler, '__call__')
             try:
-                bCallable = bCallable or callable(eventHandler)
+                bCallable = bCallable or hasattr(eventHandler, '__call__')
             except NameError:
                 pass    # "callable" doesn't exist in Python 3.x
             if not bCallable:
-                raise TypeError, "Invalid event handler"
+                raise TypeError("Invalid event handler")
         self.__eventHandler = eventHandler
 
     def dispatch(self, event):

@@ -274,10 +274,10 @@ class Main (object):
 
     def build_searchers_list(self, cls):
         searchers = getattr(self.options, cls.name)
-        for index in xrange(len(searchers)):
+        for index in range(len(searchers)):
             try:
                 searchers[index] = cls( searchers[index], index )
-            except Exception, e:
+            except Exception as e:
                 msg = cls.init_error_msg(index, searchers[index], e)
                 self.parser.error(msg)
 
@@ -322,9 +322,9 @@ class Main (object):
                 self.process = Process(self.pid)
                 self.process.get_handle()
             except WindowsError:
-                print "Can't open process %d, skipping" % self.pid
+                print("Can't open process %d, skipping" % self.pid)
                 if self.options.verbose:
-                    print
+                    print()
                 continue
 
             # Get a list of allocated memory regions
@@ -340,12 +340,12 @@ class Main (object):
                 for (address, size) in memory:
                     try:
                         data = self.process.read(address, size)
-                    except WindowsError, e:
+                    except WindowsError as e:
                         msg = "Error reading %.8x-%.8x: %s"
                         msg = msg % (address, address + size, str(e))
-                        print msg
+                        print(msg)
                         if self.options.verbose:
-                            print
+                            print()
                         continue
                     self.search_block(data, address, 0)
 
@@ -367,12 +367,12 @@ class Main (object):
                                 break
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
-                    except WindowsError, e:
+                    except WindowsError as e:
                         msg = "Error reading %.8x-%.8x: %s"
                         msg = msg % (address, address + total_size, str(e))
-                        print msg
+                        print(msg)
                         if self.options.verbose:
-                            print
+                            print()
 
     def search_block(self, data, address, shift):
         self.search_block_with(self.options.string,  data, address, shift)
@@ -392,17 +392,17 @@ class Main (object):
                 if not searcher.found():
                     break
                 if self.options.verbose:
-                    print searcher.message(self.pid, address - shift, data)
-                    print
+                    print(searcher.message(self.pid, address - shift, data))
+                    print()
                 else:
-                    print searcher.message(self.pid, address - shift)
+                    print(searcher.message(self.pid, address - shift))
 
     def run(self):
 
         # Banner
-        print "Process memory finder"
-        print "by Mario Vilas (mvilas at gmail.com)"
-        print
+        print("Process memory finder")
+        print("by Mario Vilas (mvilas at gmail.com)")
+        print()
 
         # Parse the command line
         self.parse_cmdline()

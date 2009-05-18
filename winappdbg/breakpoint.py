@@ -61,8 +61,8 @@ __all__ = [
 
     ]
 
-from system import Process, System, MemoryAddresses
-import win32
+from .system import Process, System, MemoryAddresses
+from . import win32
 
 #==============================================================================
 
@@ -665,7 +665,7 @@ class Breakpoint (object):
         msg = "Invalid state transition (%s -> %s)" \
               " for breakpoint at address 0x%08x"
         msg = msg % (oldState, newState, self.get_address())
-        raise AssertionError, msg
+        raise AssertionError(msg)
 
     def disable(self, aProcess, aThread):
         """
@@ -762,7 +762,7 @@ class Breakpoint (object):
             # this should not happen
             msg = "Hit a disabled breakpoint at address 0x%08x"
             msg = msg % self.get_address()
-            raise AssertionError, msg
+            raise AssertionError(msg)
 
 #==============================================================================
 
@@ -892,13 +892,13 @@ class PageBreakpoint (Breakpoint):
         Breakpoint.__init__(self, address, pages * System.pageSize,  condition,
                                                                         action)
 ##        if (address & 0x00000FFF) != 0:
-        floordiv_align = long(address) // long(System.pageSize)
+        floordiv_align = int(address) // int(System.pageSize)
         truediv_align  = float(address) / float(System.pagesize)
         if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
                     "(value 0x%.08x received)" % address
-            raise ValueError, msg
+            raise ValueError(msg)
 
     def get_size_in_pages(self):
         """
@@ -1084,12 +1084,12 @@ class HardwareBreakpoint (Breakpoint):
         else:
             msg = "Invalid size flag for hardware breakpoint (%s)"
             msg = msg % repr(sizeFlag)
-            raise ValueError, msg
+            raise ValueError(msg)
 
         if triggerFlag not in self.validTriggers:
             msg = "Invalid trigger flag for hardware breakpoint (%s)"
             msg = msg % repr(triggerFlag)
-            raise ValueError, msg
+            raise ValueError(msg)
 
         Breakpoint.__init__(self, address, size, condition, action)
         self.__trigger  = triggerFlag
@@ -1128,7 +1128,7 @@ class HardwareBreakpoint (Breakpoint):
                 if self.__slot is None:
                     msg = "No available hardware breakpoint slots for thread ID %d"
                     msg = msg % aThread.get_tid()
-                    raise RuntimeError, msg
+                    raise RuntimeError(msg)
                 DebugRegister.set_bp(ctx, self.__slot, self.get_address(),
                                                        self.__trigger, self.__watch)
                 aThread.set_context(ctx)
@@ -1291,7 +1291,7 @@ class Hook (object):
                 event.debug.enable_one_shot_hardware_breakpoint(tid, params[0])
 
             # If not possible, set a one shot code breakpoint instead.
-            except Exception, e:
+            except Exception as e:
 ##                import traceback        # XXX DEBUG
 ##                traceback.print_exc()
                 event.debug.stalk_at(event.get_pid(), params[0],
@@ -1524,7 +1524,7 @@ class BufferWatch(object):
         key = (address, address + size)
         if key in self.__ranges:
             msg = "Buffer from 0x%.08x to 0x%.08x is already being watched"
-            raise RuntimeError, msg % key
+            raise RuntimeError(msg % key)
         self.__ranges[key] = action
 
     def remove(self, address, size):
@@ -1540,7 +1540,7 @@ class BufferWatch(object):
         key = (address, address + size)
         if key not in self.__ranges:
             msg = "No buffer watch set at 0x%.08x-0x%.08x"
-            raise RuntimeError, msg % key
+            raise RuntimeError(msg % key)
         del self.__ranges[key]
 
     def exists(self, address, size):
@@ -1565,7 +1565,7 @@ class BufferWatch(object):
         """
         min_start = 0
         max_end   = 0
-        for ((start, end), action) in self.__ranges.iteritems():
+        for ((start, end), action) in self.__ranges.items():
             if start < min_start:
                 min_start = start
             if end > max_end:
@@ -1599,7 +1599,7 @@ class BufferWatch(object):
         """
         address    = event.get_exception_information(1)
         bCondition = False
-        for ((start, end), action) in self.__ranges.iteritems():
+        for ((start, end), action) in self.__ranges.items():
             bMatched = ( start <= address < end )
             if bMatched and action is not None:
                 action(event)
@@ -1761,7 +1761,7 @@ class BreakpointContainer (object):
             del self.__runningBP[tid]
 
     def __del_running_bp_from_all_threads(self, bp):
-        for (tid, bpset) in self.__runningBP.iteritems():
+        for (tid, bpset) in self.__runningBP.items():
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
@@ -1782,10 +1782,10 @@ class BreakpointContainer (object):
         """
         pid     = event.get_pid()
         process = event.get_process()
-        for (bp_pid, bp_address) in self.__codeBP.items():
+        for (bp_pid, bp_address) in list(self.__codeBP.items()):
             if bp_pid == pid:
                 del self.__codeBP[(bp_pid, bp_address)]
-        for (bp_pid, bp_address) in self.__pageBP.items():
+        for (bp_pid, bp_address) in list(self.__pageBP.items()):
             if bp_pid == pid:
                 del self.__pageBP[(bp_pid, bp_address)]
 
@@ -1811,11 +1811,11 @@ class BreakpointContainer (object):
                     if process.get_module_at_address(bp_address) == module:
                         bp.disable()
                         self.__hardwareBP[tid].remove(bp)
-        for (bp_pid, bp_address) in self.__codeBP.items():
+        for (bp_pid, bp_address) in list(self.__codeBP.items()):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     del self.__codeBP[(bp_pid, bp_address)]
-        for (bp_pid, bp_address) in self.__pageBP.items():
+        for (bp_pid, bp_address) in list(self.__pageBP.items()):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     del self.__pageBP[(bp_pid, bp_address)]
@@ -1874,7 +1874,7 @@ class BreakpointContainer (object):
         key = (dwProcessId, bp.get_address())
         if key in self.__codeBP:
             msg = "Already exists (PID %d) : %r"
-            raise KeyError, msg % (dwProcessId, self.__codeBP[key])
+            raise KeyError(msg % (dwProcessId, self.__codeBP[key]))
         self.__codeBP[key] = bp
         return bp
 
@@ -1933,14 +1933,14 @@ class BreakpointContainer (object):
         begin   = bp.get_address()
         end     = begin + bp.get_size()
 
-        for address in xrange(begin, end, System.pageSize):
+        for address in range(begin, end, System.pageSize):
             key = (dwProcessId, address)
             if key in self.__pageBP:
                 msg = "Already exists (PID %d) : %r"
                 msg = msg % (dwProcessId, self.__pageBP[key])
-                raise KeyError, msg
+                raise KeyError(msg)
 
-        for address in xrange(begin, end, System.pageSize):
+        for address in range(begin, end, System.pageSize):
             key = (dwProcessId, address)
             self.__pageBP[key] = bp
         return bp
@@ -2042,7 +2042,7 @@ class BreakpointContainer (object):
                 if MemoryAddresses.do_ranges_intersect(begin, end, old_begin,
                                                                      old_end):
                     msg = "Already exists (TID %d) : %r" % (dwThreadId, oldbp)
-                    raise KeyError, msg
+                    raise KeyError(msg)
         else:
             bpSet = set()
             self.__hardwareBP[dwThreadId] = bpSet
@@ -2155,7 +2155,7 @@ class BreakpointContainer (object):
         key = (dwProcessId, address)
         if key not in self.__codeBP:
             msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % key
+            raise KeyError(msg % key)
         return self.__codeBP[key]
 
     def get_page_breakpoint(self, dwProcessId, address):
@@ -2186,7 +2186,7 @@ class BreakpointContainer (object):
         key = (dwProcessId, address)
         if key not in self.__pageBP:
             msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % key
+            raise KeyError(msg % key)
         return self.__pageBP[key]
 
     def get_hardware_breakpoint(self, dwThreadId, address):
@@ -2217,12 +2217,12 @@ class BreakpointContainer (object):
         """
         if dwThreadId not in self.__hardwareBP:
             msg = "No hardware breakpoints set for thread %d"
-            raise KeyError, msg % dwThreadId
+            raise KeyError(msg % dwThreadId)
         for bp in self.__hardwareBP[dwThreadId]:
             if bp.is_here(address):
                 return bp
         msg = "No hardware breakpoint at thread %d, address %.08x"
-        raise KeyError, msg % (dwThreadId, address)
+        raise KeyError(msg % (dwThreadId, address))
 
 #------------------------------------------------------------------------------
 
@@ -2491,7 +2491,7 @@ class BreakpointContainer (object):
         end   = begin + bp.get_size()
         if not bp.is_disabled():
             self.disable_page_breakpoint(dwProcessId, address)
-        for address in xrange(begin, end, System.pageSize):
+        for address in range(begin, end, System.pageSize):
             del self.__pageBP[ (dwProcessId, address) ]
 
     def erase_hardware_breakpoint(self, dwThreadId, address):
@@ -2568,7 +2568,7 @@ class BreakpointContainer (object):
         @rtype:  list of tuple( int, L{CodeBreakpoint} )
         @return: All code breakpoints as a list of tuples (pid, bp).
         """
-        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.iteritems() ]
+        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.items() ]
 
     def get_all_page_breakpoints(self):
         """
@@ -2577,7 +2577,7 @@ class BreakpointContainer (object):
         """
 ##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.itervalues() ] ) )
         result = set()
-        for ((pid, address), bp) in self.__pageBP.itervalues():
+        for ((pid, address), bp) in self.__pageBP.values():
             result.add( (pid, bp) )
         return list(result)
 
@@ -2587,7 +2587,7 @@ class BreakpointContainer (object):
         @return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in self.__hardwareBP.items():
             for bp in bplist:
                 result.append( (tid, bp) )
         return result
@@ -2645,7 +2645,7 @@ class BreakpointContainer (object):
         @return: All code breakpoints for the given process.
         """
         result = list()
-        for ((pid, address), bp) in self.__codeBP.iteritems():
+        for ((pid, address), bp) in self.__codeBP.items():
             if pid == dwProcessId:
                 result.append(bp)
         return result
@@ -2659,7 +2659,7 @@ class BreakpointContainer (object):
         @return: All page breakpoints for the given process.
         """
         result = list()
-        for ((pid, address), bp) in self.__pageBP.itervalues():
+        for ((pid, address), bp) in self.__pageBP.values():
             if pid == dwProcessId:
                 result.append(bp)
         return result
@@ -2675,7 +2675,7 @@ class BreakpointContainer (object):
         @return: All hardware breakpoints for the given thread.
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in self.__hardwareBP.items():
             if tid == dwThreadId:
                 for bp in bplist:
                     result.append(bp)
@@ -3388,7 +3388,7 @@ class BreakpointContainer (object):
         elif size == 8:
             sizeFlag = self.BP_WATCH_QWORD
         else:
-            raise ValueError, "Bad size for variable watch: %r" % size
+            raise ValueError("Bad size for variable watch: %r" % size)
         if self.has_hardware_breakpoint(tid, address):
             bp = self.get_hardware_breakpoint(tid, address)
             if  bp.get_trigger() != self.BP_BREAK_ON_ACCESS or \
@@ -3522,7 +3522,7 @@ class BreakpointContainer (object):
 
         # Check the size isn't zero or negative.
         if size < 1:
-            raise ValueError, "Bad size for buffer watch: %r" % size
+            raise ValueError("Bad size for buffer watch: %r" % size)
 
         # Get the process object.
         aProcess = self.system.get_process(pid)
@@ -3541,7 +3541,7 @@ class BreakpointContainer (object):
             bset = set()     # all breakpoints used
             nset = set()     # newly defined breakpoints
             cset = set()     # condition objects
-            for page_addr in xrange(base, limit, System.pageSize):
+            for page_addr in range(base, limit, System.pageSize):
 
                 # If a breakpoints exists, reuse it.
                 if self.has_page_breakpoint(pid, page_addr):
@@ -3553,7 +3553,7 @@ class BreakpointContainer (object):
                                 # this shouldn't happen unless you tinkered with it
                                 # or defined your own page breakpoints manually.
                                 msg = "Can't watch buffer at page 0x%.08x"
-                                raise RuntimeError, msg % page_addr
+                                raise RuntimeError(msg % page_addr)
                             cset.add(condition)
                         bset.add(bp)
 
@@ -3609,7 +3609,7 @@ class BreakpointContainer (object):
 
         # Check the size isn't zero or negative.
         if size < 1:
-            raise ValueError, "Bad size for buffer watch: %r" % size
+            raise ValueError("Bad size for buffer watch: %r" % size)
 
         # Get the base address and size in pages required for this buffer.
         base  = MemoryAddresses.align_address_to_page_start(address)
@@ -3620,7 +3620,7 @@ class BreakpointContainer (object):
         # For each condition, remove the buffer.
         # For each breakpoint, if no buffers are on watch, erase it.
         cset = set()     # condition objects
-        for page_addr in xrange(base, limit, System.pageSize):
+        for page_addr in range(base, limit, System.pageSize):
             if self.has_page_breakpoint(pid, page_addr):
                 bp = self.get_page_breakpoint(pid, page_addr)
                 condition = bp.get_condition()

@@ -39,9 +39,9 @@ __all__ =   [
                 'CrashContainer',
             ]
 
-from system import PathOperations
-from textio import HexDump, CrashDump
-import win32
+from .system import PathOperations
+from .textio import HexDump, CrashDump
+from . import win32
 
 import os
 import time
@@ -49,7 +49,7 @@ import zlib
 import traceback
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 
@@ -299,7 +299,7 @@ class Crash (object):
             try:
                 self.stackFrame = thread.get_stack_frame()
                 stackFrame = self.stackFrame
-            except Exception, e:
+            except Exception as e:
                 self.stackFrame = thread.peek_stack_data()
                 stackFrame = self.stackFrame[:64]
             if stackFrame:
@@ -590,15 +590,15 @@ class CrashContainer (object):
             # TODO: lock the database when iterating it.
             #
             self.__container = container
-            self.__keys_iter = container.iterkeys()
+            self.__keys_iter = iter(container.keys())
 
-        def next(self):
+        def __next__(self):
             """
             @rtype:  L{Crash}
             @return: A B{copy} of a Crash object in the L{CrashContainer}.
             @raise StopIteration: No more items left.
             """
-            key  = self.__keys_iter.next()
+            key  = next(self.__keys_iter)
             return self.__container.get(key)
 
     def __init__(self, filename = None):
@@ -612,10 +612,10 @@ class CrashContainer (object):
         """
         self.__filename = filename
         if filename:
-            import anydbm
-            self.__db   = anydbm.open(filename, 'c')
+            import dbm
+            self.__db   = dbm.open(filename, 'c')
             self.__keys = dict([ (self.__unmarshall_key(mk), mk) \
-                                                  for mk in self.__db.keys() ])
+                                                  for mk in list(self.__db.keys()) ])
         else:
             self.__db   = dict()
             self.__keys = dict()
@@ -643,7 +643,7 @@ class CrashContainer (object):
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        return self.itervalues()
+        return iter(self.values())
 
     def __len__(self):
         """
@@ -683,7 +683,7 @@ class CrashContainer (object):
                 2. Delete the object from the set.
                 3. Modify the object and add it again.
         """
-        return self.__keys.iterkeys()
+        return iter(self.__keys.keys())
 
     def itervalues(self):
         """

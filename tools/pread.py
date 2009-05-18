@@ -39,14 +39,14 @@ import sys
 from winappdbg import Process, System, HexDump, HexInput
 
 def main():
-    print "Process memory reader"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process memory reader")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print()
 
     if len(sys.argv) not in (4, 5):
         script = os.path.basename(sys.argv[0])
-        print "  %s <pid> <address> <size> [binary output file]" % script
-        print "  %s <process.exe> <address> <size> [binary output file]" % script
+        print("  %s <pid> <address> <size> [binary output file]" % script)
+        print("  %s <process.exe> <address> <size> [binary output file]" % script)
         return
 
     System.request_debug_privileges()
@@ -58,25 +58,25 @@ def main():
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
-            print "Process not found: %s" % sys.argv[1]
+            print("Process not found: %s" % sys.argv[1])
             return
         if len(pl) > 1:
-            print "Multiple processes found for %s" % sys.argv[1]
+            print("Multiple processes found for %s" % sys.argv[1])
             for p,n in pl:
-                print "\t%12d: %s" % (p,n)
+                print("\t%12d: %s" % (p,n))
             return
         pid = pl[0][0].get_pid()
 
     try:
         address = HexInput.integer(sys.argv[2])
     except Exception:
-        print "Invalid value for address: %s" % sys.argv[2]
+        print("Invalid value for address: %s" % sys.argv[2])
         return
 
     try:
         size = HexInput.integer(sys.argv[3])
     except Exception:
-        print "Invalid value for size: %s" % sys.argv[3]
+        print("Invalid value for size: %s" % sys.argv[3])
         return
 
     System.request_debug_privileges()
@@ -84,15 +84,15 @@ def main():
     p = Process(pid)
     data = p.read(address, size)
 ##    data = p.peek(address, size)
-    print "Read %d bytes from PID %d" % (len(data), pid)
+    print("Read %d bytes from PID %d" % (len(data), pid))
 
     if len(sys.argv) == 5:
         filename = sys.argv[4]
         open(filename, 'wb').write(data)
-        print "Written %d bytes to %s" % (len(data), filename)
+        print("Written %d bytes to %s" % (len(data), filename))
     else:
-        print
-        print HexDump.hexblock(data, address)
+        print()
+        print(HexDump.hexblock(data, address))
 
 if __name__ == '__main__':
     try:

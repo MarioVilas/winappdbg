@@ -37,15 +37,15 @@ from os.path import join
 try:
     import py2exe
 except ImportError:
-    pass
+    py2exe = None
 
 # Get the list of supported database modules
-import anydbm
+import dbm
 try:
-    _names = anydbm._names
+    _names = dbm._names
 except NameError:
-    _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
-dbnames = ['anydbm', 'whichdb']
+    _names = ['dbm.bsd', 'dbm.gnu', 'dbm.ndbm', 'dbm.dumb']
+dbnames = ['dbm']
 for name in _names:
     try:
         __import__(name)
@@ -93,20 +93,6 @@ It's also hosted at the Python Package Index (PyPi):
 # Get the list of scripts in the "tools" folder
 scripts = glob(join('tools', '*.py'))
 
-# Set the options for py2exe
-options = {
-    'py2exe': {
-        'dist_dir'      :   'dist/py2exe',
-        'optimize'      :   2,
-        'compressed'    :   1,
-        'packages'      :   ['encodings'] + dbnames,
-        'excludes'      :   [
-                            'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
-                            'calendar', 'socket', 'pyreadline'
-                            ],
-    }
-}
-
 # Set the parameters for the setup script
 params = {
 
@@ -114,8 +100,6 @@ params = {
     'requires'          : ['ctypes'],
     'packages'          : ['winappdbg'],
     'scripts'           : scripts,
-    'console'           : scripts,
-    'options'           : options,
 
     # Metadata
     'name'              : 'winappdbg',
@@ -141,6 +125,24 @@ params = {
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],
     }
+
+
+# Set the options for py2exe
+if py2exe:
+    options = {
+        'py2exe': {
+            'dist_dir'   : 'dist/py2exe',
+            'optimize'   : 2,
+            'compressed' : 1,
+            'packages'   : ['encodings'] + dbnames,
+            'excludes'   : [
+                           'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
+                           'calendar', 'socket', 'pyreadline'
+                           ],
+        }
+    }
+    params['console'] = scripts
+    params['options'] = options
 
 # Execute the setup script
 setup(**params)

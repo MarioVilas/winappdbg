@@ -60,7 +60,7 @@ def filter_duplicates(old_list):
         if filename not in new_list:
             new_list.append(filename)
         else:
-            print "Skipping duplicate file: %s" % filename
+            print("Skipping duplicate file: %s" % filename)
     return new_list
 
 def filter_inexistent_files(old_list):
@@ -69,15 +69,15 @@ def filter_inexistent_files(old_list):
         if os.path.exists(filename):
             new_list.append(filename)
         else:
-            print "Cannot find file: %s" % filename
+            print("Cannot find file: %s" % filename)
     return new_list
 
 def print_report_for_database(filename, options):
-    print "Opening database: %s" % filename
+    print("Opening database: %s" % filename)
     cc = CrashContainer( filename )
     if cc:
-        print "Found %d crashes:" % len(cc)
-        print '-' * 79
+        print("Found %d crashes:" % len(cc))
+        print('-' * 79)
         ccl = [(c.timeStamp, c) for c in cc]
         ccl.sort()
         for (timeStamp, c) in ccl:
@@ -86,20 +86,20 @@ def print_report_for_database(filename, options):
             ltime = time.strftime("%X", local)
             msecs = (c.timeStamp % 1) * 1000
             msg = '%s %s.%04d' % (ldate, ltime, msecs)
-            print msg
+            print(msg)
             if options.verbose:
-                print c.fullReport()
+                print(c.fullReport())
             else:
-                print c.briefReport()
-            print '-' * 79
+                print(c.briefReport())
+            print('-' * 79)
     else:
-        print "No crashes to report."
-        print
+        print("No crashes to report.")
+        print()
 
 def main(argv):
-    print "Crash logger report"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Crash logger report")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print()
 
     (options, parameters) = parse_cmdline(argv)
 

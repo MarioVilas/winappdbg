@@ -68,9 +68,9 @@ def main(argv):
     'Main function.'
 
     # Print the banner.
-    print "Process enumerator"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process enumerator")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print()
 
     # Parse the command line options.
     (options, argv)  = parse_cmdline(argv)
@@ -94,7 +94,7 @@ def main(argv):
     fmt = " %%%dd %%s" % w
 
     # Print the output table header
-    print (" %%%ds Filename\n" % w) % "PID"
+    print((" %%%ds Filename\n" % w) % "PID")
 
     # Enumerate the processes in the snapshot.
     for pid in pid_list:
@@ -120,7 +120,7 @@ def main(argv):
             continue
 
         # Print the process PID and filename (or pathname).
-        print fmt % ( pid, fileName )
+        print(fmt % ( pid, fileName ))
 
 if __name__ == '__main__':
     import sys
