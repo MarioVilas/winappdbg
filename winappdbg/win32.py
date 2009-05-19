@@ -3110,7 +3110,7 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     if retval == 0:
         raise ctypes.WinError()
     return lpExeName.raw[:lpdwSize.value]
-def QueryFullProcessImageNameW(hProcess, dwFlags):
+def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
     lpdwSize = DWORD(0)
     ctypes.windll.kernel32.QueryFullProcessImageNameW(hProcess, dwFlags, NULL, ctypes.byref(lpdwSize))
     if lpdwSize.value == 0:
@@ -3126,13 +3126,21 @@ QueryFullProcessImageName = QueryFullProcessImageNameA
 #   __in   DWORD nBufferLength,
 #   __out  LPTSTR lpBuffer
 # );
-def GetLogicalDriveStrings():
+def GetLogicalDriveStringsA():
     nBufferLength = 0x1000
-    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
     size = ctypes.windll.kernel32.GetLogicalDriveStringsA(nBufferLength, ctypes.byref(lpBuffer))
     if size == 0:
         raise ctypes.WinError()
     return lpBuffer.value
+def GetLogicalDriveStringsW():
+    nBufferLength = 0x1000
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
+    size = ctypes.windll.kernel32.GetLogicalDriveStringsW(nBufferLength, ctypes.byref(lpBuffer))
+    if size == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+GetLogicalDriveStrings = GetLogicalDriveStringsA
 
 # DWORD WINAPI QueryDosDevice(
 #   __in_opt  LPCTSTR lpDeviceName,
@@ -4909,7 +4917,7 @@ def GetModuleFileNameExA(hProcess, hModule):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, hModule, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
@@ -4920,7 +4928,7 @@ def GetModuleFileNameExW(hProcess, hModule):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExW(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetModuleFileNameExW(hProcess, hModule, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
@@ -5354,6 +5362,7 @@ def PathUnExpandEnvStringsW(pszPath):
     cchBuf = MAX_PATH
     ctypes.windll.shlwapi.PathUnExpandEnvStringsW(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
     return pszBuf.value
+PathUnExpandEnvStrings = PathUnExpandEnvStringsA
 
 #--- dbghelp.dll --------------------------------------------------------------
 
@@ -5378,18 +5387,9 @@ def SymInitializeA(hProcess, UserSearchPath = None, fInvadeProcess = False):
     if success == FALSE:
         raise ctypes.WinError()
 def SymInitializeW(hProcess, UserSearchPath = None, fInvadeProcess = False):
-    if not UserSearchPath:
-        UserSearchPath = NULL
-    else:
-        UserSearchPath = ctypes.create_unicode_buffer(UserSearchPath)
-        UserSearchPath = ctypes.byref(UserSearchPath)
-    if fInvadeProcess:
-        fInvadeProcess = TRUE
-    else:
-        fInvadeProcess = FALSE
-    success = ctypes.windll.dbghelp.SymInitializeW(hProcess, UserSearchPath, fInvadeProcess)
-    if success == FALSE:
-        raise ctypes.WinError()
+    if UserSearchPath:
+        UserSearchPath = str(UserSearchPath)
+    SymInitializeA(hProcess, UserSearchPath, fInvadeProcess)
 SymInitialize = SymInitializeA
 
 # BOOL WINAPI SymCleanup(

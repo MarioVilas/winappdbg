@@ -3151,7 +3151,10 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
-                name = PathOperations.native_to_win32_pathname(name)
+                if name:
+                    name = PathOperations.native_to_win32_pathname(name)
+                else:
+                    name = None
             except (AttributeError, WindowsError):
                 if not name:
                     name = None
@@ -3165,7 +3168,10 @@ class ProcessDebugOperations (object):
                 #   \??\C:\WINDOWS\system32\csrss.exe
                 #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
-                name = PathOperations.native_to_win32_pathname(name)
+                if name:
+                    name = PathOperations.native_to_win32_pathname(name)
+                else:
+                    name = None
             except (AttributeError, WindowsError):
                 if not name:
                     name = None
