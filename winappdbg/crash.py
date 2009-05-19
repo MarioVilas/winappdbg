@@ -59,6 +59,9 @@ except ImportError:
     def optimize(picklestring):
         return picklestring
 
+# lazy import
+dbm = None
+
 #==============================================================================
 
 class Crash (object):
@@ -612,7 +615,9 @@ class CrashContainer (object):
         """
         self.__filename = filename
         if filename:
-            import dbm
+            global dbm
+            if not dbm:
+                import dbm
             self.__db   = dbm.open(filename, 'c')
             self.__keys = dict([ (self.__unmarshall_key(mk), mk) \
                                                   for mk in list(self.__db.keys()) ])
