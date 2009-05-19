@@ -73,7 +73,8 @@ import ctypes
 import struct
 
 try:
-    from distorm import Decode
+    # requires distorm64.dll in the DLL path
+    from .distorm import Decode
 except ImportError:
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
@@ -1692,7 +1693,8 @@ class SymbolContainer (object):
                     ImageName = self.get_filename()
                     win32.SymLoadModule(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
                 try:
-                    win32.SymEnumerateSymbols(hProcess, BaseOfDll, Enumerator)
+                    # XXX wide version not working yet
+                    win32.SymEnumerateSymbolsA(hProcess, BaseOfDll, Enumerator)
                 finally:
                     win32.SymUnloadModule(hProcess, BaseOfDll)
             finally:
@@ -3151,7 +3153,10 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
-                name = PathOperations.native_to_win32_pathname(name)
+                if name:
+                    name = PathOperations.native_to_win32_pathname(name)
+                else:
+                    name = None
             except (AttributeError, WindowsError):
                 if not name:
                     name = None
@@ -3165,7 +3170,10 @@ class ProcessDebugOperations (object):
                 #   \??\C:\WINDOWS\system32\csrss.exe
                 #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
-                name = PathOperations.native_to_win32_pathname(name)
+                if name:
+                    name = PathOperations.native_to_win32_pathname(name)
+                else:
+                    name = None
             except (AttributeError, WindowsError):
                 if not name:
                     name = None

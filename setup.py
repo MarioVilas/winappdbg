@@ -126,7 +126,6 @@ params = {
                         ],
     }
 
-
 # Set the options for py2exe
 if py2exe:
     options = {

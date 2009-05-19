@@ -3110,7 +3110,7 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     if retval == 0:
         raise ctypes.WinError()
     return lpExeName.raw[:lpdwSize.value]
-def QueryFullProcessImageNameW(hProcess, dwFlags):
+def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
     lpdwSize = DWORD(0)
     ctypes.windll.kernel32.QueryFullProcessImageNameW(hProcess, dwFlags, NULL, ctypes.byref(lpdwSize))
     if lpdwSize.value == 0:
@@ -3120,19 +3120,27 @@ def QueryFullProcessImageNameW(hProcess, dwFlags):
     if retval == 0:
         raise ctypes.WinError()
     return lpExeName.raw[:lpdwSize.value]
-QueryFullProcessImageName = QueryFullProcessImageNameA
+QueryFullProcessImageName = QueryFullProcessImageNameW
 
 # DWORD WINAPI GetLogicalDriveStrings(
 #   __in   DWORD nBufferLength,
 #   __out  LPTSTR lpBuffer
 # );
-def GetLogicalDriveStrings():
+def GetLogicalDriveStringsA():
     nBufferLength = 0x1000
-    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
     size = ctypes.windll.kernel32.GetLogicalDriveStringsA(nBufferLength, ctypes.byref(lpBuffer))
     if size == 0:
         raise ctypes.WinError()
     return lpBuffer.value
+def GetLogicalDriveStringsW():
+    nBufferLength = 0x1000
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
+    size = ctypes.windll.kernel32.GetLogicalDriveStringsW(nBufferLength, ctypes.byref(lpBuffer))
+    if size == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+GetLogicalDriveStrings = GetLogicalDriveStringsW
 
 # DWORD WINAPI QueryDosDevice(
 #   __in_opt  LPCTSTR lpDeviceName,
@@ -3155,7 +3163,7 @@ def QueryDosDeviceW(lpDeviceName):
     if size == 0:
         raise ctypes.WinError()
     return lpTargetPath.value
-QueryDosDevice = QueryDosDeviceA
+QueryDosDevice = QueryDosDeviceW
 
 # LPVOID WINAPI MapViewOfFile(
 #   __in  HANDLE hFileMappingObject,
@@ -3211,7 +3219,7 @@ def CreateFileMappingW(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READ
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
-CreateFileMapping = CreateFileMappingA
+CreateFileMapping = CreateFileMappingW
 
 # HANDLE WINAPI CreateFile(
 #   __in      LPCTSTR lpFileName,
@@ -3234,7 +3242,7 @@ def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFile)
-CreateFile = CreateFileA
+CreateFile = CreateFileW
 
 # BOOL WINAPI FlushFileBuffers(
 #   __in  HANDLE hFile
@@ -3311,7 +3319,7 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
             SetLastError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
     return (lpBuffer, lpFilePart)
-SearchPath = SearchPathA
+SearchPath = SearchPathW
 
 # BOOL SetSearchPathMode(
 #   __in  DWORD Flags
@@ -3392,7 +3400,7 @@ def GetFullPathNameW(lpFileName, nBufferLength = MAX_PATH):
     if success == FALSE:
         raise ctypes.WinError()
     return lpBuffer.value, lpFilePart.value
-GetFullPathName = GetFullPathNameA
+GetFullPathName = GetFullPathNameW
 
 # DWORD WINAPI GetTempPath(
 #   __in   DWORD nBufferLength,
@@ -3416,7 +3424,7 @@ def GetTempPathW():
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
     return lpBuffer.value
-GetTempPath = GetTempPathA
+GetTempPath = GetTempPathW
 
 # UINT WINAPI GetTempFileName(
 #   __in   LPCTSTR lpPathName,
@@ -3440,7 +3448,7 @@ def GetTempFileNameW(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
     if uUnique == 0:
         raise ctypes.WinError()
     return lpTempFileName.value, uUnique
-GetTempFileName = GetTempFileNameA
+GetTempFileName = GetTempFileNameW
 
 # HLOCAL WINAPI LocalFree(
 #   __in  HLOCAL hMem
@@ -3619,9 +3627,6 @@ def WaitForDebugEvent(dwMilliseconds = INFINITE):
             code = GetLastError()
             if code not in (ERROR_SEM_TIMEOUT, WAIT_TIMEOUT):
                 raise ctypes.WinError(code)
-            # XXX HACK
-            # Workaround for the KeyboardInterrupt bug.
-            time.sleep(0.2)
     return lpDebugEvent
 
 # BOOL ContinueDebugEvent(
@@ -3759,7 +3764,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if success == FALSE:
         raise ctypes.WinError()
     return ProcessInformation(lpProcessInformation)
-CreateProcess = CreateProcessA
+CreateProcess = CreateProcessW
 
 # BOOL WINAPI CreateProcessAsUser(
 #   __in_opt     HANDLE hToken,
@@ -4679,7 +4684,7 @@ def CommandLineToArgvA(lpCmdLine):
     argv = CommandLineToArgvW(lpCmdLine)
     argv = [ str(x) for x in argv ]
     return argv
-CommandLineToArgv = CommandLineToArgvA
+CommandLineToArgv = CommandLineToArgvW
 
 # HINSTANCE ShellExecute(
 #     HWND hwnd,
@@ -4721,7 +4726,7 @@ def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
     success = ctypes.windll.shell32.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
     if success != 0:
         ctypes.WinError(success)
-ShellExecute = ShellExecuteA
+ShellExecute = ShellExecuteW
 
 #--- psapi.dll ----------------------------------------------------------------
 
@@ -4841,7 +4846,7 @@ def GetDeviceDriverBaseNameW(ImageBase):
             break
         nSize = nSize + MAX_PATH
     return lpBaseName.value
-GetDeviceDriverBaseName = GetDeviceDriverBaseNameA
+GetDeviceDriverBaseName = GetDeviceDriverBaseNameW
 
 # DWORD WINAPI GetDeviceDriverFileName(
 #   __in   LPVOID ImageBase,
@@ -4870,7 +4875,7 @@ def GetDeviceDriverFileNameW(ImageBase):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
-GetDeviceDriverFileName = GetDeviceDriverFileNameA
+GetDeviceDriverFileName = GetDeviceDriverFileNameW
 
 # DWORD WINAPI GetMappedFileName(
 #   __in   HANDLE hProcess,
@@ -4900,7 +4905,7 @@ def GetMappedFileNameW(hProcess, lpv):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
-GetMappedFileName = GetMappedFileNameA
+GetMappedFileName = GetMappedFileNameW
 
 # DWORD WINAPI GetModuleFileNameEx(
 #   __in      HANDLE hProcess,
@@ -4912,7 +4917,7 @@ def GetModuleFileNameExA(hProcess, hModule):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, hModule, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
@@ -4923,14 +4928,14 @@ def GetModuleFileNameExW(hProcess, hModule):
     nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_unicode_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExW(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetModuleFileNameExW(hProcess, hModule, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
-GetModuleFileNameEx = GetModuleFileNameExA
+GetModuleFileNameEx = GetModuleFileNameExW
 
 #BOOL WINAPI GetModuleInformation(
 #   __in   HANDLE hProcess,
@@ -4973,7 +4978,7 @@ def GetProcessImageFileNameW(hProcess):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
-GetProcessImageFileName = GetProcessImageFileNameA
+GetProcessImageFileName = GetProcessImageFileNameW
 
 #--- shlwapi.dll --------------------------------------------------------------
 
@@ -4988,7 +4993,7 @@ def PathAddBackslashW(lpszPath):
     lpszPath = ctypes.create_unicode_buffer(lpszPath, MAX_PATH)
     ctypes.windll.shlwapi.PathAddBackslashW(lpszPath)
     return lpszPath.value
-PathAddBackslash = PathAddBackslashA
+PathAddBackslash = PathAddBackslashW
 
 # BOOL PathAddExtension(
 #     LPTSTR pszPath,
@@ -5010,7 +5015,7 @@ def PathAddExtensionW(lpszPath, pszExtension = None):
     if success == FALSE:
         return None
     return lpszPath.value
-PathAddExtension = PathAddExtensionA
+PathAddExtension = PathAddExtensionW
 
 # BOOL PathAppend(
 #     LPTSTR pszPath,
@@ -5032,7 +5037,7 @@ def PathAppendW(lpszPath, pszMore = None):
     if success == FALSE:
         return None
     return lpszPath.value
-PathAppend = PathAppendA
+PathAppend = PathAppendW
 
 # LPTSTR PathCombine(
 #     LPTSTR lpszDest,
@@ -5051,7 +5056,7 @@ def PathCombineW(lpszDir, lpszFile):
     if retval == NULL:
         return None
     return lpszDest.value
-PathCombine = PathCombineA
+PathCombine = PathCombineW
 
 # BOOL PathCanonicalize(
 #     LPTSTR lpszDst,
@@ -5069,7 +5074,7 @@ def PathCanonicalizeW(lpszSrc):
     if success == FALSE:
         raise ctypes.WinError()
     return lpszDst.value
-PathCanonicalize = PathCanonicalizeA
+PathCanonicalize = PathCanonicalizeW
 
 # BOOL PathFileExists(
 #     LPCTSTR pszPath
@@ -5078,7 +5083,7 @@ def PathFileExistsA(pszPath):
     return bool( ctypes.windll.shlwapi.PathFileExistsA(pszPath) )
 def PathFileExistsW(pszPath):
     return bool( ctypes.windll.shlwapi.PathFileExistsW(pszPath) )
-PathFileExists = PathFileExistsA
+PathFileExists = PathFileExistsW
 
 # LPTSTR PathFindExtension(
 #     LPCTSTR pszPath
@@ -5095,7 +5100,7 @@ def PathFindExtensionW(pszPath):
     pszPathExtension = ctypes.c_void_p(pszPathExtension)
     pszPathExtension = ctypes.cast(pszPathExtension, ctypes.c_wchar_p)
     return pszPathExtension.value
-PathFindExtension = PathFindExtensionA
+PathFindExtension = PathFindExtensionW
 
 # LPTSTR PathFindFileName(
 #     LPCTSTR pszPath
@@ -5112,7 +5117,7 @@ def PathFindFileNameW(pszPath):
     pszPathFilename = ctypes.c_void_p(pszPathFilename)
     pszPathFilename = ctypes.cast(pszPathFilename, ctypes.c_wchar_p)
     return pszPathFilename.value
-PathFindFileName = PathFindFileNameA
+PathFindFileName = PathFindFileNameW
 
 # LPTSTR PathFindNextComponent(
 #     LPCTSTR pszPath
@@ -5129,7 +5134,7 @@ def PathFindNextComponentW(pszPath):
     pszPathNext = ctypes.c_void_p(pszPathNext)
     pszPathNext = ctypes.cast(pszPathNext, ctypes.c_wchar_p)
     return pszPathNext.value    # may return None
-PathFindNextComponent = PathFindNextComponentA
+PathFindNextComponent = PathFindNextComponentW
 
 # BOOL PathFindOnPath(
 #     LPTSTR pszFile,
@@ -5165,7 +5170,7 @@ def PathFindOnPathW(pszFile, ppszOtherDirs = None):
     if success == FALSE:
         return None
     return pszFile.value
-PathFindOnPath = PathFindOnPathA
+PathFindOnPath = PathFindOnPathW
 
 # LPTSTR PathGetArgs(
 #     LPCTSTR pszPath
@@ -5180,7 +5185,7 @@ def PathGetArgsW(pszPath):
     pszPath = ctypes.c_void_p(pszPath)
     pszPath = ctypes.cast(pszPath, ctypes.c_wchar_p)
     return pszPath.value
-PathGetArgs = PathGetArgsA
+PathGetArgs = PathGetArgsW
 
 # BOOL PathIsContentType(
 #     LPCTSTR pszPath,
@@ -5190,7 +5195,7 @@ def PathIsContentTypeA(pszPath, pszContentType):
     return bool( ctypes.windll.shlwapi.PathIsContentTypeA(pszPath, pszContentType) )
 def PathIsContentTypeW(pszPath, pszContentType):
     return bool( ctypes.windll.shlwapi.PathIsContentTypeW(pszPath, pszContentType) )
-PathIsContentType = PathIsContentTypeA
+PathIsContentType = PathIsContentTypeW
 
 # BOOL PathIsDirectory(
 #     LPCTSTR pszPath
@@ -5199,7 +5204,7 @@ def PathIsDirectoryA(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryA(pszPath) )
 def PathIsDirectoryW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryW(pszPath) )
-PathIsDirectory = PathIsDirectoryA
+PathIsDirectory = PathIsDirectoryW
 
 # BOOL PathIsDirectoryEmpty(
 #     LPCTSTR pszPath
@@ -5208,7 +5213,7 @@ def PathIsDirectoryEmptyA(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryEmptyA(pszPath) )
 def PathIsDirectoryEmptyW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsDirectoryEmptyW(pszPath) )
-PathIsDirectoryEmpty = PathIsDirectoryEmptyA
+PathIsDirectoryEmpty = PathIsDirectoryEmptyW
 
 # BOOL PathIsNetworkPath(
 #     LPCTSTR pszPath
@@ -5217,7 +5222,7 @@ def PathIsNetworkPathA(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsNetworkPathA(pszPath) )
 def PathIsNetworkPathW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsNetworkPathW(pszPath) )
-PathIsNetworkPath = PathIsNetworkPathA
+PathIsNetworkPath = PathIsNetworkPathW
 
 # BOOL PathIsRelative(
 #     LPCTSTR lpszPath
@@ -5226,7 +5231,7 @@ def PathIsRelativeA(lpszPath):
     return bool( ctypes.windll.shlwapi.PathIsRelativeA(lpszPath) )
 def PathIsRelativeW(lpszPath):
     return bool( ctypes.windll.shlwapi.PathIsRelativeW(lpszPath) )
-PathIsRelative = PathIsRelativeA
+PathIsRelative = PathIsRelativeW
 
 # BOOL PathIsRoot(
 #     LPCTSTR pPath
@@ -5235,7 +5240,7 @@ def PathIsRootA(pPath):
     return bool( ctypes.windll.shlwapi.PathIsRootA(pPath) )
 def PathIsRootW(pPath):
     return bool( ctypes.windll.shlwapi.PathIsRootW(pPath) )
-PathIsRoot = PathIsRootA
+PathIsRoot = PathIsRootW
 
 # BOOL PathIsSameRoot(
 #     LPCTSTR pszPath1,
@@ -5245,7 +5250,7 @@ def PathIsSameRootA(pszPath1, pszPath2):
     return bool( ctypes.windll.shlwapi.PathIsSameRootA(pszPath1, pszPath2) )
 def PathIsSameRootW(pszPath1, pszPath2):
     return bool( ctypes.windll.shlwapi.PathIsSameRootW(pszPath1, pszPath2) )
-PathIsSameRoot = PathIsSameRootA
+PathIsSameRoot = PathIsSameRootW
 
 # BOOL PathIsUNC(
 #     LPCTSTR pszPath
@@ -5254,7 +5259,7 @@ def PathIsUNCA(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsUNCA(pszPath) )
 def PathIsUNCW(pszPath):
     return bool( ctypes.windll.shlwapi.PathIsUNCW(pszPath) )
-PathIsUNC = PathIsUNCA
+PathIsUNC = PathIsUNCW
 
 # XXX PathMakePretty turns filenames into all lowercase.
 # I'm not sure how well that might work on Wine.
@@ -5270,7 +5275,7 @@ def PathMakePrettyW(pszPath):
     pszPath = ctypes.create_unicode_buffer(pszPath)
     ctypes.windll.shlwapi.PathMakePrettyW(ctypes.byref(pszPath))
     return pszPath.value
-PathMakePretty = PathMakePrettyA
+PathMakePretty = PathMakePrettyW
 
 # void PathRemoveArgs(
 #     LPTSTR pszPath
@@ -5283,7 +5288,7 @@ def PathRemoveArgsW(pszPath):
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     ctypes.windll.shlwapi.PathRemoveArgsW(pszPath)
     return pszPath.value
-PathRemoveArgs = PathRemoveArgsA
+PathRemoveArgs = PathRemoveArgsW
 
 # void PathRemoveBackslash(
 #     LPTSTR pszPath
@@ -5296,7 +5301,7 @@ def PathRemoveBackslashW(pszPath):
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     ctypes.windll.shlwapi.PathRemoveBackslashW(pszPath)
     return pszPath.value
-PathRemoveBackslash = PathRemoveBackslashA
+PathRemoveBackslash = PathRemoveBackslashW
 
 # void PathRemoveExtension(
 #     LPTSTR pszPath
@@ -5309,7 +5314,7 @@ def PathRemoveExtensionW(pszPath):
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     ctypes.windll.shlwapi.PathRemoveExtensionW(pszPath)
     return pszPath.value
-PathRemoveExtension = PathRemoveExtensionA
+PathRemoveExtension = PathRemoveExtensionW
 
 # void PathRemoveFileSpec(
 #     LPTSTR pszPath
@@ -5322,7 +5327,7 @@ def PathRemoveFileSpecW(pszPath):
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     ctypes.windll.shlwapi.PathRemoveFileSpecW(pszPath)
     return pszPath.value
-PathRemoveFileSpec = PathRemoveFileSpecA
+PathRemoveFileSpec = PathRemoveFileSpecW
 
 # BOOL PathRenameExtension(
 #     LPTSTR pszPath,
@@ -5340,7 +5345,7 @@ def PathRenameExtensionW(pszPath, pszExt):
     if success == FALSE:
         return None
     return pszPath.value
-PathRenameExtension = PathRenameExtensionA
+PathRenameExtension = PathRenameExtensionW
 
 # BOOL PathUnExpandEnvStrings(
 #     LPCTSTR pszPath,
@@ -5357,6 +5362,7 @@ def PathUnExpandEnvStringsW(pszPath):
     cchBuf = MAX_PATH
     ctypes.windll.shlwapi.PathUnExpandEnvStringsW(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
     return pszBuf.value
+PathUnExpandEnvStrings = PathUnExpandEnvStringsW
 
 #--- dbghelp.dll --------------------------------------------------------------
 
@@ -5381,19 +5387,10 @@ def SymInitializeA(hProcess, UserSearchPath = None, fInvadeProcess = False):
     if success == FALSE:
         raise ctypes.WinError()
 def SymInitializeW(hProcess, UserSearchPath = None, fInvadeProcess = False):
-    if not UserSearchPath:
-        UserSearchPath = NULL
-    else:
-        UserSearchPath = ctypes.create_unicode_buffer(UserSearchPath)
-        UserSearchPath = ctypes.byref(UserSearchPath)
-    if fInvadeProcess:
-        fInvadeProcess = TRUE
-    else:
-        fInvadeProcess = FALSE
-    success = ctypes.windll.dbghelp.SymInitializeW(hProcess, UserSearchPath, fInvadeProcess)
-    if success == FALSE:
-        raise ctypes.WinError()
-SymInitialize = SymInitializeA
+    if UserSearchPath:
+        UserSearchPath = str(UserSearchPath)
+    SymInitializeA(hProcess, UserSearchPath, fInvadeProcess)
+SymInitialize = SymInitializeW
 
 # BOOL WINAPI SymCleanup(
 #   __in  HANDLE hProcess
@@ -5525,7 +5522,7 @@ def SymEnumerateModulesW(hProcess, BaseOfDll, EnumModulesCallback, UserContext =
     success = ctypes.windll.dbghelp.SymEnumerateModulesW(hProcess, BaseOfDll, EnumModulesCallback, UserContext)
     if success == FALSE:
         raise ctypes.WinError()
-SymEnumerateModules = SymEnumerateModulesA
+SymEnumerateModules = SymEnumerateModulesW
 
 # BOOL CALLBACK SymEnumerateSymbolsProc64(
 #   __in      PCTSTR SymbolName,
@@ -5564,7 +5561,7 @@ def SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext =
     success = ctypes.windll.dbghelp.SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
     if success == FALSE:
         raise ctypes.WinError()
-SymEnumerateSymbols = SymEnumerateSymbolsA
+SymEnumerateSymbols = SymEnumerateSymbolsW
 
 # DWORD64 WINAPI SymLoadModule64(
 #   __in      HANDLE hProcess,
@@ -5629,7 +5626,7 @@ def SymGetSearchPathW(hProcess):
     if success == FALSE:
         raise ctypes.WinError()
     return SearchPath.value
-SymGetSearchPath = SymGetSearchPathA
+SymGetSearchPath = SymGetSearchPathW
 
 # BOOL WINAPI SymSetSearchPath(
 #   __in      HANDLE hProcess,
@@ -5651,4 +5648,19 @@ def SymSetSearchPathW(hProcess, SearchPath = None):
     success = ctypes.windll.dbghelp.SymSetSearchPathW(hProcess, SearchPath)
     if success == FALSE:
         raise ctypes.WinError()
-SymSetSearchPath = SymSetSearchPathA
+SymSetSearchPath = SymSetSearchPathW
+
+#==============================================================================
+# Mark functions that Psyco cannot compile.
+# In your programs, don't use psyco.full().
+# Call psyco.bind() on your main function instead.
+
+try:
+    import psyco
+    psyco.cannotcompile(WaitForDebugEvent)
+    psyco.cannotcompile(WaitForSingleObject)
+    psyco.cannotcompile(WaitForSingleObjectEx)
+    psyco.cannotcompile(WaitForMultipleObjects)
+    psyco.cannotcompile(WaitForMultipleObjectsEx)
+except ImportError:
+    pass

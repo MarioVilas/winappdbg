@@ -181,7 +181,6 @@ class DebugRegister (object):
 
     # Dr7 &= disableMask[register]
     disableMask = tuple( [0xFFFFFFFF ^ x for x in enableMask] )
-    del x
 
     # orMask, andMask = triggerMask[register][trigger]
     # Dr7 = (Dr7 & andMask) | orMask    # to set

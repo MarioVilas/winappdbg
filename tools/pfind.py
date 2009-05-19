@@ -341,10 +341,10 @@ class Main (object):
                     try:
                         data = self.process.read(address, size)
                     except WindowsError as e:
-                        msg = "Error reading %.8x-%.8x: %s"
-                        msg = msg % (address, address + size, str(e))
-                        print(msg)
                         if self.options.verbose:
+                            msg = "Error at proccess %d, reading %.8x-%.8x: %s"
+                            msg = msg % (self.pid, address, address + size, str(e))
+                            print(msg)
                             print()
                         continue
                     self.search_block(data, address, 0)
@@ -368,10 +368,10 @@ class Main (object):
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
                     except WindowsError as e:
-                        msg = "Error reading %.8x-%.8x: %s"
-                        msg = msg % (address, address + total_size, str(e))
-                        print(msg)
                         if self.options.verbose:
+                            msg = "Error at process %d, reading %.8x-%.8x: %s"
+                            msg = msg % (self.pid, address, address + total_size, str(e))
+                            print(msg)
                             print()
 
     def search_block(self, data, address, shift):
