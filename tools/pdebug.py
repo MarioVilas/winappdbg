@@ -2020,13 +2020,12 @@ class ConsoleDebugger (Cmd, EventHandler):
 #==============================================================================
 
 def main(argv):
-##    sys.setcheckinterval(1)
     return ConsoleDebugger().run(argv)
 
 if __name__ == '__main__':
     try:
         import psyco
-        psyco.full()
+        psyco.bind(main)
     except ImportError:
         pass
     main(sys.argv)

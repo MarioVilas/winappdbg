@@ -3619,9 +3619,6 @@ def WaitForDebugEvent(dwMilliseconds = INFINITE):
             code = GetLastError()
             if code not in (ERROR_SEM_TIMEOUT, WAIT_TIMEOUT):
                 raise ctypes.WinError(code)
-            # XXX HACK
-            # Workaround for the KeyboardInterrupt bug.
-            time.sleep(0.2)
     return lpDebugEvent
 
 # BOOL ContinueDebugEvent(
@@ -5652,3 +5649,18 @@ def SymSetSearchPathW(hProcess, SearchPath = None):
     if success == FALSE:
         raise ctypes.WinError()
 SymSetSearchPath = SymSetSearchPathA
+
+#==============================================================================
+# Mark functions that Psyco cannot compile.
+# In your programs, don't use psyco.full().
+# Call psyco.bind() on your main function instead.
+
+try:
+    import psyco
+    psyco.cannotcompile(WaitForDebugEvent)
+    psyco.cannotcompile(WaitForSingleObject)
+    psyco.cannotcompile(WaitForSingleObjectEx)
+    psyco.cannotcompile(WaitForMultipleObjects)
+    psyco.cannotcompile(WaitForMultipleObjectsEx)
+except ImportError:
+    pass
