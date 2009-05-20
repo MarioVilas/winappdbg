@@ -269,6 +269,8 @@ TCHAR       = CHAR
 SIZE_T      = DWORD
 PVOID       = LPVOID
 PPVOID      = POINTER(PVOID)
+RVA         = DWORD
+RVA64       = QWORD
 
 # typedef union _LARGE_INTEGER {
 #   struct {
@@ -859,6 +861,80 @@ ExceptionContinueExecution  = 0
 ExceptionContinueSearch     = 1
 ExceptionNestedException    = 2
 ExceptionCollidedUnwind     = 3
+
+# Minidump types
+MiniDumpNormal                           = 0x00000000
+MiniDumpWithDataSegs                     = 0x00000001
+MiniDumpWithFullMemory                   = 0x00000002
+MiniDumpWithHandleData                   = 0x00000004
+MiniDumpFilterMemory                     = 0x00000008
+MiniDumpScanMemory                       = 0x00000010
+MiniDumpWithUnloadedModules              = 0x00000020
+MiniDumpWithIndirectlyReferencedMemory   = 0x00000040
+MiniDumpFilterModulePaths                = 0x00000080
+MiniDumpWithProcessThreadData            = 0x00000100
+MiniDumpWithPrivateReadWriteMemory       = 0x00000200
+MiniDumpWithoutOptionalData              = 0x00000400
+MiniDumpWithFullMemoryInfo               = 0x00000800
+MiniDumpWithThreadInfo                   = 0x00001000
+MiniDumpWithCodeSegs                     = 0x00002000
+
+# Minidump module write flags
+ModuleWriteModule          = 0x0001
+ModuleWriteDataSeg         = 0x0002
+ModuleWriteMiscRecord      = 0x0004
+ModuleWriteCvRecord        = 0x0008
+ModuleReferencedByMemory   = 0x0010
+ModuleWriteTlsData         = 0x0020
+ModuleWriteCodeSegs        = 0x0040
+
+# Minidump stream types
+UnusedStream                = 0
+ReservedStream0             = 1
+ReservedStream1             = 2
+ThreadListStream            = 3
+ModuleListStream            = 4
+MemoryListStream            = 5
+ExceptionStream             = 6
+SystemInfoStream            = 7
+ThreadExListStream          = 8
+Memory64ListStream          = 9
+CommentStreamA              = 10
+CommentStreamW              = 11
+HandleDataStream            = 12
+FunctionTableStream         = 13
+UnloadedModuleListStream    = 14
+MiscInfoStream              = 15
+MemoryInfoListStream        = 16
+ThreadInfoListStream        = 17
+HandleOperationListStream   = 18
+LastReservedStream          = 0xffff
+
+# Minidump callback types
+ModuleCallback                  = 0
+ThreadCallback                  = 1
+ThreadExCallback                = 2
+IncludeThreadCallback           = 3
+IncludeModuleCallback           = 4
+MemoryCallback                  = 5
+CancelCallback                  = 6
+WriteKernelMinidumpCallback     = 7
+KernelMinidumpStatusCallback    = 8
+RemoveMemoryCallback            = 9
+IncludeVmRegionCallback         = 10
+IoStartCallback                 = 11
+IoWriteAllCallback              = 12
+IoFinishCallback                = 13
+ReadMemoryFailureCallback       = 14
+SecondaryFlagsCallback          = 15
+
+# Secondary flags for minidumps
+MiniSecondaryWithoutPowerInfo   = 0x00000001
+
+# Misc info 2 flags
+MINIDUMP_MISC1_PROCESS_ID           = 0x00000001
+MINIDUMP_MISC1_PROCESS_TIMES        = 0x00000002
+MINIDUMP_MISC1_PROCESSOR_POWER_INFO = 0x00000004
 
 #--- THREADNAME_INFO structure ------------------------------------------------
 
@@ -2130,6 +2206,8 @@ EXCEPTION_RECORD._fields_ = [
         ('ExceptionInformation',    DWORD * EXCEPTION_MAXIMUM_PARAMETERS),
     ]
 
+PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
+
 # typedef struct _EXCEPTION_DEBUG_INFO {
 #   EXCEPTION_RECORD ExceptionRecord;
 #   DWORD dwFirstChance;
@@ -2589,6 +2667,8 @@ class CONTEXT(Structure):
                 return self.iter.pop(0)
             raise StopIteration
 
+PCONTEXT = POINTER(CONTEXT)
+
 #--- Toolhelp library defines and structures ----------------------------------
 
 TH32CS_SNAPHEAPLIST = 0x00000001
@@ -2963,6 +3043,411 @@ class IMAGEHLP_MODULEW64 (ctypes.Structure):
         ("SourceIndexed",   BOOL),
         ("Publics",         BOOL),
     ]
+
+#--- Minidump structures ------------------------------------------------------
+
+# typedef struct _MINIDUMP_MISC_INFO {
+#   ULONG32 SizeOfInfo;
+#   ULONG32 Flags1;
+#   ULONG32 ProcessId;
+#   ULONG32 ProcessCreateTime;
+#   ULONG32 ProcessUserTime;
+#   ULONG32 ProcessKernelTime;
+# } MINIDUMP_MISC_INFO, *PMINIDUMP_MISC_INFO;
+class MINIDUMP_MISC_INFO (Structure):
+    _fields_ = [
+        ("SizeOfInfo",                  ULONG32),
+        ("Flags1",                      ULONG32),
+        ("ProcessId",                   ULONG32),
+        ("ProcessCreateTime",           ULONG32),
+        ("ProcessUserTime",             ULONG32),
+        ("ProcessKernelTime",           ULONG32),
+    ]
+
+# typedef struct _MINIDUMP_MISC_INFO_2 {
+#   ULONG32 SizeOfInfo;
+#   ULONG32 Flags1;
+#   ULONG32 ProcessId;
+#   ULONG32 ProcessCreateTime;
+#   ULONG32 ProcessUserTime;
+#   ULONG32 ProcessKernelTime;
+#   ULONG32 ProcessorMaxMhz;
+#   ULONG32 ProcessorCurrentMhz;
+#   ULONG32 ProcessorMhzLimit;
+#   ULONG32 ProcessorMaxIdleState;
+#   ULONG32 ProcessorCurrentIdleState;
+# } MINIDUMP_MISC_INFO_2, *PMINIDUMP_MISC_INFO_2;
+class MINIDUMP_MISC_INFO_2 (Structure):
+    _fields_ = [
+        ("SizeOfInfo",                  ULONG32),
+        ("Flags1",                      ULONG32),
+        ("ProcessId",                   ULONG32),
+        ("ProcessCreateTime",           ULONG32),
+        ("ProcessUserTime",             ULONG32),
+        ("ProcessKernelTime",           ULONG32),
+        ("ProcessorMaxMhz",             ULONG32),
+        ("ProcessorCurrentMhz",         ULONG32),
+        ("ProcessorMhzLimit",           ULONG32),
+        ("ProcessorMaxIdleState",       ULONG32),
+        ("ProcessorCurrentIdleState",   ULONG32),
+    ]
+
+# typedef struct _MINIDUMP_LOCATION_DESCRIPTOR {
+#   ULONG32 DataSize;
+#   RVA     Rva;
+# } MINIDUMP_LOCATION_DESCRIPTOR;
+class MINIDUMP_LOCATION_DESCRIPTOR (Structure):
+    _fields_ = [
+        ("DataSize",  ULONG32),
+        ("Rva",       RVA),
+    ]
+
+# typedef struct _MINIDUMP_LOCATION_DESCRIPTOR64 {
+#   ULONG64 DataSize;
+#   RVA64 Rva;
+# } MINIDUMP_LOCATION_DESCRIPTOR64;
+class MINIDUMP_LOCATION_DESCRIPTOR64 (Structure):
+    _fields_ = [
+        ("DataSize",  ULONG64),
+        ("Rva",       RVA64),
+    ]
+
+# typedef struct _MINIDUMP_MEMORY_DESCRIPTOR {
+#   ULONG64                      StartOfMemoryRange;
+#   MINIDUMP_LOCATION_DESCRIPTOR Memory;
+# } MINIDUMP_MEMORY_DESCRIPTOR, *PMINIDUMP_MEMORY_DESCRIPTOR;
+class MINIDUMP_MEMORY_DESCRIPTOR (Structure):
+    _fields_ = [
+        ("StartOfMemoryRange",  ULONG64),
+        ("Memory",              MINIDUMP_LOCATION_DESCRIPTOR),
+    ]
+
+# typedef struct _MINIDUMP_THREAD {
+#   ULONG32                      ThreadId;
+#   ULONG32                      SuspendCount;
+#   ULONG32                      PriorityClass;
+#   ULONG32                      Priority;
+#   ULONG64                      Teb;
+#   MINIDUMP_MEMORY_DESCRIPTOR   Stack;
+#   MINIDUMP_LOCATION_DESCRIPTOR ThreadContext;
+# } MINIDUMP_THREAD, *PMINIDUMP_THREAD;
+class MINIDUMP_THREAD_LIST (Structure):
+    _fields_ = [
+        ("ThreadId",        ULONG32),
+        ("SuspendCount",    ULONG32),
+        ("PriorityClass",   ULONG32),
+        ("Priority",        ULONG32),
+        ("Teb",             ULONG64),
+        ("Stack",           MINIDUMP_MEMORY_DESCRIPTOR),
+        ("ThreadContext",   MINIDUMP_LOCATION_DESCRIPTOR),
+    ]
+
+# typedef struct _MINIDUMP_THREAD_LIST {
+#   ULONG32         NumberOfThreads;
+#   MINIDUMP_THREAD Threads[];
+# } MINIDUMP_THREAD_LIST, *PMINIDUMP_THREAD_LIST;
+class MINIDUMP_THREAD_LIST (Structure):
+    _fields_ = [
+        ("NumberOfThreads", ULONG32),
+        ("Threads",         MINIDUMP_THREAD * 1),   # variable size array
+    ]
+
+# typedef struct _EXCEPTION_POINTERS {
+#   PEXCEPTION_RECORD ExceptionRecord;
+#   PCONTEXT          ContextRecord;
+# } EXCEPTION_POINTERS, *PEXCEPTION_POINTERS;
+class EXCEPTION_POINTERS (Structure):
+    _fields_ = [
+        ("ExceptionRecord", PEXCEPTION_RECORD),
+        ("ContextRecord",   PCONTEXT),
+    ]
+PEXCEPTION_POINTERS = POINTER(EXCEPTION_POINTERS)
+
+# typedef struct _MINIDUMP_EXCEPTION_INFORMATION {
+#   DWORD               ThreadId;
+#   PEXCEPTION_POINTERS ExceptionPointers;
+#   BOOL                ClientPointers;
+# } MINIDUMP_EXCEPTION_INFORMATION, *PMINIDUMP_EXCEPTION_INFORMATION;
+class MINIDUMP_EXCEPTION_INFORMATION (Structure):
+    _fields_ = [
+        ("ThreadId",            DWORD),
+        ("ExceptionPointers",   PEXCEPTION_POINTERS),
+        ("ClientPointers",      BOOL),
+    ]
+
+PMINIDUMP_EXCEPTION_INFORMATION = POINTER(MINIDUMP_EXCEPTION_INFORMATION)
+
+# typedef struct _MINIDUMP_USER_STREAM {
+#   ULONG32 Type;
+#   ULONG   BufferSize;
+#   PVOID   Buffer;
+# } MINIDUMP_USER_STREAM, *PMINIDUMP_USER_STREAM;
+class MINIDUMP_USER_STREAM (Structure):
+    _fields_ = [
+        ("Type",        ULONG32),
+        ("BufferSize",  ULONG),
+        ("Buffer",      PVOID),
+    ]
+
+PMINIDUMP_USER_STREAM = POINTER(MINIDUMP_USER_STREAM)
+
+# typedef struct _MINIDUMP_USER_STREAM_INFORMATION {
+#   ULONG                 UserStreamCount;
+#   PMINIDUMP_USER_STREAM UserStreamArray;
+# } MINIDUMP_USER_STREAM_INFORMATION, *PMINIDUMP_USER_STREAM_INFORMATION;
+class MINIDUMP_USER_STREAM_INFORMATION (Structure):
+    _fields_ = [
+        ("UserStreamCount",     ULONG),
+        ("UserStreamArray",     PMINIDUMP_USER_STREAM),
+    ]
+
+# typedef struct _MINIDUMP_THREAD_CALLBACK {
+#   ULONG   ThreadId;
+#   HANDLE  ThreadHandle;
+#   CONTEXT Context;
+#   ULONG   SizeOfContext;
+#   ULONG64 StackBase;
+#   ULONG64 StackEnd;
+# } MINIDUMP_THREAD_CALLBACK, *PMINIDUMP_THREAD_CALLBACK;
+class MINIDUMP_THREAD_CALLBACK (Structure):
+    _fields_ = [
+        ("ThreadId",        ULONG),
+        ("ThreadHandle",    HANDLE),
+        ("Context",         CONTEXT),
+        ("SizeOfContext",   ULONG),
+        ("StackBase",       ULONG64),
+        ("StackEnd",        ULONG64),
+    ]
+
+# typedef struct _MINIDUMP_THREAD_EX_CALLBACK {
+#   ULONG   ThreadId;
+#   HANDLE  ThreadHandle;
+#   CONTEXT Context;
+#   ULONG   SizeOfContext;
+#   ULONG64 StackBase;
+#   ULONG64 StackEnd;
+#   ULONG64 BackingStoreBase;
+#   ULONG64 BackingStoreEnd;
+# } MINIDUMP_THREAD_EX_CALLBACK, *PMINIDUMP_THREAD_EX_CALLBACK;
+class MINIDUMP_THREAD_EX_CALLBACK (Structure):
+    _fields_ = [
+        ("ThreadId",                ULONG),
+        ("ThreadHandle",            HANDLE),
+        ("Context",                 CONTEXT),
+        ("SizeOfContext",           ULONG),
+        ("StackBase",               ULONG64),
+        ("StackEnd",                ULONG64),
+        ("BackingStoreBase",        ULONG64),
+        ("BackingStoreEnd",         ULONG64),
+    ]
+
+# struct VS_FIXEDFILEINFO {
+#   DWORD dwSignature;
+#   DWORD dwStrucVersion;
+#   DWORD dwFileVersionMS;
+#   DWORD dwFileVersionLS;
+#   DWORD dwProductVersionMS;
+#   DWORD dwProductVersionLS;
+#   DWORD dwFileFlagsMask;
+#   DWORD dwFileFlags;
+#   DWORD dwFileOS;
+#   DWORD dwFileType;
+#   DWORD dwFileSubtype;
+#   DWORD dwFileDateMS;
+#   DWORD dwFileDateLS;
+# };
+class VS_FIXEDFILEINFO (Structure):
+    _fields_ = [
+        ("dwSignature",             DWORD),     # 0xFEEF04BD
+        ("dwStrucVersion",          DWORD),
+        ("dwFileVersionMS",         DWORD),
+        ("dwFileVersionLS",         DWORD),
+        ("dwProductVersionMS",      DWORD),
+        ("dwProductVersionLS",      DWORD),
+        ("dwFileFlagsMask",         DWORD),
+        ("dwFileFlags",             DWORD),
+        ("dwFileOS",                DWORD),
+        ("dwFileType",              DWORD),
+        ("dwFileSubtype",           DWORD),
+        ("dwFileDateMS",            DWORD),
+        ("dwFileDateLS",            DWORD),
+    ]
+
+# typedef struct _MINIDUMP_MODULE_CALLBACK {
+#   PWCHAR           FullPath;
+#   ULONG64          BaseOfImage;
+#   ULONG            SizeOfImage;
+#   ULONG            CheckSum;
+#   ULONG            TimeDateStamp;
+#   VS_FIXEDFILEINFO VersionInfo;
+#   PVOID            CvRecord;
+#   ULONG            SizeOfCvRecord;
+#   PVOID            MiscRecord;
+#   ULONG            SizeOfMiscRecord;
+# } MINIDUMP_MODULE_CALLBACK, *PMINIDUMP_MODULE_CALLBACK;
+class MINIDUMP_MODULE_CALLBACK (Structure):
+    _fields_ = [
+        ("FullPath",                PWCHAR),
+        ("BaseOfImage",             ULONG64),
+        ("SizeOfImage",             ULONG),
+        ("CheckSum",                ULONG),
+        ("TimeDateStamp",           ULONG),
+        ("VersionInfo",             VS_FIXEDFILEINFO),
+        ("CvRecord",                PVOID),
+        ("SizeOfCvRecord",          ULONG),
+        ("MiscRecord",              PVOID),
+        ("SizeOfMiscRecord",        ULONG),
+    ]
+
+# typedef struct _MINIDUMP_INCLUDE_THREAD_CALLBACK {
+#   ULONG ThreadId;
+# } MINIDUMP_INCLUDE_THREAD_CALLBACK, *PMINIDUMP_INCLUDE_THREAD_CALLBACK;
+class MINIDUMP_INCLUDE_THREAD_CALLBACK (Structure):
+    _fields_ = [
+        ("ThreadId",                ULONG),
+    ]
+
+# typedef struct _MINIDUMP_INCLUDE_MODULE_CALLBACK {
+#   ULONG64 BaseOfImage;
+# } MINIDUMP_INCLUDE_MODULE_CALLBACK, *PMINIDUMP_INCLUDE_MODULE_CALLBACK;
+class MINIDUMP_INCLUDE_MODULE_CALLBACK (Structure):
+    _fields_ = [
+        ("BaseOfImage",             ULONG64),
+    ]
+
+# typedef struct _MINIDUMP_IO_CALLBACK {
+#   HANDLE  Handle;
+#   ULONG64 Offset;
+#   PVOID   Buffer;
+#   ULONG   BufferBytes;
+# } MINIDUMP_IO_CALLBACK, *PMINIDUMP_IO_CALLBACK;
+class MINIDUMP_IO_CALLBACK (Structure):
+    _fields_ = [
+        ("Handle",              HANDLE),
+        ("Offset",              ULONG64),
+        ("Buffer",              PVOID),
+        ("BufferBytes",         ULONG),
+    ]
+
+# typedef struct _MINIDUMP_READ_MEMORY_FAILURE_CALLBACK {
+#   ULONG64 Offset;
+#   ULONG   Bytes;
+#   HRESULT FailureStatus;
+# } MINIDUMP_READ_MEMORY_FAILURE_CALLBACK, *PMINIDUMP_READ_MEMORY_FAILURE_CALLBACK;
+class MINIDUMP_READ_MEMORY_FAILURE_CALLBACK (Structure):
+    _fields_ = [
+        ("Offset",          ULONG64),
+        ("Bytes",           ULONG),
+        ("FailureStatus",   HRESULT),
+    ]
+
+# typedef struct _MINIDUMP_CALLBACK_OUTPUT {
+#   union {
+#     ULONG ModuleWriteFlags;
+#     ULONG ThreadWriteFlags;
+#     ULONG SecondaryFlags;
+#     struct {
+#       ULONG64 MemoryBase;
+#       ULONG MemorySize;
+#     } ;
+#     struct {
+#       BOOL CheckCancel;
+#       BOOL Cancel;
+#     } ;
+#     HANDLE Handle;
+#   } ;
+#   struct {
+#     MINIDUMP_MEMORY_INFO VmRegion;
+#     BOOL Continue;
+#   } ;
+#   HRESULT Status;
+# } MINIDUMP_CALLBACK_OUTPUT, *PMINIDUMP_CALLBACK_OUTPUT;
+class _MINIDUMP_CALLBACK_OUTPUT_UNION_STRUCT_1 (Structure):
+    _fields_ = [
+        ("MemoryBase",      ULONG64),
+        ("MemorySize",      ULONG),
+    ]
+class _MINIDUMP_CALLBACK_OUTPUT_UNION_STRUCT_2 (Structure):
+    _fields_ = [
+        ("CheckCancel",     BOOL),
+        ("Cancel",          BOOL),
+    ]
+class _MINIDUMP_CALLBACK_OUTPUT_UNION (Union):
+    _fields_ = [
+        ("ModuleWriteFlags",     ULONG),
+        ("ThreadWriteFlags",     ULONG),
+        ("SecondaryFlags",       ULONG),
+        ("s1",                  _MINIDUMP_CALLBACK_OUTPUT_UNION_STRUCT_1),
+        ("s2",                  _MINIDUMP_CALLBACK_OUTPUT_UNION_STRUCT_2),
+        ("Handle",              HANDLE),
+    ]
+class _MINIDUMP_CALLBACK_OUTPUT_STRUCT (Structure):
+    _fields_ = [
+        ("VmRegion",        MINIDUMP_MEMORY_INFO),
+        ("Continue",        BOOL),
+    ]
+class MINIDUMP_CALLBACK_OUTPUT (Structure):
+    _fields_ = [
+        ("u",       _MINIDUMP_CALLBACK_OUTPUT_UNION),
+        ("s",       _MINIDUMP_CALLBACK_OUTPUT_STRUCT),
+        ("Status",  HRESULT),
+    ]
+PMINIDUMP_CALLBACK_OUTPUT = POINTER(PMINIDUMP_CALLBACK_OUTPUT)
+
+# typedef struct _MINIDUMP_CALLBACK_INPUT {
+#   ULONG  ProcessId;
+#   HANDLE ProcessHandle;
+#   ULONG  CallbackType;
+#   union {
+#     HRESULT Status;
+#     MINIDUMP_THREAD_CALLBACK Thread;
+#     MINIDUMP_THREAD_EX_CALLBACK ThreadEx;
+#     MINIDUMP_MODULE_CALLBACK Module;
+#     MINIDUMP_INCLUDE_THREAD_CALLBACK IncludeThread;
+#     MINIDUMP_INCLUDE_MODULE_CALLBACK IncludeModule;
+#     MINIDUMP_IO_CALLBACK Io;
+#     MINIDUMP_READ_MEMORY_FAILURE_CALLBACK ReadMemoryFailure;
+#     ULONG SecondaryFlags;
+#   } ;
+# } MINIDUMP_CALLBACK_INPUT, *PMINIDUMP_CALLBACK_INPUT;
+class MINIDUMP_CALLBACK_INPUT_UNION (Union):
+    _fields_ = [
+        ("Status",              HRESULT),
+        ("Thread",              MINIDUMP_THREAD_CALLBACK),
+        ("ThreadEx",            MINIDUMP_THREAD_EX_CALLBACK),
+        ("Module",              MINIDUMP_MODULE_CALLBACK),
+        ("IncludeThread",       MINIDUMP_INCLUDE_THREAD_CALLBACK),
+        ("IncludeModule",       MINIDUMP_INCLUDE_MODULE_CALLBACK),
+        ("Io",                  MINIDUMP_IO_CALLBACK),
+        ("ReadMemoryFailure",   MINIDUMP_READ_MEMORY_FAILURE_CALLBACK),
+        ("SecondaryFlags",      ULONG),
+    ]
+class MINIDUMP_CALLBACK_INPUT_UNION (Union):
+    _fields_ = [
+        ("ProcessId",           ULONG),
+        ("ProcessHandle",       HANDLE),
+        ("CallbackType",        ULONG),
+        ("u",                   MINIDUMP_CALLBACK_INPUT_UNION),
+    ]
+
+# BOOL CALLBACK MiniDumpCallback(
+#   __in     PVOID CallbackParam,
+#   __in     const PMINIDUMP_CALLBACK_INPUT CallbackInput,
+#   __inout  PMINIDUMP_CALLBACK_OUTPUT CallbackOutput
+# );
+MINIDUMP_CALLBACK_ROUTINE = ctypes.WINFUNCTYPE(PVOID, PMINIDUMP_CALLBACK_INPUT, PMINIDUMP_CALLBACK_OUTPUT)
+
+# typedef struct _MINIDUMP_CALLBACK_INFORMATION {
+#   MINIDUMP_CALLBACK_ROUTINE CallbackRoutine;
+#   PVOID                     CallbackParam;
+# } MINIDUMP_CALLBACK_INFORMATION, *PMINIDUMP_CALLBACK_INFORMATION;
+class MINIDUMP_CALLBACK_INFORMATION (Structure):
+    _fields_ = [
+        ("CallbackRoutine",     MINIDUMP_CALLBACK_ROUTINE),
+        ("CallbackParam",       PVOID),
+    ]
+
+PMINIDUMP_CALLBACK_INFORMATION = POINTER(PMINIDUMP_CALLBACK_INFORMATION)
 
 #--- kernel32.dll -------------------------------------------------------------
 
@@ -5649,6 +6134,18 @@ def SymSetSearchPathW(hProcess, SearchPath = None):
     if success == FALSE:
         raise ctypes.WinError()
 SymSetSearchPath = SymSetSearchPathA
+
+# BOOL WINAPI MiniDumpWriteDump(
+#   __in  HANDLE hProcess,
+#   __in  DWORD ProcessId,
+#   __in  HANDLE hFile,
+#   __in  MINIDUMP_TYPE DumpType,
+#   __in  PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+#   __in  PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+#   __in  PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+# );
+def MiniDumpWriteDump(hProcess, ProcessId, hFile, DumpType, ExceptionParam, UserStreamParam, CallbackParam):
+
 
 #==============================================================================
 # Mark functions that Psyco cannot compile.
