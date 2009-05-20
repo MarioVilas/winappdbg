@@ -42,12 +42,6 @@ POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
 
-try:
-    callable
-except NameError:
-    def callable(obj):
-        return hasattr(obj, '__call__')
-
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
@@ -67,8 +61,7 @@ class Handle (object):
            C{True} if we own the handle and we need to close it.
            C{False} if someone else will be calling L{CloseHandle}.
         """
-        super(Handle, self).__init__()
-        if aHandle is not None and type(aHandle) not in (type(0), type(0)):
+        if aHandle is not None and type(aHandle) != type(0):
             raise TypeError("Invalid type for handle value: %s" % type(aHandle))
         if aHandle == INVALID_HANDLE_VALUE:
             aHandle = None
@@ -116,7 +109,9 @@ class Handle (object):
         Compatibility with ctypes.
         Allows passing transparently a Handle object to an API call.
         """
-        return int(self.value)
+        if self.value in (None, INVALID_HANDLE_VALUE):
+            raise TypeError("Invalid handle value")
+        return self.value
 
     def close(self):
         """
@@ -133,6 +128,8 @@ class Handle (object):
         @rtype:  L{Handle}
         @return: A new handle to the same Win32 object.
         """
+        if self.value in (None, INVALID_HANDLE_VALUE):
+            raise TypeError("Invalid handle value")
         hHandle = DuplicateHandle(self.value)
         return self.__class__(hHandle, bOwnership = True)
 
@@ -146,7 +143,7 @@ class Handle (object):
         """
         if dwMilliseconds is None:
             dwMilliseconds = INFINITE
-        r = WaitForSingleObject(self.value, dwMilliseconds)
+        r = WaitForSingleObject(self, dwMilliseconds)
         if r != WAIT_OBJECT_0:
             raise ctypes.WinError(r)
 
@@ -162,7 +159,7 @@ class ProcessHandle (Handle):
         @rtype:  int
         @return: Process global ID.
         """
-        return GetProcessId(self.value)
+        return GetProcessId(self)
 
 class ThreadHandle (Handle):
     """
@@ -176,7 +173,7 @@ class ThreadHandle (Handle):
         @rtype:  int
         @return: Thread global ID.
         """
-        return GetThreadId(self.value)
+        return GetThreadId(self)
 
 # TODO
 # maybe add file mapping support here?
@@ -192,19 +189,16 @@ class FileHandle (Handle):
         @rtype:  None or str
         @return: Name of the open file, or C{None} on error.
         """
-
-        # XXX TO DO update wrapper to avoid using ctypes objects
         dwBufferSize      = 0x1004
-        lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
+        lpFileInformation = ctypes.create_string_buffer(b'', dwBufferSize)
         try:
-            GetFileInformationByHandleEx(self.value,
+            GetFileInformationByHandleEx(self,
                                          FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
                                          lpFileInformation, dwBufferSize)
         except AttributeError:
             return None
         FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
-        FileName = str(lpFileInformation.raw[4:FileNameLength+4])
-        FileName = FileName.replace('\x00', '')
+        FileName = str(lpFileInformation.raw[4:FileNameLength+4], 'U16', 'ignore')
         if FileName:
             return FileName
         return None
@@ -3056,28 +3050,23 @@ def LoadLibrary(pszLibrary):
 def LoadLibraryEx(pszLibrary, dwFlags):
     return ctypes.windll.kernel32.LoadLibraryEx(pszLibrary, NULL, dwFlags)
 
-def GetModuleHandleA(lpModuleName):
-    lpModuleName = ctypes.c_char_p(lpModuleName)
-    return ctypes.windll.kernel32.GetModuleHandleA(lpModuleName)
-
-def GetModuleHandleW(lpModuleName):
-    lpModuleName = ctypes.c_wchar_p(lpModuleName)
-    return ctypes.windll.kernel32.GetModuleHandleW(lpModuleName)
-
 # HMODULE WINAPI GetModuleHandle(
 #   __in_opt  LPCTSTR lpModuleName
 # );
-def GetModuleHandle(lpModuleName):
-    if type(lpModuleName) == type(''):
-        return GetModuleHandleW(lpModuleName)
-    return GetModuleHandleA(lpModuleName)
+def GetModuleHandleA(lpModuleName):
+    lpModuleName = ctypes.c_char_p(lpModuleName)
+    return ctypes.windll.kernel32.GetModuleHandleA(lpModuleName)
+def GetModuleHandleW(lpModuleName):
+    lpModuleName = ctypes.c_wchar_p(lpModuleName)
+    return ctypes.windll.kernel32.GetModuleHandleW(lpModuleName)
+GetModuleHandle = GetModuleHandleW
 
 # FARPROC WINAPI GetProcAddress(
 #   __in  HMODULE hModule,
 #   __in  LPCSTR lpProcName
 # );
 def GetProcAddress(hModule, lpProcName):
-    if type(lpProcName) in (type(0), type(0)):
+    if type(lpProcName) == type(0):
         if lpProcName & 0xFFFF0000:
             raise ValueError('Ordinal number too large: %d' % lpProcName)
     else:
@@ -3105,7 +3094,7 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     ctypes.windll.kernel32.QueryFullProcessImageNameA(hProcess, dwFlags, NULL, ctypes.byref(lpdwSize))
     if lpdwSize.value == 0:
         raise ctypes.WinError()
-    lpExeName = ctypes.create_string_buffer('', lpdwSize.value)
+    lpExeName = ctypes.create_string_buffer(b'', lpdwSize.value)
     retval = ctypes.windll.kernel32.QueryFullProcessImageNameA(hProcess, dwFlags, ctypes.byref(lpExeName), ctypes.byref(lpdwSize))
     if retval == 0:
         raise ctypes.WinError()
@@ -3128,7 +3117,7 @@ QueryFullProcessImageName = QueryFullProcessImageNameW
 # );
 def GetLogicalDriveStringsA():
     nBufferLength = 0x1000
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength)
     size = ctypes.windll.kernel32.GetLogicalDriveStringsA(nBufferLength, ctypes.byref(lpBuffer))
     if size == 0:
         raise ctypes.WinError()
@@ -3150,7 +3139,7 @@ GetLogicalDriveStrings = GetLogicalDriveStringsW
 def QueryDosDeviceA(lpDeviceName):
     lpDeviceName = ctypes.create_string_buffer(lpDeviceName)
     ucchMax = 0x1000
-    lpTargetPath = ctypes.create_string_buffer('', ucchMax)
+    lpTargetPath = ctypes.create_string_buffer(b'', ucchMax)
     size = ctypes.windll.kernel32.QueryDosDeviceA(ctypes.byref(lpDeviceName), ctypes.byref(lpTargetPath), ucchMax)
     if size == 0:
         raise ctypes.WinError()
@@ -3282,7 +3271,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
     nBufferLength = ctypes.windll.kernel32.SearchPathA(lpPath, lpFileName, lpExtension, 0, NULL, NULL)
     if nBufferLength == 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_string_buffer("\0", nBufferLength + 1)
+    lpBuffer = ctypes.create_string_buffer(b"\0", nBufferLength + 1)
     lpFilePart = ctypes.c_char_p()
     nCount = ctypes.windll.kernel32.SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, ctypes.byref(lpBuffer), ctypes.byref(lpFilePart))
     if nCount == 0:
@@ -3386,7 +3375,7 @@ def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation,
 # );
 def GetFullPathNameA(lpFileName, nBufferLength = MAX_PATH):
     lpFileName  = ctypes.create_string_buffer(lpFileName, nBufferLength)
-    lpBuffer    = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer    = ctypes.create_string_buffer(b'', nBufferLength)
     lpFilePart  = ctypes.c_char_p()
     success = ctypes.windll.kernel32.GetFullPathNameA(ctypes.byref(lpFileName), nBufferLength, ctypes.byref(lpBuffer), ctypes.byref(lpFilePart))
     if success == FALSE:
@@ -3410,7 +3399,7 @@ def GetTempPathA():
     nBufferLength = ctypes.windll.kernel32.GetTempPathA(0, NULL)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_string_buffer("", nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b"", nBufferLength)
     nCopied = ctypes.windll.kernel32.GetTempPathA(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3432,10 +3421,10 @@ GetTempPath = GetTempPathW
 #   __in   UINT uUnique,
 #   __out  LPTSTR lpTempFileName
 # );
-def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
+def GetTempFileNameA(lpPathName = None, lpPrefixString = b"TMP", uUnique = 0):
     if lpPathName in (None, NULL):
         lpPathName = GetTempPathA()
-    lpTempFileName = ctypes.create_string_buffer("", MAX_PATH)
+    lpTempFileName = ctypes.create_string_buffer(b"", MAX_PATH)
     uUnique = ctypes.windll.kernel32.GetTempFileNameA(lpPathName, lpPrefixString, uUnique, ctypes.byref(lpTempFileName))
     if uUnique == 0:
         raise ctypes.WinError()
@@ -3889,13 +3878,13 @@ def TerminateProcess(hProcess, dwExitCode = 0):
 #   __out  SIZE_T* lpNumberOfBytesRead
 # );
 def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
-    lpBuffer                = ctypes.create_string_buffer('', nSize)
+    lpBuffer                = ctypes.create_string_buffer(b'', nSize)
     lpNumberOfBytesRead     = ctypes.c_uint(0)
     success = ctypes.windll.kernel32.ReadProcessMemory(hProcess, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesRead))
     if success == FALSE:
         if GetLastError() != ERROR_PARTIAL_COPY:
             raise ctypes.WinError()
-    return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
+    return bytes(lpBuffer.raw)[:lpNumberOfBytesRead.value]
 
 # BOOL WINAPI WriteProcessMemory(
 #   __in   HANDLE hProcess,
@@ -3906,7 +3895,7 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
 # );
 def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
     nSize                   = len(lpBuffer)
-    lpBuffer                = ctypes.create_string_buffer(lpBuffer)
+    lpBuffer                = ctypes.create_string_buffer(bytes(lpBuffer))
     lpNumberOfBytesWritten  = ctypes.c_uint(0)
     success = ctypes.windll.kernel32.WriteProcessMemory(hProcess, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesWritten))
     if success == FALSE:
@@ -4337,7 +4326,7 @@ def Heap32ListNext(hSnapshot, hl = None):
 #   __out  SIZE_T lpNumberOfBytesRead
 # );
 def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, nSize):
-    lpBuffer                = ctypes.create_string_buffer('', nSize)
+    lpBuffer                = ctypes.create_string_buffer(b'', nSize)
     lpNumberOfBytesRead     = ctypes.c_uint(0)
     success = ctypes.windll.kernel32.Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesRead))
     if success == FALSE:
@@ -4470,7 +4459,7 @@ ZwSystemDebugControl = NtSystemDebugControl
 # );
 def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformationLength = None):
     if ProcessInformationLength is not None:
-        ProcessInformation = ctypes.create_string_buffer("", ProcessInformationLength)
+        ProcessInformation = ctypes.create_string_buffer(b"", ProcessInformationLength)
     else:
         if   ProcessInformationClass == ProcessBasicInformation:
             ProcessInformation = PROCESS_BASIC_INFORMATION()
@@ -4510,7 +4499,7 @@ ZwQueryInformationProcess = NtQueryInformationProcess
 # );
 def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformationLength = None):
     if ThreadInformationLength is not None:
-        ThreadInformation = ctypes.create_string_buffer("", ThreadInformationLength)
+        ThreadInformation = ctypes.create_string_buffer(b"", ThreadInformationLength)
     else:
         if   ThreadInformationClass == ThreadBasicInformation:
             ThreadInformation = THREAD_BASIC_INFORMATION()
@@ -4613,7 +4602,7 @@ def LookupPrivilegeName(lpSystemName, lpLuid):
     success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
     if success == FALSE:
         raise ctypes.WinError()
-    lpName = ctypes.create_string_buffer("", cchName.value)
+    lpName = ctypes.create_string_buffer(b"", cchName.value)
     success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
     if success == FALSE:
         raise ctypes.WinError()
@@ -4827,7 +4816,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
 def GetDeviceDriverBaseNameA(ImageBase):
     nSize = MAX_PATH
     while 1:
-        lpBaseName = ctypes.create_string_buffer("", nSize)
+        lpBaseName = ctypes.create_string_buffer(b"", nSize)
         nCopied = ctypes.windll.psapi.GetDeviceDriverBaseNameA(ImageBase, ctypes.byref(lpBaseName), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -4856,7 +4845,7 @@ GetDeviceDriverBaseName = GetDeviceDriverBaseNameW
 def GetDeviceDriverFileNameA(ImageBase):
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_string_buffer("", nSize)
+        lpFilename = ctypes.create_string_buffer(b"", nSize)
         nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameA(ImageBase, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -4886,7 +4875,7 @@ GetDeviceDriverFileName = GetDeviceDriverFileNameW
 def GetMappedFileNameA(hProcess, lpv):
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_string_buffer("", nSize)
+        lpFilename = ctypes.create_string_buffer(b"", nSize)
         nCopied = ctypes.windll.psapi.GetMappedFileNameA(hProcess, lpv, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -4916,7 +4905,7 @@ GetMappedFileName = GetMappedFileNameW
 def GetModuleFileNameExA(hProcess, hModule):
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_string_buffer("", nSize)
+        lpFilename = ctypes.create_string_buffer(b"", nSize)
         nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, hModule, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -4959,7 +4948,7 @@ def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
 def GetProcessImageFileNameA(hProcess):
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_string_buffer("", nSize)
+        lpFilename = ctypes.create_string_buffer(b"", nSize)
         nCopied = ctypes.windll.psapi.GetProcessImageFileNameA(hProcess, ctypes.byref(lpFilename), nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -5045,7 +5034,7 @@ PathAppend = PathAppendW
 #     LPCTSTR lpszFile
 # );
 def PathCombineA(lpszDir, lpszFile):
-    lpszDest = ctypes.create_string_buffer("", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
+    lpszDest = ctypes.create_string_buffer(b"", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
     retval = ctypes.windll.shlwapi.PathCombineA(lpszDest, lpszDir, lpszFile)
     if retval == NULL:
         return None
@@ -5063,7 +5052,7 @@ PathCombine = PathCombineW
 #     LPCTSTR lpszSrc
 # );
 def PathCanonicalizeA(lpszSrc):
-    lpszDst = ctypes.create_string_buffer("", MAX_PATH)
+    lpszDst = ctypes.create_string_buffer(b"", MAX_PATH)
     success = ctypes.windll.shlwapi.PathCanonicalizeA(ctypes.byref(lpszDst), lpszSrc)
     if success == FALSE:
         raise ctypes.WinError()
@@ -5353,7 +5342,7 @@ PathRenameExtension = PathRenameExtensionW
 #     UINT cchBuf
 # );
 def PathUnExpandEnvStringsA(pszPath):
-    pszBuf = ctypes.create_string_buffer("", MAX_PATH)
+    pszBuf = ctypes.create_string_buffer(b"", MAX_PATH)
     cchBuf = MAX_PATH
     ctypes.windll.shlwapi.PathUnExpandEnvStringsA(ctypes.byref(pszPath), ctypes.byref(pszBuf), cchBuf)
     return pszBuf.value
@@ -5614,7 +5603,7 @@ SymEnumerateSymbols = SymEnumerateSymbolsW
 # );
 def SymGetSearchPathA(hProcess):
     SearchPathLength = MAX_PATH
-    SearchPath = ctypes.byref(ctypes.create_string_buffer("", SearchPathLength))
+    SearchPath = ctypes.byref(ctypes.create_string_buffer(b"", SearchPathLength))
     success = ctypes.windll.dbghelp.SymGetSearchPath(hProcess, SearchPath, SearchPathLength)
     if success == FALSE:
         raise ctypes.WinError()

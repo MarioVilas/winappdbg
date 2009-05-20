@@ -973,7 +973,7 @@ class MemoryOperations (object):
         @type  nSize: int
         @param nSize: Number of bytes to read.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Bytes read from the process memory.
 
         @raise WindowsError: On error an exception is raised.
@@ -994,7 +994,7 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
 
-        @type  lpBuffer: int
+        @type  lpBuffer: bytes
         @param lpBuffer: Bytes to write.
 
         @raise WindowsError: On error an exception is raised.
@@ -1051,12 +1051,12 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
 
-        @rtype:  int
+        @rtype:  byte
         @return: Character value read from the process memory.
 
         @raise WindowsError: On error an exception is raised.
         """
-        return ord( self.read(lpBaseAddress, 1) )
+        return self.read(lpBaseAddress, 1)[0]
 
     def write_char(self, lpBaseAddress, char):
         """
@@ -1067,12 +1067,12 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
 
-        @type  char: int
+        @type  char: byte
         @param char: Character to write.
 
         @raise WindowsError: On error an exception is raised.
         """
-        self.write(lpBaseAddress, chr(char))
+        self.write(lpBaseAddress, char)
 
     def read_structure(self, lpBaseAddress, stype):
         """
@@ -1097,29 +1097,28 @@ class MemoryOperations (object):
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
         return ptr.contents
 
-# TODO
-##    def write_structure(self, lpBaseAddress, sStructure):
-##        """
-##        Writes a ctypes structure into the memory of the process.
-##
-##        @see: L{write}
-##
-##        @type  lpBaseAddress: int
-##        @param lpBaseAddress: Memory address to begin writing.
-##
-##        @type  sStructure: ctypes.Structure or a subclass' instance.
-##        @param sStructure: Structure definition.
-##
-##        @rtype:  int
-##        @return: Structure instance filled in with data
-##            read from the process memory.
-##
-##        @raise WindowsError: On error an exception is raised.
-##        """
-##        size = ctypes.sizeof(sStructure)
-##        data = ctypes.create_string_buffer("", size = size)
-##        win32.CopyMemory(ctypes.byref(data), ctypes.byref(sStructure), size)
-##        self.write(lpBaseAddress, data.raw)
+    def write_structure(self, lpBaseAddress, sStructure):
+        """
+        Writes a ctypes structure into the memory of the process.
+
+        @see: L{write}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  sStructure: ctypes.Structure or a subclass' instance.
+        @param sStructure: Structure definition.
+
+        @rtype:  int
+        @return: Structure instance filled in with data
+            read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        size = ctypes.sizeof(sStructure)
+        data = ctypes.create_string_buffer(b"", size = size)
+        win32.CopyMemory(ctypes.byref(data), ctypes.byref(sStructure), size)
+        self.write(lpBaseAddress, data.raw)
 
 #------------------------------------------------------------------------------
 
@@ -1135,11 +1134,11 @@ class MemoryOperations (object):
         @type  nSize: int
         @param nSize: Number of bytes to read.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Bytes read from the process memory.
             Returns an empty string on error.
         """
-        data = ''
+        data = b''
         if nSize > 0:
             try:
                 data = win32.ReadProcessMemory(self.get_handle(),
@@ -1237,14 +1236,14 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
 
-        @type  char: str
+        @type  char: byte
         @param char: Character to write.
 
         @rtype:  int
         @return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.poke(lpBaseAddress, chr(char))
+        return self.poke(lpBaseAddress, bytes(char))
 
     def peek_string(self, lpBaseAddress, fUnicode = False, dwMaxSize = 0x1000):
         """
@@ -1271,9 +1270,8 @@ class MemoryOperations (object):
         szString = self.peek(lpBaseAddress, dwMaxSize)
         if fUnicode:
             szString = str(szString, 'U16', 'ignore')
-            szString = ctypes.create_unicode_buffer(szString).value
         else:
-            szString = ctypes.create_string_buffer(szString).value
+            szString = str(szString, 'ascii', 'ignore')
         return szString
 
 #------------------------------------------------------------------------------

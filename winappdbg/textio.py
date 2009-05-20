@@ -425,7 +425,7 @@ class HexDump (object):
         """
         Replace unprintable characters with dots.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @rtype:  str
@@ -433,8 +433,8 @@ class HexDump (object):
         """
         result = ''
         for c in data:
-            if 32 < ord(c) < 128:
-                result += c
+            if 32 < c < 128:
+                result += chr(c)
             else:
                 result += '.'
         return result
@@ -444,7 +444,7 @@ class HexDump (object):
         """
         Convert binary data to a string of hexadecimal numbers.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @type  separator: str
@@ -454,14 +454,14 @@ class HexDump (object):
         @rtype:  str
         @return: Hexadecimal representation.
         """
-        return separator.join( [ '%.2x' % ord(c) for c in data ] )
+        return separator.join( [ '%.2x' % c for c in data ] )
 
     @staticmethod
     def hexa_word(data, separator = ' '):
         """
         Convert binary data to a string of hexadecimal WORDs.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @type  separator: str
@@ -472,7 +472,7 @@ class HexDump (object):
         @return: Hexadecimal representation.
         """
         if len(data) & 1 != 0:
-            data += '\0'
+            data += b'\0'
         return separator.join( [ '%.4x' % struct.unpack('<H', data[i:i+2])[0] \
                                            for i in range(0, len(data), 2) ] )
 
@@ -481,7 +481,7 @@ class HexDump (object):
         """
         Convert binary data to a string of hexadecimal DWORDs.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @type  separator: str
@@ -501,7 +501,7 @@ class HexDump (object):
         """
         Convert binary data to a string of hexadecimal QWORDs.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @type  separator: str
@@ -521,7 +521,7 @@ class HexDump (object):
         """
         Dump a line of hexadecimal numbers from binary data.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data.
 
         @type  separator: str
@@ -721,7 +721,7 @@ class HexDump (object):
         @rtype:  str
         @return: Text output.
         """
-        return '%.8x' % address
+        return '%.8x' % int(address)
 
     @staticmethod
     def integer(integer):
@@ -838,7 +838,7 @@ class CrashDump (object):
         @type  registers: dict( str S{->} int )
         @param registers: Dictionary mapping register names to their values.
 
-        @type  data: dict( str S{->} str )
+        @type  data: dict( str S{->} bytes )
         @param data: Dictionary mapping register names to the data they point to.
 
         @rtype:  str
@@ -862,7 +862,7 @@ class CrashDump (object):
         """
         Dump data from pointers guessed within the given binary data.
 
-        @type  data: str
+        @type  data: dict( int S{->} bytes )
         @param data: Dictionary mapping offsets to the data they point to.
 
         @type  base: int
