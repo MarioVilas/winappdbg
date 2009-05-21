@@ -63,6 +63,7 @@ import win32
 from win32 import FileHandle, ProcessHandle, ThreadHandle
 from breakpoint import ApiHook
 from system import Module, Thread, Process, PathOperations
+from textio import HexDump
 
 import ctypes
 
@@ -324,7 +325,7 @@ class ExceptionEvent (Event):
         @return: Name of the exception as defined by the Win32 API.
         """
         code = self.get_exception_code()
-        unk  = '0x%.8x' % code
+        unk  = HexDump.integer(code)
         return self.__exceptionName.get(code, unk)
 
     def get_exception_description(self):
@@ -333,7 +334,7 @@ class ExceptionEvent (Event):
         @return: User-friendly name of the exception.
         """
         code = self.get_exception_code()
-        unk  = 'C++ exception 0x%.8x' % code
+        unk  = 'C++ exception %s' % HexDump.integer(code)
         return self.__exceptionDescription.get(code, unk)
 
     def is_first_chance(self):

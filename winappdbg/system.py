@@ -64,7 +64,7 @@ __all__ =   [
             ]
 
 import win32
-from textio import HexInput
+from textio import HexInput, HexDump
 
 import re
 import os
@@ -305,8 +305,8 @@ class ModuleContainer (object):
         @return: Module object with the given base address.
         """
         if lpBaseOfDll not in self.__moduleDict:
-            msg = "Unknown DLL base address %.08x"
-            msg = msg % lpBaseOfDll
+            msg = "Unknown DLL base address %s"
+            msg = msg % HexDump.address(lpBaseOfDll)
             raise KeyError, msg
         return self.__moduleDict[lpBaseOfDll]
 
@@ -2556,11 +2556,11 @@ class ThreadDebugOperations (object):
                 if lib.fileName:
                     lib = lib.fileName
                 else:
-                    lib = "0x%.8x" % lib.lpBaseOfDll
+                    lib = "%s" % HexDump.address(lib.lpBaseOfDll)
             if bUseLabels:
                 label = aProcess.get_label_at_address(ra)
                 if bMakePretty:
-                    label = '0x%.8x (%s)' % (ra, label)
+                    label = '%s (%s)' % (HexDump.address(ra), label)
                 trace.append( (fp, label) )
             else:
                 trace.append( (fp, ra, lib) )
@@ -4068,8 +4068,8 @@ class Module (SymbolContainer):
         """
 
         if not self.get_filename():
-            msg = "Cannot retrieve filename for module at 0x%.08x"
-            msg = msg % self.get_base()
+            msg = "Cannot retrieve filename for module at %s"
+            msg = msg % HexDump.address( self.get_base() )
             raise Exception, msg
 
         hFile = win32.CreateFile(self.get_filename(),

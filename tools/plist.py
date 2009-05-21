@@ -48,7 +48,7 @@ __revision__ = "$Id$"
 # It'd be useful when using a search string, to highlight the matching parts.
 # Also to show processes run by SYSTEM or other users with different colors.
 
-from winappdbg import System, PathOperations
+from winappdbg import System, PathOperations, Table
 
 import optparse
 
@@ -89,12 +89,9 @@ def main(argv):
     pid_list = s.get_process_ids()
     pid_list.sort()
 
-    # Prepare the format string for the output.
-    w = len(str(pid_list[-1]))
-    fmt = " %%%dd %%s" % w
-
-    # Print the output table header
-    print (" %%%ds Filename\n" % w) % "PID"
+    # Prepare the output table.
+    table = Table()
+    table.addRow(" PID", "Filename")
 
     # Enumerate the processes in the snapshot.
     for pid in pid_list:
@@ -119,8 +116,13 @@ def main(argv):
         if searchString and searchString not in fileName.lower():
             continue
 
-        # Print the process PID and filename (or pathname).
-        print fmt % ( pid, fileName )
+        # Add the process PID and filename (or pathname).
+        table.addRow(' %d' % pid, fileName)
+
+    # Print the output table.
+    table.justify(0, 1)
+    for row in table.yieldOutput():
+        print row
 
 if __name__ == '__main__':
     import sys

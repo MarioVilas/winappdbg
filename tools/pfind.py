@@ -48,7 +48,7 @@ class Search (object):
     desc    = "search query"
     errfmt  = "bad %(desc)s #%(count)d (%(pattern)r): %(text)s"
     showfmt = "Found element #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def __init__(self, pattern, count):
         self.pattern = pattern
@@ -90,6 +90,7 @@ class Search (object):
             raise StopIteration
         count   = self.count + 1
         address = address + self.start
+        where   = HexDump.address(address)
         size    = self.end - self.start
         msg     = self.showfmt % vars()
         if data is not None:
@@ -114,7 +115,7 @@ class StringSearch (Search):
     name    = "string"
     desc    = "case sensitive string"
     showfmt = "Found string #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
         self.string = self.pattern
@@ -130,7 +131,7 @@ class TextSearch (StringSearch):
     name    = "istring"
     desc    = "case insensitive string"
     showfmt = "Found text #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
         self.string = self.pattern.lower()
@@ -145,7 +146,7 @@ class HexSearch (StringSearch):
     name    = "hexa"
     desc    = "hexadecimal data"
     showfmt = "Found data #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
         self.string = HexInput.hexadecimal(self.pattern)
@@ -157,7 +158,7 @@ class RegExpSearch (Search):
     name    = "regexp"
     desc    = "regular expression"
     showfmt = "Matched regexp #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
         self.regexp = re.compile(self.pattern)
@@ -175,7 +176,7 @@ class PatternSearch (RegExpSearch):
     name    = "pattern"
     desc    = "hexadecimal pattern"
     showfmt = "Found pattern #%(count)d at process %(pid)d," \
-              " address 0x%(address).08x (%(size)d bytes)"
+              " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
         self.regexp = re.compile( HexInput.pattern(self.pattern) )
@@ -341,8 +342,10 @@ class Main (object):
                     try:
                         data = self.process.read(address, size)
                     except WindowsError, e:
-                        msg = "Error reading %.8x-%.8x: %s"
-                        msg = msg % (address, address + size, str(e))
+                        begin = HexDump.address(address)
+                        end   = HexDump.address(address + size)
+                        msg   = "Error reading %s-%s: %s"
+                        msg   = msg % (begin, end, str(e))
                         print msg
                         if self.options.verbose:
                             print
@@ -368,8 +371,10 @@ class Main (object):
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
                     except WindowsError, e:
-                        msg = "Error reading %.8x-%.8x: %s"
-                        msg = msg % (address, address + total_size, str(e))
+                        begin = HexDump.address(address)
+                        end   = HexDump.address(address + total_size)
+                        msg   = "Error reading %s-%s: %s"
+                        msg   = msg % (begin, end, str(e))
                         print msg
                         if self.options.verbose:
                             print

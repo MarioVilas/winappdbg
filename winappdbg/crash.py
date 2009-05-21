@@ -396,7 +396,7 @@ class Crash (object):
             elif self.exceptionName:
                 what = self.exceptionName
             else:
-                what = "Exception 0x%.8x" % self.exceptionCode
+                what = "Exception %s" % HexDump.integer(self.exceptionCode)
             if self.firstChance:
                 chance = 'first'
             else:
@@ -404,26 +404,26 @@ class Crash (object):
             if self.exceptionLabel:
                 where = self.exceptionLabel
             elif self.exceptionAddress:
-                where = "0x%.8x" % self.exceptionAddress
+                where = HexDump.address(self.exceptionAddress)
             elif self.labelPC:
                 where = self.labelPC
             else:
-                where = "0x%.8x" % self.pc
+                where = HexDump.address(self.pc)
             msg = "%s (%s chance) at %s" % (what, chance, where)
         elif self.debugString is not None:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = "0x%.8x" % self.pc
+                where = HexDump.address(self.pc)
             msg = "Debug string from %s: %r" % (where, self.debugString)
         else:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = "0x%.8x" % self.pc
-            msg = "%s (0x%.8x) at %s" % (
+                where = HexDump.address(self.pc)
+            msg = "%s (%s) at %s" % (
                                              self.eventName,
-                                             self.eventCode,
+                                             HexDump.integer(self.eventCode),
                                              where
                                             )
         return msg
@@ -441,11 +441,12 @@ class Crash (object):
             msg += self.notesReport()
 
         if not self.labelPC:
+            base = HexDump.address(self.lpBaseOfDll)
             if self.modFileName:
-                fn = PathOperations.pathname_to_filename(self.modFileName)
-                msg += '\nRunning in %s (0x%.8x)\n' % (fn, self.lpBaseOfDll)
+                fn   = PathOperations.pathname_to_filename(self.modFileName)
+                msg += '\nRunning in %s (%s)\n' % (fn, base)
             else:
-                msg += '\nRunning in module at 0x%.8x\n' % self.lpBaseOfDll
+                msg += '\nRunning in module at %s\n' % base
 
         if self.registers:
             msg += '\nRegisters:\n'
@@ -474,7 +475,7 @@ class Crash (object):
             msg += '\nStack dump:\n'
             msg += HexDump.hexblock(self.stackFrame, self.sp)
 
-        if self.faultCode:
+        if self.faultCode and not self.modFileName:
             msg += '\nCode dump:\n'
             msg += HexDump.hexblock(self.faultCode, self.pc)
 

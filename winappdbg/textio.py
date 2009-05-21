@@ -41,10 +41,11 @@ Functions for text input, logging or text output.
 __revision__ = "$Id$"
 
 __all__ =   [
-                'DebugLog',
                 'HexDump',
                 'HexInput',
                 'HexOutput',
+                'Table',
+                'DebugLog',
                 'CrashDump',
             ]
 
@@ -275,7 +276,16 @@ class HexOutput (object):
     """
     Static functions for user output parsing.
     The counterparts for each method are in the L{HexInput} class.
+
+    @type integer_size: int
+    @var  integer_size: Size in characters of an outputted integer.
+
+    @type address_size: int
+    @var  address_size: Size in characters of an outputted address.
     """
+
+    integer_size = 10
+    address_size = 10
 
     @staticmethod
     def integer(integer):
@@ -375,50 +385,41 @@ class HexOutput (object):
 
 #------------------------------------------------------------------------------
 
-class DebugLog (object):
-    'Static functions for debug logging.'
+class HexDump (object):
+    """
+    Static functions for hexadecimal dumps.
+
+    @type integer_size: int
+    @var  integer_size: Size in characters of an outputted integer.
+
+    @type address_size: int
+    @var  address_size: Size in characters of an outputted address.
+    """
+
+    integer_size = 11
+    address_size = 8
 
     @staticmethod
-    def log_text(text):
+    def address(address):
         """
-        Log lines of text, inserting a timestamp.
-
-        @type  text: str
-        @param text: Text to log.
+        @type  address: int
+        @param address: Memory address.
 
         @rtype:  str
-        @return: Log line.
+        @return: Text output.
         """
-        if text.endswith('\n'):
-            text = text[:-len('\n')]
-        #text  = text.replace('\n', '\n\t\t')           # text CSV
-        ltime = time.strftime("%X")
-        msecs = (time.time() % 1) * 1000
-        return '[%s.%04d] %s' % (ltime, msecs, text)
-        #return '[%s.%04d]\t%s' % (ltime, msecs, text)  # text CSV
+        return '%.8x' % address
 
-    @classmethod
-    def log_event(cls, event, text):
+    @staticmethod
+    def integer(integer):
         """
-        Log lines of text associated with a debug event.
-
-        @type  event: L{Event}
-        @param event: Event object.
-
-        @type  text: str
-        @param text: Text to log.
+        @type  integer: int
+        @param integer: Integer.
 
         @rtype:  str
-        @return: Log line.
+        @return: Text output.
         """
-        text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
-        #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
-        return cls.log_text(text)
-
-#------------------------------------------------------------------------------
-
-class HexDump (object):
-    'Static functions for hexadecimal dumps.'
+        return '%11i' % integer
 
     @staticmethod
     def printable(data):
@@ -712,27 +713,90 @@ class HexDump (object):
         return cls.hexblock_cb(cls.hexa_qword, data, address, width * 8,
                                           cb_kwargs = {'separator': separator})
 
-    @staticmethod
-    def address(address):
+#------------------------------------------------------------------------------
+
+class Table (object):
+    """
+    Text based table. The number of columns and the width of each column
+    is automatically calculated.
+    """
+
+    def __init__(self, sep = ' '):
         """
-        @type  address: int
-        @param address: Memory address.
+        @type  sep: str
+        @param sep: Separator between cells in each row.
+        """
+        self.__cols  = list()
+        self.__width = list()
+        self.__sep   = sep
+
+    def addRow(self, *row):
+        """
+        Add a row to the table. All items are converted to strings.
+
+        @type    row: tuple
+        @keyword row: Each argument is a cell in the table.
+        """
+        row     = [ str(item) for item in row ]
+        len_row = [ len(item) for item in row ]
+        width   = self.__width
+        len_old = len(width)
+        len_new = len(row)
+        known   = min(len_old, len_new)
+        missing = len_new - len_old
+        if missing > 0:
+            width.extend( len_row[ -missing : ] )
+        self.__width = [ max( width[i], len_row[i] ) for i in xrange(len_new) ]
+        self.__cols.append(row)
+
+    def justify(self, column, direction):
+        """
+        Make the text in a column left or right justified.
+
+        @type  column: int
+        @param column: Index of the column.
+
+        @type  direction: int
+        @param direction:
+            C{1} to justify left,
+            C{-1} to justify right.
+
+        @raise IndexError: Bad column index.
+        @raise ValueError: Bad direction value.
+        """
+        if direction == -1:
+            self.__width[column] =   abs(self.__width[column])
+        elif direction == 1:
+            self.__width[column] = - abs(self.__width[column])
+        else:
+            raise ValueError, "Bad direction value."
+
+    def getOutput(self):
+        """
+        Get the text output for the table.
 
         @rtype:  str
         @return: Text output.
         """
-        return '%.8x' % address
+        return '%s\n' % '\n'.join( self.yieldOutput() )
 
-    @staticmethod
-    def integer(integer):
+    def yieldOutput(self):
         """
-        @type  integer: int
-        @param integer: Integer.
+        Generate the text output for the table.
 
-        @rtype:  str
+        @rtype:  generator of str
         @return: Text output.
         """
-        return '%11i' % integer
+        width = self.__width
+        if width:
+            num_cols = len(width)
+            fmt = ['%%%ds' % -w for w in width]
+            if width[-1] > 0:
+                fmt[-1] = '%s'
+            fmt = self.__sep.join(fmt)
+            for row in self.__cols:
+                row.extend( [''] * (num_cols - len(row)) )
+                yield fmt % tuple(row)
 
 #------------------------------------------------------------------------------
 
@@ -850,10 +914,8 @@ class CrashDump (object):
         names.sort()
         result = ''
         for reg_name in names:
-            tag     = reg_name
-    ##        value   = registers[reg_name]
+            tag     = reg_name.lower()
             dumped  = HexDump.hexline(data[reg_name], separator, width)
-    ##        result += '%s->%.8x: %s' % (tag, value, dumped)
             result += '%s -> %s\n' % (tag, dumped)
         return result
 
@@ -878,7 +940,7 @@ class CrashDump (object):
         result = ''
         for offset in pointers:
             dumped  = HexDump.hexline(data[offset], separator, width)
-            result += '%.8x -> %s' % (base + offset, dumped)
+            result += '%s -> %s' % (HexDump.address(base + offset), dumped)
         return result
 
     @staticmethod
@@ -920,10 +982,11 @@ class CrashDump (object):
         """
         if stack_trace is None:
             return ''
-        result = 'Frame pointer  Return address  Module\n'
-        for step in stack_trace:
-            result += '0x%.8x     0x%.8x      %s\n' % step
-        return result
+        table = Table()
+        table.addRow('Frame', 'Origin', 'Module')
+        for (fp, ra, mod) in stack_trace:
+            table.addRow( HexDump.address(fp), HexDump.address(ra), mod )
+        return table.getOutput()
 
     @staticmethod
     def dump_stack_trace_with_labels(stack_trace):
@@ -940,18 +1003,11 @@ class CrashDump (object):
         """
         if stack_trace is None:
             return ''
-        max_label  = 0
-        for bp, label in stack_trace:
-            if len(label) > max_label:
-                max_label = len(label)
-        if len('Return address') > max_label:
-            max_label = len('Return address')
-        fmt = '%%s %%-%ds\n' % max_label
-        result = fmt % ('Frame pointer ', 'Return address')
-        for bp, label in stack_trace:
-            bp = '0x%.8x    ' % bp
-            result += fmt % (bp, label)
-        return result
+        table = Table()
+        table.addRow('Frame', 'Origin')
+        for (fp, label) in stack_trace:
+            table.addRow( HexDump.address(fp), label )
+        return table.getOutput()
 
     # TODO
     # + Instead of a star when EIP points to, it would be better to show
@@ -979,24 +1035,17 @@ class CrashDump (object):
         """
         if disassembly is None:
             return ''
-        max_code = 0
-        max_dump = 0
-        for (addr, size, code, dump) in disassembly:
-            if len(code) > max_code:
-                max_code = len(code)
-            if len(dump) > max_dump:
-                max_dump = len(dump)
-        fmt = '%%1s 0x%%.8x | %%%ds | %%-%ds\n' % (max_dump, max_code)
-        result = ''
+        table = Table(sep = ' | ')
         for (addr, size, code, dump) in disassembly:
             if bLowercase:
                 code = code.lower()
             if addr == pc:
-                star = '*'
+                addr = ' * %s' % HexDump.address(addr)
             else:
-                star = ' '
-            result += fmt % (star, addr, dump, code)
-        return result
+                addr = '   %s' % HexDump.address(addr)
+            table.addRow(addr, dump, code)
+        table.justify(1, 1)
+        return table.getOutput()
 
     @staticmethod
     def dump_code_line(disassembly_line,                  bShowAddress = True,
@@ -1021,10 +1070,13 @@ class CrashDump (object):
         dump = dump.replace(' ', '')
         if bLowercase:
             code = code.lower()
+        w = HexDump.address_size
         if bShowAddress:
-            result = '%.8x %-16s %s' % (addr, dump, code)
+            fmt = '%%%ds %%-%ds %%s' % (w, w)
+            result = fmt % (HexDump.address(addr), dump, code)
         else:
-            result = '%-16s %s' % (dump, code)
+            fmt = '%%-%ds %%s' % w
+            result = fmt % (dump, code)
         return result
 
     @staticmethod
@@ -1043,24 +1095,18 @@ class CrashDump (object):
         @rtype:  str
         @return: Text suitable for logging.
         """
-
-        # Table header and row format.
+        table = Table()
         if mappedFilenames:
-            fmt    = "%-8s %-8s %-8s %-8s %-8s %s\n"
-            header = ("Address", "Size", "State", "Access", "Type", "File")
+            table.addRow("Address", "Size", "State", "Access", "Type", "File")
         else:
-            fmt    = "%-10s %-10s %-10s %-10s %-10s\n"
-            header = ("Address", "Size", "State", "Access", "Type")
-
-        # Output the table header.
-        output = fmt % header
+            table.addRow("Address", "Size", "State", "Access", "Type")
 
         # For each memory block in the map...
         for mbi in memoryMap:
 
             # Address and size of memory block.
-            BaseAddress = "%.8x" % mbi.BaseAddress
-            RegionSize  = "%.8x" % mbi.RegionSize
+            BaseAddress = HexDump.address(mbi.BaseAddress)
+            RegionSize  = HexDump.address(mbi.RegionSize)
 
             # State (free or allocated).
             if   mbi.State == win32.MEM_RESERVE:
@@ -1070,13 +1116,12 @@ class CrashDump (object):
             elif mbi.State == win32.MEM_FREE:
                 State   = "Free"
             else:
-                State   = "Unknown   "
+                State   = "Unknown"
 
             # Page protection bits (R/W/X/G).
             if mbi.State != win32.MEM_COMMIT:
                 Protect = ""
             else:
-    ##            Protect = "0x%.08x" % mbi.Protect
                 if   mbi.Protect & win32.PAGE_NOACCESS:
                     Protect = "--- "
                 elif mbi.Protect & win32.PAGE_READONLY:
@@ -1123,9 +1168,51 @@ class CrashDump (object):
             # Output a row in the table.
             if mappedFilenames:
                 FileName = mappedFilenames.get(mbi.BaseAddress, '')
-                output += fmt % ( BaseAddress, RegionSize, State, Protect, Type, FileName)
+                table.addRow( BaseAddress, RegionSize, State, Protect, Type, FileName )
             else:
-                output += fmt % ( BaseAddress, RegionSize, State, Protect, Type )
+                table.addRow( BaseAddress, RegionSize, State, Protect, Type )
 
-        # Return the output table.
-        return output
+        # Return the table output.
+        return table.getOutput()
+
+#------------------------------------------------------------------------------
+
+class DebugLog (object):
+    'Static functions for debug logging.'
+
+    @staticmethod
+    def log_text(text):
+        """
+        Log lines of text, inserting a timestamp.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
+        if text.endswith('\n'):
+            text = text[:-len('\n')]
+        #text  = text.replace('\n', '\n\t\t')           # text CSV
+        ltime = time.strftime("%X")
+        msecs = (time.time() % 1) * 1000
+        return '[%s.%04d] %s' % (ltime, msecs, text)
+        #return '[%s.%04d]\t%s' % (ltime, msecs, text)  # text CSV
+
+    @classmethod
+    def log_event(cls, event, text):
+        """
+        Log lines of text associated with a debug event.
+
+        @type  event: L{Event}
+        @param event: Event object.
+
+        @type  text: str
+        @param text: Text to log.
+
+        @rtype:  str
+        @return: Log line.
+        """
+        text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
+        #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
+        return cls.log_text(text)

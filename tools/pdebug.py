@@ -390,7 +390,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         name = mod.get_filename()
         if not name:
             name = ''
-        print "Loaded module (%.08x) %s" % (base, name)
+        msg = "Loaded module (%s) %s"
+        msg = msg % (winappdbg.HexDump.address(base), name)
+        print msg
 
     # Tell the user a module was unloaded.
     def print_module_unload(self, event):
@@ -399,7 +401,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         name = mod.get_filename()
         if not name:
             name = ''
-        print "Unloaded module (%.08x) %s" % (base, name)
+        msg = "Unloaded module (%s) %s"
+        msg = msg % (winappdbg.HexDump.address(base), name)
+        print msg
 
     # Tell the user a process was started.
     def print_process_start(self, event):

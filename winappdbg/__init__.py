@@ -76,10 +76,11 @@ __all__ =   [
                 'NoEvent',
 
                 # from textio import *
-                'DebugLog',
                 'HexDump',
                 'HexInput',
                 'HexOutput',
+                'Table',
+                'DebugLog',
                 'CrashDump',
 
                 # import win32

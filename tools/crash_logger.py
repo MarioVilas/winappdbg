@@ -80,7 +80,7 @@ class LoggingEventHandler(EventHandler):
         label = event.get_process().get_label_at_address(address)
         if label:
             return label
-        return '0x%.8x' % address
+        return HexDump.address(address)
 
     def __set_breakpoints(self, event):
         method = event.debug.break_at
@@ -148,7 +148,7 @@ class LoggingEventHandler(EventHandler):
                 if not szFilename:
                     szFilename = Module.unknown
                 if lpStartAddress:
-                    where = HexOutput.address(lpStartAddress)
+                    where = HexDump.address(lpStartAddress)
                     msg = "Process %s started, entry point at %s"
                     msg = msg % (szFilename, where)
                 else:
@@ -181,14 +181,12 @@ class LoggingEventHandler(EventHandler):
         finally:
             lpBaseOfDll = aModule.get_base()
             fileName    = aModule.get_filename()
-            if fileName:
-                if self.options.verbose:
-                    msg = "Loaded %s at 0x%.8x" % (fileName, lpBaseOfDll)
-                    self.__log(event, msg)
-            else:
-                if self.options.verbose:
-                    msg = "Loaded a new module at 0x%.8x" % lpBaseOfDll
-                    self.__log(event, msg)
+            if self.options.verbose:
+                if not fileName:
+                    fileName = "a new module"
+                msg = "Loaded %s at %s"
+                msg = msg % (fileName, HexDump.address(lpBaseOfDll))
+                self.__log(event, msg)
 
     # Handle the exit process events.
     def exit_process(self, event):
@@ -200,7 +198,7 @@ class LoggingEventHandler(EventHandler):
 
         # Log the event to standard output.
         if self.options.verbose:
-            msg = "Process terminated, exit code 0x%x" % event.get_exit_code()
+            msg = "Process terminated, exit code %x" % event.get_exit_code()
             self.__log(event, msg)
 
     # Handle the exit thread events.
@@ -208,7 +206,7 @@ class LoggingEventHandler(EventHandler):
 
         # Log the event to standard output.
         if self.options.verbose:
-            msg = "Thread terminated, exit code 0x%x" % event.get_exit_code()
+            msg = "Thread terminated, exit code %x" % event.get_exit_code()
             self.__log(event, msg)
 
     # Handle the unload dll events.
@@ -221,7 +219,9 @@ class LoggingEventHandler(EventHandler):
             fileName    = aModule.get_filename()
             if not fileName:
                 fileName = 'a module'
-            self.__log(event, "Unloaded %s at %.8x" % (fileName, lpBaseOfDll))
+            msg = "Unloaded %s at %s"
+            msg = msg % (fileName, HexDump.address(lpBaseOfDll))
+            self.__log(event, msg)
 
     # Handle the debug output string events.
     def output_string(self, event):
@@ -249,15 +249,15 @@ class LoggingEventHandler(EventHandler):
             errorCode = event.get_rip_error()
             errorType = event.get_rip_type()
             if errorType == 0:
-                msg = "RIP error at thread %d, code %d"
+                msg = "RIP error at thread %d, code %x"
             elif errorType == SLE_ERROR:
-                msg = "RIP fatal error at thread %d, code %d"
+                msg = "RIP fatal error at thread %d, code %x"
             elif errorType == SLE_MINORERROR:
-                msg = "RIP minor error at thread %d, code %d"
+                msg = "RIP minor error at thread %d, code %x"
             elif errorType == SLE_WARNING:
-                msg = "RIP warning at thread %d, code %d"
+                msg = "RIP warning at thread %d, code %x"
             else:
-                msg = "RIP error type %d, code %%d" % errorType
+                msg = "RIP error type %d, code %%x" % errorType
             self.__log(event, msg % errorCode)
 
 #-- Exceptions ----------------------------------------------------------------
@@ -269,7 +269,7 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             desc    = event.get_exception_description()
             address = event.get_exception_address()
-            self.__log(event, "%s at 0x%.8x" % (desc, address))
+            self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
 
     # Ignore Microsoft Visual C exceptions.
     def ms_vc_exception(self, event):
@@ -278,7 +278,7 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             desc    = event.get_exception_description()
             address = event.get_exception_address()
-            self.__log(event, "%s at 0x%.8x" % (desc, address))
+            self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
 
     # Handle single step events.
     def single_step(self, event):

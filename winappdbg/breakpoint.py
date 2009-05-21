@@ -62,6 +62,7 @@ __all__ = [
     ]
 
 from system import Process, System, MemoryAddresses
+from textio import HexDump
 import win32
 
 #==============================================================================
@@ -461,11 +462,13 @@ class Breakpoint (object):
         name = self.typeName
         size = self.get_size()
         if size == 1:
-            address = "0x%.08x" % self.get_address()
+            address = HexDump.address( self.get_address() )
         else:
             begin   = self.get_address()
             end     = begin + size
-            address = "range 0x%.08x-0x%.08x" % (begin, end)
+            begin   = HexDump.address(begin)
+            end     = HexDump.address(end)
+            address = "range %s-%s" % (begin, end)
         msg = "<%s %s %s at remote address %s>"
         msg = msg % (state, condition, name, address)
         return msg
@@ -663,8 +666,8 @@ class Breakpoint (object):
         oldState = self.stateNames[ self.get_state() ]
         newState = self.stateNames[ state ]
         msg = "Invalid state transition (%s -> %s)" \
-              " for breakpoint at address 0x%08x"
-        msg = msg % (oldState, newState, self.get_address())
+              " for breakpoint at address %s"
+        msg = msg % (oldState, newState, HexDump.address(self.get_address()))
         raise AssertionError, msg
 
     def disable(self, aProcess, aThread):
@@ -760,8 +763,8 @@ class Breakpoint (object):
 
         elif state == self.DISABLED:
             # this should not happen
-            msg = "Hit a disabled breakpoint at address 0x%08x"
-            msg = msg % self.get_address()
+            msg = "Hit a disabled breakpoint at address %s"
+            msg = msg % HexDump.address( self.get_address() )
             raise AssertionError, msg
 
 #==============================================================================
@@ -897,7 +900,7 @@ class PageBreakpoint (Breakpoint):
         if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
-                    "(value 0x%.08x received)" % address
+                    "(value %s received)" % HexDump.address(address)
             raise ValueError, msg
 
     def get_size_in_pages(self):
@@ -1523,8 +1526,10 @@ class BufferWatch(object):
         """
         key = (address, address + size)
         if key in self.__ranges:
-            msg = "Buffer from 0x%.08x to 0x%.08x is already being watched"
-            raise RuntimeError, msg % key
+            msg = "Buffer from %s to %s is already being watched"
+            begin = HexDump.address(key[0])
+            end   = HexDump.address(key[1])
+            raise RuntimeError, msg % (begin, end)
         self.__ranges[key] = action
 
     def remove(self, address, size):
@@ -1539,8 +1544,10 @@ class BufferWatch(object):
         """
         key = (address, address + size)
         if key not in self.__ranges:
-            msg = "No buffer watch set at 0x%.08x-0x%.08x"
-            raise RuntimeError, msg % key
+            msg = "No buffer watch set at %s-%s"
+            begin = HexDump.address(key[0])
+            end   = HexDump.address(key[1])
+            raise RuntimeError, msg % (begin, end)
         del self.__ranges[key]
 
     def exists(self, address, size):
@@ -2154,8 +2161,9 @@ class BreakpointContainer (object):
         """
         key = (dwProcessId, address)
         if key not in self.__codeBP:
-            msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % key
+            msg = "No breakpoint at process %d, address %s"
+            address = HexDump.address(address)
+            raise KeyError, msg % (dwProcessId, address)
         return self.__codeBP[key]
 
     def get_page_breakpoint(self, dwProcessId, address):
@@ -2185,8 +2193,9 @@ class BreakpointContainer (object):
         """
         key = (dwProcessId, address)
         if key not in self.__pageBP:
-            msg = "No breakpoint at process %d, address %.08x"
-            raise KeyError, msg % key
+            msg = "No breakpoint at process %d, address %s"
+            address = HexDump.addresS(address)
+            raise KeyError, msg % (dwProcessId, address)
         return self.__pageBP[key]
 
     def get_hardware_breakpoint(self, dwThreadId, address):
@@ -2221,8 +2230,8 @@ class BreakpointContainer (object):
         for bp in self.__hardwareBP[dwThreadId]:
             if bp.is_here(address):
                 return bp
-        msg = "No hardware breakpoint at thread %d, address %.08x"
-        raise KeyError, msg % (dwThreadId, address)
+        msg = "No hardware breakpoint at thread %d, address %s"
+        raise KeyError, msg % (dwThreadId, HexDump.address(address))
 
 #------------------------------------------------------------------------------
 
@@ -3552,8 +3561,9 @@ class BreakpointContainer (object):
                             if not isinstance(condition, BufferWatch):
                                 # this shouldn't happen unless you tinkered with it
                                 # or defined your own page breakpoints manually.
-                                msg = "Can't watch buffer at page 0x%.08x"
-                                raise RuntimeError, msg % page_addr
+                                msg = "Can't watch buffer at page %s"
+                                msg = msg % HexDump.address(page_addr)
+                                raise RuntimeError, msg
                             cset.add(condition)
                         bset.add(bp)
 

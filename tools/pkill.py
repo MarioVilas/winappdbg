@@ -80,7 +80,7 @@ def main(argv):
                 targets.add(process.get_pid())
         else:
             if not s.has_process(pid):
-                print "Error: process not found: 0x%.8x (%d)" % (pid, pid)
+                print "Error: process not found: 0x%x (%d)" % (pid, pid)
                 exit()
             targets.add(pid)
     targets = list(targets)

@@ -63,7 +63,7 @@ def main():
         if len(pl) > 1:
             print "Multiple processes found for %s" % sys.argv[1]
             for p,n in pl:
-                print "\t%12d: %s" % (p,n)
+                print "\t%s: %s" % (HexDump.integer(p),n)
             return
         pid = pl[0][0].get_pid()
 
