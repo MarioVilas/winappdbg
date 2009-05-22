@@ -78,8 +78,8 @@ def print_report_for_database(filename, options):
     if cc:
         print "Found %d crashes:" % len(cc)
         print '-' * 79
-        ccl = [(c.timeStamp, c) for c in cc]
-        ccl.sort()
+        ccl = [(c.timeStamp, c) for c in cc]    # XXX may use a lot of memory
+        ccl.sort()                  # XXX may fail if timestamps are repeated
         for (timeStamp, c) in ccl:
             local = time.localtime(timeStamp)
             ldate = time.strftime("%x", local)
