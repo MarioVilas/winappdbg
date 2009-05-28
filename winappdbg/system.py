@@ -3791,6 +3791,16 @@ class ProcessContainer (object):
 
     def find_processes_by_filename(self, fileName):
         """
+        @type  fileName: str
+        @param fileName: Filename to search for.
+            If it's a full pathname, the match must be exact.
+            If it's a base filename only, the file part is matched,
+            regardless of the directory where it's located.
+
+        @note: If the process is not found and the file extension is not
+            given, this method will search again assuming a default
+            extension (.exe).
+
         @rtype:  list of tuple( L{Process}, str )
         @return: List of processes matching the given main module filename.
             Each tuple contains a Process object and it's filename.

@@ -4198,11 +4198,17 @@ def UnmapViewOfFile(lpBaseAddress):
 #   __in  BOOL bInheritHandle,
 #   __in  LPCTSTR lpName
 # );
-def OpenFileMapping(dwDesiredAccess, bInheritHandle, lpName):
-    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingA(dwDesiredAccess, bInheritHandle, ctypes.byref(lpName))
+def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
+    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
+def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
+    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName)
+    if hFileMappingObject == INVALID_HANDLE_VALUE:
+        raise ctypes.WinError()
+    return Handle(hFileMappingObject)
+OpenFileMapping = OpenFileMappingA
 
 # HANDLE WINAPI CreateFileMapping(
 #   __in      HANDLE hFile,
@@ -4213,15 +4219,11 @@ def OpenFileMapping(dwDesiredAccess, bInheritHandle, lpName):
 #   __in_opt  LPCTSTR lpName
 # );
 def CreateFileMappingA(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = NULL):
-    if lpName != NULL:
-        lpName = ctypes.byref(lpName)
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
 def CreateFileMappingW(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = NULL):
-    if lpName != NULL:
-        lpName = ctypes.byref(lpName)
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
@@ -4238,13 +4240,11 @@ CreateFileMapping = CreateFileMappingA
 #   __in_opt  HANDLE hTemplateFile
 # );
 def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = NULL, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = NULL):
-    lpFileName = ctypes.byref(lpFileName)
     hFile = ctypes.windll.kernel32.CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFile)
 def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = NULL, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = NULL):
-    lpFileName = ctypes.byref(lpFileName)
     hFile = ctypes.windll.kernel32.CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
