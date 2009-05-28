@@ -72,6 +72,31 @@ class LoggingEventHandler(EventHandler):
         # Call the base class constructor.
         super(LoggingEventHandler, self).__init__()
 
+    def __add_crash(self, event, bFullReport = False):
+
+        # Generate a crash object.
+        crash = Crash(event)
+
+        # Determine if the crash was already known.
+        bKnown = crash in self.knownCrashes
+
+        # Add the crash object to the container.
+        self.knownCrashes.add(crash)
+
+        # Log the event to standard output.
+        try:
+            if self.options.verbose:
+                if bFullReport and not bKnown:
+                    msg = crash.fullReport()
+                else:
+                    msg = crash.briefReport()
+                self.__log(event, msg)
+
+        # Pause if requested.
+        finally:
+            if self.options.pause and not bKnown:
+                raw_input("Press enter to continue...")
+
     def __log(self, event, text):
         if self.options.verbose:
             print DebugLog.log_event(event, text)
@@ -118,20 +143,7 @@ class LoggingEventHandler(EventHandler):
 
     # Handle all events not handled by the following class methods.
     def event(self, event):
-
-        # Generate a crash object.
-        crash = Crash(event)
-
-        # Log the event to standard output.
-        if self.options.verbose:
-            if crash not in self.knownCrashes:
-                msg = crash.fullReport()
-            else:
-                msg = crash.briefReport()
-            self.__log(event, msg)
-
-        # Add the crash object to the container.
-        self.knownCrashes.add(crash)
+        self.__add_crash(event, bFullReport = True)
 
     # Handle the create process events.
     def create_process(self, event):
@@ -225,24 +237,10 @@ class LoggingEventHandler(EventHandler):
 
     # Handle the debug output string events.
     def output_string(self, event):
-
-        # Generate a crash object.
-        crash = Crash(event)
-
-        # Add the crash object to the container.
-        self.knownCrashes.add(crash)
-
-        # Log the event to standard output.
-        self.__log(event, crash.briefReport())
+        self.__add_crash(event)
 
     # Handle the RIP events.
     def rip(self, event):
-
-        # Generate a crash object.
-        crash = Crash(event)
-
-        # Add the crash object to the container.
-        self.knownCrashes.add(crash)
 
         # Log the event to standard output.
         if self.options.verbose:
@@ -361,6 +359,8 @@ def parse_cmdline(argv):
                          help="Set code breakpoints from list file")
     debugging.add_option("-s", "--stalk-at", metavar="FILE",
                          help="Set one-shot code breakpoints from list file")
+    debugging.add_option("-p", "--pause", action="store_true",
+                         help="Pause on crash events")
     parser.add_option_group(debugging)
 
     # Output options
@@ -381,6 +381,7 @@ def parse_cmdline(argv):
     # Defaults
     parser.set_defaults(
         verbose     = True,
+        pause       = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
