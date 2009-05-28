@@ -92,21 +92,38 @@ class LoggingEventHandler(EventHandler):
                     msg = crash.briefReport()
                 self.__log(event, msg)
 
+        # If the crash is new, it's an "interesting" event.
+        finally:
+            if not bKnown:
+                self.__action()
+
+    # Actions to take for "interesting" events.
+    def __action(self):
+
+        # Run the given command if any.
+        try:
+            if self.options.action:
+                self.__run_command()
+
         # Pause if requested.
         finally:
             if self.options.pause and not bKnown:
                 raw_input("Press enter to continue...")
 
+    # Log a text line to standard output.
     def __log(self, event, text):
         if self.options.verbose:
             print DebugLog.log_event(event, text)
 
+    # Get the location of the code that triggered the event.
     def __get_location(self, event, address):
         label = event.get_process().get_label_at_address(address)
         if label:
             return label
         return HexDump.address(address)
 
+    # Set all breakpoints that can be set
+    # at each create process or load dll event.
     def __set_breakpoints(self, event):
         method = event.debug.break_at
         bplist = self.options.break_at
@@ -115,6 +132,7 @@ class LoggingEventHandler(EventHandler):
         bplist = self.options.stalk_at
         self.__set_breakpoints_from_list(event, bplist, method)
 
+    # Set a list of breakppoints using the given method.
     def __set_breakpoints_from_list(self, event, bplist, method):
         dwProcessId = event.get_pid()
         aModule     = event.get_module()
@@ -138,6 +156,15 @@ class LoggingEventHandler(EventHandler):
                         pass
                     except WindowsError:
                         pass
+
+    # Run the given command, if any.
+    # Wait until the command completes.
+    # To avoid waiting, use the "start" command.
+    def __run_command(self):
+        action  = "cmd.exe /c %s" % self.options.action
+        system  = System()
+        process = system.start_process(action, bConsole = True)
+        process.wait()
 
 #-- Events --------------------------------------------------------------------
 
@@ -298,16 +325,27 @@ class LoggingEventHandler(EventHandler):
         # This includes both user-defined and hardcoded in the binary.
         event.continueStatus = win32.DBG_CONTINUE
 
+        # Determine if the breakpoint is ours.
+        bOurs = hasattr(event, 'breakpoint') and event.breakpoint
+
         # Log the event to standard output.
-        if self.options.verbose:
-            aProcess = event.get_process()
-            address  = event.get_exception_address()
-            where    = self.__get_location(event, address)
-            if aProcess.is_system_defined_breakpoint(address):
-                msg = "System breakpoint hit (%s)" % where
-            else:
-                msg = "Breakpoint event at %s" % where
-            self.__log(event, msg)
+        try:
+            if self.options.verbose:
+                aProcess = event.get_process()
+                address  = event.get_exception_address()
+                where    = self.__get_location(event, address)
+                if bOurs:
+                    msg = "Breakpoint hit (%s)" % where
+                elif aProcess.is_system_defined_breakpoint(address):
+                    msg = "System breakpoint hit (%s)" % where
+                else:
+                    msg = "Hardcoded breakpoint hit (%s)" % where
+                self.__log(event, msg)
+
+        # If the breakpoint is ours, it's an "interesting" event.
+        finally:
+            if bOurs:
+                self.__action()
 
 #==============================================================================
 
@@ -361,6 +399,8 @@ def parse_cmdline(argv):
                          help="Set one-shot code breakpoints from list file")
     debugging.add_option("-p", "--pause", action="store_true",
                          help="Pause on crash events")
+    debugging.add_option("--action", metavar="COMMAND",
+                         help="Run the given command on each new crash found")
     parser.add_option_group(debugging)
 
     # Output options
@@ -385,6 +425,7 @@ def parse_cmdline(argv):
         windowed    = list(),
         console     = list(),
         attach      = list(),
+        action      = None,
     )
 
     # Parse and validate the command line options
