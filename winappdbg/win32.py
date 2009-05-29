@@ -263,6 +263,7 @@ DWORD32     = DWORD
 ULONG64     = QWORD
 DWORD64     = QWORD
 HANDLE      = DWORD
+HWND        = DWORD
 HMODULE     = DWORD
 HINSTANCE   = DWORD
 HRESULT     = DWORD
@@ -731,6 +732,15 @@ CTRL_BREAK_EVENT    = 1
 CTRL_CLOSE_EVENT    = 2
 CTRL_LOGOFF_EVENT   = 5
 CTRL_SHUTDOWN_EVENT = 6
+
+# GetWindowLong / SetWindowLong / GetWindowLongPtr / SetWindowLongPtr
+GWL_WNDPROC                          = -4
+GWL_HINSTANCE                        = -6
+GWL_HWNDPARENT                       = -8
+GWL_STYLE                            = -16
+GWL_EXSTYLE                          = -20
+GWL_USERDATA                         = -21
+GWL_ID                               = -12
 
 # DEP flags for ProcessExecuteFlags
 MEM_EXECUTE_OPTION_ENABLE               = 1
@@ -6690,6 +6700,233 @@ def MiniDumpReadDumpStream(BaseOfDump, StreamNumber):
     if success == FALSE:
         raise ctypes.WinError()
     return (Dir, StreamPointer, StreamSize.value)
+
+#--- user32.dll --------------------------------------------------------------
+
+# Window enumerator class
+class __WindowEnumerator (object):
+    def __init__(self):
+        self.hwnd = list()
+    def __call__(self, hwnd, lParam):
+        self.hwnd.append(hwnd)
+        return TRUE
+
+WNDENUMPROC = ctypes.WINFUNCTYPE(BOOL, HWND, PVOID)
+
+# HWND FindWindow(
+#     LPCTSTR lpClassName,
+#     LPCTSTR lpWindowName
+# );
+def FindWindowA(lpClassName = None, lpWindowName = None):
+    if not lpClassName:
+        lpClassName = NULL
+    if not lpWindowName:
+        lpWindowName = NULL
+    hWnd = ctypes.windll.user32.FindWindowA(lpClassName, lpWindowName)
+    if hWnd == NULL:
+        raise ctypes.WinError()
+    return hWnd
+def FindWindowW(lpClassName = None, lpWindowName = None):
+    if not lpClassName:
+        lpClassName = NULL
+    if not lpWindowName:
+        lpWindowName = NULL
+    hWnd = ctypes.windll.user32.FindWindowW(lpClassName, lpWindowName)
+    if hWnd == NULL:
+        raise ctypes.WinError()
+    return hWnd
+FindWindow = FindWindowW
+
+# int GetClassName(
+#     HWND hWnd,
+#     LPTSTR lpClassName,
+#     int nMaxCount
+# );
+def GetClassNameA(hWnd):
+    nMaxCount = 0x1000
+    dwCharSize = sizeof(CHAR)
+    while 1:
+        lpClassName = ctypes.create_string_buffer("", nMaxCount)
+        nCount = ctypes.windll.user32.GetClassNameA(hWnd, ctypes.byref(lpClassName), nMaxCount)
+        if nCount == 0:
+            raise ctypes.WinError()
+        if nCount < nMaxCount - dwCharSize:
+            break
+        nMaxCount += 0x1000
+    return lpClassName.value
+def GetClassNameW(hWnd):
+    nMaxCount = 0x1000
+    dwCharSize = sizeof(WCHAR)
+    while 1:
+        lpClassName = ctypes.create_unicode_buffer(u"", nMaxCount)
+        nCount = ctypes.windll.user32.GetClassNameW(hWnd, ctypes.byref(lpClassName), nMaxCount)
+        if nCount == 0:
+            raise ctypes.WinError()
+        if nCount < nMaxCount - dwCharSize:
+            break
+        nMaxCount += 0x1000
+    return lpClassName.value
+GetClassName = GetClassNameA
+
+# LONG GetWindowLong(
+#     HWND hWnd,
+#     int nIndex
+# );
+def GetWindowLongA(hWnd, nIndex = 0):
+    return ctypes.windll.user32.GetWindowLongA(hWnd, nIndex)
+def GetWindowLongW(hWnd, nIndex = 0):
+    return ctypes.windll.user32.GetWindowLongW(hWnd, nIndex)
+GetWindowLong = GetWindowLongA
+
+# DWORD GetWindowThreadProcessId(
+#     HWND hWnd,
+#     LPDWORD lpdwProcessId
+# );
+def GetWindowThreadProcessId(hWnd):
+    dwProcessId = DWORD(0)
+    dwThreadId = ctypes.windll.user32.GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
+    if dwThreadId == 0:
+        raise ctypes.WinError()
+    return dwThreadId, dwProcessId.value
+
+# BOOL CALLBACK EnumWndProc(
+#     HWND hwnd,
+#     LPARAM lParam
+# );
+class __EnumWndProc (__WindowEnumerator):
+    pass
+
+# BOOL EnumWindows(
+#     DWORD dwThreadId,
+#     WNDENUMPROC lpEnumFunc,
+#     LPARAM lParam
+# );
+def EnumWindows():
+    EnumFunc = __EnumWndProc()
+    lpEnumFunc = WNDENUMPROC(EnumFunc)
+    success = ctypes.windll.user32.EnumWindows(lpEnumFunc, 0)
+    if success == FALSE:
+        errcode = GetLastError()
+        if errcode != ERROR_NO_MORE_FILES:
+            raise ctypes.WinError(errcode)
+    return EnumFunc.hwnd
+
+# BOOL CALLBACK EnumThreadWndProc(
+#     HWND hwnd,
+#     LPARAM lParam
+# );
+class __EnumThreadWndProc (__WindowEnumerator):
+    pass
+
+# BOOL EnumThreadWindows(
+#     DWORD dwThreadId,
+#     WNDENUMPROC lpfn,
+#     LPARAM lParam
+# );
+def EnumThreadWindows(dwThreadId):
+    fn = __EnumThreadWndProc()
+    lpfn = WNDENUMPROC(fn)
+    success = ctypes.windll.user32.EnumThreadWindows(dwThreadId, lpfn, 0)
+    if success == FALSE:
+        errcode = GetLastError()
+        if errcode != ERROR_NO_MORE_FILES:
+            raise ctypes.WinError(errcode)
+    return fn.hwnd
+
+# BOOL CALLBACK EnumChildProc(
+#     HWND hwnd,
+#     LPARAM lParam
+# );
+class __EnumChildProc (__WindowEnumerator):
+    pass
+
+# BOOL EnumChildWindows(
+#     HWND hWndParent,
+#     WNDENUMPROC lpEnumFunc,
+#     LPARAM lParam
+# );
+def EnumChildWindows(hWndParent = NULL):
+    EnumFunc = __EnumChildProc()
+    lpEnumFunc = WNDENUMPROC(EnumFunc)
+    success = ctypes.windll.user32.EnumChildWindows(hWndParent, lpEnumFunc, 0)
+    if success == FALSE:
+        errcode = GetLastError()
+        if errcode != ERROR_NO_MORE_FILES:
+            raise ctypes.WinError(errcode)
+    return EnumFunc.hwnd
+
+# BOOL PostMessage(
+#     HWND hWnd,
+#     UINT Msg,
+#     WPARAM wParam,
+#     LPARAM lParam
+# );
+def PostMessageA(hWnd, Msg, wParam = 0, lParam = 0):
+    if not hWnd:
+        hWnd = 0
+    if not wParam:
+        wParam = 0
+    if not lParam:
+        lParam = 0
+    success = ctypes.windll.user32.PostMessageA(hWnd, Msg, wParam, lParam)
+    if success == 0:
+        raise ctypes.WinError()
+def PostMessageW(hWnd, Msg, wParam = 0, lParam = 0):
+    if not hWnd:
+        hWnd = 0
+    if not wParam:
+        wParam = 0
+    if not lParam:
+        lParam = 0
+    success = ctypes.windll.user32.PostMessageW(hWnd, Msg, wParam, lParam)
+    if success == 0:
+        raise ctypes.WinError()
+PostMessage = PostMessageA
+
+# BOOL PostThreadMessage(
+#     DWORD idThread,
+#     UINT Msg,
+#     WPARAM wParam,
+#     LPARAM lParam
+# );
+def PostThreadMessageA(idThread, Msg, wParam = 0, lParam = 0):
+    if not idThread:
+        idThread = 0
+    if not wParam:
+        wParam = 0
+    if not lParam:
+        lParam = 0
+    success = ctypes.windll.user32.PostThreadMessageA(idThread, Msg, wParam, lParam)
+    if success == 0:
+        raise ctypes.WinError()
+def PostThreadMessageW(idThread, Msg, wParam = 0, lParam = 0):
+    if not idThread:
+        idThread = 0
+    if not wParam:
+        wParam = 0
+    if not lParam:
+        lParam = 0
+    success = ctypes.windll.user32.PostThreadMessageW(idThread, Msg, wParam, lParam)
+    if success == 0:
+        raise ctypes.WinError()
+PostThreadMessage = PostThreadMessageA
+
+# UINT RegisterWindowMessage(
+#     LPCTSTR lpString
+# );
+def RegisterWindowMessageA(lpString):
+    lpString = ctypes.create_string_buffer(lpString)
+    uMsg = ctypes.windll.user32.RegisterWindowMessageA(ctypes.byref(lpString))
+    if uMsg == 0:
+        raise ctypes.WinError()
+    return uMsg
+def RegisterWindowMessageW(lpString):
+    lpString = ctypes.create_unicode_buffer(lpString)
+    uMsg = ctypes.windll.user32.RegisterWindowMessageW(ctypes.byref(lpString))
+    if uMsg == 0:
+        raise ctypes.WinError()
+    return uMsg
+RegisterWindowMessage = RegisterWindowMessageA
 
 #==============================================================================
 # Mark functions that Psyco cannot compile.

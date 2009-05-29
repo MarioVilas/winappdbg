@@ -1036,10 +1036,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        packedDword     = struct.pack('<L', unpackedDword)
-        dwBytesWritten  = self.write(lpBaseAddress, packedDword)
-        if dwBytesWritten != len(packedDword):
-            raise ctypes.WinError()
+        packedDword = struct.pack('<L', unpackedDword)
+        self.write(lpBaseAddress, packedDword)
 
     def read_char(self, lpBaseAddress):
         """
@@ -1119,6 +1117,36 @@ class MemoryOperations (object):
 ##        data = ctypes.create_string_buffer("", size = size)
 ##        win32.CopyMemory(ctypes.byref(data), ctypes.byref(sStructure), size)
 ##        self.write(lpBaseAddress, data.raw)
+
+    def read_string(self, lpBaseAddress, nChars, fUnicode = False):
+        """
+        Reads an ASCII or Unicode string
+        from the address space of the process.
+
+        @see: L{read}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @type  nChars: int
+        @param nChars: String length to read, in characters.
+            Remember that Unicode strings have two byte characters.
+
+        @type  fUnicode: bool
+        @param fUnicode: C{True} is the string is expected to be Unicode,
+            C{False} if it's expected to be ANSI.
+
+        @rtype:  str, unicode
+        @return: String read from the process memory space.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        if fUnicode:
+            nChars = nChars * 2
+        szString = self.read(lpBaseAddress, nChars)
+        if fUnicode:
+            szString = unicode(szString, 'U16', 'ignore')
+        return szString
 
 #------------------------------------------------------------------------------
 
