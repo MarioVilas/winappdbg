@@ -107,7 +107,7 @@ class LoggingEventHandler(EventHandler):
 
         # Pause if requested.
         finally:
-            if self.options.pause and not bKnown:
+            if self.options.pause:
                 raw_input("Press enter to continue...")
 
     # Run the given command, if any.
