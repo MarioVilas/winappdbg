@@ -132,17 +132,17 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##        self.system.request_debug_privileges(bIgnoreExceptions = True)
         self.system.request_debug_privileges()
 
-    # It's not hard to create circular references,
-    # and since we have a destructor, we end up leaking everything.
-    # It's best to code the debugging loop properly to always
-    # stop the debugger before going out of scope.
-    def __del__(self):
-        try:
-            self.stop()
-        except Exception, e:
-            pass
-##            traceback.print_exc()
-##            print
+##    # It's not hard to create circular references,
+##    # and since we have a destructor, we end up leaking everything.
+##    # It's best to code the debugging loop properly to always
+##    # stop the debugger before going out of scope.
+##    def __del__(self):
+##        try:
+##            self.stop()
+##        except Exception, e:
+##            pass
+####            traceback.print_exc()
+####            print
 
     def __len__(self):
         """
@@ -504,7 +504,10 @@ class Debug (EventDispatcher, BreakpointContainer):
             import sys
             debug = Debug()
             debug.execv( sys.argv [ 1 : ] )
-            debug.loop()
+            try:
+                debug.loop()
+            finally:
+                debug.stop()
 
         @see: L{next}, L{stop}
 
