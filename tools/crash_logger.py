@@ -95,20 +95,48 @@ class LoggingEventHandler(EventHandler):
         # If the crash is new, it's an "interesting" event.
         finally:
             if not bKnown:
-                self.__action()
+                self.__action(crash)
 
     # Actions to take for "interesting" events.
-    def __action(self):
+    def __action(self, crash):
 
         # Run the given command if any.
         try:
             if self.options.action:
-                self.__run_command()
+                self.__run_command(crash)
 
         # Pause if requested.
         finally:
             if self.options.pause and not bKnown:
                 raw_input("Press enter to continue...")
+
+    # Run the given command, if any.
+    # Wait until the command completes.
+    # To avoid waiting, use the "start" command.
+    def __run_command(self, crash = None):
+        action  = "cmd.exe /c %s" % self.options.action
+        if crash:
+            # %COUNT% - Sequential numbering of crashes found.
+            # %EXCEPTIONCODE% - Exception code in hexa
+            # %EVENTCODE% - Event code in hexa
+            # %EXCEPTION% - Exception name, human readable
+            # %EVENT% - Event name, human readable
+            # %PC% - Contents of EIP, in hexa
+            # %SP% - Contents of ESP, in hexa
+            # %FP% - Contents of EBP, in hexa
+            # %WHERE% - Location of the event (a label or address)
+            action = action.replace('%COUNT%', str(len(self.knownCrashes)))
+            action = action.replace('%EXCEPTIONCODE%', HexDump.address(crash.exceptionCode))
+            action = action.replace('%EVENTCODE%', HexDump.address(crash.eventCode))
+            action = action.replace('%EXCEPTION%', str(crash.exceptionName))
+            action = action.replace('%EVENT%', str(crash.eventName))
+            action = action.replace('%PC%', HexDump.address(crash.pc))
+            action = action.replace('%SP%', HexDump.address(crash.sp))
+            action = action.replace('%FP%', HexDump.address(crash.fp))
+            action = action.replace('%WHERE%', str(crash.labelPC))
+        system  = System()
+        process = system.start_process(action, bConsole = True)
+        process.wait()
 
     # Log a text line to standard output.
     def __log(self, event, text):
@@ -156,15 +184,6 @@ class LoggingEventHandler(EventHandler):
                         pass
                     except WindowsError:
                         pass
-
-    # Run the given command, if any.
-    # Wait until the command completes.
-    # To avoid waiting, use the "start" command.
-    def __run_command(self):
-        action  = "cmd.exe /c %s" % self.options.action
-        system  = System()
-        process = system.start_process(action, bConsole = True)
-        process.wait()
 
 #-- Events --------------------------------------------------------------------
 
