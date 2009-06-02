@@ -487,6 +487,8 @@ def parse_cmdline(argv):
                          help="Set one-shot code breakpoints from list file")
     debugging.add_option("-r", "--restart", action="store_true",
                          help="Restart debugees when they finish executing")
+    debugging.add_option("-k", "--kill", action="store_true",
+                         help="Kill debugees on exit")
     debugging.add_option("-p", "--pause", action="store_true",
                          help="Pause on each new crash found")
     debugging.add_option("--events", metavar="LIST",
@@ -516,6 +518,7 @@ def parse_cmdline(argv):
         verbose     = True,
         pause       = False,
         restart     = False,
+        kill        = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
@@ -649,7 +652,7 @@ def main(args):
     eventHandler  = LoggingEventHandler(options)
 
     # Create the debug object
-    debug = Debug(eventHandler)
+    debug = Debug(eventHandler, bKillOnExit = options.kill)
     try:
 
         # Attach to the targets
@@ -665,7 +668,7 @@ def main(args):
             try:
                 event = debug.wait()
             except Exception:
-                if not options.ignore_errors and options.verbose:
+                if options.verbose:
                     traceback.print_exc()
                 raise   # don't ignore this error
             try:
@@ -674,9 +677,9 @@ def main(args):
                 finally:
                     debug.cont(event)
             except Exception:
+                if options.verbose:
+                    traceback.print_exc()
                 if not options.ignore_errors:
-                    if options.verbose:
-                        traceback.print_exc()
                     raise
     finally:
         try:
