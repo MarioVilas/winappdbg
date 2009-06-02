@@ -1089,6 +1089,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
+        if type(lpBaseAddress) not in (type(0), type(0L)):
+            lpBaseAddress = ctypes.cast(lpBaseAddress, ctypes.c_void_p)
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
@@ -3215,20 +3217,37 @@ class ProcessDebugOperations (object):
 ##            except (AttributeError, WindowsError):
 ##                name = None
 
-##        # method 6: PEB.ProcessParameters.ImagePathName
-##        # may fail since it's using an undocumented internal structure.
-##        if not name:
-##            try:
-##                peb = self.get_peb()
-##                rupp = self.read_structure(peb.ProcessParameters,
-##                                             win32.RTL_USER_PROCESS_PARAMETERS)
-##                name = self.read(rupp.ImagePathName.Buffer,
-##                                                     rupp.ImagePathName.Length)
-##            except (AttributeError, WindowsError):
-##                name = None
+        # method 6: PEB.ProcessParameters->ImagePathName
+        # may fail since it's using an undocumented internal structure.
+        if not name:
+            try:
+                peb = self.get_peb()
+                pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+                s = pp.ImagePathName
+##                name = self.read_string(s.Buffer, s.Length, fUnicode=True)
+                name = self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
+            except (AttributeError, WindowsError):
+                name = None
 
         # return the image filename, or None on error.
         return name
+
+    def get_command_line(self):
+        """
+        Retrieves the command line with wich the program was started.
+
+        @rtype:  str
+        @return: Command line string.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        peb = self.get_peb()
+        pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        s = pp.CommandLine
+##        return self.read_string(s.Buffer, s.Length, fUnicode=True)
+        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
 
 #------------------------------------------------------------------------------
 

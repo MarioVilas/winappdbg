@@ -284,6 +284,10 @@ class LoggingEventHandler(EventHandler):
         if self.__action_requested(event):
             self.__action(event)
 
+        # Restart if requested.
+        if self.options.restart:
+            event.debug.execl( event.get_process().get_command_line() )
+
     # Handle the exit thread events.
     def exit_thread(self, event):
 
@@ -481,6 +485,8 @@ def parse_cmdline(argv):
                          help="Set code breakpoints from list file")
     debugging.add_option("-s", "--stalk-at", metavar="FILE",
                          help="Set one-shot code breakpoints from list file")
+    debugging.add_option("-r", "--restart", action="store_true",
+                         help="Restart debugees when they finish executing")
     debugging.add_option("-p", "--pause", action="store_true",
                          help="Pause on each new crash found")
     debugging.add_option("--events", metavar="LIST",
@@ -509,6 +515,7 @@ def parse_cmdline(argv):
     parser.set_defaults(
         verbose     = True,
         pause       = False,
+        restart     = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
