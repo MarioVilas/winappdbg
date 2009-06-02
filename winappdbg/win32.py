@@ -77,6 +77,7 @@ class GuessStringType(object):
         v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
         if t_unicode in v_types:
             if t_ansi in v_types:
+                argv = list(argv)
                 for index in xrange(len(argv)):
                     if v_types[index] == t_ansi:
                         argv[index] = unicode(argv[index])
@@ -85,6 +86,35 @@ class GuessStringType(object):
                         argd[key] = unicode(value)
             return self.fn_unicode(*argv, **argd)
         return self.fn_ansi(*argv, **argd)
+
+class MakeANSIVersion(object):
+    """
+    Decorator that generates an ANSI version of a Unicode (wide) only API call.
+
+    @type fn: function
+    @ivar fn: Unicode (wide) version of the API function to call.
+    """
+
+    def __init__(self, fn):
+        """
+        @type  fn: function
+        @param fn: Unicode (wide) version of the API function to call.
+        """
+        self.fn = fn
+
+    def __call__(self, *argv, **argd):
+        t_ansi    = type('')
+        v_types   = [ type(item) for item in argv ]
+        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
+        if t_ansi in v_types:
+            argv = list(argv)
+            for index in xrange(len(argv)):
+                if v_types[index] == t_ansi:
+                    argv[index] = unicode(argv[index])
+            for key, value in argd.items():
+                if type(value) == t_ansi:
+                    argd[key] = unicode(value)
+        return self.fn(*argv, **argd)
 
 #--- Handle wrappers ----------------------------------------------------------
 
@@ -755,6 +785,9 @@ SE_PRIVILEGE_REMOVED            = 0x00000004
 SE_PRIVILEGE_USED_FOR_ACCESS    = 0x80000000
 
 TOKEN_ADJUST_PRIVILEGES         = 0x00000020
+
+LOGON_WITH_PROFILE              = 0x00000001
+LOGON_NETCREDENTIALS_ONLY       = 0x00000002
 
 # LoadLibraryEx constants
 DONT_RESOLVE_DLL_REFERENCES         = 0x00000001
@@ -5731,6 +5764,120 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
             if success == FALSE:
                 raise ctypes.WinError()
 
+# BOOL WINAPI CreateProcessWithLogonW(
+#   __in         LPCWSTR lpUsername,
+#   __in_opt     LPCWSTR lpDomain,
+#   __in         LPCWSTR lpPassword,
+#   __in         DWORD dwLogonFlags,
+#   __in_opt     LPCWSTR lpApplicationName,
+#   __inout_opt  LPWSTR lpCommandLine,
+#   __in         DWORD dwCreationFlags,
+#   __in_opt     LPVOID lpEnvironment,
+#   __in_opt     LPCWSTR lpCurrentDirectory,
+#   __in         LPSTARTUPINFOW lpStartupInfo,
+#   __out        LPPROCESS_INFORMATION lpProcessInfo
+# );
+def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
+    if not lpUsername:
+        lpUsername          = NULL
+    else:
+        lpUsername          = ctypes.c_wchar_p(lpUsername)
+    if not lpDomain:
+        lpDomain            = NULL
+    else:
+        lpDomain            = ctypes.c_wchar_p(lpDomain)
+    if not lpPassword:
+        lpPassword          = NULL
+    else:
+        lpPassword          = ctypes.c_wchar_p(lpPassword)
+    if not lpApplicationName:
+        lpApplicationName   = NULL
+    else:
+        lpApplicationName   = ctypes.c_wchar_p(lpApplicationName)
+    if not lpCommandLine:
+        lpCommandLine       = NULL
+    else:
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
+    if not lpEnvironment:
+        lpEnvironment       = NULL
+    else:
+        lpEnvironment       = ctypes.c_wchar_p(lpEnvironment)
+    if not lpCurrentDirectory:
+        lpCurrentDirectory  = NULL
+    else:
+        lpCurrentDirectory  = ctypes.c_wchar_p(lpCurrentDirectory)
+    if not lpStartupInfo:
+        lpStartupInfo              = STARTUPINFO()
+        lpStartupInfo.cb           = sizeof(STARTUPINFO)
+        lpStartupInfo.lpReserved   = 0
+        lpStartupInfo.lpDesktop    = 0
+        lpStartupInfo.lpTitle      = 0
+        lpStartupInfo.dwFlags      = 0
+        lpStartupInfo.cbReserved2  = 0
+        lpStartupInfo.lpReserved2  = 0
+    lpProcessInformation              = PROCESS_INFORMATION()
+    lpProcessInformation.hProcess     = INVALID_HANDLE_VALUE
+    lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
+    lpProcessInformation.dwProcessId  = 0
+    lpProcessInformation.dwThreadId   = 0
+    success = ctypes.windll.advapi32.CreateProcessWithLogonW(lpUsername, lpDomain, lpPassword, dwLogonFlags, lpApplicationName, ctypes.byref(lpCommandLine), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return ProcessInformation(lpProcessInformation)
+CreateProcessWithLogonA = MakeANSIVersion(CreateProcessWithLogonW)
+CreateProcessWithLogon = CreateProcessWithLogonA
+
+# BOOL WINAPI CreateProcessWithTokenW(
+#   __in         HANDLE hToken,
+#   __in         DWORD dwLogonFlags,
+#   __in_opt     LPCWSTR lpApplicationName,
+#   __inout_opt  LPWSTR lpCommandLine,
+#   __in         DWORD dwCreationFlags,
+#   __in_opt     LPVOID lpEnvironment,
+#   __in_opt     LPCWSTR lpCurrentDirectory,
+#   __in         LPSTARTUPINFOW lpStartupInfo,
+#   __out        LPPROCESS_INFORMATION lpProcessInfo
+# );
+def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
+    if not hToken:
+        hToken              = NULL
+    if not lpApplicationName:
+        lpApplicationName   = NULL
+    else:
+        lpApplicationName   = ctypes.c_wchar_p(lpApplicationName)
+    if not lpCommandLine:
+        lpCommandLine       = NULL
+    else:
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
+    if not lpEnvironment:
+        lpEnvironment       = NULL
+    else:
+        lpEnvironment       = ctypes.c_wchar_p(lpEnvironment)
+    if not lpCurrentDirectory:
+        lpCurrentDirectory  = NULL
+    else:
+        lpCurrentDirectory  = ctypes.c_wchar_p(lpCurrentDirectory)
+    if not lpStartupInfo:
+        lpStartupInfo              = STARTUPINFO()
+        lpStartupInfo.cb           = sizeof(STARTUPINFO)
+        lpStartupInfo.lpReserved   = 0
+        lpStartupInfo.lpDesktop    = 0
+        lpStartupInfo.lpTitle      = 0
+        lpStartupInfo.dwFlags      = 0
+        lpStartupInfo.cbReserved2  = 0
+        lpStartupInfo.lpReserved2  = 0
+    lpProcessInformation              = PROCESS_INFORMATION()
+    lpProcessInformation.hProcess     = INVALID_HANDLE_VALUE
+    lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
+    lpProcessInformation.dwProcessId  = 0
+    lpProcessInformation.dwThreadId   = 0
+    success = ctypes.windll.advapi32.CreateProcessWithTokenW(hToken, dwLogonFlags, lpApplicationName, ctypes.byref(lpCommandLine), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return ProcessInformation(lpProcessInformation)
+CreateProcessWithTokenA = MakeANSIVersion(CreateProcessWithTokenW)
+CreateProcessWithToken = CreateProcessWithTokenA
+
 #--- shell32.dll --------------------------------------------------------------
 
 # LPWSTR *CommandLineToArgvW(
@@ -5751,13 +5898,8 @@ def CommandLineToArgvW(lpCmdLine):
     finally:
         LocalFree(vptr)
     return argv
-def CommandLineToArgvA(lpCmdLine):
-    if lpCmdLine not in (None, NULL):
-        lpCmdLine = unicode(lpCmdLine)
-    argv = CommandLineToArgvW(lpCmdLine)
-    argv = [ str(x) for x in argv ]
-    return argv
-CommandLineToArgv = GuessStringType(CommandLineToArgvA, CommandLineToArgvW)
+CommandLineToArgvA = MakeANSIVersion(CommandLineToArgvW)
+CommandLineToArgv = CommandLineToArgvA
 
 # HINSTANCE ShellExecute(
 #     HWND hwnd,
