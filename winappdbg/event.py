@@ -73,22 +73,32 @@ class Event (object):
     """
     Event object.
 
+    @type eventMethod: str
+    @cvar eventMethod:
+        Method name to call when using L{EventHandler} subclasses.
+
     @type eventName: str
-    @cvar eventName: User-friendly name of the event.
+    @cvar eventName:
+        User-friendly name of the event.
 
     @type eventDescription: str
-    @cvar eventDescription: User-friendly description of the event.
+    @cvar eventDescription:
+        User-friendly description of the event.
 
     @type debug: L{Debug}
-    @ivar debug: Debug object that received the event.
+    @ivar debug:
+        Debug object that received the event.
 
     @type raw: L{DEBUG_EVENT}
-    @ivar raw: Raw DEBUG_EVENT structure as used by the Win32 API.
+    @ivar raw:
+        Raw DEBUG_EVENT structure as used by the Win32 API.
 
     @type continueStatus: int
-    @ivar continueStatus: Continue status to pass to L{win32.ContinueDebugEvent}.
+    @ivar continueStatus:
+        Continue status to pass to L{win32.ContinueDebugEvent}.
     """
 
+    eventMethod      = 'unknown_event'
     eventName        = 'Unknown event'
     eventDescription = 'A debug event of an unknown type has occured.'
 
@@ -207,6 +217,7 @@ class NoEvent (Event):
     event has occured yet. It's never returned by the L{EventFactory}.
     """
 
+    eventMethod      = 'no_event'
     eventName        = 'No event'
     eventDescription = 'No debug event has occured.'
 
@@ -260,6 +271,35 @@ class ExceptionEvent (Event):
 
     eventName        = 'Exception event'
     eventDescription = 'An exception was raised by the debugee.'
+
+    __exceptionMethod = {
+        win32.EXCEPTION_ACCESS_VIOLATION          : 'access_violation',
+        win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED     : 'array_bounds_exceeded',
+        win32.EXCEPTION_BREAKPOINT                : 'breakpoint',
+        win32.EXCEPTION_DATATYPE_MISALIGNMENT     : 'datatype_misalignment',
+        win32.EXCEPTION_FLT_DENORMAL_OPERAND      : 'float_denormal_operand',
+        win32.EXCEPTION_FLT_DIVIDE_BY_ZERO        : 'float_divide_by_zero',
+        win32.EXCEPTION_FLT_INEXACT_RESULT        : 'float_inexact_result',
+        win32.EXCEPTION_FLT_INVALID_OPERATION     : 'float_invalid_operation',
+        win32.EXCEPTION_FLT_OVERFLOW              : 'float_overflow',
+        win32.EXCEPTION_FLT_STACK_CHECK           : 'float_stack_check',
+        win32.EXCEPTION_FLT_UNDERFLOW             : 'float_underflow',
+        win32.EXCEPTION_ILLEGAL_INSTRUCTION       : 'illegal_instruction',
+        win32.EXCEPTION_IN_PAGE_ERROR             : 'in_page_error',
+        win32.EXCEPTION_INT_DIVIDE_BY_ZERO        : 'integer_divide_by_zero',
+        win32.EXCEPTION_INT_OVERFLOW              : 'integer_overflow',
+        win32.EXCEPTION_INVALID_DISPOSITION       : 'invalid_disposition',
+        win32.EXCEPTION_NONCONTINUABLE_EXCEPTION  : 'noncontinuable_exception',
+        win32.EXCEPTION_PRIV_INSTRUCTION          : 'privileged_instruction',
+        win32.EXCEPTION_SINGLE_STEP               : 'single_step',
+        win32.EXCEPTION_STACK_OVERFLOW            : 'stack_overflow',
+        win32.EXCEPTION_GUARD_PAGE                : 'guard_page',
+        win32.EXCEPTION_INVALID_HANDLE            : 'invalid_handle',
+        win32.EXCEPTION_POSSIBLE_DEADLOCK         : 'possible_deadlock',
+        win32.CONTROL_C_EXIT                      : 'control_c_exit',
+        win32.DBG_CONTROL_C                       : 'debug_control_c',
+        win32.MS_VC_EXCEPTION                     : 'ms_vc_exception',
+    }
 
     __exceptionName = {
         win32.EXCEPTION_ACCESS_VIOLATION          : 'EXCEPTION_ACCESS_VIOLATION',
@@ -318,6 +358,11 @@ class ExceptionEvent (Event):
         win32.DBG_CONTROL_C                       : 'Debug Control-C',
         win32.MS_VC_EXCEPTION                     : 'Microsoft Visual C exception',
     }
+
+    @property
+    def eventMethod(self):
+        return self.__exceptionMethod.get(
+                                self.get_exception_code(), 'unknown_exception')
 
     def get_exception_name(self):
         """
@@ -459,6 +504,7 @@ class CreateThreadEvent (Event):
     Thread creation event.
     """
 
+    eventMethod      = 'create_thread'
     eventName        = 'Thread creation event'
     eventDescription = 'A new thread has started.'
 
@@ -505,6 +551,7 @@ class CreateProcessEvent (Event):
     Process creation event.
     """
 
+    eventMethod      = 'create_process'
     eventName        = 'Process creation event'
     eventDescription = 'A new process has started.'
 
@@ -652,6 +699,7 @@ class ExitThreadEvent (Event):
     Thread termination event.
     """
 
+    eventMethod      = 'exit_thread'
     eventName        = 'Thread termination event'
     eventDescription = 'A thread has finished executing.'
 
@@ -669,6 +717,7 @@ class ExitProcessEvent (Event):
     Process termination event.
     """
 
+    eventMethod      = 'exit_process'
     eventName        = 'Process termination event'
     eventDescription = 'A process has finished executing.'
 
@@ -715,6 +764,7 @@ class LoadDLLEvent (Event):
     Module load event.
     """
 
+    eventMethod      = 'load_dll'
     eventName        = 'Module load event'
     eventDescription = 'A new DLL library was loaded by the debugee.'
 
@@ -788,6 +838,7 @@ class UnloadDLLEvent (Event):
     Module unload event.
     """
 
+    eventMethod      = 'unload_dll'
     eventName        = 'Module unload event'
     eventDescription = 'A DLL library was unloaded by the debugee.'
 
@@ -820,6 +871,7 @@ class OutputDebugStringEvent (Event):
     Debug string output event.
     """
 
+    eventMethod      = 'output_string'
     eventName        = 'Debug string output event'
     eventDescription = 'The debugee sent a message to the debugger.'
 
@@ -841,6 +893,7 @@ class RIPEvent (Event):
     RIP event.
     """
 
+    eventMethod      = 'rip'
     eventName        = 'RIP event'
     eventDescription = 'An error has occured and the process ' \
                        'can no longer be debugged.'
@@ -1076,63 +1129,9 @@ class EventHandler (object):
 
         For a more complete support of API hooking, you can also check out
         Universal Hooker at U{http://oss.coresecurity.com/projects/uhooker.htm}
-
-
-    @type __eventCallbackName: dict( int S{->} str )
-    @cvar __eventCallbackName:
-        Map of event code constants to the names of the user-defined methods.
-        Unknown codes go to 'unknown_event'.
-
-    @type __exceptionCallbackName: dict( int S{->} str )
-    @cvar __exceptionCallbackName:
-        Map of exception code constants to the names of the user-defined methods.
-        Unknown codes go to 'unknown_exception'.
     """
 
 #------------------------------------------------------------------------------
-
-    # Dispatch mechanism.
-
-    __eventCallbackName = {
-        win32.EXCEPTION_DEBUG_EVENT       : 'exception',              # 1
-        win32.CREATE_THREAD_DEBUG_EVENT   : 'create_thread',          # 2
-        win32.CREATE_PROCESS_DEBUG_EVENT  : 'create_process',         # 3
-        win32.EXIT_THREAD_DEBUG_EVENT     : 'exit_thread',            # 4
-        win32.EXIT_PROCESS_DEBUG_EVENT    : 'exit_process',           # 5
-        win32.LOAD_DLL_DEBUG_EVENT        : 'load_dll',               # 6
-        win32.UNLOAD_DLL_DEBUG_EVENT      : 'unload_dll',             # 7
-        win32.OUTPUT_DEBUG_STRING_EVENT   : 'output_string',          # 8
-        win32.RIP_EVENT                   : 'rip',                    # 9
-    }
-
-    __exceptionCallbackName = {
-        win32.EXCEPTION_ACCESS_VIOLATION          : 'access_violation',
-        win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED     : 'array_bounds_exceeded',
-        win32.EXCEPTION_BREAKPOINT                : 'breakpoint',
-        win32.EXCEPTION_DATATYPE_MISALIGNMENT     : 'datatype_misalignment',
-        win32.EXCEPTION_FLT_DENORMAL_OPERAND      : 'float_denormal_operand',
-        win32.EXCEPTION_FLT_DIVIDE_BY_ZERO        : 'float_divide_by_zero',
-        win32.EXCEPTION_FLT_INEXACT_RESULT        : 'float_inexact_result',
-        win32.EXCEPTION_FLT_INVALID_OPERATION     : 'float_invalid_operation',
-        win32.EXCEPTION_FLT_OVERFLOW              : 'float_overflow',
-        win32.EXCEPTION_FLT_STACK_CHECK           : 'float_stack_check',
-        win32.EXCEPTION_FLT_UNDERFLOW             : 'float_underflow',
-        win32.EXCEPTION_ILLEGAL_INSTRUCTION       : 'illegal_instruction',
-        win32.EXCEPTION_IN_PAGE_ERROR             : 'in_page_error',
-        win32.EXCEPTION_INT_DIVIDE_BY_ZERO        : 'integer_divide_by_zero',
-        win32.EXCEPTION_INT_OVERFLOW              : 'integer_overflow',
-        win32.EXCEPTION_INVALID_DISPOSITION       : 'invalid_disposition',
-        win32.EXCEPTION_NONCONTINUABLE_EXCEPTION  : 'noncontinuable_exception',
-        win32.EXCEPTION_PRIV_INSTRUCTION          : 'privileged_instruction',
-        win32.EXCEPTION_SINGLE_STEP               : 'single_step',
-        win32.EXCEPTION_STACK_OVERFLOW            : 'stack_overflow',
-        win32.EXCEPTION_GUARD_PAGE                : 'guard_page',
-        win32.EXCEPTION_INVALID_HANDLE            : 'invalid_handle',
-        win32.EXCEPTION_POSSIBLE_DEADLOCK         : 'possible_deadlock',
-        win32.CONTROL_C_EXIT                      : 'control_c_exit',
-        win32.DBG_CONTROL_C                       : 'debug_control_c',
-        win32.MS_VC_EXCEPTION                     : 'ms_vc_exception',
-    }
 
     # Default (empty) API hooks dictionary.
     apiHooks = {}
@@ -1168,28 +1167,17 @@ class EventHandler (object):
         @type  event: L{Event}
         @param event: Event object.
         """
-        eventCode = event.get_code()
-
-        # Try to find an override for the event type.
-        # If not found use the generic "event" method.
-        methodName = self.__eventCallbackName.get(eventCode, 'unknown_event')
-        method = getattr(self, methodName, self.event)
-
-        # If it's an exception, try to find an override for the exception type.
-        # If not found use the method from the previous step.
+        eventCode = event.get_event_code()
         if eventCode == win32.EXCEPTION_DEBUG_EVENT:
-            methodName = self.__exceptionCallbackName.get(
-                                event.get_exception_code(),
-                                'unknown_exception'
-                                )
-            method = getattr(self, methodName, method)
-
-        # If it's a load dll event, set the requested API hooks.
-        elif eventCode == win32.LOAD_DLL_DEBUG_EVENT:
-            self.__setApiHooksForDll(event)
-
-        # Call the callback method found.
-        return method(event)
+            method = getattr(self, 'exception', self.event)
+            method = getattr(self, event.eventMethod, method)
+        else:
+            method = getattr(self, event.eventMethod, self.event)
+        try:
+            if eventCode == win32.LOAD_DLL_DEBUG_EVENT:
+                self.__setApiHooksForDll(event)
+        finally:
+            return method(event)
 
     def event(self, event):
         """

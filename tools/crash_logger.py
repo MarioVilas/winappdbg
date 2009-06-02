@@ -78,32 +78,39 @@ class LoggingEventHandler(EventHandler):
         crash = Crash(event)
 
         # Determine if the crash was already known.
-        bKnown = crash in self.knownCrashes
+        bNew = crash not in self.knownCrashes
 
         # Add the crash object to the container.
-        self.knownCrashes.add(crash)
+        if bNew:
+            self.knownCrashes.add(crash)
 
         # Log the event to standard output.
         try:
             if self.options.verbose:
-                if bFullReport and not bKnown:
+                if bFullReport and bNew:
                     msg = crash.fullReport()
                 else:
                     msg = crash.briefReport()
                 self.__log(event, msg)
 
-        # If the crash is new, it's an "interesting" event.
+        # Take action if requested and the crash is new.
         finally:
-            if not bKnown:
-                self.__action(crash)
+            if bNew and self.__action_requested(event):
+                self.__action(event, crash)
+
+    # Determine if an action is requested for this event.
+    def __action_requested(self, event):
+        return 'event' in self.options.events or \
+            ('exception' in self.options.events and event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT) or \
+            event.eventMethod in self.options.events
 
     # Actions to take for "interesting" events.
-    def __action(self, crash):
+    def __action(self, event, crash = None):
 
         # Run the given command if any.
         try:
             if self.options.action:
-                self.__run_command(crash)
+                self.__run_command(event, crash)
 
         # Pause if requested.
         finally:
@@ -113,9 +120,11 @@ class LoggingEventHandler(EventHandler):
     # Run the given command, if any.
     # Wait until the command completes.
     # To avoid waiting, use the "start" command.
-    def __run_command(self, crash = None):
+    def __run_command(self, event, crash = None):
         action  = "cmd.exe /c %s" % self.options.action
-        if crash:
+        if '%' in action:
+            if not crash:
+                crash = Crash(event)
             # %COUNT% - Sequential numbering of crashes found.
             # %EXCEPTIONCODE% - Exception code in hexa
             # %EVENTCODE% - Event code in hexa
@@ -187,7 +196,7 @@ class LoggingEventHandler(EventHandler):
 
 #-- Events --------------------------------------------------------------------
 
-    # Handle all events not handled by the following class methods.
+    # Handle all events not handled by the following methods.
     def event(self, event):
         self.__add_crash(event, bFullReport = True)
 
@@ -213,6 +222,10 @@ class LoggingEventHandler(EventHandler):
                     msg = "Attached to process %s" % szFilename
                 self.__log(event, msg)
 
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
     # Handle the create thread events.
     def create_thread(self, event):
 
@@ -225,6 +238,10 @@ class LoggingEventHandler(EventHandler):
             else:
                 msg   = "Attached to thread"
             self.__log(event, msg)
+
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
 
     # Handle the load dll events.
     def load_dll(self, event):
@@ -246,6 +263,10 @@ class LoggingEventHandler(EventHandler):
                 msg = msg % (fileName, HexDump.address(lpBaseOfDll))
                 self.__log(event, msg)
 
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
     # Handle the exit process events.
     def exit_process(self, event):
 
@@ -259,6 +280,10 @@ class LoggingEventHandler(EventHandler):
             msg = "Process terminated, exit code %x" % event.get_exit_code()
             self.__log(event, msg)
 
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
     # Handle the exit thread events.
     def exit_thread(self, event):
 
@@ -266,6 +291,10 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             msg = "Thread terminated, exit code %x" % event.get_exit_code()
             self.__log(event, msg)
+
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
 
     # Handle the unload dll events.
     def unload_dll(self, event):
@@ -280,6 +309,10 @@ class LoggingEventHandler(EventHandler):
             msg = "Unloaded %s at %s"
             msg = msg % (fileName, HexDump.address(lpBaseOfDll))
             self.__log(event, msg)
+
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
 
     # Handle the debug output string events.
     def output_string(self, event):
@@ -304,9 +337,18 @@ class LoggingEventHandler(EventHandler):
                 msg = "RIP error type %d, code %%x" % errorType
             self.__log(event, msg % errorCode)
 
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
 #-- Exceptions ----------------------------------------------------------------
 
-    # Ignore unknown (most likely C++) exceptions.
+    # Handle all exceptions not handled by the following methods.
+    def exception(self, event):
+        self.__add_crash(event, bFullReport = True)
+
+    # Unknown (most likely C++) exceptions are not crashes.
+    # Comment out this code if needed...
     def unknown_exception(self, event):
 
         # Log the event to standard output.
@@ -315,7 +357,12 @@ class LoggingEventHandler(EventHandler):
             address = event.get_exception_address()
             self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
 
-    # Ignore Microsoft Visual C exceptions.
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
+    # Microsoft Visual C exceptions are not crashes.
+    # Comment out this code if needed...
     def ms_vc_exception(self, event):
 
         # Log the event to standard output.
@@ -324,7 +371,12 @@ class LoggingEventHandler(EventHandler):
             address = event.get_exception_address()
             self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
 
-    # Handle single step events.
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
+    # Single step events are not crashes.
+    # Comment out this code if needed...
     def single_step(self, event):
 
         # Continue without setting the trap flag.
@@ -337,34 +389,47 @@ class LoggingEventHandler(EventHandler):
             msg     = "Single step event at %s" % where
             self.__log(event, msg)
 
-    # Handle breakpoints events.
+        # Take action if requested.
+        if self.__action_requested(event):
+            self.__action(event)
+
+    # Breakpoints events are not crashes.
+    # Comment out this code if needed...
     def breakpoint(self, event):
 
         # Step over breakpoints.
         # This includes both user-defined and hardcoded in the binary.
         event.continueStatus = win32.DBG_CONTINUE
 
+        # Get the address where the exception occured.
+        address = event.get_exception_address()
+
         # Determine if the breakpoint is ours.
         bOurs = hasattr(event, 'breakpoint') and event.breakpoint
+
+        # Determine if the breakpoint is a system defined breakpoint.
+        bSystem = not bOurs and \
+                  event.get_process().is_system_defined_breakpoint(address)
 
         # Log the event to standard output.
         try:
             if self.options.verbose:
-                aProcess = event.get_process()
-                address  = event.get_exception_address()
-                where    = self.__get_location(event, address)
+                where   = self.__get_location(event, address)
                 if bOurs:
                     msg = "Breakpoint hit (%s)" % where
-                elif aProcess.is_system_defined_breakpoint(address):
+                elif bSystem:
                     msg = "System breakpoint hit (%s)" % where
                 else:
                     msg = "Hardcoded breakpoint hit (%s)" % where
                 self.__log(event, msg)
 
-        # If the breakpoint is ours, it's an "interesting" event.
+        # Take action if requested or the breakpoint is ours.
+        # Always ignore system defined breakpoints.
+        # To force the action on system defined breakpoints,
+        # redefine them with the --break command line option.
         finally:
-            if bOurs:
-                self.__action()
+            if bOurs or (not bSystem and self.__action_requested(event)):
+                self.__action(event)
 
 #==============================================================================
 
@@ -417,8 +482,10 @@ def parse_cmdline(argv):
     debugging.add_option("-s", "--stalk-at", metavar="FILE",
                          help="Set one-shot code breakpoints from list file")
     debugging.add_option("-p", "--pause", action="store_true",
-                         help="Pause on crash events")
-    debugging.add_option("--action", metavar="COMMAND",
+                         help="Pause on each new crash found")
+    debugging.add_option("--events", metavar="LIST",
+                         help="Comma separated list of events to monitor")
+    debugging.add_option("--action", metavar="COMMAND", action="append",
                          help="Run the given command on each new crash found")
     parser.add_option_group(debugging)
 
@@ -438,12 +505,14 @@ def parse_cmdline(argv):
     parser.add_option_group(output)
 
     # Defaults
+    defaultEventList = ['exception']
     parser.set_defaults(
         verbose     = True,
         pause       = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
+        events      = defaultEventList,
         action      = None,
     )
 
@@ -548,6 +617,14 @@ def parse_cmdline(argv):
             parser.error(str(e))
     else:
         options.stalk_at = list()
+
+    # Parse the list of events to monitor
+    events = set()
+    for token in options.events:
+        for event_name in token.split(','):
+            event_name = event_name.strip().lower()
+            events.add(event_name)
+    options.events = events
 
     # Return the parsed command line options and arguments
     return (parser, options, args)
