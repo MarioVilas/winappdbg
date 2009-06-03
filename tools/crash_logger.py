@@ -488,7 +488,7 @@ def parse_cmdline(argv):
     tracing.add_option("-p", "--pause", action="store_true",
                        help="Pause on each new crash found")
     tracing.add_option("-r", "--restart", action="store_true",
-                       help="Restart debugees when they finish executing\n(be careful wieh using --follow)")
+                       help="Restart debugees when they finish executing (be careful when using --follow)")
     tracing.add_option("--events", metavar="LIST",
                        help="Comma separated list of events to monitor")
     tracing.add_option("--action", metavar="COMMAND", action="append",
