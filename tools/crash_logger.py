@@ -479,22 +479,39 @@ def parse_cmdline(argv):
                         help="Create a new console process [default]")
     parser.add_option_group(commands)
 
+    # Tracing options
+    tracing = optparse.OptionGroup(parser, "Tracing options")
+    tracing.add_option("-b", "--break-at", metavar="FILE",
+                       help="Set code breakpoints from list file")
+    tracing.add_option("-s", "--stalk-at", metavar="FILE",
+                       help="Set one-shot code breakpoints from list file")
+    tracing.add_option("-p", "--pause", action="store_true",
+                       help="Pause on each new crash found")
+    tracing.add_option("-r", "--restart", action="store_true",
+                       help="Restart debugees when they finish executing\n(can't be used with --follow)")
+    tracing.add_option("--events", metavar="LIST",
+                       help="Comma separated list of events to monitor")
+    tracing.add_option("--action", metavar="COMMAND", action="append",
+                       help="Run the given command on each new crash found")
+    parser.add_option_group(tracing)
+
     # Debugging options
     debugging = optparse.OptionGroup(parser, "Debugging options")
-    debugging.add_option("-b", "--break-at", metavar="FILE",
-                         help="Set code breakpoints from list file")
-    debugging.add_option("-s", "--stalk-at", metavar="FILE",
-                         help="Set one-shot code breakpoints from list file")
-    debugging.add_option("-r", "--restart", action="store_true",
-                         help="Restart debugees when they finish executing")
-    debugging.add_option("-k", "--kill", action="store_true",
-                         help="Kill debugees on exit")
-    debugging.add_option("-p", "--pause", action="store_true",
-                         help="Pause on each new crash found")
-    debugging.add_option("--events", metavar="LIST",
-                         help="Comma separated list of events to monitor")
-    debugging.add_option("--action", metavar="COMMAND", action="append",
-                         help="Run the given command on each new crash found")
+    debugging.add_option("--autodetach", action="store_true",
+                  help="automatically detach from debugees on exit [default]")
+    debugging.add_option("--follow", action="store_true",
+                  help="automatically attach to child processes [default]")
+    debugging.add_option("--trusted", action="store_false",
+                                                            dest="hostile",
+                  help="treat debugees as trusted code [default]")
+    debugging.add_option("--dont-autodetach", action="store_false",
+                                                         dest="autodetach",
+                  help="don't automatically detach from debugees on exit")
+    debugging.add_option("--dont-follow", action="store_false",
+                                                             dest="follow",
+                  help="don't automatically attach to child processes")
+    debugging.add_option("--hostile", action="store_true",
+                  help="treat debugees as hostile code")
     parser.add_option_group(debugging)
 
     # Output options
@@ -518,7 +535,9 @@ def parse_cmdline(argv):
         verbose     = True,
         pause       = False,
         restart     = False,
-        kill        = False,
+        autodetach  = True,
+        follow      = True,
+        hostile     = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
@@ -652,16 +671,18 @@ def main(args):
     eventHandler  = LoggingEventHandler(options)
 
     # Create the debug object
-    debug = Debug(eventHandler, bKillOnExit = options.kill)
+    debug = Debug(eventHandler,
+                    bKillOnExit  = not options.autodetach,
+                    bHostileCode = options.hostile)
     try:
 
         # Attach to the targets
         for dwProcessId in options.attach:
             debug.attach(dwProcessId)
         for lpCmdLine in options.console:
-            debug.execl(lpCmdLine, bConsole = True)
+            debug.execl(lpCmdLine, bConsole = True,  bFollow = options.follow)
         for lpCmdLine in options.windowed:
-            debug.execl(lpCmdLine, bConsole = False)
+            debug.execl(lpCmdLine, bConsole = False, bFollow = options.follow)
 
         # Main debugging loop
         while debug.get_debugee_count() > 0:
