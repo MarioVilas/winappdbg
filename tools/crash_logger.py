@@ -320,6 +320,8 @@ class LoggingEventHandler(EventHandler):
 
     # Handle the debug output string events.
     def output_string(self, event):
+        if self.options.echo:
+            win32.OutputDebugString( event.get_debug_string() )
         self.__add_crash(event)
 
     # Handle the RIP events.
@@ -489,6 +491,8 @@ def parse_cmdline(argv):
                        help="Pause on each new crash found")
     tracing.add_option("-r", "--restart", action="store_true",
                        help="Restart debugees when they finish executing (be careful when using --follow)")
+    tracing.add_option("--echo", action="store_true",
+                       help="Repeat debug strings")
     tracing.add_option("--events", metavar="LIST",
                        help="Comma separated list of events to monitor")
     tracing.add_option("--action", metavar="COMMAND", action="append",
@@ -535,6 +539,7 @@ def parse_cmdline(argv):
         verbose     = True,
         pause       = False,
         restart     = False,
+        echo        = False,
         autodetach  = True,
         follow      = True,
         hostile     = False,
@@ -599,8 +604,8 @@ def parse_cmdline(argv):
                 filename = win32.SearchPath(None, filename, '.exe')[0]
             except WindowsError, e:
                 parser.error("error searching for %s: %s" % (filename, str(e)))
-            vector = ( filename, ) + vector[1:]
-            token  = system.argv_to_cmdline(vector)
+            vector[0] = filename
+            token     = system.argv_to_cmdline(vector)
         console_targets.append(token)
     options.console = console_targets
 

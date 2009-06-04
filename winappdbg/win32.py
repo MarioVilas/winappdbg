@@ -4118,6 +4118,23 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         raise ctypes.WinError()
     return Handle(lpTargetHandle.value)
 
+# void WINAPI OutputDebugString(
+#   __in_opt  LPCTSTR lpOutputString
+# );
+def OutputDebugStringA(lpOutputString):
+    if lpOutputString:
+        lpOutputString = LPSTR(lpOutputString)
+    else:
+        lpOutputString = NULL
+    ctypes.windll.kernel32.OutputDebugStringA(lpOutputString)
+def OutputDebugStringW(lpOutputString):
+    if lpOutputString:
+        lpOutputString = LPWSTR(lpOutputString)
+    else:
+        lpOutputString = NULL
+    ctypes.windll.kernel32.OutputDebugStringW(lpOutputString)
+OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
+
 # BOOL WINAPI SetDllDirectory(
 #   __in_opt  LPCTSTR lpPathName
 # );
