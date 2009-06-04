@@ -3438,6 +3438,14 @@ class ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
+    def get_windows(self):
+        window_list = list()
+        for process in self.iter_processes():
+            window_list.extend( process.get_windows() )
+        return window_list
+
+#------------------------------------------------------------------------------
+
     def argv_to_cmdline(self, argv):
         """
         Convert a list of arguments to a single command line string.
@@ -3898,6 +3906,121 @@ class ProcessContainer (object):
         if self.has_process(dwProcessId):
             self.__del_process(dwProcessId)
         return True
+
+#==============================================================================
+
+class Window (object):
+
+    def __init__(self, hWnd = None, process = None, thread = None):
+        self.hWnd        = hWnd
+        self.process     = process
+        self.thread      = thread
+        self.dwProcessId = None
+        self.dwThreadId  = None
+
+    def get_handle(self):
+        if self.hWnd is None:
+            raise ValueError, "No window handle set!"
+        return self.hWnd
+
+    def get_pid(self):
+        if self.process:
+            return process.get_pid()
+        if not self.dwProcessId:
+            self.__get_pid_and_tid()
+        return self.dwProcessId
+
+    def get_tid(self):
+        if self.thread:
+            return thread.get_tid()
+        if not self.dwThreadId:
+            self.__get_pid_and_tid()
+        return self.dwThreadId
+
+    def __get_pid_and_tid(self):
+        self.dwThreadId, self.dwProcessId = \
+                                      win32.GetWindowThreadProcessId(self.hWnd)
+
+    def get_process(self):
+        if not self.process:
+            self.process = self.get_thread().get_process()
+        return self.process
+
+    def get_thread(self):
+        if not self.thread:
+            self.thread = Thread( self.get_tid() )
+        return self.thread
+
+    def get_classname(self):
+        return win32.GetClassName( self.get_handle() )
+
+    def get_text(self):
+        buffer = ctypes.create_string_buffer("", 0x10000)
+        win32.SendMessageA(self.get_handle(), win32.WM_GETTEXT, ctypes.byref(buffer), 0x10000)
+        return buffer.value
+
+    def set_text(self, text):
+        win32.SendMessage(self.get_handle(), win32.WM_SETTEXT, text, len(text))
+
+    def get_parent(self):
+        return Window( win32.GetParent( self.get_handle() ), \
+                                                    self.process, self.thread )
+
+    def get_children(self):
+        return [
+                Window( hWnd, self.process, self.thread ) \
+                for hWnd in win32.EnumChildWindows( self.get_handle() )
+                ]
+
+    def get_tree(self):
+        subtree = dict()
+        for aWindow in self.get_children():
+            subtree[ aWindow.get_handle() ] = aWindow.get_tree()
+        return subtree
+
+    def get_root(self):
+        hWnd     = self.get_handle()
+        hPrevWnd = hWnd
+        while hWnd:
+            hPrevWnd = hWnd
+            hWnd     = win32.GetParent(hWnd)
+        return Window(hPrevWnd)
+
+    def enable(self):
+        win32.EnableWindow( self.get_handle(), True )
+
+    def disable(self):
+        win32.EnableWindow( self.get_handle(), False )
+
+    def show(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_SHOW )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_SHOW )
+
+    def hide(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_HIDE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_HIDE )
+
+    def maximize(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_MAXIMIZE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_MAXIMIZE )
+
+    def minimize(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_MINIMIZE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_MINIMIZE )
+
+    def restore(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_RESTORE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
 
 #==============================================================================
 
@@ -4589,6 +4712,18 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
+    def get_windows(self):
+        try:
+            process = self.get_process()
+        except Exception:
+            process = None
+        return [
+                Window( hWnd, process, self ) \
+                for hWnd in win32.EnumThreadWindows( self.get_tid() )
+                ]
+
+#------------------------------------------------------------------------------
+
     # TODO
     # A registers cache could be implemented here.
     def get_context(self, ContextFlags = win32.CONTEXT_ALL):
@@ -5137,6 +5272,14 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         self.clear_threads()
         self.clear_modules()
+
+#------------------------------------------------------------------------------
+
+    def get_windows(self):
+        window_list = list()
+        for thread in self.iter_threads():
+            window_list.extend( thread.get_windows() )
+        return window_list
 
 #------------------------------------------------------------------------------
 
