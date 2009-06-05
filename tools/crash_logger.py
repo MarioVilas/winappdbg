@@ -42,6 +42,7 @@ import re
 import sys
 import time
 import optparse
+import threading
 import traceback
 
 #==============================================================================
@@ -439,280 +440,311 @@ class LoggingEventHandler(EventHandler):
 
 #==============================================================================
 
-def parse_cmdline(argv):
-    'Parse the command line.'
+class CrashLogger (object):
 
-    # Help message and version string
-    version = (
-              "WinAppDbg crash logger\n"
-              "by Mario Vilas (mvilas at gmail.com)\n"
-              "%s\n"
-              ) % winappdbg.version
-    usage = (
-            "\n"
-            "\n"
-            "  Create a new process (parameters for the target must be escaped):\n"
-            "    %prog [options] -c <executable> [parameters for the target]\n"
-            "    %prog [options] -e <executable> [parameters for the target]\n"
-            "\n"
-            "  Attach to a running process (by filename):\n"
-            "    %prog [options] -a <executable>\n"
-            "\n"
-            "  Attach to a running process (by ID):\n"
-            "    %prog [options] -a <process id>"
-            )
-##    formatter = optparse.IndentedHelpFormatter()
-##    formatter = optparse.TitledHelpFormatter()
-    parser = optparse.OptionParser(
-                                    usage=usage,
-                                    version=version,
-##                                    formatter=formatter,
-                                  )
-    parser.add_option("-i", "--ignore-errors", action="store_true", default=False,
-                      help="Ignore Python exceptions")
+    def __init__(self):
+        self.timedOut = False
 
-    # Commands
-    commands = optparse.OptionGroup(parser, "Commands")
-    commands.add_option("-a", "--attach", action="append",
-                        help="Attach to a running process")
-    commands.add_option("-w", "--windowed", action="append",
-                        help="Create a new windowed process")
-    commands.add_option("-c", "--console", action="append",
-                        help="Create a new console process [default]")
-    parser.add_option_group(commands)
+    def timeoutReached(self):
+        self.timedOut = True
 
-    # Tracing options
-    tracing = optparse.OptionGroup(parser, "Tracing options")
-    tracing.add_option("-b", "--break-at", metavar="FILE",
-                       help="Set code breakpoints from list file")
-    tracing.add_option("-s", "--stalk-at", metavar="FILE",
-                       help="Set one-shot code breakpoints from list file")
-    tracing.add_option("-p", "--pause", action="store_true",
-                       help="Pause on each new crash found")
-    tracing.add_option("-r", "--restart", action="store_true",
-                       help="Restart debugees when they finish executing (be careful when using --follow)")
-    tracing.add_option("--echo", action="store_true",
-                       help="Repeat debug strings")
-    tracing.add_option("--events", metavar="LIST",
-                       help="Comma separated list of events to monitor")
-    tracing.add_option("--action", metavar="COMMAND", action="append",
-                       help="Run the given command on each new crash found")
-    parser.add_option_group(tracing)
+    def parse_cmdline(self, argv):
+        'Parse the command line.'
 
-    # Debugging options
-    debugging = optparse.OptionGroup(parser, "Debugging options")
-    debugging.add_option("--autodetach", action="store_true",
-                  help="automatically detach from debugees on exit [default]")
-    debugging.add_option("--follow", action="store_true",
-                  help="automatically attach to child processes [default]")
-    debugging.add_option("--trusted", action="store_false",
-                                                            dest="hostile",
-                  help="treat debugees as trusted code [default]")
-    debugging.add_option("--dont-autodetach", action="store_false",
-                                                         dest="autodetach",
-                  help="don't automatically detach from debugees on exit")
-    debugging.add_option("--dont-follow", action="store_false",
-                                                             dest="follow",
-                  help="don't automatically attach to child processes")
-    debugging.add_option("--hostile", action="store_true",
-                  help="treat debugees as hostile code")
-    parser.add_option_group(debugging)
+        # Help message and version string
+        version = (
+                  "WinAppDbg crash logger\n"
+                  "by Mario Vilas (mvilas at gmail.com)\n"
+                  "%s\n"
+                  ) % winappdbg.version
+        usage = (
+                "\n"
+                "\n"
+                "  Create a new process (parameters for the target must be escaped):\n"
+                "    %prog [options] -c <executable> [parameters for the target]\n"
+                "    %prog [options] -e <executable> [parameters for the target]\n"
+                "\n"
+                "  Attach to a running process (by filename):\n"
+                "    %prog [options] -a <executable>\n"
+                "\n"
+                "  Attach to a running process (by ID):\n"
+                "    %prog [options] -a <process id>"
+                )
+    ##    formatter = optparse.IndentedHelpFormatter()
+    ##    formatter = optparse.TitledHelpFormatter()
+        parser = optparse.OptionParser(
+                                        usage=usage,
+                                        version=version,
+    ##                                    formatter=formatter,
+                                      )
+        parser.add_option("-i", "--ignore-errors", action="store_true", default=False,
+                          help="Ignore Python exceptions")
 
-    # Output options
-    # TODO
-    # * autogenerate a default crash dump file from the executable file
-    output = optparse.OptionGroup(parser, "Output options")
-    output.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                      help="Log events to standard output [default]")
-    output.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                      help="Do not log events to standard output")
-    output.add_option("-f", "--file", default="crashes.db",
-                      help="Specify a crash dump file [default: %default]")
-    output.add_option("--nodb", "--no-crash-dump-file", action="store_true",
-                      default=False,
-                      help="Supresses the use of a crash dump file")
-    parser.add_option_group(output)
+        # Commands
+        commands = optparse.OptionGroup(parser, "Commands")
+        commands.add_option("-a", "--attach", action="append",
+                            help="Attach to a running process")
+        commands.add_option("-w", "--windowed", action="append",
+                            help="Create a new windowed process")
+        commands.add_option("-c", "--console", action="append",
+                            help="Create a new console process [default]")
+        parser.add_option_group(commands)
 
-    # Defaults
-    defaultEventList = ['exception']
-    parser.set_defaults(
-        verbose     = True,
-        pause       = False,
-        restart     = False,
-        echo        = False,
-        autodetach  = True,
-        follow      = True,
-        hostile     = False,
-        windowed    = list(),
-        console     = list(),
-        attach      = list(),
-        events      = defaultEventList,
-        action      = None,
-    )
+        # Tracing options
+        tracing = optparse.OptionGroup(parser, "Tracing options")
+        tracing.add_option("-b", "--break-at", metavar="FILE",
+                           help="Set code breakpoints from list file")
+        tracing.add_option("-s", "--stalk-at", metavar="FILE",
+                           help="Set one-shot code breakpoints from list file")
+        tracing.add_option("-p", "--pause", action="store_true",
+                           help="Pause on each new crash found")
+        tracing.add_option("-r", "--restart", action="store_true",
+                           help="Restart debugees when they finish executing (be careful when using --follow)")
+        tracing.add_option("-k", "--kill", action="store_false", dest="autodetach",
+                           help="Same as --dont-autodetach")
+        parser.add_option("-t", "--time-limit", action="store", type="int", metavar="SECONDS",
+                          help="Limit the execution time of the debugees, use 0 for no limit")
+        tracing.add_option("--echo", action="store_true",
+                           help="Repeat debug strings")
+        tracing.add_option("--events", metavar="LIST",
+                           help="Comma separated list of events to monitor")
+        tracing.add_option("--action", metavar="COMMAND", action="append",
+                           help="Run the given command on each new crash found")
+        parser.add_option_group(tracing)
 
-    # Parse and validate the command line options
-    if len(argv) == 1:
-        argv = argv + [ '--help' ]
-    (options, args) = parser.parse_args(argv)
-    args = args[1:]
-    if not options.windowed and not options.console and not options.attach:
-        options.console = args
-    else:
-        if args:
-            parser.error("don't know what to do with extra parameters: %s" % args)
+        # Debugging options
+        debugging = optparse.OptionGroup(parser, "Debugging options")
+        debugging.add_option("--autodetach", action="store_true",
+                      help="automatically detach from debugees on exit [default]")
+        debugging.add_option("--follow", action="store_true",
+                      help="automatically attach to child processes [default]")
+        debugging.add_option("--trusted", action="store_false",
+                                                                dest="hostile",
+                      help="treat debugees as trusted code [default]")
+        debugging.add_option("--dont-autodetach", action="store_false",
+                                                             dest="autodetach",
+                      help="don't automatically detach from debugees on exit")
+        debugging.add_option("--dont-follow", action="store_false",
+                                                                 dest="follow",
+                      help="don't automatically attach to child processes")
+        debugging.add_option("--hostile", action="store_true",
+                      help="treat debugees as hostile code")
+        parser.add_option_group(debugging)
 
-    # Get the list of attach targets
-    system = System()
-    system.scan_processes()
-    attach_targets = list()
-    for token in options.attach:
-        try:
-            dwProcessId = HexInput.integer(token)
-        except ValueError:
-            dwProcessId = None
-        if dwProcessId is not None:
-            if not system.has_process(dwProcessId):
-                parser.error("can't find process %d" % dwProcessId)
-            try:
-                process = Process(dwProcessId)
-                process.open_handle()
-                process.close_handle()
-            except WindowsError, e:
-                parser.error("can't open process %d: %s" % (dwProcessId, e))
-            attach_targets.append(dwProcessId)
+        # Output options
+        # TODO
+        # * autogenerate a default crash dump file from the executable file
+        output = optparse.OptionGroup(parser, "Output options")
+        output.add_option("-v", "--verbose", action="store_true", dest="verbose",
+                          help="Log events to standard output [default]")
+        output.add_option("-q", "--quiet", action="store_false", dest="verbose",
+                          help="Do not log events to standard output")
+        output.add_option("-f", "--file", default="crashes.db",
+                          help="Specify a crash dump file [default: %default]")
+        output.add_option("--nodb", "--no-crash-dump-file", action="store_true",
+                          default=False,
+                          help="Supresses the use of a crash dump file")
+        parser.add_option_group(output)
+
+        # Defaults
+        defaultEventList = ['exception']
+        parser.set_defaults(
+            verbose     = True,
+            pause       = False,
+            restart     = False,
+            echo        = False,
+            autodetach  = True,
+            follow      = True,
+            hostile     = False,
+            windowed    = list(),
+            console     = list(),
+            attach      = list(),
+            time_limit  = 0,
+            events      = defaultEventList,
+            action      = None,
+        )
+
+        # Parse and validate the command line options
+        if len(argv) == 1:
+            argv = argv + [ '--help' ]
+        (options, args) = parser.parse_args(argv)
+        args = args[1:]
+        if not options.windowed and not options.console and not options.attach:
+            options.console = args
         else:
-            for process, name in system.find_processes_by_filename(token):
-                dwProcessId = process.get_pid()
+            if args:
+                parser.error("don't know what to do with extra parameters: %s" % args)
+
+        # Get the list of attach targets
+        system = System()
+        system.scan_processes()
+        attach_targets = list()
+        for token in options.attach:
+            try:
+                dwProcessId = HexInput.integer(token)
+            except ValueError:
+                dwProcessId = None
+            if dwProcessId is not None:
+                if not system.has_process(dwProcessId):
+                    parser.error("can't find process %d" % dwProcessId)
                 try:
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
                 except WindowsError, e:
                     parser.error("can't open process %d: %s" % (dwProcessId, e))
-                attach_targets.append( process.get_pid() )
-    options.attach = attach_targets
+                attach_targets.append(dwProcessId)
+            else:
+                for process, name in system.find_processes_by_filename(token):
+                    dwProcessId = process.get_pid()
+                    try:
+                        process = Process(dwProcessId)
+                        process.open_handle()
+                        process.close_handle()
+                    except WindowsError, e:
+                        parser.error("can't open process %d: %s" % (dwProcessId, e))
+                    attach_targets.append( process.get_pid() )
+        options.attach = attach_targets
 
-    # Get the list of console programs to execute
-    console_targets = list()
-    for token in options.console:
-        vector = system.cmdline_to_argv(token)
-        if not vector:
-            parser.error("bad use of --console")
-        filename = vector[0]
-        if not os.path.exists(filename):
+        # Get the list of console programs to execute
+        console_targets = list()
+        for token in options.console:
+            vector = system.cmdline_to_argv(token)
+            if not vector:
+                parser.error("bad use of --console")
+            filename = vector[0]
+            if not os.path.exists(filename):
+                try:
+                    filename = win32.SearchPath(None, filename, '.exe')[0]
+                except WindowsError, e:
+                    parser.error("error searching for %s: %s" % (filename, str(e)))
+                vector[0] = filename
+                token     = system.argv_to_cmdline(vector)
+            console_targets.append(token)
+        options.console = console_targets
+
+        # Get the list of windowed programs to execute
+        windowed_targets = list()
+        for token in options.windowed:
+            vector = system.cmdline_to_argv(token)
+            if not vector:
+                parser.error("bad use of --windowed")
+            filename = vector[0]
+            if not os.path.exists(filename):
+                try:
+                    filename = win32.SearchPath(None, filename, '.exe')[0]
+                except WindowsError, e:
+                    parser.error("error searching for %s: %s" % (filename, str(e)))
+                vector[0] = filename
+                token     = system.argv_to_cmdline(vector)
+            windowed_targets.append(token)
+        options.windowed = windowed_targets
+
+        # If no targets were set at all, show an error message
+        if not options.attach and not options.console and not options.windowed:
+            parser.error("no targets found!")
+
+        # Get the list of breakpoints to set
+        if options.break_at:
+            if not os.path.exists(options.break_at):
+                parser.error("breakpoint list file not found: %s" % options.break_at)
             try:
-                filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
-                parser.error("error searching for %s: %s" % (filename, str(e)))
-            vector[0] = filename
-            token     = system.argv_to_cmdline(vector)
-        console_targets.append(token)
-    options.console = console_targets
+                options.break_at = HexInput.string_list_file(options.break_at)
+            except ValueError, e:
+                parser.error(str(e))
+        else:
+            options.break_at = list()
 
-    # Get the list of windowed programs to execute
-    windowed_targets = list()
-    for token in options.windowed:
-        vector = system.cmdline_to_argv(token)
-        if not vector:
-            parser.error("bad use of --windowed")
-        filename = vector[0]
-        if not os.path.exists(filename):
+        # Get the list of one-shot breakpoints to set
+        if options.stalk_at:
+            if not os.path.exists(options.stalk_at):
+                parser.error("one-shot breakpoint list file not found: %s" % options.stalk_at)
             try:
-                filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
-                parser.error("error searching for %s: %s" % (filename, str(e)))
-            vector[0] = filename
-            token     = system.argv_to_cmdline(vector)
-        windowed_targets.append(token)
-    options.windowed = windowed_targets
+                options.stalk_at = HexInput.string_list_file(options.stalk_at)
+            except ValueError, e:
+                parser.error(str(e))
+        else:
+            options.stalk_at = list()
 
-    # If no targets were set at all, show an error message
-    if not options.attach and not options.console and not options.windowed:
-        parser.error("no targets found!")
+        # Parse the list of events to monitor
+        events = set()
+        for token in options.events:
+            for event_name in token.split(','):
+                event_name = event_name.strip().lower()
+                events.add(event_name)
+        options.events = events
 
-    # Get the list of breakpoints to set
-    if options.break_at:
-        if not os.path.exists(options.break_at):
-            parser.error("breakpoint list file not found: %s" % options.break_at)
+        # Return the parsed command line options and arguments
+        return (parser, options, args)
+
+    # TODO
+    # * Create a new crash dump file for each debugged executable
+    def run(self, args):
+        (parser, options, args) = self.parse_cmdline(args)
+
+        if options.verbose:
+            print DebugLog.log_text("Crash logger started, %s" % time.ctime())
+
+        # Create the event handler
+        oldCrashCount = 0
+        eventHandler  = LoggingEventHandler(options)
+
+        # Create the debug object
+        debug = Debug(eventHandler,
+                        bKillOnExit  = not options.autodetach,
+                        bHostileCode = options.hostile)
         try:
-            options.break_at = HexInput.string_list_file(options.break_at)
-        except ValueError, e:
-            parser.error(str(e))
-    else:
-        options.break_at = list()
 
-    # Get the list of one-shot breakpoints to set
-    if options.stalk_at:
-        if not os.path.exists(options.stalk_at):
-            parser.error("one-shot breakpoint list file not found: %s" % options.stalk_at)
-        try:
-            options.stalk_at = HexInput.string_list_file(options.stalk_at)
-        except ValueError, e:
-            parser.error(str(e))
-    else:
-        options.stalk_at = list()
+            # Attach to the targets
+            for dwProcessId in options.attach:
+                debug.attach(dwProcessId)
+            for lpCmdLine in options.console:
+                debug.execl(lpCmdLine, bConsole = True,  bFollow = options.follow)
+            for lpCmdLine in options.windowed:
+                debug.execl(lpCmdLine, bConsole = False, bFollow = options.follow)
 
-    # Parse the list of events to monitor
-    events = set()
-    for token in options.events:
-        for event_name in token.split(','):
-            event_name = event_name.strip().lower()
-            events.add(event_name)
-    options.events = events
-
-    # Return the parsed command line options and arguments
-    return (parser, options, args)
-
-# TODO
-# * Create a new crash dump file for each debugged executable
-def main(args):
-    (parser, options, args) = parse_cmdline(args)
-
-    if options.verbose:
-        print DebugLog.log_text("Crash logger started, %s" % time.ctime())
-
-    # Create the event handler
-    oldCrashCount = 0
-    eventHandler  = LoggingEventHandler(options)
-
-    # Create the debug object
-    debug = Debug(eventHandler,
-                    bKillOnExit  = not options.autodetach,
-                    bHostileCode = options.hostile)
-    try:
-
-        # Attach to the targets
-        for dwProcessId in options.attach:
-            debug.attach(dwProcessId)
-        for lpCmdLine in options.console:
-            debug.execl(lpCmdLine, bConsole = True,  bFollow = options.follow)
-        for lpCmdLine in options.windowed:
-            debug.execl(lpCmdLine, bConsole = False, bFollow = options.follow)
-
-        # Main debugging loop
-        while debug.get_debugee_count() > 0:
-            try:
-                event = debug.wait()
-            except Exception:
-                if options.verbose:
-                    traceback.print_exc()
-                raise   # don't ignore this error
+            # Main debugging loop
+            if options.time_limit:
+                timer = threading.Timer(options.time_limit, self.timeoutReached)
+                timer.start()
+                print DebugLog.log_text("Started timer for %s seconds" % options.time_limit)
+            while debug.get_debugee_count() > 0:
+                while not self.timedOut:
+                    try:
+                        event = debug.wait(100)
+                        break
+                    except WindowsError, e:
+                        if e.winerror not in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
+                            if options.verbose:
+                                traceback.print_exc()
+                            raise   # don't ignore this error
+                    except Exception:
+                        if options.verbose:
+                            traceback.print_exc()
+                        raise   # don't ignore this error
+                if self.timedOut:
+                    print DebugLog.log_text("Execution time limit reached")
+                    break
+                try:
+                    try:
+                        debug.dispatch(event)
+                    finally:
+                        debug.cont(event)
+                except Exception:
+                    if options.verbose:
+                        traceback.print_exc()
+                    if not options.ignore_errors:
+                        raise
+        finally:
             try:
                 try:
-                    debug.dispatch(event)
+                    if options.time_limit:
+                        timer.cancel()
                 finally:
-                    debug.cont(event)
-            except Exception:
+                    debug.stop(bIgnoreExceptions = options.ignore_errors)
+            finally:
                 if options.verbose:
-                    traceback.print_exc()
-                if not options.ignore_errors:
-                    raise
-    finally:
-        try:
-            debug.stop(bIgnoreExceptions = options.ignore_errors)
-        finally:
-            if options.verbose:
-                print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
+                    print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
 
 if __name__ == '__main__':
     try:
@@ -720,4 +752,4 @@ if __name__ == '__main__':
         psyco.bind(main)
     except ImportError:
         pass
-    main(sys.argv)
+    CrashLogger().run(sys.argv)
