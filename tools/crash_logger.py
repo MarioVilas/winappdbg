@@ -575,6 +575,20 @@ class CrashLogger (object):
             if args:
                 parser.error("don't know what to do with extra parameters: %s" % args)
 
+        # Warn about inconsistent use of --time-limit
+        if options.time_limit and options.autodetach \
+                                    and (options.windowed or options.console):
+            count = len(options.windowed) + len(options.console)
+            print
+            print "Warning: inconsistent use of --time-limit"
+            if count == 1:
+                print "  An execution time limit was set, but the launched process won't be killed."
+            else:
+                print "  An execution time limit was set, but %d launched processes won't be killed." % count
+            print "  Use the --kill option to make sure debugees are killed on exit."
+            print "  Alternatively use --attach instead of launching new processes."
+            print
+
         # Get the list of attach targets
         system = System()
         system.scan_processes()
