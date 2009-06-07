@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #8
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example8:settingabreakpoint
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example8:settingabreakpoint
 
 from winappdbg import Debug, EventHandler
 

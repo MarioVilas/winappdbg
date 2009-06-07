@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example10:watchingavariable
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example10:watchingavariable
 
 import traceback
 

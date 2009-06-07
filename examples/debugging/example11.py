@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #11
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example11:watchingabuffer
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example11:watchingabuffer
 
 from winappdbg import Debug, EventHandler, win32
 
