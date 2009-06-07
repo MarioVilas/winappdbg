@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example10:printathreadscodedisassembly
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example10:printathreadscodedisassembly
 
 from winappdbg import Thread, CrashDump, System
 

@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example1:enumeratingrunningprocesses
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example1:enumeratingrunningprocesses
 
 from winappdbg import System
 
