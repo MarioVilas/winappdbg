@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #2
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example2:killingaprocessbyattachingtoit
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example2:killingaprocessbyattachingtoit
 
 import sys
 import thread

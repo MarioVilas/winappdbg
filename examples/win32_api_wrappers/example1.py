@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example1:findingaDLLinthesearchpath
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example1:findingaDLLinthesearchpath
 
 import sys
 

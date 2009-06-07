@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #5
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example5:enumeratingdevicedrivers
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example5:enumeratingdevicedrivers
 
 from winappdbg.win32 import *
 
