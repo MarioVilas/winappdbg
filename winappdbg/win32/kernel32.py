@@ -249,6 +249,19 @@ CTRL_CLOSE_EVENT    = 2
 CTRL_LOGOFF_EVENT   = 5
 CTRL_SHUTDOWN_EVENT = 6
 
+# Standard access rights
+DELETE                      = (0x00010000L)
+READ_CONTROL                = (0x00020000L)
+WRITE_DAC                   = (0x00040000L)
+WRITE_OWNER                 = (0x00080000L)
+SYNCHRONIZE                 = (0x00100000L)
+STANDARD_RIGHTS_REQUIRED    = (0x000F0000L)
+STANDARD_RIGHTS_READ        = (READ_CONTROL)
+STANDARD_RIGHTS_WRITE       = (READ_CONTROL)
+STANDARD_RIGHTS_EXECUTE     = (READ_CONTROL)
+STANDARD_RIGHTS_ALL         = (0x001F0000L)
+SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
+
 # Process access rights for OpenProcess
 PROCESS_TERMINATE         = (0x0001)
 PROCESS_CREATE_THREAD     = (0x0002)
@@ -527,6 +540,21 @@ MS_VC_EXCEPTION                     = 0x406D1388L
 # DuplicateHandle constants
 DUPLICATE_CLOSE_SOURCE      = 0x00000001
 DUPLICATE_SAME_ACCESS       = 0x00000002
+
+#--- SECURITY_ATTRIBUTES structure --------------------------------------------
+
+# typedef struct _SECURITY_ATTRIBUTES {
+#     DWORD nLength;
+#     LPVOID lpSecurityDescriptor;
+#     BOOL bInheritHandle;
+# } SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+class SECURITY_ATTRIBUTES(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('nLength',                 DWORD),
+        ('lpSecurityDescriptor',    LPVOID),
+        ('bInheritHandle',          BOOL),
+    ]
 
 #--- VS_FIXEDFILEINFO structure -----------------------------------------------
 

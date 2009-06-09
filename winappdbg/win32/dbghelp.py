@@ -34,6 +34,7 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from kernel32 import *
 
 #--- IMAGEHLP_MODULE structure and related ------------------------------------
 

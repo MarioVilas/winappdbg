@@ -34,21 +34,9 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from kernel32 import *
 
 #--- Constants ----------------------------------------------------------------
-
-# Standard access rights
-DELETE                      = (0x00010000L)
-READ_CONTROL                = (0x00020000L)
-WRITE_DAC                   = (0x00040000L)
-WRITE_OWNER                 = (0x00080000L)
-SYNCHRONIZE                 = (0x00100000L)
-STANDARD_RIGHTS_REQUIRED    = (0x000F0000L)
-STANDARD_RIGHTS_READ        = (READ_CONTROL)
-STANDARD_RIGHTS_WRITE       = (READ_CONTROL)
-STANDARD_RIGHTS_EXECUTE     = (READ_CONTROL)
-STANDARD_RIGHTS_ALL         = (0x001F0000L)
-SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
 
 # Privilege constants
 SE_CREATE_TOKEN_NAME              = "SeCreateTokenPrivilege"
@@ -91,21 +79,6 @@ TOKEN_ADJUST_PRIVILEGES         = 0x00000020
 
 LOGON_WITH_PROFILE              = 0x00000001
 LOGON_NETCREDENTIALS_ONLY       = 0x00000002
-
-#--- SECURITY_ATTRIBUTES structure --------------------------------------------
-
-# typedef struct _SECURITY_ATTRIBUTES {
-#     DWORD nLength;
-#     LPVOID lpSecurityDescriptor;
-#     BOOL bInheritHandle;
-# } SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
-class SECURITY_ATTRIBUTES(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('nLength',                 DWORD),
-        ('lpSecurityDescriptor',    LPVOID),
-        ('bInheritHandle',          BOOL),
-    ]
 
 #--- TOKEN_PRIVILEGE structure ------------------------------------------------
 

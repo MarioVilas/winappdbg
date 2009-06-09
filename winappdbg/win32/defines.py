@@ -258,7 +258,7 @@ ERROR_DBG_COMMAND_EXCEPTION         = 697
 ERROR_DBG_EXCEPTION_HANDLED         = 766
 ERROR_DBG_CONTINUE                  = 767
 
-#--- UNICODE_STRING structure  ------------------------------------------------
+#--- Structures ---------------------------------------------------------------
 
 # typedef struct _LSA_UNICODE_STRING {
 #   USHORT Length;
@@ -274,3 +274,32 @@ class UNICODE_STRING(Structure):
         ("MaximumLength",   USHORT),
         ("Buffer",          PVOID),
     ]
+
+# From MSDN:
+#
+# typedef struct _GUID {
+#   DWORD Data1;
+#   WORD Data2;
+#   WORD Data3;
+#   BYTE Data4[8];
+# } GUID;
+class GUID(Structure):
+    _fields_ = [
+        ("Data1",   DWORD),
+        ("Data2",   WORD),
+        ("Data3",   WORD),
+        ("Data4",   BYTE * 8),
+]
+
+# From MSDN:
+#
+# typedef struct _LIST_ENTRY {
+#     struct _LIST_ENTRY *Flink;
+#     struct _LIST_ENTRY *Blink;
+# } LIST_ENTRY, *PLIST_ENTRY, *RESTRICTED_POINTER PRLIST_ENTRY;
+class LIST_ENTRY(Structure):
+    pass
+LIST_ENTRY._fields_ = [
+        ("Flink",   PVOID),     # POINTER(LIST_ENTRY)
+        ("Blink",   PVOID),     # POINTER(LIST_ENTRY)
+]
