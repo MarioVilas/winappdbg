@@ -5366,6 +5366,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
         @raise WindowsError: An exception is raised on error.
         """
+        dllname = str(dllname)
 
         # Resolve kernel32.dll
         aModule = self.get_module_by_name('kernel32.dll')
@@ -5395,7 +5396,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
              "Cannot resolve kernel32.dll!VirtualFree in the remote process"
 
         # Shellcode follows...
-        code  = ''
+        code  = ''.encode('utf8')
 
         # push dllname
         code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
