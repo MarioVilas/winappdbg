@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #4
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example4:killingaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example4:killingaprocess
 
 from winappdbg import Process
 

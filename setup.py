@@ -112,7 +112,7 @@ params = {
 
     # Setup instructions
     'requires'          : ['ctypes'],
-    'packages'          : ['winappdbg', 'winappdbg.win32'],
+    'packages'          : ['winappdbg'],
     'scripts'           : scripts,
     'console'           : scripts,
     'options'           : options,

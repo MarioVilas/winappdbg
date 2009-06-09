@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #5
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example5:handlingdebugevents
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example5:handlingdebugevents
 
 from winappdbg import Debug
 

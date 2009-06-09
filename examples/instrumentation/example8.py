@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #8
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example8:freezeallthreadsinaprocess
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example8:freezeallthreadsinaprocess
 
 from winappdbg import Process, System
 

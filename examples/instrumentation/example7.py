@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #7
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Instrumentation#Example7:gettingtheprocessmemorymap
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example7:gettingtheprocessmemorymap
 
 from winappdbg import win32, Process
 

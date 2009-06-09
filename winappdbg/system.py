@@ -1036,10 +1036,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        packedDword     = struct.pack('<L', unpackedDword)
-        dwBytesWritten  = self.write(lpBaseAddress, packedDword)
-        if dwBytesWritten != len(packedDword):
-            raise ctypes.WinError()
+        packedDword = struct.pack('<L', unpackedDword)
+        self.write(lpBaseAddress, packedDword)
 
     def read_char(self, lpBaseAddress):
         """
@@ -1091,6 +1089,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
+        if type(lpBaseAddress) not in (type(0), type(0L)):
+            lpBaseAddress = ctypes.cast(lpBaseAddress, ctypes.c_void_p)
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
@@ -1119,6 +1119,36 @@ class MemoryOperations (object):
 ##        data = ctypes.create_string_buffer("", size = size)
 ##        win32.CopyMemory(ctypes.byref(data), ctypes.byref(sStructure), size)
 ##        self.write(lpBaseAddress, data.raw)
+
+    def read_string(self, lpBaseAddress, nChars, fUnicode = False):
+        """
+        Reads an ASCII or Unicode string
+        from the address space of the process.
+
+        @see: L{read}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @type  nChars: int
+        @param nChars: String length to read, in characters.
+            Remember that Unicode strings have two byte characters.
+
+        @type  fUnicode: bool
+        @param fUnicode: C{True} is the string is expected to be Unicode,
+            C{False} if it's expected to be ANSI.
+
+        @rtype:  str, unicode
+        @return: String read from the process memory space.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        if fUnicode:
+            nChars = nChars * 2
+        szString = self.read(lpBaseAddress, nChars)
+        if fUnicode:
+            szString = unicode(szString, 'U16', 'ignore')
+        return szString
 
 #------------------------------------------------------------------------------
 
@@ -3187,20 +3217,37 @@ class ProcessDebugOperations (object):
 ##            except (AttributeError, WindowsError):
 ##                name = None
 
-##        # method 6: PEB.ProcessParameters.ImagePathName
-##        # may fail since it's using an undocumented internal structure.
-##        if not name:
-##            try:
-##                peb = self.get_peb()
-##                rupp = self.read_structure(peb.ProcessParameters,
-##                                             win32.RTL_USER_PROCESS_PARAMETERS)
-##                name = self.read(rupp.ImagePathName.Buffer,
-##                                                     rupp.ImagePathName.Length)
-##            except (AttributeError, WindowsError):
-##                name = None
+        # method 6: PEB.ProcessParameters->ImagePathName
+        # may fail since it's using an undocumented internal structure.
+        if not name:
+            try:
+                peb = self.get_peb()
+                pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+                s = pp.ImagePathName
+##                name = self.read_string(s.Buffer, s.Length, fUnicode=True)
+                name = self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
+            except (AttributeError, WindowsError):
+                name = None
 
         # return the image filename, or None on error.
         return name
+
+    def get_command_line(self):
+        """
+        Retrieves the command line with wich the program was started.
+
+        @rtype:  str
+        @return: Command line string.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        peb = self.get_peb()
+        pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        s = pp.CommandLine
+##        return self.read_string(s.Buffer, s.Length, fUnicode=True)
+        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
 
 #------------------------------------------------------------------------------
 
@@ -3388,6 +3435,14 @@ class ProcessContainer (object):
         @return: Count of L{Process} objects in this snapshot.
         """
         return len(self.__processDict)
+
+#------------------------------------------------------------------------------
+
+    def get_windows(self):
+        window_list = list()
+        for process in self.iter_processes():
+            window_list.extend( process.get_windows() )
+        return window_list
 
 #------------------------------------------------------------------------------
 
@@ -3791,6 +3846,16 @@ class ProcessContainer (object):
 
     def find_processes_by_filename(self, fileName):
         """
+        @type  fileName: str
+        @param fileName: Filename to search for.
+            If it's a full pathname, the match must be exact.
+            If it's a base filename only, the file part is matched,
+            regardless of the directory where it's located.
+
+        @note: If the process is not found and the file extension is not
+            given, this method will search again assuming a default
+            extension (.exe).
+
         @rtype:  list of tuple( L{Process}, str )
         @return: List of processes matching the given main module filename.
             Each tuple contains a Process object and it's filename.
@@ -3841,6 +3906,121 @@ class ProcessContainer (object):
         if self.has_process(dwProcessId):
             self.__del_process(dwProcessId)
         return True
+
+#==============================================================================
+
+class Window (object):
+
+    def __init__(self, hWnd = None, process = None, thread = None):
+        self.hWnd        = hWnd
+        self.process     = process
+        self.thread      = thread
+        self.dwProcessId = None
+        self.dwThreadId  = None
+
+    def get_handle(self):
+        if self.hWnd is None:
+            raise ValueError, "No window handle set!"
+        return self.hWnd
+
+    def get_pid(self):
+        if self.process:
+            return process.get_pid()
+        if not self.dwProcessId:
+            self.__get_pid_and_tid()
+        return self.dwProcessId
+
+    def get_tid(self):
+        if self.thread:
+            return thread.get_tid()
+        if not self.dwThreadId:
+            self.__get_pid_and_tid()
+        return self.dwThreadId
+
+    def __get_pid_and_tid(self):
+        self.dwThreadId, self.dwProcessId = \
+                                      win32.GetWindowThreadProcessId(self.hWnd)
+
+    def get_process(self):
+        if not self.process:
+            self.process = self.get_thread().get_process()
+        return self.process
+
+    def get_thread(self):
+        if not self.thread:
+            self.thread = Thread( self.get_tid() )
+        return self.thread
+
+    def get_classname(self):
+        return win32.GetClassName( self.get_handle() )
+
+    def get_text(self):
+        buffer = ctypes.create_string_buffer("", 0x10000)
+        win32.SendMessageA(self.get_handle(), win32.WM_GETTEXT, ctypes.byref(buffer), 0x10000)
+        return buffer.value
+
+    def set_text(self, text):
+        win32.SendMessage(self.get_handle(), win32.WM_SETTEXT, text, len(text))
+
+    def get_parent(self):
+        return Window( win32.GetParent( self.get_handle() ), \
+                                                    self.process, self.thread )
+
+    def get_children(self):
+        return [
+                Window( hWnd, self.process, self.thread ) \
+                for hWnd in win32.EnumChildWindows( self.get_handle() )
+                ]
+
+    def get_tree(self):
+        subtree = dict()
+        for aWindow in self.get_children():
+            subtree[ aWindow.get_handle() ] = aWindow.get_tree()
+        return subtree
+
+    def get_root(self):
+        hWnd     = self.get_handle()
+        hPrevWnd = hWnd
+        while hWnd:
+            hPrevWnd = hWnd
+            hWnd     = win32.GetParent(hWnd)
+        return Window(hPrevWnd)
+
+    def enable(self):
+        win32.EnableWindow( self.get_handle(), True )
+
+    def disable(self):
+        win32.EnableWindow( self.get_handle(), False )
+
+    def show(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_SHOW )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_SHOW )
+
+    def hide(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_HIDE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_HIDE )
+
+    def maximize(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_MAXIMIZE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_MAXIMIZE )
+
+    def minimize(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_MINIMIZE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_MINIMIZE )
+
+    def restore(self, bAsync = True):
+        if bAsync:
+            win32.ShowWindowAsync( self.get_handle(), win32.SW_RESTORE )
+        else:
+            win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
 
 #==============================================================================
 
@@ -4532,6 +4712,18 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
+    def get_windows(self):
+        try:
+            process = self.get_process()
+        except Exception:
+            process = None
+        return [
+                Window( hWnd, process, self ) \
+                for hWnd in win32.EnumThreadWindows( self.get_tid() )
+                ]
+
+#------------------------------------------------------------------------------
+
     # TODO
     # A registers cache could be implemented here.
     def get_context(self, ContextFlags = win32.CONTEXT_ALL):
@@ -5080,6 +5272,14 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         self.clear_threads()
         self.clear_modules()
+
+#------------------------------------------------------------------------------
+
+    def get_windows(self):
+        window_list = list()
+        for thread in self.iter_threads():
+            window_list.extend( thread.get_windows() )
+        return window_list
 
 #------------------------------------------------------------------------------
 

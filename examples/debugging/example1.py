@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging#Example1:startinganewprocessandwaitingforittofinish
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example1:startinganewprocessandwaitingforittofinish
 
 from winappdbg import Debug
 

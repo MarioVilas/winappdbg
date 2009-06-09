@@ -28,7 +28,7 @@
 # $Id$
 
 # Example #4
-# http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Win32APIWrappers#Example4:enumeratingmodulesusingtheToolhelplibrary
+# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example4:enumeratingmodulesusingtheToolhelplibrary
 
 from winappdbg.win32 import *
 
