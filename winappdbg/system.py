@@ -3476,7 +3476,8 @@ class ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
-    def argv_to_cmdline(self, argv):
+    @staticmethod
+    def argv_to_cmdline(argv):
         """
         Convert a list of arguments to a single command line string.
 
@@ -3496,7 +3497,8 @@ class ProcessContainer (object):
             cmdline.append(token)
         return ' '.join(cmdline)
 
-    def cmdline_to_argv(self, lpCmdLine):
+    @staticmethod
+    def cmdline_to_argv(lpCmdLine):
         """
         Convert a single command line string to a list of arguments.
 
