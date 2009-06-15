@@ -233,7 +233,7 @@ def parse_cmdline( argv ):
     (options, args) = parser.parse_args(argv)
     args = args[1:]
     if not options.windowed and not options.console and not options.attach:
-        options.console = args
+        options.console = [ System.argv_to_cmdline(args) ]
     else:
         if args:
             parser.error("don't know what to do with extra parameters: %s" % args)
