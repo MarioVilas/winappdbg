@@ -502,7 +502,7 @@ class CrashLogger (object):
                            help="Restart debugees when they finish executing (be careful when using --follow)")
         tracing.add_option("-k", "--kill", action="store_false", dest="autodetach",
                            help="Same as --dont-autodetach")
-        parser.add_option("-t", "--time-limit", action="store", type="int", metavar="SECONDS",
+        tracing.add_option("-t", "--time-limit", action="store", type="int", metavar="SECONDS",
                           help="Limit the execution time of the debugees, use 0 for no limit")
         tracing.add_option("--echo", action="store_true",
                            help="Repeat debug strings")
