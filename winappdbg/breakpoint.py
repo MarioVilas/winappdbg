@@ -1630,6 +1630,12 @@ class BreakpointContainer (object):
         dont_stalk_at, dont_stalk_variable, dont_stalk_buffer,
         dont_stalk_function
 
+    @group Tracing:
+        is_tracing, get_traced_tids,
+        start_tracing, stop_tracing,
+        start_tracing_process, stop_tracing_process,
+        start_tracing_all, stop_tracing_all
+
     @group Symbols:
         resolve_label, resolve_exported_function
 
@@ -1748,6 +1754,7 @@ class BreakpointContainer (object):
         self.__pageBP     = dict()  # (pid, address) -> PageBreakpoint
         self.__hardwareBP = dict()  # tid -> [ HardwareBreakpoint ]
         self.__runningBP  = dict()  # tid -> set( Breakpoint )
+        self.__tracing    = set()   # set( tid )
 
 #------------------------------------------------------------------------------
 
@@ -1782,6 +1789,8 @@ class BreakpointContainer (object):
             del self.__runningBP[tid]
         if tid in list(self.__hardwareBP):
             del self.__hardwareBP[tid]
+        if tid in self.__tracing:
+            self.__tracing.remove(tid)
 
     def __cleanup_process(self, event):
         """
@@ -1858,7 +1867,7 @@ class BreakpointContainer (object):
 
             Where B{event} is an L{Event} object,
             and the return value is a boolean
-            (True to dispatch the event, False otherwise).
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @type  action: function
         @param action: (Optional) Action callback function.
@@ -1870,7 +1879,9 @@ class BreakpointContainer (object):
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object.
+            Where B{event} is an L{Event} object,
+            and the return value is a boolean
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @rtype:  L{CodeBreakpoint}
         @return: The code breakpoint object.
@@ -1918,7 +1929,7 @@ class BreakpointContainer (object):
 
             Where B{event} is an L{Event} object,
             and the return value is a boolean
-            (True to dispatch the event, False otherwise).
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @type  action: function
         @param action: (Optional) Action callback function.
@@ -1930,7 +1941,9 @@ class BreakpointContainer (object):
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object.
+            Where B{event} is an L{Event} object,
+            and the return value is a boolean
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @rtype:  L{PageBreakpoint}
         @return: The page breakpoint object.
@@ -2018,7 +2031,7 @@ class BreakpointContainer (object):
 
             Where B{event} is an L{Event} object,
             and the return value is a boolean
-            (True to dispatch the event, False otherwise).
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @type  action: function
         @param action: (Optional) Action callback function.
@@ -2030,7 +2043,9 @@ class BreakpointContainer (object):
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object.
+            Where B{event} is an L{Event} object,
+            and the return value is a boolean
+            (C{True} to dispatch the event, C{False} otherwise).
 
         @rtype:  L{HardwareBreakpoint}
         @return: The hardware breakpoint object.
@@ -3055,6 +3070,13 @@ class BreakpointContainer (object):
         tid             = event.get_tid()
         bCallHandler    = True
 
+        # When the thread is in tracing mode,
+        # don't pass the exception to the debugee
+        # and set the trap flag again.
+        if self.is_tracing(tid):
+            event.continueStatus = win32.DBG_CONTINUE
+            event.get_thread().set_tf()
+
         # Handle breakpoints in RUNNING state.
         while self.__has_running_bp(tid):
             event.continueStatus = win32.DBG_CONTINUE
@@ -3092,6 +3114,11 @@ class BreakpointContainer (object):
             if bFoundBreakpoint:
 ##                del event.breakpoint
                 bCallHandler = bCondition
+
+        # Always call the user-defined handler
+        # when the thread is in tracing mode.
+        if self.is_tracing(tid):
+            bCallHandler = True
 
         return bCallHandler
 
@@ -3722,6 +3749,108 @@ class BreakpointContainer (object):
         @param size: Size in bytes of buffer to stop watching.
         """
         self.__clear_buffer_watch(pid, address, size)
+
+#------------------------------------------------------------------------------
+
+# XXX TODO
+# Add "action" parameter to tracing mode
+
+    def __start_tracing(self, thread):
+        """
+        @type  thread: L{Thread}
+        @param thread: Thread to start tracing.
+        """
+        tid = thread.get_tid()
+        if not tid in self.__tracing:
+            thread.set_tf()
+            self.__tracing.add(tid)
+
+    def __stop_tracing(self, thread):
+        """
+        @type  thread: L{Thread}
+        @param thread: Thread to stop tracing.
+        """
+        tid = thread.get_tid()
+        if tid in self.__tracing:
+            self.__tracing.remove(tid)
+            thread.clear_tf()
+
+    def is_tracing(self, tid):
+        """
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @rtype:  bool
+        @return: C{True} if the thread is being traced, C{False} otherwise.
+        """
+        return tid in self.__tracing
+
+    def get_traced_tids(self):
+        """
+        Retrieves the list of global IDs of all threads being traced.
+
+        @rtype:  list( int... )
+        @return: List of thread global IDs.
+        """
+        tids = list(self.__tracing)
+        tids.sort()
+        return tids
+
+    def start_tracing(self, tid):
+        """
+        Start tracing mode in the given thread.
+
+        @type  tid: int
+        @param tid: Global ID of thread to start tracing.
+        """
+        if not self.is_tracing(tid):
+            thread = self.system.get_thread(tid)
+            self.__start_tracing(thread)
+
+    def stop_tracing(self, tid):
+        """
+        Stop tracing mode in the given thread.
+
+        @type  tid: int
+        @param tid: Global ID of thread to stop tracing.
+        """
+        if self.is_tracing(tid):
+            thread = self.system.get_thread(tid)
+            self.__stop_tracing(thread)
+
+    def start_tracing_process(self, pid):
+        """
+        Start tracing mode for all threads in the given process.
+
+        @type  pid: int
+        @param pid: Global ID of process to start tracing.
+        """
+        for thread in self.system.get_process(pid).iter_threads():
+            self.__start_tracing(thread)
+
+    def stop_tracing_process(self, pid):
+        """
+        Stop tracing mode for all threads in the given process.
+
+        @type  pid: int
+        @param pid: Global ID of process to stop tracing.
+        """
+        for thread in self.system.get_process(pid).iter_threads():
+            self.__stop_tracing(thread)
+
+    def start_tracing_all(self):
+        """
+        Start tracing mode for all threads in all debugees.
+        """
+        for pid in self.get_debugee_pids():
+            self.start_tracing_process(pid)
+
+    def stop_tracing_all(self):
+        """
+        Stop tracing mode for all threads in all debugees.
+        """
+        for pid in self.get_debugee_pids():
+            self.stop_tracing_process(pid)
 
 #------------------------------------------------------------------------------
 

@@ -1137,30 +1137,31 @@ class IO_STATUS_BLOCK(Structure):
 #   IN ULONG OutputBufferLength,
 #   OUT PULONG ReturnLength OPTIONAL
 # );
-def NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength):
+def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, OutputBuffer = None, OutputBufferLength = None):
+    if InputBuffer is None:
+        InputBuffer = NULL
     if InputBufferLength is None:
         if InputBuffer == NULL:
             InputBufferLength = 0
         else:
             InputBufferLength = sizeof(InputBuffer)
-    if OutputBufferLength is None:
-        if OutputBuffer == NULL:
+    if OutputBuffer is None:
+        if OutputBufferLength is None:
+            OutputBuffer       = NULL
             OutputBufferLength = 0
         else:
-            OutputBufferLength = sizeof(OutputBuffer)
+            OutputBuffer = ctypes.create_string_buffer("", OutputBufferLength)
+    elif OutputBufferLength is None:
+        OutputBufferLength = sizeof(OutputBuffer)
     if InputBuffer != NULL:
         InputBuffer = ctypes.byref(InputBuffer)
     if OutputBuffer != NULL:
         OutputBuffer = ctypes.byref(OutputBuffer)
-    if ReturnLength != NULL:
-        ReturnLength = ctypes.byref(ULONG(ReturnLength))
-    ntstatus = ctypes.windll.ntdll.NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength)
-    # TODO this function should not return the ntstatus
-    # instead it should allocate it's own memory when possible
-    # and return the data as a python object
-#    if ntstatus != 0:
-#        raise ctypes.WinError(ntstatus ^ 0xFFFFFFFF)
-    return ntstatus
+    ReturnLength = ULONG(0)
+    ntstatus = ctypes.windll.ntdll.NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ctypes.byref(ReturnLength))
+    if ntstatus != 0:
+        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+    return OutputBuffer, ReturnLength.value
 ZwSystemDebugControl = NtSystemDebugControl
 
 # NTSTATUS WINAPI NtQueryInformationProcess(

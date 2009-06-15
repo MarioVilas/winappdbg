@@ -209,6 +209,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error, unless
             C{bIgnoreExceptions} is C{True}.
         """
+
+        # Disable all breakpoints in the process.
+        # XXX maybe they should be erased?
         try:
             self.disable_process_breakpoints(dwProcessId)
         except Exception:
@@ -217,11 +220,28 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
-        if dwProcessId in self.__attachedDebugees:
-            self.__attachedDebugees.remove(dwProcessId)
-        if dwProcessId in self.__startedDebugees:
-            self.__startedDebugees.remove(dwProcessId)
+        # Stop tracing all threads in the process.
+        try:
+            self.stop_tracing_process(dwProcessId)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+##            traceback.print_exc()
+##            print
 
+        # The process is no longer a debugee.
+        try:
+            if dwProcessId in self.__attachedDebugees:
+                self.__attachedDebugees.remove(dwProcessId)
+            if dwProcessId in self.__startedDebugees:
+                self.__startedDebugees.remove(dwProcessId)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+##            traceback.print_exc()
+##            print
+
+        # Detach from the process.
         try:
             win32.DebugActiveProcessStop(dwProcessId)
         except Exception:

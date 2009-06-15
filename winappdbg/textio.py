@@ -278,10 +278,10 @@ class HexOutput (object):
     The counterparts for each method are in the L{HexInput} class.
 
     @type integer_size: int
-    @var  integer_size: Size in characters of an outputted integer.
+    @cvar integer_size: Size in characters of an outputted integer.
 
     @type address_size: int
-    @var  address_size: Size in characters of an outputted address.
+    @cvar address_size: Size in characters of an outputted address.
     """
 
     integer_size = 10
@@ -390,10 +390,10 @@ class HexDump (object):
     Static functions for hexadecimal dumps.
 
     @type integer_size: int
-    @var  integer_size: Size in characters of an outputted integer.
+    @cvar integer_size: Size in characters of an outputted integer.
 
     @type address_size: int
-    @var  address_size: Size in characters of an outputted address.
+    @cvar address_size: Size in characters of an outputted address.
     """
 
     integer_size = 11
@@ -991,8 +991,8 @@ class CrashDump (object):
     @staticmethod
     def dump_stack_trace_with_labels(stack_trace):
         """
-        Dump a stack trace, as returned by L{Thread.get_stack_trace} with the
-        C{bUseLabels} parameter set to C{True}.
+        Dump a stack trace,
+        as returned by L{Thread.get_stack_trace_with_labels}.
 
         @type  stack_trace: list( int, int, str )
         @param stack_trace: Stack trace as a list of tuples of
@@ -1049,7 +1049,10 @@ class CrashDump (object):
 
     @staticmethod
     def dump_code_line(disassembly_line,                  bShowAddress = True,
-                                                            bLowercase = True):
+                                                             bShowDump = True,
+                                                            bLowercase = True,
+                                                           dwDumpWidth = None,
+                                                           dwCodeWidth = None):
         """
         Dump a single line of code. To dump a block of code use L{dump_code}.
 
@@ -1057,27 +1060,45 @@ class CrashDump (object):
         @param disassembly_line: Single item of the list returned by
             L{Process.disassemble} or L{Thread.disassemble_around_pc}.
 
-        @type  bShowAddress: int
+        @type  bShowAddress: bool
         @param bShowAddress: (Optional) If C{True} show the memory address.
+
+        @type  bShowDump: bool
+        @param bShowDump: (Optional) If C{True} show the hexadecimal dump.
 
         @type  bLowercase: bool
         @param bLowercase: (Optional) If C{True} convert the code to lowercase.
+
+        @type  dwDumpWidth: int or None
+        @param dwDumpWidth: (Optional) Width in characters of the hex dump.
+
+        @type  dwCodeWidth: int or None
+        @param dwCodeWidth: (Optional) Width in characters of the code.
 
         @rtype:  str
         @return: Text suitable for logging.
         """
         (addr, size, code, dump) = disassembly_line
         dump = dump.replace(' ', '')
+        result = list()
+        fmt = ''
+        if bShowAddress:
+            result.append( HexDump.address(addr) )
+            fmt += '%%%ds:' % HexDump.address_size
+        if bShowDump:
+            result.append(dump)
+            if dwDumpWidth:
+                fmt += ' %%-%ds' % dwDumpWidth
+            else:
+                fmt += ' %s'
         if bLowercase:
             code = code.lower()
-        w = HexDump.address_size
-        if bShowAddress:
-            fmt = '%%%ds %%-%ds %%s' % (w, w)
-            result = fmt % (HexDump.address(addr), dump, code)
+        result.append(code)
+        if dwCodeWidth:
+            fmt += ' %%-%ds' % dwCodeWidth
         else:
-            fmt = '%%-%ds %%s' % w
-            result = fmt % (dump, code)
-        return result
+            fmt += ' %s'
+        return fmt % tuple(result)
 
     @staticmethod
     def dump_memory_map(memoryMap, mappedFilenames = None):

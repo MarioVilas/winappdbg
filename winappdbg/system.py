@@ -2467,7 +2467,8 @@ class ThreadDebugOperations (object):
     @group Miscellaneous:
         read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers,
-        get_linear_address
+        get_linear_address, get_label_at_pc,
+        get_seh_chain
     """
 
     # TODO
@@ -2514,6 +2515,13 @@ class ThreadDebugOperations (object):
         if address > Limit:
             raise ValueError, "Address too large for selector: %r" % address
         return Base + address
+
+    def get_label_at_pc(self):
+        """
+        @rtype:  str
+        @return: Label that points to the instruction currently being executed.
+        """
+        return self.get_process().get_label_at_address( self.get_pc() )
 
     def get_seh_chain(self):
         """
@@ -3298,7 +3306,7 @@ class ProcessContainer (object):
         scan, scan_processes, scan_processes_fast,
         get_process, get_process_count, get_process_ids,
         has_process, iter_processes, iter_process_ids,
-        find_processes_by_filename,
+        find_processes_by_filename, get_pid_from_tid,
         clear, clear_processes, clear_dead_processes,
         clear_unattached_processes,
         close_process_handles,
@@ -3443,6 +3451,28 @@ class ProcessContainer (object):
         for process in self.iter_processes():
             window_list.extend( process.get_windows() )
         return window_list
+
+    def get_pid_from_tid(self, dwThreadId):
+        """
+        Tries to retrieve the global ID of the process that owns the thread.
+        If it's not possible, returns C{None}.
+
+        @type  dwThreadId: int
+        @param dwThreadId: Thread global ID.
+
+        @rtype:  int or None
+        @return: Process global ID, or C{None}.
+        """
+        try:
+            dwProcessId = Thread(dwThreadId).get_pid()
+        except Exception:
+            dwProcessId = None
+        if dwProcessId is None:
+            for aProcess in self.iter_processes():
+                if aProcess.has_thread(dwThreadId):
+                    dwProcessId = aProcess.get_pid()
+                    break
+        return dwProcessId
 
 #------------------------------------------------------------------------------
 
@@ -3745,17 +3775,17 @@ class ProcessContainer (object):
     # Docs for these methods are taken from the ThreadContainer class.
 
     def has_thread(self, dwThreadId):
-        for aProcess in self.iter_processes():
-            if aProcess.has_thread(dwThreadId):
-                return True
-        return False
+        dwProcessId = self.get_pid_from_tid(dwThreadId)
+        if dwProcessId is None:
+            return False
+        return self.has_process(dwProcessId)
 
     def get_thread(self, dwThreadId):
-        for aProcess in self.iter_processes():
-            if aProcess.has_thread(dwThreadId):
-                return aProcess.get_thread(dwThreadId)
-        msg = "Unknown thread ID %d" % dwThreadId
-        raise KeyError, msg
+        dwProcessId = self.get_pid_from_tid(dwThreadId)
+        if dwProcessId is None:
+            msg = "Unknown thread ID %d" % dwThreadId
+            raise KeyError, msg
+        return self.get_process(dwProcessId).get_thread(dwThreadId)
 
     def get_thread_ids(self):
         ids = list()
@@ -5608,9 +5638,7 @@ class System (ProcessContainer):
         msr         = win32.SYSDBG_MSR()
         msr.Address = 0x1D9
         msr.Data    = 2
-        return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr,
-                                          ctypes.sizeof(win32.SYSDBG_MSR),
-                                          win32.NULL, win32.NULL, win32.NULL)
+        return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
 
     @staticmethod
     def set_symbol_options(options = None):
