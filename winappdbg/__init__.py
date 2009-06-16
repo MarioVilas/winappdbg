@@ -104,4 +104,4 @@ import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 # Library version
-version = "Version 1.2"
+version = "Version 1.3"
