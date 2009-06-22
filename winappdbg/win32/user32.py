@@ -263,7 +263,7 @@ class __WindowEnumerator (object):
         self.hwnd.append(hwnd)
         return TRUE
 
-WNDENUMPROC = ctypes.WINFUNCTYPE(BOOL, HWND, PVOID)
+WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
 
 # HWND FindWindow(
 #     LPCTSTR lpClassName,

@@ -1957,7 +1957,7 @@ def LocalFree(hMem):
 # );
 try:
     # under Windows
-    HANDLER_ROUTINE = ctypes.WINFUNCTYPE(DWORD)
+    HANDLER_ROUTINE = WINFUNCTYPE(DWORD)
 except Exception:
     # under Wine
     HANDLER_ROUTINE = LPVOID
