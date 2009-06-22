@@ -64,12 +64,13 @@ from win32 import FileHandle, ProcessHandle, ThreadHandle
 from breakpoint import ApiHook
 from system import Module, Thread, Process, PathOperations
 from textio import HexDump
+from rpc import ObjBase
 
 import ctypes
 
 #==============================================================================
 
-class Event (object):
+class Event (ObjBase):
     """
     Event object.
 
@@ -914,7 +915,7 @@ class RIPEvent (Event):
 
 #==============================================================================
 
-class EventFactory (object):
+class EventFactory (ObjBase):
     """
     Factory of L{Event} objects.
 
@@ -971,7 +972,7 @@ class EventFactory (object):
 
 #==============================================================================
 
-class EventHandler (object):
+class EventHandler (ObjBase):
     """
     Base class for debug event handlers.
 
@@ -1190,7 +1191,7 @@ class EventHandler (object):
 
 #==============================================================================
 
-class EventDispatcher (object):
+class EventDispatcher (ObjBase):
     """
     Implements debug event dispatching capabilities.
     """

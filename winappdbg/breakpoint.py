@@ -63,11 +63,12 @@ __all__ = [
 
 from system import Process, System, MemoryAddresses
 from textio import HexDump
+from rpc import ObjBase
 import win32
 
 #==============================================================================
 
-class DebugRegister (object):
+class DebugRegister (ObjBase):
     """
     Class to manipulate debug registers.
     Used by L{HardwareBreakpoint}.
@@ -353,7 +354,7 @@ class DebugRegister (object):
 
 #==============================================================================
 
-class Breakpoint (object):
+class Breakpoint (ObjBase):
     """
     Base class for breakpoints.
     Here's the breakpoints state machine.
@@ -1204,7 +1205,7 @@ class HardwareBreakpoint (Breakpoint):
 # function for overflows you're usually not interested in the return value
 # anyway.
 
-class Hook (object):
+class Hook (ObjBase):
     """
     Used by L{Debug.hook_function}.
 
@@ -1497,7 +1498,7 @@ class ApiHook (Hook):
 
 #==============================================================================
 
-class BufferWatch(object):
+class BufferWatch (ObjBase):
     """
     Used by L{Debug.watch_buffer}.
 
@@ -1616,7 +1617,7 @@ class BufferWatch(object):
 
 #==============================================================================
 
-class BreakpointContainer (object):
+class BreakpointContainer (ObjBase):
     """
     Encapsulates the capability to contain Breakpoint objects.
 
