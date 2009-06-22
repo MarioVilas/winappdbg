@@ -21,8 +21,6 @@ EPYDOC_OUTPUT_OPT=--show-private --no-sourcecode --no-imports --inheritance=incl
 SDIST_OPT=--formats=zip,bztar
 
 # Windows installer package options
-# (uncomment only for Python 2.6 to generate Vista-compatible installers)
-#BDIST_UAC=
 BDIST_UAC=--user-access-control auto
 
 # UPX compressor options
@@ -42,7 +40,7 @@ dist: sdist bdist
 
 # Install the module
 install:
-	python setup.py install
+	python -O setup.py install
 
 
 # Build the tools
@@ -59,11 +57,6 @@ upx:
 	if exist dist\\pyexe\\*.pyd upx $(UPX_OPT) dist\\py2exe\\*.pyd
 
 
-# Test the documentation
-#doctest:
-#	epydoc.py $(EPYDOC_TEST_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
-
-
 # Generate the HTML documentation only
 html:
 	epydoc.py $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
@@ -75,11 +68,20 @@ pdf:
 
 # Build the source distribution package
 sdist:
-	python setup.py sdist $(SDIST_OPT)
+	python -O setup.py sdist $(SDIST_OPT)
 
 # Build the Windows installer package
 bdist:
-	python setup.py bdist_wininst $(BDIST_UAC)
+	python -O setup.py bdist_wininst $(BDIST_UAC)
+
+# Build the Windows installer package as MSI installer for the current Python version
+msi:
+	python -O setup.py bdist_msi
+
+# Build the Windows installer package as MSI installer for all Python versions
+msi_all:
+	C:\Python25\python.exe -O setup.py bdist_msi
+	C:\Python26\python.exe -O setup.py bdist_msi
 
 
 # Clean up
