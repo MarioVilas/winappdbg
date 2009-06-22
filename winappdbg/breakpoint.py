@@ -896,7 +896,7 @@ class PageBreakpoint (Breakpoint):
                                                                         action)
 ##        if (address & 0x00000FFF) != 0:
         floordiv_align = long(address) // long(System.pageSize)
-        truediv_align  = float(address) / float(System.pagesize)
+        truediv_align  = float(address) / float(System.pageSize)
         if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
