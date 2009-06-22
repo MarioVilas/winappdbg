@@ -1497,7 +1497,7 @@ class ApiHook (Hook):
 
 #==============================================================================
 
-class BufferWatch(object):
+class BufferWatch (object):
     """
     Used by L{Debug.watch_buffer}.
 
