@@ -5565,8 +5565,11 @@ class System (ProcessContainer):
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.
     try:
-        pageSize = win32.GetSystemInfo().dwPageSize
-    except WindowsError:
+        try:
+            pageSize = win32.GetSystemInfo().dwPageSize
+        except WindowsError:
+            pageSize = 0x1000
+    except NameError:
         pageSize = 0x1000
 
 #------------------------------------------------------------------------------

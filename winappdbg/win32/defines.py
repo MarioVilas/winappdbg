@@ -51,7 +51,7 @@ except AttributeError:
         def __init__(self, restype, *argtypes):
             self.restype  = restype
             self.argtypes = argtypes
-        def __call__(self, *argv)
+        def __call__(self, *argv):
             return ctypes.WINFUNCTYPE(self.restype, *self.argtypes)(*argv)
 
 try:
