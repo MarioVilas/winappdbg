@@ -53,6 +53,7 @@ if ObjBase != object:
     class winappdbg (ObjBase):
 
         def __init__(self):
+            ObjBase.__init__(self)
             import winappdbg
             self.__winappdbg = winappdbg
 
