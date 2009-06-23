@@ -43,6 +43,16 @@ Structure   = ctypes.Structure
 Union       = ctypes.Union
 
 try:
+    WINFUNCTYPE = ctypes.WINFUNCTYPE
+except AttributeError:
+    class WINFUNCTYPE(object):
+        def __init__(self, restype, *argtypes):
+            self.restype  = restype
+            self.argtypes = argtypes
+        def __call__(self, *argv):
+            return ctypes.WINFUNCTYPE(self.restype, *self.argtypes)(*argv)
+
+try:
     callable
 except NameError:
     def callable(obj):
