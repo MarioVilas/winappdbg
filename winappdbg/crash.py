@@ -41,7 +41,7 @@ __all__ =   [
 
 from system import PathOperations
 from textio import HexDump, CrashDump
-from rpc import ObjBase
+from rpc import ObjBase as object
 import win32
 
 import os
@@ -65,7 +65,7 @@ anydbm = None
 
 #==============================================================================
 
-class Crash (ObjBase):
+class Crash (object):
     """
     Represents a crash, bug, or another interesting event in the debugee.
 
@@ -554,7 +554,7 @@ class Crash (ObjBase):
 
 #==============================================================================
 
-class CrashContainer (ObjBase):
+class CrashContainer (object):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates.
 
@@ -577,7 +577,7 @@ class CrashContainer (ObjBase):
     # value (for example it could be an incremental integer counter), to add
     # and change if a collision occurs.
 
-    class __CrashContainerIterator (ObjBase):
+    class __CrashContainerIterator (object):
         """
         Iterator of Crash objects. Returned by L{CrashContainer.__iter__}.
         """

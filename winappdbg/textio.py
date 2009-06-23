@@ -50,14 +50,14 @@ __all__ =   [
             ]
 
 import win32
-from rpc import ObjBase
+from rpc import ObjBase as object
 
 import time
 import struct
 
 #------------------------------------------------------------------------------
 
-class HexInput (ObjBase):
+class HexInput (object):
     """
     Static functions for user input parsing.
     The counterparts for each method are in the L{HexOutput} class.
@@ -273,7 +273,7 @@ class HexInput (ObjBase):
 
 #------------------------------------------------------------------------------
 
-class HexOutput (ObjBase):
+class HexOutput (object):
     """
     Static functions for user output parsing.
     The counterparts for each method are in the L{HexInput} class.
@@ -386,7 +386,7 @@ class HexOutput (ObjBase):
 
 #------------------------------------------------------------------------------
 
-class HexDump (ObjBase):
+class HexDump (object):
     """
     Static functions for hexadecimal dumps.
 
@@ -716,7 +716,7 @@ class HexDump (ObjBase):
 
 #------------------------------------------------------------------------------
 
-class Table (ObjBase):
+class Table (object):
     """
     Text based table. The number of columns and the width of each column
     is automatically calculated.
@@ -801,7 +801,7 @@ class Table (ObjBase):
 
 #------------------------------------------------------------------------------
 
-class CrashDump (ObjBase):
+class CrashDump (object):
     """
     Static functions for crash dumps.
 
@@ -1199,7 +1199,7 @@ class CrashDump (ObjBase):
 
 #------------------------------------------------------------------------------
 
-class DebugLog (ObjBase):
+class DebugLog (object):
     'Static functions for debug logging.'
 
     @staticmethod

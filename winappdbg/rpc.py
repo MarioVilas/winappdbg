@@ -44,3 +44,36 @@ try:
             pass
 except ImportError:
     ObjBase = object
+
+if ObjBase != object:
+
+    import Pyro.core
+    import Pyro.naming
+
+    class winappdbg (ObjBase):
+
+        def __init__(self):
+            import winappdbg
+            self.__winappdbg = winappdbg
+
+        def __getattr__(self, name):
+##            obj = __import__( 'winappdbg', fromlist=[name] )
+            obj = getattr(self.__winappdbg, name)
+            setattr(self, name, obj)
+            return obj
+
+        def reload(self):
+            reload(self.__winappdbg)
+
+    def client(URI):
+        Pyro.core.initClient()
+        return Pyro.core.getAttrProxyForURI(URI)
+
+    def server( host, port, name = 'winappdbg' ):
+        Pyro.core.initServer()
+        daemon = Pyro.core.Daemon( host = host, port = port )
+        uri    = daemon.connect( winappdbg(), name )
+        return uri, daemon
+
+    def loop(daemon):
+        daemon.requestLoop()

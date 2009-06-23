@@ -64,7 +64,7 @@ __all__ =   [
             ]
 
 import win32
-from rpc import ObjBase
+from rpc import ObjBase as object
 from textio import HexInput, HexDump
 
 import re
@@ -84,7 +84,7 @@ except ImportError:
 
 #==============================================================================
 
-class PathOperations (ObjBase):
+class PathOperations (object):
     """
     Static methods for filename and pathname manipulation.
     """
@@ -235,7 +235,7 @@ class PathOperations (ObjBase):
 
 #==============================================================================
 
-class ModuleContainer (ObjBase):
+class ModuleContainer (object):
     """
     Encapsulates the capability to contain Module objects.
 
@@ -553,7 +553,7 @@ class ModuleContainer (ObjBase):
 
 #==============================================================================
 
-class ThreadContainer (ObjBase):
+class ThreadContainer (object):
     """
     Encapsulates the capability to contain Thread objects.
 
@@ -852,7 +852,7 @@ class ThreadContainer (ObjBase):
 
 #==============================================================================
 
-class MemoryAddresses (ObjBase):
+class MemoryAddresses (object):
     """
     Class to manipulate memory addresses.
     """
@@ -938,7 +938,7 @@ class MemoryAddresses (ObjBase):
 #   memory. This object should talk to BreakpointContainer to retrieve the
 #   original memory contents where code breakpoints are enabled.
 # * A memory cache could be implemented here.
-class MemoryOperations (ObjBase):
+class MemoryOperations (object):
     """
     Encapsulates the capabilities to manipulate the memory of a process.
 
@@ -1673,7 +1673,7 @@ class MemoryOperations (ObjBase):
 
 #==============================================================================
 
-class SymbolEnumerator (ObjBase):
+class SymbolEnumerator (object):
     """
     Internally used by L{SymbolContainer} to enumerate symbols in a module.
     """
@@ -1688,7 +1688,7 @@ class SymbolEnumerator (ObjBase):
         self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
         return win32.TRUE
 
-class SymbolContainer (ObjBase):
+class SymbolContainer (object):
     """
     Capability to contain symbols. Used by L{Module}.
 
@@ -1809,7 +1809,7 @@ class SymbolContainer (ObjBase):
 
 #==============================================================================
 
-class SymbolOperations (ObjBase):
+class SymbolOperations (object):
     """
     Encapsulates symbol operations capabilities.
 
@@ -2448,7 +2448,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 # TODO
 # + fetch special registers (MMX, XMM, 3DNow!, etc)
 
-class ThreadDebugOperations (ObjBase):
+class ThreadDebugOperations (object):
     """
     Encapsulates several useful debugging routines for threads.
 
@@ -2959,7 +2959,7 @@ class ThreadDebugOperations (ObjBase):
 # TODO
 # + remote GetLastError
 
-class ProcessDebugOperations (ObjBase):
+class ProcessDebugOperations (object):
     """
     Encapsulates several useful debugging routines for processes.
 
@@ -3296,7 +3296,7 @@ class ProcessDebugOperations (ObjBase):
 
 #==============================================================================
 
-class ProcessContainer (ObjBase):
+class ProcessContainer (object):
     """
     Encapsulates the capability to contain Process objects.
 
@@ -3942,7 +3942,7 @@ class ProcessContainer (ObjBase):
 
 #==============================================================================
 
-class Window (ObjBase):
+class Window (object):
 
     def __init__(self, hWnd = None, process = None, thread = None):
         self.hWnd        = hWnd
@@ -4879,7 +4879,7 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    class Flags (ObjBase):
+    class Flags (object):
         'Commonly used processor flags'
         Overflow    = 0x800
         Direction   = 0x400
@@ -5145,7 +5145,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         return ThreadContainer.__len__(self) + \
                ModuleContainer.__len__(self)
 
-    class __ThreadsAndModulesIterator (ObjBase):
+    class __ThreadsAndModulesIterator (object):
         """
         Iterator object for L{Process} objects.
         Iterates through L{Thread} objects first, L{Module} objects next.

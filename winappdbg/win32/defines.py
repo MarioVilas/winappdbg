@@ -33,6 +33,8 @@ Debugging API wrappers in ctypes.
 
 __revision__ = "$Id$"
 
+from winappdbg.rpc import ObjBase as object
+
 import time
 import struct
 import ctypes
@@ -45,8 +47,12 @@ Union       = ctypes.Union
 try:
     WINFUNCTYPE = ctypes.WINFUNCTYPE
 except AttributeError:
-    def WINFUNCTYPE(restype, *argtypes):
-        return ctypes.WINFUNCTYPE(restype, *argtypes)
+    class WINFUNCTYPE(object):
+        def __init__(self, restype, *argtypes):
+            self.restype  = restype
+            self.argtypes = argtypes
+        def __call__(self, *argv)
+            return ctypes.WINFUNCTYPE(self.restype, *self.argtypes)(*argv)
 
 try:
     callable
