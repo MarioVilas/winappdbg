@@ -98,6 +98,7 @@ params = {
 
     # Setup instructions
     'requires'          : ['ctypes'],
+    'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg'],
     'scripts'           : scripts,
 
@@ -115,12 +116,10 @@ params = {
                         'License :: OSI Approved :: BSD License',
                         'Development Status :: 5 - Production/Stable',
                         'Environment :: Console',
-                        'Environment :: Win32 (MS Windows)',
                         'Intended Audience :: Developers',
                         'Natural Language :: English',
                         'Operating System :: Microsoft :: Windows',
-                        'Programming Language :: Python',
-                        'Topic :: Software Development :: Bug Tracking',
+                        'Programming Language :: Python :: 3',
                         'Topic :: Software Development :: Debuggers',
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],
