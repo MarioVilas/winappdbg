@@ -452,11 +452,53 @@ class ExceptionEvent (Event):
         return [ info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
 
     def get_access_violation_type(self):
-        if self.get_exception_code() != win32.EXCEPTION_ACCESS_VIOLATION:
-            msg = ("This method is only meaningful"
-                   " for access violation exceptions.")
-            raise Exception, msg
+        """
+        @rtype:  int
+        @return: Access violation type.
+            Should be one of the following constants:
+
+             - L{win32.ACCESS_VIOLATION_TYPE_READ}
+             - L{win32.ACCESS_VIOLATION_TYPE_WRITE}
+             - L{win32.ACCESS_VIOLATION_TYPE_DEP}
+
+        @note: This method is only meaningful for access violation exceptions
+            and in-page memory error exceptions.
+
+        @raise NotImplementedError: Not an access violation or in-page memory error.
+        """
+        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION, win32.EXCEPTION_IN_PAGE_ERROR):
+            msg = "This method is only meaningful for access violation exceptions and in-page memory error exceptions."
+            raise NotImplementedError, msg
         return self.get_exception_information(0)
+
+    def get_access_violation_address(self):
+        """
+        @rtype:  int
+        @return: Access violation memory address.
+
+        @note: This method is only meaningful for access violation exceptions
+            and in-page memory error exceptions.
+
+        @raise NotImplementedError: Not an access violation or in-page memory error.
+        """
+        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION, win32.EXCEPTION_IN_PAGE_ERROR):
+            msg = "This method is only meaningful for access violation exceptions and in-page memory error exceptions."
+            raise NotImplementedError, msg
+        return self.get_exception_information(1)
+
+    def get_ntstatus_code(self):
+        """
+        @rtype:  int
+        @return: NTSTATUS status code that caused the exception.
+
+        @note: This method is only meaningful for in-page memory error exceptions.
+
+        @raise NotImplementedError: Not an in-page memory error.
+        """
+        if self.get_exception_code() != win32.EXCEPTION_IN_PAGE_ERROR:
+            msg = "This method is only meaningful for in-page memory error exceptions."
+            raise NotImplementedError, msg
+        return self.get_exception_information(2)
 
     def get_raw_exception_record_list(self):
         """

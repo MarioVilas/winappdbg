@@ -39,7 +39,7 @@ __all__ =   [
                 'CrashContainer',
             ]
 
-from system import PathOperations
+from system import MemoryAddresses, PathOperations
 from textio import HexDump, CrashDump
 import win32
 
@@ -133,6 +133,23 @@ class Crash (object):
 
         C{None} or invalid if unapplicable or unable to retrieve.
 
+    @type accessViolationType: None or int
+    @ivar accessViolationType: Access violation type.
+        Only applicable to access violations or in-page memory errors.
+        Should be one of the following constants:
+
+         - L{win32.ACCESS_VIOLATION_TYPE_READ}
+         - L{win32.ACCESS_VIOLATION_TYPE_WRITE}
+         - L{win32.ACCESS_VIOLATION_TYPE_DEP}
+
+        C{None} if unapplicable or unable to retrieve.
+
+    @type accessViolationAddress: None or int
+    @ivar accessViolationAddress: Access violation memory address.
+        Only applicable to access violations or in-page memory errors.
+
+        C{None} if unapplicable or unable to retrieve.
+
     @type firstChance: None or bool
     @ivar firstChance:
         C{True} for first chance exceptions, C{False} for second chance.
@@ -146,6 +163,12 @@ class Crash (object):
 
     @type lpBaseOfDll: None or int
     @ivar lpBaseOfDll: Base of module where the program counter points to.
+
+        C{None} if unapplicable or unable to retrieve.
+
+    @type stackRange: tuple( int, int )
+    @ivar stackRange:
+        Stack beginning and end pointers, in memory addresses order.
 
         C{None} if unapplicable or unable to retrieve.
 
@@ -230,24 +253,27 @@ class Crash (object):
         self.labelPC            = process.get_label_at_address(self.pc)
 
         # The following properties are only retrieved for some events.
-        self.registersPeek      = None
-        self.debugString        = None
-        self.exceptionCode      = None
-        self.exceptionName      = None
-        self.exceptionAddress   = None
-        self.firstChance        = None
-        self.modFileName        = None
-        self.lpBaseOfDll        = None
-        self.exceptionLabel     = None
-        self.stackTrace         = None
-        self.stackTracePC       = None
-        self.stackTraceLabels   = None
-        self.stackFrame         = None
-        self.stackPeek          = None
-        self.faultCode          = None
-        self.faultMem           = None
-        self.faultPeek          = None
-        self.faultDisasm        = None
+        self.registersPeek          = None
+        self.debugString            = None
+        self.exceptionCode          = None
+        self.exceptionName          = None
+        self.exceptionAddress       = None
+        self.accessViolationType    = None
+        self.accessViolationAddress = None
+        self.firstChance            = None
+        self.modFileName            = None
+        self.lpBaseOfDll            = None
+        self.exceptionLabel         = None
+        self.stackLimits            = None
+        self.stackTrace             = None
+        self.stackTracePC           = None
+        self.stackTraceLabels       = None
+        self.stackFrame             = None
+        self.stackPeek              = None
+        self.faultCode              = None
+        self.faultMem               = None
+        self.faultPeek              = None
+        self.faultDisasm            = None
 
         # Get information for debug string events.
         if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
@@ -279,6 +305,10 @@ class Crash (object):
             self.firstChance            = event.is_first_chance()
             self.exceptionLabel         = process.get_label_at_address(
                                                          self.exceptionAddress)
+            if self.exceptionCode in (win32.EXCEPTION_ACCESS_VIOLATION,
+                                      win32.EXCEPTION_IN_PAGE_ERROR):
+                self.accessViolationType    = event.get_access_violation_type()
+                self.accessViolationAddress = event.get_access_violation_address()
 
             # Data pointed to by registers.
             self.registersPeek = thread.peek_pointers_in_registers()
@@ -290,6 +320,10 @@ class Crash (object):
                 self.lpBaseOfDll = aModule.get_base()
 
             # Stack trace.
+            try:
+                self.stackRange = thread.get_stack_range()
+            except WindowsError:
+                pass
             self.stackTrace     = thread.get_stack_trace()
             self.stackTracePretty = thread.get_stack_trace_with_labels()
             stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
@@ -385,6 +419,170 @@ class Crash (object):
                 self.debugString,
                 )
 
+    def isExploitable(self):
+        """
+        Guess how likely is it that the bug causing the crash can be leveraged
+        into an exploitable vulnerability.
+
+        @note: Don't take this as an equivalent of a real exploitability
+            analysis, that can only be done by a human being! This is only
+            a guideline, useful for example to sort crashes - placing the most
+            interesting ones at the top.
+
+        @see: The heuristics are similar to those of the B{!exploitable}
+            extension for I{WinDBG}, which can be downloaded from here:
+
+            U{http://www.codeplex.com/msecdbg}
+
+        @rtype: tuple( str, str )
+        @return: The first element of the tuple is the result of the analysis,
+            being one of the following:
+
+                * Not an exception
+                * Not exploitable
+                * Not likely exploitable
+                * Unknown
+                * Probably exploitable
+                * Exploitable
+
+            The second element of the tuple is a code to identify the matched
+            heuristic rule.
+
+            The second element of the tuple is a description string of the
+            reason behind the result.
+        """
+
+        # Terminal rules
+
+        if self.eventCode != win32.EXCEPTION_DEBUG_EVENT:
+            return ("Not an exception", "NotAnException", "The event is not an exception.")
+
+        if self.stackRange and self.pc is not None and self.stackRange[0] <= self.pc < self.stackRange[1]:
+            return ("Exploitable", "StackCodeExecution", "Code execution from the stack is considered exploitable.")
+
+        # This rule is NOT from !exploitable
+        if self.stackRange and self.sp is not None and not (self.stackRange[0] <= self.sp < self.stackRange[1]):
+            return ("Exploitable", "StackPointerCorruption", "Stack pointer corruption is considered exploitable.")
+
+        # XXX add rule to check if code is in writeable memory
+
+        if self.exceptionCode == win32.EXCEPTION_ILLEGAL_INSTRUCTION:
+            return ("Exploitable", "IllegalInstruction", "An illegal instruction exception indicates that the attacker controls execution flow.")
+
+        if self.exceptionCode == win32.EXCEPTION_PRIV_INSTRUCTION:
+            return ("Exploitable", "PrivilegedInstruction", "A privileged instruction exception indicates that the attacker controls execution flow.")
+
+        if self.exceptionCode == win32.EXCEPTION_GUARD_PAGE:
+            return ("Exploitable", "GuardPage", "A guard page violation indicates a stack overflow has occured, and the stack of another thread was reached (possibly the overflow length is not controlled by the attacker).")
+
+        if self.exceptionCode == win32.STATUS_STACK_BUFFER_OVERRUN:
+            return ("Exploitable", "GSViolation", "An overrun of a protected stack buffer has been detected. This is considered exploitable, and must be fixed.")
+
+        if self.exceptionCode == win32.STATUS_HEAP_CORRUPTION:
+            return ("Exploitable", "HeapCorruption", "Heap Corruption has been detected. This is considered exploitable, and must be fixed.")
+
+        if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
+            nearNull      = self.accessViolationAddress is None or MemoryAddresses.align_address_to_page_start(self.accessViolationAddress) == win32.NULL
+            controlFlow   = self.__is_control_flow()
+            blockDataMove = self.__is_block_data_move()
+            if self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_DEP:
+                if nearNull:
+                    return ("Probably exploitable", "DEPViolation", "User mode DEP access violations are probably exploitable if near NULL.")
+                else:
+                    return ("Exploitable", "DEPViolation", "User mode DEP access violations are exploitable.")
+            elif self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_WRITE:
+                if nearNull:
+                    return ("Probably exploitable", "WriteAV", "User mode write access violations that are near NULL are probably exploitable.")
+                else:
+                    return ("Exploitable", "WriteAV", "User mode write access violations that are not near NULL are exploitable.")
+            elif self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_READ:
+                if self.accessViolationAddress == self.pc:
+                    if nearNull:
+                        return ("Probably exploitable", "ReadAVonIP", "Access violations at the instruction pointer are probably exploitable if near NULL.")
+                    else:
+                        return ("Exploitable", "ReadAVonIP", "Access violations at the instruction pointer are exploitable if not near NULL.")
+                if controlFlow:
+                    if nearNull:
+                        return ("Probably exploitable", "ReadAVonControlFlow", "Access violations near null in control flow instructions are considered probably exploitable.")
+                    else:
+                        return ("Exploitable", "ReadAVonControlFlow", "Access violations not near null in control flow instructions are considered exploitable.")
+                if blockDataMove:
+                    return ("Probably exploitable", "ReadAVonBlockMove", "This is a read access violation in a block data move, and is therefore classified as probably exploitable.")
+
+                # Rule: Tainted information used to control branch addresses is considered probably exploitable
+                # Rule: Tainted information used to control the target of a later write is probably exploitable
+
+        # Non terminal rules
+
+        # XXX TODO maybe we should be returning a list of tuples instead?
+
+        result = ("Unknown", "Unknown", "Exploitability unknown.")
+
+        if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
+            if self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_READ:
+                if nearNull:
+                    result = ("Not likely exploitable", "ReadAVNearNull", "This is a user mode read access violation near null, and is probably not exploitable.")
+
+        elif self.exceptionCode == win32.EXCEPTION_INT_DIVIDE_BY_ZERO:
+            result = ("Not likely exploitable", "DivideByZero", "This is an integer divide by zero, and is probably not exploitable.")
+
+        elif self.exceptionCode == win32.EXCEPTION_FLT_DIVIDE_BY_ZERO:
+            result = ("Not likely exploitable", "DivideByZero", "This is a floating point divide by zero, and is probably not exploitable.")
+
+        elif self.exceptionCode in (win32.EXCEPTION_BREAKPOINT, win32.STATUS_WX86_BREAKPOINT):
+            result = ("Unknown", "Breakpoint", "While a breakpoint itself is probably not exploitable, it may also be an indication that an attacker is testing a target. In either case breakpoints should not exist in production code.")
+
+        # Rule: If the stack contains unknown symbols in user mode, call that out
+
+        # Rule: Tainted information used to control the source of a later block move unknown, but called out explicitly
+
+        # Rule: Tainted information used as an argument to a function is an unknown risk, but called out explicitly
+
+        # Rule: Tainted information used to control branch selection is an unknown risk, but called out explicitly
+
+        return result
+
+    def __is_control_flow(self):
+        jump_instructions = (
+            'jmp', 'jecxz', 'jcxz',
+            'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je',
+            'jz', 'jnc', 'jne', 'jnz', 'jnp', 'jpo', 'jp', 'jpe', 'jg', 'jnle',
+            'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'
+        )
+        call_instructions = ( 'call', 'ret', 'retn' )
+        loop_instructions = ( 'loop', 'loopz', 'loopnz', 'loope', 'loopne' )
+        control_flow_instructions = call_instructions + loop_instructions + \
+                                    jump_instructions
+        isControlFlow = False
+        instruction = None
+        if self.pc is not None and self.faultDisasm:
+            for disasm in self.faultDisasm:
+                if disasm[0] == self.pc:
+                    instruction = disasm[2].lower().strip()
+                    break
+        if instruction:
+            for x in control_flow_instructions:
+                if x in instruction:
+                    isControlFlow = True
+                    break
+        return isControlFlow
+
+    def __is_block_data_move(self):
+        block_data_move_instructions = ('movs', 'stos', 'lods')
+        isBlockDataMove = False
+        instruction = None
+        if self.pc is not None and self.faultDisasm:
+            for disasm in self.faultDisasm:
+                if disasm[0] == self.pc:
+                    instruction = disasm[2].lower().strip()
+                    break
+        if instruction:
+            for x in block_data_move_instructions:
+                if x in instruction:
+                    isBlockDataMove = True
+                    break
+        return isBlockDataMove
+
     def briefReport(self):
         """
         @rtype:  str
@@ -435,6 +633,11 @@ class Crash (object):
         """
         msg  = self.briefReport()
         msg += '\n'
+
+        if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
+            (exploitability, expcode, expdescription) = self.isExploitable()
+            msg += '\nSecurity risk level: %s\n' % exploitability
+            msg += '  %s\n' % expdescription
 
         if self.notes:
             msg += '\nNotes:\n'
