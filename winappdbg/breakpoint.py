@@ -1315,7 +1315,7 @@ class Hook (object):
         # at the return address location in the stack.
         tid     = event.get_tid()
         address = event.breakpoint.get_address()
-        event.debug.erase_hardware_breakpoint(pid, address)
+        event.debug.erase_hardware_breakpoint(tid, address)
 
         # Call the "post" callback.
         self.__postCallAction(event)
