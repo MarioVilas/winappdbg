@@ -383,7 +383,7 @@ class ModuleContainer (object):
 
         # modName is a base filename without extension.
         filepart, extpart = PathOperations.split_extension(modName)
-        if filepart and extpart and extpart.lower() == ".dll":
+        if filepart and extpart:
             if filepart in modDict:
                 return modDict[filepart]
 
@@ -4196,7 +4196,7 @@ class Module (SymbolContainer):
         if filename:
             filename = filename.lower()
             filepart, extpart = PathOperations.split_extension(filename)
-            if filepart and extpart and extpart == '.dll':
+            if filepart and extpart:
                 modName = filepart
             else:
                 modName = filename
