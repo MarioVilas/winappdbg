@@ -847,7 +847,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         dwType = event.get_exception_information(0)
         if dwType == 0x1000:
             pszName     = event.get_exception_information(1)
-            dwThreadID  = event.get_exception_information(2)
+            dwThreadId  = event.get_exception_information(2)
             dwFlags     = event.get_exception_information(3)
 
             aProcess = event.get_process()
@@ -861,7 +861,7 @@ class Debug (EventDispatcher, BreakpointContainer):
                     aThread = aProcess.get_thread(dwThreadId)
                 else:
                     aThread = Thread(dwThreadId)
-                    aProcess._Process__add_thread(aThread)
+                    aProcess._ThreadContainer__add_thread(aThread)
 
 ##                if aThread.get_name() is None:
 ##                    aThread.set_name(szName)
