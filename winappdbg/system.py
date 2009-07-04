@@ -1499,6 +1499,7 @@ class MemoryOperations (object):
             raise
         Protect = mbi.Protect
         return mbi.State == win32.MEM_COMMIT and \
+            not Protect & win32.PAGE_GUARD and \
             (
                 Protect & win32.PAGE_EXECUTE_READ       or \
                 Protect & win32.PAGE_EXECUTE_READWRITE  or \
@@ -1532,6 +1533,7 @@ class MemoryOperations (object):
             raise
         Protect = mbi.Protect
         return mbi.State == win32.MEM_COMMIT and \
+            not Protect & win32.PAGE_GUARD and \
             (
                 Protect & win32.PAGE_EXECUTE_READWRITE  or \
                 Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
@@ -1563,6 +1565,7 @@ class MemoryOperations (object):
             raise
         Protect = mbi.Protect
         return mbi.State == win32.MEM_COMMIT and \
+            not Protect & win32.PAGE_GUARD and \
             (
                 Protect & win32.PAGE_EXECUTE            or \
                 Protect & win32.PAGE_EXECUTE_READ       or \
@@ -1598,6 +1601,7 @@ class MemoryOperations (object):
             raise
         Protect = mbi.Protect
         return mbi.State == win32.MEM_COMMIT and \
+            not Protect & win32.PAGE_GUARD and \
             (
                 Protect & win32.PAGE_EXECUTE_READWRITE  or \
                 Protect & win32.PAGE_EXECUTE_WRITECOPY
