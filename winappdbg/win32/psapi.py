@@ -231,7 +231,7 @@ def GetMappedFileNameW(hProcess, lpv):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
-GetMappedFileName = GuessStringType(GetMappedFileNameA, GetMappedFileNameA)
+GetMappedFileName = GuessStringType(GetMappedFileNameA, GetMappedFileNameW)
 
 # DWORD WINAPI GetModuleFileNameEx(
 #   __in      HANDLE hProcess,

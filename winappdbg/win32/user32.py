@@ -287,7 +287,7 @@ def FindWindowW(lpClassName = None, lpWindowName = None):
     if hWnd == NULL:
         raise ctypes.WinError()
     return hWnd
-FindWindow = GuessStringType(FindWindowW, FindWindowW)
+FindWindow = GuessStringType(FindWindowA, FindWindowW)
 
 # int GetClassName(
 #     HWND hWnd,
