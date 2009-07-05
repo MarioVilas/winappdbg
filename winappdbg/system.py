@@ -2460,7 +2460,7 @@ class ThreadDebugOperations (object):
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
-        disassemble_string
+        disassemble_string, disassemble_current
 
     @group Stack:
         get_stack_frame, get_stack_frame_range, get_stack_range,
@@ -2956,6 +2956,21 @@ class ThreadDebugOperations (object):
         """
         aProcess = self.get_process()
         return aProcess.disassemble_around(self.get_pc(), dwSize)
+
+    def disassemble_current(self):
+        """
+        Disassemble the instruction at the program counter of the given thread.
+
+        @rtype:  tuple( long, int, str, str )
+        @return: The tuple represents an assembly instruction
+            and contains:
+             - Memory address of instruction.
+             - Size of instruction in bytes.
+             - Disassembly line of instruction.
+             - Hexadecimal dump of instruction.
+        """
+        aProcess = self.get_process()
+        return aProcess.disassemble(self.get_pc(), 15)[0]
 
 #==============================================================================
 
