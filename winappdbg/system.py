@@ -2460,7 +2460,7 @@ class ThreadDebugOperations (object):
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
-        disassemble_string, disassemble_current
+        disassemble_string, disassemble_instruction, disassemble_current
 
     @group Stack:
         get_stack_frame, get_stack_frame_range, get_stack_range,
@@ -2957,6 +2957,24 @@ class ThreadDebugOperations (object):
         aProcess = self.get_process()
         return aProcess.disassemble_around(self.get_pc(), dwSize)
 
+    def disassemble_instruction(self, lpAddress):
+        """
+        Disassemble the instruction at the given memory address.
+
+        @type  lpAddress: int
+        @param lpAddress: Memory address where to read the code from.
+
+        @rtype:  tuple( long, int, str, str )
+        @return: The tuple represents an assembly instruction
+            and contains:
+             - Memory address of instruction.
+             - Size of instruction in bytes.
+             - Disassembly line of instruction.
+             - Hexadecimal dump of instruction.
+        """
+        aProcess = self.get_process()
+        return aProcess.disassemble(lpAddress, 15)[0]
+
     def disassemble_current(self):
         """
         Disassemble the instruction at the program counter of the given thread.
@@ -2969,8 +2987,7 @@ class ThreadDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        aProcess = self.get_process()
-        return aProcess.disassemble(self.get_pc(), 15)[0]
+        return self.disassemble_instruction(self.get_pc())
 
 #==============================================================================
 
@@ -2986,7 +3003,7 @@ class ProcessDebugOperations (object):
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
-        disassemble_string
+        disassemble_string, disassemble_instruction, disassemble_current
 
     @group Debugging:
         flush_instruction_cache, debug_break, peek_pointers_in_data
@@ -3113,6 +3130,43 @@ class ProcessDebugOperations (object):
         """
         aThread = self.get_thread(dwThreadId)
         return self.disassemble_around(aThread.get_pc(), dwSize)
+
+    def disassemble_instruction(self, lpAddress):
+        """
+        Disassemble the instruction at the given memory address.
+
+        @type  lpAddress: int
+        @param lpAddress: Memory address where to read the code from.
+
+        @rtype:  tuple( long, int, str, str )
+        @return: The tuple represents an assembly instruction
+            and contains:
+             - Memory address of instruction.
+             - Size of instruction in bytes.
+             - Disassembly line of instruction.
+             - Hexadecimal dump of instruction.
+        """
+        return self.disassemble(lpAddress, 15)[0]
+
+    def disassemble_current(self, dwThreadId):
+        """
+        Disassemble the instruction at the program counter of the given thread.
+
+        @type  dwThreadId: int
+        @param dwThreadId: Global thread ID.
+            The program counter for this thread will be used as the disassembly
+            address.
+
+        @rtype:  tuple( long, int, str, str )
+        @return: The tuple represents an assembly instruction
+            and contains:
+             - Memory address of instruction.
+             - Size of instruction in bytes.
+             - Disassembly line of instruction.
+             - Hexadecimal dump of instruction.
+        """
+        aThread = self.get_thread(dwThreadId)
+        return self.disassemble_instruction(aThread.get_pc())
 
 #------------------------------------------------------------------------------
 
