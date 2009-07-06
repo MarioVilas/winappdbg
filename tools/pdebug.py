@@ -499,7 +499,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         disasm  = process.disassemble(pc, 15)
         print winappdbg.CrashDump.dump_registers(ctx),
         print "%s:" % label
-        print winappdbg.CrashDump.dump_code_line(disasm[0], pc)
+        print winappdbg.CrashDump.dump_code_line(disasm[0], pc, bShowDump = False)
 
     # Display memory contents using a given method.
     def print_memory_display(self, arg, method):
@@ -1567,8 +1567,9 @@ class ConsoleDebugger (Cmd, EventHandler):
             next_address = winappdbg.HexOutput.integer(next_address)
             self.default_disasm_target = next_address
             print "%s:" % label
+##            print winappdbg.CrashDump.dump_code(code)
             for line in code:
-                print winappdbg.CrashDump.dump_code_line(line)
+                print winappdbg.CrashDump.dump_code_line(line, bShowDump = False)
 
     do_u = do_disassemble
 

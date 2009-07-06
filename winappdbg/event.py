@@ -461,14 +461,15 @@ class ExceptionEvent (Event):
              - L{win32.ACCESS_VIOLATION_TYPE_WRITE}
              - L{win32.ACCESS_VIOLATION_TYPE_DEP}
 
-        @note: This method is only meaningful for access violation exceptions
-            and in-page memory error exceptions.
+        @note: This method is only meaningful for access violation exceptions,
+            in-page memory error exceptions and guard page exceptions.
 
-        @raise NotImplementedError: Not an access violation or in-page memory error.
+        @raise NotImplementedError: Wrong kind of exception.
         """
-        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION, win32.EXCEPTION_IN_PAGE_ERROR):
-            msg = "This method is only meaningful for access violation exceptions and in-page memory error exceptions."
-            raise NotImplementedError, msg
+        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
+                    win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
+            msg = "This method is not meaningful for %s."
+            raise NotImplementedError, msg % self.get_exception_name()
         return self.get_exception_information(0)
 
     def get_access_violation_address(self):
@@ -476,14 +477,15 @@ class ExceptionEvent (Event):
         @rtype:  int
         @return: Access violation memory address.
 
-        @note: This method is only meaningful for access violation exceptions
-            and in-page memory error exceptions.
+        @note: This method is only meaningful for access violation exceptions,
+            in-page memory error exceptions and guard page exceptions.
 
-        @raise NotImplementedError: Not an access violation or in-page memory error.
+        @raise NotImplementedError: Wrong kind of exception.
         """
-        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION, win32.EXCEPTION_IN_PAGE_ERROR):
-            msg = "This method is only meaningful for access violation exceptions and in-page memory error exceptions."
-            raise NotImplementedError, msg
+        if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
+                    win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
+            msg = "This method is not meaningful for %s."
+            raise NotImplementedError, msg % self.get_exception_name()
         return self.get_exception_information(1)
 
     def get_ntstatus_code(self):

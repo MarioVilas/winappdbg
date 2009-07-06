@@ -1981,6 +1981,10 @@ class BreakpointContainer (object):
             L{disable_hardware_breakpoint},
             L{erase_hardware_breakpoint}
 
+        @note:
+            Hardware breakpoints do not seem to work properly on VirtualBox.
+            See U{http://www.virtualbox.org/ticket/477}.
+
         @type  dwThreadId: int
         @param dwThreadId: Thread global ID.
 
@@ -2295,7 +2299,7 @@ class BreakpointContainer (object):
         bp = self.get_page_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.enable(p, None)        # XXX HACK thread is not used
+        bp.enable(p, None)          # XXX HACK thread is not used
 
     def enable_hardware_breakpoint(self, dwThreadId, address):
         """
@@ -2309,6 +2313,9 @@ class BreakpointContainer (object):
             L{disable_hardware_breakpoint}
             L{erase_hardware_breakpoint},
 
+        @note: Do not set hardware breakpoints while processing the system
+            breakpoint event.
+
         @type  dwThreadId: int
         @param dwThreadId: Thread global ID.
 
@@ -2316,11 +2323,10 @@ class BreakpointContainer (object):
         @param address: Memory address of breakpoint.
         """
         t  = self.system.get_thread(dwThreadId)
-        p  = t.get_process()
         bp = self.get_hardware_breakpoint(dwThreadId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.enable(p, t)
+        bp.enable(None, t)          # XXX HACK process is not used
 
     def enable_one_shot_code_breakpoint(self, dwProcessId, address):
         """
@@ -2344,7 +2350,7 @@ class BreakpointContainer (object):
         bp = self.get_code_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.one_shot(p, None)        # XXX HACK process is not used
+        bp.one_shot(p, None)        # XXX HACK thread is not used
 
     def enable_one_shot_page_breakpoint(self, dwProcessId, address):
         """
@@ -2368,7 +2374,7 @@ class BreakpointContainer (object):
         bp = self.get_page_breakpoint(dwProcessId, address)
         if bp.is_running():
             self.__del_running_bp_from_all_threads(bp)
-        bp.one_shot(p, None)        # XXX HACK process is not used
+        bp.one_shot(p, None)        # XXX HACK thread is not used
 
     def enable_one_shot_hardware_breakpoint(self, dwThreadId, address):
         """
@@ -2960,7 +2966,7 @@ class BreakpointContainer (object):
         @type  event: L{ExceptionEvent}
         @param event: Guard page exception event.
         """
-        address         = event.get_exception_information(1)
+        address         = event.get_access_violation_address()
         pid             = event.get_pid()
         bCallHandler    = True
 
@@ -3112,7 +3118,6 @@ class BreakpointContainer (object):
                         bThisCondition = False
                     bCondition = bCondition or bThisCondition
             if bFoundBreakpoint:
-##                del event.breakpoint
                 bCallHandler = bCondition
 
         # Always call the user-defined handler
