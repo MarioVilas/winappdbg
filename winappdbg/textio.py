@@ -901,9 +901,11 @@ class CrashDump (object):
 
         @type  registers: dict( str S{->} int )
         @param registers: Dictionary mapping register names to their values.
+            This value is returned by L{Thread.get_context}.
 
         @type  data: dict( str S{->} str )
         @param data: Dictionary mapping register names to the data they point to.
+            This value is returned by L{Thread.peek_pointers_in_registers}.
 
         @rtype:  str
         @return: Text suitable for logging.
