@@ -1153,6 +1153,31 @@ class FLOATING_SAVE_AREA(Structure):
         ('Cr0NpxState',     DWORD),
     ]
 
+    _integer_members = ('ControlWord', 'StatusWord', 'TagWord', 'ErrorOffset', 'ErrorSelector', 'DataOffset', 'DataSelector', 'Cr0NpxState')
+
+    @classmethod
+    def from_dict(cls, fsa):
+        'Instance a new structure from a Python dictionary.'
+        fsa = dict(fsa)
+        s = cls()
+        for key in cls._integer_members:
+            setattr(s, key, fsa.get(key))
+        ra = fsa.get('RegisterArea', None)
+        if ra is not None:
+            for index in xrange(0, SIZE_OF_80387_REGISTERS):
+                s.RegisterArea[index] = ra[index]
+        return s
+
+    def to_dict(self):
+        'Convert a structure into a Python dictionary.'
+        fsa = dict()
+        for key in self._integer_members:
+            fsa[key] = getattr(self, key)
+        ra = [ self.RegisterArea[index] for index in xrange(0, SIZE_OF_80387_REGISTERS) ]
+        ra = tuple(ra)
+        fsa['RegisterArea'] = ra
+        return fsa
+
 # typedef struct _CONTEXT {
 #     DWORD ContextFlags;
 #     DWORD   Dr0;
@@ -1257,80 +1282,68 @@ class CONTEXT(Structure):
 
         # This section is specified/returned if the ContextFlags word
         # contains the flag CONTEXT_EXTENDED_REGISTERS.
-        # The format and contexts are processor specific
+        # The format and contexts are processor specific.
 
         ('ExtendedRegisters',   BYTE * MAXIMUM_SUPPORTED_EXTENSION),
     ]
 
-    def __iter__(self):
-        return self.__ContextIterator(self)
+    _ctx_debug   = ('Dr0', 'Dr1', 'Dr2', 'Dr3', 'Dr6', 'Dr7')
+    _ctx_segs    = ('SegGs', 'SegFs', 'SegEs', 'SegDs', )
+    _ctx_int     = ('Edi', 'Esi', 'Ebx', 'Edx', 'Ecx', 'Eax')
+    _ctx_ctrl    = ('Ebp', 'Eip', 'SegCs', 'EFlags', 'Esp', 'SegSs')
 
     @classmethod
     def from_dict(cls, ctx):
-        'Instance a new CONTEXT from a Python dictionary.'
+        'Instance a new structure from a Python dictionary.'
         ctx = dict(ctx)
-        if 'ExtendedRegisters' in ctx:
-            ExtendedRegistersList = ctx['ExtendedRegisters']
-            ExtendedRegisters = (BYTE * MAXIMUM_SUPPORTED_EXTENSION)()
-            for index in xrange(len(ExtendedRegistersList)):
-                ExtendedRegisters[index] = BYTE(ExtendedRegistersList[index])
-            ctx['ExtendedRegisters'] = ExtendedRegisters
-        return cls(**ctx)
+        s = cls()
+        ContextFlags = ctx['ContextFlags']
+        setattr(s, 'ContextFlags', ContextFlags)
+        if (ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS:
+            for key in s._ctx_debug:
+                setattr(s, key, ctx[key])
+        if (ContextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT:
+            fsa = ctx['FloatSave']
+            s.FloatSave = FLOATING_SAVE_AREA.from_dict(fsa)
+        if (ContextFlags & CONTEXT_SEGMENTS) == CONTEXT_SEGMENTS:
+            for key in s._ctx_segs:
+                setattr(s, key, ctx[key])
+        if (ContextFlags & CONTEXT_INTEGER) == CONTEXT_INTEGER:
+            for key in s._ctx_int:
+                setattr(s, key, ctx[key])
+        if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
+            for key in s._ctx_ctrl:
+                setattr(s, key, ctx[key])
+        if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
+            er = ctx['ExtendedRegisters']
+            for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION):
+                s.ExtendedRegisters[index] = er[index]
+        return s
 
-    class __ContextIterator:
-        'Iterator of CONTEXT structures.'
-
-        ctx_debug   = ('Dr0', 'Dr1', 'Dr2', 'Dr3', 'Dr6', 'Dr7')
-        ctx_segs    = ('SegGs', 'SegFs', 'SegEs', 'SegDs', )
-        ctx_int     = ('Edi', 'Esi', 'Ebx', 'Edx', 'Ecx', 'Eax')
-        ctx_ctrl    = ('Ebp', 'Eip', 'SegCs', 'EFlags', 'Esp', 'SegSs')
-        ctx_float_1 = (
-            'ControlWord',
-            'StatusWord',
-            'TagWord',
-            'ErrorOffset',
-            'ErrorSelector',
-            'DataOffset',
-            'DataSelector',
-        )
-        ctx_float_2 = (
-            'Cr0NpxState',
-        )
-
-        def extract(self, ctx, names):
-            for n in names:
-                self.iter.append( (n, getattr(ctx, n)) )
-
-        def extract_array(self, ctx, n):
-            ctx = getattr(ctx, n)
-            self.iter.append( (n, [ctx[i] for i in xrange(len(ctx))] ) )
-
-        def check_flag(self, f, mask):
-            return (f & mask) != CONTEXT_i386
-
-        def __init__(self, ctx):
-            f = ctx.ContextFlags
-            self.iter = list()
-            self.iter.append( ('ContextFlags', f) )
-            if self.check_flag(f, CONTEXT_DEBUG_REGISTERS):
-                self.extract(ctx, self.ctx_debug)
-            if self.check_flag(f, CONTEXT_FLOATING_POINT):
-                self.extract(ctx.FloatSave, self.ctx_float_1)
-                self.extract_array(ctx.FloatSave, 'RegisterArea')
-                self.extract(ctx.FloatSave, self.ctx_float_2)
-            if self.check_flag(f, CONTEXT_SEGMENTS):
-                self.extract(ctx, self.ctx_segs)
-            if self.check_flag(f, CONTEXT_INTEGER):
-                self.extract(ctx, self.ctx_int)
-            if self.check_flag(f, CONTEXT_CONTROL):
-                self.extract(ctx, self.ctx_ctrl)
-            if self.check_flag(f, CONTEXT_EXTENDED_REGISTERS):
-                self.extract_array(ctx, 'ExtendedRegisters')
-
-        def next(self):
-            if len(self.iter):
-                return self.iter.pop(0)
-            raise StopIteration
+    def to_dict(self):
+        'Convert a structure into a Python dictionary.'
+        ctx = dict()
+        ContextFlags = self.ContextFlags
+        ctx['ContextFlags'] = ContextFlags
+        if (ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS:
+            for key in self._ctx_debug:
+                ctx[key] = getattr(self, key)
+        if (ContextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT:
+            ctx['FloatSave'] = self.FloatSave.to_dict()
+        if (ContextFlags & CONTEXT_SEGMENTS) == CONTEXT_SEGMENTS:
+            for key in self._ctx_segs:
+                ctx[key] = getattr(self, key)
+        if (ContextFlags & CONTEXT_INTEGER) == CONTEXT_INTEGER:
+            for key in self._ctx_int:
+                ctx[key] = getattr(self, key)
+        if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
+            for key in self._ctx_ctrl:
+                ctx[key] = getattr(self, key)
+        if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
+            er = [ self.ExtendedRegisters[index] for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION) ]
+            er = tuple(er)
+            ctx['ExtendedRegisters'] = er
+        return ctx
 
 PCONTEXT = POINTER(CONTEXT)
 
@@ -2665,15 +2678,14 @@ def GetThreadContext(hThread, ContextFlags = CONTEXT_ALL):
     success = ctypes.windll.kernel32.GetThreadContext(hThread, ctypes.byref(lpContext))
     if success == FALSE:
         raise ctypes.WinError()
-    return dict(lpContext)
-##    return lpContext
+    return lpContext.to_dict()
 
 # BOOL WINAPI SetThreadContext(
 #   __in  HANDLE hThread,
 #   __in  const CONTEXT* lpContext
 # );
 def SetThreadContext(hThread, lpContext):
-    if not isinstance(lpContext, CONTEXT):
+    if isinstance(lpContext, dict):
         lpContext = CONTEXT.from_dict(lpContext)
     success = ctypes.windll.kernel32.SetThreadContext(hThread, ctypes.byref(lpContext))
     if success == FALSE:
