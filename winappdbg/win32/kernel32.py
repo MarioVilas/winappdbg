@@ -541,10 +541,17 @@ CONTROL_C_EXIT                      = STATUS_CONTROL_C_EXIT
 DBG_CONTROL_C                       = 0x40010005L
 MS_VC_EXCEPTION                     = 0x406D1388L
 
+# The following values specify the type of access in the first parameter
+# of the exception record whan the exception code specifies an access
+# violation.
+EXCEPTION_READ_FAULT        = 0     # exception caused by a read
+EXCEPTION_WRITE_FAULT       = 1     # exception caused by a write
+EXCEPTION_EXECUTE_FAULT     = 8     # exception caused by an instruction fetch
+
 # Access violation types
-ACCESS_VIOLATION_TYPE_READ      = 0
-ACCESS_VIOLATION_TYPE_WRITE     = 1
-ACCESS_VIOLATION_TYPE_DEP       = 8
+ACCESS_VIOLATION_TYPE_READ      = EXCEPTION_READ_FAULT
+ACCESS_VIOLATION_TYPE_WRITE     = EXCEPTION_WRITE_FAULT
+ACCESS_VIOLATION_TYPE_DEP       = EXCEPTION_EXECUTE_FAULT
 
 # DuplicateHandle constants
 DUPLICATE_CLOSE_SOURCE      = 0x00000001
@@ -1100,13 +1107,6 @@ class LDT_ENTRY(Structure):
     ]
 
 #--- CONTEXT structure and constants (for x86 only) ---------------------------
-
-# The following values specify the type of access in the first parameter
-# of the exception record whan the exception code specifies an access
-# violation.
-EXCEPTION_READ_FAULT        = 0     # exception caused by a read
-EXCEPTION_WRITE_FAULT       = 1     # exception caused by a write
-EXCEPTION_EXECUTE_FAULT     = 8     # exception caused by an instruction fetch
 
 SIZE_OF_80387_REGISTERS     = 80
 

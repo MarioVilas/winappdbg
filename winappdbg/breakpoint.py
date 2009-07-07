@@ -2966,7 +2966,7 @@ class BreakpointContainer (object):
         @type  event: L{ExceptionEvent}
         @param event: Guard page exception event.
         """
-        address         = event.get_access_violation_address()
+        address         = event.get_fault_address()
         pid             = event.get_pid()
         bCallHandler    = True
 

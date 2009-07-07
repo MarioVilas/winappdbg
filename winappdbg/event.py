@@ -451,15 +451,15 @@ class ExceptionEvent (Event):
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         return [ info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
 
-    def get_access_violation_type(self):
+    def get_fault_type(self):
         """
         @rtype:  int
         @return: Access violation type.
             Should be one of the following constants:
 
-             - L{win32.ACCESS_VIOLATION_TYPE_READ}
-             - L{win32.ACCESS_VIOLATION_TYPE_WRITE}
-             - L{win32.ACCESS_VIOLATION_TYPE_DEP}
+             - L{win32.EXCEPTION_READ_FAULT}
+             - L{win32.EXCEPTION_WRITE_FAULT}
+             - L{win32.EXCEPTION_EXECUTE_FAULT}
 
         @note: This method is only meaningful for access violation exceptions,
             in-page memory error exceptions and guard page exceptions.
@@ -472,7 +472,7 @@ class ExceptionEvent (Event):
             raise NotImplementedError, msg % self.get_exception_name()
         return self.get_exception_information(0)
 
-    def get_access_violation_address(self):
+    def get_fault_address(self):
         """
         @rtype:  int
         @return: Access violation memory address.

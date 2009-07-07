@@ -218,6 +218,7 @@ MAX_PATH            = 260
 # Error codes
 # TODO maybe add more error codes?
 ERROR_SUCCESS               = 0
+ERROR_INVALID_FUNCTION      = 1
 ERROR_FILE_NOT_FOUND        = 2
 ERROR_PATH_NOT_FOUND        = 3
 ERROR_ACCESS_DENIED         = 5

@@ -133,9 +133,9 @@ class Crash (object):
 
         C{None} or invalid if unapplicable or unable to retrieve.
 
-    @type accessViolationType: None or int
-    @ivar accessViolationType: Access violation type.
-        Only applicable to access violations or in-page memory errors.
+    @type faultType: None or int
+    @ivar faultType: Access violation type.
+        Only applicable to memory faults.
         Should be one of the following constants:
 
          - L{win32.ACCESS_VIOLATION_TYPE_READ}
@@ -144,9 +144,9 @@ class Crash (object):
 
         C{None} if unapplicable or unable to retrieve.
 
-    @type accessViolationAddress: None or int
-    @ivar accessViolationAddress: Access violation memory address.
-        Only applicable to access violations or in-page memory errors.
+    @type faultAddress: None or int
+    @ivar faultAddress: Access violation memory address.
+        Only applicable to memory faults.
 
         C{None} if unapplicable or unable to retrieve.
 
@@ -253,27 +253,27 @@ class Crash (object):
         self.labelPC            = process.get_label_at_address(self.pc)
 
         # The following properties are only retrieved for some events.
-        self.registersPeek          = None
-        self.debugString            = None
-        self.exceptionCode          = None
-        self.exceptionName          = None
-        self.exceptionAddress       = None
-        self.accessViolationType    = None
-        self.accessViolationAddress = None
-        self.firstChance            = None
-        self.modFileName            = None
-        self.lpBaseOfDll            = None
-        self.exceptionLabel         = None
-        self.stackLimits            = None
-        self.stackTrace             = None
-        self.stackTracePC           = None
-        self.stackTraceLabels       = None
-        self.stackFrame             = None
-        self.stackPeek              = None
-        self.faultCode              = None
-        self.faultMem               = None
-        self.faultPeek              = None
-        self.faultDisasm            = None
+        self.registersPeek      = None
+        self.debugString        = None
+        self.exceptionCode      = None
+        self.exceptionName      = None
+        self.exceptionAddress   = None
+        self.faultType          = None
+        self.faultAddress       = None
+        self.firstChance        = None
+        self.modFileName        = None
+        self.lpBaseOfDll        = None
+        self.exceptionLabel     = None
+        self.stackLimits        = None
+        self.stackTrace         = None
+        self.stackTracePC       = None
+        self.stackTraceLabels   = None
+        self.stackFrame         = None
+        self.stackPeek          = None
+        self.faultCode          = None
+        self.faultMem           = None
+        self.faultPeek          = None
+        self.faultDisasm        = None
 
         # Get information for debug string events.
         if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
@@ -306,9 +306,10 @@ class Crash (object):
             self.exceptionLabel         = process.get_label_at_address(
                                                          self.exceptionAddress)
             if self.exceptionCode in (win32.EXCEPTION_ACCESS_VIOLATION,
+                                      win32.EXCEPTION_GUARD_PAGE,
                                       win32.EXCEPTION_IN_PAGE_ERROR):
-                self.accessViolationType    = event.get_access_violation_type()
-                self.accessViolationAddress = event.get_access_violation_address()
+                self.faultType    = event.get_fault_type()
+                self.faultAddress = event.get_fault_address()
 
             # Data pointed to by registers.
             self.registersPeek = thread.peek_pointers_in_registers()
@@ -482,21 +483,21 @@ class Crash (object):
             return ("Exploitable", "HeapCorruption", "Heap Corruption has been detected. This is considered exploitable, and must be fixed.")
 
         if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
-            nearNull      = self.accessViolationAddress is None or MemoryAddresses.align_address_to_page_start(self.accessViolationAddress) == win32.NULL
+            nearNull      = self.faultAddress is None or MemoryAddresses.align_address_to_page_start(self.faultAddress) == win32.NULL
             controlFlow   = self.__is_control_flow()
             blockDataMove = self.__is_block_data_move()
-            if self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_DEP:
+            if self.faultType == win32.EXCEPTION_EXECUTE_FAULT:
                 if nearNull:
                     return ("Probably exploitable", "DEPViolation", "User mode DEP access violations are probably exploitable if near NULL.")
                 else:
                     return ("Exploitable", "DEPViolation", "User mode DEP access violations are exploitable.")
-            elif self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_WRITE:
+            elif self.faultType == win32.EXCEPTION_WRITE_FAULT:
                 if nearNull:
                     return ("Probably exploitable", "WriteAV", "User mode write access violations that are near NULL are probably exploitable.")
                 else:
                     return ("Exploitable", "WriteAV", "User mode write access violations that are not near NULL are exploitable.")
-            elif self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_READ:
-                if self.accessViolationAddress == self.pc:
+            elif self.faultType == win32.EXCEPTION_READ_FAULT:
+                if self.faultAddress == self.pc:
                     if nearNull:
                         return ("Probably exploitable", "ReadAVonIP", "Access violations at the instruction pointer are probably exploitable if near NULL.")
                     else:
@@ -519,7 +520,7 @@ class Crash (object):
         result = ("Unknown", "Unknown", "Exploitability unknown.")
 
         if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
-            if self.accessViolationType == win32.ACCESS_VIOLATION_TYPE_READ:
+            if self.faultType == win32.EXCEPTION_READ_FAULT:
                 if nearNull:
                     result = ("Not likely exploitable", "ReadAVNearNull", "This is a user mode read access violation near null, and is probably not exploitable.")
 
