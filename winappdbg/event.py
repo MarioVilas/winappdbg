@@ -837,9 +837,9 @@ class LoadDLLEvent (Event):
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
         # get closed after the first call.
-        if hasattr(self, '_CreateProcessEvent__hFile'):
+        try:
             hFile = self.__hFile
-        else:
+        except AttributeError:
             hFile = self.raw.u.LoadDll.hFile
             if hFile == win32.NULL:
                 hFile = win32.INVALID_HANDLE_VALUE
