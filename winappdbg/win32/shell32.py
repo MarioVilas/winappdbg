@@ -80,7 +80,9 @@ def ShellExecuteA(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
         lpDirectory = NULL
     if not nShowCmd:
         nShowCmd = 0
-    success = ctypes.windll.shell32.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+    ShellExecuteA = ctypes.windll.shell32.ShellExecuteA
+    ShellExecuteA.restype = HINSTANCE
+    success = ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
     if success != 0:
         ctypes.WinError(success)
 def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
@@ -96,6 +98,8 @@ def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
         lpDirectory = NULL
     if not nShowCmd:
         nShowCmd = 0
+    ShellExecuteW = ctypes.windll.shell32.ShellExecuteW
+    ShellExecuteW.restype = HINSTANCE
     success = ctypes.windll.shell32.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
     if success != 0:
         ctypes.WinError(success)

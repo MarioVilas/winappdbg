@@ -397,7 +397,7 @@ class Handle (object):
     def __init__(self, aHandle = None, bOwnership = True):
         """
         @type  aHandle: int
-        @param aHandle: Win32 handle object.
+        @param aHandle: Win32 handle value.
 
         @type  bOwnership: bool
         @param bOwnership:
@@ -405,12 +405,8 @@ class Handle (object):
            C{False} if someone else will be calling L{CloseHandle}.
         """
         super(Handle, self).__init__()
-        if aHandle is not None and type(aHandle) not in (type(0), type(0L)):
-            raise TypeError, "Invalid type for handle value: %s" % type(aHandle)
-        if aHandle == INVALID_HANDLE_VALUE:
-            aHandle = None
-        self.value      = aHandle
-        self.bOwnership = bool(bOwnership)
+        self.value      = self._normalize(aHandle)
+        self.bOwnership = bOwnership
 
     def __del__(self):
         """
@@ -418,7 +414,7 @@ class Handle (object):
         """
         try:
             self.close()
-        except WindowsError:
+        except Exception:
             pass
 
     def __copy__(self):
@@ -439,21 +435,13 @@ class Handle (object):
         """
         return self.dup()
 
-    @classmethod
-    def from_param(cls, value):
-        """
-        Compatibility with ctypes.
-        Allows receiving transparently a Handle object from an API call.
-        """
-        return cls(value)
-
     @property
     def _as_parameter_(self):
         """
         Compatibility with ctypes.
         Allows passing transparently a Handle object to an API call.
         """
-        return long(self.value)
+        return HANDLE(self.value)
 
     def close(self):
         """
@@ -470,8 +458,20 @@ class Handle (object):
         @rtype:  L{Handle}
         @return: A new handle to the same Win32 object.
         """
-        hHandle = DuplicateHandle(self.value)
-        return self.__class__(hHandle, bOwnership = True)
+        return DuplicateHandle(self.value)
+
+    @staticmethod
+    def _normalize(value):
+        """
+        Normalize handle values.
+        """
+        if value is None:
+            value = 0
+        elif hasattr(value, 'value'):
+            value = value.value
+        else:
+            value = long(value)
+        return value
 
     def wait(self, dwMilliseconds = None):
         """
@@ -1605,14 +1605,14 @@ def SetLastErrorEx(dwErrCode, dwType):
 #   __in  HANDLE hObject
 # );
 def CloseHandle(hHandle):
-    if type(hHandle) not in (type(0), type(0L)):
-        if hasattr(hHandle, 'close'):
-            hHandle.close()
-            return
-        raise TypeError, "Invalid handle type: %s" % type(hHandle)
-    success = ctypes.windll.kernel32.CloseHandle(hHandle)
-    if success == FALSE:
-        raise ctypes.WinError()
+    if isinstance(hHandle, Handle):
+        # XXX
+        # I'm not 100% sure this is desireable
+        hHandle.close()
+    else:
+        success = ctypes.windll.kernel32.CloseHandle(hHandle)
+        if success == FALSE:
+            raise ctypes.WinError()
 
 # BOOL WINAPI DuplicateHandle(
 #   __in   HANDLE hSourceProcessHandle,
@@ -1632,17 +1632,7 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         bInheritHandle = TRUE
     else:
         bInheritHandle = FALSE
-    if type(hSourceProcessHandle) not in (type(0), type(0L)):
-        if hasattr(hSourceProcessHandle, 'value'):
-            hSourceProcessHandle = hSourceProcessHandle.value
-        else:
-            raise TypeError, "Invalid handle type: %s" % type(hSourceProcessHandle)
-    if type(hTargetProcessHandle) not in (type(0), type(0L)):
-        if hasattr(hTargetProcessHandle, 'value'):
-            hTargetProcessHandle = hTargetProcessHandle.value
-        else:
-            raise TypeError, "Invalid handle type: %s" % type(hTargetProcessHandle)
-    lpTargetHandle = HANDLE(-1)
+    lpTargetHandle = HANDLE(INVALID_HANDLE_VALUE)
     success = ctypes.windll.kernel32.DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bInheritHandle, dwOptions)
     if success == FALSE:
         raise ctypes.WinError()
@@ -1680,26 +1670,62 @@ def SetDllDirectory(lpPathName):
 # HMODULE WINAPI LoadLibrary(
 #   __in  LPCTSTR lpFileName
 # );
-def LoadLibrary(pszLibrary):
-    return ctypes.windll.kernel32.LoadLibrary(pszLibrary)
+def LoadLibraryA(pszLibrary):
+    LoadLibraryA = ctypes.windll.kernel32.LoadLibraryA
+    LoadLibraryA.restype = HMODULE
+    hModule = LoadLibraryA(pszLibrary)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
+def LoadLibraryW(pszLibrary):
+    LoadLibraryW = ctypes.windll.kernel32.LoadLibraryW
+    LoadLibraryW.restype = HMODULE
+    hModule = LoadLibraryW(pszLibrary)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
+LoadLibrary = GuessStringType(LoadLibraryA, LoadLibraryW)
 
 # HMODULE WINAPI LoadLibraryEx(
 #   __in        LPCTSTR lpFileName,
 #   __reserved  HANDLE hFile,
 #   __in        DWORD dwFlags
 # );
-def LoadLibraryEx(pszLibrary, dwFlags):
-    return ctypes.windll.kernel32.LoadLibraryEx(pszLibrary, NULL, dwFlags)
+def LoadLibraryExA(pszLibrary, dwFlags = 0):
+    LoadLibraryExA = ctypes.windll.kernel32.LoadLibraryExA
+    LoadLibraryExA.restype = HMODULE
+    hModule = LoadLibraryExA(pszLibrary)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
+def LoadLibraryExW(pszLibrary, dwFlags = 0):
+    LoadLibraryExW = ctypes.windll.kernel32.LoadLibraryExW
+    LoadLibraryExW.restype = HMODULE
+    hModule = LoadLibraryExW(pszLibrary)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
+LoadLibraryEx = GuessStringType(LoadLibraryExA, LoadLibraryExW)
 
 # HMODULE WINAPI GetModuleHandle(
 #   __in_opt  LPCTSTR lpModuleName
 # );
 def GetModuleHandleA(lpModuleName):
     lpModuleName = ctypes.c_char_p(lpModuleName)
-    return ctypes.windll.kernel32.GetModuleHandleA(lpModuleName)
+    GetModuleHandleA = ctypes.windll.kernel32.GetModuleHandleA
+    GetModuleHandleA.restype = HMODULE
+    hModule = GetModuleHandleA(lpModuleName)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
 def GetModuleHandleW(lpModuleName):
     lpModuleName = ctypes.c_wchar_p(lpModuleName)
-    return ctypes.windll.kernel32.GetModuleHandleW(lpModuleName)
+    GetModuleHandleW = ctypes.windll.kernel32.GetModuleHandleW
+    GetModuleHandleW.restype = HMODULE
+    hModule = GetModuleHandleW(lpModuleName)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
 GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
 
 # FARPROC WINAPI GetProcAddress(
@@ -1721,8 +1747,11 @@ def GetProcAddress(hModule, lpProcName):
 # BOOL WINAPI FreeLibrary(
 #   __in  HMODULE hModule
 # );
-def FreeLibrary():
-    return ctypes.windll.kernel32.FreeLibrary(hLibrary)
+def FreeLibrary(hModule):
+    hModule = HMODULE(hModule)
+    success = ctypes.windll.kernel32.FreeLibrary(hModule)
+    if success == FALSE:
+        raise ctypes.WinError()
 
 # BOOL WINAPI QueryFullProcessImageName(
 #   __in     HANDLE hProcess,
@@ -1803,7 +1832,9 @@ QueryDosDevice = GuessStringType(QueryDosDeviceA, QueryDosDeviceW)
 #   __in  SIZE_T dwNumberOfBytesToMap
 # );
 def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FILE_MAP_EXECUTE, dwFileOffsetHigh = 0, dwFileOffsetLow = 0, dwNumberOfBytesToMap = 0):
-    lpBaseAddress = ctypes.windll.kernel32.MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
+    MapViewOfFile = ctypes.windll.kernel32.MapViewOfFile
+    MapViewOfFile.restype = LPVOID
+    lpBaseAddress = MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
     if lpBaseAddress == NULL:
         raise ctypes.WinError()
     return lpBaseAddress
@@ -1812,6 +1843,7 @@ def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FI
 #   __in  LPCVOID lpBaseAddress
 # );
 def UnmapViewOfFile(lpBaseAddress):
+    lpBaseAddress = LPVOID(lpBaseAddress)
     success = ctypes.windll.kernel32.UnmapViewOfFile(lpBaseAddress)
     if success == 0:
         raise ctypes.WinError()
@@ -1822,12 +1854,12 @@ def UnmapViewOfFile(lpBaseAddress):
 #   __in  LPCTSTR lpName
 # );
 def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
-    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName)
+    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingA(dwDesiredAccess, bInheritHandle, ctypes.c_char_p(lpName))
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
 def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
-    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName)
+    hFileMappingObject = ctypes.windll.kernel32.OpenFileMappingW(dwDesiredAccess, bInheritHandle, ctypes.c_wchar_p(lpName))
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
@@ -1842,11 +1874,19 @@ OpenFileMapping = GuessStringType(OpenFileMappingA, OpenFileMappingW)
 #   __in_opt  LPCTSTR lpName
 # );
 def CreateFileMappingA(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = NULL):
+    if not lpName:
+        lpName = NULL
+    else:
+        lpName = ctypes.c_char_p(lpName)
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
 def CreateFileMappingW(hFile, lpAttributes = NULL, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = NULL):
+    if not lpName:
+        lpName = NULL
+    else:
+        lpName = ctypes.c_wchar_p(lpName)
     hFileMappingObject = ctypes.windll.kernel32.CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
@@ -1862,12 +1902,28 @@ CreateFileMapping = GuessStringType(CreateFileMappingA, CreateFileMappingW)
 #   __in      DWORD dwFlagsAndAttributes,
 #   __in_opt  HANDLE hTemplateFile
 # );
-def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = NULL, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = NULL):
+def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = None, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = None):
+    if not lpFileName:
+        lpFileName = NULL
+    else:
+        lpFileName = ctypes.c_char_p(lpFileName)
+    if lpSecurityAttributes is None:
+        lpSecurityAttributes = NULL
+    if hTemplateFile is None:
+        hTemplateFile = NULL
     hFile = ctypes.windll.kernel32.CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFile)
 def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = NULL, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = NULL):
+    if not lpFileName:
+        lpFileName = NULL
+    else:
+        lpFileName = ctypes.c_wchar_p(lpFileName)
+    if lpSecurityAttributes is None:
+        lpSecurityAttributes = NULL
+    if hTemplateFile is None:
+        hTemplateFile = NULL
     hFile = ctypes.windll.kernel32.CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
@@ -2092,11 +2148,9 @@ def LocalFree(hMem):
 #   __in  DWORD dwCtrlType
 # );
 try:
-    # under Windows
-    HANDLER_ROUTINE = WINFUNCTYPE(DWORD)
+    HANDLER_ROUTINE = ctypes.WINFUNCTYPE(BOOL, DWORD)
 except Exception:
-    # under Wine
-    HANDLER_ROUTINE = LPVOID
+    HANDLER_ROUTINE = ctypes.CFUNCTYPE(BOOL, DWORD)
 
 # BOOL WINAPI SetConsoleCtrlHandler(
 #   __in_opt  PHANDLER_ROUTINE HandlerRoutine,
@@ -2181,7 +2235,7 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
     nCount          = len(handles)
-    lpHandlesType   = DWORD * nCount
+    lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if bWaitAll:
         bWaitAll    = TRUE
@@ -2211,7 +2265,7 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
     nCount          = len(handles)
-    lpHandlesType   = DWORD * nCount
+    lpHandlesType   = HANDLES * nCount
     lpHandles       = lpHandlesType(*handles)
     if bWaitAll:
         bWaitAll    = TRUE
@@ -2538,6 +2592,7 @@ def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
     nSize                   = len(lpBuffer)
     lpBuffer                = ctypes.create_string_buffer(lpBuffer)
     lpNumberOfBytesWritten  = ctypes.c_uint(0)
+    lpBaseAddress           = LPVOID(lpBaseAddress)
     success = ctypes.windll.kernel32.WriteProcessMemory(hProcess, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesWritten))
     if success == FALSE:
         if GetLastError() != ERROR_PARTIAL_COPY:
@@ -2552,7 +2607,10 @@ def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
 #   __in      DWORD flProtect
 # );
 def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = MEM_COMMIT | MEM_RESERVE, flProtect = PAGE_EXECUTE_READWRITE):
-    lpAddress = ctypes.windll.kernel32.VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
+    VirtualAllocEx = ctypes.windll.kernel32.VirtualAllocEx
+    VirtualAllocEx.restype = LPVOID
+    lpAddress = LPVOID(lpAddress)
+    lpAddress = VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
     if lpAddress == NULL:
         raise ctypes.WinError()
     return lpAddress
@@ -2564,9 +2622,12 @@ def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = 
 #   __in      SIZE_T dwLength
 # );
 def VirtualQueryEx(hProcess, lpAddress):
+    VirtualQueryEx = ctypes.windll.kernel32.VirtualQueryEx
+    VirtualQueryEx.restype = LPVOID
+    lpAddress = LPVOID(lpAddress)
     lpBuffer = MEMORY_BASIC_INFORMATION()
     dwLength = sizeof(MEMORY_BASIC_INFORMATION)
-    success  = ctypes.windll.kernel32.VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
+    success  = VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
     if success == 0:
         raise ctypes.WinError()
     return MemoryBasicInformation(lpBuffer)
@@ -2579,8 +2640,11 @@ def VirtualQueryEx(hProcess, lpAddress):
 #   __out  PDWORD lpflOldProtect
 # );
 def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_READWRITE):
+    VirtualProtectEx = ctypes.windll.kernel32.VirtualProtectEx
+    VirtualProtectEx.restype = LPVOID
+    lpAddress = LPVOID(lpAddress)
     flOldProtect = DWORD(0)
-    success = ctypes.windll.kernel32.VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
+    success = VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
     if success == FALSE:
         raise ctypes.WinError()
     return flOldProtect.value
@@ -2592,6 +2656,7 @@ def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_RE
 #   __in  DWORD dwFreeType
 # );
 def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
+    lpAddress = LPVOID(lpAddress)
     success = ctypes.windll.kernel32.VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
     if success == FALSE:
         raise ctypes.WinError()
@@ -2622,6 +2687,8 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
         lpThreadAttributes = ctypes.byref(lpThreadAttributes)
     else:
         lpThreadAttributes = NULL
+    lpStartAddress = LPVOID(lpStartAddress)
+    lpParameter = LPVOID(lpParameter)
     dwThreadId = DWORD(0)
     hThread = ctypes.windll.kernel32.CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
     if hThread == INVALID_HANDLE_VALUE:
@@ -2629,12 +2696,26 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
     return ThreadHandle(hThread), dwThreadId.value
 
 # HANDLE WINAPI GetCurrentProcess(void);
-def GetCurrentProcess():
-    return ctypes.windll.kernel32.GetCurrentProcess()
+try:
+    GetCurrentProcess           = ctypes.windll.kernel32.GetCurrentProcess
+    GetCurrentProcess.argtypes  = []
+    GetCurrentProcess.restype   = HANDLE
+except AttributeError:
+    def GetCurrentProcess():
+        GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
+        GetCurrentProcess.restype = HANDLE
+        return GetCurrentProcess()
 
 # HANDLE WINAPI GetCurrentThread(void);
-def GetCurrentThread():
-    return ctypes.windll.kernel32.GetCurrentThread()
+try:
+    GetCurrentThread            = ctypes.windll.kernel32.GetCurrentThread
+    GetCurrentThread.argtypes   = []
+    GetCurrentThread.restype    = HANDLE
+except AttributeError:
+    def GetCurrentThread():
+        GetCurrentThread = ctypes.windll.kernel32.GetCurrentThread
+        GetCurrentThread.restype = HANDLE
+        return GetCurrentThread()
 
 # DWORD WINAPI GetProcessId(
 #   __in  HANDLE hProcess
@@ -2741,22 +2822,30 @@ def SetProcessPriorityBoost(hProcess, DisablePriorityBoost):
 #   __out  PDWORD_PTR lpProcessAffinityMask,
 #   __out  PDWORD_PTR lpSystemAffinityMask
 # );
-
-# TO DO http://msdn.microsoft.com/en-us/library/ms683213(VS.85).aspx
+def GetProcessAffinityMask(hProcess):
+    lpProcessAffinityMask = DWORD_PTR(0)
+    lpSystemAffinityMask  = DWORD_PTR(0)
+    success = ctypes.windll.kernel32.GetProcessAffinityMask(hProcess, ctypes.byref(lpProcessAffinityMask), ctypes.byref(lpSystemAffinityMask))
+    if success == FALSE:
+        raise ctypes.WinError()
+    return lpProcessAffinityMask.value, lpSystemAffinityMask.value
 
 # BOOL WINAPI SetProcessAffinityMask(
 #   __in  HANDLE hProcess,
 #   __in  DWORD_PTR dwProcessAffinityMask
 # );
-
-# TO DO http://msdn.microsoft.com/en-us/library/ms686223(VS.85).aspx
+def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
+    dwProcessAffinityMask = DWORD_PTR(dwProcessAffinityMask)
+    success = ctypes.windll.kernel32.SetProcessAffinityMask(hProcess, dwProcessAffinityMask)
+    if success == FALSE:
+        raise ctypes.WinError()
 
 # BOOL CheckRemoteDebuggerPresent(
 #   HANDLE hProcess,
 #   PBOOL pbDebuggerPresent
 # );
 def CheckRemoteDebuggerPresent(hProcess):
-    pbDebuggerPresent = DWORD(0)
+    pbDebuggerPresent = BOOL(0)
     success = ctypes.windll.kernel32.CheckRemoteDebuggerPresent(hProcess, ctypes.byref(pbDebuggerPresent))
     if success == FALSE:
         raise ctypes.WinError()
@@ -2810,7 +2899,9 @@ def SetThreadContext(hThread, lpContext):
 #   __in  DWORD th32ProcessID
 # );
 def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
-    hSnapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
+    CreateToolhelp32Snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot
+    CreateToolhelp32Snapshot.restype = HANDLE
+    hSnapshot = CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
     if hSnapshot == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hSnapshot)
@@ -2966,6 +3057,7 @@ def Heap32ListNext(hSnapshot, hl = None):
 #   __out  SIZE_T lpNumberOfBytesRead
 # );
 def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, nSize):
+    lpBaseAddress           = LPVOID(lpBaseAddress)
     lpBuffer                = ctypes.create_string_buffer('', nSize)
     lpNumberOfBytesRead     = ctypes.c_uint(0)
     success = ctypes.windll.kernel32.Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesRead))
