@@ -35,178 +35,6 @@ __revision__ = "$Id$"
 
 from defines import *
 
-#--- Handle wrappers ----------------------------------------------------------
-
-class Handle (object):
-    """
-    Encapsulates Win32 handles to avoid leaking them.
-
-    @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
-    """
-
-    def __init__(self, aHandle = None, bOwnership = True):
-        """
-        @type  aHandle: int
-        @param aHandle: Win32 handle object.
-
-        @type  bOwnership: bool
-        @param bOwnership:
-           C{True} if we own the handle and we need to close it.
-           C{False} if someone else will be calling L{CloseHandle}.
-        """
-        super(Handle, self).__init__()
-        if aHandle is not None and type(aHandle) not in (type(0), type(0L)):
-            raise TypeError, "Invalid type for handle value: %s" % type(aHandle)
-        if aHandle == INVALID_HANDLE_VALUE:
-            aHandle = None
-        self.value      = aHandle
-        self.bOwnership = bool(bOwnership)
-
-    def __del__(self):
-        """
-        Closes the Win32 handle when the Python object is destroyed.
-        """
-        try:
-            self.close()
-        except WindowsError:
-            pass
-
-    def __copy__(self):
-        """
-        Duplicates the Win32 handle when copying the Python object.
-
-        @rtype:  L{Handle}
-        @return: A new handle to the same Win32 object.
-        """
-        return self.dup()
-
-    def __deepcopy__(self):
-        """
-        Duplicates the Win32 handle when copying the Python object.
-
-        @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
-        """
-        return self.dup()
-
-    @classmethod
-    def from_param(cls, value):
-        """
-        Compatibility with ctypes.
-        Allows receiving transparently a Handle object from an API call.
-        """
-        return cls(value)
-
-    @property
-    def _as_parameter_(self):
-        """
-        Compatibility with ctypes.
-        Allows passing transparently a Handle object to an API call.
-        """
-        return long(self.value)
-
-    def close(self):
-        """
-        Closes the Win32 handle.
-        """
-        if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
-            try:
-                CloseHandle(self.value)
-            finally:
-                self.value = None
-
-    def dup(self):
-        """
-        @rtype:  L{Handle}
-        @return: A new handle to the same Win32 object.
-        """
-        hHandle = DuplicateHandle(self.value)
-        return self.__class__(hHandle, bOwnership = True)
-
-    def wait(self, dwMilliseconds = None):
-        """
-        Wait for the Win32 object to be signaled.
-
-        @type  dwMilliseconds: int
-        @param dwMilliseconds: (Optional) Timeout value in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
-        """
-        if dwMilliseconds is None:
-            dwMilliseconds = INFINITE
-        r = WaitForSingleObject(self.value, dwMilliseconds)
-        if r != WAIT_OBJECT_0:
-            raise ctypes.WinError(r)
-
-class ProcessHandle (Handle):
-    """
-    Win32 process handle.
-
-    @see: L{Handle}
-    """
-
-    def get_pid(self):
-        """
-        @rtype:  int
-        @return: Process global ID.
-        """
-        return GetProcessId(self.value)
-
-class ThreadHandle (Handle):
-    """
-    Win32 thread handle.
-
-    @see: L{Handle}
-    """
-
-    def get_tid(self):
-        """
-        @rtype:  int
-        @return: Thread global ID.
-        """
-        return GetThreadId(self.value)
-
-# TODO
-# maybe add file mapping support here?
-class FileHandle (Handle):
-    """
-    Win32 file handle.
-
-    @see: L{Handle}
-    """
-
-    def get_filename(self):
-        """
-        @rtype:  None or str
-        @return: Name of the open file, or C{None} on error.
-        """
-
-        # XXX TO DO update wrapper to avoid using ctypes objects
-        dwBufferSize      = 0x1004
-        lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
-        try:
-            GetFileInformationByHandleEx(self.value,
-                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
-                                         lpFileInformation, dwBufferSize)
-        except AttributeError:
-            return None
-        FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
-        FileName = str(lpFileInformation.raw[4:FileNameLength+4])
-        FileName = FileName.replace('\x00', '')
-        if FileName:
-            return FileName
-        return None
-
-class ProcessInformation (object):
-    """
-    Process information object returned by L{CreateProcess}.
-    """
-
-    def __init__(self, pi):
-        self.hProcess    = ProcessHandle(pi.hProcess)
-        self.hThread     = ThreadHandle(pi.hThread)
-        self.dwProcessId = pi.dwProcessId
-        self.dwThreadId  = pi.dwThreadId
-
 #--- Constants ----------------------------------------------------------------
 
 STILL_ACTIVE = 259
@@ -557,6 +385,262 @@ ACCESS_VIOLATION_TYPE_DEP       = EXCEPTION_EXECUTE_FAULT
 DUPLICATE_CLOSE_SOURCE      = 0x00000001
 DUPLICATE_SAME_ACCESS       = 0x00000002
 
+#--- Handle wrappers ----------------------------------------------------------
+
+class Handle (object):
+    """
+    Encapsulates Win32 handles to avoid leaking them.
+
+    @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
+    """
+
+    def __init__(self, aHandle = None, bOwnership = True):
+        """
+        @type  aHandle: int
+        @param aHandle: Win32 handle object.
+
+        @type  bOwnership: bool
+        @param bOwnership:
+           C{True} if we own the handle and we need to close it.
+           C{False} if someone else will be calling L{CloseHandle}.
+        """
+        super(Handle, self).__init__()
+        if aHandle is not None and type(aHandle) not in (type(0), type(0L)):
+            raise TypeError, "Invalid type for handle value: %s" % type(aHandle)
+        if aHandle == INVALID_HANDLE_VALUE:
+            aHandle = None
+        self.value      = aHandle
+        self.bOwnership = bool(bOwnership)
+
+    def __del__(self):
+        """
+        Closes the Win32 handle when the Python object is destroyed.
+        """
+        try:
+            self.close()
+        except WindowsError:
+            pass
+
+    def __copy__(self):
+        """
+        Duplicates the Win32 handle when copying the Python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same Win32 object.
+        """
+        return self.dup()
+
+    def __deepcopy__(self):
+        """
+        Duplicates the Win32 handle when copying the Python object.
+
+        @rtype:  L{Handle}
+        @return: A new handle to the same win32 object.
+        """
+        return self.dup()
+
+    @classmethod
+    def from_param(cls, value):
+        """
+        Compatibility with ctypes.
+        Allows receiving transparently a Handle object from an API call.
+        """
+        return cls(value)
+
+    @property
+    def _as_parameter_(self):
+        """
+        Compatibility with ctypes.
+        Allows passing transparently a Handle object to an API call.
+        """
+        return long(self.value)
+
+    def close(self):
+        """
+        Closes the Win32 handle.
+        """
+        if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
+            try:
+                CloseHandle(self.value)
+            finally:
+                self.value = None
+
+    def dup(self):
+        """
+        @rtype:  L{Handle}
+        @return: A new handle to the same Win32 object.
+        """
+        hHandle = DuplicateHandle(self.value)
+        return self.__class__(hHandle, bOwnership = True)
+
+    def wait(self, dwMilliseconds = None):
+        """
+        Wait for the Win32 object to be signaled.
+
+        @type  dwMilliseconds: int
+        @param dwMilliseconds: (Optional) Timeout value in milliseconds.
+            Use C{INFINITE} or C{None} for no timeout.
+        """
+        if dwMilliseconds is None:
+            dwMilliseconds = INFINITE
+        r = WaitForSingleObject(self.value, dwMilliseconds)
+        if r != WAIT_OBJECT_0:
+            raise ctypes.WinError(r)
+
+class ProcessHandle (Handle):
+    """
+    Win32 process handle.
+
+    @see: L{Handle}
+    """
+
+    def get_pid(self):
+        """
+        @rtype:  int
+        @return: Process global ID.
+        """
+        return GetProcessId(self.value)
+
+class ThreadHandle (Handle):
+    """
+    Win32 thread handle.
+
+    @see: L{Handle}
+    """
+
+    def get_tid(self):
+        """
+        @rtype:  int
+        @return: Thread global ID.
+        """
+        return GetThreadId(self.value)
+
+# TODO
+# maybe add file mapping support here?
+class FileHandle (Handle):
+    """
+    Win32 file handle.
+
+    @see: L{Handle}
+    """
+
+    def get_filename(self):
+        """
+        @rtype:  None or str
+        @return: Name of the open file, or C{None} on error.
+        """
+
+        # XXX TO DO update wrapper to avoid using ctypes objects
+        dwBufferSize      = 0x1004
+        lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
+        try:
+            GetFileInformationByHandleEx(self.value,
+                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
+                                         lpFileInformation, dwBufferSize)
+        except AttributeError:
+            return None
+        FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
+        FileName = str(lpFileInformation.raw[4:FileNameLength+4])
+        FileName = FileName.replace('\x00', '')
+        if FileName:
+            return FileName
+        return None
+
+#--- Structure wrappers -------------------------------------------------------
+
+class ProcessInformation (object):
+    """
+    Process information object returned by L{CreateProcess}.
+    """
+
+    def __init__(self, pi):
+        self.hProcess    = ProcessHandle(pi.hProcess)
+        self.hThread     = ThreadHandle(pi.hThread)
+        self.dwProcessId = pi.dwProcessId
+        self.dwThreadId  = pi.dwThreadId
+
+class MemoryBasicInformation (object):
+    """
+    Memory information object returned by L{VirtualQueryEx}.
+    """
+
+    READABLE = (
+                PAGE_EXECUTE_READ       |
+                PAGE_EXECUTE_READWRITE  |
+                PAGE_EXECUTE_WRITECOPY  |
+                PAGE_READONLY           |
+                PAGE_READWRITE          |
+                PAGE_WRITECOPY
+    )
+
+    WRITEABLE = (
+                PAGE_EXECUTE_READWRITE  |
+                PAGE_EXECUTE_WRITECOPY  |
+                PAGE_READWRITE          |
+                PAGE_WRITECOPY
+    )
+
+    COPY_ON_WRITE = (
+                PAGE_EXECUTE_WRITECOPY  |
+                PAGE_WRITECOPY
+    )
+
+    EXECUTABLE = (
+                PAGE_EXECUTE            |
+                PAGE_EXECUTE_READ       |
+                PAGE_EXECUTE_READWRITE  |
+                PAGE_EXECUTE_WRITECOPY
+    )
+
+    EXECUTABLE_AND_WRITEABLE = (
+                PAGE_EXECUTE_READWRITE  |
+                PAGE_EXECUTE_WRITECOPY
+    )
+
+    def __init__(self, mbi):
+        self.BaseAddress        = mbi.BaseAddress.value
+        self.AllocationBase     = mbi.AllocationBase.value
+        self.AllocationProtect  = mbi.AllocationProtect
+        self.RegionSize         = mbi.RegionSize
+        self.State              = mbi.State
+        self.Protect            = mbi.Protect
+        self.Type               = mbi.Type
+
+        if not self.BaseAddress:
+            self.BaseAddress    = 0
+        if not self.AllocationBase:
+            self.AllocationBase = 0
+
+    def is_free(self):
+        return self.State == MEM_FREE
+
+    def is_reserved(self):
+        return self.State == MEM_RESERVED
+
+    def is_commited(self):
+        return self.State == MEM_COMMIT
+
+    def is_guard(self):
+        return self.is_commited() and self.Protect & PAGE_GUARD
+
+    def has_content(self):
+        return self.is_commited() and not self.Protect & (PAGE_GUARD | PAGE_NOACCESS)
+
+    def is_readable(self):
+        return self.has_content() and self.Protect & self.READABLE
+
+    def is_writeable(self):
+        return self.has_content() and self.Protect & self.WRITEABLE
+
+    def is_copy_on_write(self):
+        return self.has_content() and self.Protect & self.COPY_ON_WRITE
+
+    def is_executable(self):
+        return self.has_content() and self.Protect & self.EXECUTABLE
+
+    def is_executable_and_writeable(self):
+        return self.has_content() and self.Protect & self.EXECUTABLE_AND_WRITEABLE
+
 #--- SECURITY_ATTRIBUTES structure --------------------------------------------
 
 # typedef struct _SECURITY_ATTRIBUTES {
@@ -684,8 +768,8 @@ class SYSTEM_INFO(Structure):
 class MEMORY_BASIC_INFORMATION(Structure):
     _pack_ = 1
     _fields_ = [
-        ('BaseAddress',         DWORD),     # remote pointer
-        ('AllocationBase',      DWORD),     # remote pointer
+        ('BaseAddress',         LPVOID),    # remote pointer
+        ('AllocationBase',      LPVOID),    # remote pointer
         ('AllocationProtect',   DWORD),
         ('RegionSize',          DWORD),
         ('State',               DWORD),
@@ -1106,6 +1190,9 @@ class LDT_ENTRY(Structure):
         ('HighWord',        _LDT_ENTRY_HIGHWORD_),
     ]
 
+class WOW64_LDT_ENTRY (LDT_ENTRY):
+    pass
+
 #--- CONTEXT structure and constants (for x86 only) ---------------------------
 
 SIZE_OF_80387_REGISTERS     = 80
@@ -1127,6 +1214,25 @@ CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | \
                 CONTEXT_EXTENDED_REGISTERS)
 
 MAXIMUM_SUPPORTED_EXTENSION = 512
+
+# Value of SegCs in a Wow64 thread when running in 32 bits mode
+WOW64_CS32 = 0x23
+
+WOW64_CONTEXT_i386 = 0x00010000L
+WOW64_CONTEXT_i486 = 0x00010000L
+
+WOW64_CONTEXT_CONTROL               = (WOW64_CONTEXT_i386 | 0x00000001L)
+WOW64_CONTEXT_INTEGER               = (WOW64_CONTEXT_i386 | 0x00000002L)
+WOW64_CONTEXT_SEGMENTS              = (WOW64_CONTEXT_i386 | 0x00000004L)
+WOW64_CONTEXT_FLOATING_POINT        = (WOW64_CONTEXT_i386 | 0x00000008L)
+WOW64_CONTEXT_DEBUG_REGISTERS       = (WOW64_CONTEXT_i386 | 0x00000010L)
+WOW64_CONTEXT_EXTENDED_REGISTERS    = (WOW64_CONTEXT_i386 | 0x00000020L)
+
+WOW64_CONTEXT_FULL                  = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INTEGER | WOW64_CONTEXT_SEGMENTS)
+WOW64_CONTEXT_ALL                   = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INTEGER | WOW64_CONTEXT_SEGMENTS | WOW64_CONTEXT_FLOATING_POINT | WOW64_CONTEXT_DEBUG_REGISTERS | WOW64_CONTEXT_EXTENDED_REGISTERS)
+
+WOW64_SIZE_OF_80387_REGISTERS       = 80
+WOW64_MAXIMUM_SUPPORTED_EXTENSION   = 512
 
 # typedef struct _FLOATING_SAVE_AREA {
 #     DWORD   ControlWord;
@@ -1346,6 +1452,14 @@ class CONTEXT(Structure):
         return ctx
 
 PCONTEXT = POINTER(CONTEXT)
+
+class WOW64_FLOATING_SAVE_AREA (FLOATING_SAVE_AREA):
+    pass
+
+class WOW64_CONTEXT (CONTEXT):
+    pass
+
+PWOW64_CONTEXT = POINTER(WOW64_CONTEXT)
 
 #--- Toolhelp library defines and structures ----------------------------------
 
@@ -2455,7 +2569,7 @@ def VirtualQueryEx(hProcess, lpAddress):
     success  = ctypes.windll.kernel32.VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
     if success == 0:
         raise ctypes.WinError()
-    return lpBuffer
+    return MemoryBasicInformation(lpBuffer)
 
 # BOOL WINAPI VirtualProtectEx(
 #   __in   HANDLE hProcess,
@@ -2929,6 +3043,9 @@ def GetNativeSystemInfo():
     ctypes.windll.kernel32.GetNativeSystemInfo(ctypes.byref(sysinfo))
     return sysinfo
 
+#------------------------------------------------------------------------------
+# Wow64
+
 # BOOL WINAPI IsWow64Process(
 #   __in   HANDLE hProcess,
 #   __out  PBOOL Wow64Process
@@ -2939,6 +3056,53 @@ def IsWow64Process(hProcess):
     if success == FALSE:
         raise ctypes.WinError()
     return Wow64Process
+
+# BOOL Wow64GetThreadSelectorEntry(
+#   __in   HANDLE hThread,
+#   __in   DWORD dwSelector,
+#   __out  PWOW64_LDT_ENTRY lpSelectorEntry
+# );
+def Wow64GetThreadSelectorEntry(hThread, dwSelector):
+    lpSelectorEntry = WOW64_LDT_ENTRY()
+    success = ctypes.windll.kernel32.Wow64GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(lpSelectorEntry))
+    if success == FALSE:
+        raise ctypes.WinError() # ERROR_NOT_SUPPORTED means we have to call GetThreadSelectorEntry
+    return lpSelectorEntry
+
+# DWORD WINAPI Wow64SuspendThread(
+#   __in  HANDLE hThread
+# );
+def Wow64SuspendThread(hThread):
+    success = ctypes.windll.kernel32.Wow64SuspendThread(hThread)
+    if success == FALSE:
+        raise ctypes.WinError() # ERROR_INVALID_FUNCTION means we have to call SuspendThread
+
+# XXX TODO Use this http://www.nynaeve.net/Code/GetThreadWow64Context.cpp
+# Also see http://www.woodmann.com/forum/archive/index.php/t-11162.html
+
+# BOOL WINAPI Wow64GetThreadContext(
+#   __in     HANDLE hThread,
+#   __inout  PWOW64_CONTEXT lpContext
+# );
+def Wow64GetThreadContext(hThread, lpContext = None):
+    if lpContext is None:
+        lpContext = WOW64_CONTEXT()
+        lpContext.ContextFlags = WOW64_CONTEXT_ALL
+    success = ctypes.windll.kernel32.Wow64GetThreadContext(hThread, ctypes.byref(lpContext))
+    if success == FALSE:
+        raise ctypes.WinError() # ERROR_INVALID_FUNCTION means we have to call GetThreadContext
+    return lpContext.to_dict()
+
+# BOOL WINAPI Wow64SetThreadContext(
+#   __in  HANDLE hThread,
+#   __in  const WOW64_CONTEXT *lpContext
+# );
+def Wow64SetThreadContext(hThread, lpContext):
+    if isinstance(lpContext, dict):
+        lpContext = WOW64_CONTEXT.from_dict(lpContext)
+    success = ctypes.windll.kernel32.Wow64SetThreadContext(hThread, ctypes.byref(lpContext))
+    if success == FALSE:
+        raise ctypes.WinError() # ERROR_INVALID_FUNCTION means we have to call SetThreadContext
 
 #==============================================================================
 # Mark functions that Psyco cannot compile.

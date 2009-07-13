@@ -942,10 +942,11 @@ class MemoryOperations (object):
     Encapsulates the capabilities to manipulate the memory of a process.
 
     @group Memory mapping:
-        get_memory_map, malloc, free, mprotect, mquery,
+        get_memory_map, malloc, free, mprotect, mquery, is_pointer,
         is_address_valid, is_address_free, is_address_reserved,
-        is_address_commited, is_address_readable, is_address_writeable,
-        is_address_executable, is_address_executable_and_writeable
+        is_address_commited, is_address_guard, is_address_readable,
+        is_address_writeable, is_address_copy_on_write, is_address_executable,
+        is_address_executable_and_writeable
 
     @group Memory read:
         read, read_char, read_uint, read_structure,
@@ -1355,14 +1356,14 @@ class MemoryOperations (object):
     def mquery(self, lpAddress):
         """
         Query memory information from the address space of the process.
-        Returns a L{MEMORY_BASIC_INFORMATION} structure.
+        Returns a L{win32.MemoryBasicInformation} object.
 
         @see: U{http://msdn.microsoft.com/en-us/library/aa366907(VS.85).aspx}
 
         @type  lpAddress: int
         @param lpAddress: Address of memory to query.
 
-        @rtype:  L{MEMORY_BASIC_INFORMATION}
+        @rtype:  L{win32.MemoryBasicInformation}
         @return: Memory region information.
 
         @raise WindowsError: On error an exception is raised.
@@ -1388,6 +1389,29 @@ class MemoryOperations (object):
         return bool(success)
 
 #------------------------------------------------------------------------------
+
+    def is_pointer(self, address):
+        """
+        Determines if an address is a valid code or data pointer.
+
+        That is, the address must be valid and must point to code or data in
+        the target process.
+
+        @type  address: int
+        @param address: Memory address to query.
+
+        @rtype:  bool
+        @return: C{True} if the address is a valid code or data pointer.
+
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.has_content()
 
     def is_address_valid(self, address):
         """
@@ -1429,7 +1453,7 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        return mbi.State == win32.MEM_FREE
+        return mbi.is_free()
 
     def is_address_reserved(self, address):
         """
@@ -1451,7 +1475,7 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        return mbi.State == win32.MEM_RESERVE
+        return mbi.is_reserved()
 
     def is_address_commited(self, address):
         """
@@ -1473,7 +1497,29 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        return mbi.State == win32.MEM_COMMIT
+        return mbi.is_commited()
+
+    def is_address_guard(self, address):
+        """
+        Determines if an address belongs to a guard page.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @type  address: int
+        @param address: Memory address to query.
+
+        @rtype:  bool
+        @return: C{True} if the address belongs to a guard page.
+
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.is_guard()
 
     def is_address_readable(self, address):
         """
@@ -1497,17 +1543,7 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-                Protect & win32.PAGE_EXECUTE_READ       or \
-                Protect & win32.PAGE_EXECUTE_READWRITE  or \
-                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
-                Protect & win32.PAGE_READONLY           or \
-                Protect & win32.PAGE_READWRITE          or \
-                Protect & win32.PAGE_WRITECOPY
-            )
+        return mbi.is_readable()
 
     def is_address_writeable(self, address):
         """
@@ -1531,15 +1567,31 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-                Protect & win32.PAGE_EXECUTE_READWRITE  or \
-                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
-                Protect & win32.PAGE_READWRITE          or \
-                Protect & win32.PAGE_WRITECOPY
-            )
+        return mbi.is_writeable()
+
+    def is_address_copy_on_write(self, address):
+        """
+        Determines if an address belongs to a commited, copy-on-write page.
+        The page may or may not have additional permissions.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @type  address: int
+        @param address: Memory address to query.
+
+        @rtype:  bool
+        @return:
+            C{True} if the address belongs to a commited, copy-on-write page.
+
+        @raise WindowsError: An exception is raised on error.
+        """
+        try:
+            mbi = self.mquery(address)
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                return False
+            raise
+        return mbi.is_copy_on_write()
 
     def is_address_executable(self, address):
         """
@@ -1563,15 +1615,7 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-                Protect & win32.PAGE_EXECUTE            or \
-                Protect & win32.PAGE_EXECUTE_READ       or \
-                Protect & win32.PAGE_EXECUTE_READWRITE  or \
-                Protect & win32.PAGE_EXECUTE_WRITECOPY
-            )
+        return mbi.is_executable()
 
     def is_address_executable_and_writeable(self, address):
         """
@@ -1599,13 +1643,7 @@ class MemoryOperations (object):
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-                Protect & win32.PAGE_EXECUTE_READWRITE  or \
-                Protect & win32.PAGE_EXECUTE_WRITECOPY
-            )
+        return mbi.is_executable_and_writeable()
 
     def get_memory_map(self, minAddr = 0, maxAddr = 0x100000000):
         """

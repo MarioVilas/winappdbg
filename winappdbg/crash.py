@@ -439,12 +439,12 @@ class Crash (object):
         @return: The first element of the tuple is the result of the analysis,
             being one of the following:
 
-                * Not an exception
-                * Not exploitable
-                * Not likely exploitable
-                * Unknown
-                * Probably exploitable
-                * Exploitable
+             - Not an exception
+             - Not exploitable
+             - Not likely exploitable
+             - Unknown
+             - Probably exploitable
+             - Exploitable
 
             The second element of the tuple is a code to identify the matched
             heuristic rule.
