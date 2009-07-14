@@ -260,7 +260,7 @@ class __WindowEnumerator (object):
     def __init__(self):
         self.hwnd = list()
     def __call__(self, hwnd, lParam):
-        self.hwnd.append(hwnd)
+        self.hwnd.append(hwnd.value)
         return TRUE
 
 WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
@@ -271,19 +271,25 @@ WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
 # );
 def FindWindowA(lpClassName = None, lpWindowName = None):
     if not lpClassName:
-        lpClassName = NULL
+        lpClassName = LPVOID(NULL)
     if not lpWindowName:
-        lpWindowName = NULL
-    hWnd = ctypes.windll.user32.FindWindowA(lpClassName, lpWindowName)
+        lpWindowName = LPVOID(NULL)
+    FindWindowA = ctypes.windll.user32.FindWindowA
+    FindWindowA.restype = HWND
+    hWnd = FindWindowA(lpClassName, lpWindowName)
+    hWnd = hWnd.value
     if hWnd == NULL:
         raise ctypes.WinError()
     return hWnd
 def FindWindowW(lpClassName = None, lpWindowName = None):
     if not lpClassName:
-        lpClassName = NULL
+        lpClassName = LPVOID(NULL)
     if not lpWindowName:
-        lpWindowName = NULL
+        lpWindowName = LPVOID(NULL)
+    FindWindowW = ctypes.windll.user32.FindWindowW
+    FindWindowW.restype = HWND
     hWnd = ctypes.windll.user32.FindWindowW(lpClassName, lpWindowName)
+    hWnd = hWnd.value
     if hWnd == NULL:
         raise ctypes.WinError()
     return hWnd
@@ -297,6 +303,7 @@ FindWindow = GuessStringType(FindWindowA, FindWindowW)
 def GetClassNameA(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(CHAR)
+    hWnd = HWND(hWnd)
     while 1:
         lpClassName = ctypes.create_string_buffer("", nMaxCount)
         nCount = ctypes.windll.user32.GetClassNameA(hWnd, ctypes.byref(lpClassName), nMaxCount)
@@ -309,6 +316,7 @@ def GetClassNameA(hWnd):
 def GetClassNameW(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(WCHAR)
+    hWnd = HWND(hWnd)
     while 1:
         lpClassName = ctypes.create_unicode_buffer(u"", nMaxCount)
         nCount = ctypes.windll.user32.GetClassNameW(hWnd, ctypes.byref(lpClassName), nMaxCount)
@@ -325,8 +333,10 @@ GetClassName = GuessStringType(GetClassNameA, GetClassNameW)
 #     int nIndex
 # );
 def GetWindowLongA(hWnd, nIndex = 0):
+    hWnd = HWND(hWnd)
     return ctypes.windll.user32.GetWindowLongA(hWnd, nIndex)
 def GetWindowLongW(hWnd, nIndex = 0):
+    hWnd = HWND(hWnd)
     return ctypes.windll.user32.GetWindowLongW(hWnd, nIndex)
 GetWindowLong = GuessStringType(GetWindowLongA, GetWindowLongW)
 
@@ -336,6 +346,7 @@ GetWindowLong = GuessStringType(GetWindowLongA, GetWindowLongW)
 # );
 def GetWindowThreadProcessId(hWnd):
     dwProcessId = DWORD(0)
+    hWnd = HWND(hWnd)
     dwThreadId = ctypes.windll.user32.GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
     if dwThreadId == 0:
         raise ctypes.WinError()
@@ -345,7 +356,11 @@ def GetWindowThreadProcessId(hWnd):
 #       HWND hWnd
 # );
 def GetParent(hWnd):
-    hWndParent = ctypes.windll.user32.GetParent(hWnd)
+    hWnd = HWND(hWnd)
+    GetParent = ctypes.windll.user32.GetParent
+    GetParent.restype = HWND
+    hWndParent = GetParent(hWnd)
+    hWndParent = hWndParent.value
     if hWndParent == NULL:
         winerr = GetLastError()
         if winerr != ERROR_SUCCESS:
@@ -361,6 +376,7 @@ def EnableWindow(hWnd, bEnable = True):
         bEnable = TRUE
     else:
         bEnable = FALSE
+    hWnd = HWND(hWnd)
     success = ctypes.windll.user32.EnableWindow(hWnd, bEnable)
     if success == FALSE:
         raise ctypes.WinError()
@@ -370,6 +386,7 @@ def EnableWindow(hWnd, bEnable = True):
 #     int nCmdShow
 # );
 def ShowWindow(hWnd, nCmdShow = SW_SHOW):
+    hWnd = HWND(hWnd)
     success = ctypes.windll.user32.ShowWindow(hWnd, nCmdShow)
     if success == FALSE:
         raise ctypes.WinError()
@@ -379,6 +396,7 @@ def ShowWindow(hWnd, nCmdShow = SW_SHOW):
 #     int nCmdShow
 # );
 def ShowWindowAsync(hWnd, nCmdShow = SW_SHOW):
+    hWnd = HWND(hWnd)
     success = ctypes.windll.user32.ShowWindowAsync(hWnd, nCmdShow)
     if success == FALSE:
         raise ctypes.WinError()
@@ -391,14 +409,13 @@ class __EnumWndProc (__WindowEnumerator):
     pass
 
 # BOOL EnumWindows(
-#     DWORD dwThreadId,
 #     WNDENUMPROC lpEnumFunc,
 #     LPARAM lParam
 # );
 def EnumWindows():
     EnumFunc = __EnumWndProc()
     lpEnumFunc = WNDENUMPROC(EnumFunc)
-    success = ctypes.windll.user32.EnumWindows(lpEnumFunc, 0)
+    success = ctypes.windll.user32.EnumWindows(lpEnumFunc, LPARAM(0))
     if success == FALSE:
         errcode = GetLastError()
         if errcode != ERROR_NO_MORE_FILES:
@@ -420,7 +437,7 @@ class __EnumThreadWndProc (__WindowEnumerator):
 def EnumThreadWindows(dwThreadId):
     fn = __EnumThreadWndProc()
     lpfn = WNDENUMPROC(fn)
-    success = ctypes.windll.user32.EnumThreadWindows(dwThreadId, lpfn, 0)
+    success = ctypes.windll.user32.EnumThreadWindows(dwThreadId, lpfn, LPARAM(0))
     if success == FALSE:
         errcode = GetLastError()
         if errcode != ERROR_NO_MORE_FILES:
@@ -442,14 +459,15 @@ class __EnumChildProc (__WindowEnumerator):
 def EnumChildWindows(hWndParent = NULL):
     EnumFunc = __EnumChildProc()
     lpEnumFunc = WNDENUMPROC(EnumFunc)
-    success = ctypes.windll.user32.EnumChildWindows(hWndParent, lpEnumFunc, 0)
+    hWndParent = HWND(hWndParent)
+    success = ctypes.windll.user32.EnumChildWindows(hWndParent, lpEnumFunc, LPARAM(0))
 ##    if success == FALSE:
 ##        errcode = GetLastError()
 ##        if errcode != ERROR_NO_MORE_FILES:
 ##            raise ctypes.WinError(errcode)
     return EnumFunc.hwnd
 
-# BOOL SendMessage(
+# LRESULT SendMessage(
 #     HWND hWnd,
 #     UINT Msg,
 #     WPARAM wParam,
@@ -462,7 +480,13 @@ def SendMessageA(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
-    return ctypes.windll.user32.SendMessageA(hWnd, Msg, wParam, lParam)
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
+    SendMessageA = ctypes.windll.user32.SendMessageA
+    SendMessageA.restype = LRESULT
+    result = SendMessageA(hWnd, Msg, wParam, lParam)
+    return result.value
 def SendMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     if not hWnd:
         hWnd = 0
@@ -470,7 +494,13 @@ def SendMessageW(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
-    return ctypes.windll.user32.SendMessageW(hWnd, Msg, wParam, lParam)
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
+    SendMessageW = ctypes.windll.user32.SendMessageA
+    SendMessageW.restype = LRESULT
+    result = SendMessageW(hWnd, Msg, wParam, lParam)
+    return result.value
 SendMessage = GuessStringType(SendMessageA, SendMessageW)
 
 # BOOL PostMessage(
@@ -486,6 +516,9 @@ def PostMessageA(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.PostMessageA(hWnd, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -496,6 +529,9 @@ def PostMessageW(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.PostMessageW(hWnd, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -514,6 +550,8 @@ def PostThreadMessageA(idThread, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.PostThreadMessageA(idThread, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -524,6 +562,8 @@ def PostThreadMessageW(idThread, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.PostThreadMessageW(idThread, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -549,8 +589,14 @@ def SendMessageTimeoutA(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout
         fuFlags = 0
     if not uTimeout:
         uTimeout = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     dwResult = DWORD(0)
-    success = ctypes.windll.user32.SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    SendMessageTimeoutA = ctypes.windll.user32.SendMessageTimeoutA
+    SendMessageTimeoutA.restype = LRESULT
+    success = SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    success = success.value
     if success == 0:
         raise ctypes.WinError()
     return dwResult.value
@@ -565,8 +611,14 @@ def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
         fuFlags = 0
     if not uTimeout:
         uTimeout = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     dwResult = DWORD(0)
-    success = ctypes.windll.user32.SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    SendMessageTimeoutW = ctypes.windll.user32.SendMessageTimeoutW
+    SendMessageTimeoutW.restype = LRESULT
+    success = SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    success = success.value
     if success == 0:
         raise ctypes.WinError()
     return dwResult.value
@@ -585,6 +637,9 @@ def SendNotifyMessageA(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.SendNotifyMessageA(hWnd, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -595,6 +650,9 @@ def SendNotifyMessageW(hWnd, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
+    hWnd   = HWND(hWnd)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
     success = ctypes.windll.user32.SendNotifyMessageW(hWnd, Msg, wParam, lParam)
     if success == 0:
         raise ctypes.WinError()
@@ -616,7 +674,13 @@ def SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
-    return ctypes.windll.user32.SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam, lParam)
+    hDlg   = HWND(hDlg)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
+    SendDlgItemMessageA = ctypes.windll.user32.SendDlgItemMessageA
+    SendDlgItemMessageA.restype = LRESULT
+    result = SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam, lParam)
+    return result.value
 def SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
     if not hDlg:
         hDlg = 0
@@ -626,7 +690,13 @@ def SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
         wParam = 0
     if not lParam:
         lParam = 0
-    return ctypes.windll.user32.SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam, lParam)
+    hDlg   = HWND(hDlg)
+    wParam = WPARAM(wParam)
+    lParam = LPARAM(lParam)
+    SendDlgItemMessageW = ctypes.windll.user32.SendDlgItemMessageW
+    SendDlgItemMessageW.restype = LRESULT
+    result = SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam, lParam)
+    return result.value
 SendDlgItemMessage = GuessStringType(SendDlgItemMessageA, SendDlgItemMessageW)
 
 # UINT RegisterWindowMessage(

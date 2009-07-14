@@ -409,7 +409,8 @@ class ModuleContainer (object):
         """
         bases = self.get_module_bases()
         bases.sort()
-        bases.append(0x100000000)   # invalid, > 4 gb. address space
+##        bases.append(0x100000000)   # invalid, > 4 gb. address space
+        bases.append(0x1000000000000000)    # invalid, > 64 bit address
         if address >= bases[0]:
             for i in xrange(len(bases)-1):  # -1 because last base is fake
                 begin, end = bases[i:i+2]
@@ -434,7 +435,7 @@ class ModuleContainer (object):
         try:
             me = win32.Module32First(hSnapshot)
             while me is not None:
-                lpBaseAddress = me.modBaseAddr
+                lpBaseAddress = me.modBaseAddr.value
                 fileName      = me.szExePath
                 if not fileName:
                     fileName  = me.szModule
@@ -1645,7 +1646,7 @@ class MemoryOperations (object):
             raise
         return mbi.is_executable_and_writeable()
 
-    def get_memory_map(self, minAddr = 0, maxAddr = 0x100000000):
+    def get_memory_map(self, minAddr = None, maxAddr = None):
         """
         Produces a memory map to the process address space.
         Optionally restrict the map to the given address range.
@@ -1661,6 +1662,10 @@ class MemoryOperations (object):
         @rtype:  list( L{MEMORY_BASIC_INFORMATION} )
         @return: List of MEMORY_BASIC_INFORMATION structures.
         """
+        if minAddr is None:
+            minAddr = 0
+        if maxAddr is None:
+            maxAddr = 0x10000000000000000   # XXX HACK 64 bits address max
         if minAddr > maxAddr:
             minAddr, maxAddr = maxAddr, minAddr
         minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
@@ -1668,6 +1673,7 @@ class MemoryOperations (object):
         currentAddr = minAddr
         memoryMap   = list()
         while currentAddr <= maxAddr:
+            print hex(currentAddr)
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
@@ -3243,7 +3249,7 @@ class ProcessDebugOperations (object):
         """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
-        return self.read_structure(pbi.PebBaseAddress, win32.PEB)
+        return self.read_structure(pbi.PebBaseAddress.value, win32.PEB)
 
     def get_main_module(self):
         """
@@ -3257,7 +3263,7 @@ class ProcessDebugOperations (object):
         @rtype:  int
         @return: Image base address for the process main module.
         """
-        return self.get_peb().ImageBaseAddress
+        return self.get_peb().ImageBaseAddress.value
 
     # TODO
     # Still not working sometimes, I need more implementations.
@@ -3341,11 +3347,11 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 peb = self.get_peb()
-                pp = self.read_structure(peb.ProcessParameters,
+                pp = self.read_structure(peb.ProcessParameters.value,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
                 s = pp.ImagePathName
-##                name = self.read_string(s.Buffer, s.Length, fUnicode=True)
-                name = self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
+                name = self.peek_string(s.Buffer.value,
+                                    dwMaxSize=s.MaximumLength, fUnicode=True)
             except (AttributeError, WindowsError):
                 name = None
 
@@ -3362,11 +3368,11 @@ class ProcessDebugOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters,
+        pp = self.read_structure(peb.ProcessParameters.value,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
         s = pp.CommandLine
-##        return self.read_string(s.Buffer, s.Length, fUnicode=True)
-        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True)
+        return self.peek_string(s.Buffer.value, dwMaxSize=s.MaximumLength,
+                                                            fUnicode=True)
 
 #------------------------------------------------------------------------------
 
@@ -3398,7 +3404,7 @@ class ProcessDebugOperations (object):
                 packed          = data[i:i+4]
                 if len(packed) == 4:
                     address     = struct.unpack('<L', packed)[0]
-                    if address & 0xFFFF0000:
+                    if address & (~0xFFFF): # this check is not valid on Wine
                         peek_data   = self.peek(address, peekSize)
                         if peek_data:
                             result[i] = peek_data
@@ -4280,7 +4286,7 @@ class Module (SymbolContainer):
                 base   = self.get_base()
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
-                self.EntryPoint  = mi.EntryPoint
+                self.EntryPoint  = mi.EntryPoint.value
             except WindowsError:
                 pass
 

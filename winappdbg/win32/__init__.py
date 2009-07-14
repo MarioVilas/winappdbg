@@ -42,3 +42,28 @@ from shlwapi    import *
 from psapi      import *
 from dbghelp    import *
 from ntdll      import *
+
+# XXX TODO
+#
+# A more elegant approach would be to define private functions using pure
+# ctypes definitions, to catch parameter type errors:
+#
+#   try:
+#       _LoadLibraryA = ctypes.windll.kernel32.LoadLibraryA
+#       _LoadLibraryA.argtypes = [ LPSTR ]
+#       _LoadLibraryA.restype = HINSTANCE
+#   except AttributeError:
+#       _LoadLibraryA = _UnsupportedCall
+#
+# Where "_UnsupportedCall" would be something like this:
+#
+#   def _UnsupportedCall(*argv, **argd):
+#       raise NotImplementedError
+#
+# Then these private functions would be used by the public functions of the
+# win32 module:
+#
+#   def LoadLibraryA(pszLibrary):
+#       hModule = _LoadLibraryA(pszLibrary)
+#       hModule = hModule.value
+#       return hModule

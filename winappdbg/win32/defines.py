@@ -128,6 +128,27 @@ class MakeANSIVersion(object):
 
 #--- Types --------------------------------------------------------------------
 
+class LPVOID(ctypes.c_void_p):
+
+    def __init__(self, value = None):
+        try:
+            value = value.value
+        except AttributeError:
+            pass
+        ctypes.c_void_p.__init__(self, value)
+        if value and (not self.value or self.value != value):
+            raise ValueError, "Invalid void pointer value"
+
+    def __getattribute__(self, name):
+        value = ctypes.c_void_p.__getattribute__(self, name)
+        if name == 'value' and value is None:
+            value = 0
+        return value
+
+    @property
+    def _as_parameter_(self):
+        return ctypes.c_void_p(self.value)
+
 CHAR        = ctypes.c_char
 WCHAR       = ctypes.c_wchar
 BYTE        = ctypes.c_ubyte
@@ -146,9 +167,9 @@ LONG        = ctypes.c_long
 ULONG       = ctypes.c_ulong
 LONGLONG    = ctypes.c_longlong
 ULONGLONG   = ctypes.c_ulonglong
-LPVOID      = ctypes.c_void_p
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
+
 PSTR        = LPSTR
 PWSTR       = LPWSTR
 PCHAR       = LPSTR

@@ -1188,6 +1188,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
         else:
             raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
     ReturnLength = ULONG(0)
+    ProcessHandle = HANDLE(ProcessHandle)
     ntstatus = ctypes.windll.ntdll.NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
@@ -1227,6 +1228,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
         else:
             raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
     ReturnLength = ULONG(0)
+    ThreadHandle = HANDLE(ThreadHandle)
     ntstatus = ctypes.windll.ntdll.NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
@@ -1251,6 +1253,7 @@ ZwQueryInformationThread = NtQueryInformationThread
 #     );
 def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Length):
     IoStatusBlock = IO_STATUS_BLOCK()
+    FileHandle = HANDLE(FileHandle)
     status = NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
     if status != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)

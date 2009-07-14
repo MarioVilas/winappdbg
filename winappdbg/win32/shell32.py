@@ -44,7 +44,7 @@ from kernel32 import LocalFree
 # );
 def CommandLineToArgvW(lpCmdLine):
     if lpCmdLine is None:
-        lpCmdLine = NULL
+        lpCmdLine = LPVOID(NULL)
     argc = ctypes.c_int(0)
     argv = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
     if argv == NULL or argc.value <= 0:
@@ -71,36 +71,42 @@ def ShellExecuteA(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
     if not hwnd:
         hwnd = NULL
     if not lpOperation:
-        lpOperation = NULL
+        lpOperation = LPVOID(NULL)
     if not lpFile:
-        lpFile = NULL
+        lpFile = LPVOID(NULL)
     if not lpParameters:
-        lpParameters = NULL
+        lpParameters = LPVOID(NULL)
     if not lpDirectory:
-        lpDirectory = NULL
+        lpDirectory = LPVOID(NULL)
     if not nShowCmd:
         nShowCmd = 0
+    hwnd = HWND(hwnd)
     ShellExecuteA = ctypes.windll.shell32.ShellExecuteA
     ShellExecuteA.restype = HINSTANCE
     success = ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-    if success != 0:
+    success = ctypes.cast(success, c_int)
+    success = success.value
+    if not success > 32:    # weird! isn't it?
         ctypes.WinError(success)
 def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
     if not hwnd:
         hwnd = NULL
     if not lpOperation:
-        lpOperation = NULL
+        lpOperation = LPVOID(NULL)
     if not lpFile:
-        lpFile = NULL
+        lpFile = LPVOID(NULL)
     if not lpParameters:
-        lpParameters = NULL
+        lpParameters = LPVOID(NULL)
     if not lpDirectory:
-        lpDirectory = NULL
+        lpDirectory = LPVOID(NULL)
     if not nShowCmd:
         nShowCmd = 0
+    hwnd = HWND(hwnd)
     ShellExecuteW = ctypes.windll.shell32.ShellExecuteW
     ShellExecuteW.restype = HINSTANCE
     success = ctypes.windll.shell32.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-    if success != 0:
+    success = ctypes.cast(success, c_int)
+    success = success.value
+    if not success > 32:    # weird! isn't it?
         ctypes.WinError(success)
 ShellExecute = GuessStringType(ShellExecuteA, ShellExecuteW)

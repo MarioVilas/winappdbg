@@ -428,7 +428,7 @@ class ExceptionEvent (Event):
         @rtype:  int
         @return: Memory address where the exception occured.
         """
-        return self.raw.u.Exception.ExceptionRecord.ExceptionAddress
+        return self.raw.u.Exception.ExceptionRecord.ExceptionAddress.value
 
     def get_exception_information(self, index):
         """
@@ -449,7 +449,7 @@ class ExceptionEvent (Event):
         @return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return [ info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
+        return [info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS)]
 
     def get_fault_type(self):
         """
@@ -493,12 +493,14 @@ class ExceptionEvent (Event):
         @rtype:  int
         @return: NTSTATUS status code that caused the exception.
 
-        @note: This method is only meaningful for in-page memory error exceptions.
+        @note: This method is only meaningful for in-page memory error
+            exceptions.
 
         @raise NotImplementedError: Not an in-page memory error.
         """
         if self.get_exception_code() != win32.EXCEPTION_IN_PAGE_ERROR:
-            msg = "This method is only meaningful for in-page memory error exceptions."
+            msg = "This method is only meaningful "\
+                  "for in-page memory error exceptions."
             raise NotImplementedError, msg
         return self.get_exception_information(2)
 
@@ -562,7 +564,7 @@ class CreateThreadEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hThread = self.raw.u.CreateThread.hThread
+        hThread = self.raw.u.CreateThread.hThread.value
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -574,7 +576,7 @@ class CreateThreadEvent (Event):
         @rtype:  int
         @return: Pointer to the TEB.
         """
-        return self.raw.u.CreateThread.lpThreadLocalBase
+        return self.raw.u.CreateThread.lpThreadLocalBase.value
 
     def get_start_address(self):
         """
@@ -586,7 +588,7 @@ class CreateThreadEvent (Event):
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
-        return self.raw.u.CreateThread.lpStartAddress
+        return self.raw.u.CreateThread.lpStartAddress.value
 
 #==============================================================================
 
@@ -613,7 +615,7 @@ class CreateProcessEvent (Event):
         if hasattr(self, '_CreateProcessEvent__hFile'):
             hFile = self.__hFile
         else:
-            hFile = self.raw.u.CreateProcessInfo.hFile
+            hFile = self.raw.u.CreateProcessInfo.hFile.value
             if hFile == win32.NULL:
                 hFile = win32.INVALID_HANDLE_VALUE
             elif hFile != win32.INVALID_HANDLE_VALUE:
@@ -631,7 +633,7 @@ class CreateProcessEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hProcess = self.raw.u.CreateProcessInfo.hProcess
+        hProcess = self.raw.u.CreateProcessInfo.hProcess.value
         if hProcess == win32.NULL:
             hProcess = win32.INVALID_HANDLE_VALUE
         elif hProcess != win32.INVALID_HANDLE_VALUE:
@@ -648,7 +650,7 @@ class CreateProcessEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hThread = self.raw.u.CreateProcessInfo.hThread
+        hThread = self.raw.u.CreateProcessInfo.hThread.value
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -664,21 +666,21 @@ class CreateProcessEvent (Event):
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
-        return self.raw.u.CreateProcessInfo.lpStartAddress
+        return self.raw.u.CreateProcessInfo.lpStartAddress.value
 
     def get_image_base(self):
         """
         @rtype:  int
         @return: Base address of the main module.
         """
-        return self.raw.u.CreateProcessInfo.lpBaseOfImage
+        return self.raw.u.CreateProcessInfo.lpBaseOfImage.value
 
     def get_teb(self):
         """
         @rtype:  int
         @return: Pointer to the TEB.
         """
-        return self.raw.u.CreateProcessInfo.lpThreadLocalBase
+        return self.raw.u.CreateProcessInfo.lpThreadLocalBase.value
 
     def get_debug_info(self):
         """
@@ -686,7 +688,7 @@ class CreateProcessEvent (Event):
         @return: Debugging information.
         """
         raw  = self.raw.u.CreateProcessInfo
-        ptr  = raw.lpBaseOfImage + raw.dwDebugInfoFileOffset
+        ptr  = raw.lpBaseOfImage.value + raw.dwDebugInfoFileOffset
         size = raw.nDebugInfoSize
         data = self.get_process().peek(ptr, size)
         if len(data) == size:
@@ -709,7 +711,7 @@ class CreateProcessEvent (Event):
             # It's NULL or *NULL most of the times, see MSDN:
             # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
             aProcess = self.get_process()
-            lpRemoteFilenamePtr = self.raw.u.CreateProcessInfo.lpImageName
+            lpRemoteFilenamePtr = self.raw.u.CreateProcessInfo.lpImageName.value
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
                 fUnicode    = bool( self.raw.u.CreateProcessInfo.fUnicode )
@@ -817,7 +819,7 @@ class LoadDLLEvent (Event):
         @rtype:  int
         @return: Base address for the newly loaded DLL.
         """
-        return self.raw.u.LoadDll.lpBaseOfDll
+        return self.raw.u.LoadDll.lpBaseOfDll.value
 
     def get_module(self):
         """
@@ -840,7 +842,7 @@ class LoadDLLEvent (Event):
         try:
             hFile = self.__hFile
         except AttributeError:
-            hFile = self.raw.u.LoadDll.hFile
+            hFile = self.raw.u.LoadDll.hFile.value
             if hFile == win32.NULL:
                 hFile = win32.INVALID_HANDLE_VALUE
             elif hFile != win32.INVALID_HANDLE_VALUE:
@@ -864,7 +866,7 @@ class LoadDLLEvent (Event):
             # It's NULL or *NULL most of the times, see MSDN:
             # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
             aProcess = self.get_process()
-            lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName
+            lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName.value
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
                 fUnicode    = bool( self.raw.u.LoadDll.fUnicode )
@@ -891,7 +893,7 @@ class UnloadDLLEvent (Event):
         @rtype:  int
         @return: Base address for the recently unloaded DLL.
         """
-        return self.raw.u.UnloadDll.lpBaseOfDll
+        return self.raw.u.UnloadDll.lpBaseOfDll.value
 
     def get_module(self):
         """
@@ -926,9 +928,9 @@ class OutputDebugStringEvent (Event):
             It may be ANSI or Unicode and may end with a null character.
         """
         return self.get_process().peek_string(
-                                    self.raw.u.DebugString.lpDebugStringData,
-                                    bool( self.raw.u.DebugString.fUnicode ),
-                                    self.raw.u.DebugString.nDebugStringLength)
+                                self.raw.u.DebugString.lpDebugStringData.value,
+                                bool( self.raw.u.DebugString.fUnicode ),
+                                self.raw.u.DebugString.nDebugStringLength)
 
 #==============================================================================
 
@@ -1056,7 +1058,8 @@ class EventHandler (object):
        Currently we have partial support for C++ exceptions thrown by Microsoft
        compilers.
 
-       Also see: U{RaiseException()<http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
+       Also see: U{RaiseException()
+       <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
 
      - I{create_thread}
 
@@ -1124,7 +1127,8 @@ class EventHandler (object):
 
     @type apiHooks: dict( str S{->} tuple( str, int ) )
     @cvar apiHooks:
-        Dictionary that maps module names to tuples of ( procedure name, parameter count ).
+        Dictionary that maps module names to
+        tuples of ( procedure name, parameter count ).
 
         All procedures listed here will be hooked for calls from the debuguee.
         When this happens, the corresponding event handler is notified both
