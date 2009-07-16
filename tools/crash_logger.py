@@ -63,9 +63,14 @@ class LoggingEventHandler(EventHandler):
 
         # Create the crash container.
         if not options.nodb:
-            self.knownCrashes = CrashContainer( options.file )
+            if options.dbm:
+                self.knownCrashes = CrashContainer( options.dbm )
+            elif options.sqlite:
+                self.knownCrashes = CrashTable( options.sqlite )
+            else:
+                self.knownCrashes = VolatileCrashContainer()
         else:
-            self.knownCrashes = CrashContainer()
+            self.knownCrashes = VolatileCrashContainer()
 
         # Create the cache of resolved labels.
         self.labelsCache = dict()                   # pid -> label -> address
@@ -78,12 +83,11 @@ class LoggingEventHandler(EventHandler):
         # Generate a crash object.
         crash = Crash(event)
 
-        # Determine if the crash was already known.
-        bNew = crash not in self.knownCrashes
+        # Determine if the crash was previously known.
+        bNew = self.options.duplicates or crash not in self.knownCrashes
 
         # Add the crash object to the container.
-        if bNew:
-            self.knownCrashes.add(crash)
+        self.knownCrashes.add(crash)
 
         # Log the event to standard output.
         try:
@@ -533,26 +537,39 @@ class CrashLogger (object):
 
         # Output options
         # TODO
-        # * autogenerate a default crash dump file from the executable file
+        # * autogenerate a default crash dump filename from the executable file
         output = optparse.OptionGroup(parser, "Output options")
         output.add_option("-v", "--verbose", action="store_true", dest="verbose",
                           help="Log events to standard output [default]")
         output.add_option("-q", "--quiet", action="store_false", dest="verbose",
                           help="Do not log events to standard output")
-        output.add_option("-f", "--file", default="crashes.db",
-                          help="Specify a crash dump file [default: %default]")
-        output.add_option("--nodb", "--no-crash-dump-file", action="store_true",
-                          default=False,
-                          help="Supresses the use of a crash dump file")
+        output.add_option("--allow-duplicates", action="store_true",
+                          dest="duplicates",
+                          help="Stop on all crashes [default]")
+        output.add_option("--ignore-duplicates", action="store_false",
+                          dest="duplicates",
+                          help="Stop only on newly found crashes")
+        output.add_option("--nodb", action="store_true",
+                          help="Do not save a crash dump file [default]")
+        output.add_option("--dbm", metavar="FILE",
+                          help="Save crash dumps to this DBM database")
+        output.add_option("--sqlite", metavar="FILE",
+                          help="Save crash dumps to this SQLite database")
+        output.add_option("-f", "--file", metavar="FILE", dest="dbm",
+                          help="Same as --dbm, deprecated")
         parser.add_option_group(output)
 
         # Defaults
         defaultEventList = ['exception']
         parser.set_defaults(
             verbose     = True,
+            duplicates  = True,
             pause       = False,
             restart     = False,
             echo        = False,
+            nodb        = False,
+            dbm         = None,
+            sqlite      = None,
             autodetach  = True,
             follow      = True,
             hostile     = False,
@@ -570,10 +587,35 @@ class CrashLogger (object):
         (options, args) = parser.parse_args(argv)
         args = args[1:]
         if not options.windowed and not options.console and not options.attach:
-            options.console = [ System.argv_to_cmdline(args) ]
+            cmdline = System.argv_to_cmdline(args)
+            if not cmdline:
+                parser.error("missing target application(s)")
+            options.console = [cmdline]
+            print options.console
         else:
             if args:
                 parser.error("don't know what to do with extra parameters: %s" % args)
+
+        # Warn or fail about inconsistent use of output switches
+        if options.nodb:
+            if options.dbm or options.sqlite:
+                print "Warning: strange use of output switches"
+                print "  No database will be generated. Are you sure this is what you wanted?"
+                print
+        elif options.dbm:
+            if options.duplicates:
+                if options.verbose:
+                    print "Warning: inconsistent use of --allow-duplicates"
+                    print "  DBM databases do not allow duplicate entries with the same key."
+                    print "  This means that when the same crash is found more than once it will be logged"
+                    print "  to standard output each time, but will only be saved once into the database."
+                    print
+                else:
+                    msg  = "inconsistent use of --allow-duplicates: "
+                    msg += "DBM databases do not allow duplicate entries with the same key"
+                    parser.error(msg)
+            elif options.sqlite:
+                parser.error("cannot generate more than one database per session")
 
         # Warn about inconsistent use of --time-limit
         if options.time_limit and options.autodetach \

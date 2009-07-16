@@ -35,7 +35,7 @@ import sys
 import time
 import optparse
 
-from winappdbg import CrashContainer
+from winappdbg import CrashContainer, CrashTable
 
 def parse_cmdline(argv):
     'Parse the command line options.'
@@ -72,9 +72,40 @@ def filter_inexistent_files(old_list):
             print "Cannot find file: %s" % filename
     return new_list
 
-def print_report_for_database(filename, options):
+def open_database(filename):
     print "Opening database: %s" % filename
-    cc = CrashContainer( filename )
+    cc = None
+
+    # Try opening as a DBM database.
+    try:
+        import anydbm
+        try:
+            cc = CrashContainer( filename )
+        except anydbm.error, e:
+            error = str(e)
+    except ImportError:
+        print "Warning: no DBM support present"
+
+    # Try opening as a SQLite database.
+    if cc is None:
+        try:
+            try:
+                import sqlite3 as sqlite
+            except ImportError:
+                from pysqlite2 import dbapi2 as sqlite
+            try:
+                cc = CrashTable( filename )
+            except sqlite.DatabaseError, e:
+                error = str(e)
+        except ImportError:
+            print "Warning: no SQLite support present"
+
+    if cc is None:
+        print "Error: %s: %r" % (error, filename)
+    return cc
+
+def print_report_for_database(filename, options):
+    cc = open_database(filename)
     if cc:
         print "Found %d crashes:" % len(cc)
         print '-' * 79
@@ -92,7 +123,7 @@ def print_report_for_database(filename, options):
             else:
                 print c.briefReport()
             print '-' * 79
-    else:
+    elif cc is not None:
         print "No crashes to report."
         print
 

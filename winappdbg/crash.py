@@ -35,8 +35,14 @@ __all__ =   [
                 # Object that represents a crash in the debugee.
                 'Crash',
 
-                # Container that can store Crash objects in a database.
+                # Container that can store Crash objects in a DBM database.
                 'CrashContainer',
+
+                # Container that can store Crash objects in a SQLite database.
+                'CrashTable',
+
+                # Volatile container that does not store Crash objects.
+                'VolatileCrashContainer',
             ]
 
 from system import MemoryAddresses, PathOperations
@@ -59,8 +65,9 @@ except ImportError:
     def optimize(picklestring):
         return picklestring
 
-# lazy import
+# lazy imports
 anydbm = None
+sqlite = None
 
 #==============================================================================
 
@@ -146,6 +153,12 @@ class Crash (object):
 
     @type faultAddress: None or int
     @ivar faultAddress: Access violation memory address.
+        Only applicable to memory faults.
+
+        C{None} if unapplicable or unable to retrieve.
+
+    @type faultLabel: None or str
+    @ivar faultLabel: Label pointing to the access violation memory address.
         Only applicable to memory faults.
 
         C{None} if unapplicable or unable to retrieve.
@@ -260,6 +273,7 @@ class Crash (object):
         self.exceptionAddress   = None
         self.faultType          = None
         self.faultAddress       = None
+        self.faultLabel         = None
         self.firstChance        = None
         self.modFileName        = None
         self.lpBaseOfDll        = None
@@ -268,6 +282,7 @@ class Crash (object):
         self.stackTrace         = None
         self.stackTracePC       = None
         self.stackTraceLabels   = None
+        self.stackTracePretty   = None
         self.stackFrame         = None
         self.stackPeek          = None
         self.faultCode          = None
@@ -310,6 +325,8 @@ class Crash (object):
                                       win32.EXCEPTION_IN_PAGE_ERROR):
                 self.faultType    = event.get_fault_type()
                 self.faultAddress = event.get_fault_address()
+                self.faultLabel   = process.get_label_at_address(
+                                                            self.faultAddress)
 
             # Data pointed to by registers.
             self.registersPeek = thread.peek_pointers_in_registers()
@@ -761,6 +778,8 @@ class CrashContainer (object):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates.
 
+    Uses a DBM database file for persistency.
+
     @see: L{Crash.key}
     """
 
@@ -768,17 +787,6 @@ class CrashContainer (object):
     # However it may not be necessary to implement all of the set methods.
     # Other methods like get, has_key, iterkeys and itervalues
     # are dictionary-like.
-
-    # TODO:
-    # Lock the files for modifications by other processes.
-    # Otherwise the database could be corrupted by opening it more than once.
-
-    # FIXME:
-    # The underlying database may encounter collisions.
-    # Not much can be done about the keys (maybe change the pickle protocol?),
-    # but the Crash objects could have a spurious public member set to any
-    # value (for example it could be an incremental integer counter), to add
-    # and change if a collision occurs.
 
     class __CrashContainerIterator (object):
         """
@@ -813,7 +821,7 @@ class CrashContainer (object):
         """
         @type  filename: str
         @param filename: (Optional) File name for crash database.
-            If no filename is specified, the container is be volatile.
+            If no filename is specified, the container is volatile.
 
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
@@ -845,7 +853,7 @@ class CrashContainer (object):
         @rtype:  bool
         @return: C{True} if the Crash object is in the container.
         """
-        return crash.key() in self.__keys
+        return self.__keys.has_key( crash.key() )
 
     def __iter__(self):
         """
@@ -1017,3 +1025,297 @@ class CrashContainer (object):
         """
         value = zlib.decompress(value)
         return pickle.loads(value)
+
+#==============================================================================
+
+class CrashTable (object):
+    """
+    Manages a database of persistent Crash objects, trying to avoid duplicates
+    only when requested.
+
+    Uses a SQLite database file for persistency.
+
+    @see: L{Crash.key}
+    """
+
+    __table_definition = (
+        "CREATE TABLE WinAppDbg ("
+
+        # Sequential row IDs.
+        "id INTEGER PRIMARY KEY,"
+
+        # These are the bare minimum columns required to store the objects.
+        # The rest are just for convenience.
+        "timeStamp TIMESTAMP,"              # float converted to GMT timestamp
+        "key BLOB,"                         # the pickled key
+        "pickle BLOB,"                      # the pickled object
+
+        # Exploitability test.
+        "isExploitable TEXT,"               # the result
+        "isExploitableRule TEXT,"           # the matched rule
+
+        # Event description.
+        "eventCode INTEGER,"
+        "pid INTEGER,"
+        "tid INTEGER,"
+        "pc INTEGER,"
+        "sp INTEGER,"
+        "fp INTEGER,"
+        "labelPC TEXT,"
+
+        # Exception description.
+        "exceptionCode INTEGER,"
+        "exceptionAddress INTEGER,"
+        "exceptionLabel TEXT,"
+        "firstChance INTEGER,"              # 0 or 1
+        "faultType INTEGER,"
+        "faultAddress INTEGER,"
+        "faultLabel TEXT,"
+        "faultDisasm TEXT,"                 # dumped
+        "stackTrace TEXT,"                  # dumped stackTracePretty
+
+        # Additional notes.
+        "notes TEXT"                        # joined
+        ")"
+    )
+
+    __insert_row = (
+     "INSERT INTO WinAppDbg VALUES "
+     "(null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+
+    def __get_row_values(self, crash):
+        timeStamp           = time.asctime( time.gmtime( crash.timeStamp ) )
+        key                 = self.__marshall_key(crash.key())
+        pickle              = self.__marshall_value(crash)
+        isExploitable, isExploitableRule, _ = crash.isExploitable()
+        eventCode           = crash.eventCode
+        pid                 = crash.pid
+        tid                 = crash.tid
+        pc                  = crash.pc
+        sp                  = crash.sp
+        fp                  = crash.fp
+        labelPC             = crash.labelPC
+        exceptionCode       = crash.exceptionCode
+        exceptionAddress    = crash.exceptionAddress
+        exceptionLabel      = crash.exceptionLabel
+        firstChance         = crash.firstChance # int(bool(crash.firstChance))
+        faultType           = crash.faultType
+        faultAddress        = crash.faultAddress
+        faultLabel          = crash.faultLabel
+        faultDisasm         = CrashDump.dump_code(crash.faultDisasm, crash.pc)
+        stackTrace          = CrashDump.dump_stack_trace_with_labels(
+                                                        crash.stackTracePretty)
+        notes               = crash.notesReport()
+        return (
+            timeStamp,
+            key,
+            pickle,
+            isExploitable,
+            isExploitableRule,
+            eventCode,
+            pid,
+            tid,
+            pc,
+            sp,
+            fp,
+            labelPC,
+            exceptionCode,
+            exceptionAddress,
+            exceptionLabel,
+            firstChance,
+            faultType,
+            faultAddress,
+            faultLabel,
+            faultDisasm,
+            stackTrace,
+            notes,
+        )
+
+    def __init__(self, location = None, allowRepeatedKeys = True):
+        """
+        @type  location: str
+        @param location: (Optional) Location of the crash database.
+            If no location is specified, the container is volatile.
+
+            If the location is a filename, it's an SQLite database file.
+
+            Volatile containers are stored only in memory and
+            destroyed when they go out of scope.
+        """
+
+        # Import sqlite if needed.
+        global sqlite
+        if sqlite is None:
+            try:
+                import sqlite3 as sqlite
+            except ImportError:
+                from pysqlite2 import dbapi2 as sqlite
+
+        # If no location is given store the database in memory.
+        if not location:
+            location = ':memory:'
+        self.__location = location
+
+        # Connect to the database and get a cursor.
+        self.__db       = sqlite.connect(self.__location)
+        self.__cursor   = self.__db.cursor()
+
+        # Create the table if needed.
+        try:
+            self.__cursor.execute(self.__table_definition)
+            self.__db.commit()
+        except Exception:
+            pass
+
+        # Populate the cache of existing keys.
+        self.__allowRepeatedKeys = allowRepeatedKeys
+        self.__keys = dict()
+        self.__cursor.execute("SELECT key FROM WinAppDbg")
+        for row in self.__cursor:
+            marshalled_key   = row[0]
+            unmarshalled_key = self.__unmarshall_key(marshalled_key)
+            self.__keys[unmarshalled_key] = marshalled_key
+
+    def add(self, crash):
+
+        # Add the key to the keys cache.
+        # Filter out by key if requested.
+        key = crash.key()
+        if self.__allowRepeatedKeys or key not in self.__keys:
+            self.__keys[key] = self.__marshall_key(key)
+
+            # Insert the row into the table.
+            self.__cursor.execute(self.__insert_row,
+                                  self.__get_row_values(crash))
+            self.__db.commit()
+
+    def __iter__(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        """
+        self.__cursor.execute("SELECT pickle FROM WinAppDbg")
+        for row in self.__cursor:
+            crash = row[0]
+            crash = self.__unmarshall_value(crash)
+            yield crash
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return: C{True} if the Crash object is in the container.
+        """
+        return self.__keys.has_key( crash.key() )
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        self.__cursor.execute("SELECT COUNT(*) FROM WinAppDbg")
+        count = 0
+        for row in self.__cursor:
+            count = long(row[0])
+            break
+        return count
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if the container is empty.
+        """
+        # XXX HACK
+        # Check if the keys cache is empty instead of querying the database.
+        return bool(self.__keys)
+
+    def __marshall_key(self, key):
+        """
+        Marshalls a Crash key to be used in the database.
+
+        @type  key: (opaque object)
+        @param key: Key to convert.
+
+        @rtype:  BLOB
+        @return: Converted key.
+        """
+        if key in self.__keys:
+            return self.__keys[key]
+        key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+        key = optimize(key)
+        key = sqlite.Binary(key)
+        return key
+
+    def __unmarshall_key(self, key):
+        """
+        Unmarshalls a Crash key read from the database.
+
+        @type  key: str
+        @param key: Key to convert.
+
+        @rtype:  (opaque object)
+        @return: Converted key.
+        """
+        key = str(key)
+        key = pickle.loads(key)
+        return key
+
+    def __marshall_value(self, value):
+        """
+        Marshalls a Crash object to be used in the database.
+
+        @type  value: L{Crash}
+        @param value: Object to convert.
+
+        @rtype:  BLOB
+        @return: Converted object.
+        """
+        value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        value = optimize(value)
+        value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
+        value = sqlite.Binary(value)
+        return value
+
+    def __unmarshall_value(self, value):
+        """
+        Unmarshalls a Crash object read from the database.
+
+        @type  value: str
+        @param value: Object to convert.
+
+        @rtype:  L{Crash}
+        @return: Converted object.
+        """
+        value = str(value)
+        value = zlib.decompress(value)
+        value = pickle.loads(value)
+        return value
+
+#==============================================================================
+
+class VolatileCrashContainer(CrashContainer):
+    """
+    Manages a database of volatile Crash objects, trying to avoid duplicates.
+
+    @see: L{Crash.key}
+    """
+
+    # XXX HACK
+    #
+    # Instead of implementing a new Crash container from scratch,
+    # this just reuses the CrashContainer class and forces the
+    # filename parameter to be ommited.
+    #
+    # Volatile CrashContainer objects use only Python basic types,
+    # this is more efficient than the memory-based SQLite databases
+    # used by volatile CrashTable objects.
+
+    def __init__(self):
+        """
+        Volatile containers are stored only in memory and
+        destroyed when they go out of scope.
+        """
+        super(VolatileCrashContainer, self).__init__()
