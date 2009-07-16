@@ -1673,7 +1673,6 @@ class MemoryOperations (object):
         currentAddr = minAddr
         memoryMap   = list()
         while currentAddr <= maxAddr:
-            print hex(currentAddr)
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:

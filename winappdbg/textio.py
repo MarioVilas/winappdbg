@@ -279,16 +279,18 @@ class HexOutput (object):
 
     @type integer_size: int
     @cvar integer_size: Size in characters of an outputted integer.
+        This value is platform dependent.
 
     @type address_size: int
     @cvar address_size: Size in characters of an outputted address.
+        This value is platform dependent.
     """
 
-    integer_size = 10
-    address_size = 10
+    integer_size = len(hex(win32.DWORD(-1).value))
+    address_size = len(hex(win32.SIZE_T(-1).value))
 
-    @staticmethod
-    def integer(integer):
+    @classmethod
+    def integer(cls, integer):
         """
         @type  integer: int
         @param integer: Integer.
@@ -296,10 +298,10 @@ class HexOutput (object):
         @rtype:  str
         @return: Text output.
         """
-        return '0x%.8x' % integer
+        return ('0x%%.%dx' % cls.integer_size) % integer
 
-    @staticmethod
-    def address(address):
+    @classmethod
+    def address(cls, address):
         """
         @type  address: int
         @param address: Memory address.
@@ -307,7 +309,7 @@ class HexOutput (object):
         @rtype:  str
         @return: Text output.
         """
-        return '0x%.8x' % address
+        return ('0x%%.%dx' % cls.address_size) % address
 
     @staticmethod
     def hexadecimal(data):
@@ -391,16 +393,18 @@ class HexDump (object):
 
     @type integer_size: int
     @cvar integer_size: Size in characters of an outputted integer.
+        This value is platform dependent.
 
     @type address_size: int
     @cvar address_size: Size in characters of an outputted address.
+        This value is platform dependent.
     """
 
-    integer_size = 11
-    address_size = 8
+    integer_size = len(str(win32.DWORD(-1).value))+1
+    address_size = len(hex(win32.SIZE_T(-1).value))-2
 
-    @staticmethod
-    def address(address):
+    @classmethod
+    def address(cls, address):
         """
         @type  address: int
         @param address: Memory address.
@@ -408,10 +412,10 @@ class HexDump (object):
         @rtype:  str
         @return: Text output.
         """
-        return '%.8x' % address
+        return ('%%.%dx' % cls.address_size) % address
 
-    @staticmethod
-    def integer(integer):
+    @classmethod
+    def integer(cls, integer):
         """
         @type  integer: int
         @param integer: Integer.
@@ -419,7 +423,7 @@ class HexDump (object):
         @rtype:  str
         @return: Text output.
         """
-        return '%11i' % integer
+        return ('%%.%di' % cls.integer_size) % integer
 
     @staticmethod
     def printable(data):

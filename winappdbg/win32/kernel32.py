@@ -606,12 +606,6 @@ class MemoryBasicInformation (object):
         self.Protect            = mbi.Protect
         self.Type               = mbi.Type
 
-        # Null pointers are translated to None and we need 0 instead.
-        if not self.BaseAddress:
-            self.BaseAddress    = 0
-        if not self.AllocationBase:
-            self.AllocationBase = 0
-
     def is_free(self):
         return self.State == MEM_FREE
 
@@ -757,6 +751,52 @@ class SYSTEM_INFO(Structure):
 
 #--- MEMORY_BASIC_INFORMATION structure ---------------------------------------
 
+# typedef struct _MEMORY_BASIC_INFORMATION32 {
+#     DWORD BaseAddress;
+#     DWORD AllocationBase;
+#     DWORD AllocationProtect;
+#     DWORD RegionSize;
+#     DWORD State;
+#     DWORD Protect;
+#     DWORD Type;
+# } MEMORY_BASIC_INFORMATION32, *PMEMORY_BASIC_INFORMATION32;
+class MEMORY_BASIC_INFORMATION32(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('BaseAddress',         DWORD),         # remote pointer
+        ('AllocationBase',      DWORD),         # remote pointer
+        ('AllocationProtect',   DWORD),
+        ('RegionSize',          DWORD),
+        ('State',               DWORD),
+        ('Protect',             DWORD),
+        ('Type',                DWORD),
+    ]
+
+# typedef struct DECLSPEC_ALIGN(16) _MEMORY_BASIC_INFORMATION64 {
+#     ULONGLONG BaseAddress;
+#     ULONGLONG AllocationBase;
+#     DWORD     AllocationProtect;
+#     DWORD     __alignment1;
+#     ULONGLONG RegionSize;
+#     DWORD     State;
+#     DWORD     Protect;
+#     DWORD     Type;
+#     DWORD     __alignment2;
+# } MEMORY_BASIC_INFORMATION64, *PMEMORY_BASIC_INFORMATION64;
+class MEMORY_BASIC_INFORMATION64(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('BaseAddress',         ULONGLONG),     # remote pointer
+        ('AllocationBase',      ULONGLONG),     # remote pointer
+        ('AllocationProtect',   DWORD),
+        ('__alignment1',        DWORD),
+        ('RegionSize',          ULONGLONG),
+        ('State',               DWORD),
+        ('Protect',             DWORD),
+        ('Type',                DWORD),
+        ('__alignment2',        DWORD),
+    ]
+
 # typedef struct _MEMORY_BASIC_INFORMATION {
 #     PVOID BaseAddress;
 #     PVOID AllocationBase;
@@ -766,17 +806,23 @@ class SYSTEM_INFO(Structure):
 #     DWORD Protect;
 #     DWORD Type;
 # } MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
-class MEMORY_BASIC_INFORMATION(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('BaseAddress',         LPVOID),    # remote pointer
-        ('AllocationBase',      LPVOID),    # remote pointer
-        ('AllocationProtect',   DWORD),
-        ('RegionSize',          SIZE_T),
-        ('State',               DWORD),
-        ('Protect',             DWORD),
-        ('Type',                DWORD),
-    ]
+if ctypes.sizeof(SIZE_T) == 4:
+    class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION32):
+        pass
+elif ctypes.sizeof(SIZE_T) == 8:
+    class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION64):
+        pass
+else:
+    class MEMORY_BASIC_INFORMATION(Structure):
+        _fields_ = [
+            ('BaseAddress',         SIZE_T),    # remote pointer
+            ('AllocationBase',      SIZE_T),    # remote pointer
+            ('AllocationProtect',   DWORD),
+            ('RegionSize',          SIZE_T),
+            ('State',               DWORD),
+            ('Protect',             DWORD),
+            ('Type',                DWORD),
+        ]
 
 #--- BY_HANDLE_FILE_INFORMATION structure -------------------------------------
 
@@ -1196,10 +1242,9 @@ class WOW64_LDT_ENTRY (LDT_ENTRY):
 
 #--- CONTEXT structure and constants (for x86 only) ---------------------------
 
-SIZE_OF_80387_REGISTERS     = 80
-
 CONTEXT_i386                = 0x00010000    # this assumes that i386 and
 CONTEXT_i486                = 0x00010000    # i486 have identical context records
+CONTEXT_AMD64               = 0x00100000
 
 CONTEXT_CONTROL             = (CONTEXT_i386 | 0x00000001L) # SS:SP, CS:IP, FLAGS, BP
 CONTEXT_INTEGER             = (CONTEXT_i386 | 0x00000002L) # AX, BX, CX, DX, SI, DI
@@ -1214,6 +1259,7 @@ CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | \
                 CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | \
                 CONTEXT_EXTENDED_REGISTERS)
 
+SIZE_OF_80387_REGISTERS     = 80
 MAXIMUM_SUPPORTED_EXTENSION = 512
 
 # Value of SegCs in a Wow64 thread when running in 32 bits mode
@@ -1234,6 +1280,50 @@ WOW64_CONTEXT_ALL                   = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INT
 
 WOW64_SIZE_OF_80387_REGISTERS       = 80
 WOW64_MAXIMUM_SUPPORTED_EXTENSION   = 512
+
+# typedef struct _XMM_SAVE_AREA32 {
+#     WORD   ControlWord;
+#     WORD   StatusWord;
+#     BYTE  TagWord;
+#     BYTE  Reserved1;
+#     WORD   ErrorOpcode;
+#     DWORD ErrorOffset;
+#     WORD   ErrorSelector;
+#     WORD   Reserved2;
+#     DWORD DataOffset;
+#     WORD   DataSelector;
+#     WORD   Reserved3;
+#     DWORD MxCsr;
+#     DWORD MxCsr_Mask;
+#     M128A FloatRegisters[8];
+#     M128A XmmRegisters[16];
+#     BYTE  Reserved4[96];
+# } XMM_SAVE_AREA32, *PXMM_SAVE_AREA32;
+
+# XXX TODO
+
+##class XMM_SAVE_AREA32(Structure):
+##    _pack_ = 1
+##    _fields_ = [
+##        ('ControlWord',    WORD),
+##        ('StatusWord',     WORD),
+##        ('TagWord',       	BYTE),
+##        ('Reserved1',      BYTE),
+##        ('ErrorOpcode',    WORD),
+##        ('ErrorOffset',    DWORD),
+##        ('ErrorSelector',  WORD),
+##        ('Reserved2',      WORD),
+##        ('DataOffset',     DWORD),
+##        ('DataSelector',   WORD),
+##        ('Reserved3',      WORD),
+##        ('MxCsr',          DWORD),
+##        ('MxCsr_Mask',     DWORD),
+##        ('FloatRegisters', M128A * 8),
+##        ('XmmRegisters',   M128A * 16),
+##        ('Reserved4',      BYTE * 96),
+##    ]
+
+##LEGACY_SAVE_AREA_LENGTH = sizeof(XMM_SAVE_AREA32)
 
 # typedef struct _FLOATING_SAVE_AREA {
 #     DWORD   ControlWord;
@@ -1848,6 +1938,7 @@ def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FI
     MapViewOfFile = ctypes.windll.kernel32.MapViewOfFile
     MapViewOfFile.restype = LPVOID
     hFileMappingObject = HANDLE(hFileMappingObject)
+    dwNumberOfBytesToMap = SIZE_T(dwNumberOfBytesToMap)
     lpBaseAddress = MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
     lpBaseAddress = lpBaseAddress.value
     if lpBaseAddress == NULL:
@@ -1968,6 +2059,7 @@ def FlushFileBuffers(hFile):
 # );
 def FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush = 0):
     lpBaseAddress = LPVOID(lpBaseAddress)
+    dwNumberOfBytesToFlush = SIZE_T(dwNumberOfBytesToFlush)
     success = ctypes.windll.kernel32.FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush)
     if success == FALSE:
         raise ctypes.WinError()
@@ -2364,8 +2456,9 @@ def ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus = DBG_EXCEPTION
 # );
 def FlushInstructionCache(hProcess, lpBaseAddress = None, dwSize = 0):
     # http://blogs.msdn.com/oldnewthing/archive/2003/12/08/55954.aspx#55958
-    lpBaseAddress = LPVOID(lpBaseAddress)
     hProcess = HANDLE(hProcess)
+    lpBaseAddress = LPVOID(lpBaseAddress)
+    dwSize = SIZE_T(dwSize)
     success = ctypes.windll.kernel32.FlushInstructionCache(hProcess, lpBaseAddress, dwSize)
     if success == FALSE:
         raise ctypes.WinError()
@@ -2613,10 +2706,11 @@ def TerminateProcess(hProcess, dwExitCode = 0):
 #   __out  SIZE_T* lpNumberOfBytesRead
 # );
 def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
-    lpBuffer                = ctypes.create_string_buffer('', nSize)
-    lpNumberOfBytesRead     = ctypes.c_uint(0)
     hProcess                = HANDLE(hProcess)
     lpBaseAddress           = LPVOID(lpBaseAddress)
+    lpBuffer                = ctypes.create_string_buffer('', nSize)
+    nSize                   = SIZE_T(nSize)
+    lpNumberOfBytesRead     = SIZE_T(0)
     success = ctypes.windll.kernel32.ReadProcessMemory(hProcess, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesRead))
     if success == FALSE:
         if GetLastError() != ERROR_PARTIAL_COPY:
@@ -2631,9 +2725,9 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
 #   __out  SIZE_T* lpNumberOfBytesWritten
 # );
 def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
-    nSize                   = len(lpBuffer)
+    nSize                   = SIZE_T(len(lpBuffer))
     lpBuffer                = ctypes.create_string_buffer(lpBuffer)
-    lpNumberOfBytesWritten  = ctypes.c_uint(0)
+    lpNumberOfBytesWritten  = SIZE_T(0)
     hProcess                = HANDLE(hProcess)
     lpBaseAddress           = LPVOID(lpBaseAddress)
     success = ctypes.windll.kernel32.WriteProcessMemory(hProcess, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesWritten))
@@ -2654,6 +2748,7 @@ def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = 
     VirtualAllocEx.restype = LPVOID
     hProcess  = HANDLE(hProcess)
     lpAddress = LPVOID(lpAddress)
+    dwSize    = SIZE_T(dwSize)
     lpAddress = VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
     lpAddress = lpAddress.value
     if lpAddress == NULL:
@@ -2667,11 +2762,13 @@ def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = 
 #   __in      SIZE_T dwLength
 # );
 def VirtualQueryEx(hProcess, lpAddress):
-    ptr = LPVOID(lpAddress)
-    hProcess = HANDLE(hProcess)
-    lpBuffer = MEMORY_BASIC_INFORMATION()
-    dwLength = sizeof(MEMORY_BASIC_INFORMATION)
-    success  = ctypes.windll.kernel32.VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
+    hProcess  = HANDLE(hProcess)
+    lpAddress = LPVOID(lpAddress)
+    lpBuffer  = MEMORY_BASIC_INFORMATION()
+    dwLength  = sizeof(MEMORY_BASIC_INFORMATION)
+    VirtualQueryEx = ctypes.windll.kernel32.VirtualQueryEx
+    VirtualQueryEx.restype = SIZE_T
+    success = VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
     if success == 0:
         raise ctypes.WinError()
     return MemoryBasicInformation(lpBuffer)
@@ -2684,9 +2781,10 @@ def VirtualQueryEx(hProcess, lpAddress):
 #   __out  PDWORD lpflOldProtect
 # );
 def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_READWRITE):
-    lpAddress = LPVOID(lpAddress)
+    hProcess     = HANDLE(hProcess)
+    lpAddress    = LPVOID(lpAddress)
+    dwSize       = SIZE_T(dwSize)
     flOldProtect = DWORD(0)
-    hProcess = HANDLE(hProcess)
     success = ctypes.windll.kernel32.VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
     if success == FALSE:
         raise ctypes.WinError()
@@ -2699,8 +2797,9 @@ def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_RE
 #   __in  DWORD dwFreeType
 # );
 def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
-    lpAddress = LPVOID(lpAddress)
-    hProcess = HANDLE(hProcess)
+    hProcess     = HANDLE(hProcess)
+    lpAddress    = LPVOID(lpAddress)
+    dwSize       = SIZE_T(dwSize)
     success = ctypes.windll.kernel32.VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
     if success == FALSE:
         raise ctypes.WinError()
@@ -2711,7 +2810,7 @@ def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
 #   __out  LPLDT_ENTRY lpSelectorEntry
 # );
 def GetThreadSelectorEntry(hThread, dwSelector):
-    ldt = LDT_ENTRY()
+    ldt     = LDT_ENTRY()
     hThread = HANDLE(hThread)
     success = ctypes.windll.kernel32.GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
     if success == FALSE:
@@ -2736,6 +2835,7 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
     lpParameter = LPVOID(lpParameter)
     dwThreadId = DWORD(0)
     hProcess = HANDLE(hProcess)
+    dwStackSize = SIZE_T(dwStackSize)
     CreateRemoteThread = ctypes.windll.kernel32.CreateRemoteThread
     CreateRemoteThread.restype = HANDLE
     hThread = CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
@@ -3122,11 +3222,12 @@ def Heap32ListNext(hSnapshot, hl = None):
 #   __in   SIZE_T cbRead,
 #   __out  SIZE_T lpNumberOfBytesRead
 # );
-def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, nSize):
+def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
     lpBaseAddress           = LPVOID(lpBaseAddress)
-    lpBuffer                = ctypes.create_string_buffer('', nSize)
-    lpNumberOfBytesRead     = ctypes.c_uint(0)
-    success = ctypes.windll.kernel32.Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, ctypes.byref(lpBuffer), nSize, ctypes.byref(lpNumberOfBytesRead))
+    lpBuffer                = ctypes.create_string_buffer('', cbRead)
+    cbRead                  = SIZE_T(cbRead)
+    lpNumberOfBytesRead     = SIZE_T(0)
+    success = ctypes.windll.kernel32.Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, ctypes.byref(lpBuffer), cbRead, ctypes.byref(lpNumberOfBytesRead))
     if success == FALSE:
         if GetLastError() != ERROR_PARTIAL_COPY:
             raise ctypes.WinError()

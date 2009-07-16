@@ -170,6 +170,9 @@ ULONGLONG   = ctypes.c_ulonglong
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
 
+# Size of a pointer 
+SIZE_T      = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
+
 PSTR        = LPSTR
 PWSTR       = LPWSTR
 PCHAR       = LPSTR
@@ -220,7 +223,6 @@ NTSTATUS    = DWORD
 KAFFINITY   = LONG
 KPRIORITY   = LONG
 TCHAR       = CHAR
-SIZE_T      = DWORD
 PVOID       = LPVOID
 PPVOID      = POINTER(PVOID)
 RVA         = DWORD
