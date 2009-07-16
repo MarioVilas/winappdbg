@@ -3607,10 +3607,16 @@ class ProcessContainer (object):
         """
         cmdline = list()
         for token in argv:
-            if '"' in token:
-                token = token.replace('"', '\\"')
-            if ' ' in token or '\t' in token or '\n' in token or '\r' in token:
-                token = '"%s"' % token
+            if not token:
+                token = '""'
+            else:
+                if '"' in token:
+                    token = token.replace('"', '\\"')
+                if  ' ' in token  or \
+                    '\t' in token or \
+                    '\n' in token or \
+                    '\r' in token:
+                        token = '"%s"' % token
             cmdline.append(token)
         return ' '.join(cmdline)
 
