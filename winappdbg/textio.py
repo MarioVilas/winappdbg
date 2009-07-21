@@ -286,8 +286,8 @@ class HexOutput (object):
         This value is platform dependent.
     """
 
-    integer_size = len(hex(win32.DWORD(-1).value))
-    address_size = len(hex(win32.SIZE_T(-1).value))
+    integer_size = len('%x' % (win32.DWORD(-1).value))+2
+    address_size = len('%x' % (win32.SIZE_T(-1).value))+2
 
     @classmethod
     def integer(cls, integer):
@@ -298,7 +298,7 @@ class HexOutput (object):
         @rtype:  str
         @return: Text output.
         """
-        return ('0x%%.%dx' % cls.integer_size) % integer
+        return ('0x%%.%dx' % (cls.integer_size - 2)) % integer
 
     @classmethod
     def address(cls, address):
@@ -309,7 +309,7 @@ class HexOutput (object):
         @rtype:  str
         @return: Text output.
         """
-        return ('0x%%.%dx' % cls.address_size) % address
+        return ('0x%%.%dx' % (cls.address_size - 2)) % address
 
     @staticmethod
     def hexadecimal(data):
@@ -400,8 +400,8 @@ class HexDump (object):
         This value is platform dependent.
     """
 
-    integer_size = len(hex(win32.DWORD(-1).value))-2
-    address_size = len(hex(win32.SIZE_T(-1).value))-2
+    integer_size = len('%x' % (win32.DWORD(-1).value))
+    address_size = len('%x' % (win32.SIZE_T(-1).value))
 
     @classmethod
     def integer(cls, integer):
