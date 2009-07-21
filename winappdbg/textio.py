@@ -400,8 +400,19 @@ class HexDump (object):
         This value is platform dependent.
     """
 
-    integer_size = len(str(win32.DWORD(-1).value))+1
+    integer_size = len(hex(win32.DWORD(-1).value))-2
     address_size = len(hex(win32.SIZE_T(-1).value))-2
+
+    @classmethod
+    def integer(cls, integer):
+        """
+        @type  integer: int
+        @param integer: Integer.
+
+        @rtype:  str
+        @return: Text output.
+        """
+        return ('%%.%dx' % cls.integer_size) % integer
 
     @classmethod
     def address(cls, address):
@@ -413,17 +424,6 @@ class HexDump (object):
         @return: Text output.
         """
         return ('%%.%dx' % cls.address_size) % address
-
-    @classmethod
-    def integer(cls, integer):
-        """
-        @type  integer: int
-        @param integer: Integer.
-
-        @rtype:  str
-        @return: Text output.
-        """
-        return ('%%.%di' % cls.integer_size) % integer
 
     @staticmethod
     def printable(data):
