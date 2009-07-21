@@ -441,7 +441,7 @@ class ExceptionEvent (Event):
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
             raise IndexError, "Array index out of range: %s" % repr(index)
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return info[index]
+        return info[index].value
 
     def get_exception_information_as_list(self):
         """
@@ -449,7 +449,8 @@ class ExceptionEvent (Event):
         @return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return [info[i] for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS)]
+        return [ info[i].value \
+                 for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
 
     def get_fault_type(self):
         """
@@ -916,7 +917,7 @@ class UnloadDLLEvent (Event):
             aModule = aProcess.get_module(lpBaseOfDll)
         else:
             aModule = Module(lpBaseOfDll, process = aProcess)
-            aProcess.__ModuleContainer_add_module(aModule)
+            aProcess._ModuleContainer__add_module(aModule)
         return aModule
 
     def get_file_handle(self):
@@ -1319,14 +1320,8 @@ class EventDispatcher (object):
             However you'll probably find it more convenient to use an instance
             of a subclass of L{EventHandler} here.
         """
-        if eventHandler is not None:
-            bCallable = hasattr(eventHandler, '__call__')
-            try:
-                bCallable = bCallable or callable(eventHandler)
-            except NameError:
-                pass    # "callable" doesn't exist in Python 3.x
-            if not bCallable:
-                raise TypeError, "Invalid event handler"
+        if eventHandler is not None and not callable(eventHandler):
+            raise TypeError, "Invalid event handler"
         self.__eventHandler = eventHandler
 
     def dispatch(self, event):

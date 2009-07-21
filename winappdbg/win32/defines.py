@@ -246,6 +246,28 @@ LRESULT     = LPVOID
 
 # XXX TODO
 
+# typedef struct _FLOAT128 {
+#     __int64 LowPart;
+#     __int64 HighPart;
+# } FLOAT128;
+class FLOAT128 (Structure):
+    _fields_ = [
+        ("LowPart",     QWORD),
+        ("HighPart",    QWORD),
+    ]
+PFLOAT128 = ctypes.POINTER(FLOAT128)
+
+# typedef struct DECLSPEC_ALIGN(16) _M128A {
+#     ULONGLONG Low;
+#     LONGLONG High;
+# } M128A, *PM128A;
+class M128A(Structure):
+    _fields_ = [
+        ("Low",     ULONGLONG),
+        ("High",    LONGLONG),
+    ]
+PM128A = ctypes.POINTER(M128A)
+
 #--- Constants ----------------------------------------------------------------
 
 NULL        = 0

@@ -35,6 +35,21 @@ __revision__ = "$Id$"
 
 from defines import *
 
+#--- CONTEXT structure and constants ------------------------------------------
+
+import context_i386
+import context_amd64
+
+from context_i386  import CONTEXT_i386, CONTEXT_i486
+from context_amd64 import CONTEXT_AMD64
+
+if ctypes.sizeof(ctypes.c_void_p) == 4:
+    from context_i386 import *
+elif ctypes.sizeof(ctypes.c_void_p) == 8:
+    from context_amd64 import *
+else:
+    raise Warning, "Unsupported architecture"
+
 #--- Constants ----------------------------------------------------------------
 
 STILL_ACTIVE = 259
@@ -368,13 +383,6 @@ CONTROL_C_EXIT                      = STATUS_CONTROL_C_EXIT
 
 DBG_CONTROL_C                       = 0x40010005L
 MS_VC_EXCEPTION                     = 0x406D1388L
-
-# The following values specify the type of access in the first parameter
-# of the exception record whan the exception code specifies an access
-# violation.
-EXCEPTION_READ_FAULT        = 0     # exception caused by a read
-EXCEPTION_WRITE_FAULT       = 1     # exception caused by a write
-EXCEPTION_EXECUTE_FAULT     = 8     # exception caused by an instruction fetch
 
 # Access violation types
 ACCESS_VIOLATION_TYPE_READ      = EXCEPTION_READ_FAULT
@@ -984,32 +992,70 @@ class STARTUPINFOEX(Structure):
 
 #--- DEBUG_EVENT structure ----------------------------------------------------
 
-# XXX
-# Important note!
-# Don't use LPVOID or any of the pointer types for REMOTE pointers,
-# because we don't want ctypes to tinker with them, since they are
-# not valid addresses within the current process address space.
-
 # typedef struct _EXCEPTION_RECORD {
 #   DWORD ExceptionCode;
 #   DWORD ExceptionFlags;
 #   struct _EXCEPTION_RECORD* ExceptionRecord;
 #   PVOID ExceptionAddress;
 #   DWORD NumberParameters;
-#   DWORD ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+#   ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
 # } EXCEPTION_RECORD;
 class EXCEPTION_RECORD(Structure):
-    _pack_ = 1
+    _pack_ = 4
 EXCEPTION_RECORD._fields_ = [
         ('ExceptionCode',           DWORD),
         ('ExceptionFlags',          DWORD),
         ('ExceptionRecord',         POINTER(EXCEPTION_RECORD)),
         ('ExceptionAddress',        LPVOID),
         ('NumberParameters',        DWORD),
-        ('ExceptionInformation',    DWORD * EXCEPTION_MAXIMUM_PARAMETERS),
+        ('ExceptionInformation',    LPVOID * EXCEPTION_MAXIMUM_PARAMETERS),
     ]
 
 PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
+
+# typedef struct _EXCEPTION_RECORD32 {
+#     DWORD    ExceptionCode;
+#     DWORD ExceptionFlags;
+#     DWORD ExceptionRecord;
+#     DWORD ExceptionAddress;
+#     DWORD NumberParameters;
+#     DWORD ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+# } EXCEPTION_RECORD32, *PEXCEPTION_RECORD32;
+class EXCEPTION_RECORD32(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ('ExceptionCode',           DWORD),
+        ('ExceptionFlags',          DWORD),
+        ('ExceptionRecord',         DWORD),
+        ('ExceptionAddress',        DWORD),
+        ('NumberParameters',        DWORD),
+        ('ExceptionInformation',    DWORD * EXCEPTION_MAXIMUM_PARAMETERS),
+    ]
+
+PEXCEPTION_RECORD32 = POINTER(EXCEPTION_RECORD32)
+
+# typedef struct _EXCEPTION_RECORD64 {
+#     DWORD    ExceptionCode;
+#     DWORD ExceptionFlags;
+#     DWORD64 ExceptionRecord;
+#     DWORD64 ExceptionAddress;
+#     DWORD NumberParameters;
+#     DWORD __unusedAlignment;
+#     DWORD64 ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+# } EXCEPTION_RECORD64, *PEXCEPTION_RECORD64;
+class EXCEPTION_RECORD64(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('ExceptionCode',           DWORD),
+        ('ExceptionFlags',          DWORD),
+        ('ExceptionRecord',         DWORD64),
+        ('ExceptionAddress',        DWORD64),
+        ('NumberParameters',        DWORD),
+        ('__unusedAlignment',       DWORD),
+        ('ExceptionInformation',    DWORD64 * EXCEPTION_MAXIMUM_PARAMETERS),
+    ]
+
+PEXCEPTION_RECORD64 = POINTER(EXCEPTION_RECORD64)
 
 # typedef struct _EXCEPTION_DEBUG_INFO {
 #   EXCEPTION_RECORD ExceptionRecord;
@@ -1170,97 +1216,7 @@ class DEBUG_EVENT(Structure):
         ('u',                   _DEBUG_EVENT_UNION_),
     ]
 
-#--- LDT_ENTRY structure (for x86 only) ---------------------------------------
-
-# typedef struct _LDT_ENTRY {
-#   WORD LimitLow;
-#   WORD BaseLow;
-#   union {
-#     struct {
-#       BYTE BaseMid;
-#       BYTE Flags1;
-#       BYTE Flags2;
-#       BYTE BaseHi;
-#     } Bytes;
-#     struct {
-#       DWORD BaseMid  :8;
-#       DWORD Type  :5;
-#       DWORD Dpl  :2;
-#       DWORD Pres  :1;
-#       DWORD LimitHi  :4;
-#       DWORD Sys  :1;
-#       DWORD Reserved_0  :1;
-#       DWORD Default_Big  :1;
-#       DWORD Granularity  :1;
-#       DWORD BaseHi  :8;
-#     } Bits;
-#   } HighWord;
-# } LDT_ENTRY,
-#  *PLDT_ENTRY;
-
-class _LDT_ENTRY_BYTES_(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('BaseMid',         BYTE),
-        ('Flags1',          BYTE),
-        ('Flags2',          BYTE),
-        ('BaseHi',          BYTE),
-    ]
-
-class _LDT_ENTRY_BITS_(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('BaseMid',         DWORD,  8),
-        ('Type',            DWORD,  5),
-        ('Dpl',             DWORD,  2),
-        ('Pres',            DWORD,  1),
-        ('LimitHi',         DWORD,  4),
-        ('Sys',             DWORD,  1),
-        ('Reserved_0',      DWORD,  1),
-        ('Default_Big',     DWORD,  1),
-        ('Granularity',     DWORD,  1),
-        ('BaseHi',          DWORD,  8),
-    ]
-
-class _LDT_ENTRY_HIGHWORD_(Union):
-    _pack_ = 1
-    _fields_ = [
-        ('Bytes',           _LDT_ENTRY_BYTES_),
-        ('Bits',            _LDT_ENTRY_BITS_),
-    ]
-
-class LDT_ENTRY(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('LimitLow',        WORD),
-        ('BaseLow',         WORD),
-        ('HighWord',        _LDT_ENTRY_HIGHWORD_),
-    ]
-
-class WOW64_LDT_ENTRY (LDT_ENTRY):
-    pass
-
-#--- CONTEXT structure and constants (for x86 only) ---------------------------
-
-CONTEXT_i386                = 0x00010000    # this assumes that i386 and
-CONTEXT_i486                = 0x00010000    # i486 have identical context records
-CONTEXT_AMD64               = 0x00100000
-
-CONTEXT_CONTROL             = (CONTEXT_i386 | 0x00000001L) # SS:SP, CS:IP, FLAGS, BP
-CONTEXT_INTEGER             = (CONTEXT_i386 | 0x00000002L) # AX, BX, CX, DX, SI, DI
-CONTEXT_SEGMENTS            = (CONTEXT_i386 | 0x00000004L) # DS, ES, FS, GS
-CONTEXT_FLOATING_POINT      = (CONTEXT_i386 | 0x00000008L) # 387 state
-CONTEXT_DEBUG_REGISTERS     = (CONTEXT_i386 | 0x00000010L) # DB 0-3,6,7
-CONTEXT_EXTENDED_REGISTERS  = (CONTEXT_i386 | 0x00000020L) # cpu specific extensions
-
-CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS)
-
-CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | \
-                CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | \
-                CONTEXT_EXTENDED_REGISTERS)
-
-SIZE_OF_80387_REGISTERS     = 80
-MAXIMUM_SUPPORTED_EXTENSION = 512
+#--- WOW64 CONTEXT structure and constants ------------------------------------
 
 # Value of SegCs in a Wow64 thread when running in 32 bits mode
 WOW64_CS32 = 0x23
@@ -1281,276 +1237,18 @@ WOW64_CONTEXT_ALL                   = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INT
 WOW64_SIZE_OF_80387_REGISTERS       = 80
 WOW64_MAXIMUM_SUPPORTED_EXTENSION   = 512
 
-# typedef struct _XMM_SAVE_AREA32 {
-#     WORD   ControlWord;
-#     WORD   StatusWord;
-#     BYTE  TagWord;
-#     BYTE  Reserved1;
-#     WORD   ErrorOpcode;
-#     DWORD ErrorOffset;
-#     WORD   ErrorSelector;
-#     WORD   Reserved2;
-#     DWORD DataOffset;
-#     WORD   DataSelector;
-#     WORD   Reserved3;
-#     DWORD MxCsr;
-#     DWORD MxCsr_Mask;
-#     M128A FloatRegisters[8];
-#     M128A XmmRegisters[16];
-#     BYTE  Reserved4[96];
-# } XMM_SAVE_AREA32, *PXMM_SAVE_AREA32;
-
-# XXX TODO
-
-##class XMM_SAVE_AREA32(Structure):
-##    _pack_ = 1
-##    _fields_ = [
-##        ('ControlWord',    WORD),
-##        ('StatusWord',     WORD),
-##        ('TagWord',       	BYTE),
-##        ('Reserved1',      BYTE),
-##        ('ErrorOpcode',    WORD),
-##        ('ErrorOffset',    DWORD),
-##        ('ErrorSelector',  WORD),
-##        ('Reserved2',      WORD),
-##        ('DataOffset',     DWORD),
-##        ('DataSelector',   WORD),
-##        ('Reserved3',      WORD),
-##        ('MxCsr',          DWORD),
-##        ('MxCsr_Mask',     DWORD),
-##        ('FloatRegisters', M128A * 8),
-##        ('XmmRegisters',   M128A * 16),
-##        ('Reserved4',      BYTE * 96),
-##    ]
-
-##LEGACY_SAVE_AREA_LENGTH = sizeof(XMM_SAVE_AREA32)
-
-# typedef struct _FLOATING_SAVE_AREA {
-#     DWORD   ControlWord;
-#     DWORD   StatusWord;
-#     DWORD   TagWord;
-#     DWORD   ErrorOffset;
-#     DWORD   ErrorSelector;
-#     DWORD   DataOffset;
-#     DWORD   DataSelector;
-#     BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
-#     DWORD   Cr0NpxState;
-# } FLOATING_SAVE_AREA;
-class FLOATING_SAVE_AREA(Structure):
-    _pack_ = 1
-    _fields_ = [
-        ('ControlWord',     DWORD),
-        ('StatusWord',      DWORD),
-        ('TagWord',         DWORD),
-        ('ErrorOffset',     DWORD),
-        ('ErrorSelector',   DWORD),
-        ('DataOffset',      DWORD),
-        ('DataSelector',    DWORD),
-        ('RegisterArea',    BYTE * SIZE_OF_80387_REGISTERS),
-        ('Cr0NpxState',     DWORD),
-    ]
-
-    _integer_members = ('ControlWord', 'StatusWord', 'TagWord', 'ErrorOffset', 'ErrorSelector', 'DataOffset', 'DataSelector', 'Cr0NpxState')
-
-    @classmethod
-    def from_dict(cls, fsa):
-        'Instance a new structure from a Python dictionary.'
-        fsa = dict(fsa)
-        s = cls()
-        for key in cls._integer_members:
-            setattr(s, key, fsa.get(key))
-        ra = fsa.get('RegisterArea', None)
-        if ra is not None:
-            for index in xrange(0, SIZE_OF_80387_REGISTERS):
-                s.RegisterArea[index] = ra[index]
-        return s
-
-    def to_dict(self):
-        'Convert a structure into a Python dictionary.'
-        fsa = dict()
-        for key in self._integer_members:
-            fsa[key] = getattr(self, key)
-        ra = [ self.RegisterArea[index] for index in xrange(0, SIZE_OF_80387_REGISTERS) ]
-        ra = tuple(ra)
-        fsa['RegisterArea'] = ra
-        return fsa
-
-# typedef struct _CONTEXT {
-#     DWORD ContextFlags;
-#     DWORD   Dr0;
-#     DWORD   Dr1;
-#     DWORD   Dr2;
-#     DWORD   Dr3;
-#     DWORD   Dr6;
-#     DWORD   Dr7;
-#     FLOATING_SAVE_AREA FloatSave;
-#     DWORD   SegGs;
-#     DWORD   SegFs;
-#     DWORD   SegEs;
-#     DWORD   SegDs;
-#     DWORD   Edi;
-#     DWORD   Esi;
-#     DWORD   Ebx;
-#     DWORD   Edx;
-#     DWORD   Ecx;
-#     DWORD   Eax;
-#     DWORD   Ebp;
-#     DWORD   Eip;
-#     DWORD   SegCs;
-#     DWORD   EFlags;
-#     DWORD   Esp;
-#     DWORD   SegSs;
-#     BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
-# } CONTEXT;
-class CONTEXT(Structure):
-    _pack_ = 1
-
-    # Context Frame
-    #
-    #  This frame has a several purposes: 1) it is used as an argument to
-    #  NtContinue, 2) is is used to constuct a call frame for APC delivery,
-    #  and 3) it is used in the user level thread creation routines.
-    #
-    #  The layout of the record conforms to a standard call frame.
-
-    _fields_ = [
-
-        # The flags values within this flag control the contents of
-        # a CONTEXT record.
-        #
-        # If the context record is used as an input parameter, then
-        # for each portion of the context record controlled by a flag
-        # whose value is set, it is assumed that that portion of the
-        # context record contains valid context. If the context record
-        # is being used to modify a threads context, then only that
-        # portion of the threads context will be modified.
-        #
-        # If the context record is used as an IN OUT parameter to capture
-        # the context of a thread, then only those portions of the thread's
-        # context corresponding to set flags will be returned.
-        #
-        # The context record is never used as an OUT only parameter.
-
-        ('ContextFlags',        DWORD),
-
-        # This section is specified/returned if CONTEXT_DEBUG_REGISTERS is
-        # set in ContextFlags.  Note that CONTEXT_DEBUG_REGISTERS is NOT
-        # included in CONTEXT_FULL.
-
-        ('Dr0',                 DWORD),
-        ('Dr1',                 DWORD),
-        ('Dr2',                 DWORD),
-        ('Dr3',                 DWORD),
-        ('Dr6',                 DWORD),
-        ('Dr7',                 DWORD),
-
-        # This section is specified/returned if the
-        # ContextFlags word contains the flag CONTEXT_FLOATING_POINT.
-
-        ('FloatSave',           FLOATING_SAVE_AREA),
-
-        # This section is specified/returned if the
-        # ContextFlags word contains the flag CONTEXT_SEGMENTS.
-
-        ('SegGs',               DWORD),
-        ('SegFs',               DWORD),
-        ('SegEs',               DWORD),
-        ('SegDs',               DWORD),
-
-        # This section is specified/returned if the
-        # ContextFlags word contains the flag CONTEXT_INTEGER.
-
-        ('Edi',                 DWORD),
-        ('Esi',                 DWORD),
-        ('Ebx',                 DWORD),
-        ('Edx',                 DWORD),
-        ('Ecx',                 DWORD),
-        ('Eax',                 DWORD),
-
-        # This section is specified/returned if the
-        # ContextFlags word contains the flag CONTEXT_CONTROL.
-
-        ('Ebp',                 DWORD),
-        ('Eip',                 DWORD),
-        ('SegCs',               DWORD),         # MUST BE SANITIZED
-        ('EFlags',              DWORD),         # MUST BE SANITIZED
-        ('Esp',                 DWORD),
-        ('SegSs',               DWORD),
-
-        # This section is specified/returned if the ContextFlags word
-        # contains the flag CONTEXT_EXTENDED_REGISTERS.
-        # The format and contexts are processor specific.
-
-        ('ExtendedRegisters',   BYTE * MAXIMUM_SUPPORTED_EXTENSION),
-    ]
-
-    _ctx_debug   = ('Dr0', 'Dr1', 'Dr2', 'Dr3', 'Dr6', 'Dr7')
-    _ctx_segs    = ('SegGs', 'SegFs', 'SegEs', 'SegDs', )
-    _ctx_int     = ('Edi', 'Esi', 'Ebx', 'Edx', 'Ecx', 'Eax')
-    _ctx_ctrl    = ('Ebp', 'Eip', 'SegCs', 'EFlags', 'Esp', 'SegSs')
-
-    @classmethod
-    def from_dict(cls, ctx):
-        'Instance a new structure from a Python dictionary.'
-        ctx = dict(ctx)
-        s = cls()
-        ContextFlags = ctx['ContextFlags']
-        setattr(s, 'ContextFlags', ContextFlags)
-        if (ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS:
-            for key in s._ctx_debug:
-                setattr(s, key, ctx[key])
-        if (ContextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT:
-            fsa = ctx['FloatSave']
-            s.FloatSave = FLOATING_SAVE_AREA.from_dict(fsa)
-        if (ContextFlags & CONTEXT_SEGMENTS) == CONTEXT_SEGMENTS:
-            for key in s._ctx_segs:
-                setattr(s, key, ctx[key])
-        if (ContextFlags & CONTEXT_INTEGER) == CONTEXT_INTEGER:
-            for key in s._ctx_int:
-                setattr(s, key, ctx[key])
-        if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
-            for key in s._ctx_ctrl:
-                setattr(s, key, ctx[key])
-        if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
-            er = ctx['ExtendedRegisters']
-            for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION):
-                s.ExtendedRegisters[index] = er[index]
-        return s
-
-    def to_dict(self):
-        'Convert a structure into a Python dictionary.'
-        ctx = dict()
-        ContextFlags = self.ContextFlags
-        ctx['ContextFlags'] = ContextFlags
-        if (ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS:
-            for key in self._ctx_debug:
-                ctx[key] = getattr(self, key)
-        if (ContextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT:
-            ctx['FloatSave'] = self.FloatSave.to_dict()
-        if (ContextFlags & CONTEXT_SEGMENTS) == CONTEXT_SEGMENTS:
-            for key in self._ctx_segs:
-                ctx[key] = getattr(self, key)
-        if (ContextFlags & CONTEXT_INTEGER) == CONTEXT_INTEGER:
-            for key in self._ctx_int:
-                ctx[key] = getattr(self, key)
-        if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
-            for key in self._ctx_ctrl:
-                ctx[key] = getattr(self, key)
-        if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
-            er = [ self.ExtendedRegisters[index] for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION) ]
-            er = tuple(er)
-            ctx['ExtendedRegisters'] = er
-        return ctx
-
-PCONTEXT = POINTER(CONTEXT)
-
-class WOW64_FLOATING_SAVE_AREA (FLOATING_SAVE_AREA):
+class WOW64_FLOATING_SAVE_AREA (context_i386.FLOATING_SAVE_AREA):
     pass
 
-class WOW64_CONTEXT (CONTEXT):
+class WOW64_CONTEXT (context_i386.CONTEXT):
     pass
 
-PWOW64_CONTEXT = POINTER(WOW64_CONTEXT)
+class WOW64_LDT_ENTRY (context_i386.LDT_ENTRY):
+    pass
+
+PWOW64_FLOATING_SAVE_AREA   = POINTER(WOW64_FLOATING_SAVE_AREA)
+PWOW64_CONTEXT              = POINTER(WOW64_CONTEXT)
+PWOW64_LDT_ENTRY            = POINTER(WOW64_LDT_ENTRY)
 
 #--- Toolhelp library defines and structures ----------------------------------
 
