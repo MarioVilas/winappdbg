@@ -826,7 +826,17 @@ class LoadDLLEvent (Event):
         @rtype:  L{Module}
         @return: Module object for the newly loaded DLL.
         """
-        return self.get_process().get_module( self.get_module_base() )
+        lpBaseOfDll = self.get_module_base()
+        aProcess    = self.get_process()
+        if aProcess.has_module(lpBaseOfDll):
+            aModule = aProcess.get_module(lpBaseOfDll)
+        else:
+            aModule = Module(lpBaseOfDll,
+                             hFile = self.get_file_handle(),
+                             fileName = get_filename(),
+                             process = aProcess)
+            aProcess.__ModuleContainer_add_module(aModule)
+        return aModule
 
     def get_file_handle(self):
         """
@@ -900,7 +910,25 @@ class UnloadDLLEvent (Event):
         @rtype:  L{Module}
         @return: Module object for the recently unloaded DLL.
         """
-        return self.get_process().get_module( self.get_module_base() )
+        lpBaseOfDll = self.get_module_base()
+        aProcess    = self.get_process()
+        if aProcess.has_module(lpBaseOfDll):
+            aModule = aProcess.get_module(lpBaseOfDll)
+        else:
+            aModule = Module(lpBaseOfDll, process = aProcess)
+            aProcess.__ModuleContainer_add_module(aModule)
+        return aModule
+
+    def get_file_handle(self):
+        """
+        @rtype:  None or L{FileHandle}
+        @return: File handle to the recently unloaded DLL.
+            Returns C{None} if the handle is not available.
+        """
+        hFile = self.get_module().hFile
+        if hFile == win32.INVALID_HANDLE_VALUE:
+            hFile = None
+        return hFile
 
     def get_filename(self):
         """

@@ -495,11 +495,15 @@ class ConsoleDebugger (Cmd, EventHandler):
             ctx = thread.get_context()
         finally:
             thread.resume()
-        label   = process.get_label_at_address(pc)
-        disasm  = process.disassemble(pc, 15)
+        label = process.get_label_at_address(pc)
+        try:
+            disasm = process.disassemble(pc, 15)
+        except NotImplementedError:
+            disasm = None
         print winappdbg.CrashDump.dump_registers(ctx),
         print "%s:" % label
-        print winappdbg.CrashDump.dump_code_line(disasm[0], pc, bShowDump = False)
+        if disasm:
+            print winappdbg.CrashDump.dump_code_line(disasm[0], pc, bShowDump = False)
 
     # Display memory contents using a given method.
     def print_memory_display(self, arg, method):
