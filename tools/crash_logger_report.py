@@ -141,4 +141,9 @@ def main(argv):
         print_report_for_database(filename, options)
 
 if __name__ == '__main__':
+    try:
+        import psyco
+        psyco.bind(main)
+    except ImportError:
+        pass
     main(sys.argv)

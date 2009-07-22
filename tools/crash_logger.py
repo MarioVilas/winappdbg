@@ -802,10 +802,13 @@ class CrashLogger (object):
                 if options.verbose:
                     print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
 
+def main(argv):
+    return CrashLogger().run(argv)
+
 if __name__ == '__main__':
     try:
         import psyco
         psyco.bind(main)
     except ImportError:
         pass
-    CrashLogger().run(sys.argv)
+    main(sys.argv)

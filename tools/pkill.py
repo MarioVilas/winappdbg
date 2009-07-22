@@ -146,4 +146,9 @@ def main(argv):
     exit()
 
 if __name__ == '__main__':
+    try:
+        import psyco
+        psyco.bind(main)
+    except ImportError:
+        pass
     main(sys.argv)

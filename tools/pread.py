@@ -97,7 +97,7 @@ def main():
 if __name__ == '__main__':
     try:
         import psyco
-        psyco.full()
+        psyco.bind(main)
     except ImportError:
         pass
     main()

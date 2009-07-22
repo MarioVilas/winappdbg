@@ -420,10 +420,13 @@ class Main (object):
 
 #------------------------------------------------------------------------------
 
+def main(argv):
+    return Main(argv).run()
+
 if __name__ == '__main__':
     try:
         import psyco
-        psyco.full()
+        psyco.bind(main)
     except ImportError:
         pass
-    Main( sys.argv ).run()
+    main(sys.argv)
