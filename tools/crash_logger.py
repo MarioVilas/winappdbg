@@ -126,7 +126,7 @@ class LoggingEventHandler(EventHandler):
     # Wait until the command completes.
     # To avoid waiting, use the "start" command.
     def __run_command(self, event, crash = None):
-        action  = "cmd.exe /c %s" % self.options.action
+        action = System.argv_to_cmdline(self.options.action)
         if '%' in action:
             if not crash:
                 crash = Crash(event)
@@ -148,6 +148,7 @@ class LoggingEventHandler(EventHandler):
             action = action.replace('%SP%', HexDump.address(crash.sp))
             action = action.replace('%FP%', HexDump.address(crash.fp))
             action = action.replace('%WHERE%', str(crash.labelPC))
+        action = "cmd.exe /c %s" % action
         system  = System()
         process = system.start_process(action, bConsole = True)
         process.wait()
