@@ -933,6 +933,7 @@ class PROCESS_INFORMATION(Structure):
         ('dwProcessId', DWORD),
         ('dwThreadId',  DWORD),
     ]
+LPPROCESS_INFORMATION = POINTER(PROCESS_INFORMATION)
 
 #--- STARTUPINFO and STARTUPINFOEX structures ---------------------------------
 
@@ -978,6 +979,7 @@ class STARTUPINFO(Structure):
         ('hStdOutput',      DWORD),
         ('hStdError',       DWORD),
     ]
+PLSTARTUPINFO = POINTER(STARTUPINFO)
 
 # typedef struct _STARTUPINFOEX {
 #   STARTUPINFO StartupInfo;
@@ -989,6 +991,7 @@ class STARTUPINFOEX(Structure):
         ('StartupInfo',     STARTUPINFO),
         ('lpAttributeList', LPVOID),
     ]
+PLSTARTUPINFOEX = POINTER(STARTUPINFOEX)
 
 #--- DEBUG_EVENT structure ----------------------------------------------------
 
@@ -2325,8 +2328,8 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
         lpStartupInfo.cbReserved2  = 0
         lpStartupInfo.lpReserved2  = 0
     lpProcessInformation              = PROCESS_INFORMATION()
-    lpProcessInformation.hProcess     = -1
-    lpProcessInformation.hThread      = -1
+    lpProcessInformation.hProcess     = INVALID_HANDLE_VALUE
+    lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
     success = ctypes.windll.kernel32.CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
