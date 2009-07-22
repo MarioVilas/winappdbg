@@ -3060,7 +3060,7 @@ class BreakpointContainer (object):
                     bCallHandler = bCondition
 
         # Handle the system breakpoint.
-        elif address == event.get_process().get_system_breakpoint():
+        elif event.get_process().is_system_defined_breakpoint(address):
             event.continueStatus = win32.DBG_CONTINUE
 
         return bCallHandler

@@ -2415,7 +2415,7 @@ When called as an instance method, the fuzzy syntax mode is used::
             breakpoint. System defined breakpoints are hardcoded into
             system libraries.
         """
-        return (
+        return address is not None and (
             address == self.get_system_breakpoint() or \
             address == self.get_user_breakpoint()   or \
             address == self.get_breakin_breakpoint()
@@ -2424,35 +2424,54 @@ When called as an instance method, the fuzzy syntax mode is used::
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
     # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
+    # In Wow64 ntdll was replaced by ntdll32.
     def get_system_breakpoint(self):
         """
-        @rtype:  int
+        @rtype:  int or None
         @return: Memory address of the system breakpoint
             within the process address space.
             Returns C{None} on error.
         """
-        return self.resolve_label("ntdll!DbgBreakPoint")
+        try:
+            return self.resolve_label("ntdll!DbgBreakPoint")
+        except Exception:
+            try:
+                return self.resolve_label("ntdll32!DbgBreakPoint")
+            except Exception:
+                return None
 
     # I don't know when this breakpoint is actually used...
     def get_user_breakpoint(self):
         """
-        @rtype:  int
+        @rtype:  int or None
         @return: Memory address of the user breakpoint
             within the process address space.
             Returns C{None} on error.
         """
-        return self.resolve_label("ntdll!DbgUserBreakPoint")
+        try:
+            return self.resolve_label("ntdll!DbgUserBreakPoint")
+        except Exception:
+            try:
+                return self.resolve_label("ntdll32!DbgUserBreakPoint")
+            except Exception:
+                return None
 
     # This breakpoint can only be resolved when the
     # debugging symbols for ntdll.dll are loaded.
     def get_breakin_breakpoint(self):
         """
-        @rtype:  int
+        @rtype:  int or None
         @return: Memory address of the remote breakin breakpoint
             within the process address space.
             Returns C{None} on error.
         """
-        return self.resolve_label("ntdll!DbgUiRemoteBreakin")
+        try:
+            return self.resolve_label("ntdll!DbgUiRemoteBreakin")
+        except Exception:
+            try:
+                return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
+            except Exception:
+                return None
 
     def load_symbols(self):
         for aModule in self.iter_modules():
