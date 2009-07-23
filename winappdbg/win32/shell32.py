@@ -43,19 +43,28 @@ from kernel32 import LocalFree
 #     int *pNumArgs
 # );
 def CommandLineToArgvW(lpCmdLine):
-    if lpCmdLine is None:
-        lpCmdLine = LPVOID(NULL)
+    _CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+    _CommandLineToArgvW.argtypes = [LPVOID, ctypes.POINTER(ctypes.c_int)]
+    _CommandLineToArgvW.restype = LPVOID
+
+    if not lpCmdLine:
+        lpCmdLine = None
     argc = ctypes.c_int(0)
     argv = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
-    if argv == NULL or argc.value <= 0:
-        ctypes.WinError()
+    argc = argc.value
+    vptr = argv.value
+    if vptr == NULL:
+        raise ctypes.WinError()
     try:
-        vptr = ctypes.c_void_p(argv)
-        aptr = ctypes.cast(vptr, ctypes.POINTER(ctypes.c_wchar_p * argc.value) )
-        argv = [ aptr.contents[i] for i in xrange(0, argc.value) ]
+        if argc <= 0:
+            raise ctypes.WinError()
+        argv = ctypes.cast(argv, ctypes.POINTER(LPWSTR * argc) )
+        argv = [ argv.contents[i] for i in xrange(0, argc) ]
     finally:
-        LocalFree(vptr)
+        if vptr is not None:
+            LocalFree(vptr)
     return argv
+
 CommandLineToArgvA = MakeANSIVersion(CommandLineToArgvW)
 CommandLineToArgv = CommandLineToArgvA
 
@@ -68,45 +77,29 @@ CommandLineToArgv = CommandLineToArgvA
 #     INT nShowCmd
 # );
 def ShellExecuteA(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
-    if not hwnd:
-        hwnd = NULL
-    if not lpOperation:
-        lpOperation = LPVOID(NULL)
-    if not lpFile:
-        lpFile = LPVOID(NULL)
-    if not lpParameters:
-        lpParameters = LPVOID(NULL)
-    if not lpDirectory:
-        lpDirectory = LPVOID(NULL)
+    _ShellExecuteA = windll.shell32.ShellExecuteA
+    _ShellExecuteA.argtypes = [HWND, LPSTR, LPSTR, LPSTR, LPSTR, INT]
+    _ShellExecuteA.restype = HINSTANCE
+
     if not nShowCmd:
         nShowCmd = 0
-    hwnd = HWND(hwnd)
-    ShellExecuteA = ctypes.windll.shell32.ShellExecuteA
-    ShellExecuteA.restype = HINSTANCE
-    success = ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+    success = _ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
     success = ctypes.cast(success, c_int)
     success = success.value
     if not success > 32:    # weird! isn't it?
-        ctypes.WinError(success)
+        raise ctypes.WinError(success)
+
 def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters = None, lpDirectory = None, nShowCmd = None):
-    if not hwnd:
-        hwnd = NULL
-    if not lpOperation:
-        lpOperation = LPVOID(NULL)
-    if not lpFile:
-        lpFile = LPVOID(NULL)
-    if not lpParameters:
-        lpParameters = LPVOID(NULL)
-    if not lpDirectory:
-        lpDirectory = LPVOID(NULL)
+    _ShellExecuteW = windll.shell32.ShellExecuteW
+    _ShellExecuteW.argtypes = [HWND, LPWSTR, LPWSTR, LPWSTR, LPWSTR, INT]
+    _ShellExecuteW.restype = HINSTANCE
+
     if not nShowCmd:
         nShowCmd = 0
-    hwnd = HWND(hwnd)
-    ShellExecuteW = ctypes.windll.shell32.ShellExecuteW
-    ShellExecuteW.restype = HINSTANCE
-    success = ctypes.windll.shell32.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+    success = _ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
     success = ctypes.cast(success, c_int)
     success = success.value
     if not success > 32:    # weird! isn't it?
-        ctypes.WinError(success)
+        raise ctypes.WinError(success)
+
 ShellExecute = GuessStringType(ShellExecuteA, ShellExecuteW)

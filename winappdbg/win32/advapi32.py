@@ -93,6 +93,8 @@ class LUID(Structure):
         ("HighPart",    LONG),
     ]
 
+PLUID = POINTER(LUID)
+
 # typedef struct _LUID_AND_ATTRIBUTES {
 #   LUID Luid;
 #   DWORD Attributes;
@@ -117,6 +119,8 @@ class TOKEN_PRIVILEGES(Structure):
     ]
     # See comments on AdjustTokenPrivileges about this structure
 
+PTOKEN_PRIVILEGES = POINTER(TOKEN_PRIVILEGES)
+
 #--- advapi32.dll -------------------------------------------------------------
 
 # BOOL WINAPI OpenProcessToken(
@@ -125,11 +129,12 @@ class TOKEN_PRIVILEGES(Structure):
 #   __out  PHANDLE TokenHandle
 # );
 def OpenProcessToken(ProcessHandle, DesiredAccess):
-    TokenHandle = DWORD(0)
-    ProcessHandle = HANDLE(ProcessHandle)
-    success = ctypes.windll.advapi32.OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _OpenProcessToken = windll.advapi32.OpenProcessToken
+    _OpenProcessToken.argtypes = [HANDLE, DWORD, PHANDLE]
+    _OpenProcessToken.restype = CheckError
+
+    TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
     return Handle(TokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
@@ -139,15 +144,12 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
 #   __out  PHANDLE TokenHandle
 # );
 def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
-    if OpenAsSelf:
-        OpenAsSelf = TRUE
-    else:
-        OpenAsSelf = FALSE
-    TokenHandle = DWORD(0)
-    ThreadHandle = HANDLE(ThreadHandle)
-    success = ctypes.windll.advapi32.OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _OpenThreadToken = windll.advapi32.OpenThreadToken
+    _OpenThreadToken.argtypes = [HANDLE, DWORD, BOOL, PHANDLE]
+    _OpenThreadToken.restype = CheckError
+
+    TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
     return Handle(TokenHandle.value)
 
 # BOOL WINAPI LookupPrivilegeValue(
@@ -156,27 +158,27 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
 #   __out     PLUID lpLuid
 # );
 def LookupPrivilegeValueA(lpSystemName, lpName):
-    if lpSystemName:
-        lpSystemName = ctypes.c_char_p(lpSystemName)
-    else:
-        lpSystemName = LPVOID(NULL)
-    lpName       = ctypes.create_string_buffer(lpName)
-    lpLuid       = LUID()
-    success = ctypes.windll.advapi32.LookupPrivilegeValueA(lpSystemName, ctypes.byref(lpName), ctypes.byref(lpLuid))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeValueA = windll.advapi32.LookupPrivilegeValueA
+    _LookupPrivilegeValueA.argtypes = [LPSTR, LPSTR, PLUID]
+    _LookupPrivilegeValueA.restype = CheckError
+
+    lpLuid = LUID()
+    if not lpSystemName:
+        lpSystemName = None
+    _LookupPrivilegeValueA(lpSystemName, lpName, ctypes.byref(lpLuid))
     return lpLuid
+
 def LookupPrivilegeValueW(lpSystemName, lpName):
-    if lpSystemName:
-        lpSystemName = ctypes.c_wchar_p(lpSystemName)
-    else:
-        lpSystemName = LPVOID(NULL)
-    lpName       = ctypes.create_unicode_buffer(lpName)
-    lpLuid       = LUID()
-    success = ctypes.windll.advapi32.LookupPrivilegeValueW(lpSystemName, ctypes.byref(lpName), ctypes.byref(lpLuid))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeValueW = windll.advapi32.LookupPrivilegeValueW
+    _LookupPrivilegeValueW.argtypes = [LPWSTR, LPWSTR, PLUID]
+    _LookupPrivilegeValueW.restype = CheckError
+
+    lpLuid = LUID()
+    if not lpSystemName:
+        lpSystemName = None
+    _LookupPrivilegeValueW(lpSystemName, lpName, ctypes.byref(lpLuid))
     return lpLuid
+
 LookupPrivilegeValue = GuessStringType(LookupPrivilegeValueA, LookupPrivilegeValueW)
 
 # BOOL WINAPI LookupPrivilegeName(
@@ -185,34 +187,29 @@ LookupPrivilegeValue = GuessStringType(LookupPrivilegeValueA, LookupPrivilegeVal
 #   __out_opt  LPTSTR lpName,
 #   __inout    LPDWORD cchName
 # );
+
 def LookupPrivilegeNameA(lpSystemName, lpLuid):
-    if lpSystemName:
-        lpSystemName = ctypes.c_char_p(lpSystemName)
-    else:
-        lpSystemName = LPVOID(NULL)
+    _LookupPrivilegeNameA = windll.advapi32.LookupPrivilegeNameA
+    _LookupPrivilegeNameA.argtypes = [LPSTR, PLUID, LPSTR, LPDWORD]
+    _LookupPrivilegeNameA.restype = CheckError
+
     cchName = DWORD(0)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
     lpName = ctypes.create_string_buffer("", cchName.value)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
     return lpName.value
+
 def LookupPrivilegeNameW(lpSystemName, lpLuid):
-    if lpSystemName:
-        lpSystemName = ctypes.c_wchar_p(lpSystemName)
-    else:
-        lpSystemName = LPVOID(NULL)
+    _LookupPrivilegeNameW = windll.advapi32.LookupPrivilegeNameW
+    _LookupPrivilegeNameW.argtypes = [LPWSTR, PLUID, LPWSTR, LPDWORD]
+    _LookupPrivilegeNameW.restype = CheckError
+
     cchName = DWORD(0)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
     lpName = ctypes.create_unicode_buffer(u"", cchName.value)
-    success = ctypes.windll.advapi32.LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
     return lpName.value
+
 LookupPrivilegeName = GuessStringType(LookupPrivilegeNameA, LookupPrivilegeNameW)
 
 # BOOL WINAPI AdjustTokenPrivileges(
@@ -224,6 +221,9 @@ LookupPrivilegeName = GuessStringType(LookupPrivilegeNameA, LookupPrivilegeNameW
 #   __out_opt  PDWORD ReturnLength
 # );
 def AdjustTokenPrivileges(TokenHandle, NewState = ()):
+    _AdjustTokenPrivileges = windll.advapi32.AdjustTokenPrivileges
+    _AdjustTokenPrivileges.argtypes = [HANDLE, BOOL, LPVOID, DWORD, LPVOID, LPVOID]
+    _AdjustTokenPrivileges.restype = CheckError
     #
     # I don't know how to allocate variable sized structures in ctypes :(
     # so this hack will work by using always TOKEN_PRIVILEGES of one element
@@ -231,11 +231,8 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
     # parameter won't be supported yet as it's too much hassle. In a future
     # version I look forward to implementing this function correctly.
     #
-    TokenHandle = HANDLE(TokenHandle)
     if not NewState:
-        success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, TRUE, NULL, 0, NULL, 0)
-        if success == FALSE:
-            raise ctypes.WinError()
+        _AdjustTokenPrivileges(TokenHandle, TRUE, NULL, 0, NULL, NULL)
     else:
         success = True
         for (privilege, enabled) in NewState:
@@ -251,9 +248,7 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
                 flags = enabled
             laa = LUID_AND_ATTRIBUTES(privilege, flags)
             tp  = TOKEN_PRIVILEGES(1, laa)
-            success = ctypes.windll.advapi32.AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, 0)
-            if success == FALSE:
-                raise ctypes.WinError()
+            _AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, NULL)
 
 # BOOL WINAPI CreateProcessWithLogonW(
 #   __in         LPCWSTR lpUsername,
@@ -269,34 +264,10 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
 #   __out        LPPROCESS_INFORMATION lpProcessInfo
 # );
 def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
-    if not lpUsername:
-        lpUsername          = LPVOID(NULL)
-    else:
-        lpUsername          = ctypes.c_wchar_p(lpUsername)
-    if not lpDomain:
-        lpDomain            = LPVOID(NULL)
-    else:
-        lpDomain            = ctypes.c_wchar_p(lpDomain)
-    if not lpPassword:
-        lpPassword          = LPVOID(NULL)
-    else:
-        lpPassword          = ctypes.c_wchar_p(lpPassword)
-    if not lpApplicationName:
-        lpApplicationName   = LPVOID(NULL)
-    else:
-        lpApplicationName   = ctypes.c_wchar_p(lpApplicationName)
-    if not lpCommandLine:
-        lpCommandLine       = LPVOID(NULL)
-    else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
-    if not lpEnvironment:
-        lpEnvironment       = LPVOID(NULL)
-    else:
-        lpEnvironment       = ctypes.c_wchar_p(lpEnvironment)
-    if not lpCurrentDirectory:
-        lpCurrentDirectory  = LPVOID(NULL)
-    else:
-        lpCurrentDirectory  = ctypes.c_wchar_p(lpCurrentDirectory)
+    _CreateProcessWithLogonW = windll.advapi32.CreateProcessWithLogonW
+    _CreateProcessWithLogonW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
+    _CreateProcessWithLogonW.restype = CheckError
+
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -311,10 +282,9 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    success = ctypes.windll.advapi32.CreateProcessWithLogonW(lpUsername, lpDomain, lpPassword, dwLogonFlags, lpApplicationName, ctypes.byref(lpCommandLine), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _CreateProcessWithLogonW(lpUsername, lpDomain, lpPassword, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
+
 CreateProcessWithLogonA = MakeANSIVersion(CreateProcessWithLogonW)
 CreateProcessWithLogon = CreateProcessWithLogonA
 
@@ -330,24 +300,10 @@ CreateProcessWithLogon = CreateProcessWithLogonA
 #   __out        LPPROCESS_INFORMATION lpProcessInfo
 # );
 def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
-    if not hToken:
-        hToken              = LPVOID(NULL)
-    if not lpApplicationName:
-        lpApplicationName   = LPVOID(NULL)
-    else:
-        lpApplicationName   = ctypes.c_wchar_p(lpApplicationName)
-    if not lpCommandLine:
-        lpCommandLine       = LPVOID(NULL)
-    else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
-    if not lpEnvironment:
-        lpEnvironment       = LPVOID(NULL)
-    else:
-        lpEnvironment       = ctypes.c_wchar_p(lpEnvironment)
-    if not lpCurrentDirectory:
-        lpCurrentDirectory  = LPVOID(NULL)
-    else:
-        lpCurrentDirectory  = ctypes.c_wchar_p(lpCurrentDirectory)
+    _CreateProcessWithTokenW = windll.advapi32.CreateProcessWithTokenW
+    _CreateProcessWithTokenW.argtypes = [HANDLE, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
+    _CreateProcessWithTokenW.restype = CheckError
+
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -362,9 +318,8 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    success = ctypes.windll.advapi32.CreateProcessWithTokenW(hToken, dwLogonFlags, lpApplicationName, ctypes.byref(lpCommandLine), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _CreateProcessWithTokenW(hToken, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
+
 CreateProcessWithTokenA = MakeANSIVersion(CreateProcessWithTokenW)
 CreateProcessWithToken = CreateProcessWithTokenA

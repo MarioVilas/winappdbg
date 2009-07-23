@@ -53,6 +53,7 @@ class MODULEINFO(Structure):
         ("SizeOfImage",     DWORD),
         ("EntryPoint",      LPVOID),    # remote pointer
 ]
+LPMODULEINFO = POINTER(MODULEINFO)
 
 #--- psapi.dll ----------------------------------------------------------------
 
@@ -62,14 +63,16 @@ class MODULEINFO(Structure):
 #   __out  LPDWORD lpcbNeeded
 # );
 def EnumDeviceDrivers():
+    _EnumDeviceDrivers = windll.psapi.EnumDeviceDrivers
+    _EnumDeviceDrivers.argtypes = [POINTER(LPVOID), DWORD, LPDWORD]
+    _EnumDeviceDrivers.restype = CheckError
+
     size       = 0x1000
     lpcbNeeded = DWORD(size)
     unit       = ctypes.sizeof(LPVOID)
     while 1:
         lpImageBase = (LPVOID * (size // unit))()
-        success = ctypes.windll.psapi.EnumDeviceDrivers(ctypes.byref(lpImageBase), lpcbNeeded, ctypes.byref(lpcbNeeded))
-        if success == FALSE:
-            raise ctypes.WinError()
+        _EnumDeviceDrivers(ctypes.byref(lpImageBase), lpcbNeeded, ctypes.byref(lpcbNeeded))
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -82,15 +85,17 @@ def EnumDeviceDrivers():
 #   __out  DWORD *pBytesReturned
 # );
 def EnumProcesses():
+    _EnumProcesses = windll.psapi.EnumProcesses
+    _EnumProcesses.argtypes = [POINTER(DWORD), DWORD, DWORD]
+    _EnumProcesses.restype = CheckError
+
     size            = 0x1000
     cbBytesReturned = DWORD()
     unit            = ctypes.sizeof(DWORD)
     while 1:
         ProcessIds = (DWORD * (size // unit))()
         cbBytesReturned.value = size
-        success = ctypes.windll.psapi.EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
-        if success == FALSE:
-            raise ctypes.WinError()
+        _EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
         returned = cbBytesReturned.value
         if returned < size:
             break
@@ -109,15 +114,16 @@ def EnumProcesses():
 #   __out  LPDWORD lpcbNeeded
 # );
 def EnumProcessModules(hProcess):
+    _EnumProcessModules = windll.psapi.EnumProcessModules
+    _EnumProcessModules.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD]
+    _EnumProcessModules.restype = CheckError
+
     size = 0x1000
     lpcbNeeded = DWORD(size)
     unit = ctypes.sizeof(HMODULE)
-    hProcess = HANDLE(hProcess)
     while 1:
         lphModule = (HMODULE * (size // unit))()
-        success = ctypes.windll.psapi.EnumProcessModules(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded))
-        if success == FALSE:
-            raise ctypes.WinError()
+        _EnumProcessModules(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded))
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -132,15 +138,16 @@ def EnumProcessModules(hProcess):
 #   __in   DWORD dwFilterFlag
 # );
 def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
+    _EnumProcessModulesEx = windll.psapi.EnumProcessModulesEx
+    _EnumProcessModulesEx.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD, DWORD]
+    _EnumProcessModulesEx.restype = CheckError
+
     size = 0x1000
     lpcbNeeded = DWORD(size)
     unit = ctypes.sizeof(HMODULE)
-    hProcess = HANDLE(hProcess)
     while 1:
         lphModule = (HMODULE * (size // unit))()
-        success = ctypes.windll.psapi.EnumProcessModulesEx(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded), dwFilterFlag)
-        if success == FALSE:
-            raise ctypes.WinError()
+        _EnumProcessModulesEx(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded), dwFilterFlag)
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -153,29 +160,37 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
 #   __in   DWORD nSize
 # );
 def GetDeviceDriverBaseNameA(ImageBase):
+    _GetDeviceDriverBaseNameA = windll.psapi.GetDeviceDriverBaseNameA
+    _GetDeviceDriverBaseNameA.argtypes = [LPVOID, LPSTR, DWORD]
+    _GetDeviceDriverBaseNameA.restype = DWORD
+
     nSize = MAX_PATH
-    ImageBase = LPVOID(ImageBase)
     while 1:
         lpBaseName = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetDeviceDriverBaseNameA(ImageBase, ctypes.byref(lpBaseName), nSize)
+        nCopied = _GetDeviceDriverBaseNameA(ImageBase, lpBaseName, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpBaseName.value
+
 def GetDeviceDriverBaseNameW(ImageBase):
+    _GetDeviceDriverBaseNameW = windll.psapi.GetDeviceDriverBaseNameW
+    _GetDeviceDriverBaseNameW.argtypes = [LPVOID, LPWSTR, DWORD]
+    _GetDeviceDriverBaseNameW.restype = DWORD
+
     nSize = MAX_PATH
-    ImageBase = LPVOID(ImageBase)
     while 1:
         lpBaseName = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetDeviceDriverBaseNameW(ImageBase, ctypes.byref(lpBaseName), nSize)
+        nCopied = _GetDeviceDriverBaseNameW(ImageBase, lpBaseName, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpBaseName.value
+
 GetDeviceDriverBaseName = GuessStringType(GetDeviceDriverBaseNameA, GetDeviceDriverBaseNameW)
 
 # DWORD WINAPI GetDeviceDriverFileName(
@@ -184,29 +199,37 @@ GetDeviceDriverBaseName = GuessStringType(GetDeviceDriverBaseNameA, GetDeviceDri
 #   __in   DWORD nSize
 # );
 def GetDeviceDriverFileNameA(ImageBase):
+    _GetDeviceDriverFileNameA = windll.psapi.GetDeviceDriverFileNameA
+    _GetDeviceDriverFileNameA.argtypes = [LPVOID, LPSTR, DWORD]
+    _GetDeviceDriverFileNameA.restype = DWORD
+
     nSize = MAX_PATH
-    ImageBase = LPVOID(ImageBase)
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameA(ImageBase, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameA(ImageBase, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 def GetDeviceDriverFileNameW(ImageBase):
+    _GetDeviceDriverFileNameW = windll.psapi.GetDeviceDriverFileNameW
+    _GetDeviceDriverFileNameW.argtypes = [LPVOID, LPWSTR, DWORD]
+    _GetDeviceDriverFileNameW.restype = DWORD
+
     nSize = MAX_PATH
-    ImageBase = LPVOID(ImageBase)
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameW(ImageBase, ctypes.byref(lpFilename), nSize)
+        nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameW(ImageBase, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 GetDeviceDriverFileName = GuessStringType(GetDeviceDriverFileNameA, GetDeviceDriverFileNameW)
 
 # DWORD WINAPI GetMappedFileName(
@@ -216,31 +239,37 @@ GetDeviceDriverFileName = GuessStringType(GetDeviceDriverFileNameA, GetDeviceDri
 #   __in   DWORD nSize
 # );
 def GetMappedFileNameA(hProcess, lpv):
+    _GetMappedFileNameA = ctypes.windll.psapi.GetMappedFileNameA
+    _GetMappedFileNameA.argtypes = [HANDLE, LPVOID, LPSTR, DWORD]
+    _GetMappedFileNameA.restype = DWORD
+
     nSize = MAX_PATH
-    hProcess = HANDLE(hProcess)
-    lpv = LPVOID(lpv)
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetMappedFileNameA(hProcess, lpv, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetMappedFileNameA(hProcess, lpv, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 def GetMappedFileNameW(hProcess, lpv):
+    _GetMappedFileNameW = ctypes.windll.psapi.GetMappedFileNameW
+    _GetMappedFileNameW.argtypes = [HANDLE, LPVOID, LPWSTR, DWORD]
+    _GetMappedFileNameW.restype = DWORD
+
     nSize = MAX_PATH
-    hProcess = HANDLE(hProcess)
-    lpv = LPVOID(lpv)
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetMappedFileNameW(hProcess, lpv, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetMappedFileNameW(hProcess, lpv, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 GetMappedFileName = GuessStringType(GetMappedFileNameA, GetMappedFileNameW)
 
 # DWORD WINAPI GetModuleFileNameEx(
@@ -250,31 +279,37 @@ GetMappedFileName = GuessStringType(GetMappedFileNameA, GetMappedFileNameW)
 #   __in      DWORD nSize
 # );
 def GetModuleFileNameExA(hProcess, hModule):
-    nSize    = MAX_PATH
-    hProcess = HANDLE(hProcess)
-    hModule  = HANDLE(hModule)
+    _GetMappedFileNameExA = ctypes.windll.psapi.GetMappedFileNameExA
+    _GetMappedFileNameExA.argtypes = [HANDLE, HMODULE, LPSTR, DWORD]
+    _GetMappedFileNameExA.restype = DWORD
+
+    nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExA(hProcess, hModule, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetModuleFileNameExA(hProcess, hModule, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 def GetModuleFileNameExW(hProcess, hModule):
-    nSize    = MAX_PATH
-    hProcess = HANDLE(hProcess)
-    hModule  = HANDLE(hModule)
+    _GetMappedFileNameExW = ctypes.windll.psapi.GetMappedFileNameExW
+    _GetMappedFileNameExW.argtypes = [HANDLE, HMODULE, LPWSTR, DWORD]
+    _GetMappedFileNameExW.restype = DWORD
+
+    nSize = MAX_PATH
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetModuleFileNameExW(hProcess, hModule, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetModuleFileNameExW(hProcess, hModule, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 GetModuleFileNameEx = GuessStringType(GetModuleFileNameExA, GetModuleFileNameExW)
 
 #BOOL WINAPI GetModuleInformation(
@@ -284,13 +319,13 @@ GetModuleFileNameEx = GuessStringType(GetModuleFileNameExA, GetModuleFileNameExW
 #   __in   DWORD cb
 # );
 def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
+    _GetModuleInformation = windll.psapi.GetModuleInformation
+    _GetModuleInformation.argtypes = [HANDLE, HMODULE, LPMODULEINFO, DWORD]
+    _GetModuleInformation.restype = CheckError
+
     if lpmodinfo is None:
         lpmodinfo = MODULEINFO()
-    hProcess = HANDLE(hProcess)
-    hModule  = HANDLE(hModule)
-    success  = ctypes.windll.psapi.GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), ctypes.sizeof(lpmodinfo))
-    if success == FALSE:
-        raise ctypes.WinError()
+    _GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), ctypes.sizeof(lpmodinfo))
     return lpmodinfo
 
 # DWORD WINAPI GetProcessImageFileName(
@@ -299,27 +334,35 @@ def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
 #   __in   DWORD nSize
 # );
 def GetProcessImageFileNameA(hProcess):
+    _GetProcessImageFileNameA = windll.psapi.GetProcessImageFileNameA
+    _GetProcessImageFileNameA.argtypes = [HANDLE, LPSTR, DWORD]
+    _GetProcessImageFileNameA.restype = DWORD
+
     nSize = MAX_PATH
-    hProcess = HANDLE(hProcess)
     while 1:
         lpFilename = ctypes.create_string_buffer("", nSize)
-        nCopied = ctypes.windll.psapi.GetProcessImageFileNameA(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetProcessImageFileNameA(hProcess, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 def GetProcessImageFileNameW(hProcess):
+    _GetProcessImageFileNameW = windll.psapi.GetProcessImageFileNameW
+    _GetProcessImageFileNameW.argtypes = [HANDLE, LPWSTR, DWORD]
+    _GetProcessImageFileNameW.restype = DWORD
+
     nSize = MAX_PATH
-    hProcess = HANDLE(hProcess)
     while 1:
         lpFilename = ctypes.create_unicode_buffer(u"", nSize)
-        nCopied = ctypes.windll.psapi.GetProcessImageFileNameW(hProcess, ctypes.byref(lpFilename), nSize)
+        nCopied = _GetProcessImageFileNameW(hProcess, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
         if nCopied < (nSize - 1):
             break
         nSize = nSize + MAX_PATH
     return lpFilename.value
+
 GetProcessImageFileName = GuessStringType(GetProcessImageFileNameA, GetProcessImageFileNameW)

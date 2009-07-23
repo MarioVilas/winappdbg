@@ -35,6 +35,14 @@ __revision__ = "$Id$"
 
 from defines import *
 
+#--- Types --------------------------------------------------------------------
+
+NTSTATUS                = DWORD
+SYSDBG_COMMAND          = DWORD
+PROCESSINFOCLASS        = DWORD
+THREADINFOCLASS         = DWORD
+FILE_INFORMATION_CLASS  = DWORD
+
 #--- Constants ----------------------------------------------------------------
 
 # DEP flags for ProcessExecuteFlags
@@ -1123,11 +1131,18 @@ class IO_STATUS_BLOCK(Structure):
         ("Status",      NTSTATUS),
         ("Information", ULONG_PTR),
     ]
-    @property
-    def Pointer(self):
+    def __get_Pointer(self):
         return PVOID(self.Status)
+    def __set_Pointer(self, ptr):
+        self.Status = ptr.value
+    Pointer = property(__get_Pointer, __set_Pointer)
+
+PIO_STATUS_BLOCK = POINTER(IO_STATUS_BLOCK)
 
 #--- ntdll.dll ----------------------------------------------------------------
+
+# XXX TODO
+# Convert NTSTATUS values to standard Win32 errors
 
 # NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
 #   IN SYSDBG_COMMAND Command,
@@ -1138,6 +1153,9 @@ class IO_STATUS_BLOCK(Structure):
 #   OUT PULONG ReturnLength OPTIONAL
 # );
 def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, OutputBuffer = None, OutputBufferLength = None):
+    _NtSystemDebugControl = windll.ntdll.NtSystemDebugControl
+    _NtSystemDebugControl.argtypes = [SYSDBG_COMMAND, PVOID, ULONG, PVOID, ULONG, PLONG]
+    _NtSystemDebugControl.restype = NTSTATUS
     if InputBuffer is None:
         InputBuffer = NULL
     if InputBufferLength is None:
@@ -1158,10 +1176,11 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
     if OutputBuffer != NULL:
         OutputBuffer = ctypes.byref(OutputBuffer)
     ReturnLength = ULONG(0)
-    ntstatus = ctypes.windll.ntdll.NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ctypes.byref(ReturnLength))
+    ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
     return OutputBuffer, ReturnLength.value
+
 ZwSystemDebugControl = NtSystemDebugControl
 
 # NTSTATUS WINAPI NtQueryInformationProcess(
@@ -1172,6 +1191,9 @@ ZwSystemDebugControl = NtSystemDebugControl
 #   __out_opt  PULONG ReturnLength
 # );
 def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformationLength = None):
+    _NtQueryInformationProcess = windll.ntdll.NtQueryInformationProcess
+    _NtQueryInformationProcess.argtypes = [HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG]
+    _NtQueryInformationProcess.restype = NTSTATUS
     if ProcessInformationLength is not None:
         ProcessInformation = ctypes.create_string_buffer("", ProcessInformationLength)
     else:
@@ -1188,8 +1210,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
         else:
             raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
     ReturnLength = ULONG(0)
-    ProcessHandle = HANDLE(ProcessHandle)
-    ntstatus = ctypes.windll.ntdll.NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
+    ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
     if   ProcessInformationClass == ProcessBasicInformation:
@@ -1203,6 +1224,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
     else:
         retval = ProcessInformation.raw[:ReturnLength.value]
     return retval
+
 ZwQueryInformationProcess = NtQueryInformationProcess
 
 # NTSTATUS WINAPI NtQueryInformationThread(
@@ -1213,6 +1235,9 @@ ZwQueryInformationProcess = NtQueryInformationProcess
 #   __out_opt  PULONG ReturnLength
 # );
 def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformationLength = None):
+    _NtQueryInformationThread = windll.ntdll.NtQueryInformationThread
+    _NtQueryInformationThread.argtypes = [HANDLE, THREADINFOCLASS, PVOID, ULONG, PULONG]
+    _NtQueryInformationThread.restype = NTSTATUS
     if ThreadInformationLength is not None:
         ThreadInformation = ctypes.create_string_buffer("", ThreadInformationLength)
     else:
@@ -1228,8 +1253,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
         else:
             raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
     ReturnLength = ULONG(0)
-    ThreadHandle = HANDLE(ThreadHandle)
-    ntstatus = ctypes.windll.ntdll.NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
+    ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
     if   ThreadInformationClass == ThreadBasicInformation:
@@ -1241,6 +1265,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
     else:
         retval = ThreadInformation.raw[:ReturnLength.value]
     return retval
+
 ZwQueryInformationThread = NtQueryInformationThread
 
 # NTSTATUS
@@ -1252,10 +1277,13 @@ ZwQueryInformationThread = NtQueryInformationThread
 #     IN FILE_INFORMATION_CLASS  FileInformationClass
 #     );
 def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Length):
+    _NtQueryInformationFile = windll.ntdll.NtQueryInformationFile
+    _NtQueryInformationFile.argtypes = [HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS]
+    _NtQueryInformationFile.restype = NTSTATUS
     IoStatusBlock = IO_STATUS_BLOCK()
-    FileHandle = HANDLE(FileHandle)
-    status = NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
+    status = _NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
     if status != 0:
         raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
     return IoStatusBlock.Information
+
 ZwQueryInformationFile = NtQueryInformationFile

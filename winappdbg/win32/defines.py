@@ -43,6 +43,16 @@ Structure   = ctypes.Structure
 Union       = ctypes.Union
 
 try:
+    from ctypes import windll
+except ImportError:
+    class FakeWinDll(object):
+        def __getattr__(self, name):
+            return self
+        def __call__(self, *argv, **argd):
+            raise ctypes.WinError(50)   # ERROR_NOT_SUPPORTED
+    windll = FakeWinDll()
+
+try:
     WINFUNCTYPE = ctypes.WINFUNCTYPE
 except AttributeError:
     class WINFUNCTYPE(object):
@@ -57,6 +67,17 @@ try:
 except NameError:
     def callable(obj):
         return hasattr(obj, '__call__')
+
+def CheckError(success):
+    """
+    Error checking for most Win32 API calls.
+
+    The function is assumed to return a L{BOOL}, which is C{0} on error.
+    In that case the C{WindowsError} exception is raised.
+    """
+    if success == 0:    # FALSE
+        raise ctypes.WinError()
+    return success
 
 class GuessStringType(object):
     """
@@ -135,8 +156,11 @@ class LPVOID(ctypes.c_void_p):
             value = value.value
         except AttributeError:
             pass
+        if value is None:
+            value = 0
+        value = long(value)
         ctypes.c_void_p.__init__(self, value)
-        if value and (not self.value or self.value != value):
+        if value != self.value:
             raise ValueError, "Invalid void pointer value"
 
     def __getattribute__(self, name):
@@ -186,7 +210,10 @@ LPSDWORD    = POINTER(SDWORD)
 DWORD_PTR   = POINTER(DWORD)
 ULONG_PTR   = POINTER(ULONG)
 LONG_PTR    = POINTER(LONG)
-BOOL        = LONG
+PDWORD      = DWORD_PTR
+PULONG      = ULONG_PTR
+PLONG       = LONG_PTR
+BOOL        = DWORD
 BOOLEAN     = BYTE
 UCHAR       = BYTE
 ULONG32     = DWORD
@@ -194,6 +221,7 @@ DWORD32     = DWORD
 ULONG64     = QWORD
 DWORD64     = QWORD
 HANDLE      = LPVOID
+PHANDLE     = POINTER(HANDLE)
 HMODULE     = HANDLE
 HINSTANCE   = HANDLE
 HRGN        = HANDLE
@@ -278,7 +306,7 @@ FALSE       = 0
 # http://blogs.msdn.com/oldnewthing/archive/2004/08/26/220873.aspx
 ANYSIZE_ARRAY = 1
 
-INVALID_HANDLE_VALUE = -1 #0xFFFFFFFF
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value #-1 #0xFFFFFFFF
 
 MAX_MODULE_NAME32   = 255
 MAX_PATH            = 260
