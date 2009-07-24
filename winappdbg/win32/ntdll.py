@@ -1141,8 +1141,14 @@ PIO_STATUS_BLOCK = POINTER(IO_STATUS_BLOCK)
 
 #--- ntdll.dll ----------------------------------------------------------------
 
-# XXX TODO
-# Convert NTSTATUS values to standard Win32 errors
+# ULONG WINAPI RtlNtStatusToDosError(
+#   __in  NTSTATUS Status
+# );
+def RtlNtStatusToDosError(Status):
+    _RtlNtStatusToDosError = windll.ntdll.RtlNtStatusToDosError
+    _RtlNtStatusToDosError.argtypes = [NTSTATUS]
+    _RtlNtStatusToDosError.restype = ULONG
+    return _RtlNtStatusToDosError(Status)
 
 # NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
 #   IN SYSDBG_COMMAND Command,
@@ -1178,7 +1184,7 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
     ReturnLength = ULONG(0)
     ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+        raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     return OutputBuffer, ReturnLength.value
 
 ZwSystemDebugControl = NtSystemDebugControl
@@ -1212,7 +1218,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+        raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     if   ProcessInformationClass == ProcessBasicInformation:
         retval = ProcessInformation
     elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
@@ -1255,7 +1261,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+        raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     if   ThreadInformationClass == ThreadBasicInformation:
         retval = ThreadInformation
     elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
@@ -1283,7 +1289,7 @@ def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Le
     IoStatusBlock = IO_STATUS_BLOCK()
     status = _NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
     if status != 0:
-        raise ctypes.WinError(ntstatus) # ^ 0xFFFFFFFF)
+        raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     return IoStatusBlock.Information
 
 ZwQueryInformationFile = NtQueryInformationFile
