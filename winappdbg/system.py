@@ -1665,14 +1665,15 @@ class MemoryOperations (object):
         if minAddr is None:
             minAddr = 0
         if maxAddr is None:
-            maxAddr = 0x10000000000000000   # XXX HACK 64 bits address max
+            maxAddr = win32.LPVOID(-1).value  # XXX HACK
         if minAddr > maxAddr:
             minAddr, maxAddr = maxAddr, minAddr
         minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
         maxAddr     = MemoryAddresses.align_address_to_page_end(maxAddr)
+        prevAddr    = minAddr
         currentAddr = minAddr
         memoryMap   = list()
-        while currentAddr <= maxAddr:
+        while currentAddr <= maxAddr and currentAddr >= prevAddr:
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
@@ -1680,6 +1681,7 @@ class MemoryOperations (object):
                     break
                 raise
             memoryMap.append(mbi)
+            prevAddr    = currentAddr
             currentAddr = mbi.BaseAddress + mbi.RegionSize
         return memoryMap
 
