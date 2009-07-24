@@ -506,13 +506,13 @@ def SendMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageA = windll.user32.SendMessageA
     _SendMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
     _SendMessageA.restype = LRESULT
-    return _SendMessageA(hWnd, Msg, wParam, lParam).value
+    return _SendMessageA(hWnd, Msg, wParam, lParam)
 
 def SendMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageW = windll.user32.SendMessageW
     _SendMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
     _SendMessageW.restype = LRESULT
-    return _SendMessageW(hWnd, Msg, wParam, lParam).value
+    return _SendMessageW(hWnd, Msg, wParam, lParam)
 
 SendMessage = GuessStringType(SendMessageA, SendMessageW)
 
@@ -570,7 +570,7 @@ def SendMessageTimeoutA(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout
     _SendMessageTimeoutA.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
     _SendMessageTimeoutA.restype = LRESULT
     dwResult = DWORD(0)
-    success = _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult)).value
+    success = _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
     if success == 0:
         raise ctypes.WinError()
     return dwResult.value
@@ -580,7 +580,7 @@ def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageTimeoutW.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
     _SendMessageTimeoutW.restype = LRESULT
     dwResult = DWORD(0)
-    success = _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult)).value
+    success = _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
     if success == 0:
         raise ctypes.WinError()
     return dwResult.value
@@ -618,13 +618,13 @@ def SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
     _SendDlgItemMessageA = windll.user32.SendDlgItemMessageA
     _SendDlgItemMessageA.argtypes = [HWND, ctypes.c_int, UINT, WPARAM, LPARAM]
     _SendDlgItemMessageA.restype = LRESULT
-    return _SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam, lParam).value
+    return _SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam, lParam)
 
 def SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
     _SendDlgItemMessageW = windll.user32.SendDlgItemMessageW
     _SendDlgItemMessageW.argtypes = [HWND, ctypes.c_int, UINT, WPARAM, LPARAM]
     _SendDlgItemMessageW.restype = LRESULT
-    return _SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam, lParam).value
+    return _SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam, lParam)
 
 SendDlgItemMessage = GuessStringType(SendDlgItemMessageA, SendDlgItemMessageW)
 

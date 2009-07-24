@@ -163,39 +163,7 @@ class MakeANSIVersion(object):
 
 #--- Types --------------------------------------------------------------------
 
-class LPVOID(ctypes.c_void_p):
-
-    @staticmethod
-    def __validate_pointer(ptr, value):
-        ptr = ptr.value
-        if  value and ptr and \
-            type(value) in (type(0), type(0L)) and \
-            value != ptr:
-                raise ValueError, "Invalid void pointer value: %r" % value
-
-    def __new__(typ, value = None):
-        try:
-            self = ctypes.c_void_p(value)
-        except TypeError:
-            self = ctypes.cast(value, ctypes.c_void_p)
-        typ.__validate_pointer(self, value)
-        return self
-
-    def __getattribute__(self, name):
-        value = ctypes.c_void_p.__getattribute__(self, name)
-        if name == 'value' and value is None:
-            value = 0
-        return value
-
-    @staticmethod
-    def from_param(value):
-        return LPVOID(value)
-
-    @property
-    def _as_parameter_(self):
-##        return self
-        return ctypes.c_void_p(self.value)
-
+LPVOID      = ctypes.c_void_p
 CHAR        = ctypes.c_char
 WCHAR       = ctypes.c_wchar
 BYTE        = ctypes.c_ubyte
@@ -323,7 +291,7 @@ PM128A = ctypes.POINTER(M128A)
 
 #--- Constants ----------------------------------------------------------------
 
-NULL        = 0
+NULL        = None
 INFINITE    = -1
 TRUE        = 1
 FALSE       = 0

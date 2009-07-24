@@ -1534,7 +1534,7 @@ def LoadLibraryA(pszLibrary):
     _LoadLibraryA = windll.kernel32.LoadLibraryA
     _LoadLibraryA.argtypes = LPSTR
     _LoadLibraryA.restype = HMODULE
-    hModule = _LoadLibraryA(pszLibrary).value
+    hModule = _LoadLibraryA(pszLibrary)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1543,7 +1543,7 @@ def LoadLibraryW(pszLibrary):
     _LoadLibraryW = windll.kernel32.LoadLibraryW
     _LoadLibraryW.argtypes = LPWSTR
     _LoadLibraryW.restype = HMODULE
-    hModule = _LoadLibraryW(pszLibrary).value
+    hModule = _LoadLibraryW(pszLibrary)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1559,7 +1559,7 @@ def LoadLibraryExA(pszLibrary, dwFlags = 0):
     _LoadLibraryExA = windll.kernel32.LoadLibraryExA
     _LoadLibraryExA.argtypes = LPSTR, HANDLE, DWORD
     _LoadLibraryExA.restype = HMODULE
-    hModule = _LoadLibraryExA(pszLibrary, NULL, dwFlags).value
+    hModule = _LoadLibraryExA(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1568,7 +1568,7 @@ def LoadLibraryExW(pszLibrary, dwFlags = 0):
     _LoadLibraryExW = windll.kernel32.LoadLibraryExW
     _LoadLibraryExW.argtypes = LPWSTR, HANDLE, DWORD
     _LoadLibraryExW.restype = HMODULE
-    hModule = _LoadLibraryExW(pszLibrary, NULL, dwFlags).value
+    hModule = _LoadLibraryExW(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1582,7 +1582,7 @@ def GetModuleHandleA(lpModuleName):
     _GetModuleHandleA = windll.kernel32.GetModuleHandleA
     _GetModuleHandleA.argtypes = [LPSTR]
     _GetModuleHandleA.restype = HMODULE
-    hModule = GetModuleHandleA(lpModuleName).value
+    hModule = GetModuleHandleA(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1591,7 +1591,7 @@ def GetModuleHandleW(lpModuleName):
     _GetModuleHandleW = windll.kernel32.GetModuleHandleW
     _GetModuleHandleW.argtypes = [LPWSTR]
     _GetModuleHandleW.restype = HMODULE
-    hModule = GetModuleHandleW(lpModuleName).value
+    hModule = GetModuleHandleW(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1730,7 +1730,7 @@ def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FI
     _MapViewOfFile = windll.kernel32.MapViewOfFile
     _MapViewOfFile.argtypes = [HANDLE, DWORD, DWORD, DWORD, SIZE_T]
     _MapViewOfFile.restype = LPVOID
-    lpBaseAddress = _MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap).value
+    lpBaseAddress = _MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
     if lpBaseAddress == NULL:
         raise ctypes.WinError()
     return lpBaseAddress
@@ -1753,7 +1753,7 @@ def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingA = windll.kernel32.OpenFileMappingA
     _OpenFileMappingA.argtypes = [DWORD, BOOL, LPSTR]
     _OpenFileMappingA.restype = HANDLE
-    hFileMappingObject = _OpenFileMappingA(dwDesiredAccess, bool(bInheritHandle), lpName).value
+    hFileMappingObject = _OpenFileMappingA(dwDesiredAccess, bool(bInheritHandle), lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
@@ -1762,7 +1762,7 @@ def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingW = windll.kernel32.OpenFileMappingW
     _OpenFileMappingW.argtypes = [DWORD, BOOL, LPWSTR]
     _OpenFileMappingW.restype = HANDLE
-    hFileMappingObject = _OpenFileMappingW(dwDesiredAccess, bool(bInheritHandle), lpName).value
+    hFileMappingObject = _OpenFileMappingW(dwDesiredAccess, bool(bInheritHandle), lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
@@ -1786,7 +1786,7 @@ def CreateFileMappingA(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READ
         lpAttributes = ctypes.pointer(lpAttributes)
     if not lpName:
         lpName = None
-    hFileMappingObject = _CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName).value
+    hFileMappingObject = _CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
@@ -1800,7 +1800,7 @@ def CreateFileMappingW(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READ
         lpAttributes = ctypes.pointer(lpAttributes)
     if not lpName:
         lpName = None
-    hFileMappingObject = _CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName).value
+    hFileMappingObject = _CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFileMappingObject)
@@ -1825,7 +1825,7 @@ def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
         lpFileName = None
     if lpSecurityAttributes:
         lpSecurityAttributes = ctypes.pointer(lpSecurityAttributes)
-    hFile = _CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile).value
+    hFile = _CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFile)
@@ -1839,7 +1839,7 @@ def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
         lpFileName = None
     if lpSecurityAttributes:
         lpSecurityAttributes = ctypes.pointer(lpSecurityAttributes)
-    hFile = _CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile).value
+    hFile = _CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hFile)
@@ -2093,7 +2093,7 @@ def LocalFree(hMem):
     _LocalFree.argtypes = [HLOCAL]
     _LocalFree.restype = HLOCAL
 
-    result = _LocalFree(hMem).value
+    result = _LocalFree(hMem)
     if result != NULL:
         ctypes.WinError()
 
@@ -2514,7 +2514,7 @@ def OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId):
     _OpenProcess.argtypes = [DWORD, BOOL, DWORD]
     _OpenProcess.restype = HANDLE
 
-    hProcess = _OpenProcess(dwDesiredAccess, bool(bInheritHandle), dwProcessId).value
+    hProcess = _OpenProcess(dwDesiredAccess, bool(bInheritHandle), dwProcessId)
     if hProcess == NULL:
         raise ctypes.WinError()
     return ProcessHandle(hProcess)
@@ -2529,7 +2529,7 @@ def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
     _OpenThread.argtypes = [DWORD, BOOL, DWORD]
     _OpenThread.restype = HANDLE
 
-    hProcess = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId).value
+    hProcess = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId)
     if hProcess == NULL:
         raise ctypes.WinError()
     return ThreadHandle(hProcess)
@@ -2631,7 +2631,7 @@ def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = 
     _VirtualAllocEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, DWORD]
     _VirtualAllocEx.restype = LPVOID
 
-    lpAddress = _VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect).value
+    lpAddress = _VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
     if lpAddress == NULL:
         raise ctypes.WinError()
     return lpAddress
@@ -2715,7 +2715,7 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
     else:
         lpThreadAttributes = ctypes.byref(lpThreadAttributes)
     dwThreadId = DWORD(0)
-    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId)).value
+    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
     if hThread == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return ThreadHandle(hThread), dwThreadId.value
@@ -2725,14 +2725,14 @@ def GetCurrentProcess():
     _GetCurrentProcess = windll.kernel32.GetCurrentProcess
     _GetCurrentProcess.argtypes = []
     _GetCurrentProcess.restype = HANDLE
-    return _GetCurrentProcess().value
+    return _GetCurrentProcess()
 
 # HANDLE WINAPI GetCurrentThread(void);
 def GetCurrentThread():
     GetCurrentThread = windll.kernel32.GetCurrentThread
     _GetCurrentThread.argtypes = []
     _GetCurrentThread.restype = HANDLE
-    return _GetCurrentThread().value
+    return _GetCurrentThread()
 
 # DWORD WINAPI GetProcessId(
 #   __in  HANDLE hProcess
@@ -2950,7 +2950,7 @@ def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
     _CreateToolhelp32Snapshot.argtypes = [DWORD, DWORD]
     _CreateToolhelp32Snapshot.restype = HANDLE
 
-    hSnapshot = _CreateToolhelp32Snapshot(dwFlags, th32ProcessID).value
+    hSnapshot = _CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
     if hSnapshot == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return Handle(hSnapshot)
