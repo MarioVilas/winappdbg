@@ -112,6 +112,7 @@ class FLOATING_SAVE_AREA(Structure):
         return fsa
 
 PFLOATING_SAVE_AREA = POINTER(FLOATING_SAVE_AREA)
+LPFLOATING_SAVE_AREA = PFLOATING_SAVE_AREA
 
 # typedef struct _CONTEXT {
 #     DWORD ContextFlags;
@@ -281,6 +282,7 @@ class CONTEXT(Structure):
         return ctx
 
 PCONTEXT = POINTER(CONTEXT)
+LPCONTEXT = PCONTEXT
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -350,3 +352,4 @@ class LDT_ENTRY(Structure):
     ]
 
 PLDT_ENTRY = ctypes.POINTER(LDT_ENTRY)
+LPLDT_ENTRY = PLDT_ENTRY

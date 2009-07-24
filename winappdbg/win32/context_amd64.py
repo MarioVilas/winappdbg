@@ -104,8 +104,10 @@ class XMM_SAVE_AREA32(Structure):
         ('Reserved4',       BYTE * 96),
     ]
 
-PXMM_SAVE_AREA32 = ctypes.POINTER(XMM_SAVE_AREA32)
 LEGACY_SAVE_AREA_LENGTH = sizeof(XMM_SAVE_AREA32)
+
+PXMM_SAVE_AREA32 = ctypes.POINTER(XMM_SAVE_AREA32)
+LPXMM_SAVE_AREA32 = PXMM_SAVE_AREA32
 
 # //
 # // Context Frame
@@ -423,6 +425,7 @@ class CONTEXT(Structure):
         return ctx
 
 PCONTEXT = ctypes.POINTER(CONTEXT)
+LPCONTEXT = PCONTEXT
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -492,3 +495,4 @@ class LDT_ENTRY(Structure):
     ]
 
 PLDT_ENTRY = ctypes.POINTER(LDT_ENTRY)
+LPLDT_ENTRY = PLDT_ENTRY

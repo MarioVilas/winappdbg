@@ -75,9 +75,23 @@ def CheckError(success):
     The function is assumed to return a L{BOOL}, which is C{0} on error.
     In that case the C{WindowsError} exception is raised.
     """
-    if success == 0:    # FALSE
+    if success == 0:
         raise ctypes.WinError()
     return success
+
+##class CheckError object):
+##    """
+##    Error checking for most Win32 API calls.
+##
+##    The function is assumed to return a L{BOOL}, which is C{0} on error.
+##    In that case the C{WindowsError} exception is raised.
+##    """
+##    def __init__(self, typ = int):
+##        self.__type = typ
+##    def __call__(self, success):
+##        if success == 0:
+##            raise ctypes.WinError()
+##        return self.__type(success)
 
 class GuessStringType(object):
     """
@@ -151,17 +165,21 @@ class MakeANSIVersion(object):
 
 class LPVOID(ctypes.c_void_p):
 
-    def __init__(self, value = None):
+    @staticmethod
+    def __validate_pointer(ptr, value):
+        ptr = ptr.value
+        if  value and ptr and \
+            type(value) in (type(0), type(0L)) and \
+            value != ptr:
+                raise ValueError, "Invalid void pointer value: %r" % value
+
+    def __new__(typ, value = None):
         try:
-            value = value.value
-        except AttributeError:
-            pass
-        if value is None:
-            value = 0
-        value = long(value)
-        ctypes.c_void_p.__init__(self, value)
-        if value != self.value:
-            raise ValueError, "Invalid void pointer value"
+            self = ctypes.c_void_p(value)
+        except TypeError:
+            self = ctypes.cast(value, ctypes.c_void_p)
+        typ.__validate_pointer(self, value)
+        return self
 
     def __getattribute__(self, name):
         value = ctypes.c_void_p.__getattribute__(self, name)
@@ -169,8 +187,13 @@ class LPVOID(ctypes.c_void_p):
             value = 0
         return value
 
+    @staticmethod
+    def from_param(value):
+        return LPVOID(value)
+
     @property
     def _as_parameter_(self):
+##        return self
         return ctypes.c_void_p(self.value)
 
 CHAR        = ctypes.c_char
@@ -215,6 +238,7 @@ PULONG      = ULONG_PTR
 PLONG       = LONG_PTR
 BOOL        = DWORD
 BOOLEAN     = BYTE
+PBOOL       = POINTER(BOOL)
 UCHAR       = BYTE
 ULONG32     = DWORD
 DWORD32     = DWORD
@@ -222,6 +246,7 @@ ULONG64     = QWORD
 DWORD64     = QWORD
 HANDLE      = LPVOID
 PHANDLE     = POINTER(HANDLE)
+LPHANDLE    = PHANDLE
 HMODULE     = HANDLE
 HINSTANCE   = HANDLE
 HRGN        = HANDLE
