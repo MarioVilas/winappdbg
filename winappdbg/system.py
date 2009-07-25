@@ -435,7 +435,7 @@ class ModuleContainer (object):
         try:
             me = win32.Module32First(hSnapshot)
             while me is not None:
-                lpBaseAddress = me.modBaseAddr.value
+                lpBaseAddress = me.modBaseAddr
                 fileName      = me.szExePath
                 if not fileName:
                     fileName  = me.szModule
@@ -1299,6 +1299,9 @@ class MemoryOperations (object):
             It doesn't include the terminating null character.
             Returns an empty string on failure.
         """
+        # It's copied to a ctypes buffer and back to Python string
+        # to make sure the string is parsed just like a C string should.
+        # This avoids having troublesome null characters around.
         szString = self.peek(lpBaseAddress, dwMaxSize)
         if fUnicode:
             szString = unicode(szString, 'U16', 'ignore')
@@ -2418,15 +2421,15 @@ When called as an instance method, the fuzzy syntax mode is used::
             system libraries.
         """
         return address is not None and (
-            address == self.get_system_breakpoint() or \
-            address == self.get_user_breakpoint()   or \
+            address == self.get_system_breakpoint()         or \
+            address == self.get_wow64_system_breakpoint()   or \
+            address == self.get_user_breakpoint()           or \
             address == self.get_breakin_breakpoint()
         )
 
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
     # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
-    # In Wow64 ntdll was replaced by ntdll32.
     def get_system_breakpoint(self):
         """
         @rtype:  int or None
@@ -2437,10 +2440,21 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgBreakPoint")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgBreakPoint")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_system_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 system breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgBreakPoint")
+        except Exception:
+            raise
+            return None
 
     # I don't know when this breakpoint is actually used...
     def get_user_breakpoint(self):
@@ -2453,10 +2467,20 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgUserBreakPoint")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgUserBreakPoint")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_user_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 user breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgUserBreakPoint")
+        except Exception:
+            return None
 
     # This breakpoint can only be resolved when the
     # debugging symbols for ntdll.dll are loaded.
@@ -2470,10 +2494,20 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgUiRemoteBreakin")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_breakin_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 remote breakin breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
+        except Exception:
+            return None
 
     def load_symbols(self):
         for aModule in self.iter_modules():
@@ -3269,7 +3303,7 @@ class ProcessDebugOperations (object):
         """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
-        return self.read_structure(pbi.PebBaseAddress.value, win32.PEB)
+        return self.read_structure(pbi.PebBaseAddress, win32.PEB)
 
     def get_main_module(self):
         """
@@ -3283,7 +3317,7 @@ class ProcessDebugOperations (object):
         @rtype:  int
         @return: Image base address for the process main module.
         """
-        return self.get_peb().ImageBaseAddress.value
+        return self.get_peb().ImageBaseAddress
 
     # TODO
     # Still not working sometimes, I need more implementations.
@@ -3367,10 +3401,10 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 peb = self.get_peb()
-                pp = self.read_structure(peb.ProcessParameters.value,
+                pp = self.read_structure(peb.ProcessParameters,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
                 s = pp.ImagePathName
-                name = self.peek_string(s.Buffer.value,
+                name = self.peek_string(s.Buffer,
                                     dwMaxSize=s.MaximumLength, fUnicode=True)
             except (AttributeError, WindowsError):
                 name = None
@@ -3388,10 +3422,10 @@ class ProcessDebugOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters.value,
+        pp = self.read_structure(peb.ProcessParameters,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
         s = pp.CommandLine
-        return self.peek_string(s.Buffer.value, dwMaxSize=s.MaximumLength,
+        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength,
                                                             fUnicode=True)
 
 #------------------------------------------------------------------------------
@@ -4312,7 +4346,7 @@ class Module (SymbolContainer):
                 base   = self.get_base()
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
-                self.EntryPoint  = mi.EntryPoint.value
+                self.EntryPoint  = mi.EntryPoint
             except WindowsError:
                 pass
 

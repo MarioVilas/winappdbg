@@ -1333,6 +1333,7 @@ class THREADENTRY32(Structure):
         ('tpDeltaPri',         LONG),
         ('dwFlags',            DWORD),
     ]
+LPTHREADENTRY32 = ctypes.POINTER(THREADENTRY32)
 
 # typedef struct tagPROCESSENTRY32 {
 #    DWORD dwSize;
@@ -1582,7 +1583,7 @@ def GetModuleHandleA(lpModuleName):
     _GetModuleHandleA = windll.kernel32.GetModuleHandleA
     _GetModuleHandleA.argtypes = [LPSTR]
     _GetModuleHandleA.restype = HMODULE
-    hModule = GetModuleHandleA(lpModuleName)
+    hModule = _GetModuleHandleA(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1591,7 +1592,7 @@ def GetModuleHandleW(lpModuleName):
     _GetModuleHandleW = windll.kernel32.GetModuleHandleW
     _GetModuleHandleW.argtypes = [LPWSTR]
     _GetModuleHandleW.restype = HMODULE
-    hModule = GetModuleHandleW(lpModuleName)
+    hModule = _GetModuleHandleW(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
     return hModule
@@ -1884,7 +1885,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
         lpExtension = None
     nBufferLength = _SearchPathA(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_string_buffer('', nBufferLength + 1)
-    lpFilePart = LPSTR
+    lpFilePart = LPSTR()
     nCount = _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
@@ -1905,7 +1906,7 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
         lpExtension = None
     nBufferLength = _SearchPathW(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
-    lpFilePart = LPSTR
+    lpFilePart = LPWSTR()
     nCount = _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
@@ -3059,7 +3060,6 @@ def Module32Next(hSnapshot, me = None):
     if me is None:
         me = MODULEENTRY32()
     me.dwSize = sizeof(MODULEENTRY32)
-    hSnapshot = HANDLE(hSnapshot)
     success = _Module32Next(hSnapshot, ctypes.byref(me))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:

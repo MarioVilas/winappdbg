@@ -428,7 +428,7 @@ class ExceptionEvent (Event):
         @rtype:  int
         @return: Memory address where the exception occured.
         """
-        return self.raw.u.Exception.ExceptionRecord.ExceptionAddress.value
+        return self.raw.u.Exception.ExceptionRecord.ExceptionAddress
 
     def get_exception_information(self, index):
         """
@@ -565,7 +565,7 @@ class CreateThreadEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hThread = self.raw.u.CreateThread.hThread.value
+        hThread = self.raw.u.CreateThread.hThread
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -577,7 +577,7 @@ class CreateThreadEvent (Event):
         @rtype:  int
         @return: Pointer to the TEB.
         """
-        return self.raw.u.CreateThread.lpThreadLocalBase.value
+        return self.raw.u.CreateThread.lpThreadLocalBase
 
     def get_start_address(self):
         """
@@ -589,7 +589,7 @@ class CreateThreadEvent (Event):
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
-        return self.raw.u.CreateThread.lpStartAddress.value
+        return self.raw.u.CreateThread.lpStartAddress
 
 #==============================================================================
 
@@ -616,7 +616,7 @@ class CreateProcessEvent (Event):
         if hasattr(self, '_CreateProcessEvent__hFile'):
             hFile = self.__hFile
         else:
-            hFile = self.raw.u.CreateProcessInfo.hFile.value
+            hFile = self.raw.u.CreateProcessInfo.hFile
             if hFile == win32.NULL:
                 hFile = win32.INVALID_HANDLE_VALUE
             elif hFile != win32.INVALID_HANDLE_VALUE:
@@ -634,7 +634,7 @@ class CreateProcessEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hProcess = self.raw.u.CreateProcessInfo.hProcess.value
+        hProcess = self.raw.u.CreateProcessInfo.hProcess
         if hProcess == win32.NULL:
             hProcess = win32.INVALID_HANDLE_VALUE
         elif hProcess != win32.INVALID_HANDLE_VALUE:
@@ -651,7 +651,7 @@ class CreateProcessEvent (Event):
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
-        hThread = self.raw.u.CreateProcessInfo.hThread.value
+        hThread = self.raw.u.CreateProcessInfo.hThread
         if hThread == win32.NULL:
             hThread = win32.INVALID_HANDLE_VALUE
         elif hThread != win32.INVALID_HANDLE_VALUE:
@@ -667,21 +667,21 @@ class CreateProcessEvent (Event):
 
             See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
         """
-        return self.raw.u.CreateProcessInfo.lpStartAddress.value
+        return self.raw.u.CreateProcessInfo.lpStartAddress
 
     def get_image_base(self):
         """
         @rtype:  int
         @return: Base address of the main module.
         """
-        return self.raw.u.CreateProcessInfo.lpBaseOfImage.value
+        return self.raw.u.CreateProcessInfo.lpBaseOfImage
 
     def get_teb(self):
         """
         @rtype:  int
         @return: Pointer to the TEB.
         """
-        return self.raw.u.CreateProcessInfo.lpThreadLocalBase.value
+        return self.raw.u.CreateProcessInfo.lpThreadLocalBase
 
     def get_debug_info(self):
         """
@@ -689,7 +689,7 @@ class CreateProcessEvent (Event):
         @return: Debugging information.
         """
         raw  = self.raw.u.CreateProcessInfo
-        ptr  = raw.lpBaseOfImage.value + raw.dwDebugInfoFileOffset
+        ptr  = raw.lpBaseOfImage + raw.dwDebugInfoFileOffset
         size = raw.nDebugInfoSize
         data = self.get_process().peek(ptr, size)
         if len(data) == size:
@@ -712,7 +712,7 @@ class CreateProcessEvent (Event):
             # It's NULL or *NULL most of the times, see MSDN:
             # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
             aProcess = self.get_process()
-            lpRemoteFilenamePtr = self.raw.u.CreateProcessInfo.lpImageName.value
+            lpRemoteFilenamePtr = self.raw.u.CreateProcessInfo.lpImageName
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
                 fUnicode    = bool( self.raw.u.CreateProcessInfo.fUnicode )
@@ -820,7 +820,7 @@ class LoadDLLEvent (Event):
         @rtype:  int
         @return: Base address for the newly loaded DLL.
         """
-        return self.raw.u.LoadDll.lpBaseOfDll.value
+        return self.raw.u.LoadDll.lpBaseOfDll
 
     def get_module(self):
         """
@@ -853,7 +853,7 @@ class LoadDLLEvent (Event):
         try:
             hFile = self.__hFile
         except AttributeError:
-            hFile = self.raw.u.LoadDll.hFile.value
+            hFile = self.raw.u.LoadDll.hFile
             if hFile == win32.NULL:
                 hFile = win32.INVALID_HANDLE_VALUE
             elif hFile != win32.INVALID_HANDLE_VALUE:
@@ -877,7 +877,7 @@ class LoadDLLEvent (Event):
             # It's NULL or *NULL most of the times, see MSDN:
             # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
             aProcess = self.get_process()
-            lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName.value
+            lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName
             if lpRemoteFilenamePtr:
                 lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
                 fUnicode    = bool( self.raw.u.LoadDll.fUnicode )
@@ -904,7 +904,7 @@ class UnloadDLLEvent (Event):
         @rtype:  int
         @return: Base address for the recently unloaded DLL.
         """
-        return self.raw.u.UnloadDll.lpBaseOfDll.value
+        return self.raw.u.UnloadDll.lpBaseOfDll
 
     def get_module(self):
         """
@@ -957,7 +957,7 @@ class OutputDebugStringEvent (Event):
             It may be ANSI or Unicode and may end with a null character.
         """
         return self.get_process().peek_string(
-                                self.raw.u.DebugString.lpDebugStringData.value,
+                                self.raw.u.DebugString.lpDebugStringData,
                                 bool( self.raw.u.DebugString.fUnicode ),
                                 self.raw.u.DebugString.nDebugStringLength)
 
