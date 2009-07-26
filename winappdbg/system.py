@@ -4348,6 +4348,7 @@ class Module (SymbolContainer):
                 self.SizeOfImage = mi.SizeOfImage
                 self.EntryPoint  = mi.EntryPoint
             except WindowsError:
+##                raise       # XXX DEBUG
                 pass
 
     def get_filename(self):
