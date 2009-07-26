@@ -601,3 +601,6 @@ class CONTEXT(Structure):
         ('StFDR',                   ULONGLONG), # x86 FP status (copy of AR30)
         ('UNUSEDPACK',              ULONGLONG), # added to pack StFDR to 16-bytes
     ]
+
+PCONTEXT = POINTER(CONTEXT)
+LPCONTEXT = PCONTEXT

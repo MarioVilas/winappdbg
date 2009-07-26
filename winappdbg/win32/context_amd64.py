@@ -494,5 +494,5 @@ class LDT_ENTRY(Structure):
         ('HighWord',        _LDT_ENTRY_HIGHWORD_),
     ]
 
-PLDT_ENTRY = ctypes.POINTER(LDT_ENTRY)
+PLDT_ENTRY = POINTER(LDT_ENTRY)
 LPLDT_ENTRY = PLDT_ENTRY

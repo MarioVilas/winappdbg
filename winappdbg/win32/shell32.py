@@ -44,7 +44,7 @@ from kernel32 import LocalFree
 # );
 def CommandLineToArgvW(lpCmdLine):
     _CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-    _CommandLineToArgvW.argtypes = [LPVOID, ctypes.POINTER(ctypes.c_int)]
+    _CommandLineToArgvW.argtypes = [LPVOID, POINTER(ctypes.c_int)]
     _CommandLineToArgvW.restype = LPVOID
 
     if not lpCmdLine:

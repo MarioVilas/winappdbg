@@ -306,7 +306,7 @@ class FLOAT128 (Structure):
         ("LowPart",     QWORD),
         ("HighPart",    QWORD),
     ]
-PFLOAT128 = ctypes.POINTER(FLOAT128)
+PFLOAT128 = POINTER(FLOAT128)
 
 # typedef struct DECLSPEC_ALIGN(16) _M128A {
 #     ULONGLONG Low;
@@ -317,7 +317,7 @@ class M128A(Structure):
         ("Low",     ULONGLONG),
         ("High",    LONGLONG),
     ]
-PM128A = ctypes.POINTER(M128A)
+PM128A = POINTER(M128A)
 
 #--- Constants ----------------------------------------------------------------
 

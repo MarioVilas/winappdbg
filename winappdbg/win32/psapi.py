@@ -70,7 +70,7 @@ def EnumDeviceDrivers():
 
     size       = 0x1000
     lpcbNeeded = DWORD(size)
-    unit       = ctypes.sizeof(LPVOID)
+    unit       = sizeof(LPVOID)
     while 1:
         lpImageBase = (LPVOID * (size // unit))()
         _EnumDeviceDrivers(ctypes.byref(lpImageBase), lpcbNeeded, ctypes.byref(lpcbNeeded))
@@ -93,7 +93,7 @@ def EnumProcesses():
 
     size            = 0x1000
     cbBytesReturned = DWORD()
-    unit            = ctypes.sizeof(DWORD)
+    unit            = sizeof(DWORD)
     while 1:
         ProcessIds = (DWORD * (size // unit))()
         cbBytesReturned.value = size
@@ -123,7 +123,7 @@ def EnumProcessModules(hProcess):
 
     size = 0x1000
     lpcbNeeded = DWORD(size)
-    unit = ctypes.sizeof(HMODULE)
+    unit = sizeof(HMODULE)
     while 1:
         lphModule = (HMODULE * (size // unit))()
         _EnumProcessModules(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded))
@@ -148,7 +148,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
 
     size = 0x1000
     lpcbNeeded = DWORD(size)
-    unit = ctypes.sizeof(HMODULE)
+    unit = sizeof(HMODULE)
     while 1:
         lphModule = (HMODULE * (size // unit))()
         _EnumProcessModulesEx(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded), dwFilterFlag)
@@ -330,7 +330,7 @@ def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
 
     if lpmodinfo is None:
         lpmodinfo = MODULEINFO()
-    _GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), ctypes.sizeof(lpmodinfo))
+    _GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), sizeof(lpmodinfo))
     return lpmodinfo
 
 # DWORD WINAPI GetProcessImageFileName(

@@ -43,12 +43,14 @@ import context_amd64
 from context_i386  import CONTEXT_i386, CONTEXT_i486
 from context_amd64 import CONTEXT_AMD64
 
-if ctypes.sizeof(ctypes.c_void_p) == 4:
+# XXX TO DO
+# This test will be insufficient to support additional platforms.
+if sizeof(SIZE_T) == sizeof(DWORD):
     from context_i386 import *
-elif ctypes.sizeof(ctypes.c_void_p) == 8:
+elif sizeof(SIZE_T) == sizeof(DWORD64):
     from context_amd64 import *
 else:
-    raise Warning, "Unsupported architecture"
+    raise AssertionError, "sizeof(SIZE_T) should not be %d" % sizeof(SIZE_T)
 
 #--- Constants ----------------------------------------------------------------
 
@@ -690,7 +692,7 @@ class OVERLAPPED(Structure):
         ('u',               _OVERLAPPED_UNION),
         ('hEvent',          HANDLE),
     ]
-LPOVERLAPPED = ctypes.POINTER(OVERLAPPED)
+LPOVERLAPPED = POINTER(OVERLAPPED)
 
 #--- SECURITY_ATTRIBUTES structure --------------------------------------------
 
@@ -706,7 +708,7 @@ class SECURITY_ATTRIBUTES(Structure):
         ('lpSecurityDescriptor',    LPVOID),
         ('bInheritHandle',          BOOL),
     ]
-LPSECURITY_ATTRIBUTES = ctypes.POINTER(SECURITY_ATTRIBUTES)
+LPSECURITY_ATTRIBUTES = POINTER(SECURITY_ATTRIBUTES)
 
 #--- VS_FIXEDFILEINFO structure -----------------------------------------------
 
@@ -864,10 +866,10 @@ class MEMORY_BASIC_INFORMATION64(Structure):
 #     DWORD Protect;
 #     DWORD Type;
 # } MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
-if ctypes.sizeof(SIZE_T) == 4:
+if sizeof(SIZE_T) == sizeof(DWORD):
     class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION32):
         pass
-elif ctypes.sizeof(SIZE_T) == 8:
+elif sizeof(SIZE_T) == sizeof(DWORD64):
     class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION64):
         pass
 else:
@@ -881,7 +883,7 @@ else:
             ('Protect',             DWORD),
             ('Type',                DWORD),
         ]
-PMEMORY_BASIC_INFORMATION = ctypes.POINTER(MEMORY_BASIC_INFORMATION)
+PMEMORY_BASIC_INFORMATION = POINTER(MEMORY_BASIC_INFORMATION)
 
 #--- BY_HANDLE_FILE_INFORMATION structure -------------------------------------
 
@@ -1117,12 +1119,28 @@ class EXCEPTION_RECORD64(Structure):
 
 PEXCEPTION_RECORD64 = POINTER(EXCEPTION_RECORD64)
 
-if sizeof(LPVOID) == sizeof(DWORD):
+if sizeof(SIZE_T) == sizeof(DWORD):
     EXCEPTION_RECORD = EXCEPTION_RECORD32
-elif sizeof(LPVOID) == sizeof(DWORD64):
+elif sizeof(SIZE_T) == sizeof(DWORD64):
     EXCEPTION_RECORD = EXCEPTION_RECORD64
 else:
-    raise AssertionError, "sizeof(LPVOID) should not be %d" % sizeof(LPVOID)
+    # typedef struct _EXCEPTION_RECORD {
+    #     DWORD ExceptionCode;
+    #     DWORD ExceptionFlags;
+    #     LPVOID ExceptionRecord;
+    #     LPVOID ExceptionAddress;
+    #     DWORD NumberParameters;
+    #     LPVOID ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+    # } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
+    class EXCEPTION_RECORD(Structure):
+        _fields_ = [
+            ('ExceptionCode',           DWORD),
+            ('ExceptionFlags',          DWORD),
+            ('ExceptionRecord',         LPVOID),
+            ('ExceptionAddress',        LPVOID),
+            ('NumberParameters',        DWORD),
+            ('ExceptionInformation',    LPVOID * EXCEPTION_MAXIMUM_PARAMETERS),
+        ]
 PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
 
 # typedef struct _EXCEPTION_DEBUG_INFO {
@@ -1432,7 +1450,7 @@ class HEAPLIST32(Structure):
         ("th32HeapID",      LPVOID),    # remote pointer
         ("dwFlags",         DWORD),
 ]
-LPHEAPLIST32 = ctypes.POINTER(HEAPLIST32)
+LPHEAPLIST32 = POINTER(HEAPLIST32)
 
 #--- kernel32.dll -------------------------------------------------------------
 
@@ -1913,7 +1931,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
 
 def SearchPathW(lpPath, lpFileName, lpExtension):
     _SearchPathW = windll.kernel32.SearchPathW
-    _SearchPathW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, ctypes.POINTER(LPWSTR)]
+    _SearchPathW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, POINTER(LPWSTR)]
     _SearchPathW.restype = DWORD
     _SearchPathW.errcheck = RaiseIfZero
 
@@ -2024,7 +2042,7 @@ def GetFullPathNameA(lpFileName):
 
 def GetFullPathNameW(lpFileName):
     _GetFullPathNameW = windll.kernel32.GetFullPathNameW
-    _GetFullPathNameW.argtypes = [LPWSTR, DWORD, LPWSTR, ctypes.POINTER(LPWSTR)]
+    _GetFullPathNameW.argtypes = [LPWSTR, DWORD, LPWSTR, POINTER(LPWSTR)]
     _GetFullPathNameW.restype = DWORD
 
     nBufferLength = _GetFullPathNameW(lpFileName, 0, None, None)
@@ -2623,7 +2641,7 @@ def TerminateProcess(hProcess, dwExitCode = 0):
 # );
 def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
     _ReadProcessMemory = windll.kernel32.ReadProcessMemory
-    _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
+    _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
     _ReadProcessMemory.restype = bool
 
     lpBuffer            = ctypes.create_string_buffer('', nSize)
@@ -3193,7 +3211,7 @@ def Heap32ListNext(hSnapshot, hl = None):
 # );
 def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
     _Toolhelp32ReadProcessMemory = windll.kernel32.Toolhelp32ReadProcessMemory
-    _Toolhelp32ReadProcessMemory.argtypes = [DWORD, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
+    _Toolhelp32ReadProcessMemory.argtypes = [DWORD, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
     _Toolhelp32ReadProcessMemory.restype = bool
 
     lpBuffer            = ctypes.create_string_buffer('', cbRead)

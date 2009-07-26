@@ -134,7 +134,7 @@ NumSymTypes = 9
 #      BOOL     Publics;
 #    } IMAGEHLP_MODULE64, *PIMAGEHLP_MODULE64;
 
-class IMAGEHLP_MODULE (ctypes.Structure):
+class IMAGEHLP_MODULE (Structure):
     _fields_ = [
         ("SizeOfStruct",    DWORD),
         ("BaseOfImage",     DWORD),
@@ -149,7 +149,7 @@ class IMAGEHLP_MODULE (ctypes.Structure):
     ]
 PIMAGEHLP_MODULE = POINTER(IMAGEHLP_MODULE)
 
-class IMAGEHLP_MODULE64 (ctypes.Structure):
+class IMAGEHLP_MODULE64 (Structure):
     _fields_ = [
         ("SizeOfStruct",    DWORD),
         ("BaseOfImage",     DWORD64),
@@ -177,7 +177,7 @@ class IMAGEHLP_MODULE64 (ctypes.Structure):
     ]
 PIMAGEHLP_MODULE64 = POINTER(IMAGEHLP_MODULE64)
 
-class IMAGEHLP_MODULEW (ctypes.Structure):
+class IMAGEHLP_MODULEW (Structure):
     _fields_ = [
         ("SizeOfStruct",    DWORD),
         ("BaseOfImage",     DWORD),
@@ -192,7 +192,7 @@ class IMAGEHLP_MODULEW (ctypes.Structure):
     ]
 PIMAGEHLP_MODULEW = POINTER(IMAGEHLP_MODULEW)
 
-class IMAGEHLP_MODULEW64 (ctypes.Structure):
+class IMAGEHLP_MODULEW64 (Structure):
     _fields_ = [
         ("SizeOfStruct",    DWORD),
         ("BaseOfImage",     DWORD64),
@@ -333,7 +333,7 @@ def SymGetModuleInfoA(hProcess, dwAddr):
     _SymGetModuleInfo.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULE()
-    ModuleInfo.SizeOfStruct = ctypes.sizeof(ModuleInfo)
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
     _SymGetModuleInfo(hProcess, dwAddr, ctypes.byref(ModuleInfo))
     return ModuleInfo
 
@@ -344,7 +344,7 @@ def SymGetModuleInfoW(hProcess, dwAddr):
     _SymGetModuleInfoW.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULEW()
-    ModuleInfo.SizeOfStruct = ctypes.sizeof(ModuleInfo)
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
     _SymGetModuleInfoW(hProcess, dwAddr, ctypes.byref(ModuleInfo))
     return ModuleInfo
 
