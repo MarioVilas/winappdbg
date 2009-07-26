@@ -68,30 +68,45 @@ except NameError:
     def callable(obj):
         return hasattr(obj, '__call__')
 
-def CheckError(success):
+### XXX DEBUG
+##class WinDllHook(object):
+##    def __getattr__(self, name):
+##        if name.startswith('_'):
+##            return object.__getattr__(self, name)
+##        return WinFuncHook(name)
+##class WinFuncHook(object):
+##    def __init__(self, name):
+##        self.__name = name
+##    def __getattr__(self, name):
+##        if name.startswith('_'):
+##            return object.__getattr__(self, name)
+##        return WinCallHook(self.__name, name)
+##class WinCallHook(object):
+####    def __new__(typ, dllname, funcname):
+####        print dllname, funcname
+####        return getattr(getattr(ctypes.windll, dllname), funcname)
+##    def __init__(self, dllname, funcname):
+##        self.__dllname = dllname
+##        self.__funcname = funcname
+##        self.__func = getattr(getattr(ctypes.windll, dllname), funcname)
+##    def __call__(self, *argv):
+##        print "-"*10
+##        print "%s ! %s %r" % (self.__dllname, self.__funcname, argv) ,
+##        retval = self.__func(*argv)
+##        print "== %r" % (retval,)
+##        return retval
+##windll = WinDllHook()
+
+def RaiseIfZero(success):
     """
     Error checking for most Win32 API calls.
 
-    The function is assumed to return a L{BOOL}, which is C{0} on error.
+    The function is assumed to return an integer, which is C{0} on error.
     In that case the C{WindowsError} exception is raised.
     """
-    if success == 0:
+    if not success:
         raise ctypes.WinError()
     return success
-
-##class CheckError object):
-##    """
-##    Error checking for most Win32 API calls.
-##
-##    The function is assumed to return a L{BOOL}, which is C{0} on error.
-##    In that case the C{WindowsError} exception is raised.
-##    """
-##    def __init__(self, typ = int):
-##        self.__type = typ
-##    def __call__(self, success):
-##        if success == 0:
-##            raise ctypes.WinError()
-##        return self.__type(success)
 
 class GuessStringType(object):
     """

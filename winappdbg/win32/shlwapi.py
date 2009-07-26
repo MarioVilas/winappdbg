@@ -71,7 +71,8 @@ PathAddBackslash = GuessStringType(PathAddBackslashA, PathAddBackslashW)
 def PathAddExtensionA(lpszPath, pszExtension = None):
     _PathAddExtensionA = windll.shlwapi.PathAddExtensionA
     _PathAddExtensionA.argtypes = [LPSTR, LPSTR]
-    _PathAddExtensionA.restype = CheckError
+    _PathAddExtensionA.restype = bool
+    _PathAddExtensionA.errcheck = RaiseIfZero
 
     if not pszExtension:
         pszExtension = None
@@ -82,7 +83,8 @@ def PathAddExtensionA(lpszPath, pszExtension = None):
 def PathAddExtensionW(lpszPath, pszExtension = None):
     _PathAddExtensionW = windll.shlwapi.PathAddExtensionW
     _PathAddExtensionW.argtypes = [LPWSTR, LPWSTR]
-    _PathAddExtensionW.restype = CheckError
+    _PathAddExtensionW.restype = bool
+    _PathAddExtensionW.errcheck = RaiseIfZero
 
     if not pszExtension:
         pszExtension = None
@@ -99,7 +101,8 @@ PathAddExtension = GuessStringType(PathAddExtensionA, PathAddExtensionW)
 def PathAppendA(lpszPath, pszMore = None):
     _PathAppendA = windll.shlwapi.PathAppendA
     _PathAppendA.argtypes = [LPSTR, LPSTR]
-    _PathAppendA.restype = CheckError
+    _PathAppendA.restype = bool
+    _PathAppendA.errcheck = RaiseIfZero
 
     if not pszMore:
         pszMore = None
@@ -110,7 +113,8 @@ def PathAppendA(lpszPath, pszMore = None):
 def PathAppendW(lpszPath, pszMore = None):
     _PathAppendW = windll.shlwapi.PathAppendW
     _PathAppendW.argtypes = [LPWSTR, LPWSTR]
-    _PathAppendW.restype = CheckError
+    _PathAppendW.restype = bool
+    _PathAppendW.errcheck = RaiseIfZero
 
     if not pszMore:
         pszMore = None
@@ -156,7 +160,8 @@ PathCombine = GuessStringType(PathCombineA, PathCombineW)
 def PathCanonicalizeA(lpszSrc):
     _PathCanonicalizeA = windll.shlwapi.PathCanonicalizeA
     _PathCanonicalizeA.argtypes = [LPSTR, LPSTR]
-    _PathCanonicalizeA.restype = CheckError
+    _PathCanonicalizeA.restype = bool
+    _PathCanonicalizeA.errcheck = RaiseIfZero
 
     lpszDst = ctypes.create_string_buffer("", MAX_PATH)
     _PathCanonicalizeA(lpszDst, lpszSrc)
@@ -165,7 +170,8 @@ def PathCanonicalizeA(lpszSrc):
 def PathCanonicalizeW(lpszSrc):
     _PathCanonicalizeW = windll.shlwapi.PathCanonicalizeW
     _PathCanonicalizeW.argtypes = [LPWSTR, LPWSTR]
-    _PathCanonicalizeW.restype = CheckError
+    _PathCanonicalizeW.restype = bool
+    _PathCanonicalizeW.errcheck = RaiseIfZero
 
     lpszDst = ctypes.create_unicode_buffer(u"", MAX_PATH)
     _PathCanonicalizeW(lpszDst, lpszSrc)
@@ -460,7 +466,8 @@ PathIsUNC = GuessStringType(PathIsUNCA, PathIsUNCW)
 def PathMakePrettyA(pszPath):
     _PathMakePrettyA = windll.shlwapi.PathMakePrettyA
     _PathMakePrettyA.argtypes = [LPSTR]
-    _PathMakePrettyA.restype = CheckError
+    _PathMakePrettyA.restype = bool
+    _PathMakePrettyA.errcheck = RaiseIfZero
 
     pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
     _PathMakePrettyA(pszPath)
@@ -469,7 +476,8 @@ def PathMakePrettyA(pszPath):
 def PathMakePrettyW(pszPath):
     _PathMakePrettyW = windll.shlwapi.PathMakePrettyW
     _PathMakePrettyW.argtypes = [LPWSTR]
-    _PathMakePrettyW.restype = CheckError
+    _PathMakePrettyW.restype = bool
+    _PathMakePrettyW.errcheck = RaiseIfZero
 
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     _PathMakePrettyW(pszPath)
@@ -595,7 +603,8 @@ PathRenameExtension = GuessStringType(PathRenameExtensionA, PathRenameExtensionW
 def PathUnExpandEnvStringsA(pszPath):
     _PathUnExpandEnvStringsA = windll.shlwapi.PathUnExpandEnvStringsA
     _PathUnExpandEnvStringsA.argtypes = [LPSTR, LPSTR]
-    _PathUnExpandEnvStringsA.restype = CheckError
+    _PathUnExpandEnvStringsA.restype = bool
+    _PathUnExpandEnvStringsA.errcheck = RaiseIfZero
 
     cchBuf = MAX_PATH
     pszBuf = ctypes.create_string_buffer("", cchBuf)
@@ -605,7 +614,8 @@ def PathUnExpandEnvStringsA(pszPath):
 def PathUnExpandEnvStringsW(pszPath):
     _PathUnExpandEnvStringsW = windll.shlwapi.PathUnExpandEnvStringsW
     _PathUnExpandEnvStringsW.argtypes = [LPWSTR, LPWSTR]
-    _PathUnExpandEnvStringsW.restype = CheckError
+    _PathUnExpandEnvStringsW.restype = bool
+    _PathUnExpandEnvStringsW.errcheck = RaiseIfZero
 
     cchBuf = MAX_PATH
     pszBuf = ctypes.create_unicode_buffer(u"", cchBuf)

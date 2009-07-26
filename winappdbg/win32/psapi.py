@@ -65,7 +65,8 @@ LPMODULEINFO = POINTER(MODULEINFO)
 def EnumDeviceDrivers():
     _EnumDeviceDrivers = windll.psapi.EnumDeviceDrivers
     _EnumDeviceDrivers.argtypes = [POINTER(LPVOID), DWORD, LPDWORD]
-    _EnumDeviceDrivers.restype = CheckError
+    _EnumDeviceDrivers.restype = bool
+    _EnumDeviceDrivers.errcheck = RaiseIfZero
 
     size       = 0x1000
     lpcbNeeded = DWORD(size)
@@ -87,7 +88,8 @@ def EnumDeviceDrivers():
 def EnumProcesses():
     _EnumProcesses = windll.psapi.EnumProcesses
     _EnumProcesses.argtypes = [POINTER(DWORD), DWORD, DWORD]
-    _EnumProcesses.restype = CheckError
+    _EnumProcesses.restype = bool
+    _EnumProcesses.errcheck = RaiseIfZero
 
     size            = 0x1000
     cbBytesReturned = DWORD()
@@ -116,7 +118,8 @@ def EnumProcesses():
 def EnumProcessModules(hProcess):
     _EnumProcessModules = windll.psapi.EnumProcessModules
     _EnumProcessModules.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD]
-    _EnumProcessModules.restype = CheckError
+    _EnumProcessModules.restype = bool
+    _EnumProcessModules.errcheck = RaiseIfZero
 
     size = 0x1000
     lpcbNeeded = DWORD(size)
@@ -140,7 +143,8 @@ def EnumProcessModules(hProcess):
 def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
     _EnumProcessModulesEx = windll.psapi.EnumProcessModulesEx
     _EnumProcessModulesEx.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD, DWORD]
-    _EnumProcessModulesEx.restype = CheckError
+    _EnumProcessModulesEx.restype = bool
+    _EnumProcessModulesEx.errcheck = RaiseIfZero
 
     size = 0x1000
     lpcbNeeded = DWORD(size)
@@ -312,7 +316,7 @@ def GetModuleFileNameExW(hProcess, hModule):
 
 GetModuleFileNameEx = GuessStringType(GetModuleFileNameExA, GetModuleFileNameExW)
 
-#BOOL WINAPI GetModuleInformation(
+# BOOL WINAPI GetModuleInformation(
 #   __in   HANDLE hProcess,
 #   __in   HMODULE hModule,
 #   __out  LPMODULEINFO lpmodinfo,
@@ -321,7 +325,8 @@ GetModuleFileNameEx = GuessStringType(GetModuleFileNameExA, GetModuleFileNameExW
 def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
     _GetModuleInformation = windll.psapi.GetModuleInformation
     _GetModuleInformation.argtypes = [HANDLE, HMODULE, LPMODULEINFO, DWORD]
-    _GetModuleInformation.restype = CheckError
+    _GetModuleInformation.restype = bool
+    _GetModuleInformation.errcheck = RaiseIfZero
 
     if lpmodinfo is None:
         lpmodinfo = MODULEINFO()

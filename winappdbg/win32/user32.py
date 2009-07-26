@@ -525,13 +525,15 @@ SendMessage = GuessStringType(SendMessageA, SendMessageW)
 def PostMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _PostMessageA = windll.user32.PostMessageA
     _PostMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _PostMessageA.restype = CheckError
+    _PostMessageA.restype = bool
+    _PostMessageA.errcheck = RaiseIfZero
     _PostMessageA(hWnd, Msg, wParam, lParam)
 
 def PostMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _PostMessageW = windll.user32.PostMessageW
     _PostMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _PostMessageW.restype = CheckError
+    _PostMessageW.restype = bool
+    _PostMessageW.errcheck = RaiseIfZero
     _PostMessageW(hWnd, Msg, wParam, lParam)
 
 PostMessage = GuessStringType(PostMessageA, PostMessageW)
@@ -545,13 +547,15 @@ PostMessage = GuessStringType(PostMessageA, PostMessageW)
 def PostThreadMessageA(idThread, Msg, wParam = 0, lParam = 0):
     _PostThreadMessageA = windll.user32.PostThreadMessageA
     _PostThreadMessageA.argtypes = [DWORD, UINT, WPARAM, LPARAM]
-    _PostThreadMessageA.restype = CheckError
+    _PostThreadMessageA.restype = bool
+    _PostThreadMessageA.errcheck = RaiseIfZero
     _PostThreadMessageA(idThread, Msg, wParam, lParam)
 
 def PostThreadMessageW(idThread, Msg, wParam = 0, lParam = 0):
     _PostThreadMessageW = windll.user32.PostThreadMessageW
     _PostThreadMessageW.argtypes = [DWORD, UINT, WPARAM, LPARAM]
-    _PostThreadMessageW.restype = CheckError
+    _PostThreadMessageW.restype = bool
+    _PostThreadMessageW.errcheck = RaiseIfZero
     _PostThreadMessageW(idThread, Msg, wParam, lParam)
 
 PostThreadMessage = GuessStringType(PostThreadMessageA, PostThreadMessageW)
@@ -596,13 +600,15 @@ SendMessageTimeout = GuessStringType(SendMessageTimeoutA, SendMessageTimeoutW)
 def SendNotifyMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _SendNotifyMessageA = windll.user32.SendNotifyMessageA
     _SendNotifyMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendNotifyMessageA.restype = CheckError
+    _SendNotifyMessageA.restype = bool
+    _SendNotifyMessageA.errcheck = RaiseIfZero
     _SendNotifyMessageA(hWnd, Msg, wParam, lParam)
 
 def SendNotifyMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendNotifyMessageW = windll.user32.SendNotifyMessageW
     _SendNotifyMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendNotifyMessageW.restype = CheckError
+    _SendNotifyMessageW.restype = bool
+    _SendNotifyMessageW.errcheck = RaiseIfZero
     _SendNotifyMessageW(hWnd, Msg, wParam, lParam)
 
 SendNotifyMessage = GuessStringType(SendNotifyMessageA, SendNotifyMessageW)

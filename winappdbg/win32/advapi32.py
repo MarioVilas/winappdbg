@@ -131,7 +131,8 @@ PTOKEN_PRIVILEGES = POINTER(TOKEN_PRIVILEGES)
 def OpenProcessToken(ProcessHandle, DesiredAccess):
     _OpenProcessToken = windll.advapi32.OpenProcessToken
     _OpenProcessToken.argtypes = [HANDLE, DWORD, PHANDLE]
-    _OpenProcessToken.restype = CheckError
+    _OpenProcessToken.restype = bool
+    _OpenProcessToken.errcheck = RaiseIfZero
 
     TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
     _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
@@ -146,7 +147,8 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
 def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken = windll.advapi32.OpenThreadToken
     _OpenThreadToken.argtypes = [HANDLE, DWORD, BOOL, PHANDLE]
-    _OpenThreadToken.restype = CheckError
+    _OpenThreadToken.restype = bool
+    _OpenThreadToken.errcheck = RaiseIfZero
 
     TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
     _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
@@ -160,7 +162,8 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
 def LookupPrivilegeValueA(lpSystemName, lpName):
     _LookupPrivilegeValueA = windll.advapi32.LookupPrivilegeValueA
     _LookupPrivilegeValueA.argtypes = [LPSTR, LPSTR, PLUID]
-    _LookupPrivilegeValueA.restype = CheckError
+    _LookupPrivilegeValueA.restype = bool
+    _LookupPrivilegeValueA.errcheck = RaiseIfZero
 
     lpLuid = LUID()
     if not lpSystemName:
@@ -171,7 +174,8 @@ def LookupPrivilegeValueA(lpSystemName, lpName):
 def LookupPrivilegeValueW(lpSystemName, lpName):
     _LookupPrivilegeValueW = windll.advapi32.LookupPrivilegeValueW
     _LookupPrivilegeValueW.argtypes = [LPWSTR, LPWSTR, PLUID]
-    _LookupPrivilegeValueW.restype = CheckError
+    _LookupPrivilegeValueW.restype = bool
+    _LookupPrivilegeValueW.errcheck = RaiseIfZero
 
     lpLuid = LUID()
     if not lpSystemName:
@@ -191,7 +195,8 @@ LookupPrivilegeValue = GuessStringType(LookupPrivilegeValueA, LookupPrivilegeVal
 def LookupPrivilegeNameA(lpSystemName, lpLuid):
     _LookupPrivilegeNameA = windll.advapi32.LookupPrivilegeNameA
     _LookupPrivilegeNameA.argtypes = [LPSTR, PLUID, LPSTR, LPDWORD]
-    _LookupPrivilegeNameA.restype = CheckError
+    _LookupPrivilegeNameA.restype = bool
+    _LookupPrivilegeNameA.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
     _LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
@@ -202,7 +207,8 @@ def LookupPrivilegeNameA(lpSystemName, lpLuid):
 def LookupPrivilegeNameW(lpSystemName, lpLuid):
     _LookupPrivilegeNameW = windll.advapi32.LookupPrivilegeNameW
     _LookupPrivilegeNameW.argtypes = [LPWSTR, PLUID, LPWSTR, LPDWORD]
-    _LookupPrivilegeNameW.restype = CheckError
+    _LookupPrivilegeNameW.restype = bool
+    _LookupPrivilegeNameW.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
     _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
@@ -223,7 +229,8 @@ LookupPrivilegeName = GuessStringType(LookupPrivilegeNameA, LookupPrivilegeNameW
 def AdjustTokenPrivileges(TokenHandle, NewState = ()):
     _AdjustTokenPrivileges = windll.advapi32.AdjustTokenPrivileges
     _AdjustTokenPrivileges.argtypes = [HANDLE, BOOL, LPVOID, DWORD, LPVOID, LPVOID]
-    _AdjustTokenPrivileges.restype = CheckError
+    _AdjustTokenPrivileges.restype = bool
+    _AdjustTokenPrivileges.errcheck = RaiseIfZero
     #
     # I don't know how to allocate variable sized structures in ctypes :(
     # so this hack will work by using always TOKEN_PRIVILEGES of one element
@@ -266,7 +273,8 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
 def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
     _CreateProcessWithLogonW = windll.advapi32.CreateProcessWithLogonW
     _CreateProcessWithLogonW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
-    _CreateProcessWithLogonW.restype = CheckError
+    _CreateProcessWithLogonW.restype = bool
+    _CreateProcessWithLogonW.errcheck = RaiseIfZero
 
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
@@ -302,7 +310,8 @@ CreateProcessWithLogon = CreateProcessWithLogonA
 def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
     _CreateProcessWithTokenW = windll.advapi32.CreateProcessWithTokenW
     _CreateProcessWithTokenW.argtypes = [HANDLE, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
-    _CreateProcessWithTokenW.restype = CheckError
+    _CreateProcessWithTokenW.restype = bool
+    _CreateProcessWithTokenW.errcheck = RaiseIfZero
 
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
