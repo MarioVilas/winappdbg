@@ -395,6 +395,14 @@ ACCESS_VIOLATION_TYPE_DEP       = EXCEPTION_EXECUTE_FAULT
 DUPLICATE_CLOSE_SOURCE      = 0x00000001
 DUPLICATE_SAME_ACCESS       = 0x00000002
 
+# GetFinalPathNameByHandle constants
+FILE_NAME_NORMALIZED        = 0x0
+FILE_NAME_OPENED            = 0x8
+VOLUME_NAME_DOS             = 0x0
+VOLUME_NAME_GUID            = 0x1
+VOLUME_NAME_NONE            = 0x4
+VOLUME_NAME_NT              = 0x2
+
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
@@ -548,25 +556,35 @@ class FileHandle (Handle):
     def get_filename(self):
         """
         @rtype:  None or str
-        @return: Name of the open file, or C{None} on error.
+        @return: Name of the open file, or C{None} if unavailable.
         """
-
-        # XXX TO DO update wrapper to avoid using ctypes objects
+        #
+        # XXX BUG
+        #
+        # This code truncates the first two bytes of the path.
+        # It seems to be the expected behavior of NtQueryInformationFile.
+        #
+        # My guess is it only returns the NT pathname, without the device name.
+        #
+        # Note that using the official GetFileInformationByHandleEx
+        # API introduced in Vista doesn't change the results!
+        #
+        from ntdll import NtQueryInformationFile, FileNameInformation, \
+                                                        FILE_NAME_INFORMATION
         dwBufferSize      = 0x1004
         lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
-        try:
-            GetFileInformationByHandleEx(self.value,
-                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
-                                         lpFileInformation, dwBufferSize)
-        except AttributeError:
-##            raise       # XXX DEBUG
-            return None
-        FileNameLength = struct.unpack('<L', lpFileInformation.raw[:4])[0] + 1
-        FileName = str(lpFileInformation.raw[4:FileNameLength+4])
-        FileName = FileName.replace('\x00', '')
-        if FileName:
-            return FileName
-        return None
+        lpFileInformation[0] = '\x04'
+        lpFileInformation[1] = '\x00'
+        lpFileInformation[2] = '\x00'
+        lpFileInformation[3] = '\x00'
+        NtQueryInformationFile(self.value,
+                               FileNameInformation,
+                               lpFileInformation,
+                               dwBufferSize)
+##        print "Length: %r" % struct.unpack('L',lpFileInformation.raw[0:4])[0]
+        FileName = unicode(lpFileInformation.raw[sizeof(DWORD):], 'U16')
+        FileName = ctypes.create_unicode_buffer(FileName).value
+        return FileName
 
 #--- Structure wrappers -------------------------------------------------------
 
@@ -942,7 +960,7 @@ LPBY_HANDLE_FILE_INFORMATION = ctypes.POINTER(BY_HANDLE_FILE_INFORMATION)
 #   FileIoPriorityHintInfo = 12,
 #   MaximumFileInfoByHandlesClass = 13
 # } FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
-class FILE_INFO_BY_HANDLE_CLASS:
+class FILE_INFO_BY_HANDLE_CLASS(object):
     FileBasicInfo                   = 0
     FileStandardInfo                = 1
     FileNameInfo                    = 2
@@ -2018,6 +2036,42 @@ def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation,
     # support each FileInformationClass so the function can allocate the
     # corresponding structure for the lpFileInformation parameter
     _GetFileInformationByHandleEx(hFile, FileInformationClass, ctypes.byref(lpFileInformation), dwBufferSize)
+
+# DWORD WINAPI GetFinalPathNameByHandle(
+#   __in   HANDLE hFile,
+#   __out  LPTSTR lpszFilePath,
+#   __in   DWORD cchFilePath,
+#   __in   DWORD dwFlags
+# );
+def GetFinalPathNameByHandleA(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS):
+    _GetFinalPathNameByHandleA = windll.kernel32.GetFinalPathNameByHandleA
+    _GetFinalPathNameByHandleA.argtypes = [HANDLE, LPSTR, DWORD, DWORD]
+    _GetFinalPathNameByHandleA.restype = DWORD
+
+    cchFilePath = _GetFinalPathNameByHandleA(hFile, None, 0, dwFlags)
+    if cchFilePath == 0:
+        raise ctypes.WinError()
+    lpszFilePath = ctypes.create_string_buffer('', cchFilePath + 1)
+    nCopied = _GetFinalPathNameByHandleA(hFile, lpszFilePath, cchFilePath, dwFlags)
+    if nCopied <= 0 or nCopied > cchFilePath:
+        raise ctypes.WinError()
+    return lpszFilePath.value
+
+def GetFinalPathNameByHandleW(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS):
+    _GetFinalPathNameByHandleW = windll.kernel32.GetFinalPathNameByHandleW
+    _GetFinalPathNameByHandleW.argtypes = [HANDLE, LPWSTR, DWORD, DWORD]
+    _GetFinalPathNameByHandleW.restype = DWORD
+
+    cchFilePath = _GetFinalPathNameByHandleW(hFile, None, 0, dwFlags)
+    if cchFilePath == 0:
+        raise ctypes.WinError()
+    lpszFilePath = ctypes.create_unicode_buffer(u'', cchFilePath + 1)
+    nCopied = _GetFinalPathNameByHandleW(hFile, lpszFilePath, cchFilePath, dwFlags)
+    if nCopied <= 0 or nCopied > cchFilePath:
+        raise ctypes.WinError()
+    return lpszFilePath.value
+
+GetFinalPathNameByHandle = GuessStringType(GetFinalPathNameByHandleA, GetFinalPathNameByHandleW)
 
 # DWORD GetFullPathName(
 #   LPCTSTR lpFileName,

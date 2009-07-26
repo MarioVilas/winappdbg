@@ -51,7 +51,7 @@ MEM_EXECUTE_OPTION_DISABLE              = 2
 MEM_EXECUTE_OPTION_ATL7_THUNK_EMULATION = 4
 MEM_EXECUTE_OPTION_PERMANENT            = 8
 
-# NtQuerySystemInformation() constants from:
+# SYSTEM_INFORMATION_CLASS
 # http://www.informit.com/articles/article.aspx?p=22442&seqNum=4
 SystemBasicInformation                  = 1     # 0x002C
 SystemProcessorInformation              = 2     # 0x000C
@@ -116,7 +116,7 @@ SystemSessionProcessesInformation       = 54    # WTS
 ##ProcessWow64Information = 26
 ##ProcessImageFileName    = 27
 
-# NtQueryInformationProcess constants
+# PROCESS_INFORMATION_CLASS
 # http://undocumented.ntinternals.net/UserMode/Undocumented%20Functions/NT%20Objects/Process/PROCESS_INFORMATION_CLASS.html
 ProcessBasicInformation             = 0
 ProcessQuotaLimits                  = 1
@@ -145,28 +145,80 @@ ProcessPriorityBoost                = 22
 ProcessWow64Information             = 26
 ProcessImageFileName                = 27
 
+# http://www.codeproject.com/KB/security/AntiReverseEngineering.aspx
+ProcessDebugObjectHandle            = 30
+
 ProcessExecuteFlags                 = 34
 
-# NtQueryInformationThread constants
-#
-ThreadBasicInformation          = 0
-ThreadTimes                     = 1
-ThreadPriority                  = 2
-ThreadBasePriority              = 3
-ThreadAffinityMask              = 4
-ThreadImpersonationToken        = 5
-ThreadDescriptorTableEntry      = 6
-ThreadEnableAlignmentFaultFixup = 7
-ThreadEventPair                 = 8
-ThreadQuerySetWin32StartAddress = 9
-ThreadZeroTlsCell               = 10
-ThreadPerformanceCount          = 11
-ThreadAmILastThread             = 12
-ThreadIdealProcessor            = 13
-ThreadPriorityBoost             = 14
-ThreadSetTlsArrayAddress        = 15
-ThreadIsIoPending               = 16
-ThreadHideFromDebugger          = 17
+# THREAD_INFORMATION_CLASS
+ThreadBasicInformation              = 0
+ThreadTimes                         = 1
+ThreadPriority                      = 2
+ThreadBasePriority                  = 3
+ThreadAffinityMask                  = 4
+ThreadImpersonationToken            = 5
+ThreadDescriptorTableEntry          = 6
+ThreadEnableAlignmentFaultFixup     = 7
+ThreadEventPair                     = 8
+ThreadQuerySetWin32StartAddress     = 9
+ThreadZeroTlsCell                   = 10
+ThreadPerformanceCount              = 11
+ThreadAmILastThread                 = 12
+ThreadIdealProcessor                = 13
+ThreadPriorityBoost                 = 14
+ThreadSetTlsArrayAddress            = 15
+ThreadIsIoPending                   = 16
+ThreadHideFromDebugger              = 17
+
+# OBJECT_INFORMATION_CLASS
+ObjectBasicInformation              = 0
+ObjectNameInformation               = 1
+ObjectTypeInformation               = 2
+ObjectAllTypesInformation           = 3
+ObjectHandleInformation             = 4
+
+# FILE_INFORMATION_CLASS
+FileDirectoryInformation            = 1
+FileFullDirectoryInformation        = 2
+FileBothDirectoryInformation        = 3
+FileBasicInformation                = 4
+FileStandardInformation             = 5
+FileInternalInformation             = 6
+FileEaInformation                   = 7
+FileAccessInformation               = 8
+FileNameInformation                 = 9
+FileRenameInformation               = 10
+FileLinkInformation                 = 11
+FileNamesInformation                = 12
+FileDispositionInformation          = 13
+FilePositionInformation             = 14
+FileFullEaInformation               = 15
+FileModeInformation                 = 16
+FileAlignmentInformation            = 17
+FileAllInformation                  = 18
+FileAllocationInformation           = 19
+FileEndOfFileInformation            = 20
+FileAlternateNameInformation        = 21
+FileStreamInformation               = 22
+FilePipeInformation                 = 23
+FilePipeLocalInformation            = 24
+FilePipeRemoteInformation           = 25
+FileMailslotQueryInformation        = 26
+FileMailslotSetInformation          = 27
+FileCompressionInformation          = 28
+FileCopyOnWriteInformation          = 29
+FileCompletionInformation           = 30
+FileMoveClusterInformation          = 31
+FileQuotaInformation                = 32
+FileReparsePointInformation         = 33
+FileNetworkOpenInformation          = 34
+FileObjectIdInformation             = 35
+FileTrackingInformation             = 36
+FileOleDirectoryInformation         = 37
+FileContentIndexInformation         = 38
+FileInheritContentIndexInformation  = 37
+FileOleInformation                  = 39
+FileMaximumInformation              = 40
 
 # From http://www.nirsoft.net/kernel_struct/vista/EXCEPTION_DISPOSITION.html
 # typedef enum _EXCEPTION_DISPOSITION
@@ -1106,6 +1158,18 @@ class THREAD_BASIC_INFORMATION(Structure):
         ("BasePriority",    KPRIORITY),
 ]
 
+#--- FILE_NAME_INFORMATION structure ------------------------------------------
+
+# typedef struct _FILE_NAME_INFORMATION {
+#     ULONG FileNameLength;
+#     WCHAR FileName[1];
+# } FILE_NAME_INFORMATION, *PFILE_NAME_INFORMATION;
+class FILE_NAME_INFORMATION(Structure):
+    _fields_ = [
+        ("FileNameLength",  ULONG),
+        ("FileName",        WCHAR * 1),
+    ]
+
 #--- SYSDBG_MSR structure and constants ---------------------------------------
 
 SysDbgReadMsr  = 16
@@ -1284,12 +1348,12 @@ ZwQueryInformationThread = NtQueryInformationThread
 #     );
 def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Length):
     _NtQueryInformationFile = windll.ntdll.NtQueryInformationFile
-    _NtQueryInformationFile.argtypes = [HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS]
+    _NtQueryInformationFile.argtypes = [HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, DWORD]
     _NtQueryInformationFile.restype = NTSTATUS
     IoStatusBlock = IO_STATUS_BLOCK()
-    status = _NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
-    if status != 0:
+    ntstatus = _NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
+    if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
-    return IoStatusBlock.Information
+    return IoStatusBlock
 
 ZwQueryInformationFile = NtQueryInformationFile

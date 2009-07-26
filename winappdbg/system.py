@@ -2453,7 +2453,6 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll32!DbgBreakPoint")
         except Exception:
-            raise
             return None
 
     # I don't know when this breakpoint is actually used...
