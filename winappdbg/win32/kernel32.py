@@ -1045,31 +1045,38 @@ class STARTUPINFOEX(Structure):
     ]
 LPSTARTUPINFOEX = POINTER(STARTUPINFOEX)
 
+#--- JIT_DEBUG_INFO structure -------------------------------------------------
+
+# typedef struct _JIT_DEBUG_INFO {
+#     DWORD dwSize;
+#     DWORD dwProcessorArchitecture;
+#     DWORD dwThreadID;
+#     DWORD dwReserved0;
+#     ULONG64 lpExceptionAddress;
+#     ULONG64 lpExceptionRecord;
+#     ULONG64 lpContextRecord;
+# } JIT_DEBUG_INFO, *LPJIT_DEBUG_INFO;
+class JIT_DEBUG_INFO(Structure):
+    _fields_ = [
+        ('dwSize',                  DWORD),
+        ('dwProcessorArchitecture', DWORD),
+        ('dwThreadID',              DWORD),
+        ('dwReserved0',             DWORD),
+        ('lpExceptionAddress',      ULONG64),
+        ('lpExceptionRecord',       ULONG64),
+        ('lpContextRecord',         ULONG64),
+    ]
+JIT_DEBUG_INFO32 = JIT_DEBUG_INFO
+JIT_DEBUG_INFO64 = JIT_DEBUG_INFO
+
+LPJIT_DEBUG_INFO   = ctypes.POINTER(JIT_DEBUG_INFO)
+LPJIT_DEBUG_INFO32 = ctypes.POINTER(JIT_DEBUG_INFO32)
+LPJIT_DEBUG_INFO64 = ctypes.POINTER(JIT_DEBUG_INFO64)
+
 #--- DEBUG_EVENT structure ----------------------------------------------------
 
-# typedef struct _EXCEPTION_RECORD {
-#   DWORD ExceptionCode;
-#   DWORD ExceptionFlags;
-#   struct _EXCEPTION_RECORD* ExceptionRecord;
-#   PVOID ExceptionAddress;
-#   DWORD NumberParameters;
-#   ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
-# } EXCEPTION_RECORD;
-class EXCEPTION_RECORD(Structure):
-    _pack_ = 4
-EXCEPTION_RECORD._fields_ = [
-        ('ExceptionCode',           DWORD),
-        ('ExceptionFlags',          DWORD),
-        ('ExceptionRecord',         POINTER(EXCEPTION_RECORD)),
-        ('ExceptionAddress',        LPVOID),
-        ('NumberParameters',        DWORD),
-        ('ExceptionInformation',    LPVOID * EXCEPTION_MAXIMUM_PARAMETERS),
-    ]
-
-PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
-
 # typedef struct _EXCEPTION_RECORD32 {
-#     DWORD    ExceptionCode;
+#     DWORD ExceptionCode;
 #     DWORD ExceptionFlags;
 #     DWORD ExceptionRecord;
 #     DWORD ExceptionAddress;
@@ -1077,7 +1084,6 @@ PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
 #     DWORD ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
 # } EXCEPTION_RECORD32, *PEXCEPTION_RECORD32;
 class EXCEPTION_RECORD32(Structure):
-    _pack_ = 8
     _fields_ = [
         ('ExceptionCode',           DWORD),
         ('ExceptionFlags',          DWORD),
@@ -1099,7 +1105,6 @@ PEXCEPTION_RECORD32 = POINTER(EXCEPTION_RECORD32)
 #     DWORD64 ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
 # } EXCEPTION_RECORD64, *PEXCEPTION_RECORD64;
 class EXCEPTION_RECORD64(Structure):
-    _pack_ = 1
     _fields_ = [
         ('ExceptionCode',           DWORD),
         ('ExceptionFlags',          DWORD),
@@ -1112,12 +1117,19 @@ class EXCEPTION_RECORD64(Structure):
 
 PEXCEPTION_RECORD64 = POINTER(EXCEPTION_RECORD64)
 
+if sizeof(LPVOID) == sizeof(DWORD):
+    EXCEPTION_RECORD = EXCEPTION_RECORD32
+elif sizeof(LPVOID) == sizeof(DWORD64):
+    EXCEPTION_RECORD = EXCEPTION_RECORD64
+else:
+    raise AssertionError, "sizeof(LPVOID) should not be %d" % sizeof(LPVOID)
+PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
+
 # typedef struct _EXCEPTION_DEBUG_INFO {
 #   EXCEPTION_RECORD ExceptionRecord;
 #   DWORD dwFirstChance;
 # } EXCEPTION_DEBUG_INFO;
 class EXCEPTION_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('ExceptionRecord',     EXCEPTION_RECORD),
         ('dwFirstChance',       DWORD),
@@ -1129,7 +1141,6 @@ class EXCEPTION_DEBUG_INFO(Structure):
 #   LPTHREAD_START_ROUTINE lpStartAddress;
 # } CREATE_THREAD_DEBUG_INFO;
 class CREATE_THREAD_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('hThread',             HANDLE),
         ('lpThreadLocalBase',   LPVOID),
@@ -1149,7 +1160,6 @@ class CREATE_THREAD_DEBUG_INFO(Structure):
 #   WORD fUnicode;
 # } CREATE_PROCESS_DEBUG_INFO;
 class CREATE_PROCESS_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('hFile',                   HANDLE),
         ('hProcess',                HANDLE),
@@ -1167,7 +1177,6 @@ class CREATE_PROCESS_DEBUG_INFO(Structure):
 #   DWORD dwExitCode;
 # } EXIT_THREAD_DEBUG_INFO;
 class EXIT_THREAD_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwExitCode',          DWORD),
     ]
@@ -1176,7 +1185,6 @@ class EXIT_THREAD_DEBUG_INFO(Structure):
 #   DWORD dwExitCode;
 # } EXIT_PROCESS_DEBUG_INFO;
 class EXIT_PROCESS_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwExitCode',          DWORD),
     ]
@@ -1190,7 +1198,6 @@ class EXIT_PROCESS_DEBUG_INFO(Structure):
 #   WORD fUnicode;
 # } LOAD_DLL_DEBUG_INFO;
 class LOAD_DLL_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('hFile',                   HANDLE),
         ('lpBaseOfDll',             LPVOID),
@@ -1204,7 +1211,6 @@ class LOAD_DLL_DEBUG_INFO(Structure):
 #   LPVOID lpBaseOfDll;
 # } UNLOAD_DLL_DEBUG_INFO;
 class UNLOAD_DLL_DEBUG_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('lpBaseOfDll',         LPVOID),
     ]
@@ -1215,7 +1221,6 @@ class UNLOAD_DLL_DEBUG_INFO(Structure):
 #   WORD nDebugStringLength;
 # } OUTPUT_DEBUG_STRING_INFO;
 class OUTPUT_DEBUG_STRING_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('lpDebugStringData',   LPVOID),    # don't use LPSTR
         ('fUnicode',            WORD),
@@ -1227,7 +1232,6 @@ class OUTPUT_DEBUG_STRING_INFO(Structure):
 #     DWORD dwType;
 # } RIP_INFO, *LPRIP_INFO;
 class RIP_INFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwError',             DWORD),
         ('dwType',              DWORD),
@@ -1250,7 +1254,6 @@ class RIP_INFO(Structure):
 #   } u;
 # } DEBUG_EVENT;.
 class _DEBUG_EVENT_UNION_(Union):
-    _pack_ = 1
     _fields_ = [
         ('Exception',           EXCEPTION_DEBUG_INFO),
         ('CreateThread',        CREATE_THREAD_DEBUG_INFO),
@@ -1263,7 +1266,6 @@ class _DEBUG_EVENT_UNION_(Union):
         ('RipInfo',             RIP_INFO),
     ]
 class DEBUG_EVENT(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwDebugEventCode',    DWORD),
         ('dwProcessId',         DWORD),
@@ -2776,11 +2778,8 @@ def GetProcessId(hProcess):
     _GetProcessId = windll.kernel32.GetProcessId
     _GetProcessId.argtypes = [HANDLE]
     _GetProcessId.restype = DWORD
-
-    dwProcessId = _GetProcessId(hProcess)
-    if dwProcessId == 0:
-        raise ctypes.WinError()
-    return dwProcessId
+    _GetProcessId.errcheck = RaiseIfZero
+    return _GetProcessId(hProcess)
 
 # DWORD WINAPI GetThreadId(
 #   __in  HANDLE hThread

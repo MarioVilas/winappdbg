@@ -89,9 +89,21 @@ except NameError:
 ##        self.__dllname = dllname
 ##        self.__funcname = funcname
 ##        self.__func = getattr(getattr(ctypes.windll, dllname), funcname)
+##    def __copy_attribute(self, attribute):
+##        try:
+##            value = getattr(self, attribute)
+##            setattr(self.__func, attribute, value)
+##        except AttributeError:
+##            try:
+##                delattr(self.__func, attribute)
+##            except AttributeError:
+##                pass
 ##    def __call__(self, *argv):
+##        self.__copy_attribute('argtypes')
+##        self.__copy_attribute('restype')
+##        self.__copy_attribute('errcheck')
 ##        print "-"*10
-##        print "%s ! %s %r" % (self.__dllname, self.__funcname, argv) ,
+##        print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
 ##        retval = self.__func(*argv)
 ##        print "== %r" % (retval,)
 ##        return retval
@@ -200,8 +212,11 @@ ULONGLONG   = ctypes.c_ulonglong
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
 
-# Size of a pointer 
-SIZE_T      = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
+try:
+    SIZE_T  = ctypes.c_size_t
+except AttributeError:
+    # Size of a pointer
+    SIZE_T  = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
 
 PSTR        = LPSTR
 PWSTR       = LPWSTR
