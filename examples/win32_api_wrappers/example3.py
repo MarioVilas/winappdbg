@@ -33,8 +33,18 @@
 from winappdbg.win32 import *
 
 def print_heap_blocks( pid ):
+
+    # Determine if we have 32 bit or 64 bit pointers
+    if sizeof(SIZE_T) == sizeof(DWORD):
+        fmt = "%.8x\t%.8x\t%.8x"
+        hdr = "%-8s\t%-8s\t%-8s"
+    else:
+        fmt = "%.16x\t%.16x\t%.16x"
+        hdr = "%-16s\t%-16s\t%-16s"
+
+    # Print a banner
     print "Heaps for process %d:" % pid
-    print "Heap ID\tAddress\tSize"
+    print hdr % ("Heap ID", "Address", "Size")
 
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPHEAPLIST, pid )
@@ -48,8 +58,7 @@ def print_heap_blocks( pid ):
         while entry is not None:
 
             # Print the heap id and the entry address and size
-            print "%.8x\t%.8x\t%.8x" % \
-                  (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
+            print fmt % (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
 
             # Next entry in the heap
             entry = Heap32Next( entry )

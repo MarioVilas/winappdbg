@@ -5640,8 +5640,12 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @param dwTimeout: (Optional) Timeout value in milliseconds.
             Ignored if C{bWait} is C{False}.
 
+        @raise NotImplementedError: The target platform is not supported.
         @raise WindowsError: An exception is raised on error.
         """
+        if win32.CONTEXT.arch != 'i386':
+            raise NotImplementedError
+
         dllname = str(dllname)
 
         # Resolve kernel32.dll
@@ -5883,6 +5887,11 @@ class System (ProcessContainer):
             This has a HARDCODED value for a machine specific register (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
+
+        @note:
+            It doesn't seem to work in VirtualBox machines.
+            Maybe it fails in other virtualization/emulation environments,
+            not extensive testing was made so far.
         """
         msr         = win32.SYSDBG_MSR()
         msr.Address = 0x1D9

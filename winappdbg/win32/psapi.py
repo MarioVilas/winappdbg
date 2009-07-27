@@ -64,7 +64,7 @@ LPMODULEINFO = POINTER(MODULEINFO)
 # );
 def EnumDeviceDrivers():
     _EnumDeviceDrivers = windll.psapi.EnumDeviceDrivers
-    _EnumDeviceDrivers.argtypes = [POINTER(LPVOID), DWORD, LPDWORD]
+    _EnumDeviceDrivers.argtypes = [LPVOID, DWORD, LPDWORD]
     _EnumDeviceDrivers.restype = bool
     _EnumDeviceDrivers.errcheck = RaiseIfZero
 
@@ -87,7 +87,7 @@ def EnumDeviceDrivers():
 # );
 def EnumProcesses():
     _EnumProcesses = windll.psapi.EnumProcesses
-    _EnumProcesses.argtypes = [POINTER(DWORD), DWORD, DWORD]
+    _EnumProcesses.argtypes = [LPVOID, DWORD, DWORD]
     _EnumProcesses.restype = bool
     _EnumProcesses.errcheck = RaiseIfZero
 
@@ -117,7 +117,7 @@ def EnumProcesses():
 # );
 def EnumProcessModules(hProcess):
     _EnumProcessModules = windll.psapi.EnumProcessModules
-    _EnumProcessModules.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD]
+    _EnumProcessModules.argtypes = [HANDLE, LPVOID, DWORD, LPDWORD]
     _EnumProcessModules.restype = bool
     _EnumProcessModules.errcheck = RaiseIfZero
 
@@ -142,7 +142,7 @@ def EnumProcessModules(hProcess):
 # );
 def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
     _EnumProcessModulesEx = windll.psapi.EnumProcessModulesEx
-    _EnumProcessModulesEx.argtypes = [HANDLE, POINTER(HMODULE), DWORD, LPDWORD, DWORD]
+    _EnumProcessModulesEx.argtypes = [HANDLE, LPVOID, DWORD, LPDWORD, DWORD]
     _EnumProcessModulesEx.restype = bool
     _EnumProcessModulesEx.errcheck = RaiseIfZero
 

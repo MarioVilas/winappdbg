@@ -3191,7 +3191,7 @@ def Module32Next(hSnapshot, me = None):
 # );
 def Heap32First(th32ProcessID, th32HeapID):
     _Heap32First = windll.kernel32.Heap32First
-    _Heap32First.argtypes = [LPHEAPENTRY32, DWORD, ULONG_PTR]
+    _Heap32First.argtypes = [LPHEAPENTRY32, DWORD, LPVOID]
     _Heap32First.restype = bool
 
     he = HEAPENTRY32()

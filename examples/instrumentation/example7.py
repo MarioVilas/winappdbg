@@ -30,7 +30,7 @@
 # Example #7
 # http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example7:gettingtheprocessmemorymap
 
-from winappdbg import win32, Process
+from winappdbg import win32, Process, HexDump
 
 def print_memory_map( pid ):
 
@@ -52,8 +52,8 @@ def print_memory_map( pid ):
     for mbi in memoryMap:
 
         # Address and size of memory block
-        BaseAddress = "0x%.08x" % mbi.BaseAddress
-        RegionSize  = "0x%.08x" % mbi.RegionSize
+        BaseAddress = HexDump.address(mbi.BaseAddress)
+        RegionSize  = HexDump.address(mbi.RegionSize)
 
         # State (free or allocated)
         if   mbi.State == win32.MEM_RESERVE:
