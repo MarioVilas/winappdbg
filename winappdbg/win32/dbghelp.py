@@ -302,6 +302,10 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
         ImageName = None
     if not ModuleName:
         ModuleName = None
+    if not BaseOfDll:
+        BaseOfDll = 0
+    if not SizeOfDll:
+        SizeOfDll = 0
     lpBaseAddress = _SymLoadModule(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
 ##    lpBaseAddress = lpBaseAddress.value
     if lpBaseAddress == NULL:

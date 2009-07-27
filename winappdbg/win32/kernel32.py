@@ -565,25 +565,29 @@ class FileHandle (Handle):
         # It seems to be the expected behavior of NtQueryInformationFile.
         #
         # My guess is it only returns the NT pathname, without the device name.
+        # It's like dropping the drive letter in a Win32 pathname.
         #
-        # Note that using the official GetFileInformationByHandleEx
+        # Note that using the "official" GetFileInformationByHandleEx
         # API introduced in Vista doesn't change the results!
         #
-        from ntdll import NtQueryInformationFile, FileNameInformation, \
-                                                        FILE_NAME_INFORMATION
         dwBufferSize      = 0x1004
         lpFileInformation = ctypes.create_string_buffer(dwBufferSize)
-        lpFileInformation[0] = '\x04'
-        lpFileInformation[1] = '\x00'
-        lpFileInformation[2] = '\x00'
-        lpFileInformation[3] = '\x00'
-        NtQueryInformationFile(self.value,
-                               FileNameInformation,
-                               lpFileInformation,
-                               dwBufferSize)
-##        print "Length: %r" % struct.unpack('L',lpFileInformation.raw[0:4])[0]
+        try:
+            GetFileInformationByHandleEx(self.value,
+                                        FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
+                                        lpFileInformation, dwBufferSize)
+        except AttributeError:
+            from ntdll import NtQueryInformationFile, \
+                              FileNameInformation, \
+                              FILE_NAME_INFORMATION
+            NtQueryInformationFile(self.value,
+                                   FileNameInformation,
+                                   lpFileInformation,
+                                   dwBufferSize)
         FileName = unicode(lpFileInformation.raw[sizeof(DWORD):], 'U16')
         FileName = ctypes.create_unicode_buffer(FileName).value
+        if not FileName:
+            FileName = None
         return FileName
 
 #--- Structure wrappers -------------------------------------------------------
