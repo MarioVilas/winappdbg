@@ -368,6 +368,8 @@ CONTEXT_EXCEPTION_REPORTING     = 0x80000000
 # } CONTEXT, *PCONTEXT;
 
 class CONTEXT(Structure):
+    arch = 'ia64'
+
     _pack_ = 16
     _fields_ = [
         ('ContextFlags',            DWORD),

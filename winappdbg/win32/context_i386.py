@@ -142,6 +142,8 @@ LPFLOATING_SAVE_AREA = PFLOATING_SAVE_AREA
 #     BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
 # } CONTEXT;
 class CONTEXT(Structure):
+    arch = 'i386'
+
     _pack_ = 1
 
     # Context Frame

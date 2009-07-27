@@ -289,6 +289,8 @@ class _CONTEXT_FLTSAVE_UNION(Union):
     ]
 
 class CONTEXT(Structure):
+    arch = 'amd64'
+
     _pack_ = 16
     _fields_ = [
 

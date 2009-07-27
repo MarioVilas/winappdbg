@@ -36,7 +36,7 @@ __revision__ = "$Id$"
 import os
 import sys
 
-from winappdbg import Process, System, HexDump, HexInput
+from winappdbg import win32, Process, System, HexDump, HexInput
 
 def main():
     print "Process memory reader"
@@ -91,8 +91,12 @@ def main():
         open(filename, 'wb').write(data)
         print "Written %d bytes to %s" % (len(data), filename)
     else:
+        if win32.sizeof(win32.LPVOID) == win32.sizeof(win32.DWORD):
+            width = 16
+        else:
+            width = 8
         print
-        print HexDump.hexblock(data, address)
+        print HexDump.hexblock(data, address, width = width)
 
 if __name__ == '__main__':
     try:

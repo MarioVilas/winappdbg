@@ -4970,63 +4970,6 @@ class Thread (ThreadDebugOperations):
         finally:
             self.resume()
 
-    def get_pc(self):
-        """
-        @rtype:  int
-        @return: Value of the program counter register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Eip']
-
-    def set_pc(self, pc):
-        """
-        Sets the value of the program counter register.
-
-        @type  pc: int
-        @param pc: Value of the program counter register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Eip'] = pc
-        self.set_context(context)
-
-    def get_sp(self):
-        """
-        @rtype:  int
-        @return: Value of the stack pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Esp']
-
-    def set_sp(self, sp):
-        """
-        Sets the value of the stack pointer register.
-
-        @type  sp: int
-        @param sp: Value of the stack pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Esp'] = sp
-        self.set_context(context)
-
-    def get_fp(self):
-        """
-        @rtype:  int
-        @return: Value of the frame pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Ebp']
-
-    def set_fp(self, fp):
-        """
-        Sets the value of the frame pointer register.
-
-        @type  fp: int
-        @param fp: Value of the frame pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Ebp'] = fp
-        self.set_context(context)
-
     def get_register(self, register):
         """
         @type  register: str
@@ -5055,147 +4998,271 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    class Flags (object):
-        'Commonly used processor flags'
-        Overflow    = 0x800
-        Direction   = 0x400
-        Interrupts  = 0x200
-        Trap        = 0x100
-        Sign        = 0x80
-        Zero        = 0x40
-        # 0x20 ???
-        Auxiliary   = 0x10
-        # 0x8 ???
-        Parity      = 0x4
-        # 0x2 ???
-        Carry       = 0x1
+    if win32.CONTEXT.arch == 'i386':
 
-    def get_flags(self, FlagMask = 0xFFFFFFFF):
-        """
-        @type  FlagMask: int
-        @param FlagMask: (Optional) Bitwise-AND mask.
+        def get_pc(self):
+            """
+            @rtype:  int
+            @return: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Eip']
 
-        @rtype:  int
-        @return: Flags register contents, optionally masking out some bits.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['EFlags'] & FlagMask
+        def set_pc(self, pc):
+            """
+            Sets the value of the program counter register.
 
-    def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
-        """
-        Sets the flags register, optionally masking some bits.
+            @type  pc: int
+            @param pc: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Eip'] = pc
+            self.set_context(context)
 
-        @type  eflags: int
-        @param eflags: Flags register contents.
+        def get_sp(self):
+            """
+            @rtype:  int
+            @return: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Esp']
 
-        @type  FlagMask: int
-        @param FlagMask: (Optional) Bitwise-AND mask.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
-        self.set_context(context)
+        def set_sp(self, sp):
+            """
+            Sets the value of the stack pointer register.
 
-    def get_flag_value(self, FlagBit):
-        """
-        @type  FlagBit: int
-        @param FlagBit: One of the L{Flags}.
+            @type  sp: int
+            @param sp: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Esp'] = sp
+            self.set_context(context)
 
-        @rtype:  bool
-        @return: Boolean value of the requested flag.
-        """
-        return bool( self.get_flags(FlagBit) )
+        def get_fp(self):
+            """
+            @rtype:  int
+            @return: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Ebp']
 
-    def set_flag_value(self, FlagBit, FlagValue):
-        """
-        Sets a single flag, leaving the others intact.
+        def set_fp(self, fp):
+            """
+            Sets the value of the frame pointer register.
 
-        @type  FlagBit: int
-        @param FlagBit: One of the L{Flags}.
+            @type  fp: int
+            @param fp: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Ebp'] = fp
+            self.set_context(context)
 
-        @type  FlagValue: bool
-        @param FlagValue: Boolean value of the flag.
-        """
-        if FlagValue:
-            eflags = FlagBit
-        else:
-            eflags = 0
-        FlagMask = 0xFFFFFFFF ^ FlagBit
-        self.set_flags(eflags, FlagMask)
+#------------------------------------------------------------------------------
 
-    def get_zf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Zero flag.
-        """
-        return self.get_flag_value(self.Flags.Zero)
+    elif win32.CONTEXT.arch == 'amd64':
 
-    def get_cf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Carry flag.
-        """
-        return self.get_flag_value(self.Flags.Carry)
+        def get_pc(self):
+            """
+            @rtype:  int
+            @return: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rip']
 
-    def get_sf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Sign flag.
-        """
-        return self.get_flag_value(self.Flags.Sign)
+        def set_pc(self, pc):
+            """
+            Sets the value of the program counter register.
 
-    def get_df(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Direction flag.
-        """
-        return self.get_flag_value(self.Flags.Direction)
+            @type  pc: int
+            @param pc: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rip'] = pc
+            self.set_context(context)
 
-    def get_tf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Trap flag.
-        """
-        return self.get_flag_value(self.Flags.Trap)
+        def get_sp(self):
+            """
+            @rtype:  int
+            @return: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rsp']
 
-    def clear_zf(self):
-        'Clears the Zero flag.'
-        self.set_flag_value(self.Flags.Zero, False)
+        def set_sp(self, sp):
+            """
+            Sets the value of the stack pointer register.
 
-    def clear_cf(self):
-        'Clears the Carry flag.'
-        self.set_flag_value(self.Flags.Carry, False)
+            @type  sp: int
+            @param sp: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rsp'] = sp
+            self.set_context(context)
 
-    def clear_sf(self):
-        'Clears the Sign flag.'
-        self.set_flag_value(self.Flags.Sign, False)
+        def get_fp(self):
+            """
+            @rtype:  int
+            @return: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rbp']
 
-    def clear_df(self):
-        'Clears the Direction flag.'
-        self.set_flag_value(self.Flags.Direction, False)
+        def set_fp(self, fp):
+            """
+            Sets the value of the frame pointer register.
 
-    def clear_tf(self):
-        'Clears the Trap flag.'
-        self.set_flag_value(self.Flags.Trap, False)
+            @type  fp: int
+            @param fp: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rbp'] = fp
+            self.set_context(context)
 
-    def set_zf(self):
-        'Sets the Zero flag.'
-        self.set_flag_value(self.Flags.Zero, True)
+#------------------------------------------------------------------------------
 
-    def set_cf(self):
-        'Sets the Carry flag.'
-        self.set_flag_value(self.Flags.Carry, True)
+    if win32.CONTEXT.arch in ('i386', 'amd64'):
 
-    def set_sf(self):
-        'Sets the Sign flag.'
-        self.set_flag_value(self.Flags.Sign, True)
+        class Flags (object):
+            'Commonly used processor flags'
+            Overflow    = 0x800
+            Direction   = 0x400
+            Interrupts  = 0x200
+            Trap        = 0x100
+            Sign        = 0x80
+            Zero        = 0x40
+            # 0x20 ???
+            Auxiliary   = 0x10
+            # 0x8 ???
+            Parity      = 0x4
+            # 0x2 ???
+            Carry       = 0x1
 
-    def set_df(self):
-        'Sets the Direction flag.'
-        self.set_flag_value(self.Flags.Direction, True)
+        def get_flags(self, FlagMask = 0xFFFFFFFF):
+            """
+            @type  FlagMask: int
+            @param FlagMask: (Optional) Bitwise-AND mask.
 
-    def set_tf(self):
-        'Sets the Trap flag.'
-        self.set_flag_value(self.Flags.Trap, True)
+            @rtype:  int
+            @return: Flags register contents, optionally masking out some bits.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['EFlags'] & FlagMask
+
+        def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
+            """
+            Sets the flags register, optionally masking some bits.
+
+            @type  eflags: int
+            @param eflags: Flags register contents.
+
+            @type  FlagMask: int
+            @param FlagMask: (Optional) Bitwise-AND mask.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
+            self.set_context(context)
+
+        def get_flag_value(self, FlagBit):
+            """
+            @type  FlagBit: int
+            @param FlagBit: One of the L{Flags}.
+
+            @rtype:  bool
+            @return: Boolean value of the requested flag.
+            """
+            return bool( self.get_flags(FlagBit) )
+
+        def set_flag_value(self, FlagBit, FlagValue):
+            """
+            Sets a single flag, leaving the others intact.
+
+            @type  FlagBit: int
+            @param FlagBit: One of the L{Flags}.
+
+            @type  FlagValue: bool
+            @param FlagValue: Boolean value of the flag.
+            """
+            if FlagValue:
+                eflags = FlagBit
+            else:
+                eflags = 0
+            FlagMask = 0xFFFFFFFF ^ FlagBit
+            self.set_flags(eflags, FlagMask)
+
+        def get_zf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Zero flag.
+            """
+            return self.get_flag_value(self.Flags.Zero)
+
+        def get_cf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Carry flag.
+            """
+            return self.get_flag_value(self.Flags.Carry)
+
+        def get_sf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Sign flag.
+            """
+            return self.get_flag_value(self.Flags.Sign)
+
+        def get_df(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Direction flag.
+            """
+            return self.get_flag_value(self.Flags.Direction)
+
+        def get_tf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Trap flag.
+            """
+            return self.get_flag_value(self.Flags.Trap)
+
+        def clear_zf(self):
+            'Clears the Zero flag.'
+            self.set_flag_value(self.Flags.Zero, False)
+
+        def clear_cf(self):
+            'Clears the Carry flag.'
+            self.set_flag_value(self.Flags.Carry, False)
+
+        def clear_sf(self):
+            'Clears the Sign flag.'
+            self.set_flag_value(self.Flags.Sign, False)
+
+        def clear_df(self):
+            'Clears the Direction flag.'
+            self.set_flag_value(self.Flags.Direction, False)
+
+        def clear_tf(self):
+            'Clears the Trap flag.'
+            self.set_flag_value(self.Flags.Trap, False)
+
+        def set_zf(self):
+            'Sets the Zero flag.'
+            self.set_flag_value(self.Flags.Zero, True)
+
+        def set_cf(self):
+            'Sets the Carry flag.'
+            self.set_flag_value(self.Flags.Carry, True)
+
+        def set_sf(self):
+            'Sets the Sign flag.'
+            self.set_flag_value(self.Flags.Sign, True)
+
+        def set_df(self):
+            'Sets the Direction flag.'
+            self.set_flag_value(self.Flags.Direction, True)
+
+        def set_tf(self):
+            'Sets the Trap flag.'
+            self.set_flag_value(self.Flags.Trap, True)
 
 #==============================================================================
 

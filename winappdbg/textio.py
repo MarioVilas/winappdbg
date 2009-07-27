@@ -570,8 +570,8 @@ class HexDump (object):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexline, data, address, width * 2,
-                 cb_kwargs = {'width':width * 2, 'separator': separator})
+        return cls.hexblock_cb(cls.hexline, data, address, width,
+                 cb_kwargs = {'width' : width, 'separator' : separator})
 
     @classmethod
     def hexblock_cb(cls, callback, data, address = None, width = 16,
@@ -812,12 +812,24 @@ class CrashDump (object):
     @cvar reg_template: Template for the L{dump_registers} method.
     """
 
-    # Template for the dump_registers method.
-    reg_template = (
-        'eax=%(Eax).8x ebx=%(Ebx).8x ecx=%(Ecx).8x edx=%(Edx).8x esi=%(Esi).8x edi=%(Edi).8x\n'
-        'eip=%(Eip).8x esp=%(Esp).8x ebp=%(Ebp).8x %(efl_dump)s\n'
-        'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
-        )
+    # Templates for the dump_registers method.
+    reg_template = {
+        'i386'  :   (
+                    'eax=%(Eax).8x ebx=%(Ebx).8x ecx=%(Ecx).8x edx=%(Edx).8x esi=%(Esi).8x edi=%(Edi).8x\n'
+                    'eip=%(Eip).8x esp=%(Esp).8x ebp=%(Ebp).8x %(efl_dump)s\n'
+                    'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
+                    ),
+        'amd64' :   (
+                    'rax=%(Rax).16x rbx=%(Rbx).16x rcx=%(Rcx).16x\n'
+                    'rdx=%(Rdx).16x rsi=%(Rsi).16x rdi=%(Rdi).16x\n'
+                    'rip=%(Rip).16x rsp=%(Rsp).16x rbp=%(Rbp).16x\n'
+                    ' r8=%(R8).16x  r9=%(R9).16x r10=%(R10).16x\n'
+                    'r11=%(R11).16x r12=%(R12).16x r13=%(R13).16x\n'
+                    'r14=%(R14).16x r15=%(R15).16x\n'
+                    '%(efl_dump)s\n'
+                    'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
+                    ),
+    }
 
     @staticmethod
     def dump_flags(efl):
@@ -833,6 +845,8 @@ class CrashDump (object):
         """
         if efl is None:
             return ''
+        if win32.CONTEXT.arch not in ('i386', 'amd64'):
+            raise NotImplementedError
         efl_dump = 'iopl=%1d' % ((efl & 0x3000) >> 12)
         if efl & 0x100000:
             efl_dump += ' vip'
@@ -894,9 +908,12 @@ class CrashDump (object):
         """
         if registers is None:
             return ''
+        arch = win32.CONTEXT.arch
+        if arch not in ('i386', 'amd64'):
+            raise NotImplementedError
         registers = registers.copy()
         registers['efl_dump'] = cls.dump_flags( registers['EFlags'] )
-        return cls.reg_template % registers
+        return cls.reg_template[arch] % registers
 
     @staticmethod
     def dump_registers_peek(registers, data, separator = ' ', width = 16):
@@ -966,7 +983,13 @@ class CrashDump (object):
         pointers.sort()
         result = ''
         if pointers:
-            tag_fmt = '[esp+0x%%.%dx]' % (len( '%x' % pointers[-1] ) )
+            if win32.CONTEXT.arch == 'i386':
+                spreg = 'esp'
+            elif win32.CONTEXT.arch == 'i386':
+                spreg = 'rsp'
+            else:
+                spreg = 'STACK' # just a generic tag
+            tag_fmt = '[%s+0x%%.%dx]' % (spreg, len( '%x' % pointers[-1] ) )
             for offset in pointers:
                 dumped  = HexDump.hexline(data[offset], separator, width)
                 tag     = tag_fmt % offset
