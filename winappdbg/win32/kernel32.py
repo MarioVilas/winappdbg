@@ -3382,12 +3382,12 @@ def GetNativeSystemInfo():
 def IsWow64Process(hProcess):
     _IsWow64Process = windll.kernel32.IsWow64Process
     _IsWow64Process.argtypes = [HANDLE, PBOOL]
-    _IsWow64Process.restype = bool
+    _IsWow64Process.restype = BOOL
     _IsWow64Process.errcheck = RaiseIfZero
 
     Wow64Process = BOOL(FALSE)
     _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
-    return Wow64Process
+    return bool(Wow64Process)
 
 # BOOL Wow64GetThreadSelectorEntry(
 #   __in   HANDLE hThread,

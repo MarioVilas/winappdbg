@@ -3227,7 +3227,8 @@ class ProcessDebugOperations (object):
 
     @group Properties:
         get_peb, get_peb_address,
-        get_main_module, get_image_base, get_image_name
+        get_main_module, get_image_base, get_image_name,
+        is_wow64
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -3420,6 +3421,29 @@ class ProcessDebugOperations (object):
         # When continuing the exception, the thread dies by itself.
         # This thread is hidden from the debugger.
         win32.DebugBreakProcess( self.get_handle() )
+
+    def is_wow64(self):
+        """
+        Determines if the process is running under WOW64.
+
+        @rtype:  bool
+        @return:
+            C{True} if the process is running under WOW64. That is, a 32-bit
+            application running in a 64-bit Windows.
+
+            C{False} if the process is either a 32-bit application running in
+            a 32-bit Windows, or a 64-bit application running in a 64-bit
+            Windows.
+
+        @raise WindowsError: On error an exception is raised.
+
+        @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
+        """
+        hProcess = self.get_handle()
+        try:
+            return win32.IsWow64Process(hProcess)
+        except AttributeError:
+            return False
 
 #------------------------------------------------------------------------------
 
