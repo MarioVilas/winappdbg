@@ -64,13 +64,17 @@ class LoggingEventHandler(EventHandler):
         # Create the crash container.
         if not options.nodb:
             if options.dbm:
-                self.knownCrashes = CrashContainer( options.dbm )
+                self.knownCrashes = CrashContainer( options.dbm,
+                                    allowRepeatedKeys = options.duplicates )
             elif options.sqlite:
-                self.knownCrashes = CrashTable( options.sqlite )
+                self.knownCrashes = CrashTable( options.sqlite,
+                                    allowRepeatedKeys = options.duplicates )
             else:
-                self.knownCrashes = VolatileCrashContainer()
+                self.knownCrashes = DummyCrashContainer( \
+                                    allowRepeatedKeys = options.duplicates )
         else:
-            self.knownCrashes = VolatileCrashContainer()
+            self.knownCrashes = DummyCrashContainer( \
+                                    allowRepeatedKeys = options.duplicates)
 
         # Create the cache of resolved labels.
         self.labelsCache = dict()                   # pid -> label -> address
@@ -130,7 +134,7 @@ class LoggingEventHandler(EventHandler):
         if '%' in action:
             if not crash:
                 crash = Crash(event)
-            # %COUNT% - Sequential numbering of crashes found.
+            # %COUNT% - Number of crashes currently stored in the database.
             # %EXCEPTIONCODE% - Exception code in hexa
             # %EVENTCODE% - Event code in hexa
             # %EXCEPTION% - Exception name, human readable
@@ -387,31 +391,41 @@ class LoggingEventHandler(EventHandler):
         if self.__action_requested(event):
             self.__action(event)
 
-    # Single step events are not crashes.
-    # Comment out this code if needed...
-    def single_step(self, event):
+##    # First chance single step events are not crashes.
+##    # Comment out this code if needed...
+##    def single_step(self, event):
+##
+##        # If it's a last chance exception, it's a crash.
+##        if event.is_last_chance():
+##            self.__add_crash(event, bFullReport = True)
+##        else:
+##
+##            # Continue without setting the trap flag.
+##            event.continueStatus = win32.DBG_CONTINUE
+##
+##            # Log the event to standard output.
+##            if self.options.verbose:
+##                address = event.get_exception_address()
+##                where   = self.__get_location(event, address)
+##                msg     = "Single step event at %s" % where
+##                self.__log(event, msg)
+##
+##            # Take action if requested.
+##            if self.__action_requested(event):
+##                self.__action(event)
 
-        # Continue without setting the trap flag.
-        event.continueStatus = win32.DBG_CONTINUE
-
-        # Log the event to standard output.
-        if self.options.verbose:
-            address = event.get_exception_address()
-            where   = self.__get_location(event, address)
-            msg     = "Single step event at %s" % where
-            self.__log(event, msg)
-
-        # Take action if requested.
-        if self.__action_requested(event):
-            self.__action(event)
-
-    # Breakpoints events are not crashes.
+    # Breakpoint events are not crashes when they're ours,
+    # or when they were triggered by known system-defined breakpoints.
     # Comment out this code if needed...
     def breakpoint(self, event):
 
+        # Determine if it's the first chance exception event.
+        bFirstChance = event.is_first_chance()
+
         # Step over breakpoints.
         # This includes both user-defined and hardcoded in the binary.
-        event.continueStatus = win32.DBG_CONTINUE
+        if bFirstChance:
+            event.continueStatus = win32.DBG_CONTINUE
 
         # Get the address where the exception occured.
         address = event.get_exception_address()
@@ -423,25 +437,34 @@ class LoggingEventHandler(EventHandler):
         bSystem = not bOurs and \
                   event.get_process().is_system_defined_breakpoint(address)
 
-        # Log the event to standard output.
-        try:
-            if self.options.verbose:
-                where   = self.__get_location(event, address)
-                if bOurs:
-                    msg = "Breakpoint hit (%s)" % where
-                elif bSystem:
-                    msg = "System breakpoint hit (%s)" % where
-                else:
-                    msg = "Hardcoded breakpoint hit (%s)" % where
-                self.__log(event, msg)
+        # Add the crash if this is an unexpected breakpoint event.
+        # It may be signaling a C/C++ assert() failure.
+        if not bFirstChance or (not bOurs and not bSystem):
+            self.__add_crash(event, bFullReport = False)
 
-        # Take action if requested or the breakpoint is ours.
-        # Always ignore system defined breakpoints.
-        # To force the action on system defined breakpoints,
-        # redefine them with the --break command line option.
-        finally:
-            if bOurs or (not bSystem and self.__action_requested(event)):
-                self.__action(event)
+        # If it's not a crash, log and take action as appropriate.
+        else:
+            try:
+
+                # Log the event to standard output.
+                if self.options.verbose:
+                    where   = self.__get_location(event, address)
+                    if bOurs:
+                        msg = "Breakpoint hit (%s)" % where
+                    elif bSystem:
+                        msg = "System breakpoint hit (%s)" % where
+                    else:
+                        msg = "Assertion failed (%s)" % where
+                    self.__log(event, msg)
+
+            finally:
+
+                # Take action if requested or the breakpoint is ours.
+                # Always ignore system defined breakpoints.
+                # To force the action on system defined breakpoints,
+                # redefine them with the --break command line option.
+                if bOurs or (not bSystem and self.__action_requested(event)):
+                    self.__action(event)
 
 #==============================================================================
 

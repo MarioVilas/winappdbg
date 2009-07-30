@@ -62,6 +62,7 @@ __all__ =   [
                 'CrashContainer',
                 'CrashTable',
                 'VolatileCrashContainer',
+                'DummyCrashContainer',
 
                 # from debug import *
                 'Debug',
