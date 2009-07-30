@@ -2663,7 +2663,7 @@ class ThreadDebugOperations (object):
     Encapsulates several useful debugging routines for threads.
 
     @group Properties:
-        get_teb
+        get_teb, get_teb_address
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -2685,6 +2685,7 @@ class ThreadDebugOperations (object):
     # TODO
     # Maybe it'd be a good idea to cache the TEB, or at least it's pointer.
     # The pointers may be obtained when debugging at create_thread_event.
+
     def get_teb(self):
         """
         Returns a copy of the TEB.
@@ -2693,10 +2694,20 @@ class ThreadDebugOperations (object):
         @rtype:  L{TEB}
         @return: TEB structure.
         """
+        aProcess = self.get_process()
+        TebBaseAddress = self.get_teb_address()
+        return aProcess.read_structure(TebBaseAddress, win32.TEB)
+
+    def get_teb_address(self):
+        """
+        Returns a remote pointer to the TEB.
+
+        @rtype:  int
+        @return: Remote pointer to the L{TEB} structure.
+        """
         tbi = win32.NtQueryInformationThread(self.get_handle(),
                                                   win32.ThreadBasicInformation)
-        aProcess = self.get_process()
-        return aProcess.read_structure(tbi.TebBaseAddress, win32.TEB)
+        return tbi.TebBaseAddress
 
     def get_linear_address(self, segment, address):
         """
@@ -2741,7 +2752,12 @@ class ThreadDebugOperations (object):
             Each SEH is represented as a tuple of two addresses:
                 - Address of the SEH block
                 - Address of the SEH callback function
+
+        @raise NotImplementedError:
+            This method is only supported in 32 bits Windows.
         """
+        if win32.sizeof(win32.LPVOID) != win32.sizeof(win32.DWORD):
+            raise NotImplementedError
         process   = self.get_process()
         seh_chain = list()
         try:
@@ -2751,7 +2767,6 @@ class ThreadDebugOperations (object):
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_uint( seh )
         except WindowsError, e:
-            print str(e)
             pass
         return seh_chain
 
@@ -2760,9 +2775,14 @@ class ThreadDebugOperations (object):
         @rtype:  tuple( int, int )
         @return: Stack beginning and end pointers, in memory addresses order.
         """
+        try:
+            address = self.get_teb_address()
+        except Exception:
+            address = self.get_linear_address('SegFs', 0)
+        ptrsize = win32.sizeof(win32.LPVOID)
         process = self.get_process()
-        begin   = process.read_uint( self.get_linear_address('SegFs', 8) )
-        end     = process.read_uint( self.get_linear_address('SegFs', 4) )
+        begin   = process.read_pointer(address + (ptrsize * 2))
+        end     = process.read_pointer(address + ptrsize)
         return (begin, end)
 
     def __get_stack_trace(self, depth = 16, bUseLabels = True,
@@ -2795,7 +2815,7 @@ class ThreadDebugOperations (object):
                 break
             if not sb <= fp < sl:
                 break
-            ra  = aProcess.peek_uint(fp + 4)
+            ra  = aProcess.peek_pointer(fp + 4)
             if ra == 0:
                 break
             lib = aProcess.get_module_at_address(ra)
@@ -2813,7 +2833,7 @@ class ThreadDebugOperations (object):
                 trace.append( (fp, label) )
             else:
                 trace.append( (fp, ra, lib) )
-            fp = aProcess.peek_uint(fp)
+            fp = aProcess.peek_pointer(fp)
         return tuple(trace)
 
     def get_stack_trace(self, depth = 16):
@@ -3206,7 +3226,8 @@ class ProcessDebugOperations (object):
     Encapsulates several useful debugging routines for processes.
 
     @group Properties:
-        get_peb, get_main_module, get_image_base, get_image_name
+        get_peb, get_peb_address,
+        get_main_module, get_image_base, get_image_name
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -3387,7 +3408,7 @@ class ProcessDebugOperations (object):
 
         @raise WindowsError: Raises exception on error.
         """
-        win32.FlushInstructionCache(self.get_handle())
+        win32.FlushInstructionCache( self.get_handle() )
 
     def debug_break(self):
         """
@@ -3398,7 +3419,7 @@ class ProcessDebugOperations (object):
         # The exception is raised by a new thread.
         # When continuing the exception, the thread dies by itself.
         # This thread is hidden from the debugger.
-        win32.DebugBreakProcess(self.get_handle())
+        win32.DebugBreakProcess( self.get_handle() )
 
 #------------------------------------------------------------------------------
 
@@ -3410,9 +3431,18 @@ class ProcessDebugOperations (object):
         @rtype:  L{PEB}
         @return: PEB structure.
         """
+        return self.read_structure(self.get_peb_address(), win32.PEB)
+
+    def get_peb_address(self):
+        """
+        Returns a remote pointer to the PEB.
+
+        @rtype:  int
+        @return: Remote pointer to the L{PEB} structure.
+        """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
-        return self.read_structure(pbi.PebBaseAddress, win32.PEB)
+        return pbi.PebBaseAddress
 
     def get_main_module(self):
         """
@@ -3481,10 +3511,6 @@ class ProcessDebugOperations (object):
         # not implemented until Windows 2000.
         if not name:
             try:
-                # XXX: sometimes gives odd pathnames like:
-                #   \SystemRoot\System32\smss.exe
-                #   \??\C:\WINDOWS\system32\csrss.exe
-                #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
@@ -3562,15 +3588,20 @@ class ProcessDebugOperations (object):
         @return: Dictionary mapping stack offsets to the data they point to.
         """
         result = dict()
+        ptrSize = win32.sizeof(win32.LPVOID)
+        if ptrSize == 4:
+            ptrFmt = '<L'
+        else:
+            ptrFmt = '<Q'
         if len(data) > 0:
             for i in xrange(0, len(data), peekStep):
-                packed          = data[i:i+4]
-                if len(packed) == 4:
-                    address     = struct.unpack('<L', packed)[0]
-                    if address & (~0xFFFF): # this check is not valid on Wine
-                        peek_data   = self.peek(address, peekSize)
-                        if peek_data:
-                            result[i] = peek_data
+                packed          = data[i:i+ptrSize]
+                if len(packed) == ptrSize:
+                    address     = struct.unpack(ptrFmt, packed)[0]
+##                    if not address & (~0xFFFF): continue
+                    peek_data   = self.peek(address, peekSize)
+                    if peek_data:
+                        result[i] = peek_data
         return result
 
 #==============================================================================
