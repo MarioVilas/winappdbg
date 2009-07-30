@@ -35,6 +35,18 @@ __revision__ = "$Id$"
 
 from defines import *
 
+###############################################################################
+##                                                                           ##
+##      This is an experimental file for support of Itanum processors.       ##
+##      Since I have no way of testing this -Itanums don't come cheap-       ##
+##      it's very likely to break.                                           ##
+##                                                                           ##
+##      The file kernel32.py has to be edited for this one to be loaded.     ##
+##                                                                           ##
+##      Try at your own risk. (And tell me how it went!)                     ##
+##                                                                           ##
+###############################################################################
+
 # The following values specify the type of access in the first parameter
 # of the exception record whan the exception code specifies an access
 # violation.
