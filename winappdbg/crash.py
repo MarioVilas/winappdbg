@@ -43,6 +43,9 @@ __all__ =   [
 
                 # Volatile container that does not store Crash objects.
                 'VolatileCrashContainer',
+
+                # Fake Crash container.
+                'DummyCrashContainer',
             ]
 
 from system import MemoryAddresses, PathOperations
@@ -169,6 +172,20 @@ class Crash (object):
 
         C{None} if unapplicable or unable to retrieve.
 
+    @type isOurBreakpoint: bool
+    @ivar isOurBreakpoint:
+        C{True} for breakpoints defined by the L{Debug} class,
+        C{False} otherwise.
+
+        C{None} if unapplicable.
+
+    @type isSystemBreakpoint: bool
+    @ivar isSystemBreakpoint:
+        C{True} for known system-defined breakpoints,
+        C{False} otherwise.
+
+        C{None} if unapplicable.
+
     @type modFileName: None or str
     @ivar modFileName: File name of module where the program counter points to.
 
@@ -275,6 +292,8 @@ class Crash (object):
         self.faultAddress       = None
         self.faultLabel         = None
         self.firstChance        = None
+        self.isOurBreakpoint    = None
+        self.isSystemBreakpoint = None
         self.modFileName        = None
         self.lpBaseOfDll        = None
         self.exceptionLabel     = None
@@ -327,6 +346,12 @@ class Crash (object):
                 self.faultAddress = event.get_fault_address()
                 self.faultLabel   = process.get_label_at_address(
                                                             self.faultAddress)
+            elif self.exceptionCode in (win32.EXCEPTION_BREAKPOINT,
+                                        win32.EXCEPTION_SINGLE_STEP):
+                self.isOurBreakpoint = hasattr(event, 'breakpoint') \
+                                       and event.breakpoint
+                self.isSystemBreakpoint = \
+                    process.is_system_defined_breakpoint(self.exceptionAddress)
 
             # Data pointed to by registers.
             self.registersPeek = thread.peek_pointers_in_registers()
@@ -607,7 +632,14 @@ class Crash (object):
         @return: Short description of the event.
         """
         if self.exceptionCode is not None:
-            if self.exceptionDescription:
+            if self.exceptionCode == win32.EXCEPTION_BREAKPOINT:
+                if self.isOurBreakpoint:
+                    what = "Breakpoint hit"
+                elif self.isSystemBreakpoint:
+                    what = "System breakpoint hit"
+                else:
+                    what = "Assertion failed"
+            elif self.exceptionDescription:
                 what = self.exceptionDescription
             elif self.exceptionName:
                 what = self.exceptionName
@@ -817,7 +849,7 @@ class CrashContainer (object):
             key  = self.__keys_iter.next()
             return self.__container.get(key)
 
-    def __init__(self, filename = None):
+    def __init__(self, filename = None, allowRepeatedKeys = False):
         """
         @type  filename: str
         @param filename: (Optional) File name for crash database.
@@ -826,6 +858,15 @@ class CrashContainer (object):
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
         """
+##
+##        @type  allowRepeatedKeys: bool
+##        @param allowRepeatedKeys:
+##            If C{True} all L{Crash} objects are stored.
+##
+##            If C{False} any L{Crash} object with the same key as a
+##            previously existing object will be ignored.
+        if allowRepeatedKeys:
+            raise NotImplementedError
         self.__filename = filename
         if filename:
             global anydbm
@@ -1142,6 +1183,13 @@ class CrashTable (object):
 
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} all L{Crash} objects are stored.
+
+            If C{False} any L{Crash} object with the same key as a
+            previously existing object will be ignored.
         """
 
         # Import sqlite if needed.
@@ -1177,7 +1225,26 @@ class CrashTable (object):
             unmarshalled_key = self.__unmarshall_key(marshalled_key)
             self.__keys[unmarshalled_key] = marshalled_key
 
+        # Get the number of crashes stored in the database.
+        self.__cursor.execute("SELECT COUNT(*) FROM WinAppDbg")
+        count = 0
+        for row in self.__cursor:
+            count = long(row[0])
+        self.__count = count
+
     def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{True}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
 
         # Add the key to the keys cache.
         # Filter out by key if requested.
@@ -1189,6 +1256,9 @@ class CrashTable (object):
             self.__cursor.execute(self.__insert_row,
                                   self.__get_row_values(crash))
             self.__db.commit()
+
+            # Increment the counter of crashes.
+            self.__count += 1
 
     def __iter__(self):
         """
@@ -1216,12 +1286,7 @@ class CrashTable (object):
         @rtype:  int
         @return: Count of L{Crash} elements in the container.
         """
-        self.__cursor.execute("SELECT COUNT(*) FROM WinAppDbg")
-        count = 0
-        for row in self.__cursor:
-            count = long(row[0])
-            break
-        return count
+        return self.__count
 
     def __bool__(self):
         """
@@ -1298,24 +1363,212 @@ class CrashTable (object):
 
 class VolatileCrashContainer(CrashContainer):
     """
-    Manages a database of volatile Crash objects, trying to avoid duplicates.
+    Manages a database of volatile Crash objects,
+    trying to avoid duplicates if requested.
 
     @see: L{Crash.key}
     """
 
-    # XXX HACK
-    #
-    # Instead of implementing a new Crash container from scratch,
-    # this just reuses the CrashContainer class and forces the
-    # filename parameter to be ommited.
-    #
-    # Volatile CrashContainer objects use only Python basic types,
-    # this is more efficient than the memory-based SQLite databases
-    # used by volatile CrashTable objects.
-
-    def __init__(self):
+    def __init__(self, allowRepeatedKeys = True):
         """
         Volatile containers are stored only in memory and
         destroyed when they go out of scope.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} all L{Crash} objects are stored.
+
+            If C{False} any L{Crash} object with the same key as a
+            previously existing object will be ignored.
         """
         super(VolatileCrashContainer, self).__init__()
+        self.__allowRepeatedKeys = allowRepeatedKeys
+        self.__dict = dict()
+        self.__set  = set()
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return: C{True} if the Crash object is in the container.
+        """
+        return self.__dict.has_key( crash.key() )
+
+    def __iter__(self):
+        """
+        @see:    L{itervalues}
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        """
+        return self.itervalues()
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        return len(self.__set)
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if the container is empty.
+        """
+        return bool(len(self))
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{True}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+        key = crash.key()
+        if self.__allowRepeatedKeys or key not in self.__dict:
+            self.__dict[key] = crash
+            self.__set.add(crash)
+
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+
+        @rtype:  bool
+        @return: C{True} if a matching L{Crash} object is in the container.
+        """
+        return self.__dict.has_key(key)
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} object keys.
+
+        @see:     L{get}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return self.__dict.iterkeys()
+
+    def itervalues(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return iter(self.__set)
+
+#==============================================================================
+
+class DummyCrashContainer(CrashContainer):
+    """
+    Fakes a database of volatile Crash objects,
+    trying to mimic part of it's interface.
+
+    @see: L{Crash.key}
+    """
+
+    def __init__(self, allowRepeatedKeys = True):
+        """
+        Fake containers don't store L{Crash} objects, but they implement the
+        interface properly.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} the len() of the container returns the total number
+            of L{Crash} objects added.
+
+            If C{False} the len() of the container returns the total number
+            of L{Crash} objects keys added.
+        """
+        super(DummyCrashContainer, self).__init__()
+        self.__keys  = set()
+        self.__count = 0
+        self.__allowRepeatedKeys = allowRepeatedKeys
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return: C{True} if the Crash object is in the container.
+        """
+        return crash.key() in self.__keys
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        if self.__allowRepeatedKeys:
+            return self.__count
+        return len(self.__keys)
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if the container is empty.
+        """
+        return bool(len(self))
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{True}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+        self.__keys.add( crash.key() )
+        self.__count += 1
+
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+
+        @rtype:  bool
+        @return: C{True} if a matching L{Crash} object is in the container.
+        """
+        return self.__dict.has_key(key)
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} object keys.
+
+        @see:     L{get}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return iter(self.__dict)
