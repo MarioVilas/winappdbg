@@ -950,12 +950,12 @@ class MemoryOperations (object):
         is_address_executable_and_writeable
 
     @group Memory read:
-        read, read_char, read_uint, read_structure,
-        peek, peek_char, peek_uint, peek_string
+        read, read_char, read_uint, read_pointer, read_structure,
+        peek, peek_char, peek_uint, peek_pointer, peek_string
 
     @group Memory write:
-        write, write_char, write_uint,
-        poke, poke_char, poke_uint
+        write, write_char, write_uint, write_pointer,
+        poke, poke_char, poke_uint, poke_pointer
     """
 
     # FIXME
@@ -1006,7 +1006,7 @@ class MemoryOperations (object):
 
     def read_uint(self, lpBaseAddress):
         """
-        Reads a single uint from the memory of the process.
+        Reads a single unsigned integer from the memory of the process.
 
         @see: L{peek}
 
@@ -1026,7 +1026,7 @@ class MemoryOperations (object):
 
     def write_uint(self, lpBaseAddress, unpackedDword):
         """
-        Writes a single uint to the memory of the process.
+        Writes a single unsigned integer to the memory of the process.
 
         @see: L{poke_uint}
 
@@ -1040,6 +1040,51 @@ class MemoryOperations (object):
         """
         packedDword = struct.pack('<L', unpackedDword)
         self.write(lpBaseAddress, packedDword)
+
+    def read_pointer(self, lpBaseAddress):
+        """
+        Reads a single pointer value from the memory of the process.
+
+        @see: L{peek_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        lpvoidLength = win32.sizeof(win32.LPVOID)
+        packedValue = self.read(lpBaseAddress, lpvoidLength)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
+        return unpackedValue
+
+    def write_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a single pointer value to the memory of the process.
+
+        @see: L{poke_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        lpvoidLength    = win32.sizeof(win32.LPVOID)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        packedValue = struct.pack(lpvoidFmt, unpackedValue)
+        self.write(lpBaseAddress, packedValue)
 
     def read_char(self, lpBaseAddress):
         """
@@ -1204,7 +1249,7 @@ class MemoryOperations (object):
 
     def peek_uint(self, lpBaseAddress):
         """
-        Reads a single uint from the memory of the process.
+        Reads a single unsigned integer from the memory of the process.
 
         @see: L{read_uint}
 
@@ -1215,15 +1260,16 @@ class MemoryOperations (object):
         @return: Integer value read from the process memory.
             Returns zero on error.
         """
-        packedDword = self.peek(lpBaseAddress, 4)
-        if len(packedDword) < 4:
-            packedDword += '\x00' * (4 - len(packedDword))
+        dwordLength = win32.sizeof(win32.UINT)
+        packedDword = self.peek(lpBaseAddress, dwordLength)
+        if len(packedDword) < dwordLength:
+            packedDword += '\x00' * (dwordLength - len(packedDword))
         unpackedDword = struct.unpack('<L', packedDword)[0]
         return unpackedDword
 
     def poke_uint(self, lpBaseAddress, unpackedDword):
         """
-        Writes a single uint to the memory of the process.
+        Writes a single unsigned integer to the memory of the process.
 
         @see: L{write_uint}
 
@@ -1239,6 +1285,55 @@ class MemoryOperations (object):
         """
         packedDword     = struct.pack('<L', unpackedDword)
         dwBytesWritten  = self.poke(lpBaseAddress, packedDword)
+        return dwBytesWritten
+
+    def peek_pointer(self, lpBaseAddress):
+        """
+        Reads a single pointer value from the memory of the process.
+
+        @see: L{read_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+            Returns zero on error.
+        """
+        lpvoidLength = win32.sizeof(win32.LPVOID)
+        packedValue = self.read(lpBaseAddress, lpvoidLength)
+        if len(packedValue) < lpvoidLength:
+            packedValue += '\x00' * (lpvoidLength - len(packedValue))
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
+        return unpackedValue
+
+    def poke_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a single pointer value to the memory of the process.
+
+        @see: L{write_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        lpvoidLength    = win32.sizeof(win32.LPVOID)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        packedValue     = struct.pack(lpvoidFmt, unpackedValue)
+        dwBytesWritten  = self.poke(lpBaseAddress, packedValue)
         return dwBytesWritten
 
     def peek_char(self, lpBaseAddress):
@@ -1736,6 +1831,10 @@ class SymbolEnumerator (object):
         """
         Callback that receives symbols and stores them in a Python list.
         """
+##        try:
+##            SymbolName = win32.UnDecorateSymbolName(SymbolName)
+##        except Exception, e:
+##            pass
         self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
         return win32.TRUE
 
@@ -1767,16 +1866,27 @@ class SymbolContainer (object):
         Enumerator  = SymbolEnumerator()
         try:
             win32.SymInitialize(hProcess)
+            SymOptions = win32.SymGetOptions()
+            win32.SymSetOptions(SymOptions                          | \
+                                win32.SYMOPT_ALLOW_ZERO_ADDRESS     | \
+                                win32.SYMOPT_CASE_INSENSITIVE       | \
+                                win32.SYMOPT_FAVOR_COMPRESSED       | \
+                                win32.SYMOPT_INCLUDE_32BIT_MODULES  | \
+                                win32.SYMOPT_UNDNAME)
+            try:
+                win32.SymSetOptions(SymOptions | win32.SYMOPT_ALLOW_ABSOLUTE_SYMBOLS)
+            except WindowsError:
+                pass
             try:
                 try:
-                    win32.SymLoadModule(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                    win32.SymLoadModule64(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
                 except WindowsError:
                     ImageName = self.get_filename()
-                    win32.SymLoadModule(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
+                    win32.SymLoadModule64(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
                 try:
-                    win32.SymEnumerateSymbols(hProcess, BaseOfDll, Enumerator)
+                    win32.SymEnumerateSymbols64(hProcess, BaseOfDll, Enumerator)
                 finally:
-                    win32.SymUnloadModule(hProcess, BaseOfDll)
+                    win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
         except WindowsError, e:

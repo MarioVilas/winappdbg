@@ -36,6 +36,24 @@ __revision__ = "$Id$"
 from defines import *
 from kernel32 import *
 
+UNDNAME_32_BIT_DECODE           = 0x0800
+UNDNAME_COMPLETE                = 0x0000
+UNDNAME_NAME_ONLY               = 0x1000
+UNDNAME_NO_ACCESS_SPECIFIERS    = 0x0080
+UNDNAME_NO_ALLOCATION_LANGUAGE  = 0x0010
+UNDNAME_NO_ALLOCATION_MODEL     = 0x0008
+UNDNAME_NO_ARGUMENTS            = 0x2000
+UNDNAME_NO_CV_THISTYPE          = 0x0040
+UNDNAME_NO_FUNCTION_RETURNS     = 0x0004
+UNDNAME_NO_LEADING_UNDERSCORES  = 0x0001
+UNDNAME_NO_MEMBER_TYPE          = 0x0200
+UNDNAME_NO_MS_KEYWORDS          = 0x0002
+UNDNAME_NO_MS_THISTYPE          = 0x0020
+UNDNAME_NO_RETURN_UDT_MODEL     = 0x0400
+UNDNAME_NO_SPECIAL_SYMS         = 0x4000
+UNDNAME_NO_THISTYPE             = 0x0060
+UNDNAME_NO_THROW_SIGNATURES     = 0x0100
+
 #--- IMAGEHLP_MODULE structure and related ------------------------------------
 
 SYMOPT_ALLOW_ABSOLUTE_SYMBOLS       = 0x00000800
@@ -285,7 +303,7 @@ def SymGetOptions():
     _SymGetOptions.restype = DWORD
     return _SymGetOptions()
 
-# DWORD64 WINAPI SymLoadModule(
+# DWORD WINAPI SymLoadModule(
 #   __in      HANDLE hProcess,
 #   __in_opt  HANDLE hFile,
 #   __in_opt  PCSTR ImageName,
@@ -296,7 +314,7 @@ def SymGetOptions():
 def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
     _SymLoadModule = windll.dbghelp.SymLoadModule
     _SymLoadModule.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD, DWORD]
-    _SymLoadModule.restype = DWORD64
+    _SymLoadModule.restype = DWORD
     
     if not ImageName:
         ImageName = None
@@ -307,7 +325,34 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
     if not SizeOfDll:
         SizeOfDll = 0
     lpBaseAddress = _SymLoadModule(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
-##    lpBaseAddress = lpBaseAddress.value
+    if lpBaseAddress == NULL:
+        dwErrorCode = GetLastError()
+        if dwErrorCode != ERROR_SUCCESS:
+            raise ctypes.WinError(dwErrorCode)
+    return lpBaseAddress
+
+# DWORD64 WINAPI SymLoadModule64(
+#   __in      HANDLE hProcess,
+#   __in_opt  HANDLE hFile,
+#   __in_opt  PCSTR ImageName,
+#   __in_opt  PCSTR ModuleName,
+#   __in      DWORD64 BaseOfDll,
+#   __in      DWORD SizeOfDll
+# );
+def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
+    _SymLoadModule64 = windll.dbghelp.SymLoadModule64
+    _SymLoadModule64.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD64, DWORD]
+    _SymLoadModule64.restype = DWORD64
+
+    if not ImageName:
+        ImageName = None
+    if not ModuleName:
+        ModuleName = None
+    if not BaseOfDll:
+        BaseOfDll = 0
+    if not SizeOfDll:
+        SizeOfDll = 0
+    lpBaseAddress = _SymLoadModule64(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
     if lpBaseAddress == NULL:
         dwErrorCode = GetLastError()
         if dwErrorCode != ERROR_SUCCESS:
@@ -324,6 +369,17 @@ def SymUnloadModule(hProcess, BaseOfDll):
     _SymUnloadModule.restype = bool
     _SymUnloadModule.errcheck = RaiseIfZero
     _SymUnloadModule(hProcess, BaseOfDll)
+
+# BOOL WINAPI SymUnloadModule64(
+#   __in  HANDLE hProcess,
+#   __in  DWORD64 BaseOfDll
+# );
+def SymUnloadModule64(hProcess, BaseOfDll):
+    _SymUnloadModule64 = windll.dbghelp.SymUnloadModule64
+    _SymUnloadModule64.argtypes = [HANDLE, DWORD64]
+    _SymUnloadModule64.restype = bool
+    _SymUnloadModule64.errcheck = RaiseIfZero
+    _SymUnloadModule64(hProcess, BaseOfDll)
 
 # BOOL WINAPI SymGetModuleInfo(
 #   __in   HANDLE hProcess,
@@ -354,19 +410,54 @@ def SymGetModuleInfoW(hProcess, dwAddr):
 
 SymGetModuleInfo = GuessStringType(SymGetModuleInfoA, SymGetModuleInfoW)
 
+# BOOL WINAPI SymGetModuleInfo64(
+#   __in   HANDLE hProcess,
+#   __in   DWORD64 dwAddr,
+#   __out  PIMAGEHLP_MODULE64 ModuleInfo
+# );
+def SymGetModuleInfo64A(hProcess, dwAddr):
+    _SymGetModuleInfo64 = windll.dbghelp.SymGetModuleInfo64
+    _SymGetModuleInfo64.argtypes = [HANDLE, DWORD64, PIMAGEHLP_MODULE64]
+    _SymGetModuleInfo64.restype = bool
+    _SymGetModuleInfo64.errcheck = RaiseIfZero
+
+    ModuleInfo = IMAGEHLP_MODULE64()
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
+    _SymGetModuleInfo64(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    return ModuleInfo
+
+def SymGetModuleInfo64W(hProcess, dwAddr):
+    _SymGetModuleInfo64W = windll.dbghelp.SymGetModuleInfo64W
+    _SymGetModuleInfo64W.argtypes = [HANDLE, DWORD64, PIMAGEHLP_MODULE64W]
+    _SymGetModuleInfo64W.restype = bool
+    _SymGetModuleInfo64W.errcheck = RaiseIfZero
+
+    ModuleInfo = IMAGEHLP_MODULE64W()
+    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
+    _SymGetModuleInfo64W(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    return ModuleInfo
+
+SymGetModuleInfo64 = GuessStringType(SymGetModuleInfo64A, SymGetModuleInfo64W)
+
+# BOOL CALLBACK SymEnumerateModulesProc(
+#   __in      PCTSTR ModuleName,
+#   __in      DWORD BaseOfDll,
+#   __in_opt  PVOID UserContext
+# );
+PSYM_ENUMMODULES_CALLBACK    = WINFUNCTYPE(BOOL, LPSTR,  DWORD,   PVOID)
+PSYM_ENUMMODULES_CALLBACKW   = WINFUNCTYPE(BOOL, LPWSTR, DWORD,   PVOID)
+
 # BOOL CALLBACK SymEnumerateModulesProc64(
 #   __in      PCTSTR ModuleName,
 #   __in      DWORD64 BaseOfDll,
 #   __in_opt  PVOID UserContext
 # );
-PSYM_ENUMMODULES_CALLBACK    = WINFUNCTYPE(BOOL, ctypes.POINTER(CHAR),  DWORD,   PVOID)
-PSYM_ENUMMODULES_CALLBACKW   = WINFUNCTYPE(BOOL, ctypes.POINTER(WCHAR), DWORD,   PVOID)
-PSYM_ENUMMODULES_CALLBACK64  = WINFUNCTYPE(BOOL, ctypes.POINTER(CHAR),  DWORD64, PVOID)
-PSYM_ENUMMODULES_CALLBACKW64 = WINFUNCTYPE(BOOL, ctypes.POINTER(WCHAR), DWORD64, PVOID)
+PSYM_ENUMMODULES_CALLBACK64  = WINFUNCTYPE(BOOL, LPSTR,  DWORD64, PVOID)
+PSYM_ENUMMODULES_CALLBACKW64 = WINFUNCTYPE(BOOL, LPWSTR, DWORD64, PVOID)
 
-# BOOL WINAPI SymEnumerateModules64(
+# BOOL WINAPI SymEnumerateModules(
 #   __in      HANDLE hProcess,
-#   __in      PSYM_ENUMMODULES_CALLBACK64 EnumModulesCallback,
+#   __in      PSYM_ENUMMODULES_CALLBACK EnumModulesCallback,
 #   __in_opt  PVOID UserContext
 # );
 def SymEnumerateModulesA(hProcess, EnumModulesCallback, UserContext = None):
@@ -397,16 +488,56 @@ def SymEnumerateModulesW(hProcess, EnumModulesCallback, UserContext = None):
 
 SymEnumerateModules = GuessStringType(SymEnumerateModulesA, SymEnumerateModulesW)
 
+# BOOL WINAPI SymEnumerateModules64(
+#   __in      HANDLE hProcess,
+#   __in      PSYM_ENUMMODULES_CALLBACK64 EnumModulesCallback,
+#   __in_opt  PVOID UserContext
+# );
+def SymEnumerateModules64A(hProcess, EnumModulesCallback, UserContext = None):
+    _SymEnumerateModules64 = windll.dbghelp.SymEnumerateModules64
+    _SymEnumerateModules64.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK64, PVOID]
+    _SymEnumerateModules64.restype = bool
+    _SymEnumerateModules64.errcheck = RaiseIfZero
+
+    EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK64(EnumModulesCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = LPVOID(NULL)
+    _SymEnumerateModules64(hProcess, EnumModulesCallback, UserContext)
+
+def SymEnumerateModules64W(hProcess, EnumModulesCallback, UserContext = None):
+    _SymEnumerateModules64W = windll.dbghelp.SymEnumerateModules64W
+    _SymEnumerateModules64W.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID]
+    _SymEnumerateModules64W.restype = bool
+    _SymEnumerateModules64W.errcheck = RaiseIfZero
+
+    EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK64W(EnumModulesCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = LPVOID(NULL)
+    _SymEnumerateModules64W(hProcess, EnumModulesCallback, UserContext)
+
+SymEnumerateModules64 = GuessStringType(SymEnumerateModules64A, SymEnumerateModules64W)
+
+# BOOL CALLBACK SymEnumerateSymbolsProc(
+#   __in      PCTSTR SymbolName,
+#   __in      DWORD SymbolAddress,
+#   __in      ULONG SymbolSize,
+#   __in_opt  PVOID UserContext
+# );
+PSYM_ENUMSYMBOLS_CALLBACK    = WINFUNCTYPE(BOOL, LPSTR,  DWORD,   ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACKW   = WINFUNCTYPE(BOOL, LPWSTR, DWORD,   ULONG, PVOID)
+
 # BOOL CALLBACK SymEnumerateSymbolsProc64(
 #   __in      PCTSTR SymbolName,
 #   __in      DWORD64 SymbolAddress,
 #   __in      ULONG SymbolSize,
 #   __in_opt  PVOID UserContext
 # );
-PSYM_ENUMSYMBOLS_CALLBACK    = WINFUNCTYPE(BOOL, ctypes.c_char_p,  DWORD,   ULONG, PVOID)
-PSYM_ENUMSYMBOLS_CALLBACKW   = WINFUNCTYPE(BOOL, ctypes.c_wchar_p, DWORD,   ULONG, PVOID)
-PSYM_ENUMSYMBOLS_CALLBACK64  = WINFUNCTYPE(BOOL, ctypes.c_char_p,  DWORD64, ULONG, PVOID)
-PSYM_ENUMSYMBOLS_CALLBACKW64 = WINFUNCTYPE(BOOL, ctypes.c_wchar_p, DWORD64, ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACK64  = WINFUNCTYPE(BOOL, LPSTR,  DWORD64, ULONG, PVOID)
+PSYM_ENUMSYMBOLS_CALLBACKW64 = WINFUNCTYPE(BOOL, LPWSTR, DWORD64, ULONG, PVOID)
 
 # BOOL WINAPI SymEnumerateSymbols(
 #   __in      HANDLE hProcess,
@@ -442,40 +573,39 @@ def SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext =
 
 SymEnumerateSymbols = GuessStringType(SymEnumerateSymbolsA, SymEnumerateSymbolsW)
 
-# DWORD64 WINAPI SymLoadModule64(
-#   __in      HANDLE hProcess,
-#   __in_opt  HANDLE hFile,
-#   __in_opt  PCSTR ImageName,
-#   __in_opt  PCSTR ModuleName,
-#   __in      DWORD64 BaseOfDll,
-#   __in      DWORD SizeOfDll
-# );
-
-# XXX TO DO
-
-# BOOL WINAPI SymUnloadModule64(
-#   __in  HANDLE hProcess,
-#   __in  DWORD64 BaseOfDll
-# );
-
-# XXX TO DO
-
-# BOOL WINAPI SymGetModuleInfo64(
-#   __in   HANDLE hProcess,
-#   __in   DWORD64 dwAddr,
-#   __out  PIMAGEHLP_MODULE64 ModuleInfo
-# );
-
-# XXX TO DO
-
 # BOOL WINAPI SymEnumerateSymbols64(
 #   __in      HANDLE hProcess,
 #   __in      ULONG64 BaseOfDll,
 #   __in      PSYM_ENUMSYMBOLS_CALLBACK64 EnumSymbolsCallback,
 #   __in_opt  PVOID UserContext
 # );
+def SymEnumerateSymbols64A(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
+    _SymEnumerateSymbols64 = windll.dbghelp.SymEnumerateSymbols64
+    _SymEnumerateSymbols64.argtypes = [HANDLE, ULONG64, PSYM_ENUMSYMBOLS_CALLBACK64, PVOID]
+    _SymEnumerateSymbols64.restype = bool
+    _SymEnumerateSymbols64.errcheck = RaiseIfZero
 
-# XXX TO DO
+    EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK64(EnumSymbolsCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = LPVOID(NULL)
+    _SymEnumerateSymbols64(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
+
+def SymEnumerateSymbols64W(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
+    _SymEnumerateSymbols64W = windll.dbghelp.SymEnumerateSymbols64W
+    _SymEnumerateSymbols64W.argtypes = [HANDLE, ULONG64, PSYM_ENUMSYMBOLS_CALLBACK64W, PVOID]
+    _SymEnumerateSymbols64W.restype = bool
+    _SymEnumerateSymbols64W.errcheck = RaiseIfZero
+
+    EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK64W(EnumSymbolsCallback)
+    if UserContext:
+        UserContext = ctypes.pointer(UserContext)
+    else:
+        UserContext = LPVOID(NULL)
+    _SymEnumerateSymbols64W(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
+
+SymEnumerateSymbols64 = GuessStringType(SymEnumerateSymbols64A, SymEnumerateSymbols64W)
 
 # DWORD WINAPI UnDecorateSymbolName(
 #   __in   PCTSTR DecoratedName,
@@ -483,8 +613,29 @@ SymEnumerateSymbols = GuessStringType(SymEnumerateSymbolsA, SymEnumerateSymbolsW
 #   __in   DWORD UndecoratedLength,
 #   __in   DWORD Flags
 # );
+def UnDecorateSymbolNameA(DecoratedName, Flags = UNDNAME_COMPLETE):
+    _UnDecorateSymbolNameA = windll.dbghelp.UnDecorateSymbolName
+    _UnDecorateSymbolNameA.argtypes = [LPSTR, LPSTR, DWORD, DWORD]
+    _UnDecorateSymbolNameA.restype = DWORD
+    _UnDecorateSymbolNameA.errcheck = RaiseIfZero
 
-# XXX TO DO
+    UndecoratedLength = _UnDecorateSymbolNameA(DecoratedName, None, 0, Flags)
+    UnDecoratedName = ctypes.create_string_buffer('', UndecoratedLength + 1)
+    _UnDecorateSymbolNameA(DecoratedName, UnDecoratedName, UndecoratedLength, Flags)
+    return UnDecoratedName.value
+
+def UnDecorateSymbolNameW(DecoratedName, Flags = UNDNAME_COMPLETE):
+    _UnDecorateSymbolNameW = windll.dbghelp.UnDecorateSymbolNameW
+    _UnDecorateSymbolNameW.argtypes = [LPWSTR, LPWSTR, DWORD, DWORD]
+    _UnDecorateSymbolNameW.restype = DWORD
+    _UnDecorateSymbolNameW.errcheck = RaiseIfZero
+
+    UndecoratedLength = _UnDecorateSymbolNameW(DecoratedName, None, 0, Flags)
+    UnDecoratedName = ctypes.create_unicode_buffer(u'', UndecoratedLength + 1)
+    _UnDecorateSymbolNameW(DecoratedName, UnDecoratedName, UndecoratedLength, Flags)
+    return UnDecoratedName.value
+
+UnDecorateSymbolName = GuessStringType(UnDecorateSymbolNameA, UnDecorateSymbolNameW)
 
 # BOOL WINAPI SymGetSearchPath(
 #   __in   HANDLE hProcess,
