@@ -40,9 +40,7 @@ def action_callback( event ):
     stack   = event.get_thread().get_sp()
 
     # Get the return address of the call
-    process = event.get_process()
-    address = process.read_pointer( stack )
-    label   = process.get_label_at_address( address )
+    address = event.get_process().read_pointer( stack )
 
     # Get the process and thread IDs
     pid     = event.get_pid()
@@ -50,7 +48,6 @@ def action_callback( event ):
 
     # Show a message to the user
     message = "kernel32!CreateFileW called from %s by thread %d at process %d"
-##    print message % ( HexDump.address(address), tid, pid )
     print message % ( HexDump.address(address), tid, pid )
 
 
