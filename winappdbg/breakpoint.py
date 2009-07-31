@@ -146,6 +146,8 @@ class DebugRegister (object):
     WATCH_DWORD = 3
     WATCH_QWORD = 2
 
+    registerMask = win32.SIZE_T(-1).value
+
 #------------------------------------------------------------------------------
 
     # http://en.wikipedia.org/wiki/Debug_register
@@ -181,7 +183,7 @@ class DebugRegister (object):
     )
 
     # Dr7 &= disableMask[register]
-    disableMask = tuple( [0xFFFFFFFF ^ x for x in enableMask] )
+    disableMask = tuple( [registerMask ^ x for x in enableMask] )
     del x
 
     # orMask, andMask = triggerMask[register][trigger]
@@ -190,31 +192,31 @@ class DebugRegister (object):
     triggerMask = (
         # Dr0 (bits 16-17)
         (
-            ((0 << 16), (3 << 16) ^ 0xFFFFFFFF),    # execute
-            ((1 << 16), (3 << 16) ^ 0xFFFFFFFF),    # write
-            ((2 << 16), (3 << 16) ^ 0xFFFFFFFF),    # io read
-            ((3 << 16), (3 << 16) ^ 0xFFFFFFFF),    # access
+            ((0 << 16), (3 << 16) ^ registerMask),  # execute
+            ((1 << 16), (3 << 16) ^ registerMask),  # write
+            ((2 << 16), (3 << 16) ^ registerMask),  # io read
+            ((3 << 16), (3 << 16) ^ registerMask),  # access
         ),
         # Dr1 (bits 20-21)
         (
-            ((0 << 20), (3 << 20) ^ 0xFFFFFFFF),    # execute
-            ((1 << 20), (3 << 20) ^ 0xFFFFFFFF),    # write
-            ((2 << 20), (3 << 20) ^ 0xFFFFFFFF),    # io read
-            ((3 << 20), (3 << 20) ^ 0xFFFFFFFF),    # access
+            ((0 << 20), (3 << 20) ^ registerMask),  # execute
+            ((1 << 20), (3 << 20) ^ registerMask),  # write
+            ((2 << 20), (3 << 20) ^ registerMask),  # io read
+            ((3 << 20), (3 << 20) ^ registerMask),  # access
         ),
         # Dr2 (bits 24-25)
         (
-            ((0 << 24), (3 << 24) ^ 0xFFFFFFFF),    # execute
-            ((1 << 24), (3 << 24) ^ 0xFFFFFFFF),    # write
-            ((2 << 24), (3 << 24) ^ 0xFFFFFFFF),    # io read
-            ((3 << 24), (3 << 24) ^ 0xFFFFFFFF),    # access
+            ((0 << 24), (3 << 24) ^ registerMask),  # execute
+            ((1 << 24), (3 << 24) ^ registerMask),  # write
+            ((2 << 24), (3 << 24) ^ registerMask),  # io read
+            ((3 << 24), (3 << 24) ^ registerMask),  # access
         ),
         # Dr3 (bits 28-29)
         (
-            ((0 << 28), (3 << 28) ^ 0xFFFFFFFF),    # execute
-            ((1 << 28), (3 << 28) ^ 0xFFFFFFFF),    # write
-            ((2 << 28), (3 << 28) ^ 0xFFFFFFFF),    # io read
-            ((3 << 28), (3 << 28) ^ 0xFFFFFFFF),    # access
+            ((0 << 28), (3 << 28) ^ registerMask),  # execute
+            ((1 << 28), (3 << 28) ^ registerMask),  # write
+            ((2 << 28), (3 << 28) ^ registerMask),  # io read
+            ((3 << 28), (3 << 28) ^ registerMask),  # access
         ),
     )
 
@@ -224,40 +226,40 @@ class DebugRegister (object):
     watchMask = (
         # Dr0 (bits 18-19)
         (
-            ((0 << 18), (3 << 18) ^ 0xFFFFFFFF),    # byte
-            ((1 << 18), (3 << 18) ^ 0xFFFFFFFF),    # word
-            ((2 << 18), (3 << 18) ^ 0xFFFFFFFF),    # qword
-            ((3 << 18), (3 << 18) ^ 0xFFFFFFFF),    # dword
+            ((0 << 18), (3 << 18) ^ registerMask),  # byte
+            ((1 << 18), (3 << 18) ^ registerMask),  # word
+            ((2 << 18), (3 << 18) ^ registerMask),  # qword
+            ((3 << 18), (3 << 18) ^ registerMask),  # dword
         ),
         # Dr1 (bits 22-23)
         (
-            ((0 << 23), (3 << 23) ^ 0xFFFFFFFF),    # byte
-            ((1 << 23), (3 << 23) ^ 0xFFFFFFFF),    # word
-            ((2 << 23), (3 << 23) ^ 0xFFFFFFFF),    # qword
-            ((3 << 23), (3 << 23) ^ 0xFFFFFFFF),    # dword
+            ((0 << 23), (3 << 23) ^ registerMask),  # byte
+            ((1 << 23), (3 << 23) ^ registerMask),  # word
+            ((2 << 23), (3 << 23) ^ registerMask),  # qword
+            ((3 << 23), (3 << 23) ^ registerMask),  # dword
         ),
         # Dr2 (bits 26-27)
         (
-            ((0 << 26), (3 << 26) ^ 0xFFFFFFFF),    # byte
-            ((1 << 26), (3 << 26) ^ 0xFFFFFFFF),    # word
-            ((2 << 26), (3 << 26) ^ 0xFFFFFFFF),    # qword
-            ((3 << 26), (3 << 26) ^ 0xFFFFFFFF),    # dword
+            ((0 << 26), (3 << 26) ^ registerMask),  # byte
+            ((1 << 26), (3 << 26) ^ registerMask),  # word
+            ((2 << 26), (3 << 26) ^ registerMask),  # qword
+            ((3 << 26), (3 << 26) ^ registerMask),  # dword
         ),
         # Dr3 (bits 30-31)
         (
-            ((0 << 30), (3 << 31) ^ 0xFFFFFFFF),    # byte
-            ((1 << 30), (3 << 31) ^ 0xFFFFFFFF),    # word
-            ((2 << 30), (3 << 31) ^ 0xFFFFFFFF),    # qword
-            ((3 << 30), (3 << 31) ^ 0xFFFFFFFF),    # dword
+            ((0 << 30), (3 << 31) ^ registerMask),  # byte
+            ((1 << 30), (3 << 31) ^ registerMask),  # word
+            ((2 << 30), (3 << 31) ^ registerMask),  # qword
+            ((3 << 30), (3 << 31) ^ registerMask),  # dword
         ),
     )
 
     # Dr7 = Dr7 & clearMask[register]
     clearMask = (
-        0xFFFFFFFF ^ ( (1 << 0) + (3 << 16) + (3 << 18) ),  # Dr0
-        0xFFFFFFFF ^ ( (1 << 2) + (3 << 20) + (3 << 22) ),  # Dr1
-        0xFFFFFFFF ^ ( (1 << 4) + (3 << 24) + (3 << 26) ),  # Dr2
-        0xFFFFFFFF ^ ( (1 << 6) + (3 << 28) + (3 << 30) ),  # Dr3
+        registerMask ^ ( (1 << 0) + (3 << 16) + (3 << 18) ),    # Dr0
+        registerMask ^ ( (1 << 2) + (3 << 20) + (3 << 22) ),    # Dr1
+        registerMask ^ ( (1 << 4) + (3 << 24) + (3 << 26) ),    # Dr2
+        registerMask ^ ( (1 << 6) + (3 << 28) + (3 << 30) ),    # Dr3
     )
 
     # DR6 - Debug status
@@ -933,7 +935,7 @@ class PageBreakpoint (Breakpoint):
         """
         lpAddress    = self.get_address()
         flNewProtect = aProcess.mquery(lpAddress).Protect
-        flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)
+        flNewProtect = flNewProtect & (0xFFFFFFFF ^ win32.PAGE_GUARD)   # DWORD
         aProcess.mprotect(lpAddress, self.get_size(), flNewProtect)
 
     def disable(self, aProcess, aThread):
@@ -1184,7 +1186,7 @@ class HardwareBreakpoint (Breakpoint):
 
 #==============================================================================
 
-# FIXME
+# XXX FIXME
 #
 # Functions hooks, as they are implemented now, don't work correctly for
 # recursive functions. The problem is we don't know when to remove the
@@ -1200,9 +1202,19 @@ class HardwareBreakpoint (Breakpoint):
 # functions that are known to be recursive.
 #
 # Hooks may also behave oddly if the return address is overwritten by a buffer
-# overflow bug. But it's probably a lesser issue since when you're fuzzing a
+# overflow bug. But it's probably a minor issue since when you're fuzzing a
 # function for overflows you're usually not interested in the return value
 # anyway.
+
+# XXX TODO
+# The assumption that all parameters are DWORDs and all we need is the count
+# is wrong for 64 bit Windows. Perhaps a better scheme is in order? There's
+# little chance of keeping it compatible with previous versions, though.
+
+# XXX FIXME
+# Hardware breakpoints don't work in VirtualBox. Maybe there should be a way
+# to tell Hook objects not to use them. (The workaround is to fill all slots
+# in each thread by setting dummy hardware breakpoints).
 
 class Hook (object):
     """
@@ -1237,6 +1249,9 @@ class Hook (object):
 
             In the above example, the value for C{paramCount} would be C{3}.
 
+            Note that the second example assumes all parameters are DWORDs.
+            This may not always be so, especially in 64 bits Windows.
+
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
 
@@ -1252,7 +1267,7 @@ class Hook (object):
             not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs.
         """
-        self.__paramCount = paramCount + 1
+        self.__paramCount = paramCount
         self.__preCB      = preCB
         self.__postCB     = postCB
 
@@ -1274,18 +1289,21 @@ class Hook (object):
         """
 
         # Get the parameters from the stack.
-        aThread = event.get_thread()
-        params  = aThread.read_stack_dwords(self.__paramCount)
+        aThread  = event.get_thread()
+        aProcess = event.get_process()
+        ra       = aProcess.read_pointer( aThread.get_sp() )
+        params   = aThread.read_stack_dwords(self.__paramCount,
+                                           offset = win32.sizeof(win32.LPVOID))
 
         # If we need to hook the return from the function...
-        if params and self.__postCB is not None:
+        if self.__postCB is not None:
 
             # Try to set a one shot hardware breakpoint at the return address.
             try:
                 tid = event.get_tid()
                 event.debug.define_hardware_breakpoint(
                     tid,
-                    params[0],
+                    ra,
                     event.debug.BP_BREAK_ON_EXECUTION,
                     event.debug.BP_WATCH_BYTE,
                     True,
@@ -1297,11 +1315,11 @@ class Hook (object):
             except Exception, e:
 ##                import traceback        # XXX DEBUG
 ##                traceback.print_exc()
-                event.debug.stalk_at(event.get_pid(), params[0],
+                event.debug.stalk_at(event.get_pid(), ra,
                                                   self.__postCallAction_codebp)
 
         # Call the "pre" callback.
-        self.__callHandler(self.__preCB, event, *params)
+        self.__callHandler(self.__preCB, event, ra, *params)
 
     def __postCallAction_hwbp(self, event):
         """
@@ -1345,7 +1363,14 @@ class Hook (object):
         """
         aThread = event.get_thread()
         ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
-        retval  = ctx['Eax']
+        if win32.CONTEXT.arch == 'i386':
+            retval = ctx['Eax']
+        elif win32.CONTEXT.arch == 'amd64':
+            retval = ctx['Rax']
+##        elif win32.CONTEXT.arch == 'ia64':
+##            retval = ctx['IntV0']   # r8
+        else:
+            retval = None
         self.__callHandler(self.__postCB, event, retval)
 
     def __callHandler(self, callback, event, *params):
@@ -1447,6 +1472,9 @@ class ApiHook (Hook):
                     szFilename = event.get_process().peek_string(lpFilename)
 
                     # (...)
+
+            Note that the second example assumes all parameters are DWORDs.
+            This may not always be so, especially in 64 bits Windows.
 
         @type  paramCount: int
         @param paramCount: (Optional) Number of parameters for the callback.
@@ -3312,6 +3340,11 @@ class BreakpointContainer (object):
             not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs.
         """
+        # XXX HACK
+        # This will be removed when hooks are supported in AMD64.
+        if win32.CONTEXT.arch != 'i386':
+            raise NotImplementedError
+
         hookObj = Hook(preCB, postCB, paramCount)
         self.break_at(pid, address, hookObj)
 
@@ -3362,6 +3395,11 @@ class BreakpointContainer (object):
             not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs.
         """
+        # XXX HACK
+        # This will be removed when hooks are supported in AMD64.
+        if win32.CONTEXT.arch != 'i386':
+            raise NotImplementedError
+
         hookObj = Hook(preCB, postCB, paramCount)
         self.stalk_at(pid, address, hookObj)
 

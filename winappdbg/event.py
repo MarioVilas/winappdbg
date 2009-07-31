@@ -1214,6 +1214,11 @@ class EventHandler (object):
     apiHooks = {}
 
     def __init__(self):
+        # XXX HACK
+        # This will be removed when hooks are supported in AMD64.
+        if self.apiHooks and win32.CONTEXT.arch != 'i386':
+            raise NotImplementedError
+
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
