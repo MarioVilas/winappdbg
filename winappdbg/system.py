@@ -2999,6 +2999,45 @@ class ThreadDebugOperations (object):
             return ()
         return struct.unpack('<'+('L'*count), stackData)
 
+    def read_stack_qwords(self, count, offset = 0):
+        """
+        Reads QWORDs from the top of the stack.
+
+        @type  count: int
+        @param count: Number of QWORDs to read.
+
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+
+        @rtype:  tuple( int... )
+        @return: Tuple of integers read from the stack.
+
+        @raise WindowsError: Could not read the requested data.
+        """
+        stackData = self.read_stack_data(count * 8, offset)
+        return struct.unpack('<'+('Q'*count), stackData)
+
+    def peek_stack_qwords(self, count, offset = 0):
+        """
+        Tries to read QWORDs from the top of the stack.
+
+        @type  count: int
+        @param count: Number of QWORDs to read.
+
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+
+        @rtype:  tuple( int... )
+        @return: Tuple of integers read from the stack.
+            May be less than the requested number of QWORDs.
+        """
+        stackData = self.peek_stack_data(count * 8, offset)
+        if len(stackData) & 7:
+            stackData = stackData[:-len(stackData) & 7]
+        if not stackData:
+            return ()
+        return struct.unpack('<'+('Q'*count), stackData)
+
     def read_code_bytes(self, size = 128, offset = 0):
         """
         Tries to read some bytes of the code currently being executed.
