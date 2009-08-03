@@ -35,6 +35,18 @@ __revision__ = "$Id$"
 
 from defines import *
 
+###############################################################################
+##                                                                           ##
+##      This is an experimental file for support of Itanum processors.       ##
+##      Since I have no way of testing this -Itanums don't come cheap-       ##
+##      it's very likely to break.                                           ##
+##                                                                           ##
+##      The file kernel32.py has to be edited for this one to be loaded.     ##
+##                                                                           ##
+##      Try at your own risk. (And tell me how it went!)                     ##
+##                                                                           ##
+###############################################################################
+
 # The following values specify the type of access in the first parameter
 # of the exception record whan the exception code specifies an access
 # violation.
@@ -368,6 +380,8 @@ CONTEXT_EXCEPTION_REPORTING     = 0x80000000
 # } CONTEXT, *PCONTEXT;
 
 class CONTEXT(Structure):
+    arch = 'ia64'
+
     _pack_ = 16
     _fields_ = [
         ('ContextFlags',            DWORD),
@@ -601,3 +615,6 @@ class CONTEXT(Structure):
         ('StFDR',                   ULONGLONG), # x86 FP status (copy of AR30)
         ('UNUSEDPACK',              ULONGLONG), # added to pack StFDR to 16-bytes
     ]
+
+PCONTEXT = POINTER(CONTEXT)
+LPCONTEXT = PCONTEXT

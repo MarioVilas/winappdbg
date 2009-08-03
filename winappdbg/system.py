@@ -435,7 +435,7 @@ class ModuleContainer (object):
         try:
             me = win32.Module32First(hSnapshot)
             while me is not None:
-                lpBaseAddress = me.modBaseAddr.value
+                lpBaseAddress = me.modBaseAddr
                 fileName      = me.szExePath
                 if not fileName:
                     fileName  = me.szModule
@@ -950,12 +950,12 @@ class MemoryOperations (object):
         is_address_executable_and_writeable
 
     @group Memory read:
-        read, read_char, read_uint, read_structure,
-        peek, peek_char, peek_uint, peek_string
+        read, read_char, read_uint, read_pointer, read_structure,
+        peek, peek_char, peek_uint, peek_pointer, peek_string
 
     @group Memory write:
-        write, write_char, write_uint,
-        poke, poke_char, poke_uint
+        write, write_char, write_uint, write_pointer,
+        poke, poke_char, poke_uint, poke_pointer
     """
 
     # FIXME
@@ -1006,7 +1006,7 @@ class MemoryOperations (object):
 
     def read_uint(self, lpBaseAddress):
         """
-        Reads a single uint from the memory of the process.
+        Reads a single unsigned integer from the memory of the process.
 
         @see: L{peek}
 
@@ -1026,7 +1026,7 @@ class MemoryOperations (object):
 
     def write_uint(self, lpBaseAddress, unpackedDword):
         """
-        Writes a single uint to the memory of the process.
+        Writes a single unsigned integer to the memory of the process.
 
         @see: L{poke_uint}
 
@@ -1040,6 +1040,51 @@ class MemoryOperations (object):
         """
         packedDword = struct.pack('<L', unpackedDword)
         self.write(lpBaseAddress, packedDword)
+
+    def read_pointer(self, lpBaseAddress):
+        """
+        Reads a single pointer value from the memory of the process.
+
+        @see: L{peek_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        lpvoidLength = win32.sizeof(win32.LPVOID)
+        packedValue = self.read(lpBaseAddress, lpvoidLength)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
+        return unpackedValue
+
+    def write_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a single pointer value to the memory of the process.
+
+        @see: L{poke_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        lpvoidLength    = win32.sizeof(win32.LPVOID)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        packedValue = struct.pack(lpvoidFmt, unpackedValue)
+        self.write(lpBaseAddress, packedValue)
 
     def read_char(self, lpBaseAddress):
         """
@@ -1204,7 +1249,7 @@ class MemoryOperations (object):
 
     def peek_uint(self, lpBaseAddress):
         """
-        Reads a single uint from the memory of the process.
+        Reads a single unsigned integer from the memory of the process.
 
         @see: L{read_uint}
 
@@ -1215,15 +1260,16 @@ class MemoryOperations (object):
         @return: Integer value read from the process memory.
             Returns zero on error.
         """
-        packedDword = self.peek(lpBaseAddress, 4)
-        if len(packedDword) < 4:
-            packedDword += '\x00' * (4 - len(packedDword))
+        dwordLength = win32.sizeof(win32.UINT)
+        packedDword = self.peek(lpBaseAddress, dwordLength)
+        if len(packedDword) < dwordLength:
+            packedDword += '\x00' * (dwordLength - len(packedDword))
         unpackedDword = struct.unpack('<L', packedDword)[0]
         return unpackedDword
 
     def poke_uint(self, lpBaseAddress, unpackedDword):
         """
-        Writes a single uint to the memory of the process.
+        Writes a single unsigned integer to the memory of the process.
 
         @see: L{write_uint}
 
@@ -1239,6 +1285,55 @@ class MemoryOperations (object):
         """
         packedDword     = struct.pack('<L', unpackedDword)
         dwBytesWritten  = self.poke(lpBaseAddress, packedDword)
+        return dwBytesWritten
+
+    def peek_pointer(self, lpBaseAddress):
+        """
+        Reads a single pointer value from the memory of the process.
+
+        @see: L{read_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+            Returns zero on error.
+        """
+        lpvoidLength = win32.sizeof(win32.LPVOID)
+        packedValue = self.read(lpBaseAddress, lpvoidLength)
+        if len(packedValue) < lpvoidLength:
+            packedValue += '\x00' * (lpvoidLength - len(packedValue))
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
+        return unpackedValue
+
+    def poke_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a single pointer value to the memory of the process.
+
+        @see: L{write_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        lpvoidLength    = win32.sizeof(win32.LPVOID)
+        if lpvoidLength == 4:
+            lpvoidFmt   = '<L'
+        else:
+            lpvoidFmt   = '<Q'
+        packedValue     = struct.pack(lpvoidFmt, unpackedValue)
+        dwBytesWritten  = self.poke(lpBaseAddress, packedValue)
         return dwBytesWritten
 
     def peek_char(self, lpBaseAddress):
@@ -1299,6 +1394,9 @@ class MemoryOperations (object):
             It doesn't include the terminating null character.
             Returns an empty string on failure.
         """
+        # It's copied to a ctypes buffer and back to Python string
+        # to make sure the string is parsed just like a C string should.
+        # This avoids having troublesome null characters around.
         szString = self.peek(lpBaseAddress, dwMaxSize)
         if fUnicode:
             szString = unicode(szString, 'U16', 'ignore')
@@ -1665,14 +1763,15 @@ class MemoryOperations (object):
         if minAddr is None:
             minAddr = 0
         if maxAddr is None:
-            maxAddr = 0x10000000000000000   # XXX HACK 64 bits address max
+            maxAddr = win32.LPVOID(-1).value  # XXX HACK
         if minAddr > maxAddr:
             minAddr, maxAddr = maxAddr, minAddr
         minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
         maxAddr     = MemoryAddresses.align_address_to_page_end(maxAddr)
+        prevAddr    = minAddr
         currentAddr = minAddr
         memoryMap   = list()
-        while currentAddr <= maxAddr:
+        while currentAddr <= maxAddr and currentAddr >= prevAddr:
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
@@ -1680,6 +1779,7 @@ class MemoryOperations (object):
                     break
                 raise
             memoryMap.append(mbi)
+            prevAddr    = currentAddr
             currentAddr = mbi.BaseAddress + mbi.RegionSize
         return memoryMap
 
@@ -1731,6 +1831,10 @@ class SymbolEnumerator (object):
         """
         Callback that receives symbols and stores them in a Python list.
         """
+##        try:
+##            SymbolName = win32.UnDecorateSymbolName(SymbolName)
+##        except Exception, e:
+##            pass
         self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
         return win32.TRUE
 
@@ -1762,16 +1866,27 @@ class SymbolContainer (object):
         Enumerator  = SymbolEnumerator()
         try:
             win32.SymInitialize(hProcess)
+            SymOptions = win32.SymGetOptions()
+            win32.SymSetOptions(SymOptions                          | \
+                                win32.SYMOPT_ALLOW_ZERO_ADDRESS     | \
+                                win32.SYMOPT_CASE_INSENSITIVE       | \
+                                win32.SYMOPT_FAVOR_COMPRESSED       | \
+                                win32.SYMOPT_INCLUDE_32BIT_MODULES  | \
+                                win32.SYMOPT_UNDNAME)
+            try:
+                win32.SymSetOptions(SymOptions | win32.SYMOPT_ALLOW_ABSOLUTE_SYMBOLS)
+            except WindowsError:
+                pass
             try:
                 try:
-                    win32.SymLoadModule(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                    win32.SymLoadModule64(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
                 except WindowsError:
                     ImageName = self.get_filename()
-                    win32.SymLoadModule(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
+                    win32.SymLoadModule64(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
                 try:
-                    win32.SymEnumerateSymbols(hProcess, BaseOfDll, Enumerator)
+                    win32.SymEnumerateSymbols64(hProcess, BaseOfDll, Enumerator)
                 finally:
-                    win32.SymUnloadModule(hProcess, BaseOfDll)
+                    win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
         except WindowsError, e:
@@ -2416,15 +2531,15 @@ When called as an instance method, the fuzzy syntax mode is used::
             system libraries.
         """
         return address is not None and (
-            address == self.get_system_breakpoint() or \
-            address == self.get_user_breakpoint()   or \
+            address == self.get_system_breakpoint()         or \
+            address == self.get_wow64_system_breakpoint()   or \
+            address == self.get_user_breakpoint()           or \
             address == self.get_breakin_breakpoint()
         )
 
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
     # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
-    # In Wow64 ntdll was replaced by ntdll32.
     def get_system_breakpoint(self):
         """
         @rtype:  int or None
@@ -2435,10 +2550,20 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgBreakPoint")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgBreakPoint")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_system_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 system breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgBreakPoint")
+        except Exception:
+            return None
 
     # I don't know when this breakpoint is actually used...
     def get_user_breakpoint(self):
@@ -2451,10 +2576,20 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgUserBreakPoint")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgUserBreakPoint")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_user_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 user breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgUserBreakPoint")
+        except Exception:
+            return None
 
     # This breakpoint can only be resolved when the
     # debugging symbols for ntdll.dll are loaded.
@@ -2468,10 +2603,20 @@ When called as an instance method, the fuzzy syntax mode is used::
         try:
             return self.resolve_label("ntdll!DbgUiRemoteBreakin")
         except Exception:
-            try:
-                return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
-            except Exception:
-                return None
+            return None
+
+    # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_breakin_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 remote breakin breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        try:
+            return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
+        except Exception:
+            return None
 
     def load_symbols(self):
         for aModule in self.iter_modules():
@@ -2518,7 +2663,7 @@ class ThreadDebugOperations (object):
     Encapsulates several useful debugging routines for threads.
 
     @group Properties:
-        get_teb
+        get_teb, get_teb_address
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -2540,6 +2685,7 @@ class ThreadDebugOperations (object):
     # TODO
     # Maybe it'd be a good idea to cache the TEB, or at least it's pointer.
     # The pointers may be obtained when debugging at create_thread_event.
+
     def get_teb(self):
         """
         Returns a copy of the TEB.
@@ -2548,10 +2694,20 @@ class ThreadDebugOperations (object):
         @rtype:  L{TEB}
         @return: TEB structure.
         """
+        aProcess = self.get_process()
+        TebBaseAddress = self.get_teb_address()
+        return aProcess.read_structure(TebBaseAddress, win32.TEB)
+
+    def get_teb_address(self):
+        """
+        Returns a remote pointer to the TEB.
+
+        @rtype:  int
+        @return: Remote pointer to the L{TEB} structure.
+        """
         tbi = win32.NtQueryInformationThread(self.get_handle(),
                                                   win32.ThreadBasicInformation)
-        aProcess = self.get_process()
-        return aProcess.read_structure(tbi.TebBaseAddress, win32.TEB)
+        return tbi.TebBaseAddress
 
     def get_linear_address(self, segment, address):
         """
@@ -2596,7 +2752,12 @@ class ThreadDebugOperations (object):
             Each SEH is represented as a tuple of two addresses:
                 - Address of the SEH block
                 - Address of the SEH callback function
+
+        @raise NotImplementedError:
+            This method is only supported in 32 bits Windows.
         """
+        if win32.sizeof(win32.LPVOID) != win32.sizeof(win32.DWORD):
+            raise NotImplementedError
         process   = self.get_process()
         seh_chain = list()
         try:
@@ -2606,7 +2767,6 @@ class ThreadDebugOperations (object):
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_uint( seh )
         except WindowsError, e:
-            print str(e)
             pass
         return seh_chain
 
@@ -2615,9 +2775,14 @@ class ThreadDebugOperations (object):
         @rtype:  tuple( int, int )
         @return: Stack beginning and end pointers, in memory addresses order.
         """
+        try:
+            address = self.get_teb_address()
+        except Exception:
+            address = self.get_linear_address('SegFs', 0)
+        ptrsize = win32.sizeof(win32.LPVOID)
         process = self.get_process()
-        begin   = process.read_uint( self.get_linear_address('SegFs', 8) )
-        end     = process.read_uint( self.get_linear_address('SegFs', 4) )
+        begin   = process.read_pointer(address + (ptrsize * 2))
+        end     = process.read_pointer(address + ptrsize)
         return (begin, end)
 
     def __get_stack_trace(self, depth = 16, bUseLabels = True,
@@ -2650,7 +2815,7 @@ class ThreadDebugOperations (object):
                 break
             if not sb <= fp < sl:
                 break
-            ra  = aProcess.peek_uint(fp + 4)
+            ra  = aProcess.peek_pointer(fp + 4)
             if ra == 0:
                 break
             lib = aProcess.get_module_at_address(ra)
@@ -2668,7 +2833,7 @@ class ThreadDebugOperations (object):
                 trace.append( (fp, label) )
             else:
                 trace.append( (fp, ra, lib) )
-            fp = aProcess.peek_uint(fp)
+            fp = aProcess.peek_pointer(fp)
         return tuple(trace)
 
     def get_stack_trace(self, depth = 16):
@@ -2833,6 +2998,45 @@ class ThreadDebugOperations (object):
         if not stackData:
             return ()
         return struct.unpack('<'+('L'*count), stackData)
+
+    def read_stack_qwords(self, count, offset = 0):
+        """
+        Reads QWORDs from the top of the stack.
+
+        @type  count: int
+        @param count: Number of QWORDs to read.
+
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+
+        @rtype:  tuple( int... )
+        @return: Tuple of integers read from the stack.
+
+        @raise WindowsError: Could not read the requested data.
+        """
+        stackData = self.read_stack_data(count * 8, offset)
+        return struct.unpack('<'+('Q'*count), stackData)
+
+    def peek_stack_qwords(self, count, offset = 0):
+        """
+        Tries to read QWORDs from the top of the stack.
+
+        @type  count: int
+        @param count: Number of QWORDs to read.
+
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+
+        @rtype:  tuple( int... )
+        @return: Tuple of integers read from the stack.
+            May be less than the requested number of QWORDs.
+        """
+        stackData = self.peek_stack_data(count * 8, offset)
+        if len(stackData) & 7:
+            stackData = stackData[:-len(stackData) & 7]
+        if not stackData:
+            return ()
+        return struct.unpack('<'+('Q'*count), stackData)
 
     def read_code_bytes(self, size = 128, offset = 0):
         """
@@ -3061,7 +3265,9 @@ class ProcessDebugOperations (object):
     Encapsulates several useful debugging routines for processes.
 
     @group Properties:
-        get_peb, get_main_module, get_image_base, get_image_name
+        get_peb, get_peb_address,
+        get_main_module, get_image_base, get_image_name,
+        is_wow64
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -3242,7 +3448,7 @@ class ProcessDebugOperations (object):
 
         @raise WindowsError: Raises exception on error.
         """
-        win32.FlushInstructionCache(self.get_handle())
+        win32.FlushInstructionCache( self.get_handle() )
 
     def debug_break(self):
         """
@@ -3253,7 +3459,30 @@ class ProcessDebugOperations (object):
         # The exception is raised by a new thread.
         # When continuing the exception, the thread dies by itself.
         # This thread is hidden from the debugger.
-        win32.DebugBreakProcess(self.get_handle())
+        win32.DebugBreakProcess( self.get_handle() )
+
+    def is_wow64(self):
+        """
+        Determines if the process is running under WOW64.
+
+        @rtype:  bool
+        @return:
+            C{True} if the process is running under WOW64. That is, a 32-bit
+            application running in a 64-bit Windows.
+
+            C{False} if the process is either a 32-bit application running in
+            a 32-bit Windows, or a 64-bit application running in a 64-bit
+            Windows.
+
+        @raise WindowsError: On error an exception is raised.
+
+        @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
+        """
+        hProcess = self.get_handle()
+        try:
+            return win32.IsWow64Process(hProcess)
+        except AttributeError:
+            return False
 
 #------------------------------------------------------------------------------
 
@@ -3265,9 +3494,18 @@ class ProcessDebugOperations (object):
         @rtype:  L{PEB}
         @return: PEB structure.
         """
+        return self.read_structure(self.get_peb_address(), win32.PEB)
+
+    def get_peb_address(self):
+        """
+        Returns a remote pointer to the PEB.
+
+        @rtype:  int
+        @return: Remote pointer to the L{PEB} structure.
+        """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
-        return self.read_structure(pbi.PebBaseAddress.value, win32.PEB)
+        return pbi.PebBaseAddress
 
     def get_main_module(self):
         """
@@ -3281,7 +3519,7 @@ class ProcessDebugOperations (object):
         @rtype:  int
         @return: Image base address for the process main module.
         """
-        return self.get_peb().ImageBaseAddress.value
+        return self.get_peb().ImageBaseAddress
 
     # TODO
     # Still not working sometimes, I need more implementations.
@@ -3336,10 +3574,6 @@ class ProcessDebugOperations (object):
         # not implemented until Windows 2000.
         if not name:
             try:
-                # XXX: sometimes gives odd pathnames like:
-                #   \SystemRoot\System32\smss.exe
-                #   \??\C:\WINDOWS\system32\csrss.exe
-                #   \??\C:\WINDOWS\system32\winlogon.exe
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
@@ -3365,10 +3599,10 @@ class ProcessDebugOperations (object):
         if not name:
             try:
                 peb = self.get_peb()
-                pp = self.read_structure(peb.ProcessParameters.value,
+                pp = self.read_structure(peb.ProcessParameters,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
                 s = pp.ImagePathName
-                name = self.peek_string(s.Buffer.value,
+                name = self.peek_string(s.Buffer,
                                     dwMaxSize=s.MaximumLength, fUnicode=True)
             except (AttributeError, WindowsError):
                 name = None
@@ -3386,10 +3620,10 @@ class ProcessDebugOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters.value,
+        pp = self.read_structure(peb.ProcessParameters,
                                              win32.RTL_USER_PROCESS_PARAMETERS)
         s = pp.CommandLine
-        return self.peek_string(s.Buffer.value, dwMaxSize=s.MaximumLength,
+        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength,
                                                             fUnicode=True)
 
 #------------------------------------------------------------------------------
@@ -3417,15 +3651,20 @@ class ProcessDebugOperations (object):
         @return: Dictionary mapping stack offsets to the data they point to.
         """
         result = dict()
+        ptrSize = win32.sizeof(win32.LPVOID)
+        if ptrSize == 4:
+            ptrFmt = '<L'
+        else:
+            ptrFmt = '<Q'
         if len(data) > 0:
             for i in xrange(0, len(data), peekStep):
-                packed          = data[i:i+4]
-                if len(packed) == 4:
-                    address     = struct.unpack('<L', packed)[0]
-                    if address & (~0xFFFF): # this check is not valid on Wine
-                        peek_data   = self.peek(address, peekSize)
-                        if peek_data:
-                            result[i] = peek_data
+                packed          = data[i:i+ptrSize]
+                if len(packed) == ptrSize:
+                    address     = struct.unpack(ptrFmt, packed)[0]
+##                    if not address & (~0xFFFF): continue
+                    peek_data   = self.peek(address, peekSize)
+                    if peek_data:
+                        result[i] = peek_data
         return result
 
 #==============================================================================
@@ -4310,8 +4549,9 @@ class Module (SymbolContainer):
                 base   = self.get_base()
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
-                self.EntryPoint  = mi.EntryPoint.value
+                self.EntryPoint  = mi.EntryPoint
             except WindowsError:
+##                raise       # XXX DEBUG
                 pass
 
     def get_filename(self):
@@ -4934,63 +5174,6 @@ class Thread (ThreadDebugOperations):
         finally:
             self.resume()
 
-    def get_pc(self):
-        """
-        @rtype:  int
-        @return: Value of the program counter register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Eip']
-
-    def set_pc(self, pc):
-        """
-        Sets the value of the program counter register.
-
-        @type  pc: int
-        @param pc: Value of the program counter register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Eip'] = pc
-        self.set_context(context)
-
-    def get_sp(self):
-        """
-        @rtype:  int
-        @return: Value of the stack pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Esp']
-
-    def set_sp(self, sp):
-        """
-        Sets the value of the stack pointer register.
-
-        @type  sp: int
-        @param sp: Value of the stack pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Esp'] = sp
-        self.set_context(context)
-
-    def get_fp(self):
-        """
-        @rtype:  int
-        @return: Value of the frame pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['Ebp']
-
-    def set_fp(self, fp):
-        """
-        Sets the value of the frame pointer register.
-
-        @type  fp: int
-        @param fp: Value of the frame pointer register.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['Ebp'] = fp
-        self.set_context(context)
-
     def get_register(self, register):
         """
         @type  register: str
@@ -5019,147 +5202,271 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    class Flags (object):
-        'Commonly used processor flags'
-        Overflow    = 0x800
-        Direction   = 0x400
-        Interrupts  = 0x200
-        Trap        = 0x100
-        Sign        = 0x80
-        Zero        = 0x40
-        # 0x20 ???
-        Auxiliary   = 0x10
-        # 0x8 ???
-        Parity      = 0x4
-        # 0x2 ???
-        Carry       = 0x1
+    if win32.CONTEXT.arch == 'i386':
 
-    def get_flags(self, FlagMask = 0xFFFFFFFF):
-        """
-        @type  FlagMask: int
-        @param FlagMask: (Optional) Bitwise-AND mask.
+        def get_pc(self):
+            """
+            @rtype:  int
+            @return: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Eip']
 
-        @rtype:  int
-        @return: Flags register contents, optionally masking out some bits.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        return context['EFlags'] & FlagMask
+        def set_pc(self, pc):
+            """
+            Sets the value of the program counter register.
 
-    def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
-        """
-        Sets the flags register, optionally masking some bits.
+            @type  pc: int
+            @param pc: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Eip'] = pc
+            self.set_context(context)
 
-        @type  eflags: int
-        @param eflags: Flags register contents.
+        def get_sp(self):
+            """
+            @rtype:  int
+            @return: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Esp']
 
-        @type  FlagMask: int
-        @param FlagMask: (Optional) Bitwise-AND mask.
-        """
-        context = self.get_context(win32.CONTEXT_CONTROL)
-        context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
-        self.set_context(context)
+        def set_sp(self, sp):
+            """
+            Sets the value of the stack pointer register.
 
-    def get_flag_value(self, FlagBit):
-        """
-        @type  FlagBit: int
-        @param FlagBit: One of the L{Flags}.
+            @type  sp: int
+            @param sp: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Esp'] = sp
+            self.set_context(context)
 
-        @rtype:  bool
-        @return: Boolean value of the requested flag.
-        """
-        return bool( self.get_flags(FlagBit) )
+        def get_fp(self):
+            """
+            @rtype:  int
+            @return: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Ebp']
 
-    def set_flag_value(self, FlagBit, FlagValue):
-        """
-        Sets a single flag, leaving the others intact.
+        def set_fp(self, fp):
+            """
+            Sets the value of the frame pointer register.
 
-        @type  FlagBit: int
-        @param FlagBit: One of the L{Flags}.
+            @type  fp: int
+            @param fp: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Ebp'] = fp
+            self.set_context(context)
 
-        @type  FlagValue: bool
-        @param FlagValue: Boolean value of the flag.
-        """
-        if FlagValue:
-            eflags = FlagBit
-        else:
-            eflags = 0
-        FlagMask = 0xFFFFFFFF ^ FlagBit
-        self.set_flags(eflags, FlagMask)
+#------------------------------------------------------------------------------
 
-    def get_zf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Zero flag.
-        """
-        return self.get_flag_value(self.Flags.Zero)
+    elif win32.CONTEXT.arch == 'amd64':
 
-    def get_cf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Carry flag.
-        """
-        return self.get_flag_value(self.Flags.Carry)
+        def get_pc(self):
+            """
+            @rtype:  int
+            @return: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rip']
 
-    def get_sf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Sign flag.
-        """
-        return self.get_flag_value(self.Flags.Sign)
+        def set_pc(self, pc):
+            """
+            Sets the value of the program counter register.
 
-    def get_df(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Direction flag.
-        """
-        return self.get_flag_value(self.Flags.Direction)
+            @type  pc: int
+            @param pc: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rip'] = pc
+            self.set_context(context)
 
-    def get_tf(self):
-        """
-        @rtype:  bool
-        @return: Boolean value of the Trap flag.
-        """
-        return self.get_flag_value(self.Flags.Trap)
+        def get_sp(self):
+            """
+            @rtype:  int
+            @return: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rsp']
 
-    def clear_zf(self):
-        'Clears the Zero flag.'
-        self.set_flag_value(self.Flags.Zero, False)
+        def set_sp(self, sp):
+            """
+            Sets the value of the stack pointer register.
 
-    def clear_cf(self):
-        'Clears the Carry flag.'
-        self.set_flag_value(self.Flags.Carry, False)
+            @type  sp: int
+            @param sp: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rsp'] = sp
+            self.set_context(context)
 
-    def clear_sf(self):
-        'Clears the Sign flag.'
-        self.set_flag_value(self.Flags.Sign, False)
+        def get_fp(self):
+            """
+            @rtype:  int
+            @return: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['Rbp']
 
-    def clear_df(self):
-        'Clears the Direction flag.'
-        self.set_flag_value(self.Flags.Direction, False)
+        def set_fp(self, fp):
+            """
+            Sets the value of the frame pointer register.
 
-    def clear_tf(self):
-        'Clears the Trap flag.'
-        self.set_flag_value(self.Flags.Trap, False)
+            @type  fp: int
+            @param fp: Value of the frame pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['Rbp'] = fp
+            self.set_context(context)
 
-    def set_zf(self):
-        'Sets the Zero flag.'
-        self.set_flag_value(self.Flags.Zero, True)
+#------------------------------------------------------------------------------
 
-    def set_cf(self):
-        'Sets the Carry flag.'
-        self.set_flag_value(self.Flags.Carry, True)
+    if win32.CONTEXT.arch in ('i386', 'amd64'):
 
-    def set_sf(self):
-        'Sets the Sign flag.'
-        self.set_flag_value(self.Flags.Sign, True)
+        class Flags (object):
+            'Commonly used processor flags'
+            Overflow    = 0x800
+            Direction   = 0x400
+            Interrupts  = 0x200
+            Trap        = 0x100
+            Sign        = 0x80
+            Zero        = 0x40
+            # 0x20 ???
+            Auxiliary   = 0x10
+            # 0x8 ???
+            Parity      = 0x4
+            # 0x2 ???
+            Carry       = 0x1
 
-    def set_df(self):
-        'Sets the Direction flag.'
-        self.set_flag_value(self.Flags.Direction, True)
+        def get_flags(self, FlagMask = 0xFFFFFFFF):
+            """
+            @type  FlagMask: int
+            @param FlagMask: (Optional) Bitwise-AND mask.
 
-    def set_tf(self):
-        'Sets the Trap flag.'
-        self.set_flag_value(self.Flags.Trap, True)
+            @rtype:  int
+            @return: Flags register contents, optionally masking out some bits.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context['EFlags'] & FlagMask
+
+        def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
+            """
+            Sets the flags register, optionally masking some bits.
+
+            @type  eflags: int
+            @param eflags: Flags register contents.
+
+            @type  FlagMask: int
+            @param FlagMask: (Optional) Bitwise-AND mask.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
+            self.set_context(context)
+
+        def get_flag_value(self, FlagBit):
+            """
+            @type  FlagBit: int
+            @param FlagBit: One of the L{Flags}.
+
+            @rtype:  bool
+            @return: Boolean value of the requested flag.
+            """
+            return bool( self.get_flags(FlagBit) )
+
+        def set_flag_value(self, FlagBit, FlagValue):
+            """
+            Sets a single flag, leaving the others intact.
+
+            @type  FlagBit: int
+            @param FlagBit: One of the L{Flags}.
+
+            @type  FlagValue: bool
+            @param FlagValue: Boolean value of the flag.
+            """
+            if FlagValue:
+                eflags = FlagBit
+            else:
+                eflags = 0
+            FlagMask = 0xFFFFFFFF ^ FlagBit
+            self.set_flags(eflags, FlagMask)
+
+        def get_zf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Zero flag.
+            """
+            return self.get_flag_value(self.Flags.Zero)
+
+        def get_cf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Carry flag.
+            """
+            return self.get_flag_value(self.Flags.Carry)
+
+        def get_sf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Sign flag.
+            """
+            return self.get_flag_value(self.Flags.Sign)
+
+        def get_df(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Direction flag.
+            """
+            return self.get_flag_value(self.Flags.Direction)
+
+        def get_tf(self):
+            """
+            @rtype:  bool
+            @return: Boolean value of the Trap flag.
+            """
+            return self.get_flag_value(self.Flags.Trap)
+
+        def clear_zf(self):
+            'Clears the Zero flag.'
+            self.set_flag_value(self.Flags.Zero, False)
+
+        def clear_cf(self):
+            'Clears the Carry flag.'
+            self.set_flag_value(self.Flags.Carry, False)
+
+        def clear_sf(self):
+            'Clears the Sign flag.'
+            self.set_flag_value(self.Flags.Sign, False)
+
+        def clear_df(self):
+            'Clears the Direction flag.'
+            self.set_flag_value(self.Flags.Direction, False)
+
+        def clear_tf(self):
+            'Clears the Trap flag.'
+            self.set_flag_value(self.Flags.Trap, False)
+
+        def set_zf(self):
+            'Sets the Zero flag.'
+            self.set_flag_value(self.Flags.Zero, True)
+
+        def set_cf(self):
+            'Sets the Carry flag.'
+            self.set_flag_value(self.Flags.Carry, True)
+
+        def set_sf(self):
+            'Sets the Sign flag.'
+            self.set_flag_value(self.Flags.Sign, True)
+
+        def set_df(self):
+            'Sets the Direction flag.'
+            self.set_flag_value(self.Flags.Direction, True)
+
+        def set_tf(self):
+            'Sets the Trap flag.'
+            self.set_flag_value(self.Flags.Trap, True)
 
 #==============================================================================
 
@@ -5537,8 +5844,12 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @param dwTimeout: (Optional) Timeout value in milliseconds.
             Ignored if C{bWait} is C{False}.
 
+        @raise NotImplementedError: The target platform is not supported.
         @raise WindowsError: An exception is raised on error.
         """
+        if System.arch != 'i386':
+            raise NotImplementedError
+
         dllname = str(dllname)
 
         # Resolve kernel32.dll
@@ -5693,14 +6004,24 @@ class System (ProcessContainer):
     Contains a snapshot of processes.
 
     @group Global settings:
-        pageSize,
+        arch, pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
-        enable_step_on_branch_mode, set_symbol_options
+        enable_step_on_branch_mode
+
+    @type arch: str
+    @cvar arch: Name of the processor architecture we're running on.
+
+        Can be one of the following:
+         - C{"i386"} for Intel 32-bit x86 processor or compatible.
+         - C{"amd64"} for Intel 64-bit x86_64 processor or compatible.
+         - C{"ia64"} for Intel Itanium processor or compatible.
 
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
     """
+
+    arch = win32.CONTEXT.arch
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.
@@ -5780,26 +6101,13 @@ class System (ProcessContainer):
             This has a HARDCODED value for a machine specific register (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
+
+        @note:
+            It doesn't seem to work in VirtualBox machines.
+            Maybe it fails in other virtualization/emulation environments,
+            not extensive testing was made so far.
         """
         msr         = win32.SYSDBG_MSR()
         msr.Address = 0x1D9
         msr.Data    = 2
         return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
-
-    @staticmethod
-    def set_symbol_options(options = None):
-        """
-        Set the options for the symbol support (dbghelp.dll).
-
-        @type  options: int
-        @param options: Option flags. Use C{None} for the default
-            options in WinAppDbg.
-        """
-        if options is None:
-            options  = win32.SYMOPT_FAIL_CRITICAL_ERRORS
-            options |= win32.SYMOPT_FAVOR_COMPRESSED
-            options |= win32.SYMOPT_INCLUDE_32BIT_MODULES
-            options |= win32.SYMOPT_NO_PROMPTS
-            options |= win32.SYMOPT_UNDNAME
-            options |= win32.SYMOPT_LOAD_LINES
-        return win32.SymSetOptions(options)

@@ -500,6 +500,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             disasm = process.disassemble(pc, 15)
         except NotImplementedError:
             disasm = None
+        print
         print winappdbg.CrashDump.dump_registers(ctx),
         print "%s:" % label
         if disasm:

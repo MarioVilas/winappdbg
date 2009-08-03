@@ -112,6 +112,7 @@ class FLOATING_SAVE_AREA(Structure):
         return fsa
 
 PFLOATING_SAVE_AREA = POINTER(FLOATING_SAVE_AREA)
+LPFLOATING_SAVE_AREA = PFLOATING_SAVE_AREA
 
 # typedef struct _CONTEXT {
 #     DWORD ContextFlags;
@@ -141,6 +142,8 @@ PFLOATING_SAVE_AREA = POINTER(FLOATING_SAVE_AREA)
 #     BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
 # } CONTEXT;
 class CONTEXT(Structure):
+    arch = 'i386'
+
     _pack_ = 1
 
     # Context Frame
@@ -281,6 +284,7 @@ class CONTEXT(Structure):
         return ctx
 
 PCONTEXT = POINTER(CONTEXT)
+LPCONTEXT = PCONTEXT
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -349,4 +353,5 @@ class LDT_ENTRY(Structure):
         ('HighWord',        _LDT_ENTRY_HIGHWORD_),
     ]
 
-PLDT_ENTRY = ctypes.POINTER(LDT_ENTRY)
+PLDT_ENTRY = POINTER(LDT_ENTRY)
+LPLDT_ENTRY = PLDT_ENTRY

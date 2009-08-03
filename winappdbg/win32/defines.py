@@ -43,6 +43,16 @@ Structure   = ctypes.Structure
 Union       = ctypes.Union
 
 try:
+    from ctypes import windll
+except ImportError:
+    class FakeWinDll(object):
+        def __getattr__(self, name):
+            return self
+        def __call__(self, *argv, **argd):
+            raise ctypes.WinError(50)   # ERROR_NOT_SUPPORTED
+    windll = FakeWinDll()
+
+try:
     WINFUNCTYPE = ctypes.WINFUNCTYPE
 except AttributeError:
     class WINFUNCTYPE(object):
@@ -57,6 +67,58 @@ try:
 except NameError:
     def callable(obj):
         return hasattr(obj, '__call__')
+
+### XXX DEBUG
+##class WinDllHook(object):
+##    def __getattr__(self, name):
+##        if name.startswith('_'):
+##            return object.__getattr__(self, name)
+##        return WinFuncHook(name)
+##class WinFuncHook(object):
+##    def __init__(self, name):
+##        self.__name = name
+##    def __getattr__(self, name):
+##        if name.startswith('_'):
+##            return object.__getattr__(self, name)
+##        return WinCallHook(self.__name, name)
+##class WinCallHook(object):
+####    def __new__(typ, dllname, funcname):
+####        print dllname, funcname
+####        return getattr(getattr(ctypes.windll, dllname), funcname)
+##    def __init__(self, dllname, funcname):
+##        self.__dllname = dllname
+##        self.__funcname = funcname
+##        self.__func = getattr(getattr(ctypes.windll, dllname), funcname)
+##    def __copy_attribute(self, attribute):
+##        try:
+##            value = getattr(self, attribute)
+##            setattr(self.__func, attribute, value)
+##        except AttributeError:
+##            try:
+##                delattr(self.__func, attribute)
+##            except AttributeError:
+##                pass
+##    def __call__(self, *argv):
+##        self.__copy_attribute('argtypes')
+##        self.__copy_attribute('restype')
+##        self.__copy_attribute('errcheck')
+##        print "-"*10
+##        print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
+##        retval = self.__func(*argv)
+##        print "== %r" % (retval,)
+##        return retval
+##windll = WinDllHook()
+
+def RaiseIfZero(result, func = None, arguments = ()):
+    """
+    Error checking for most Win32 API calls.
+
+    The function is assumed to return an integer, which is C{0} on error.
+    In that case the C{WindowsError} exception is raised.
+    """
+    if not result:
+        raise ctypes.WinError()
+    return result
 
 class GuessStringType(object):
     """
@@ -128,27 +190,7 @@ class MakeANSIVersion(object):
 
 #--- Types --------------------------------------------------------------------
 
-class LPVOID(ctypes.c_void_p):
-
-    def __init__(self, value = None):
-        try:
-            value = value.value
-        except AttributeError:
-            pass
-        ctypes.c_void_p.__init__(self, value)
-        if value and (not self.value or self.value != value):
-            raise ValueError, "Invalid void pointer value"
-
-    def __getattribute__(self, name):
-        value = ctypes.c_void_p.__getattribute__(self, name)
-        if name == 'value' and value is None:
-            value = 0
-        return value
-
-    @property
-    def _as_parameter_(self):
-        return ctypes.c_void_p(self.value)
-
+LPVOID      = ctypes.c_void_p
 CHAR        = ctypes.c_char
 WCHAR       = ctypes.c_wchar
 BYTE        = ctypes.c_ubyte
@@ -170,8 +212,11 @@ ULONGLONG   = ctypes.c_ulonglong
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
 
-# Size of a pointer 
-SIZE_T      = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
+try:
+    SIZE_T  = ctypes.c_size_t
+except AttributeError:
+    # Size of a pointer
+    SIZE_T  = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
 
 PSTR        = LPSTR
 PWSTR       = LPWSTR
@@ -186,14 +231,21 @@ LPSDWORD    = POINTER(SDWORD)
 DWORD_PTR   = POINTER(DWORD)
 ULONG_PTR   = POINTER(ULONG)
 LONG_PTR    = POINTER(LONG)
-BOOL        = LONG
+PDWORD      = DWORD_PTR
+PULONG      = ULONG_PTR
+PLONG       = LONG_PTR
+BOOL        = DWORD
 BOOLEAN     = BYTE
+PBOOL       = POINTER(BOOL)
 UCHAR       = BYTE
 ULONG32     = DWORD
 DWORD32     = DWORD
 ULONG64     = QWORD
 DWORD64     = QWORD
+DWORDLONG   = ULONGLONG
 HANDLE      = LPVOID
+PHANDLE     = POINTER(HANDLE)
+LPHANDLE    = PHANDLE
 HMODULE     = HANDLE
 HINSTANCE   = HANDLE
 HRGN        = HANDLE
@@ -255,7 +307,7 @@ class FLOAT128 (Structure):
         ("LowPart",     QWORD),
         ("HighPart",    QWORD),
     ]
-PFLOAT128 = ctypes.POINTER(FLOAT128)
+PFLOAT128 = POINTER(FLOAT128)
 
 # typedef struct DECLSPEC_ALIGN(16) _M128A {
 #     ULONGLONG Low;
@@ -266,11 +318,11 @@ class M128A(Structure):
         ("Low",     ULONGLONG),
         ("High",    LONGLONG),
     ]
-PM128A = ctypes.POINTER(M128A)
+PM128A = POINTER(M128A)
 
 #--- Constants ----------------------------------------------------------------
 
-NULL        = 0
+NULL        = None
 INFINITE    = -1
 TRUE        = 1
 FALSE       = 0
@@ -278,7 +330,7 @@ FALSE       = 0
 # http://blogs.msdn.com/oldnewthing/archive/2004/08/26/220873.aspx
 ANYSIZE_ARRAY = 1
 
-INVALID_HANDLE_VALUE = -1 #0xFFFFFFFF
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value #-1 #0xFFFFFFFF
 
 MAX_MODULE_NAME32   = 255
 MAX_PATH            = 260
@@ -294,6 +346,7 @@ ERROR_INVALID_HANDLE        = 6
 ERROR_NOT_ENOUGH_MEMORY     = 8
 ERROR_INVALID_DRIVE         = 15
 ERROR_NO_MORE_FILES         = 18
+ERROR_BAD_LENGTH            = 24
 ERROR_HANDLE_EOF            = 38
 ERROR_HANDLE_DISK_FULL      = 39
 ERROR_NOT_SUPPORTED         = 50

@@ -33,9 +33,19 @@
 from winappdbg.win32 import *
 
 def print_modules( pid ):
+
+    # Determine if we have 32 bit or 64 bit pointers
+    if sizeof(SIZE_T) == sizeof(DWORD):
+        fmt = "%.8x    %.8x    %s"
+        hdr = "%-8s    %-8s    %s"
+    else:
+        fmt = "%.16x    %.16x    %s"
+        hdr = "%-16s    %-16s    %s"
+
+    # Print a banner
     print "Modules for process %d:" % pid
     print
-    print "Address     Size        Path"
+    print hdr % ("Address", "Size", "Path")
 
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
@@ -45,9 +55,9 @@ def print_modules( pid ):
     while module is not None:
 
         # Print the module address, size and pathname
-        print "%.8x    %.8x    %s" % ( module.modBaseAddr,
-                                       module.modBaseSize,
-                                       module.szExePath )
+        print fmt % ( module.modBaseAddr,
+                      module.modBaseSize,
+                      module.szExePath )
 
         # Next module in the process
         module = Module32Next( hSnapshot )

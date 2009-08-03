@@ -30,7 +30,7 @@
 # Example #3
 # http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example3:enumeratingthreadsandDLLmodulesinaprocess
 
-from winappdbg import Process
+from winappdbg import Process, HexDump
 
 def print_threads_and_modules( pid ):
 
@@ -50,7 +50,7 @@ def print_threads_and_modules( pid ):
     # ...and the modules in the process
     print "Modules:"
     for module in process.iter_modules():
-        print "\t0x%.8x\t%s" % ( module.get_base(), module.get_filename() )
+        print "\t%s\t%s" % ( HexDump.address( module.get_base() ), module.get_filename() )
 
 # When invoked from the command line,
 # the first argument is a process ID

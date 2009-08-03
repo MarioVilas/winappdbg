@@ -30,22 +30,25 @@
 # Example #8
 # http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example8:settingabreakpoint
 
-from winappdbg import Debug, EventHandler
+from winappdbg import Debug, EventHandler, HexDump
 
 
 # This function will be called when our breakpoint is hit
 def action_callback( event ):
 
+    # Get the address of the top of the stack
+    stack   = event.get_thread().get_sp()
+
     # Get the return address of the call
-    address = event.get_thread().read_stack_dwords(1)[0]
+    address = event.get_process().read_pointer( stack )
 
     # Get the process and thread IDs
     pid     = event.get_pid()
     tid     = event.get_tid()
 
     # Show a message to the user
-    message = "kernel32!CreateFileW called from 0x%.08x by thread %d at process %d"
-    print message % ( address, tid, pid )
+    message = "kernel32!CreateFileW called from %s by thread %d at process %d"
+    print message % ( HexDump.address(address), tid, pid )
 
 
 class MyEventHandler( EventHandler ):
