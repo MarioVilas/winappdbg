@@ -5847,7 +5847,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @raise NotImplementedError: The target platform is not supported.
         @raise WindowsError: An exception is raised on error.
         """
-        if win32.CONTEXT.arch != 'i386':
+        if System.arch != 'i386':
             raise NotImplementedError
 
         dllname = str(dllname)
@@ -6004,14 +6004,24 @@ class System (ProcessContainer):
     Contains a snapshot of processes.
 
     @group Global settings:
-        pageSize,
+        arch, pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
-        enable_step_on_branch_mode, set_symbol_options
+        enable_step_on_branch_mode
+
+    @type arch: str
+    @cvar arch: Name of the processor architecture we're running on.
+
+        Can be one of the following:
+         - C{"i386"} for Intel 32-bit x86 processor or compatible.
+         - C{"amd64"} for Intel 64-bit x86_64 processor or compatible.
+         - C{"ia64"} for Intel Itanium processor or compatible.
 
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
     """
+
+    arch = win32.CONTEXT.arch
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.
@@ -6101,21 +6111,3 @@ class System (ProcessContainer):
         msr.Address = 0x1D9
         msr.Data    = 2
         return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
-
-    @staticmethod
-    def set_symbol_options(options = None):
-        """
-        Set the options for the symbol support (dbghelp.dll).
-
-        @type  options: int
-        @param options: Option flags. Use C{None} for the default
-            options in WinAppDbg.
-        """
-        if options is None:
-            options  = win32.SYMOPT_FAIL_CRITICAL_ERRORS
-            options |= win32.SYMOPT_FAVOR_COMPRESSED
-            options |= win32.SYMOPT_INCLUDE_32BIT_MODULES
-            options |= win32.SYMOPT_NO_PROMPTS
-            options |= win32.SYMOPT_UNDNAME
-            options |= win32.SYMOPT_LOAD_LINES
-        return win32.SymSetOptions(options)

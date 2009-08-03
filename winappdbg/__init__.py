@@ -70,6 +70,7 @@ __all__ =   [
                 # from system import *
                 'Module',
                 'Thread',
+##                'Window',
                 'Process',
                 'System',
 

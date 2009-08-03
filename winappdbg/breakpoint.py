@@ -3342,7 +3342,7 @@ class BreakpointContainer (object):
         """
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
-        if win32.CONTEXT.arch != 'i386':
+        if System.arch != 'i386':
             raise NotImplementedError
 
         hookObj = Hook(preCB, postCB, paramCount)
@@ -3397,7 +3397,7 @@ class BreakpointContainer (object):
         """
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
-        if win32.CONTEXT.arch != 'i386':
+        if System.arch != 'i386':
             raise NotImplementedError
 
         hookObj = Hook(preCB, postCB, paramCount)
