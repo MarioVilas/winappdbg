@@ -29,7 +29,7 @@
 RPC engine for WinAppDbg.
 """
 
-__revision__ = "$Id: __init__.py 244 2009-06-22 01:02:24Z qvasimodo $"
+__revision__ = "$Id$"
 
 __all__ =   [
                 'ObjBase',
