@@ -412,7 +412,7 @@ class HexDump (object):
         @rtype:  str
         @return: Text output.
         """
-        return ('%%.%dx' % cls.integer_size) % integer
+        return ('%%.%dX' % cls.integer_size) % integer
 
     @classmethod
     def address(cls, address):
@@ -423,7 +423,7 @@ class HexDump (object):
         @rtype:  str
         @return: Text output.
         """
-        return ('%%.%dx' % cls.address_size) % address
+        return ('%%.%dX' % cls.address_size) % address
 
     @staticmethod
     def printable(data):

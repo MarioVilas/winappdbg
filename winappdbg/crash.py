@@ -684,6 +684,11 @@ class Crash (object):
         msg  = self.briefReport()
         msg += '\n'
 
+        if win32.sizeof(win32.LPVOID) == 4:
+            width = 16
+        else:
+            width = 8
+
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             (exploitability, expcode, expdescription) = self.isExploitable()
             msg += '\nSecurity risk level: %s\n' % exploitability
@@ -707,7 +712,8 @@ class Crash (object):
             if self.registersPeek:
                 msg += '\n'
                 msg += CrashDump.dump_registers_peek(self.registers,
-                                                            self.registersPeek)
+                                                     self.registersPeek,
+                                                     width = width)
 
         if self.faultDisasm:
             msg += '\nCode disassembly:\n'
@@ -724,21 +730,23 @@ class Crash (object):
         if self.stackFrame:
             if self.stackPeek:
                 msg += '\nStack pointers:\n'
-                msg += CrashDump.dump_stack_peek(self.stackPeek)
+                msg += CrashDump.dump_stack_peek(self.stackPeek, width = width)
             msg += '\nStack dump:\n'
-            msg += HexDump.hexblock(self.stackFrame, self.sp)
+            msg += HexDump.hexblock(self.stackFrame, self.sp, width = width)
 
         if self.faultCode and not self.modFileName:
             msg += '\nCode dump:\n'
-            msg += HexDump.hexblock(self.faultCode, self.pc)
+            msg += HexDump.hexblock(self.faultCode, self.pc, width = width)
 
         if self.faultMem:
             if self.faultPeek:
                 msg += '\nException address pointers:\n'
                 msg += CrashDump.dump_data_peek(self.faultPeek,
-                                                         self.exceptionAddress)
+                                                self.exceptionAddress,
+                                                width = width)
             msg += '\nException address dump:\n'
-            msg += HexDump.hexblock(self.faultMem, self.exceptionAddress)
+            msg += HexDump.hexblock(self.faultMem, self.exceptionAddress,
+                                    width = width)
 
         if not msg.endswith('\n\n'):
             if not msg.endswith('\n'):

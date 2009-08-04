@@ -441,7 +441,7 @@ class ExceptionEvent (Event):
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
             raise IndexError, "Array index out of range: %s" % repr(index)
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return info[index].value
+        return info[index]
 
     def get_exception_information_as_list(self):
         """
@@ -449,7 +449,7 @@ class ExceptionEvent (Event):
         @return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return [ info[i].value \
+        return [ info[i] \
                  for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
 
     def get_fault_type(self):
