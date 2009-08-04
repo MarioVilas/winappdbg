@@ -39,60 +39,55 @@ import optparse
 
 import winappdbg
 from winappdbg import win32
-from winappdbg import Debug, EventHandler, System, Process
+from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
 from winappdbg import HexInput, HexDump, CrashDump
 
 #------------------------------------------------------------------------------
 
-class MemorySnapshot( object ):
+# no puedo poner hwbp asi que espero a que salte una excepcion
+# cuando empiezo a bruteforcear:
+#   * pongo el thread en modo trace
+#   * pongo 1s membp en todas las paginas escribibles
+#   * cuando salta un membp leo la data y continuo
+#   * cuando salta single step:
+#       * me fijo si ya llegue al destino
+#       * incremento el contador
+#       * paro al llegar a una instruccion prohibida
+#       * paro al llegar al maximo del contador
+#   * cuando paro:
+#       * restauro las paginas modificadas
+#       * restauro el contexto del thread (ojo no apagar tf)
+#       * pongo el proximo eip
+#       * pongo de vuelta los breakpoints que me falten
 
-    def __init__(self, process):
-        super(MemorySnapshot, self).__init__()
-        self.process = process
-        self.__map   = list()
-        self.__data  = dict()
+class ProcessBruteforce( object ):
+
+    MAX_INSTRUCTIONS = 10
+
+    def __init__(self, event):
+        super(ProcessBruteforce, self).__init__()
+        self.debug       = event.debug
+        self.process     = event.get_process()
+        self.thread      = event.get_thread()
+        self.memory_map  = list()
+        self.saved_pages = dict()
+        self.address     = 0
+        self.counter     = 0
 
     def get_process(self):
         return self.process
 
+    def get_thread(self):
+        return self.thread
+
     def get_pid(self):
         return self.get_process().get_pid()
 
-    def filter(self, mbi):
-        return  mbi.State ==  win32.MEM_COMMIT and \
-            not mbi.Protect & win32.PAGE_GUARD
+    def get_tid(self):
+        return self.get_thread().get_tid()
 
-    def scan(self):
-        process = self.get_process()
-        process.suspend()
-        try:
-            memory_map  = process.get_memory_map()
-            data        = dict()
-            for mbi in memory_map:
-                if self.filter(mbi):
-                    address       = mbi.BaseAddress
-                    size          = mbi.RegionSize
-                    data[address] = process.read(address, size)
-            self.__map  = memory_map
-            self.__data = data
-        finally:
-            process.resume()
-
-    # XXX TODO
-    # This method should check if the memory map hasn't changed
-    # instead of assuming so.
-    def restore(self):
-        process = self.get_process()
-        process.suspend()
-        try:
-            for address, data in self.__data.iteritems():
-                process.write(address, data)
-        finally:
-            process.resume()
-
-class WriteableMemorySnapshot( MemorySnapshot ):
-
-    def filter(self, mbi):
+    # Determine if a memory page is writeable.
+    def is_writeable_page(self, mbi):
         Protect = mbi.Protect
         return mbi.State == win32.MEM_COMMIT and \
             not Protect & win32.PAGE_GUARD and \
@@ -103,111 +98,222 @@ class WriteableMemorySnapshot( MemorySnapshot ):
             Protect & win32.PAGE_WRITECOPY
             )
 
-#------------------------------------------------------------------------------
+    # Determine if a memory page is readable.
+    def is_readable_page(self, mbi):
+        Protect = mbi.Protect
+        return mbi.State == win32.MEM_COMMIT and \
+            not Protect & win32.PAGE_GUARD and \
+            (
+                Protect & win32.PAGE_EXECUTE_READ       or \
+                Protect & win32.PAGE_EXECUTE_READWRITE  or \
+                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
+                Protect & win32.PAGE_READONLY           or \
+                Protect & win32.PAGE_READWRITE          or \
+                Protect & win32.PAGE_WRITECOPY
+            )
 
-class ThreadContextSnapshot( object ):
+    # Set page breakpoints on each writeable page.
+    # That way we can track down write accesses,
+    # in order to reverse them later.
+    def set_page_breakpoints(self):
+        debug = self.debug
+        for mbi in self.memory_map:
+            if self.is_writeable_page(mbi):
+                pid  = self.get_pid()
+                base = mbi.BaseAddress
+                for offset in xrange(0, mbi.RegionSize, System.pageSize):
+                    address = base + offset
+                    if not debug.has_page_breakpoint(pid, address):
+                        debug.define_page_breakpoint(pid, address, 1)
+                    try:
+                        debug.enable_one_shot_page_breakpoint(pid, address)
+                    except WindowsError:
+##                        print "error setting breakpoint at %s" % HexDump.address(address)
+                        pass
+                        # for calc.exe these pages raise exceptions:
+                        # 00030000
+                        # 003b0000
+                        # 7ffda000
+                        # 7ffdf000
 
-    def __init__(self, thread):
-        super(ThreadContextSnapshot, self).__init__()
-        self.thread    = thread
-        self.__context = dict()
+    # Remove all the page breakpoints we set in this process.
+    def remove_page_breakpoints(self):
+        debug = self.debug
+        pid   = self.get_pid()
+        for bp in debug.get_process_page_breakpoints(pid):
+            debug.erase_page_breakpoint(pid, bp.get_address())
 
-    def get_thread(self):
-        return self.thread
+    # Save the memory contents on each access to a writeable page.
+    # This will happen on read accesses too - but we don't care,
+    # since having the same breakpoint hit many times is more costly
+    # than restoring an extra memory page.
+    def notify_guard_page(self, event):
+        pid = self.get_pid()
+        if event.get_pid() == pid:
+            address = event.get_access_violation_address()
+            address = MemoryAddresses.align_address_to_page_start(address)
+            if self.debug.has_page_breakpoint(pid, address):
+                data = self.get_process().read(address, System.pageSize)
+                self.saved_pages[address] = data
+        return True
 
-    def get_tid(self):
-        return self.get_thread().get_tid()
+    # Restore the original contents of modified memory pages.
+    def restore_pages(self):
+        process = self.get_process()
+        for address, data in self.saved_pages.iteritems():
+            process.write(address, data)
+        self.saved_pages = dict()
 
-    def scan(self):
-        self.__context = self.get_thread().get_context()
+    # Save the thread's context.
+    # Since we're calling this after start_tracing() the trap flag
+    # will be set when we call restore_context().
+    def save_context(self):
+        self.context = self.get_thread().get_context()
 
-    def restore(self):
-        self.get_thread().set_context(self.__context)
+    # Restore the thread's context.
+    # The trap flag is already set becase we call save_context()
+    # right after we start tracing the thread.
+    def restore_context(self):
+        self.get_thread().set_context(self.context)
 
-#------------------------------------------------------------------------------
+    # Stop on forbidden instructions.
+    # Remove all prefixes first.
+    prefixes  = '\x26\x2e\x3e\x64\x65\x66\x67\xf0\xf2\xf3'
+    forbidden = '\xcd'                                              # XXX TODO
+    def is_forbidden_opcode(self, code):
+        for prefix in self.prefixes:
+            code = code.replace(prefix, '')
+        return code and code[0] in self.forbidden
 
-class BruteforceSnapshot( object ):
+    # Stop when the shellcode area is reached.
+    def is_shellcode(self, address):
+        return False                                                 # XXX TODO
 
-    MAX_INSTRUCTIONS = 10
+    # Stop on exceptions.
+    def notify_exception(self, event):
+        bContinue = self.next_address()
+        if bContinue:
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        else:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        return bContinue
 
-    def __init__(self, event):
-        super(BruteforceSnapshot, self).__init__()
-        self.__memory    = WriteableMemorySnapshot(event.get_process())
-        self.__registers = ThreadContextSnapshot(event.get_thread())
-        self.__count     = 0
+    # Trace execution for each bruteforced return address.
+    # Try the next address when the shellcode area is reached,
+    # when an invalid opcode is reached, or the maximum number
+    # of instructions was executed.
+    def notify_single_step(self, event):
+        pid = event.get_pid()
+        if pid == self.get_pid() and self.debug.is_tracing(event.get_tid()):
+            address = self.get_thread().get_pc()
+            if self.is_shellcode(address):
+                print "Found! %s" % HexDump.address(self.address)
+                return self.next_address()
+            self.counter += 1
+            if self.counter > self.MAX_INSTRUCTIONS:
+                return self.next_address()
+            code = self.get_process().read(address, 15)
+            if self.is_forbidden_opcode(code):
+                return self.next_address()
+        return True
 
-    def get_process(self):
-        return self.__memory.get_process()
+    # Build a list of target ranges to try.
+    def calculate_target_addresses(self):
+        self.target_ranges = list()
+        for mbi in self.memory_map:
+            if self.is_readable_page(mbi):
+                start = mbi.BaseAddress
+                end   = start + mbi.RegionSize
+                self.target_ranges.append( iter(xrange(start, end, 1)) )
 
-    def get_pid(self):
-        return self.get_process().get_pid()
+    # Try the next address.
+    def next_address(self):
+        self.counter = 0
+        while 1:
+            if not self.target_ranges:
+                self.stop_searching()
+                return False
+            try:
+                self.address = self.target_ranges[0].next()
+                break
+            except StopIteration:
+                self.target_ranges.pop(0)
+        print "Trying %s" % HexDump.address(self.address)
+        self.restore_pages()
+        self.restore_context()
+        self.set_page_breakpoints()
+        self.get_thread().set_pc(self.address)
+        return True
 
-    def get_thread(self):
-        return self.__registers.get_thread()
-
-    def get_tid(self):
-        return self.get_thread().get_tid()
-
-    def begin(self):
-        self.get_process().suspend()
-        self.scan()
+    # Start bruteforcing return addresses.
+    def start_searching(self):
+        process = self.get_process()
+        process.suspend()
+        self.memory_map = process.get_memory_map()
+        self.calculate_target_addresses()
+        self.set_page_breakpoints()
+        self.debug.start_tracing(self.get_tid())
+        self.save_context()
         self.get_thread().resume()
 
-    def scan(self):
-        self.__registers.scan()
-        self.__memory.scan()
-
-    def restore(self):
-        self.__registers.restore()
-        self.__memory.restore()
-
-    def stop(self):
-        self.restore()
+    # We tried all possible addresses.
+    def stop_searching(self):
+        self.remove_page_breakpoints()
+        self.restore_pages()
+        self.restore_context()
+        self.debug.stop_tracing(self.get_tid())
         self.get_thread().suspend()
         self.get_process().resume()
 
-    def try_address(self, address):
-        self.__count = 0
-        self.restore()
-        self.get_thread().set_pc(address)
-
-    def single_step(self, event):
-        self.__count += 1
-        if self.__count > self.MAX_INSTRUCTIONS:
-
-
-class ReturnAddressBruteforce( EventHandler ):
+class DebugSessionBruteforce( EventHandler ):
 
     def __init__(self, options):
-        super(ReturnAddressBruteforce, self).__init__()
-        self.__options  = options
-        self.__memory   = dict()
-        self.__context  = dict()
-        self.__trigger  = dict()
+        super(DebugSessionBruteforce, self).__init__()
+        self.__options     = options
+        self.__bruteforcer = set()
 
     def create_process(self, event):
-        print event.get_event_name()            # XXX DEBUG
+##        print event.get_event_name()            # XXX DEBUG
         self.__trap_trigger(event)
 
     def create_thread(self, event):
-        print event.get_event_name()            # XXX DEBUG
+##        print event.get_event_name()            # XXX DEBUG
         self.__trap_trigger(event)
 
     def single_step(self, event):
-        print event.get_exception_description() # XXX DEBUG
-        if event.debug.is_tracing( event.get_tid() ):
-            self.__search(event)
+##        print event.get_exception_description() # XXX DEBUG
+        to_remove = set()
+        for bruteforcer in self.__bruteforcer:
+            if not bruteforcer.notify_single_step(event):
+                to_remove.add(bruteforcer)
+        self.__bruteforcer.difference_update(to_remove)
+
+    def guard_page(self, event):
+##        print event.get_exception_description() # XXX DEBUG
+        to_remove = set()
+        for bruteforcer in self.__bruteforcer:
+            if not bruteforcer.notify_guard_page(event):
+                to_remove.add(bruteforcer)
+        self.__bruteforcer.difference_update(to_remove)
+
+    def exception(self, event):
+##        print event.get_exception_description() # XXX DEBUG
+        to_remove = set()
+        for bruteforcer in self.__bruteforcer:
+            if not bruteforcer.notify_exception(event):
+                to_remove.add(bruteforcer)
+        self.__bruteforcer.difference_update(to_remove)
 
     def __trap_trigger(self, event):
-        print "trap"
+##        print "trap"
         debug   = event.debug
         process = event.get_process()
         address = process.resolve_label(self.__options.trigger)
 
-        print "address", hex(address)
+##        print "address", hex(address)
 
-        tid     = event.get_tid()
-        print "tid", tid
+##        tid     = event.get_tid()
+##        print "tid", tid
 
 ##        for tid in process.iter_thread_ids():
 ##            print "tid", tid
@@ -220,38 +326,14 @@ class ReturnAddressBruteforce( EventHandler ):
         debug.stalk_at(event.get_pid(), address, self.__hit_trigger)
 
     def __hit_trigger(self, event):
-        print "hit"
+##        print "hit"
         pid     = event.get_pid()
         tid     = event.get_tid()
-        print "tid", tid
-        process = event.get_process()
-        thread  = event.get_thread()
-        pc      = thread.get_pc()
-        memory  = WriteableMemorySnapshot(process)
-        memory.scan()
-        process.suspend()
-        event.debug.start_tracing(tid)
-        self.__memory[pid]  = memory
-        self.__trigger[pid] = pc
-        thread.resume()
+##        print "pid", pid, "tid", tid
 
-    def __restore(self, event):
-        pid     = event.get_pid()
-        tid     = event.get_tid()
-        process = event.get_process()
-        thread  = event.get_thread()
-        try:
-            self.__memory[pid].restore()
-            thread.set_pc( self.__trigger[pid] )
-        except RuntimeError:
-            print "error restoring!"
-            process.kill()
-        del self.__memory[pid]
-
-    def __search(self, event):
-        print "searching"
-        print "...NOT!"
-        event.get_process().kill()
+        bruteforcer = ProcessBruteforce(event)
+        self.__bruteforcer.add(bruteforcer)
+        bruteforcer.start_searching()
 
 #------------------------------------------------------------------------------
 
@@ -261,7 +343,7 @@ def main( argv ):
     options = parse_cmdline(argv)
 
     # Create the event handler object
-    eventHandler = ReturnAddressBruteforce(options)
+    eventHandler = DebugSessionBruteforce(options)
 
     # Create the debug object
     debug = Debug(eventHandler,
@@ -343,7 +425,7 @@ def parse_cmdline( argv ):
 ##                  help="treat debugees as trusted code [default]")
 ##    debugging.add_option("--dont-autodetach", action="store_false",
 ##                                                         dest="autodetach",
-                  help="don't automatically detach from debugees on exit")
+##                  help="don't automatically detach from debugees on exit")
     debugging.add_option("--dont-follow", action="store_false",
                                                              dest="follow",
                   help="don't automatically attach to child processes")
