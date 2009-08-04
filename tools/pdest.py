@@ -86,39 +86,13 @@ class ProcessBruteforce( object ):
     def get_tid(self):
         return self.get_thread().get_tid()
 
-    # Determine if a memory page is writeable.
-    def is_writeable_page(self, mbi):
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-            Protect & win32.PAGE_EXECUTE_READWRITE  or \
-            Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
-            Protect & win32.PAGE_READWRITE          or \
-            Protect & win32.PAGE_WRITECOPY
-            )
-
-    # Determine if a memory page is readable.
-    def is_readable_page(self, mbi):
-        Protect = mbi.Protect
-        return mbi.State == win32.MEM_COMMIT and \
-            not Protect & win32.PAGE_GUARD and \
-            (
-                Protect & win32.PAGE_EXECUTE_READ       or \
-                Protect & win32.PAGE_EXECUTE_READWRITE  or \
-                Protect & win32.PAGE_EXECUTE_WRITECOPY  or \
-                Protect & win32.PAGE_READONLY           or \
-                Protect & win32.PAGE_READWRITE          or \
-                Protect & win32.PAGE_WRITECOPY
-            )
-
     # Set page breakpoints on each writeable page.
     # That way we can track down write accesses,
     # in order to reverse them later.
     def set_page_breakpoints(self):
         debug = self.debug
         for mbi in self.memory_map:
-            if self.is_writeable_page(mbi):
+            if mbi.is_writeable():
                 pid  = self.get_pid()
                 base = mbi.BaseAddress
                 for offset in xrange(0, mbi.RegionSize, System.pageSize):
@@ -128,7 +102,7 @@ class ProcessBruteforce( object ):
                     try:
                         debug.enable_one_shot_page_breakpoint(pid, address)
                     except WindowsError:
-##                        print "error setting breakpoint at %s" % HexDump.address(address)
+                        print "error setting breakpoint at %s" % HexDump.address(address)
                         pass
                         # for calc.exe these pages raise exceptions:
                         # 00030000
@@ -150,7 +124,7 @@ class ProcessBruteforce( object ):
     def notify_guard_page(self, event):
         pid = self.get_pid()
         if event.get_pid() == pid:
-            address = event.get_access_violation_address()
+            address = event.get_fault_address()
             address = MemoryAddresses.align_address_to_page_start(address)
             if self.debug.has_page_breakpoint(pid, address):
                 data = self.get_process().read(address, System.pageSize)
@@ -221,7 +195,8 @@ class ProcessBruteforce( object ):
     def calculate_target_addresses(self):
         self.target_ranges = list()
         for mbi in self.memory_map:
-            if self.is_readable_page(mbi):
+##            if mbi.is_executable(mbi):
+            if mbi.is_readable(mbi):
                 start = mbi.BaseAddress
                 end   = start + mbi.RegionSize
                 self.target_ranges.append( iter(xrange(start, end, 1)) )
