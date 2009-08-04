@@ -2724,6 +2724,12 @@ class ThreadDebugOperations (object):
 
         @rtype:  int
         @return: Linear memory address.
+
+        @raise ValueError: Address is too large for selector.
+
+        @raise WindowsError:
+            The current architecture does not support selectors.
+            Selectors only exist in x86-based systems.
         """
         selector = self.get_register(segment)
         ldt      = win32.GetThreadSelectorEntry(self.get_handle(), selector)
@@ -2735,7 +2741,9 @@ class ThreadDebugOperations (object):
         LimitHi  = ldt.HighWord.Bits.LimitHi  << 16
         Limit    = LimitLow | LimitHi
         if address > Limit:
-            raise ValueError, "Address too large for selector: %r" % address
+            msg = "Address %s too large for segment %s (selector %d)"
+            msg = msg % (HexDump.address(address), segment, selector)
+            raise ValueError, msg
         return Base + address
 
     def get_label_at_pc(self):
@@ -2754,9 +2762,9 @@ class ThreadDebugOperations (object):
                 - Address of the SEH callback function
 
         @raise NotImplementedError:
-            This method is only supported in 32 bits Windows.
+            This method is only supported in 32 bits versions of Windows.
         """
-        if win32.sizeof(win32.LPVOID) != win32.sizeof(win32.DWORD):
+        if System.arch != 'i386':
             raise NotImplementedError
         process   = self.get_process()
         seh_chain = list()
@@ -2774,6 +2782,7 @@ class ThreadDebugOperations (object):
         """
         @rtype:  tuple( int, int )
         @return: Stack beginning and end pointers, in memory addresses order.
+        @raise   WindowsError: Raises an exception on error.
         """
         try:
             address = self.get_teb_address()
@@ -2803,6 +2812,8 @@ class ThreadDebugOperations (object):
             when C{bUseLabels} is C{True}, or a tuple of
             ( return address, frame pointer label )
             when C{bUseLabels} is C{False}.
+
+        @raise WindowsError: Raises an exception on error.
         """
         aProcess = self.get_process()
         sb, sl   = self.get_stack_range()
@@ -2847,6 +2858,8 @@ class ThreadDebugOperations (object):
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename ).
+
+        @raise WindowsError: Raises an exception on error.
         """
         return self.__get_stack_trace(depth, False)
 
@@ -2869,6 +2882,8 @@ class ThreadDebugOperations (object):
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread as a tuple of
             ( return address, frame pointer label ).
+
+        @raise WindowsError: Raises an exception on error.
         """
         return self.__get_stack_trace(depth, True)
 

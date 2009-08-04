@@ -140,9 +140,17 @@ arch = get_arch()
 if   arch == 'i386':
     from context_i386 import *
 elif arch == 'amd64':
-    from context_amd64 import *
+    if sizeof(SIZE_T) == sizeof(DWORD64):
+        from context_amd64 import *
+    else:
+        from context_i386 import *
 elif arch == 'ia64':
-    from context_ia64 import *
+    if sizeof(SIZE_T) == sizeof(DWORD64):
+        from context_ia64 import *
+    else:
+        from context_i386 import *
+else:
+    print "Warning, unknown or unsupported architecture"
 del arch
 del get_arch
 
