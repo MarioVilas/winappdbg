@@ -79,22 +79,31 @@ class ConsoleDebugger (Cmd, EventHandler):
                               '_'
 
     # Names of the registers.
-    register_names = (
-        'eax', 'ebx', 'ecx', 'edx',
-        'esi', 'edi', 'ebp', 'esp',
-        'eip',
-    )
-    segment_names         = ( 'cs', 'ds', 'es', 'fs', 'gs' )
-    register_alias_16     = { 'ax':'Eax', 'bx':'Ebx', 'cx':'Ecx', 'dx':'Edx' }
-    register_alias_8_low  = { 'al':'Eax', 'bl':'Ebx', 'cl':'Ecx', 'dl':'Edx' }
-    register_alias_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
+    segment_names               = ( 'cs', 'ds', 'es', 'fs', 'gs' )
 
-    register_names_full = list(register_names)
-    register_names_full.extend(segment_names)
-    register_names_full.extend(register_alias_16.iterkeys())
-    register_names_full.extend(register_alias_8_low.iterkeys())
-    register_names_full.extend(register_alias_8_high.iterkeys())
-    register_names_full = tuple(register_names_full)
+    register_alias_64_to_32     = {
+        'eax':'Rax', 'ebx':'Rbx', 'ecx':'Rcx', 'edx':'Rdx',
+        'eip':'Rip', 'ebp':'Rbp', 'esp':'Rsp', 'esi':'Rsi', 'edi':'Rdi'
+    }
+    register_alias_64_to_16     = { 'ax':'Rax', 'bx':'Rbx', 'cx':'Rcx', 'dx':'Rdx' }
+    register_alias_64_to_8_low  = { 'al':'Rax', 'bl':'Rbx', 'cl':'Rcx', 'dl':'Rdx' }
+    register_alias_64_to_8_high = { 'ah':'Rax', 'bh':'Rbx', 'ch':'Rcx', 'dh':'Rdx' }
+    register_alias_32_to_16     = { 'ax':'Eax', 'bx':'Ebx', 'cx':'Ecx', 'dx':'Edx' }
+    register_alias_32_to_8_low  = { 'al':'Eax', 'bl':'Ebx', 'cl':'Ecx', 'dl':'Edx' }
+    register_alias_32_to_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
+
+    register_aliases_full_32 = list(segment_names)
+    register_aliases_full_32.extend(register_alias_32_to_16.iterkeys())
+    register_aliases_full_32.extend(register_alias_32_to_8_low.iterkeys())
+    register_aliases_full_32.extend(register_alias_32_to_8_high.iterkeys())
+    register_aliases_full_32 = tuple(register_aliases_full_32)
+
+    register_aliases_full_64 = list(segment_names)
+    register_aliases_full_64.extend(register_alias_64_to_32.iterkeys())
+    register_aliases_full_64.extend(register_alias_64_to_16.iterkeys())
+    register_aliases_full_64.extend(register_alias_64_to_8_low.iterkeys())
+    register_aliases_full_64.extend(register_alias_64_to_8_high.iterkeys())
+    register_aliases_full_64 = tuple(register_aliases_full_64)
 
     # Names of the control flow instructions.
     jump_instructions = (
@@ -269,7 +278,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # The address can be a integer, a label or a register.
     def input_address(self, token, pid = None, tid = None):
         address = None
-        if token in self.register_names_full:
+        if self.is_register(token):
             if tid is None:
                 if pid != self.lastEvent.get_pid():
                     msg = "can't resolve register (%s) for unknown thread"
@@ -319,6 +328,25 @@ class ConsoleDebugger (Cmd, EventHandler):
                 size    = None
         return address, size
 
+    # XXX TODO
+    # Support non-integer registers here.
+    def is_register(self, token):
+        if win32.CONTEXT.arch == 'i386':
+            if token in self.register_aliases_full_32:
+                return True
+            token = token.title()
+            for (name, typ) in win32.CONTEXT._fields_:
+                if name == token:
+                    return win32.sizeof(typ) == win32.sizeof(win32.DWORD)
+        elif win32.CONTEXT.arch == 'amd64':
+            if token in self.register_aliases_full_64:
+                return True
+            token = token.title()
+            for (name, typ) in win32.CONTEXT._fields_:
+                if name == token:
+                    return win32.sizeof(typ) == win32.sizeof(win32.DWORD64)
+        return False
+
     # The token is a register name.
     # Returns None if no register name is matched.
     def input_register(self, token, tid = None):
@@ -332,21 +360,39 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         token = token.lower()
 
-        if token in self.register_names:
-            return ctx.get( token.title() )             # eax -> Eax
+        if ctx.has_key( token.title() ):
+            return ctx.get( token.title() )     # eax -> Eax
 
-        if token in self.segment_names:
-            return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
+        if win32.CONTEXT.arch == 'i386':
 
-        if token in self.register_alias_16.keys():
-            return ctx.get( self.register_alias_16[token] ) & 0x0000FFFF
+            if token in self.segment_names:
+                return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
 
-        if token in self.register_alias_8_low.keys():
-            return ctx.get( self.register_alias_8_low[token] ) & 0x000000FF
+            if token in self.register_alias_32_to_16.keys():
+                return ctx.get( self.register_alias_32_to_16[token] ) & 0xFFFF
 
-        if token in self.register_alias_8_high.keys():
-            return \
-               (ctx.get( self.register_alias_8_high[token] ) & 0x0000FF00) >> 8
+            if token in self.register_alias_32_to_8_low.keys():
+                return ctx.get( self.register_alias_32_to_8_low[token] ) & 0xFF
+
+            if token in self.register_alias_32_to_8_high.keys():
+                return (ctx.get( self.register_alias_32_to_8_high[token] ) & 0xFF00) >> 8
+
+        elif win32.CONTEXT.arch == 'amd64':
+
+            if token in self.segment_names:
+                return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
+
+            if token in self.register_alias_64_to_32.keys():
+                return ctx.get( self.register_alias_64_to_32[token] ) & 0xFFFFFFFF
+
+            if token in self.register_alias_64_to_16.keys():
+                return ctx.get( self.register_alias_64_to_16[token] ) & 0xFFFF
+
+            if token in self.register_alias_64_to_8_low.keys():
+                return ctx.get( self.register_alias_64_to_8_low[token] ) & 0xFF
+
+            if token in self.register_alias_64_to_8_high.keys():
+                return (ctx.get( self.register_alias_64_to_8_high[token] ) & 0xFF00) >> 8
 
         return None
 
