@@ -116,9 +116,11 @@ def GetNativeSystemInfo():
 
 import context_i386
 import context_amd64
+import context_ia64
 
 from context_i386  import CONTEXT_i386, CONTEXT_i486
 from context_amd64 import CONTEXT_AMD64
+from context_ia64  import CONTEXT_IA64
 
 def get_arch():
     try:

@@ -491,7 +491,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Inform the user of any other debugging event.
     def print_event(self, event):
-        code = winappdbg.HexDump.address( event.get_event_code() )
+        code = winappdbg.HexDump.integer( event.get_event_code() )
         name = event.get_event_name()
         desc = event.get_event_description()
         if code in desc:
@@ -505,7 +505,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Stop on exceptions and prompt for commands.
     def print_exception(self, event):
         address = winappdbg.HexDump.address( event.get_exception_address() )
-        code    = winappdbg.HexDump.address( event.get_exception_code() )
+        code    = winappdbg.HexDump.integer( event.get_exception_code() )
         desc    = event.get_exception_description()
         if event.is_first_chance():
             chance = 'first'

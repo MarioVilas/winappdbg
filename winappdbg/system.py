@@ -73,7 +73,7 @@ import ctypes
 import struct
 
 try:
-    from distorm import Decode
+    from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
 except ImportError:
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
@@ -3330,7 +3330,9 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        return Decode(lpAddress, code)
+        if System.arch == 'i386':
+            return Decode(lpAddress, code, Decode32Bits)
+        return Decode(lpAddress, code, Decode64Bits)
 
     def disassemble(self, lpAddress, dwSize):
         """
