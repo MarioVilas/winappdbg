@@ -1357,7 +1357,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if opcode in self.jump_instructions or opcode in ('int', 'ret', 'retn'):
             return self.do_trace(arg)
         address = pc + size
-        print hex(pc), hex(address), size
+##        print hex(pc), hex(address), size   # XXX DEBUG
         self.lastEvent.debug.stalk_at(pid, address)
         return True
 
@@ -1371,7 +1371,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if arg:     # XXX this check is to be removed
             raise CmdError, "too many arguments"
-        thread = self.lastEvent.get_thread().set_tf()
+        self.lastEvent.get_thread().set_tf()
         return True
 
     do_t = do_trace

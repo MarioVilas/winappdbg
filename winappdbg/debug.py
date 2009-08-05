@@ -824,7 +824,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         if event.is_first_chance():
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
         return True
 
     def notify_ms_vc_exception(self, event):

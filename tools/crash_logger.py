@@ -401,7 +401,7 @@ class LoggingEventHandler(EventHandler):
 ##        else:
 ##
 ##            # Continue without setting the trap flag.
-##            event.continueStatus = win32.DBG_CONTINUE
+##            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 ##
 ##            # Log the event to standard output.
 ##            if self.options.verbose:
@@ -425,7 +425,7 @@ class LoggingEventHandler(EventHandler):
         # Step over breakpoints.
         # This includes both user-defined and hardcoded in the binary.
         if bFirstChance:
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
         # Get the address where the exception occured.
         address = event.get_exception_address()

@@ -3007,7 +3007,7 @@ class BreakpointContainer (object):
             bp = self.__pageBP[key]
 
             # Breakpoint is ours.
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
             # Set the "breakpoint" property of the event object.
             event.breakpoint     = bp
@@ -3054,7 +3054,7 @@ class BreakpointContainer (object):
             bp = self.__codeBP[key]
 
             # Breakpoint is ours.
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
             # Set the "breakpoint" property of the event object.
             event.breakpoint     = bp
@@ -3089,7 +3089,7 @@ class BreakpointContainer (object):
 
         # Handle the system breakpoint.
         elif event.get_process().is_system_defined_breakpoint(address):
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
         return bCallHandler
 
@@ -3108,12 +3108,12 @@ class BreakpointContainer (object):
         # don't pass the exception to the debugee
         # and set the trap flag again.
         if self.is_tracing(tid):
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             event.get_thread().set_tf()
 
         # Handle breakpoints in RUNNING state.
         while self.__has_running_bp(tid):
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             bCallHandler = False
             bp = self.__pop_running_bp(tid)
             bp.hit(event)
@@ -3134,7 +3134,7 @@ class BreakpointContainer (object):
                 slot = bp.get_slot()
                 if (slot is not None) and (Dr6 & DebugRegister.hitMask[slot]):
                     if not bFoundBreakpoint:    # set before actions are called
-                        event.continueStatus = win32.DBG_CONTINUE
+                        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
                     bFoundBreakpoint = True
                     event.breakpoint = bp
                     bp.hit(event)
