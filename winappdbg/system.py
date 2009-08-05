@@ -2520,6 +2520,9 @@ When called as an instance method, the fuzzy syntax mode is used::
             label = self.parse_label(None, None, address)
         return label
 
+    # XXX TODO
+    # DbgBreakPointWithStatus: http://msdn.microsoft.com/en-us/library/ms792807.aspx
+
     def is_system_defined_breakpoint(self, address):
         """
         @type  address: int
