@@ -979,6 +979,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
+        if not self.mquery(lpBaseAddress).has_content():
+            raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
         data = win32.ReadProcessMemory(self.get_handle(), lpBaseAddress, nSize)
         if len(data) != nSize:
             raise ctypes.WinError()
@@ -1000,6 +1002,8 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
+        if not self.mquery(lpBaseAddress).has_content():
+            raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
         r = win32.WriteProcessMemory(self.get_handle(), lpBaseAddress, lpBuffer)
         if r != len(lpBuffer):
             raise ctypes.WinError()
