@@ -74,7 +74,7 @@ class LoggingEventHandler(EventHandler):
                                     allowRepeatedKeys = options.duplicates )
         else:
             self.knownCrashes = DummyCrashContainer( \
-                                    allowRepeatedKeys = options.duplicates)
+                                    allowRepeatedKeys = options.duplicates )
 
         # Create the cache of resolved labels.
         self.labelsCache = dict()                   # pid -> label -> address
@@ -143,15 +143,15 @@ class LoggingEventHandler(EventHandler):
             # %SP% - Contents of ESP, in hexa
             # %FP% - Contents of EBP, in hexa
             # %WHERE% - Location of the event (a label or address)
-            action = action.replace('%COUNT%', str(len(self.knownCrashes)))
-            action = action.replace('%EXCEPTIONCODE%', HexDump.address(crash.exceptionCode))
-            action = action.replace('%EVENTCODE%', HexDump.address(crash.eventCode))
-            action = action.replace('%EXCEPTION%', str(crash.exceptionName))
-            action = action.replace('%EVENT%', str(crash.eventName))
-            action = action.replace('%PC%', HexDump.address(crash.pc))
-            action = action.replace('%SP%', HexDump.address(crash.sp))
-            action = action.replace('%FP%', HexDump.address(crash.fp))
-            action = action.replace('%WHERE%', str(crash.labelPC))
+            action = action.replace('%COUNT%',          str(len(self.knownCrashes)) )
+            action = action.replace('%EXCEPTIONCODE%',  HexDump.address(crash.exceptionCode) )
+            action = action.replace('%EVENTCODE%',      HexDump.address(crash.eventCode) )
+            action = action.replace('%EXCEPTION%',      str(crash.exceptionName) )
+            action = action.replace('%EVENT%',          str(crash.eventName) )
+            action = action.replace('%PC%',             HexDump.address(crash.pc) )
+            action = action.replace('%SP%',             HexDump.address(crash.sp) )
+            action = action.replace('%FP%',             HexDump.address(crash.fp) )
+            action = action.replace('%WHERE%',          str(crash.labelPC) )
         action = "cmd.exe /c %s" % action
         system  = System()
         process = system.start_process(action, bConsole = True)
