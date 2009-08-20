@@ -1841,19 +1841,20 @@ class BreakpointContainer (object):
         process = event.get_process()
         module  = event.get_module()
         for tid in process.iter_thread_ids():
+            thread = process.get_thread(tid)
             if tid in self.__runningBP:
                 bplist = list(self.__runningBP[tid])
                 for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
-                        bp.disable()
+                        bp.disable(process, thread)
                         self.__runningBP[tid].remove(bp)
             if tid in self.__hardwareBP:
                 bplist = list(self.__hardwareBP[tid])
                 for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
-                        bp.disable()
+                        bp.disable(process, thread)
                         self.__hardwareBP[tid].remove(bp)
         for (bp_pid, bp_address) in self.__codeBP.items():
             if bp_pid == pid:
