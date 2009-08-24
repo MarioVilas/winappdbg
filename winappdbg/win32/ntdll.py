@@ -1224,7 +1224,7 @@ def RtlNtStatusToDosError(Status):
 # );
 def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, OutputBuffer = None, OutputBufferLength = None):
     _NtSystemDebugControl = windll.ntdll.NtSystemDebugControl
-    _NtSystemDebugControl.argtypes = [SYSDBG_COMMAND, PVOID, ULONG, PVOID, ULONG, PLONG]
+    _NtSystemDebugControl.argtypes = [SYSDBG_COMMAND, PVOID, ULONG, PVOID, ULONG, PULONG]
     _NtSystemDebugControl.restype = NTSTATUS
     if InputBuffer is None:
         InputBuffer = NULL
