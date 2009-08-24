@@ -2670,7 +2670,7 @@ class ThreadDebugOperations (object):
     Encapsulates several useful debugging routines for threads.
 
     @group Properties:
-        get_teb, get_teb_address
+        get_teb, get_teb_address, is_wow64
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -2688,6 +2688,25 @@ class ThreadDebugOperations (object):
         get_linear_address, get_label_at_pc,
         get_seh_chain
     """
+
+    def is_wow64(self):
+        """
+        Determines if the thread is running under WOW64.
+
+        @rtype:  bool
+        @return:
+            C{True} if the thread is running under WOW64. That is, it belongs
+            to a 32-bit application running in a 64-bit Windows.
+
+            C{False} if the thread belongs to either a 32-bit application
+            running in a 32-bit Windows, or a 64-bit application running in a
+            64-bit Windows.
+
+        @raise WindowsError: On error an exception is raised.
+
+        @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
+        """
+        return self.get_process().is_wow64()
 
     # TODO
     # Maybe it'd be a good idea to cache the TEB, or at least it's pointer.
@@ -5178,10 +5197,14 @@ class Thread (ThreadDebugOperations):
         except WindowsError:
             bSuspended = False
         try:
-            return win32.GetThreadContext(self.get_handle(), ContextFlags)
+            if self.is_wow64():
+                ctx = win32.Wow64GetThreadContext(self.get_handle(), ContextFlags)
+            else:
+                ctx = win32.GetThreadContext(self.get_handle(), ContextFlags)
         finally:
             if bSuspended:
                 self.resume()
+        return ctx
 
     def set_context(self, context):
         """
@@ -5192,9 +5215,14 @@ class Thread (ThreadDebugOperations):
         @type  context:  dict( str S{->} int )
         @param context: Dictionary mapping register names to their values.
         """
+        # No fix for the exit process event bug.
+        # Setting the context of a dead thread is pointless anyway.
         self.suspend()
         try:
-            win32.SetThreadContext(self.get_handle(), context)
+            if self.is_wow64():
+                win32.Wow64SetThreadContext(self.get_handle(), context)
+            else:
+                win32.SetThreadContext(self.get_handle(), context)
         finally:
             self.resume()
 
