@@ -75,6 +75,10 @@ import struct
 try:
     from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
 except ImportError:
+    raise
+    Decode16Bits = None
+    Decode32Bits = None
+    Decode64Bits = None
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
         msg = ("diStorm is not installed or can't be found. "
@@ -3184,8 +3188,7 @@ class ThreadDebugOperations (object):
     # The disassemble_around and disassemble_around_pc methods
     # should take as parameter instruction counts rather than sizes
 
-    @staticmethod
-    def disassemble_string(lpAddress, code):
+    def disassemble_string(self, lpAddress, code):
         """
         Disassemble instructions from a block of binary code.
 
@@ -3203,7 +3206,8 @@ class ThreadDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        return ProcessDebugOperations.disassemble_string(lpAddress, code)
+        aProcess = self.get_process()
+        return aProcess.disassemble_string(lpAddress, code)
 
     def disassemble(self, lpAddress, dwSize):
         """
@@ -3340,8 +3344,7 @@ class ProcessDebugOperations (object):
                 m = self.__hexa_parameter.search(text, e)
             disasm[index] = (address, size, text, dump)
 
-    @staticmethod
-    def disassemble_string(lpAddress, code):
+    def disassemble_string(self, lpAddress, code):
         """
         Disassemble instructions from a block of binary code.
 
@@ -3359,7 +3362,9 @@ class ProcessDebugOperations (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        if System.arch == 'i386':
+        if System.arch not in ('i386', 'amd64'):
+            raise NotImplementedError
+        if (not System.wow64 and System.bits == 32) or self.is_wow64():
             return Decode(lpAddress, code, Decode32Bits)
         return Decode(lpAddress, code, Decode64Bits)
 
@@ -5187,13 +5192,22 @@ class Thread (ThreadDebugOperations):
 
     # TODO
     # A registers cache could be implemented here.
-    def get_context(self, ContextFlags = win32.CONTEXT_ALL):
+    def get_context(self, ContextFlags = None):
         """
+        @type  ContextFlags: int
+        @param ContextFlags: Optional, specify which registers to retrieve.
+            Defaults to C{win32.CONTEXT_ALL} which retrieves all registes
+            for the current platform.
+
         @rtype:  dict( str S{->} int )
         @return: Dictionary mapping register names to their values.
 
         @see: L{set_context}
         """
+
+        # Get the thread handle.
+        hThread = self.get_handle()
+
         # Threads can't be suspended when the exit process event arrives.
         # Funny thing is, you can still get the context. (?)
         try:
@@ -5201,11 +5215,36 @@ class Thread (ThreadDebugOperations):
             bSuspended = True
         except WindowsError:
             bSuspended = False
+
+        # If an exception is raised, make sure the thread execution is resumed.
         try:
-            if System.bits == 64 and self.is_wow64():
-                ctx = win32.Wow64GetThreadContext(self.get_handle(), ContextFlags)
+
+            # If we're not in WOW64, things are simple :)
+            if not System.wow64:
+##                if self.is_wow64():
+##                    if ContextFlags is not None:
+##                        ContextFlags = ContextFlags & (~win32.ContextArchMask)
+##                        ContextFlags = ContextFlags | win32.WOW64_CONTEXT_i386
+##                    ctx = win32.Wow64GetThreadContext(hThread,
+##                                                 ContextFlags = ContextFlags)
+##                else:
+                    ctx = win32.GetThreadContext(hThread,
+                                                 ContextFlags = ContextFlags)
+
+            # If we're in WOW64, things are tricky!
             else:
-                ctx = win32.GetThreadContext(self.get_handle(), ContextFlags)
+                if self.is_wow64():
+                    ctx = win32.GetThreadContext(hThread,
+                                                 ContextFlags = ContextFlags)
+                else:
+                    # XXX only i386/AMD64 is supported in this particular case
+                    if System.arch != 'i386':
+                        raise NotImplementedError
+                    if ContextFlags is not None:
+                        ContextFlags = ContextFlags & (~win32.ContextArchMask)
+                        ContextFlags = ContextFlags | win32.context_amd64.CONTEXT_AMD64
+                    ctx = win32.context_amd64.GetThreadContext(hThread,
+                                                 ContextFlags = ContextFlags)
         finally:
             if bSuspended:
                 self.resume()
@@ -5259,7 +5298,7 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    if win32.CONTEXT.arch == 'i386':
+    if win32.CONTEXT.arch in ('i386', 'amd64'):
 
         def get_pc(self):
             """
@@ -5267,7 +5306,7 @@ class Thread (ThreadDebugOperations):
             @return: Value of the program counter register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Eip']
+            return context.pc
 
         def set_pc(self, pc):
             """
@@ -5277,7 +5316,7 @@ class Thread (ThreadDebugOperations):
             @param pc: Value of the program counter register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Eip'] = pc
+            context.pc = pc
             self.set_context(context)
 
         def get_sp(self):
@@ -5286,7 +5325,7 @@ class Thread (ThreadDebugOperations):
             @return: Value of the stack pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Esp']
+            return context.sp
 
         def set_sp(self, sp):
             """
@@ -5296,7 +5335,7 @@ class Thread (ThreadDebugOperations):
             @param sp: Value of the stack pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Esp'] = sp
+            context.sp = sp
             self.set_context(context)
 
         def get_fp(self):
@@ -5305,7 +5344,7 @@ class Thread (ThreadDebugOperations):
             @return: Value of the frame pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Ebp']
+            return context.fp
 
         def set_fp(self, fp):
             """
@@ -5315,68 +5354,66 @@ class Thread (ThreadDebugOperations):
             @param fp: Value of the frame pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Ebp'] = fp
+            context.fp = fp
             self.set_context(context)
 
-#------------------------------------------------------------------------------
+    elif win32.CONTEXT.arch == 'ia64':
 
-    elif win32.CONTEXT.arch == 'amd64':
-
-        def get_pc(self):
+        def get_gp(self):
             """
             @rtype:  int
-            @return: Value of the program counter register.
+            @return: Value of the GP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Rip']
+            return context.gp
 
-        def set_pc(self, pc):
+        def set_gp(self, gp):
             """
-            Sets the value of the program counter register.
+            Sets the value of the frame pointer register.
 
-            @type  pc: int
-            @param pc: Value of the program counter register.
+            @type  gp: int
+            @param gp: Value of the GP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Rip'] = pc
+            context.gp = gp
             self.set_context(context)
 
         def get_sp(self):
             """
             @rtype:  int
-            @return: Value of the stack pointer register.
+            @return: Value of the SP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Rsp']
+            return context.sp
 
         def set_sp(self, sp):
             """
-            Sets the value of the stack pointer register.
+            Sets the value of the SP register.
 
             @type  sp: int
-            @param sp: Value of the stack pointer register.
+            @param sp: Value of the SP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Rsp'] = sp
+            context.sp = sp
             self.set_context(context)
 
-        def get_fp(self):
+        def get_rp(self):
             """
             @rtype:  int
-            @return: Value of the frame pointer register.
+            @return: Value of the RP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['Rbp']
+            return context.rp
 
-        def set_fp(self, fp):
+        def set_rp(self, rp):
             """
-            Sets the value of the frame pointer register.
+            Sets the value of the RP register.
 
-            @type  fp: int
-            @param fp: Value of the frame pointer register.
+            @type  rp: int
+            @param rp: Value of the RP register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['Rbp'] = fp
+            context.rp = rp
             self.set_context(context)
 
 #------------------------------------------------------------------------------
@@ -6077,6 +6114,10 @@ class System (ProcessContainer):
     @cvar bits: Size of the machine word in bits for the current architecture.
         Currently supported values are C{32} and C{64}.
 
+    @type wow64: bool
+    @cvar wow64: C{True} if the debugger is a 32 bits process running in a 64
+        bits version of Windows, C{False} otherwise.
+
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
@@ -6084,6 +6125,13 @@ class System (ProcessContainer):
 
     arch = win32.CONTEXT.arch
     bits = win32.sizeof( win32.LPVOID ) * 8
+
+    # Try to determine if the debugger itself is running on WOW64.
+    # On error assume False.
+    try:
+        wow64 = win32.IsWow64Process( win32.GetCurrentProcess() )
+    except Exception:
+        wow64 = False
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.

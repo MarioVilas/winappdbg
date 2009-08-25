@@ -47,6 +47,9 @@ import traceback
 
 #==============================================================================
 
+# XXX TODO
+# Capture stderr from the debuguees
+
 class LoggingEventHandler(EventHandler):
     (
     'Event handler that logs all events to standard output.'
@@ -433,9 +436,12 @@ class LoggingEventHandler(EventHandler):
         # Determine if the breakpoint is ours.
         bOurs = hasattr(event, 'breakpoint') and event.breakpoint
 
+        # Determine if the breakpoint is WOW64 breakpoint.
+        bWow64 = event.get_exception_code() == win32.EXCEPTION_WX86_BREAKPOINT
+
         # Determine if the breakpoint is a system defined breakpoint.
-        bSystem = not bOurs and \
-                  event.get_process().is_system_defined_breakpoint(address)
+        bSystem = bWow64 or (not bOurs and \
+                  event.get_process().is_system_defined_breakpoint(address))
 
         # Add the crash if this is an unexpected breakpoint event.
         # It may be signaling a C/C++ assert() failure.
@@ -451,6 +457,8 @@ class LoggingEventHandler(EventHandler):
                     where   = self.__get_location(event, address)
                     if bOurs:
                         msg = "Breakpoint hit (%s)" % where
+                    elif bWow64:
+                        msg = "WOW64 breakpoint hit (%s)" % where
                     elif bSystem:
                         msg = "System breakpoint hit (%s)" % where
                     else:
@@ -465,6 +473,11 @@ class LoggingEventHandler(EventHandler):
                 # redefine them with the --break command line option.
                 if bOurs or (not bSystem and self.__action_requested(event)):
                     self.__action(event)
+
+    # WOW64 breakpoints are treated the same way as normal breakpoints.
+    # Change this code if needed...
+    def wow64_breakpoint(self, event):
+        self.breakpoint(event)
 
 #==============================================================================
 

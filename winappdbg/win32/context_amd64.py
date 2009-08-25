@@ -377,7 +377,7 @@ class CONTEXT(Structure):
     @classmethod
     def from_dict(cls, ctx):
         'Instance a new structure from a Python dictionary.'
-        ctx = dict(ctx)
+        ctx = Context(ctx)
         s = cls()
         ContextFlags = ctx['ContextFlags']
         s.ContextFlags = ContextFlags
@@ -403,7 +403,7 @@ class CONTEXT(Structure):
 
     def to_dict(self):
         'Convert a structure into a Python dictionary.'
-        ctx = dict()
+        ctx = Context()
         ContextFlags = self.ContextFlags
         ctx['ContextFlags'] = ContextFlags
         for key in self._others:
@@ -428,6 +428,30 @@ class CONTEXT(Structure):
 
 PCONTEXT = ctypes.POINTER(CONTEXT)
 LPCONTEXT = PCONTEXT
+
+class Context(dict):
+    """
+    Register context dictionary for the %s architecture.
+    """ % CONTEXT.arch
+    arch = CONTEXT.arch
+
+    def __get_pc(self):
+        return self['Rip']
+    def __set_pc(self, value):
+        self['Rip'] = value
+    pc = property(__get_pc, __set_pc)
+
+    def __get_sp(self):
+        return self['Rsp']
+    def __set_sp(self, value):
+        self['Rsp'] = value
+    sp = property(__get_sp, __set_sp)
+
+    def __get_fp(self):
+        return self['Rbp']
+    def __set_fp(self, value):
+        self['Rbp'] = value
+    fp = property(__get_fp, __set_fp)
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -498,3 +522,132 @@ class LDT_ENTRY(Structure):
 
 PLDT_ENTRY = POINTER(LDT_ENTRY)
 LPLDT_ENTRY = PLDT_ENTRY
+
+###############################################################################
+
+# BOOL WINAPI GetThreadSelectorEntry(
+#   __in   HANDLE hThread,
+#   __in   DWORD dwSelector,
+#   __out  LPLDT_ENTRY lpSelectorEntry
+# );
+def GetThreadSelectorEntry(hThread, dwSelector):
+    _GetThreadSelectorEntry = windll.kernel32.GetThreadSelectorEntry
+    _GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, LPLDT_ENTRY]
+    _GetThreadSelectorEntry.restype = bool
+    _GetThreadSelectorEntry.errcheck = RaiseIfZero
+
+    ldt = LDT_ENTRY()
+    _GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
+    return ldt
+
+# BOOL WINAPI GetThreadContext(
+#   __in     HANDLE hThread,
+#   __inout  LPCONTEXT lpContext
+# );
+def GetThreadContext(hThread, ContextFlags = None):
+    _GetThreadContext = windll.kernel32.GetThreadContext
+    _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _GetThreadContext.restype = bool
+    _GetThreadContext.errcheck = RaiseIfZero
+
+    if ContextFlags is None:
+        ContextFlags = CONTEXT_ALL
+    lpContext = CONTEXT()
+    lpContext.ContextFlags = ContextFlags
+    _GetThreadContext(hThread, ctypes.byref(lpContext))
+    return lpContext.to_dict()
+
+# BOOL WINAPI SetThreadContext(
+#   __in  HANDLE hThread,
+#   __in  const CONTEXT* lpContext
+# );
+def SetThreadContext(hThread, lpContext):
+    _SetThreadContext = windll.kernel32.SetThreadContext
+    _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _SetThreadContext.restype = bool
+    _SetThreadContext.errcheck = RaiseIfZero
+
+    if isinstance(lpContext, dict):
+        lpContext = CONTEXT.from_dict(lpContext)
+    _SetThreadContext(hThread, ctypes.byref(lpContext))
+
+# BOOL Wow64GetThreadSelectorEntry(
+#   __in   HANDLE hThread,
+#   __in   DWORD dwSelector,
+#   __out  PWOW64_LDT_ENTRY lpSelectorEntry
+# );
+def Wow64GetThreadSelectorEntry(hThread, dwSelector):
+    _Wow64GetThreadSelectorEntry = windll.kernel32.Wow64GetThreadSelectorEntry
+    _Wow64GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, PWOW64_LDT_ENTRY]
+    _Wow64GetThreadSelectorEntry.restype = bool
+    _Wow64GetThreadSelectorEntry.errcheck = RaiseIfZero
+
+    lpSelectorEntry = WOW64_LDT_ENTRY()
+    _Wow64GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(lpSelectorEntry))
+    return lpSelectorEntry
+
+# DWORD WINAPI Wow64ResumeThread(
+#   __in  HANDLE hThread
+# );
+def Wow64ResumeThread(hThread):
+    _Wow64ResumeThread = windll.kernel32.Wow64ResumeThread
+    _Wow64ResumeThread.argtypes = [HANDLE]
+    _Wow64ResumeThread.restype = DWORD
+
+    previousCount = _Wow64ResumeThread(hThread)
+    if previousCount == DWORD(-1).value:
+        raise ctypes.WinError()
+    return previousCount
+
+# DWORD WINAPI Wow64SuspendThread(
+#   __in  HANDLE hThread
+# );
+def Wow64SuspendThread(hThread):
+    _Wow64SuspendThread = windll.kernel32.Wow64SuspendThread
+    _Wow64SuspendThread.argtypes = [HANDLE]
+    _Wow64SuspendThread.restype = DWORD
+
+    previousCount = _Wow64SuspendThread(hThread)
+    if previousCount == DWORD(-1).value:
+        raise ctypes.WinError()
+    return previousCount
+
+# XXX TODO Use this http://www.nynaeve.net/Code/GetThreadWow64Context.cpp
+# Also see http://www.woodmann.com/forum/archive/index.php/t-11162.html
+
+# BOOL WINAPI Wow64GetThreadContext(
+#   __in     HANDLE hThread,
+#   __inout  PWOW64_CONTEXT lpContext
+# );
+def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
+    _Wow64GetThreadContext = windll.kernel32.Wow64GetThreadContext
+    _Wow64GetThreadContext.argtypes = [HANDLE, LPVOID]
+    _Wow64GetThreadContext.restype = bool
+    _Wow64GetThreadContext.errcheck = RaiseIfZero
+
+    # XXX doesn't exist in XP 64 bits
+
+    if lpContext is None:
+        lpContext = WOW64_CONTEXT()
+        if ContextFlags is None:
+            lpContext.ContextFlags = WOW64_CONTEXT_ALL
+        else:
+            lpContext.ContextFlags = ContextFlags
+    elif ContextFlags is not None:
+        lpContext.ContextFlags = ContextFlags
+    _Wow64GetThreadContext(hThread, ctypes.byref(lpContext))
+    return lpContext.to_dict()
+
+# BOOL WINAPI Wow64SetThreadContext(
+#   __in  HANDLE hThread,
+#   __in  const WOW64_CONTEXT *lpContext
+# );
+def Wow64SetThreadContext(hThread, lpContext):
+    _Wow64SetThreadContext = windll.kernel32.Wow64SetThreadContext
+    _Wow64SetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
+    _Wow64SetThreadContext.restype = bool
+    _Wow64SetThreadContext.errcheck = RaiseIfZero
+
+    if isinstance(lpContext, dict):
+        lpContext = WOW64_CONTEXT.from_dict(lpContext)
+    _Wow64SetThreadContext(hThread, ctypes.byref(lpContext))

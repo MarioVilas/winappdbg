@@ -233,7 +233,7 @@ class CONTEXT(Structure):
     @classmethod
     def from_dict(cls, ctx):
         'Instance a new structure from a Python dictionary.'
-        ctx = dict(ctx)
+        ctx = Context(ctx)
         s = cls()
         ContextFlags = ctx['ContextFlags']
         setattr(s, 'ContextFlags', ContextFlags)
@@ -260,7 +260,7 @@ class CONTEXT(Structure):
 
     def to_dict(self):
         'Convert a structure into a Python dictionary.'
-        ctx = dict()
+        ctx = Context()
         ContextFlags = self.ContextFlags
         ctx['ContextFlags'] = ContextFlags
         if (ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS:
@@ -285,6 +285,30 @@ class CONTEXT(Structure):
 
 PCONTEXT = POINTER(CONTEXT)
 LPCONTEXT = PCONTEXT
+
+class Context(dict):
+    """
+    Register context dictionary for the %s architecture.
+    """ % CONTEXT.arch
+    arch = CONTEXT.arch
+
+    def __get_pc(self):
+        return self['Eip']
+    def __set_pc(self, value):
+        self['Eip'] = value
+    pc = property(__get_pc, __set_pc)
+
+    def __get_sp(self):
+        return self['Esp']
+    def __set_sp(self, value):
+        self['Esp'] = value
+    sp = property(__get_sp, __set_sp)
+
+    def __get_fp(self):
+        return self['Ebp']
+    def __set_fp(self, value):
+        self['Ebp'] = value
+    fp = property(__get_fp, __set_fp)
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -355,3 +379,51 @@ class LDT_ENTRY(Structure):
 
 PLDT_ENTRY = POINTER(LDT_ENTRY)
 LPLDT_ENTRY = PLDT_ENTRY
+
+###############################################################################
+
+# BOOL WINAPI GetThreadSelectorEntry(
+#   __in   HANDLE hThread,
+#   __in   DWORD dwSelector,
+#   __out  LPLDT_ENTRY lpSelectorEntry
+# );
+def GetThreadSelectorEntry(hThread, dwSelector):
+    _GetThreadSelectorEntry = windll.kernel32.GetThreadSelectorEntry
+    _GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, LPLDT_ENTRY]
+    _GetThreadSelectorEntry.restype = bool
+    _GetThreadSelectorEntry.errcheck = RaiseIfZero
+
+    ldt = LDT_ENTRY()
+    _GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
+    return ldt
+
+# BOOL WINAPI GetThreadContext(
+#   __in     HANDLE hThread,
+#   __inout  LPCONTEXT lpContext
+# );
+def GetThreadContext(hThread, ContextFlags = None):
+    _GetThreadContext = windll.kernel32.GetThreadContext
+    _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _GetThreadContext.restype = bool
+    _GetThreadContext.errcheck = RaiseIfZero
+
+    if ContextFlags is None:
+        ContextFlags = CONTEXT_ALL
+    lpContext = CONTEXT()
+    lpContext.ContextFlags = ContextFlags
+    _GetThreadContext(hThread, ctypes.byref(lpContext))
+    return lpContext.to_dict()
+
+# BOOL WINAPI SetThreadContext(
+#   __in  HANDLE hThread,
+#   __in  const CONTEXT* lpContext
+# );
+def SetThreadContext(hThread, lpContext):
+    _SetThreadContext = windll.kernel32.SetThreadContext
+    _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _SetThreadContext.restype = bool
+    _SetThreadContext.errcheck = RaiseIfZero
+
+    if isinstance(lpContext, dict):
+        lpContext = CONTEXT.from_dict(lpContext)
+    _SetThreadContext(hThread, ctypes.byref(lpContext))

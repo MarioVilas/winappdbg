@@ -122,6 +122,11 @@ from context_i386  import CONTEXT_i386, CONTEXT_i486
 from context_amd64 import CONTEXT_AMD64
 from context_ia64  import CONTEXT_IA64
 
+ContextArchMask = context_i386.CONTEXT_i386
+##ContextArchMask = ContextArchMask | context_amd64.CONTEXT_i486
+ContextArchMask = ContextArchMask | context_amd64.CONTEXT_AMD64
+ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
+
 def get_arch():
     try:
         si = GetNativeSystemInfo()
@@ -486,6 +491,7 @@ EXCEPTION_STACK_OVERFLOW            = STATUS_STACK_OVERFLOW
 EXCEPTION_GUARD_PAGE                = STATUS_GUARD_PAGE_VIOLATION
 EXCEPTION_INVALID_HANDLE            = STATUS_INVALID_HANDLE
 EXCEPTION_POSSIBLE_DEADLOCK         = STATUS_POSSIBLE_DEADLOCK
+EXCEPTION_WX86_BREAKPOINT           = STATUS_WX86_BREAKPOINT
 
 CONTROL_C_EXIT                      = STATUS_CONTROL_C_EXIT
 
@@ -3075,21 +3081,6 @@ def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
     _VirtualFreeEx.errcheck = RaiseIfZero
     _VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
 
-# BOOL WINAPI GetThreadSelectorEntry(
-#   __in   HANDLE hThread,
-#   __in   DWORD dwSelector,
-#   __out  LPLDT_ENTRY lpSelectorEntry
-# );
-def GetThreadSelectorEntry(hThread, dwSelector):
-    _GetThreadSelectorEntry = windll.kernel32.GetThreadSelectorEntry
-    _GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, LPLDT_ENTRY]
-    _GetThreadSelectorEntry.restype = bool
-    _GetThreadSelectorEntry.errcheck = RaiseIfZero
-
-    ldt = LDT_ENTRY()
-    _GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
-    return ldt
-
 # HANDLE WINAPI CreateRemoteThread(
 #   __in   HANDLE hProcess,
 #   __in   LPSECURITY_ATTRIBUTES lpThreadAttributes,
@@ -3314,38 +3305,6 @@ def DebugBreakProcess(hProcess):
     _DebugBreakProcess.restype = bool
     _DebugBreakProcess.errcheck = RaiseIfZero
     _DebugBreakProcess(hProcess)
-
-# BOOL WINAPI GetThreadContext(
-#   __in     HANDLE hThread,
-#   __inout  LPCONTEXT lpContext
-# );
-def GetThreadContext(hThread, ContextFlags = CONTEXT_ALL):
-    _GetThreadContext = windll.kernel32.GetThreadContext
-    _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _GetThreadContext.restype = bool
-    _GetThreadContext.errcheck = RaiseIfZero
-
-    # XXX returns 1 for 64 bit threads from a 32 bit debugger,
-    # but the structure is empty :(
-
-    lpContext = CONTEXT()
-    lpContext.ContextFlags = ContextFlags
-    _GetThreadContext(hThread, ctypes.byref(lpContext))
-    return lpContext.to_dict()
-
-# BOOL WINAPI SetThreadContext(
-#   __in  HANDLE hThread,
-#   __in  const CONTEXT* lpContext
-# );
-def SetThreadContext(hThread, lpContext):
-    _SetThreadContext = windll.kernel32.SetThreadContext
-    _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _SetThreadContext.restype = bool
-    _SetThreadContext.errcheck = RaiseIfZero
-
-    if isinstance(lpContext, dict):
-        lpContext = CONTEXT.from_dict(lpContext)
-    _SetThreadContext(hThread, ctypes.byref(lpContext))
 
 # HANDLE WINAPI CreateToolhelp32Snapshot(
 #   __in  DWORD dwFlags,
@@ -3748,79 +3707,6 @@ def IsWow64Process(hProcess):
     Wow64Process = BOOL(FALSE)
     _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
     return bool(Wow64Process)
-
-# BOOL Wow64GetThreadSelectorEntry(
-#   __in   HANDLE hThread,
-#   __in   DWORD dwSelector,
-#   __out  PWOW64_LDT_ENTRY lpSelectorEntry
-# );
-def Wow64GetThreadSelectorEntry(hThread, dwSelector):
-    _Wow64GetThreadSelectorEntry = windll.kernel32.Wow64GetThreadSelectorEntry
-    _Wow64GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, PWOW64_LDT_ENTRY]
-    _Wow64GetThreadSelectorEntry.restype = bool
-    _Wow64GetThreadSelectorEntry.errcheck = RaiseIfZero
-
-    lpSelectorEntry = WOW64_LDT_ENTRY()
-    _Wow64GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(lpSelectorEntry))
-    return lpSelectorEntry
-
-# DWORD WINAPI Wow64ResumeThread(
-#   __in  HANDLE hThread
-# );
-def Wow64ResumeThread(hThread):
-    _Wow64ResumeThread = windll.kernel32.Wow64ResumeThread
-    _Wow64ResumeThread.argtypes = [HANDLE]
-    _Wow64ResumeThread.restype = DWORD
-
-    previousCount = _Wow64ResumeThread(hThread)
-    if previousCount == DWORD(-1).value:
-        raise ctypes.WinError()
-    return previousCount
-
-# DWORD WINAPI Wow64SuspendThread(
-#   __in  HANDLE hThread
-# );
-def Wow64SuspendThread(hThread):
-    _Wow64SuspendThread = windll.kernel32.Wow64SuspendThread
-    _Wow64SuspendThread.argtypes = [HANDLE]
-    _Wow64SuspendThread.restype = DWORD
-
-    previousCount = _Wow64SuspendThread(hThread)
-    if previousCount == DWORD(-1).value:
-        raise ctypes.WinError()
-    return previousCount
-
-# XXX TODO Use this http://www.nynaeve.net/Code/GetThreadWow64Context.cpp
-# Also see http://www.woodmann.com/forum/archive/index.php/t-11162.html
-
-# BOOL WINAPI Wow64GetThreadContext(
-#   __in     HANDLE hThread,
-#   __inout  PWOW64_CONTEXT lpContext
-# );
-def Wow64GetThreadContext(hThread, ContextFlags = WOW64_CONTEXT_ALL):
-    _Wow64GetThreadContext = windll.kernel32.Wow64GetThreadContext
-    _Wow64GetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
-    _Wow64GetThreadContext.restype = bool
-    _Wow64GetThreadContext.errcheck = RaiseIfZero
-
-    lpContext = CONTEXT()
-    lpContext.ContextFlags = ContextFlags
-    _Wow64GetThreadContext(hThread, ctypes.byref(lpContext))
-    return lpContext.to_dict()
-
-# BOOL WINAPI Wow64SetThreadContext(
-#   __in  HANDLE hThread,
-#   __in  const WOW64_CONTEXT *lpContext
-# );
-def Wow64SetThreadContext(hThread, lpContext):
-    _Wow64SetThreadContext = windll.kernel32.Wow64SetThreadContext
-    _Wow64SetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
-    _Wow64SetThreadContext.restype = bool
-    _Wow64SetThreadContext.errcheck = RaiseIfZero
-
-    if isinstance(lpContext, dict):
-        lpContext = WOW64_CONTEXT.from_dict(lpContext)
-    _Wow64SetThreadContext(hThread, ctypes.byref(lpContext))
 
 #==============================================================================
 # Mark functions that Psyco cannot compile.

@@ -618,3 +618,60 @@ class CONTEXT(Structure):
 
 PCONTEXT = POINTER(CONTEXT)
 LPCONTEXT = PCONTEXT
+
+class Context(dict):
+    """
+    Register context dictionary for the %s architecture.
+    """ % CONTEXT.arch
+    arch = CONTEXT.arch
+
+    def __get_gp(self):
+        return self['IntGp']
+    def __set_gp(self, value):
+        self['IntGp'] = value
+    gp = property(__get_gp, __set_gp)
+
+    def __get_sp(self):
+        return self['IntSp']
+    def __set_sp(self, value):
+        self['IntSp'] = value
+    sp = property(__get_sp, __set_sp)
+
+    def __get_rp(self):
+        return self['IntRp']
+    def __set_rp(self, value):
+        self['IntRp'] = value
+    rp = property(__get_rp, __set_rp)
+
+###############################################################################
+
+# BOOL WINAPI GetThreadContext(
+#   __in     HANDLE hThread,
+#   __inout  LPCONTEXT lpContext
+# );
+def GetThreadContext(hThread, ContextFlags = None):
+    _GetThreadContext = windll.kernel32.GetThreadContext
+    _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _GetThreadContext.restype = bool
+    _GetThreadContext.errcheck = RaiseIfZero
+
+    if ContextFlags is None:
+        ContextFlags = CONTEXT_ALL
+    lpContext = CONTEXT()
+    lpContext.ContextFlags = ContextFlags
+    _GetThreadContext(hThread, ctypes.byref(lpContext))
+    return lpContext.to_dict()
+
+# BOOL WINAPI SetThreadContext(
+#   __in  HANDLE hThread,
+#   __in  const CONTEXT* lpContext
+# );
+def SetThreadContext(hThread, lpContext):
+    _SetThreadContext = windll.kernel32.SetThreadContext
+    _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
+    _SetThreadContext.restype = bool
+    _SetThreadContext.errcheck = RaiseIfZero
+
+    if isinstance(lpContext, dict):
+        lpContext = CONTEXT.from_dict(lpContext)
+    _SetThreadContext(hThread, ctypes.byref(lpContext))

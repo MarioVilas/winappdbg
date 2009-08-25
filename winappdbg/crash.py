@@ -279,7 +279,7 @@ class Crash (object):
         self.eventName          = event.get_event_name()
         self.pid                = event.get_pid()
         self.tid                = event.get_tid()
-        self.registers          = thread.get_context()
+        self.registers          = dict(thread.get_context())
         self.labelPC            = process.get_label_at_address(self.pc)
 
         # The following properties are only retrieved for some events.
@@ -397,6 +397,7 @@ class Crash (object):
             try:
                 self.faultDisasm = thread.disassemble_around_pc(32)
             except Exception, e:
+                raise
                 pass
 
             # For memory related exceptions, get the memory contents
