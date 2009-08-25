@@ -615,7 +615,6 @@ class CrashLogger (object):
             if not cmdline:
                 parser.error("missing target application(s)")
             options.console = [cmdline]
-            print options.console
         else:
             if args:
                 parser.error("don't know what to do with extra parameters: %s" % args)
