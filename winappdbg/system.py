@@ -2719,10 +2719,10 @@ class ThreadDebugOperations (object):
 
         @rtype:  L{TEB}
         @return: TEB structure.
+        @raise WindowsError: An exception is raised on error.
         """
-        aProcess = self.get_process()
-        TebBaseAddress = self.get_teb_address()
-        return aProcess.read_structure(TebBaseAddress, win32.TEB)
+        return self.get_process().read_structure( self.get_teb_address(),
+                                                  win32.TEB )
 
     def get_teb_address(self):
         """
@@ -2730,6 +2730,7 @@ class ThreadDebugOperations (object):
 
         @rtype:  int
         @return: Remote pointer to the L{TEB} structure.
+            Returns C{None} on error.
         """
         tbi = win32.NtQueryInformationThread(self.get_handle(),
                                                   win32.ThreadBasicInformation)
@@ -2814,6 +2815,8 @@ class ThreadDebugOperations (object):
             address = self.get_teb_address()
         except Exception:
             address = self.get_linear_address('SegFs', 0)
+        if not address:
+            raise ctypes.WinError(win32.ERROR_BAD_ARGUMENTS)
         ptrsize = win32.sizeof(win32.LPVOID)
         process = self.get_process()
         begin   = process.read_pointer(address + (ptrsize * 2))
@@ -3536,6 +3539,7 @@ class ProcessDebugOperations (object):
 
         @rtype:  L{PEB}
         @return: PEB structure.
+        @raise WindowsError: An exception is raised on error.
         """
         return self.read_structure(self.get_peb_address(), win32.PEB)
 
@@ -3545,6 +3549,7 @@ class ProcessDebugOperations (object):
 
         @rtype:  int
         @return: Remote pointer to the L{PEB} structure.
+            Returns C{None} on error.
         """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
@@ -5197,7 +5202,7 @@ class Thread (ThreadDebugOperations):
         except WindowsError:
             bSuspended = False
         try:
-            if self.is_wow64():
+            if System.bits == 64 and self.is_wow64():
                 ctx = win32.Wow64GetThreadContext(self.get_handle(), ContextFlags)
             else:
                 ctx = win32.GetThreadContext(self.get_handle(), ContextFlags)
@@ -5219,7 +5224,7 @@ class Thread (ThreadDebugOperations):
         # Setting the context of a dead thread is pointless anyway.
         self.suspend()
         try:
-            if self.is_wow64():
+            if System.bits == 64 and self.is_wow64():
                 win32.Wow64SetThreadContext(self.get_handle(), context)
             else:
                 win32.SetThreadContext(self.get_handle(), context)
@@ -6063,10 +6068,14 @@ class System (ProcessContainer):
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.
 
-        Can be one of the following:
+        Currently supported values:
          - C{"i386"} for Intel 32-bit x86 processor or compatible.
          - C{"amd64"} for Intel 64-bit x86_64 processor or compatible.
          - C{"ia64"} for Intel Itanium processor or compatible.
+
+    @type bits: int
+    @cvar bits: Size of the machine word in bits for the current architecture.
+        Currently supported values are C{32} and C{64}.
 
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
@@ -6074,6 +6083,7 @@ class System (ProcessContainer):
     """
 
     arch = win32.CONTEXT.arch
+    bits = win32.sizeof( win32.LPVOID ) * 8
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.

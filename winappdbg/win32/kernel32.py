@@ -3325,6 +3325,9 @@ def GetThreadContext(hThread, ContextFlags = CONTEXT_ALL):
     _GetThreadContext.restype = bool
     _GetThreadContext.errcheck = RaiseIfZero
 
+    # XXX returns 1 for 64 bit threads from a 32 bit debugger,
+    # but the structure is empty :(
+
     lpContext = CONTEXT()
     lpContext.ContextFlags = ContextFlags
     _GetThreadContext(hThread, ctypes.byref(lpContext))

@@ -196,12 +196,6 @@ class Crash (object):
 
         C{None} if unapplicable or unable to retrieve.
 
-    @type stackRange: tuple( int, int )
-    @ivar stackRange:
-        Stack beginning and end pointers, in memory addresses order.
-
-        C{None} if unapplicable or unable to retrieve.
-
     @type stackTrace: None or tuple of tuple( int, int, str )
     @ivar stackTrace:
         Stack trace of the current thread as a tuple of
@@ -226,6 +220,12 @@ class Crash (object):
         Tuple of labels pointing to the return addresses in the stack trace.
 
         C{None} or empty if unapplicable or unable to retrieve.
+
+    @type stackRange: tuple( int, int )
+    @ivar stackRange:
+        Stack beginning and end pointers, in memory addresses order.
+
+        C{None} if unapplicable or unable to retrieve.
 
     @type stackFrame: None or str
     @ivar stackFrame: Data pointed to by the stack pointer.
@@ -302,6 +302,7 @@ class Crash (object):
         self.stackTracePC       = None
         self.stackTraceLabels   = None
         self.stackTracePretty   = None
+        self.stackRange         = None
         self.stackFrame         = None
         self.stackPeek          = None
         self.faultCode          = None
@@ -364,18 +365,24 @@ class Crash (object):
 
             # Stack trace.
             try:
-                self.stackRange = thread.get_stack_range()
-            except WindowsError:
+                self.stackTracePretty = thread.get_stack_trace_with_labels()
+            except Exception, e:
                 pass
-            self.stackTrace     = thread.get_stack_trace()
-            self.stackTracePretty = thread.get_stack_trace_with_labels()
-            stackTracePC        = [ ra for (fp, ra, lib) in self.stackTrace ]
-            self.stackTracePC   = tuple(stackTracePC)
-            stackTraceLabels    = [ process.get_label_at_address(ra) \
-                                         for ra in self.stackTracePC ]
-            self.stackTraceLabels = tuple(stackTraceLabels)
+            try:
+                self.stackTrace     = thread.get_stack_trace()
+                stackTracePC        = [ ra for (_,ra,_) in self.stackTrace ]
+                self.stackTracePC   = tuple(stackTracePC)
+                stackTraceLabels    = [ process.get_label_at_address(ra) \
+                                             for ra in self.stackTracePC ]
+                self.stackTraceLabels = tuple(stackTraceLabels)
+            except Exception, e:
+                pass
 
             # Contents of the stack frame.
+            try:
+                self.stackRange = thread.get_stack_range()
+            except Exception, e:
+                pass
             try:
                 self.stackFrame = thread.get_stack_frame()
                 stackFrame = self.stackFrame
@@ -387,7 +394,10 @@ class Crash (object):
 
             # Code that raised the exception.
             self.faultCode   = thread.peek_code_bytes()
-            self.faultDisasm = thread.disassemble_around_pc(32)
+            try:
+                self.faultDisasm = thread.disassemble_around_pc(32)
+            except Exception, e:
+                pass
 
             # For memory related exceptions, get the memory contents
             # of the location that caused the exception to be raised.
@@ -401,7 +411,7 @@ class Crash (object):
                         ):
                 self.faultMem = process.peek(self.exceptionAddress, 64)
                 if self.faultMem:
-                    self.faultPeek = process.peek_data(self.faultMem)
+                    self.faultPeek = process.peek_pointers_in_data(self.faultMem)
 
     @property
     def pc(self):
