@@ -56,7 +56,7 @@ class Logger(object):
         self.verbose = options.verbose
         self.logfile = options.logfile
         if self.logfile:
-	    self.fd = open(self.logfile, 'w+')
+	    self.fd = open(self.logfile, 'a+')
 
     def __logfile_error(self, e):
         msg = "Warning, error writing log file %s: %s"
@@ -144,7 +144,7 @@ class LoggingEventHandler(EventHandler):
                     msg = crash.fullReport()
                 else:
                     msg = crash.briefReport()
-                self._log(event, msg)
+                self.logger.log_event(event, msg)
 
         # Take action if requested and the crash is new.
         finally:
