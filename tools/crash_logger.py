@@ -47,14 +47,52 @@ import traceback
 
 #==============================================================================
 
+class Logger(object):
+    """
+    Logs text to standard output and/or a text file.
+    """
+
+    def __init__(self, options):
+        self.verbose = options.verbose
+        self.logfile = options.logfile
+        if self.logfile:
+	    self.fd = open(self.logfile, 'w+')
+
+    def __logfile_error(self, e):
+        msg = "Warning, error writing log file %s: %s"
+        msg = msg % (self.logfile, str(e))
+        print DebugLog.log_text(msg)
+        self.logfile = None
+    	self.fd      = None
+
+    def __do_log(self, text):
+        if self.verbose:
+            print text
+        if self.logfile:
+            try:
+                self.fd.writelines('%s\n' % text)
+            except IOError, e:
+                self.__logfile_error(e)
+
+    def log_text(self, text):
+        self.__do_log( DebugLog.log_text(text) )
+
+    def log_event(self, event, text):
+        self.__do_log( DebugLog.log_event(event, text) )
+
+    def log_exc(self):
+        self.__do_log( 'Exception raised: %s' % traceback.format_exc() )
+
+#==============================================================================
+
 # XXX TODO
 # Capture stderr from the debuguees
 
 class LoggingEventHandler(EventHandler):
-    (
-    'Event handler that logs all events to standard output.'
-    ' It also remembers crashes, bugs or otherwise interesting events.'
-    )
+    """
+    Event handler that logs all events to standard output.
+    It also remembers crashes, bugs or otherwise interesting events.
+    """
 
     # Regular expression to extract 8 digit hexadecimal numbers.
     re_hexa = re.compile('[0-9A-F]' * 8, re.I)
@@ -63,6 +101,9 @@ class LoggingEventHandler(EventHandler):
 
         # Copy the user-defined options.
         self.options = options
+
+	# Create the logger object.
+	self.logger = Logger(options)
 
         # Create the crash container.
         if not options.nodb:
@@ -103,7 +144,7 @@ class LoggingEventHandler(EventHandler):
                     msg = crash.fullReport()
                 else:
                     msg = crash.briefReport()
-                self.__log(event, msg)
+                self._log(event, msg)
 
         # Take action if requested and the crash is new.
         finally:
@@ -159,11 +200,6 @@ class LoggingEventHandler(EventHandler):
         system  = System()
         process = system.start_process(action, bConsole = True)
         process.wait()
-
-    # Log a text line to standard output.
-    def __log(self, event, text):
-        if self.options.verbose:
-            print DebugLog.log_event(event, text)
 
     # Get the location of the code that triggered the event.
     def __get_location(self, event, address):
@@ -233,7 +269,7 @@ class LoggingEventHandler(EventHandler):
                     msg = msg % (szFilename, where)
                 else:
                     msg = "Attached to process %s" % szFilename
-                self.__log(event, msg)
+                self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -250,7 +286,7 @@ class LoggingEventHandler(EventHandler):
                 msg   = "Thread started, entry point at %s" % where
             else:
                 msg   = "Attached to thread"
-            self.__log(event, msg)
+            self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -274,7 +310,7 @@ class LoggingEventHandler(EventHandler):
                     fileName = "a new module"
                 msg = "Loaded %s at %s"
                 msg = msg % (fileName, HexDump.address(lpBaseOfDll))
-                self.__log(event, msg)
+                self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -291,7 +327,7 @@ class LoggingEventHandler(EventHandler):
         # Log the event to standard output.
         if self.options.verbose:
             msg = "Process terminated, exit code %x" % event.get_exit_code()
-            self.__log(event, msg)
+            self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -307,7 +343,7 @@ class LoggingEventHandler(EventHandler):
         # Log the event to standard output.
         if self.options.verbose:
             msg = "Thread terminated, exit code %x" % event.get_exit_code()
-            self.__log(event, msg)
+            self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -325,7 +361,7 @@ class LoggingEventHandler(EventHandler):
                 fileName = 'a module'
             msg = "Unloaded %s at %s"
             msg = msg % (fileName, HexDump.address(lpBaseOfDll))
-            self.__log(event, msg)
+            self.logger.log_event(event, msg)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -354,7 +390,7 @@ class LoggingEventHandler(EventHandler):
                 msg = "RIP warning at thread %d, code %x"
             else:
                 msg = "RIP error type %d, code %%x" % errorType
-            self.__log(event, msg % errorCode)
+            self.logger.log_event(event, msg % errorCode)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -374,7 +410,7 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             desc    = event.get_exception_description()
             address = event.get_exception_address()
-            self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
+            self.logger.log_event(event, "%s at %s" % (desc, HexDump.address(address)))
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -388,7 +424,7 @@ class LoggingEventHandler(EventHandler):
         if self.options.verbose:
             desc    = event.get_exception_description()
             address = event.get_exception_address()
-            self.__log(event, "%s at %s" % (desc, HexDump.address(address)))
+            self.logger.log_event(event, "%s at %s" % (desc, HexDump.address(address)))
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -411,7 +447,7 @@ class LoggingEventHandler(EventHandler):
 ##                address = event.get_exception_address()
 ##                where   = self.__get_location(event, address)
 ##                msg     = "Single step event at %s" % where
-##                self.__log(event, msg)
+##                self.logger.log_event(event, msg)
 ##
 ##            # Take action if requested.
 ##            if self.__action_requested(event):
@@ -463,7 +499,7 @@ class LoggingEventHandler(EventHandler):
                         msg = "System breakpoint hit (%s)" % where
                     else:
                         msg = "Assertion failed (%s)" % where
-                    self.__log(event, msg)
+                    self.logger.log_event(event, msg)
 
             finally:
 
@@ -580,6 +616,8 @@ class CrashLogger (object):
                           help="Log events to standard output [default]")
         output.add_option("-q", "--quiet", action="store_false", dest="verbose",
                           help="Do not log events to standard output")
+        output.add_option("--log", metavar="FILE", dest="logfile",
+                          help="Log events to text file")
         output.add_option("--allow-duplicates", action="store_true",
                           dest="duplicates",
                           help="Stop on all crashes [default]")
@@ -600,6 +638,7 @@ class CrashLogger (object):
         defaultEventList = ['exception']
         parser.set_defaults(
             verbose     = True,
+            logfile     = None,
             duplicates  = True,
             pause       = False,
             restart     = False,
@@ -772,14 +811,14 @@ class CrashLogger (object):
     # TODO
     # * Create a new crash dump file for each debugged executable
     def run(self, args):
+        original_args = System.argv_to_cmdline(args)
         (parser, options, args) = self.parse_cmdline(args)
-
-        if options.verbose:
-            print DebugLog.log_text("Crash logger started, %s" % time.ctime())
 
         # Create the event handler
         oldCrashCount = 0
         eventHandler  = LoggingEventHandler(options)
+        eventHandler.logger.log_text("Crash logger started, %s" % time.ctime())
+        eventHandler.logger.log_text("Command line options: %s" % original_args)
 
         # Create the debug object
         debug = Debug(eventHandler,
@@ -799,7 +838,7 @@ class CrashLogger (object):
             if options.time_limit:
                 timer = threading.Timer(options.time_limit, self.timeoutReached)
                 timer.start()
-                print DebugLog.log_text("Started timer for %s seconds" % options.time_limit)
+                eventHandler.logger.log_text("Started timer for %s seconds" % options.time_limit)
             while debug.get_debugee_count() > 0:
                 while not self.timedOut:
                     try:
@@ -807,15 +846,13 @@ class CrashLogger (object):
                         break
                     except WindowsError, e:
                         if e.winerror not in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
-                            if options.verbose:
-                                traceback.print_exc()
+                            eventHandler.logger.log_exc()
                             raise   # don't ignore this error
                     except Exception:
-                        if options.verbose:
-                            traceback.print_exc()
+                        eventHandler.logger.log_exc()
                         raise   # don't ignore this error
                 if self.timedOut:
-                    print DebugLog.log_text("Execution time limit reached")
+                    eventHandler.logger.log_text("Execution time limit reached")
                     break
                 try:
                     try:
@@ -823,8 +860,7 @@ class CrashLogger (object):
                     finally:
                         debug.cont(event)
                 except Exception:
-                    if options.verbose:
-                        traceback.print_exc()
+                    eventHandler.logger.log_exc()
                     if not options.ignore_errors:
                         raise
         finally:
@@ -836,7 +872,7 @@ class CrashLogger (object):
                     debug.stop(bIgnoreExceptions = options.ignore_errors)
             finally:
                 if options.verbose:
-                    print DebugLog.log_text("Crash logger stopped, %s" % time.ctime())
+                    eventHandler.logger.log_text("Crash logger stopped, %s" % time.ctime())
 
 def main(argv):
     return CrashLogger().run(argv)
