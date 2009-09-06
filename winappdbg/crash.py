@@ -397,7 +397,6 @@ class Crash (object):
             try:
                 self.faultDisasm = thread.disassemble_around_pc(32)
             except Exception, e:
-                raise
                 pass
 
             # For memory related exceptions, get the memory contents
