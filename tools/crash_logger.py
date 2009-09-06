@@ -97,10 +97,13 @@ class LoggingEventHandler(EventHandler):
     # Regular expression to extract 8 digit hexadecimal numbers.
     re_hexa = re.compile('[0-9A-F]' * 8, re.I)
 
-    def __init__(self, options):
+    def __init__(self, options, commandLine = None):
 
         # Copy the user-defined options.
         self.options = options
+
+        # Copy the command line used in this fuzzing session.
+        self.commandLine = commandLine
 
 	# Create the logger object.
 	self.logger = Logger(options)
@@ -130,6 +133,7 @@ class LoggingEventHandler(EventHandler):
 
         # Generate a crash object.
         crash = Crash(event)
+        crash.addNote('Command line used: %s' % self.commandLine)
 
         # Determine if the crash was previously known.
         bNew = self.options.duplicates or crash not in self.knownCrashes
@@ -141,7 +145,7 @@ class LoggingEventHandler(EventHandler):
         try:
             if self.options.verbose:
                 if bFullReport and bNew:
-                    msg = crash.fullReport()
+                    msg = crash.fullReport(bShowNotes = False)
                 else:
                     msg = crash.briefReport()
                 self.logger.log_event(event, msg)

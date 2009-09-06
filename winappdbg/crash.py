@@ -421,7 +421,10 @@ class Crash (object):
 
         @rtype:  int
         """
-        return self.registers['Eip']
+        try:
+            return self.registers['Eip']        # i386
+        except KeyError:
+            return self.registers['Rip']        # amd64
 
     @property
     def sp(self):
@@ -430,7 +433,10 @@ class Crash (object):
 
         @rtype:  int
         """
-        return self.registers['Esp']
+        try:
+            return self.registers['Esp']        # i386
+        except KeyError:
+            return self.registers['Rsp']        # amd64
 
     @property
     def fp(self):
@@ -439,7 +445,10 @@ class Crash (object):
 
         @rtype:  int
         """
-        return self.registers['Ebp']
+        try:
+            return self.registers['Ebp']        # i386
+        except KeyError:
+            return self.registers['Rbp']        # amd64
 
     def __str__(self):
         return self.fullReport()
@@ -687,8 +696,11 @@ class Crash (object):
                                             )
         return msg
 
-    def fullReport(self):
+    def fullReport(self, bShowNotes = True):
         """
+        @type  bShowNotes: bool
+        @param bShowNotes: C{True} to show the user notes, C{False} otherwise.
+
         @rtype:  str
         @return: Long description of the event.
         """
@@ -705,7 +717,7 @@ class Crash (object):
             msg += '\nSecurity risk level: %s\n' % exploitability
             msg += '  %s\n' % expdescription
 
-        if self.notes:
+        if bShowNotes and self.notes:
             msg += '\nNotes:\n'
             msg += self.notesReport()
 
