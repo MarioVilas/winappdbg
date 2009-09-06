@@ -820,7 +820,7 @@ class CrashLogger (object):
 
         # Create the event handler
         oldCrashCount = 0
-        eventHandler  = LoggingEventHandler(options)
+        eventHandler  = LoggingEventHandler(options, original_args)
         eventHandler.logger.log_text("Crash logger started, %s" % time.ctime())
         eventHandler.logger.log_text("Command line options: %s" % original_args)
 
