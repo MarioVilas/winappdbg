@@ -157,9 +157,12 @@ class LoggingEventHandler(EventHandler):
 
     # Determine if an action is requested for this event.
     def __action_requested(self, event):
-        return 'event' in self.options.events or \
-            ('exception' in self.options.events and event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT) or \
-            event.eventMethod in self.options.events
+        return \
+            ('event' in self.options.events) or \
+            ('exception' in self.options.events and \
+                (event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT and \
+                (event.is_last_chance() or self.options.firstchance))) or \
+            (event.eventMethod in self.options.events)
 
     # Actions to take for "interesting" events.
     def __action(self, event, crash = None):
@@ -211,6 +214,18 @@ class LoggingEventHandler(EventHandler):
         if label:
             return label
         return HexDump.address(address)
+
+    # Log an exception as a single line of text.
+    def __log_exception(self, event):
+        what    = event.get_exception_description()
+        address = event.get_exception_address()
+        where   = self.__get_location(event, address)
+        if event.is_first_chance():
+            chance = 'first'
+        else:
+            chance = 'second'
+        msg = "%s (%s chance) at %s" % (what, chance, where)
+        self.logger.log_event(event, msg)
 
     # Set all breakpoints that can be set
     # at each create process or load dll event.
@@ -404,7 +419,10 @@ class LoggingEventHandler(EventHandler):
 
     # Handle all exceptions not handled by the following methods.
     def exception(self, event):
-        self.__add_crash(event, bFullReport = True)
+        if event.is_last_chance() or self.options.firstchance:
+            self.__add_crash(event, bFullReport = True)
+        elif self.options.verbose:
+            self.__log_exception(event)
 
     # Unknown (most likely C++) exceptions are not crashes.
     # Comment out this code if needed...
@@ -412,9 +430,7 @@ class LoggingEventHandler(EventHandler):
 
         # Log the event to standard output.
         if self.options.verbose:
-            desc    = event.get_exception_description()
-            address = event.get_exception_address()
-            self.logger.log_event(event, "%s at %s" % (desc, HexDump.address(address)))
+            self.__log_exception(event)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -426,9 +442,7 @@ class LoggingEventHandler(EventHandler):
 
         # Log the event to standard output.
         if self.options.verbose:
-            desc    = event.get_exception_description()
-            address = event.get_exception_address()
-            self.logger.log_event(event, "%s at %s" % (desc, HexDump.address(address)))
+            self.__log_exception(event)
 
         # Take action if requested.
         if self.__action_requested(event):
@@ -628,6 +642,12 @@ class CrashLogger (object):
         output.add_option("--ignore-duplicates", action="store_false",
                           dest="duplicates",
                           help="Stop only on newly found crashes")
+        output.add_option("--allow-first-chance", action="store_true",
+                          dest="firstchance",
+                          help="Stop on first and second chance exceptions [default]")
+        output.add_option("--ignore-first-chance", action="store_false",
+                          dest="firstchance",
+                          help="Stop only on second chance exceptions")
         output.add_option("--nodb", action="store_true",
                           help="Do not save a crash dump file [default]")
         output.add_option("--dbm", metavar="FILE",
@@ -644,6 +664,7 @@ class CrashLogger (object):
             verbose     = True,
             logfile     = None,
             duplicates  = True,
+            firstchance = True,
             pause       = False,
             restart     = False,
             echo        = False,
