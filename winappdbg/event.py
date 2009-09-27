@@ -523,7 +523,7 @@ class ExceptionEvent (Event):
         happens when an exception is raised in the debugee while trying to
         handle a previous exception.
 
-        @rtype:  list( L{EXCEPTION_RECORD} )
+        @rtype:  list( L{win32.EXCEPTION_RECORD} )
         @return:
             List of raw exception record structures as used by the Win32 API.
 
