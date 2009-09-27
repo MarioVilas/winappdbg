@@ -1326,10 +1326,10 @@ class Hook (object):
                         )
                     event.debug.enable_one_shot_hardware_breakpoint(dwThreadId,
                                                                     params[0])
-            except Exception, e:
-##                import traceback        # XXX DEBUG
-##                traceback.print_exc()
-                useHardwareBreakpoints = False
+                except Exception, e:
+##                    import traceback        # XXX DEBUG
+##                    traceback.print_exc()
+                    useHardwareBreakpoints = False
 
             # If not possible, set a code breakpoint instead.
             if not useHardwareBreakpoints:
@@ -1342,7 +1342,7 @@ class Hook (object):
 
         # If no "post" callback is defined, forget the parameters.
         finally:
-            if self.__postCB is not None:
+            if self.__postCB is None:
                 self.__pop_params(dwThreadId)
 
     def __postCallAction_hwbp(self, event):
