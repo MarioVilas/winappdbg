@@ -1213,8 +1213,9 @@ class HardwareBreakpoint (Breakpoint):
 
 # XXX FIXME
 # Hardware breakpoints don't work in VirtualBox. Maybe there should be a way
-# to tell Hook objects not to use them. (The workaround is to fill all slots
-# in each thread by setting dummy hardware breakpoints).
+# to autodetect VirtualBox and tell Hook objects not to use them.
+# The workaround is to fill all slots in each thread by setting dummy hardware
+# breakpoints.
 
 class Hook (object):
     """
@@ -1224,7 +1225,14 @@ class Hook (object):
     beginning of a function. It automatically retrieves the parameters from
     the stack, sets a breakpoint at the return address and retrieves the
     return value from the function call.
+
+    @type useHardwareBreakpoints: bool
+    @cvar useHardwareBreakpoints: C{True} to try to use hardware breakpoints,
+        C{False} otherwise.
     """
+
+    # Set to False if using within VirtualBox.
+    useHardwareBreakpoints = True
 
     def __init__(self, preCB = None, postCB = None, paramCount = 0):
         """
@@ -1305,22 +1313,26 @@ class Hook (object):
         if self.__postCB is not None:
 
             # Try to set a one shot hardware breakpoint at the return address.
-            try:
-                event.debug.define_hardware_breakpoint(
-                    dwThreadId,
-                    ra,
-                    event.debug.BP_BREAK_ON_EXECUTION,
-                    event.debug.BP_WATCH_BYTE,
-                    True,
-                    self.__postCallAction_hwbp
-                    )
-                event.debug.enable_one_shot_hardware_breakpoint(dwThreadId,
-                                                                params[0])
-
-            # If not possible, set a code breakpoint instead.
+            useHardwareBreakpoints = self.useHardwareBreakpoints
+            if useHardwareBreakpoints:
+                try:
+                    event.debug.define_hardware_breakpoint(
+                        dwThreadId,
+                        ra,
+                        event.debug.BP_BREAK_ON_EXECUTION,
+                        event.debug.BP_WATCH_BYTE,
+                        True,
+                        self.__postCallAction_hwbp
+                        )
+                    event.debug.enable_one_shot_hardware_breakpoint(dwThreadId,
+                                                                    params[0])
             except Exception, e:
 ##                import traceback        # XXX DEBUG
 ##                traceback.print_exc()
+                useHardwareBreakpoints = False
+
+            # If not possible, set a code breakpoint instead.
+            if not useHardwareBreakpoints:
                 event.debug.break_at(dwProcessId, ra,
                                                   self.__postCallAction_codebp)
 
