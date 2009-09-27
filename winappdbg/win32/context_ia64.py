@@ -625,6 +625,8 @@ class Context(dict):
     """ % CONTEXT.arch
     arch = CONTEXT.arch
 
+    # See http://msdn.microsoft.com/en-us/library/cc266544.aspx
+
     def __get_gp(self):
         return self['IntGp']
     def __set_gp(self, value):
