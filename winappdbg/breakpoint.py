@@ -1270,6 +1270,7 @@ class Hook (object):
         self.__paramCount = paramCount
         self.__preCB      = preCB
         self.__postCB     = postCB
+        self.__paramStack = dict()   # tid -> list of tuple( arg, arg, arg... )
 
     # By using break_at() to set a process-wide breakpoint on the function's
     # return address, we might hit a race condition when more than one thread
@@ -1289,37 +1290,48 @@ class Hook (object):
         """
 
         # Get the parameters from the stack.
-        aThread  = event.get_thread()
-        aProcess = event.get_process()
-        ra       = aProcess.read_pointer( aThread.get_sp() )
-        params   = aThread.read_stack_dwords(self.__paramCount,
+        dwProcessId = event.get_pid()
+        dwThreadId  = event.get_tid()
+        aProcess    = event.get_process()
+        aThread     = event.get_thread()
+        ra          = aProcess.read_pointer( aThread.get_sp() )
+        params      = aThread.read_stack_dwords(self.__paramCount,
                                            offset = win32.sizeof(win32.LPVOID))
+
+        # Keep the parameters for later use.
+        self.__push_params(dwThreadId, params)
 
         # If we need to hook the return from the function...
         if self.__postCB is not None:
 
             # Try to set a one shot hardware breakpoint at the return address.
             try:
-                tid = event.get_tid()
                 event.debug.define_hardware_breakpoint(
-                    tid,
+                    dwThreadId,
                     ra,
                     event.debug.BP_BREAK_ON_EXECUTION,
                     event.debug.BP_WATCH_BYTE,
                     True,
                     self.__postCallAction_hwbp
                     )
-                event.debug.enable_one_shot_hardware_breakpoint(tid, params[0])
+                event.debug.enable_one_shot_hardware_breakpoint(dwThreadId,
+                                                                params[0])
 
-            # If not possible, set a one shot code breakpoint instead.
+            # If not possible, set a code breakpoint instead.
             except Exception, e:
 ##                import traceback        # XXX DEBUG
 ##                traceback.print_exc()
-                event.debug.stalk_at(event.get_pid(), ra,
+                event.debug.break_at(dwProcessId, ra,
                                                   self.__postCallAction_codebp)
 
         # Call the "pre" callback.
-        self.__callHandler(self.__preCB, event, ra, *params)
+        try:
+            self.__callHandler(self.__preCB, event, ra, *params)
+
+        # If no "post" callback is defined, forget the parameters.
+        finally:
+            if self.__postCB is not None:
+                self.__pop_params(dwThreadId)
 
     def __postCallAction_hwbp(self, event):
         """
@@ -1336,7 +1348,12 @@ class Hook (object):
         event.debug.erase_hardware_breakpoint(tid, address)
 
         # Call the "post" callback.
-        self.__postCallAction(event)
+        try:
+            self.__postCallAction(event)
+
+        # Forget the parameters.
+        finally:
+            self.__pop_params(tid)
 
     def __postCallAction_codebp(self, event):
         """
@@ -1346,13 +1363,28 @@ class Hook (object):
         @param event: Breakpoint hit event.
         """
 
-        # Remove the one shot code breakpoint at the return address.
+        # If the breakpoint was accidentally hit by another thread,
+        # pass it to the debugger instead of calling the "post" callback.
+        #
+        # XXX FIXME:
+        # I suppose this check will fail under some weird conditions...
+        #
+        tid = event.get_tid()
+        if not self.__paramStack.has_key(tid):
+            return True
+
+        # Remove the code breakpoint at the return address.
         pid     = event.get_pid()
         address = event.breakpoint.get_address()
-        event.debug.dont_stalk_at(pid, address)
+        event.debug.dont_break_at(pid, address)
 
         # Call the "post" callback.
-        self.__postCallAction(event)
+        try:
+            self.__postCallAction(event)
+
+        # Forget the parameters.
+        finally:
+            self.__pop_params(tid)
 
     def __postCallAction(self, event):
         """
@@ -1386,8 +1418,73 @@ class Hook (object):
         @type  params: tuple
         @param params: Parameters for the callback function.
         """
+        event.hook = self
         if callback is not None:
             callback(event, *params)
+
+    def __push_params(self, tid, params):
+        """
+        Remembers the arguments tuple for the last call to the hooked function
+        from this thread.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @type  params: tuple( arg, arg, arg... )
+        @param params: Tuple of arguments.
+        """
+        stack = self.__paramStack.get( tid, [] )
+        stack.append(params)
+        self.__paramStack[tid] = stack
+
+    def __pop_params(self, tid):
+        """
+        Forgets the arguments tuple for the last call to the hooked function
+        from this thread.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+        """
+        stack = self.__paramStack[tid]
+        stack.pop()
+        if not stack:
+            del self.__paramStack[tid]
+
+    def get_params(self, tid):
+        """
+        Returns the parameters found in the stack when the hooked function
+        was last called by this thread.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @rtype:  tuple( arg, arg, arg... )
+        @return: Tuple of arguments.
+        """
+        try:
+            params = self.get_params_stack(tid)[-1]
+        except IndexError:
+            msg = "Hooked function called from thread %d already returned"
+            raise IndexError, msg % tid
+        return params
+
+    def get_params_stack(self, tid):
+        """
+        Returns the parameters found in the stack each time the hooked function
+        was called by this thread and haven't returned yet.
+
+        @type  tid: int
+        @param tid: Thread global ID.
+
+        @rtype:  list of tuple( arg, arg, arg... )
+        @return: List of argument tuples.
+        """
+        try:
+            stack = self.__paramStack[tid]
+        except KeyError:
+            msg = "Hooked function was not called from thread %d"
+            raise KeyError, msg % tid
+        return stack
 
     def hook(self, debug, pid, address):
         """

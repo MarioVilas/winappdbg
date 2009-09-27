@@ -264,9 +264,16 @@ class ExceptionEvent (Event):
     @type breakpoint: L{Breakpoint}
     @ivar breakpoint:
         If the exception was caused by one of our breakpoints, this member
-        contains the a reference to the breakpoint object. Otherwise it's
-        not defined. It should only be used from the condition or action
-        callback routines, instead of the event handler.
+        contains a reference to the breakpoint object. Otherwise it's not
+        defined. It should only be used from the condition or action callback
+        routines, instead of the event handler.
+
+    @type hook: L{Hook}
+    @ivar hook:
+        If the exception was caused by a function hook, this member contains a
+        reference to the hook object. Otherwise it's not defined. It should
+        only be used from the hook callback routines, instead of the event
+        handler.
     """
 
     eventName        = 'Exception event'
