@@ -1296,6 +1296,7 @@ class Hook (object):
 
         @raise WindowsError: An error occured.
         """
+        debug = event.debug
 
         # Get the parameters from the stack.
         dwProcessId = event.get_pid()
@@ -1316,7 +1317,7 @@ class Hook (object):
             useHardwareBreakpoints = self.useHardwareBreakpoints
             if useHardwareBreakpoints:
                 try:
-                    event.debug.define_hardware_breakpoint(
+                    debug.define_hardware_breakpoint(
                         dwThreadId,
                         ra,
                         event.debug.BP_BREAK_ON_EXECUTION,
@@ -1324,8 +1325,7 @@ class Hook (object):
                         True,
                         self.__postCallAction_hwbp
                         )
-                    event.debug.enable_one_shot_hardware_breakpoint(dwThreadId,
-                                                                    params[0])
+                    debug.enable_one_shot_hardware_breakpoint(dwThreadId, ra)
                 except Exception, e:
 ##                    import traceback        # XXX DEBUG
 ##                    traceback.print_exc()
@@ -1333,8 +1333,7 @@ class Hook (object):
 
             # If not possible, set a code breakpoint instead.
             if not useHardwareBreakpoints:
-                event.debug.break_at(dwProcessId, ra,
-                                                  self.__postCallAction_codebp)
+                debug.break_at(dwProcessId, ra, self.__postCallAction_codebp)
 
         # Call the "pre" callback.
         try:
