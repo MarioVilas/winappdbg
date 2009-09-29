@@ -1227,7 +1227,7 @@ class EventHandler (object):
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
         if self.apiHooks and win32.CONTEXT.arch != 'i386':
-            raise NotImplementedError
+            raise NotImplementedError, "Hooks are not yet implemented in 64 bits"
 
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
