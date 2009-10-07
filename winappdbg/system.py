@@ -5941,10 +5941,6 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         @raise NotImplementedError: The target platform is not supported.
         @raise WindowsError: An exception is raised on error.
         """
-        if System.arch != 'i386':
-            raise NotImplementedError
-
-        dllname = str(dllname)
 
         # Resolve kernel32.dll
         aModule = self.get_module_by_name('kernel32.dll')
@@ -5955,93 +5951,135 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             raise RuntimeError, \
                             "Cannot resolve kernel32.dll in the remote process"
 
-        # Resolve kernel32.dll!LoadLibraryA
-        pllib = aModule.resolve('LoadLibraryA')
-        if not pllib:
-            raise RuntimeError, \
-                "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
-
-        # Resolve kernel32.dll!GetProcAddress
-        pgpad = aModule.resolve('GetProcAddress')
-        if not pgpad:
-            raise RuntimeError, \
-             "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
-
-        # Resolve kernel32.dll!VirtualFree
-        pvf = aModule.resolve('VirtualFree')
-        if not pvf:
-            raise RuntimeError, \
-             "Cannot resolve kernel32.dll!VirtualFree in the remote process"
-
-        # Shellcode follows...
-        code  = ''.encode('utf8')
-
-        # push dllname
-        code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
-
-        # mov eax, LoadLibraryA
-        code += '\xb8' + struct.pack('<L', pllib)
-
-        # call eax
-        code += '\xff\xd0'
-
+        # Old method, using shellcode.
         if procname:
+            if System.arch != 'i386':
+                raise NotImplementedError
+            dllname = str(dllname)
 
-            # push procname
-            code += '\xe8' + struct.pack('<L', len(procname) + 1)
-            code += procname + '\0'
+            # Resolve kernel32.dll!LoadLibraryA
+            pllib = aModule.resolve('LoadLibraryA')
+            if not pllib:
+                raise RuntimeError, \
+                    "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
 
-            # push eax
-            code += '\x50'
+            # Resolve kernel32.dll!GetProcAddress
+            pgpad = aModule.resolve('GetProcAddress')
+            if not pgpad:
+                raise RuntimeError, \
+                 "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
 
-            # mov eax, GetProcAddress
-            code += '\xb8' + struct.pack('<L', pgpad)
+            # Resolve kernel32.dll!VirtualFree
+            pvf = aModule.resolve('VirtualFree')
+            if not pvf:
+                raise RuntimeError, \
+                 "Cannot resolve kernel32.dll!VirtualFree in the remote process"
+
+            # Shellcode follows...
+            code  = ''.encode('utf8')
+
+            # push dllname
+            code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
+
+            # mov eax, LoadLibraryA
+            code += '\xb8' + struct.pack('<L', pllib)
 
             # call eax
             code += '\xff\xd0'
 
-            # mov ebp, esp      ; preserve stack pointer
-            code += '\x8b\xec'
+            if procname:
 
-            # push lpParameter
-            code += '\x68' + struct.pack('<L', lpParameter)
+                # push procname
+                code += '\xe8' + struct.pack('<L', len(procname) + 1)
+                code += procname + '\0'
 
-            # call eax
-            code += '\xff\xd0'
+                # push eax
+                code += '\x50'
 
-            # mov esp, ebp      ; restore stack pointer
-            code += '\x8b\xe5'
+                # mov eax, GetProcAddress
+                code += '\xb8' + struct.pack('<L', pgpad)
 
-        # pop edx       ; our own return address
-        code += '\x5a'
+                # call eax
+                code += '\xff\xd0'
 
-        # push MEM_RELEASE  ; dwFreeType
-        code += '\x68' + struct.pack('<L', win32.MEM_RELEASE)
+                # mov ebp, esp      ; preserve stack pointer
+                code += '\x8b\xec'
 
-        # push 0x1000       ; dwSize, shellcode max size 4096 bytes
-        code += '\x68' + struct.pack('<L', 0x1000)
+                # push lpParameter
+                code += '\x68' + struct.pack('<L', lpParameter)
 
-        # call $+5
-        code += '\xe8\x00\x00\x00\x00'
+                # call eax
+                code += '\xff\xd0'
 
-        # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
-        code += '\x81\x24\x24\x00\xf0\xff\xff'
+                # mov esp, ebp      ; restore stack pointer
+                code += '\x8b\xe5'
 
-        # mov eax, VirtualFree
-        code += '\xb8' + struct.pack('<L', pvf)
+            # pop edx       ; our own return address
+            code += '\x5a'
 
-        # push edx      ; our own return address
-        code += '\x52'
+            # push MEM_RELEASE  ; dwFreeType
+            code += '\x68' + struct.pack('<L', win32.MEM_RELEASE)
 
-        # jmp eax   ; VirtualFree will return to our own return address
-        code += '\xff\xe0'
+            # push 0x1000       ; dwSize, shellcode max size 4096 bytes
+            code += '\x68' + struct.pack('<L', 0x1000)
 
-        # Inject the shellcode.
-        aThread, lpStartAddress = self.inject_code(code, lpParameter)
+            # call $+5
+            code += '\xe8\x00\x00\x00\x00'
 
-        # There's no need to free the memory,
-        # because the shellcode will free it itself.
-        aThread.pInjectedMemory = None
+            # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
+            code += '\x81\x24\x24\x00\xf0\xff\xff'
+
+            # mov eax, VirtualFree
+            code += '\xb8' + struct.pack('<L', pvf)
+
+            # push edx      ; our own return address
+            code += '\x52'
+
+            # jmp eax   ; VirtualFree will return to our own return address
+            code += '\xff\xe0'
+
+            # Inject the shellcode.
+            aThread, lpStartAddress = self.inject_code(code, lpParameter)
+
+            # There's no need to free the memory,
+            # because the shellcode will free it itself.
+            aThread.pInjectedMemory = None
+
+        # New method, not using shellcode.
+        else:
+
+            # Resolve kernel32.dll!LoadLibrary (A/W)
+            if type(dllname) == type(u''):
+                pllibname = 'LoadLibraryW'
+                bufferlen = (len(dllname) + 1) * 2
+                dllname = win32.ctypes.create_unicode_buffer(dllname).raw[:bufferlen + 1]
+            else:
+                pllibname = 'LoadLibraryA'
+                dllname   = str(dllname) + '\x00'
+                bufferlen = len(dllname)
+            pllib = aModule.resolve(pllibname)
+            if not pllib:
+                msg = "Cannot resolve kernel32.dll!%s in the remote process"
+                raise RuntimeError, msg % pllibname
+
+            # Copy the library name into the process memory space.
+            pbuffer = self.malloc(bufferlen)
+            try:
+                self.write(pbuffer, dllname)
+
+                # Create a new thread to load the library.
+                aThread = self.start_thread(pllib, pbuffer)
+
+                # Remember the buffer address.
+                #  It will be freed ONLY by the Thread.kill() method
+                #  and the EventHandler class, otherwise you'll have to
+                #  free it in your code.
+                aThread.pInjectedMemory = pbuffer
+
+            # Free the memory on error.
+            except Exception:
+                self.free(pbuffer, bufferlen)
+                raise
 
         # Wait for the thread to finish.
         if bWait:
