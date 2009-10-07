@@ -74,17 +74,15 @@ sdist:
 	python -O setup.py sdist $(SDIST_OPT)
 
 # Build the Windows installer package
-bdist:
+bdist: wininst msi
+
+# Build the Windows installer package
+wininst:
 	python -O setup.py bdist_wininst $(BDIST_UAC)
 
-# Build the Windows installer package as MSI installer for the current Python version
+# Build the Windows installer package as MSI installer
 msi:
 	python -O setup.py bdist_msi
-
-# Build the Windows installer package as MSI installer for all Python versions
-msi_all:
-	C:\Python25\python.exe -O setup.py bdist_msi
-	C:\Python26\python.exe -O setup.py bdist_msi
 
 
 # Clean up
