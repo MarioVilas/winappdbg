@@ -5939,6 +5939,9 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             Ignored if C{bWait} is C{False}.
 
         @raise NotImplementedError: The target platform is not supported.
+            Currently calling a procedure in the library is only supported in
+            the I{i386} architecture.
+
         @raise WindowsError: An exception is raised on error.
         """
 
