@@ -36,7 +36,7 @@ all: clean doc dist
 
 # Generate the documentation
 docs: doc
-doc: chm pdf
+doc: html pdf
 
 # Build the packages
 dist: sdist bdist
