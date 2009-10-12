@@ -1765,8 +1765,8 @@ class MemoryOperations (object):
         @type  maxAddr: int
         @param maxAddr: (Optional) Ending address in address range to query.
 
-        @rtype:  list( L{MEMORY_BASIC_INFORMATION} )
-        @return: List of MEMORY_BASIC_INFORMATION structures.
+        @rtype:  list( L{win32.MemoryBasicInformation} )
+        @return: List of memory region information objects.
         """
         if minAddr is None:
             minAddr = 0
@@ -1824,6 +1824,130 @@ class MemoryOperations (object):
                 pass
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
+
+    def take_memory_snapshot(self, minAddr = None, maxAddr = None):
+        """
+        Takes a snapshot of the memory contents of the process.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+
+        @rtype:  list( L{win32.MemoryBasicInformation} )
+        @return: List of memory region information objects.
+            Two extra properties are added to these objects:
+             - C{filename}: Mapped filename, or C{None}.
+             - C{content}: Memory contents, or C{None}.
+        """
+        snapshot = self.get_memory_map(minAddr, maxAddr)
+        filenames = self.get_mapped_filenames(snapshot)
+        for mbi in snapshot:
+            mbi.filename = filenames.get(mbi.BaseAddress, None)
+            if mbi.has_content():
+                mbi.content = self.read(mbi.BaseAddress, mbi.RegionSize)
+            else:
+                mbi.content = None
+        return snapshot
+
+    def restore_memory_snapshot(self, snapshot):
+        """
+        Attempts to restore the memory state as it was when the given snapshot
+        was taken.
+
+        @warning: Currently only the memory contents, state and protect bits
+            are restored. Under some circumstances this method may fail (for
+            example if memory was freed and then reused by a mapped file).
+
+        @type  snapshot: list( L{win32.MemoryBasicInformation} )
+        @param snapshot: Memory snapshot returned by L{take_memory_snapshot}.
+
+        @raise WindowsError: An error occured while restoring the snapshot.
+        @raise RuntimeError: An error occured while restoring the snapshot.
+        """
+
+        # Get the process handle.
+        hProcess = self.get_handle()
+
+        # Freeze the process.
+        self.suspend()
+        try:
+
+            # For each memory region in the snapshot...
+            for old_mbi in snapshot:
+
+                # If the region matches, restore it directly.
+                new_mbi = self.mquery(old_mbi.BaseAddress)
+                if new_mbi.BaseAddress == old_mbi.BaseAddress and new_mbi.RegionSize == old_mbi.RegionSize:
+                    self.__restore_mbi(hProcess, new_mbi, old_mbi)
+
+                # If the region doesn't match, restore it page by page.
+                else:
+                    start = old_mbi.BaseAddress
+                    end   = start + old_mbi.RegionSize
+                    for address in xrange(start, end, System.pageSize):
+                        new_mbi = self.mquery(address)
+                        self.__restore_mbi(hProcess, new_mbi, old_mbi)
+
+        # Resume execution.
+        finally:
+            self.resume()
+
+    def __restore_mbi(self, hProcess, new_mbi, old_mbi):
+        """
+        Used internally by L{restore_memory_snapshot}.
+        """
+
+##        print "Restoring %s-%s" % (HexDump.address(old_mbi.BaseAddress), HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize))
+
+        # Restore the region state.
+        if new_mbi.State != old_mbi.State:
+            if new_mbi.is_free():
+                if old_mbi.is_reserved():
+                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE, old_mbi.Protect)
+                    if address != old_mbi.BaseAddress:
+                        self.free(address)
+                        msg = "Error restoring region at address %s"
+                        msg = msg % HexDump(old_mbi.BaseAddress)
+                        raise RuntimeError, msg
+                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+                else:   # is_commited
+                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE | win32.MEM_COMMIT, old_mbi.Protect)
+                    if address != old_mbi.BaseAddress:
+                        self.free(address)
+                        msg = "Error restoring region at address %s"
+                        msg = msg % HexDump(old_mbi.BaseAddress)
+                        raise RuntimeError, msg
+                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+            elif new_mbi.is_reserved():
+                if old_mbi.is_commited():
+                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_COMMIT, old_mbi.Protect)
+                    if address != old_mbi.BaseAddress:
+                        self.free(address)
+                        msg = "Error restoring region at address %s"
+                        msg = msg % HexDump(old_mbi.BaseAddress)
+                        raise RuntimeError, msg
+                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+                else:   # is_free
+                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RELEASE)
+            else:   # is_commited
+                if old_mbi.is_reserved():
+                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT)
+                else:   # is_free
+                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT | win32.MEM_RELEASE)
+
+        # Restore the region permissions.
+        if old_mbi.Protect != new_mbi.Protect:
+            win32.VirtualProtectEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, old_mbi.Protect)
+
+        # Restore the region data.
+        # Ignore write errors when the region belongs to a mapped file.
+        if old_mbi.has_content():
+            if old_mbi.Type != 0:
+                self.poke(old_mbi.BaseAddress, old_mbi.content)
+            else:
+                self.write(old_mbi.BaseAddress, old_mbi.content)
 
 #==============================================================================
 
