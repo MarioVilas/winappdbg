@@ -256,6 +256,13 @@ class Crash (object):
     @ivar faultDisasm: Dissassembly around the program counter.
 
         C{None} or empty if unapplicable or unable to retrieve.
+
+    @type memoryMap: None or list of L{win32.MemoryBasicInformation} objects.
+    @ivar memoryMap: Memory snapshot of the program. May contain the actual
+        data from the entire process memory if requested.
+        See L{fetch_extra_data} for more details.
+
+        C{None} or empty if unapplicable or unable to retrieve.
     """
 
     def __init__(self, event):
@@ -309,6 +316,7 @@ class Crash (object):
         self.faultMem           = None
         self.faultPeek          = None
         self.faultDisasm        = None
+        self.memoryMap          = None
 
         # Get information for debug string events.
         if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
@@ -329,7 +337,8 @@ class Crash (object):
             if not self.lpBaseOfDll:
                 self.lpBaseOfDll = aModule.get_base()
 
-        # Get information for exception events.
+        # Get some information for exception events.
+        # To get the remaining information call fetch_extra_data().
         elif self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
 
             # Exception information.
@@ -354,15 +363,6 @@ class Crash (object):
                 self.isSystemBreakpoint = \
                     process.is_system_defined_breakpoint(self.exceptionAddress)
 
-            # Data pointed to by registers.
-            self.registersPeek = thread.peek_pointers_in_registers()
-
-            # Module that raised the exception.
-            aModule = process.get_module_at_address(self.pc)
-            if aModule is not None:
-                self.modFileName = aModule.get_filename()
-                self.lpBaseOfDll = aModule.get_base()
-
             # Stack trace.
             try:
                 self.stackTracePretty = thread.get_stack_trace_with_labels()
@@ -377,6 +377,41 @@ class Crash (object):
                 self.stackTraceLabels = tuple(stackTraceLabels)
             except Exception, e:
                 pass
+
+    def fetch_extra_data(self, event, takeMemorySnapshot = 0):
+        """
+        Fetch extra data from the L{Event} object.
+
+        @note: This is only needed for exceptions. Since this method may take
+            a little longer to run, it's best to call it only after you've
+            determined the crash is interesting and you want to save it.
+
+        @type  event: L{Event}
+        @param event: Event object for crash.
+
+        @type  takeMemorySnapshot: int
+        @param takeMemorySnapshot:
+            Memory snapshot behavior:
+             - C{0} to take no memory information (default).
+             - C{1} to take only the memory map.
+             - C{2} to take a full memory snapshot.
+        """
+
+        # Get the process and thread, but dont't store them in the DB.
+        process                 = event.get_process()
+        thread                  = event.get_thread()
+
+        # Get some information for exception events.
+        if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
+
+            # Data pointed to by registers.
+            self.registersPeek = thread.peek_pointers_in_registers()
+
+            # Module that raised the exception.
+            aModule = process.get_module_at_address(self.pc)
+            if aModule is not None:
+                self.modFileName = aModule.get_filename()
+                self.lpBaseOfDll = aModule.get_base()
 
             # Contents of the stack frame.
             try:
@@ -412,6 +447,17 @@ class Crash (object):
                 self.faultMem = process.peek(self.exceptionAddress, 64)
                 if self.faultMem:
                     self.faultPeek = process.peek_pointers_in_data(self.faultMem)
+
+            # Take a snapshot of the process memory. Additionally get the
+            # memory contents if requested.
+            if takeMemorySnapshot == 2:
+                self.memoryMap = process.take_memory_snapshot()
+            elif takeMemorySnapshot == 1:
+                self.memoryMap = process.get_memory_map()
+                mappedFilenames = process.get_mapped_filenames(self.memoryMap)
+                for mbi in self.memoryMap:
+                    mbi.filename = mappedFilenames.get(mbi.BaseAddress, None)
+                    mbi.content  = None
 
     @property
     def pc(self):
@@ -1110,7 +1156,7 @@ class CrashTable (object):
     """
 
     __table_definition = (
-        "CREATE TABLE WinAppDbg ("
+        "CREATE TABLE Crashes ("
 
         # Sequential row IDs.
         "id INTEGER PRIMARY KEY,"
@@ -1149,10 +1195,30 @@ class CrashTable (object):
         "notes TEXT"                        # joined
         ")"
     )
-
     __insert_row = (
-     "INSERT INTO WinAppDbg VALUES "
+     "INSERT INTO Crashes VALUES "
      "(null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    __select_pickle = "SELECT pickle FROM Crashes"
+    __select_key    = "SELECT key FROM Crashes"
+    __select_count  = "SELECT COUNT(*) FROM Crashes"
+
+    __memory_table_definition = (
+        "CREATE TABLE Memory ("
+        "id INTEGER PRIMARY KEY,"       # Sequential row IDs.
+        "Crash INTEGER,"                # Row ID in the Crashes table.
+        "Address INTEGER,"              # Value of mbi.BaseAddress.
+        "Size INTEGER,"                 # Value of mbi.RegionSize.
+        "State TEXT,"                   # Value of mbi.State.
+        "Access TEXT,"                  # Value of mbi.Protect.
+        "Type TEXT,"                    # Value of mbi.Type.
+        "File TEXT,"                    # Value of mbi.filename.
+        "Data BLOB"                     # Value of mbi.content (compressed?).
+        ")"
+    )
+    __memory_insert_row = (
+        "INSERT INTO Memory VALUES "
+        "(null, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
 
     def __get_row_values(self, crash):
@@ -1203,6 +1269,86 @@ class CrashTable (object):
             notes,
         )
 
+    def __memory_get_row_values(self, CrashID, mbi):
+
+        # State (free or allocated).
+        if   mbi.State == win32.MEM_RESERVE:
+            State   = "Reserved"
+        elif mbi.State == win32.MEM_COMMIT:
+            State   = "Commited"
+        elif mbi.State == win32.MEM_FREE:
+            State   = "Free"
+        else:
+            State   = "Unknown"
+
+        # Page protection bits (R/W/X/G).
+        if mbi.State != win32.MEM_COMMIT:
+            Protect = ""
+        else:
+            if   mbi.Protect & win32.PAGE_NOACCESS:
+                Protect = "--- "
+            elif mbi.Protect & win32.PAGE_READONLY:
+                Protect = "R-- "
+            elif mbi.Protect & win32.PAGE_READWRITE:
+                Protect = "RW- "
+            elif mbi.Protect & win32.PAGE_WRITECOPY:
+                Protect = "RC- "
+            elif mbi.Protect & win32.PAGE_EXECUTE:
+                Protect = "--X "
+            elif mbi.Protect & win32.PAGE_EXECUTE_READ:
+                Protect = "R-- "
+            elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
+                Protect = "RW- "
+            elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
+                Protect = "RCX "
+            else:
+                Protect = "??? "
+            if   mbi.Protect & win32.PAGE_GUARD:
+                Protect += "G"
+            else:
+                Protect += "-"
+            if   mbi.Protect & win32.PAGE_NOCACHE:
+                Protect += "N"
+            else:
+                Protect += "-"
+            if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+                Protect += "W"
+            else:
+                Protect += "-"
+
+        # Type (file mapping, executable image, or private memory).
+        if   mbi.Type == win32.MEM_IMAGE:
+            Type    = "Image"
+        elif mbi.Type == win32.MEM_MAPPED:
+            Type    = "Mapped"
+        elif mbi.Type == win32.MEM_PRIVATE:
+            Type    = "Private"
+        elif mbi.Type == 0:
+            Type    = ""
+        else:
+            Type    = "Unknown"
+
+        # Memory contents.
+        content = mbi.content
+        if not content:
+            content = ''
+        else:
+##            content = zlib.compress(content, zlib.Z_BEST_COMPRESSION)
+            pass
+        content = sqlite.Binary(content)
+
+        # Return a tuple to pass to Cursor.execute().
+        return (
+            CrashID,
+            mbi.BaseAddress,
+            mbi.RegionSize,
+            State,
+            Protect,
+            Type,
+            mbi.filename,
+            content,
+        )
+
     def __init__(self, location = None, allowRepeatedKeys = True):
         """
         @type  location: str
@@ -1239,9 +1385,10 @@ class CrashTable (object):
         self.__db       = sqlite.connect(self.__location)
         self.__cursor   = self.__db.cursor()
 
-        # Create the table if needed.
+        # Create the tables if needed.
         try:
             self.__cursor.execute(self.__table_definition)
+            self.__cursor.execute(self.__memory_table_definition)
             self.__db.commit()
         except Exception:
             pass
@@ -1249,14 +1396,14 @@ class CrashTable (object):
         # Populate the cache of existing keys.
         self.__allowRepeatedKeys = allowRepeatedKeys
         self.__keys = dict()
-        self.__cursor.execute("SELECT key FROM WinAppDbg")
+        self.__cursor.execute(self.__select_key)
         for row in self.__cursor:
             marshalled_key   = row[0]
             unmarshalled_key = self.__unmarshall_key(marshalled_key)
             self.__keys[unmarshalled_key] = marshalled_key
 
         # Get the number of crashes stored in the database.
-        self.__cursor.execute("SELECT COUNT(*) FROM WinAppDbg")
+        self.__cursor.execute(self.__select_count)
         count = 0
         for row in self.__cursor:
             count = long(row[0])
@@ -1268,7 +1415,7 @@ class CrashTable (object):
 
         @note:
             When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{True}, duplicated crashes are ignored.
+            is set to C{False}, duplicated crashes are ignored.
 
         @see: L{Crash.key}
 
@@ -1285,6 +1432,15 @@ class CrashTable (object):
             # Insert the row into the table.
             self.__cursor.execute(self.__insert_row,
                                   self.__get_row_values(crash))
+
+            # Save the memory snapshot, if any.
+            if hasattr(crash, 'memoryMap') and crash.memoryMap:
+                cid = self.__cursor.lastrowid
+                for mbi in crash.memoryMap:
+                    self.__cursor.execute(self.__memory_insert_row,
+                             self.__memory_get_row_values(cid, mbi))
+
+            # Commit the changes to the database.
             self.__db.commit()
 
             # Increment the counter of crashes.
@@ -1295,7 +1451,7 @@ class CrashTable (object):
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        self.__cursor.execute("SELECT pickle FROM WinAppDbg")
+        self.__cursor.execute(self.__select_pickle)
         for row in self.__cursor:
             crash = row[0]
             crash = self.__unmarshall_value(crash)
@@ -1361,6 +1517,7 @@ class CrashTable (object):
     def __marshall_value(self, value):
         """
         Marshalls a Crash object to be used in the database.
+        The C{memoryMap} member is B{NOT} stored here.
 
         @type  value: L{Crash}
         @param value: Object to convert.
@@ -1368,7 +1525,15 @@ class CrashTable (object):
         @rtype:  BLOB
         @return: Converted object.
         """
-        value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        crash = value
+        memoryMap = crash.memoryMap
+        try:
+            crash.memoryMap = None
+            value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        finally:
+            crash.memoryMap = memoryMap
+            del memoryMap
+            del crash
         value = optimize(value)
         value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
         value = sqlite.Binary(value)
@@ -1454,7 +1619,7 @@ class VolatileCrashContainer(CrashContainer):
 
         @note:
             When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{True}, duplicated crashes are ignored.
+            is set to C{False}, duplicated crashes are ignored.
 
         @see: L{Crash.key}
 
@@ -1567,7 +1732,7 @@ class DummyCrashContainer(CrashContainer):
 
         @note:
             When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{True}, duplicated crashes are ignored.
+            is set to C{False}, duplicated crashes are ignored.
 
         @see: L{Crash.key}
 

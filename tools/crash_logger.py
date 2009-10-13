@@ -139,7 +139,9 @@ class LoggingEventHandler(EventHandler):
         bNew = self.options.duplicates or crash not in self.knownCrashes
 
         # Add the crash object to the container.
-        self.knownCrashes.add(crash)
+        if bNew:
+            crash.fetch_extra_data(event, self.options.memory)
+            self.knownCrashes.add(crash)
 
         # Log the event to standard output.
         try:
@@ -648,6 +650,12 @@ class CrashLogger (object):
         output.add_option("--ignore-first-chance", action="store_false",
                           dest="firstchance",
                           help="Stop only on second chance exceptions")
+        output.add_option("--no-memory", action="store_const", const=0, dest="memory",
+                          help="Don't save the memory state for each crash [default]")
+        output.add_option("--memory-map", action="store_const", const=1, dest="memory",
+                          help="Save the memory map for each crash")
+        output.add_option("--memory-snapshot", action="store_const", const=2, dest="memory",
+                          help="Save the entire memory contents for each crash")
         output.add_option("--nodb", action="store_true",
                           help="Do not save a crash dump file [default]")
         output.add_option("--dbm", metavar="FILE",
@@ -665,6 +673,7 @@ class CrashLogger (object):
             logfile     = None,
             duplicates  = True,
             firstchance = True,
+            memory      = 0,
             pause       = False,
             restart     = False,
             echo        = False,
