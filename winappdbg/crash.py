@@ -1196,9 +1196,10 @@ class CrashTable (object):
         ")"
     )
     __insert_row = (
-     "INSERT INTO Crashes VALUES "
-     "(null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO Crashes VALUES (null%s)"
+        % (',?' * len(__table_definition.split(',')))
     )
+
     __select_pickle = "SELECT pickle FROM Crashes"
     __select_key    = "SELECT key FROM Crashes"
     __select_count  = "SELECT COUNT(*) FROM Crashes"
