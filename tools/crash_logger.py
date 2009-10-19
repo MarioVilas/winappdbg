@@ -47,44 +47,6 @@ import traceback
 
 #==============================================================================
 
-class Logger(object):
-    """
-    Logs text to standard output and/or a text file.
-    """
-
-    def __init__(self, options):
-        self.verbose = options.verbose
-        self.logfile = options.logfile
-        if self.logfile:
-	    self.fd = open(self.logfile, 'a+')
-
-    def __logfile_error(self, e):
-        msg = "Warning, error writing log file %s: %s"
-        msg = msg % (self.logfile, str(e))
-        print DebugLog.log_text(msg)
-        self.logfile = None
-    	self.fd      = None
-
-    def __do_log(self, text):
-        if self.verbose:
-            print text
-        if self.logfile:
-            try:
-                self.fd.writelines('%s\n' % text)
-            except IOError, e:
-                self.__logfile_error(e)
-
-    def log_text(self, text):
-        self.__do_log( DebugLog.log_text(text) )
-
-    def log_event(self, event, text):
-        self.__do_log( DebugLog.log_event(event, text) )
-
-    def log_exc(self):
-        self.__do_log( 'Exception raised: %s' % traceback.format_exc() )
-
-#==============================================================================
-
 # XXX TODO
 # Capture stderr from the debuguees
 
@@ -106,7 +68,7 @@ class LoggingEventHandler(EventHandler):
         self.commandLine = commandLine
 
 	# Create the logger object.
-	self.logger = Logger(options)
+	self.logger = Logger(options.logfile, options.verbose)
 
         # Create the crash container.
         if not options.nodb:

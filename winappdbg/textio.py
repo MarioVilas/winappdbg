@@ -45,8 +45,9 @@ __all__ =   [
                 'HexInput',
                 'HexOutput',
                 'Table',
-                'DebugLog',
                 'CrashDump',
+                'DebugLog',
+                'Logger',
             ]
 
 import win32
@@ -1266,3 +1267,76 @@ class DebugLog (object):
         text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
         #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
         return cls.log_text(text)
+
+#------------------------------------------------------------------------------
+
+class Logger(object):
+    """
+    Logs text to standard output and/or a text file.
+
+    @type logfile: str or None
+    @ivar logfile: Append messahes to this text file.
+
+    @type verbose: bool
+    @ivar verbose: C{True} to print messages to standard output.
+
+    @type fd: file
+    @ivar fd: File object where log messages are printed to.
+        C{None} if no log file is used.
+    """
+
+    def __init__(self, logfile = None, verbose = True):
+        """
+        @type  logfile: str or None
+        @param logfile: Append messahes to this text file.
+
+        @type  verbose: bool
+        @param verbose: C{True} to print messages to standard output.
+        """
+        self.verbose = verbose
+        self.logfile = logfile
+        if self.logfile:
+	       self.fd = open(self.logfile, 'a+')
+
+    def __logfile_error(self, e):
+        msg = "Warning, error writing log file %s: %s"
+        msg = msg % (self.logfile, str(e))
+        print DebugLog.log_text(msg)
+        self.logfile = None
+    	self.fd      = None
+
+    def __do_log(self, text):
+        if self.verbose:
+            print text
+        if self.logfile:
+            try:
+                self.fd.writelines('%s\n' % text)
+            except IOError, e:
+                self.__logfile_error(e)
+
+    def log_text(self, text):
+        """
+        Log lines of text, inserting a timestamp.
+
+        @type  text: str
+        @param text: Text to log.
+        """
+        self.__do_log( DebugLog.log_text(text) )
+
+    def log_event(self, event, text):
+        """
+        Log lines of text associated with a debug event.
+
+        @type  event: L{Event}
+        @param event: Event object.
+
+        @type  text: str
+        @param text: Text to log.
+        """
+        self.__do_log( DebugLog.log_event(event, text) )
+
+    def log_exc(self):
+        """
+        Log lines of text associated with the last Python exception.
+        """
+        self.__do_log( 'Exception raised: %s' % traceback.format_exc() )

@@ -84,8 +84,9 @@ __all__ =   [
                 'HexInput',
                 'HexOutput',
                 'Table',
-                'DebugLog',
                 'CrashDump',
+                'DebugLog',
+                'Logger',
 
                 # import win32
                 'win32',
