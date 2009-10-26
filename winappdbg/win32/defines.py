@@ -125,6 +125,10 @@ class GuessStringType(object):
     Decorator that guesses the correct version (A or W) to call
     based on the types of the strings passed as parameters.
 
+    Defaults to B{ANSI} if no string arguments are passed.
+
+    Defaults to B{Unicode} if mixed string types are passed.
+
     @type fn_ansi: function
     @ivar fn_ansi: ANSI version of the API function to call.
     @type fn_unicode: function
