@@ -2476,6 +2476,40 @@ def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
 
 GetTempFileName = GuessStringType(GetTempFileNameA, GetTempFileNameW)
 
+# DWORD WINAPI GetCurrentDirectory(
+#   __in   DWORD nBufferLength,
+#   __out  LPTSTR lpBuffer
+# );
+def GetCurrentDirectoryA():
+    _GetCurrentDirectoryA = windll.kernel32.GetCurrentDirectoryA
+    _GetCurrentDirectoryA.argtypes = [DWORD, LPSTR]
+    _GetCurrentDirectoryA.restype = DWORD
+
+    nBufferLength = _GetCurrentDirectoryA(0, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    nCopied = _GetCurrentDirectoryA(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+def GetCurrentDirectoryW():
+    _GetCurrentDirectoryW = windll.kernel32.GetCurrentDirectoryW
+    _GetCurrentDirectoryW.argtypes = [DWORD, LPWSTR]
+    _GetCurrentDirectoryW.restype = DWORD
+
+    nBufferLength = _GetCurrentDirectoryW(0, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    nCopied = _GetCurrentDirectoryW(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+GetCurrentDirectory = GuessStringType(GetCurrentDirectoryA, GetCurrentDirectoryW)
+
 # HLOCAL WINAPI LocalFree(
 #   __in  HLOCAL hMem
 # );
