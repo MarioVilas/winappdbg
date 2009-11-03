@@ -2814,7 +2814,7 @@ class ThreadDebugOperations (object):
         read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers,
         get_linear_address, get_label_at_pc,
-        get_seh_chain
+        get_seh_chain, get_wait_chain
     """
 
     def is_wow64(self):
@@ -2932,6 +2932,27 @@ class ThreadDebugOperations (object):
         except WindowsError, e:
             pass
         return seh_chain
+
+    def get_wait_chain(self):
+        """
+        @rtype:
+            tuple of (
+            list of L{win32.WAITCHAIN_NODE_INFO} structures,
+            bool)
+        @return:
+            Wait chain for the thread.
+            The boolean indicates if there's a cycle in the chain.
+        @raise AttributeError:
+            This method is only suppported in Windows Vista and above.
+        @see:
+            U{http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx}
+        """
+        # the docstring is bigger than the code :)
+        hWct = win32.OpenThreadWaitChainSession()
+        try:
+            return win32.GetThreadWaitChain(hWct, None, 0, self.get_tid())
+        finally:
+            win32.CloseThreadWaitChainSession(hWct)
 
     def get_stack_range(self):
         """

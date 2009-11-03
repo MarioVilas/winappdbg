@@ -121,6 +121,125 @@ class TOKEN_PRIVILEGES(Structure):
 
 PTOKEN_PRIVILEGES = POINTER(TOKEN_PRIVILEGES)
 
+#--- WAITCHAIN_NODE_INFO structure and types ----------------------------------
+
+WCT_MAX_NODE_COUNT       = 16
+WCT_OBJNAME_LENGTH       = 128
+WCT_ASYNC_OPEN_FLAG      = 0x1
+WCTP_OPEN_ALL_FLAGS      = WCT_ASYNC_OPEN_FLAG
+WCT_OUT_OF_PROC_FLAG     = 0x1
+WCT_OUT_OF_PROC_COM_FLAG = 0x2
+WCT_OUT_OF_PROC_CS_FLAG  = 0x4
+WCTP_GETINFO_ALL_FLAGS   = WCT_OUT_OF_PROC_FLAG | WCT_OUT_OF_PROC_COM_FLAG | WCT_OUT_OF_PROC_CS_FLAG
+
+HWCT = LPVOID
+
+# typedef enum _WCT_OBJECT_TYPE
+# {
+#     WctCriticalSectionType = 1,
+#     WctSendMessageType,
+#     WctMutexType,
+#     WctAlpcType,
+#     WctComType,
+#     WctThreadWaitType,
+#     WctProcessWaitType,
+#     WctThreadType,
+#     WctComActivationType,
+#     WctUnknownType,
+#     WctMaxType
+# } WCT_OBJECT_TYPE;
+
+WCT_OBJECT_TYPE         = DWORD
+
+WctCriticalSectionType  = 1
+WctSendMessageType      = 2
+WctMutexType            = 3
+WctAlpcType             = 4
+WctComType              = 5
+WctThreadWaitType       = 6
+WctProcessWaitType      = 7
+WctThreadType           = 8
+WctComActivationType    = 9
+WctUnknownType          = 10
+WctMaxType              = 11
+
+# typedef enum _WCT_OBJECT_STATUS
+# {
+#     WctStatusNoAccess = 1,            // ACCESS_DENIED for this object
+#     WctStatusRunning,                 // Thread status
+#     WctStatusBlocked,                 // Thread status
+#     WctStatusPidOnly,                 // Thread status
+#     WctStatusPidOnlyRpcss,            // Thread status
+#     WctStatusOwned,                   // Dispatcher object status
+#     WctStatusNotOwned,                // Dispatcher object status
+#     WctStatusAbandoned,               // Dispatcher object status
+#     WctStatusUnknown,                 // All objects
+#     WctStatusError,                   // All objects
+#     WctStatusMax
+# } WCT_OBJECT_STATUS;
+
+WCT_OBJECT_STATUS       = DWORD
+
+WctStatusNoAccess       = 1             # ACCESS_DENIED for this object
+WctStatusRunning        = 2             # Thread status
+WctStatusBlocked        = 3             # Thread status
+WctStatusPidOnly        = 4             # Thread status
+WctStatusPidOnlyRpcss   = 5             # Thread status
+WctStatusOwned          = 6             # Dispatcher object status
+WctStatusNotOwned       = 7             # Dispatcher object status
+WctStatusAbandoned      = 8             # Dispatcher object status
+WctStatusUnknown        = 9             # All objects
+WctStatusError          = 10            # All objects
+WctStatusMax            = 11
+
+# typedef struct _WAITCHAIN_NODE_INFO {
+#   WCT_OBJECT_TYPE   ObjectType;
+#   WCT_OBJECT_STATUS ObjectStatus;
+#   union {
+#     struct {
+#       WCHAR ObjectName[WCT_OBJNAME_LENGTH];
+#       LARGE_INTEGER Timeout;
+#       BOOL Alertable;
+#     } LockObject;
+#     struct {
+#       DWORD ProcessId;
+#       DWORD ThreadId;
+#       DWORD WaitTime;
+#       DWORD ContextSwitches;
+#     } ThreadObject;
+#   } ;
+# }WAITCHAIN_NODE_INFO, *PWAITCHAIN_NODE_INFO;
+
+class _WAITCHAIN_NODE_INFO_STRUCT_1(Structure):
+    _fields_ = [
+        ("ObjectName",      WCHAR * WCT_OBJNAME_LENGTH),
+        ("Timeout",         LARGE_INTEGER),
+        ("Alertable",       BOOL),
+    ]
+
+class _WAITCHAIN_NODE_INFO_STRUCT_2(Structure):
+    _fields_ = [
+        ("ProcessId",       DWORD),
+        ("ThreadId",        DWORD),
+        ("WaitTime",        DWORD),
+        ("ContextSwitches", DWORD),
+    ]
+
+class _WAITCHAIN_NODE_INFO_UNION(Union):
+    _fields_ = [
+        ("LockObject",      _WAITCHAIN_NODE_INFO_STRUCT_1),
+        ("ThreadObject",    _WAITCHAIN_NODE_INFO_STRUCT_2),
+    ]
+
+class WAITCHAIN_NODE_INFO(Structure):
+    _fields_ = [
+        ("ObjectType",      WCT_OBJECT_TYPE),
+        ("ObjectStatus",    WCT_OBJECT_STATUS),
+        ("u",               _WAITCHAIN_NODE_INFO_UNION),
+    ]
+
+PWAITCHAIN_NODE_INFO = POINTER(WAITCHAIN_NODE_INFO)
+
 #--- advapi32.dll -------------------------------------------------------------
 
 # BOOL WINAPI OpenProcessToken(
@@ -332,3 +451,55 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
 
 CreateProcessWithTokenA = MakeANSIVersion(CreateProcessWithTokenW)
 CreateProcessWithToken = CreateProcessWithTokenA
+
+# VOID CALLBACK WaitChainCallback(
+#     HWCT WctHandle,
+#     DWORD_PTR Context,
+#     DWORD CallbackStatus,
+#     LPDWORD NodeCount,
+#     PWAITCHAIN_NODE_INFO NodeInfoArray,
+#     LPBOOL IsCycle
+# );
+PWAITCHAINCALLBACK = WINFUNCTYPE(HWCT, LPVOID, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL)
+
+# HWCT WINAPI OpenThreadWaitChainSession(
+#   __in      DWORD Flags,
+#   __in_opt  PWAITCHAINCALLBACK callback
+# );
+def OpenThreadWaitChainSession(Flags = 0, callback = None):
+    _OpenThreadWaitChainSession = windll.advapi32.OpenThreadWaitChainSession
+    _OpenThreadWaitChainSession.argtypes = [DWORD, PWAITCHAINCALLBACK]
+    _OpenThreadWaitChainSession.restype  = HWCT
+    _OpenThreadWaitChainSession.errcheck = RaiseIfZero
+    return _OpenThreadWaitChainSession(Flags, callback)
+
+# BOOL WINAPI GetThreadWaitChain(
+#   __in      HWCT WctHandle,
+#   __in_opt  DWORD_PTR Context,
+#   __in      DWORD Flags,
+#   __in      DWORD ThreadId,
+#   __inout   LPDWORD NodeCount,
+#   __out     PWAITCHAIN_NODE_INFO NodeInfoArray,
+#   __out     LPBOOL IsCycle
+# );
+def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
+    _GetThreadWaitChain = windll.advapi32.GetThreadWaitChain
+    _GetThreadWaitChain.argtypes = [HWCT, LPVOID, DWORD, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL]
+    _GetThreadWaitChain.restype  = BOOL
+
+    NodeCount     = DWORD(WCT_MAX_NODE_COUNT)
+    NodeInfoArray = WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT
+    IsCycle       = BOOL(FALSE)
+    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, ctypes.byref(NodeCount), ctypes.byref(NodeInfoArray), ctypes.byref(IsCycle))
+    NodeInfoArray = [ NodeInfoArray[index] for index in xrange(0, NodeCount.value) ]
+    IsCycle       = bool(IsCycle)
+    return NodeInfoArray, IsCycle
+
+# VOID WINAPI CloseThreadWaitChainSession(
+#   __in  HWCT WctHandle
+# );
+def CloseThreadWaitChainSession(WctHandle):
+    _CloseThreadWaitChainSession = windll.advapi32.CloseThreadWaitChainSession
+    _CloseThreadWaitChainSession.argtypes = [HWCT]
+    _CloseThreadWaitChainSession(WctHandle)
+
