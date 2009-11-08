@@ -3691,6 +3691,10 @@ class ProcessDebugOperations (object):
         @return: PEB structure.
         @raise WindowsError: An exception is raised on error.
         """
+        # XXX TODO
+        # Determine the current Windows version and the target architecture
+        # of the debugee. Then use the corresponding definition of the PEB
+        # structure.
         return self.read_structure(self.get_peb_address(), win32.PEB)
 
     def get_peb_address(self):
