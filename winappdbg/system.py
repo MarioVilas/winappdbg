@@ -2849,6 +2849,10 @@ class ThreadDebugOperations (object):
         @return: TEB structure.
         @raise WindowsError: An exception is raised on error.
         """
+        # XXX TODO
+        # Determine the current Windows version and the target architecture
+        # of the debugee. Then use the corresponding definition of the TEB
+        # structure.
         return self.get_process().read_structure( self.get_teb_address(),
                                                   win32.TEB )
 
