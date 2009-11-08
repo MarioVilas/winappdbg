@@ -1212,6 +1212,31 @@ class FILETIME(Structure):
         ('dwLowDateTime',       DWORD),
         ('dwHighDateTime',      DWORD),
     ]
+LPFILETIME = POINTER(FILETIME)
+
+# typedef struct _SYSTEMTIME {
+#   WORD wYear;
+#   WORD wMonth;
+#   WORD wDayOfWeek;
+#   WORD wDay;
+#   WORD wHour;
+#   WORD wMinute;
+#   WORD wSecond;
+#   WORD wMilliseconds;
+# }SYSTEMTIME, *PSYSTEMTIME;
+class SYSTEMTIME(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('wYear',           WORD),
+        ('wMonth',          WORD),
+        ('wDayOfWeek',      WORD),
+        ('wDay',            WORD),
+        ('wHour',           WORD),
+        ('wMinute',         WORD),
+        ('wSecond',         WORD),
+        ('wMilliseconds',   WORD),
+    ]
+LPSYSTEMTIME = POINTER(LPSYSTEMTIME)
 
 # typedef struct _BY_HANDLE_FILE_INFORMATION {
 #   DWORD dwFileAttributes;
@@ -3628,8 +3653,48 @@ def GetProcessHandleCount(hProcess):
 #   __out  LPFILETIME lpKernelTime,
 #   __out  LPFILETIME lpUserTime
 # );
+def GetProcessTimes(hProcess):
+    _GetProcessTimes = windll.kernel32.GetProcessTimes
+    _GetProcessTimes.argtypes = [HANDLE, LPFILETIME, LPFILETIME, LPFILETIME]
+    _GetProcessTimes.restype  = BOOL
+    _GetProcessTimes.errcheck = RaiseIfZero
 
-# TO DO http://msdn.microsoft.com/en-us/library/ms683223(VS.85).aspx
+    CreationTime = FILETIME()
+    ExitTime     = FILETIME()
+    KernelTime   = FILETIME()
+    UserTime     = FILETIME()
+
+    _GetProcessTimes(hProcess, byref(CreationTime), byref(ExitTime), byref(KernelTime), byref(UserTime))
+
+##    CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
+##    ExitTime     = ExitTime.dwLowDateTime     + (ExitTime.dwHighDateTime     << 32)
+    KernelTime   = KernelTime.dwLowDateTime   + (KernelTime.dwHighDateTime   << 32)
+    UserTime     = UserTime.dwLowDateTime     + (UserTime.dwHighDateTime     << 32)
+
+    CreationTime = FileTimeToSystemTime(CreationTime)
+    ExitTime     = FileTimeToSystemTime(ExitTime)
+
+    return (CreationTime, ExitTime, KernelTime, UserTime)
+
+# BOOL WINAPI FileTimeToSystemTime(
+#   __in   const FILETIME *lpFileTime,
+#   __out  LPSYSTEMTIME lpSystemTime
+# );
+def FileTimeToSystemTime(lpFileTime):
+    _FileTimeToSystemTime = windll.kernel32.FileTimeToSystemTime
+    _FileTimeToSystemTime.argtypes = [LPFILETIME, LPSYSTEMTIME]
+    _FileTimeToSystemTime.restype  = BOOL
+    _FileTimeToSystemTime.errcheck = RaiseIfZero
+
+    if isinstance(lpFileTime, FILETIME):
+        FileTime = lpFileTime
+    else:
+        FileTime = FILETIME()
+        FileTime.dwLowDateTime  = lpFileTime & 0xFFFFFFFF
+        FileTime.dwHighDateTime = lpFileTime >> 32
+    SystemTime = SYSTEMTIME()
+    _FileTimeToSystemTime(byref(FileTime), byref(SystemTime))
+    return SystemTime
 
 # DWORD WINAPI GetVersion(void);
 def GetVersion():
