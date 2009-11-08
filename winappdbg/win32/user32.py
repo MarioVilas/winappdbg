@@ -361,6 +361,14 @@ def GetWindowLongW(hWnd, nIndex = 0):
 ##GetWindowLong = GuessStringType(GetWindowLongA, GetWindowLongW)
 GetWindowLong = GetWindowLongA  # XXX HACK
 
+# HWND GetShellWindow(VOID);
+def GetShellWindow():
+    _GetShellWindow = windll.user32.GetShellWindow
+    _GetShellWindow.argtypes = []
+    _GetShellWindow.restype  = HWND
+    _GetShellWindow.errcheck = RaiseIfZero
+    return _GetShellWindow()
+
 # DWORD GetWindowThreadProcessId(
 #     HWND hWnd,
 #     LPDWORD lpdwProcessId
