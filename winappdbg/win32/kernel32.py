@@ -35,83 +35,6 @@ __revision__ = "$Id$"
 
 from defines import *
 
-#--- SYSTEM_INFO structure, GetSystemInfo() and GetNativeSystemInfo() ---------
-
-PROCESSOR_ARCHITECTURE_INTEL    = 0
-PROCESSOR_ARCHITECTURE_IA64     = 6
-PROCESSOR_ARCHITECTURE_AMD64    = 9
-PROCESSOR_ARCHITECTURE_UNKNOWN  = 0xffff
-
-# typedef struct _SYSTEM_INFO {
-#   union {
-#     DWORD dwOemId;
-#     struct {
-#       WORD wProcessorArchitecture;
-#       WORD wReserved;
-#     } ;
-#   }     ;
-#   DWORD     dwPageSize;
-#   LPVOID    lpMinimumApplicationAddress;
-#   LPVOID    lpMaximumApplicationAddress;
-#   DWORD_PTR dwActiveProcessorMask;
-#   DWORD     dwNumberOfProcessors;
-#   DWORD     dwProcessorType;
-#   DWORD     dwAllocationGranularity;
-#   WORD      wProcessorLevel;
-#   WORD      wProcessorRevision;
-# } SYSTEM_INFO;
-
-class _SYSTEM_INFO_OEM_ID_STRUCT(Structure):
-    _fields_ = [
-        ("wProcessorArchitecture",  WORD),
-        ("wReserved",               WORD),
-]
-
-class _SYSTEM_INFO_OEM_ID(Union):
-    _fields_ = [
-        ("dwOemId",  DWORD),
-        ("w",        _SYSTEM_INFO_OEM_ID_STRUCT),
-]
-
-class SYSTEM_INFO(Structure):
-    _fields_ = [
-        ("id",                              _SYSTEM_INFO_OEM_ID),
-        ("dwPageSize",                      DWORD),
-        ("lpMinimumApplicationAddress",     LPVOID),
-        ("lpMaximumApplicationAddress",     LPVOID),
-        ("dwActiveProcessorMask",           DWORD_PTR),
-        ("dwNumberOfProcessors",            DWORD),
-        ("dwProcessorType",                 DWORD),
-        ("dwAllocationGranularity",         DWORD),
-        ("wProcessorLevel",                 WORD),
-        ("wProcessorRevision",              WORD),
-    ]
-LPSYSTEM_INFO = ctypes.POINTER(SYSTEM_INFO)
-
-# void WINAPI GetSystemInfo(
-#   __out  LPSYSTEM_INFO lpSystemInfo
-# );
-def GetSystemInfo():
-    _GetSystemInfo = windll.kernel32.GetSystemInfo
-    _GetSystemInfo.argtypes = [LPSYSTEM_INFO]
-    _GetSystemInfo.restype = None
-
-    sysinfo = SYSTEM_INFO()
-    _GetSystemInfo(ctypes.byref(sysinfo))
-    return sysinfo
-
-# void WINAPI GetNativeSystemInfo(
-#   __out  LPSYSTEM_INFO lpSystemInfo
-# );
-def GetNativeSystemInfo():
-    _GetNativeSystemInfo = windll.kernel32.GetNativeSystemInfo
-    _GetNativeSystemInfo.argtypes = [LPSYSTEM_INFO]
-    _GetNativeSystemInfo.restype = None
-
-    sysinfo = SYSTEM_INFO()
-    _GetNativeSystemInfo(ctypes.byref(sysinfo))
-    return sysinfo
-
 #--- CONTEXT structure and constants ------------------------------------------
 
 import context_i386
@@ -127,23 +50,6 @@ ContextArchMask = context_i386.CONTEXT_i386
 ContextArchMask = ContextArchMask | context_amd64.CONTEXT_AMD64
 ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
 
-def get_arch():
-    try:
-        si = GetNativeSystemInfo()
-    except Exception:
-        try:
-            si = GetSystemInfo()
-        except Exception:
-            return 'unknown'
-    wProcessorArchitecture = si.id.w.wProcessorArchitecture
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL:
-        return 'i386'
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
-        return 'amd64'
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64:
-        return 'ia64'
-    return 'unknown'
-arch = get_arch()
 if   arch == 'i386':
     from context_i386 import *
 elif arch == 'amd64':
@@ -158,8 +64,6 @@ elif arch == 'ia64':
         from context_i386 import *
 else:
     print "Warning, unknown or unsupported architecture"
-del arch
-del get_arch
 
 #--- Constants ----------------------------------------------------------------
 

@@ -439,3 +439,145 @@ LIST_ENTRY._fields_ = [
         ("Flink",   PVOID),     # POINTER(LIST_ENTRY)
         ("Blink",   PVOID),     # POINTER(LIST_ENTRY)
 ]
+
+#--- SYSTEM_INFO structure, GetSystemInfo() and GetNativeSystemInfo() ---------
+
+PROCESSOR_ARCHITECTURE_INTEL    = 0
+PROCESSOR_ARCHITECTURE_IA64     = 6
+PROCESSOR_ARCHITECTURE_AMD64    = 9
+PROCESSOR_ARCHITECTURE_UNKNOWN  = 0xffff
+
+# typedef struct _SYSTEM_INFO {
+#   union {
+#     DWORD dwOemId;
+#     struct {
+#       WORD wProcessorArchitecture;
+#       WORD wReserved;
+#     } ;
+#   }     ;
+#   DWORD     dwPageSize;
+#   LPVOID    lpMinimumApplicationAddress;
+#   LPVOID    lpMaximumApplicationAddress;
+#   DWORD_PTR dwActiveProcessorMask;
+#   DWORD     dwNumberOfProcessors;
+#   DWORD     dwProcessorType;
+#   DWORD     dwAllocationGranularity;
+#   WORD      wProcessorLevel;
+#   WORD      wProcessorRevision;
+# } SYSTEM_INFO;
+
+class _SYSTEM_INFO_OEM_ID_STRUCT(Structure):
+    _fields_ = [
+        ("wProcessorArchitecture",  WORD),
+        ("wReserved",               WORD),
+]
+
+class _SYSTEM_INFO_OEM_ID(Union):
+    _fields_ = [
+        ("dwOemId",  DWORD),
+        ("w",        _SYSTEM_INFO_OEM_ID_STRUCT),
+]
+
+class SYSTEM_INFO(Structure):
+    _fields_ = [
+        ("id",                              _SYSTEM_INFO_OEM_ID),
+        ("dwPageSize",                      DWORD),
+        ("lpMinimumApplicationAddress",     LPVOID),
+        ("lpMaximumApplicationAddress",     LPVOID),
+        ("dwActiveProcessorMask",           DWORD_PTR),
+        ("dwNumberOfProcessors",            DWORD),
+        ("dwProcessorType",                 DWORD),
+        ("dwAllocationGranularity",         DWORD),
+        ("wProcessorLevel",                 WORD),
+        ("wProcessorRevision",              WORD),
+    ]
+LPSYSTEM_INFO = ctypes.POINTER(SYSTEM_INFO)
+
+# void WINAPI GetSystemInfo(
+#   __out  LPSYSTEM_INFO lpSystemInfo
+# );
+def GetSystemInfo():
+    _GetSystemInfo = windll.kernel32.GetSystemInfo
+    _GetSystemInfo.argtypes = [LPSYSTEM_INFO]
+    _GetSystemInfo.restype = None
+
+    sysinfo = SYSTEM_INFO()
+    _GetSystemInfo(ctypes.byref(sysinfo))
+    return sysinfo
+
+# void WINAPI GetNativeSystemInfo(
+#   __out  LPSYSTEM_INFO lpSystemInfo
+# );
+def GetNativeSystemInfo():
+    _GetNativeSystemInfo = windll.kernel32.GetNativeSystemInfo
+    _GetNativeSystemInfo.argtypes = [LPSYSTEM_INFO]
+    _GetNativeSystemInfo.restype = None
+
+    sysinfo = SYSTEM_INFO()
+    _GetNativeSystemInfo(ctypes.byref(sysinfo))
+    return sysinfo
+
+#--- get_arch and get_os ------------------------------------------------------
+
+def get_arch():
+    """
+    Determines the current processor architecture.
+
+    @rtype: str
+    @return: One of the following values:
+     - unknown
+     - i386
+     - amd64
+     - ia64
+    """
+    try:
+        si = GetNativeSystemInfo()
+    except Exception:
+        try:
+            si = GetSystemInfo()
+        except Exception:
+            return 'unknown'
+    wProcessorArchitecture = si.id.w.wProcessorArchitecture
+    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL:
+        return 'i386'
+    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
+        return 'amd64'
+    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64:
+        return 'ia64'
+    return 'unknown'
+
+# XXX TODO
+def get_os():
+    """
+    Determines the current operating system.
+
+    This function allows you to quickly tell apart major OS differences.
+    For more detailed information call L{kernel32.GetVersionEx} instead.
+
+    @note:
+        Wine reports itself as Windows XP 32 bits (even if the Linux host is 64 bits).
+        ReactOS reports itself as Windows 2000.
+
+    @rtype: str
+    @return: One of the following values:
+     - Unknown
+     - Windows NT
+     - Windows 2000
+     - Windows XP
+     - Windows XP (64 bits)
+     - Windows 2003
+     - Windows 2003 (64 bits)
+     - Windows 2008
+     - Windows 2008 (64 bits)
+     - Windows Vista
+     - Windows Vista (64 bits)
+     - Windows 7
+     - Windows 7 (64 bits)
+    """
+    raise NotImplementedError
+
+# Current processor architecture. See L{get_arch} for more details.
+arch = get_arch()
+
+# Current operating system. See L{get_os} for more details.
+##os = get_os()
