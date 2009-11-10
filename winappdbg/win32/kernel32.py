@@ -1140,7 +1140,7 @@ class SYSTEMTIME(Structure):
         ('wSecond',         WORD),
         ('wMilliseconds',   WORD),
     ]
-LPSYSTEMTIME = POINTER(LPSYSTEMTIME)
+LPSYSTEMTIME = POINTER(SYSTEMTIME)
 
 # typedef struct _BY_HANDLE_FILE_INFORMATION {
 #   DWORD dwFileAttributes;

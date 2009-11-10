@@ -213,7 +213,7 @@ WctStatusMax            = 11
 class _WAITCHAIN_NODE_INFO_STRUCT_1(Structure):
     _fields_ = [
         ("ObjectName",      WCHAR * WCT_OBJNAME_LENGTH),
-        ("Timeout",         LARGE_INTEGER),
+        ("Timeout",         LONGLONG), # LARGE_INTEGER
         ("Alertable",       BOOL),
     ]
 
