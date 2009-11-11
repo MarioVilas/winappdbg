@@ -64,6 +64,7 @@ __all__ =   [
             ]
 
 import win32
+import win32.version
 from textio import HexInput, HexDump
 
 import re
@@ -6298,15 +6299,15 @@ class System (ProcessContainer):
 
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.
-
-        Currently supported values:
-         - C{"i386"} for Intel 32-bit x86 processor or compatible.
-         - C{"amd64"} for Intel 64-bit x86_64 processor or compatible.
-         - C{"ia64"} for Intel Itanium processor or compatible.
+        For more details see L{version.get_arch}.
 
     @type bits: int
     @cvar bits: Size of the machine word in bits for the current architecture.
-        Currently supported values are C{32} and C{64}.
+        For more details see L{version.get_bits}.
+
+    @type os: str
+    @cvar os: Name of the Windows version we're runing on.
+        For more details see L{version.get_os}.
 
     @type wow64: bool
     @cvar wow64: C{True} if the debugger is a 32 bits process running in a 64
@@ -6317,8 +6318,9 @@ class System (ProcessContainer):
         automatically updated on runtime when importing the module.
     """
 
-    arch = win32.CONTEXT.arch
-    bits = win32.sizeof( win32.LPVOID ) * 8
+    arch = win32.version.arch
+    bits = win32.version.bits
+    os   = win32.version.os
 
     # Try to determine if the debugger itself is running on WOW64.
     # On error assume False.

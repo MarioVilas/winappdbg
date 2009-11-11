@@ -34,6 +34,7 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from version import arch, os
 
 #--- Types --------------------------------------------------------------------
 

@@ -34,6 +34,7 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from version import *
 
 #--- CONTEXT structure and constants ------------------------------------------
 
@@ -425,6 +426,58 @@ VOLUME_NAME_GUID            = 0x1
 VOLUME_NAME_NONE            = 0x4
 VOLUME_NAME_NT              = 0x2
 
+# GetProductInfo constants
+PRODUCT_BUSINESS = 0x00000006
+PRODUCT_BUSINESS_N = 0x00000010
+PRODUCT_CLUSTER_SERVER = 0x00000012
+PRODUCT_DATACENTER_SERVER = 0x00000008
+PRODUCT_DATACENTER_SERVER_CORE = 0x0000000C
+PRODUCT_DATACENTER_SERVER_CORE_V = 0x00000027
+PRODUCT_DATACENTER_SERVER_V = 0x00000025
+PRODUCT_ENTERPRISE = 0x00000004
+PRODUCT_ENTERPRISE_E = 0x00000046
+PRODUCT_ENTERPRISE_N = 0x0000001B
+PRODUCT_ENTERPRISE_SERVER = 0x0000000A
+PRODUCT_ENTERPRISE_SERVER_CORE = 0x0000000E
+PRODUCT_ENTERPRISE_SERVER_CORE_V = 0x00000029
+PRODUCT_ENTERPRISE_SERVER_IA64 = 0x0000000F
+PRODUCT_ENTERPRISE_SERVER_V = 0x00000026
+PRODUCT_HOME_BASIC = 0x00000002
+PRODUCT_HOME_BASIC_E = 0x00000043
+PRODUCT_HOME_BASIC_N = 0x00000005
+PRODUCT_HOME_PREMIUM = 0x00000003
+PRODUCT_HOME_PREMIUM_E = 0x00000044
+PRODUCT_HOME_PREMIUM_N = 0x0000001A
+PRODUCT_HYPERV = 0x0000002A
+PRODUCT_MEDIUMBUSINESS_SERVER_MANAGEMENT = 0x0000001E
+PRODUCT_MEDIUMBUSINESS_SERVER_MESSAGING = 0x00000020
+PRODUCT_MEDIUMBUSINESS_SERVER_SECURITY = 0x0000001F
+PRODUCT_PROFESSIONAL = 0x00000030
+PRODUCT_PROFESSIONAL_E = 0x00000045
+PRODUCT_PROFESSIONAL_N = 0x00000031
+PRODUCT_SERVER_FOR_SMALLBUSINESS = 0x00000018
+PRODUCT_SERVER_FOR_SMALLBUSINESS_V = 0x00000023
+PRODUCT_SERVER_FOUNDATION = 0x00000021
+PRODUCT_SMALLBUSINESS_SERVER = 0x00000009
+PRODUCT_STANDARD_SERVER = 0x00000007
+PRODUCT_STANDARD_SERVER_CORE = 0x0000000D
+PRODUCT_STANDARD_SERVER_CORE_V = 0x00000028
+PRODUCT_STANDARD_SERVER_V = 0x00000024
+PRODUCT_STARTER = 0x0000000B
+PRODUCT_STARTER_E = 0x00000042
+PRODUCT_STARTER_N = 0x0000002F
+PRODUCT_STORAGE_ENTERPRISE_SERVER = 0x00000017
+PRODUCT_STORAGE_EXPRESS_SERVER = 0x00000014
+PRODUCT_STORAGE_STANDARD_SERVER = 0x00000015
+PRODUCT_STORAGE_WORKGROUP_SERVER = 0x00000016
+PRODUCT_UNDEFINED = 0x00000000
+PRODUCT_UNLICENSED = 0xABCDABCD
+PRODUCT_ULTIMATE = 0x00000001
+PRODUCT_ULTIMATE_E = 0x00000047
+PRODUCT_ULTIMATE_N = 0x0000001C
+PRODUCT_WEB_SERVER = 0x00000011
+PRODUCT_WEB_SERVER_CORE = 0x0000001D
+
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
@@ -787,229 +840,6 @@ class VS_FIXEDFILEINFO (Structure):
         ("dwFileDateMS",            DWORD),
         ("dwFileDateLS",            DWORD),
     ]
-
-#--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
-
-VER_PLATFORM_WIN32s                 = 0
-VER_PLATFORM_WIN32_WINDOWS          = 1
-VER_PLATFORM_WIN32_NT               = 2
-
-VER_SUITE_BACKOFFICE                = 0x00000004
-VER_SUITE_BLADE                     = 0x00000400
-VER_SUITE_COMPUTE_SERVER            = 0x00004000
-VER_SUITE_DATACENTER                = 0x00000080
-VER_SUITE_ENTERPRISE                = 0x00000002
-VER_SUITE_EMBEDDEDNT                = 0x00000040
-VER_SUITE_PERSONAL                  = 0x00000200
-VER_SUITE_SINGLEUSERTS              = 0x00000100
-VER_SUITE_SMALLBUSINESS             = 0x00000001
-VER_SUITE_SMALLBUSINESS_RESTRICTED  = 0x00000020
-VER_SUITE_STORAGE_SERVER            = 0x00002000
-VER_SUITE_TERMINAL                  = 0x00000010
-VER_SUITE_WH_SERVER                 = 0x00008000
-
-VER_NT_DOMAIN_CONTROLLER            = 0x0000002
-VER_NT_SERVER                       = 0x0000003
-VER_NT_WORKSTATION                  = 0x0000001
-
-VER_BUILDNUMBER                     = 0x0000004
-VER_MAJORVERSION                    = 0x0000002
-VER_MINORVERSION                    = 0x0000001
-VER_PLATFORMID                      = 0x0000008
-VER_PRODUCT_TYPE                    = 0x0000080
-VER_SERVICEPACKMAJOR                = 0x0000020
-VER_SERVICEPACKMINOR                = 0x0000010
-VER_SUITENAME                       = 0x0000040
-
-VER_EQUAL                           = 1
-VER_GREATER                         = 2
-VER_GREATER_EQUAL                   = 3
-VER_LESS                            = 4
-VER_LESS_EQUAL                      = 5
-VER_AND                             = 6
-VER_OR                              = 7
-
-# typedef struct _OSVERSIONINFO {
-#   DWORD dwOSVersionInfoSize;
-#   DWORD dwMajorVersion;
-#   DWORD dwMinorVersion;
-#   DWORD dwBuildNumber;
-#   DWORD dwPlatformId;
-#   TCHAR szCSDVersion[128];
-# }OSVERSIONINFO;
-class OSVERSIONINFOA(Structure):
-    _fields_ = [
-        ("dwOSVersionInfoSize", DWORD),
-        ("dwMajorVersion",      DWORD),
-        ("dwMinorVersion",      DWORD),
-        ("dwBuildNumber",       DWORD),
-        ("dwPlatformId",        DWORD),
-        ("szCSDVersion",        CHAR * 128),
-    ]
-class OSVERSIONINFOW(Structure):
-    _fields_ = [
-        ("dwOSVersionInfoSize", DWORD),
-        ("dwMajorVersion",      DWORD),
-        ("dwMinorVersion",      DWORD),
-        ("dwBuildNumber",       DWORD),
-        ("dwPlatformId",        DWORD),
-        ("szCSDVersion",        WCHAR * 128),
-    ]
-
-# typedef struct _OSVERSIONINFOEX {
-#   DWORD dwOSVersionInfoSize;
-#   DWORD dwMajorVersion;
-#   DWORD dwMinorVersion;
-#   DWORD dwBuildNumber;
-#   DWORD dwPlatformId;
-#   TCHAR szCSDVersion[128];
-#   WORD  wServicePackMajor;
-#   WORD  wServicePackMinor;
-#   WORD  wSuiteMask;
-#   BYTE  wProductType;
-#   BYTE  wReserved;
-# }OSVERSIONINFOEX, *POSVERSIONINFOEX, *LPOSVERSIONINFOEX;
-class OSVERSIONINFOEXA(Structure):
-    _fields_ = [
-        ("dwOSVersionInfoSize", DWORD),
-        ("dwMajorVersion",      DWORD),
-        ("dwMinorVersion",      DWORD),
-        ("dwBuildNumber",       DWORD),
-        ("dwPlatformId",        DWORD),
-        ("szCSDVersion",        CHAR * 128),
-        ("wServicePackMajor",   WORD),
-        ("wServicePackMinor",   WORD),
-        ("wSuiteMask",          WORD),
-        ("wProductType",        BYTE),
-        ("wReserved",           BYTE),
-    ]
-class OSVERSIONINFOEXW(Structure):
-    _fields_ = [
-        ("dwOSVersionInfoSize", DWORD),
-        ("dwMajorVersion",      DWORD),
-        ("dwMinorVersion",      DWORD),
-        ("dwBuildNumber",       DWORD),
-        ("dwPlatformId",        DWORD),
-        ("szCSDVersion",        WCHAR * 128),
-        ("wServicePackMajor",   WORD),
-        ("wServicePackMinor",   WORD),
-        ("wSuiteMask",          WORD),
-        ("wProductType",        BYTE),
-        ("wReserved",           BYTE),
-    ]
-
-LPOSVERSIONINFOA    = POINTER(OSVERSIONINFOA)
-LPOSVERSIONINFOW    = POINTER(OSVERSIONINFOW)
-LPOSVERSIONINFOEXA  = POINTER(OSVERSIONINFOEXA)
-LPOSVERSIONINFOEXW  = POINTER(OSVERSIONINFOEXW)
-POSVERSIONINFOA     = LPOSVERSIONINFOA
-POSVERSIONINFOW     = LPOSVERSIONINFOW
-POSVERSIONINFOEXA   = LPOSVERSIONINFOEXA
-POSVERSIONINFOEXW   = LPOSVERSIONINFOA
-
-#--- GetSystemMetrics constants -----------------------------------------------
-
-SM_CXSCREEN             = 0
-SM_CYSCREEN             = 1
-SM_CXVSCROLL            = 2
-SM_CYHSCROLL            = 3
-SM_CYCAPTION            = 4
-SM_CXBORDER             = 5
-SM_CYBORDER             = 6
-SM_CXDLGFRAME           = 7
-SM_CYDLGFRAME           = 8
-SM_CYVTHUMB             = 9
-SM_CXHTHUMB             = 10
-SM_CXICON               = 11
-SM_CYICON               = 12
-SM_CXCURSOR             = 13
-SM_CYCURSOR             = 14
-SM_CYMENU               = 15
-SM_CXFULLSCREEN         = 16
-SM_CYFULLSCREEN         = 17
-SM_CYKANJIWINDOW        = 18
-SM_MOUSEPRESENT         = 19
-SM_CYVSCROLL            = 20
-SM_CXHSCROLL            = 21
-SM_DEBUG                = 22
-SM_SWAPBUTTON           = 23
-SM_RESERVED1            = 24
-SM_RESERVED2            = 25
-SM_RESERVED3            = 26
-SM_RESERVED4            = 27
-SM_CXMIN                = 28
-SM_CYMIN                = 29
-SM_CXSIZE               = 30
-SM_CYSIZE               = 31
-SM_CXFRAME              = 32
-SM_CYFRAME              = 33
-SM_CXMINTRACK           = 34
-SM_CYMINTRACK           = 35
-SM_CXDOUBLECLK          = 36
-SM_CYDOUBLECLK          = 37
-SM_CXICONSPACING        = 38
-SM_CYICONSPACING        = 39
-SM_MENUDROPALIGNMENT    = 40
-SM_PENWINDOWS           = 41
-SM_DBCSENABLED          = 42
-SM_CMOUSEBUTTONS        = 43
-
-SM_CXFIXEDFRAME         = SM_CXDLGFRAME     # ;win40 name change
-SM_CYFIXEDFRAME         = SM_CYDLGFRAME     # ;win40 name change
-SM_CXSIZEFRAME          = SM_CXFRAME        # ;win40 name change
-SM_CYSIZEFRAME          = SM_CYFRAME        # ;win40 name change
-
-SM_SECURE               = 44
-SM_CXEDGE               = 45
-SM_CYEDGE               = 46
-SM_CXMINSPACING         = 47
-SM_CYMINSPACING         = 48
-SM_CXSMICON             = 49
-SM_CYSMICON             = 50
-SM_CYSMCAPTION          = 51
-SM_CXSMSIZE             = 52
-SM_CYSMSIZE             = 53
-SM_CXMENUSIZE           = 54
-SM_CYMENUSIZE           = 55
-SM_ARRANGE              = 56
-SM_CXMINIMIZED          = 57
-SM_CYMINIMIZED          = 58
-SM_CXMAXTRACK           = 59
-SM_CYMAXTRACK           = 60
-SM_CXMAXIMIZED          = 61
-SM_CYMAXIMIZED          = 62
-SM_NETWORK              = 63
-SM_CLEANBOOT            = 67
-SM_CXDRAG               = 68
-SM_CYDRAG               = 69
-SM_SHOWSOUNDS           = 70
-SM_CXMENUCHECK          = 71  # Use instead of GetMenuCheckMarkDimensions()!
-SM_CYMENUCHECK          = 72
-SM_SLOWMACHINE          = 73
-SM_MIDEASTENABLED       = 74
-SM_MOUSEWHEELPRESENT    = 75
-SM_XVIRTUALSCREEN       = 76
-SM_YVIRTUALSCREEN       = 77
-SM_CXVIRTUALSCREEN      = 78
-SM_CYVIRTUALSCREEN      = 79
-SM_CMONITORS            = 80
-SM_SAMEDISPLAYFORMAT    = 81
-SM_IMMENABLED           = 82
-SM_CXFOCUSBORDER        = 83
-SM_CYFOCUSBORDER        = 84
-SM_TABLETPC             = 86
-SM_MEDIACENTER          = 87
-SM_STARTER              = 88
-SM_SERVERR2             = 89
-SM_MOUSEHORIZONTALWHEELPRESENT = 91
-SM_CXPADDEDBORDER       = 92
-
-SM_CMETRICS             = 93
-
-SM_REMOTESESSION        = 0x1000
-SM_SHUTTINGDOWN         = 0x2000
-SM_REMOTECONTROL        = 0x2001
-SM_CARETBLINKINGENABLED = 0x2002
 
 #--- THREADNAME_INFO structure ------------------------------------------------
 
@@ -3599,106 +3429,6 @@ def FileTimeToSystemTime(lpFileTime):
     SystemTime = SYSTEMTIME()
     _FileTimeToSystemTime(byref(FileTime), byref(SystemTime))
     return SystemTime
-
-# DWORD WINAPI GetVersion(void);
-def GetVersion():
-    _GetVersion = windll.kernel32.GetVersion
-    _GetVersion.argtypes = []
-    _GetVersion.restype = DWORD
-    _GetVersion.errcheck = RaiseIfZero
-
-    # See the example code here:
-    # http://msdn.microsoft.com/en-us/library/ms724439(VS.85).aspx
-
-    dwVersion       = _GetVersion()
-    dwMajorVersion  = dwVersion & 0x000000FF
-    dwMinorVersion  = (dwVersion & 0x0000FF00) >> 8
-    if (dwVersion & 0x80000000) == 0:
-        dwBuild     = (dwVersion & 0x7FFF0000) >> 16
-    else:
-        dwBuild     = None
-    return int(dwMajorVersion), int(dwMinorVersion), int(dwBuild)
-
-# BOOL WINAPI GetVersionEx(
-#   __inout  LPOSVERSIONINFO lpVersionInfo
-# );
-def GetVersionExA():
-    _GetVersionExA = windll.kernel32.GetVersionExA
-    _GetVersionExA.argtypes = [LPVOID]
-    _GetVersionExA.restype = bool
-    _GetVersionExA.errcheck = RaiseIfZero
-
-    osi = OSVERSIONINFOEXA()
-    osi.dwOSVersionInfoSize = sizeof(osi)
-    try:
-        _GetVersionExA(ctypes.byref(osi))
-    except WindowsError:
-        osi = OSVERSIONINFOA()
-        osi.dwOSVersionInfoSize = sizeof(osi)
-        _GetVersionExA(ctypes.byref(osi))
-    return osi
-
-def GetVersionExW():
-    _GetVersionExW = windll.kernel32.GetVersionExW
-    _GetVersionExW.argtypes = [LPVOID]
-    _GetVersionExW.restype = bool
-    _GetVersionExW.errcheck = RaiseIfZero
-
-    osi = OSVERSIONINFOEXW()
-    osi.dwOSVersionInfoSize = sizeof(osi)
-    try:
-        _GetVersionExW(ctypes.byref(osi))
-    except WindowsError:
-        osi = OSVERSIONINFOW()
-        osi.dwOSVersionInfoSize = sizeof(osi)
-        _GetVersionExW(ctypes.byref(osi))
-    return osi
-
-GetVersionEx = GuessStringType(GetVersionExA, GetVersionExW)
-
-# BOOL WINAPI VerifyVersionInfo(
-#   __in  LPOSVERSIONINFOEX lpVersionInfo,
-#   __in  DWORD dwTypeMask,
-#   __in  DWORDLONG dwlConditionMask
-# );
-def VerifyVersionInfo(lpVersionInfo, dwTypeMask, dwlConditionMask):
-    if isinstance(lpVersionInfo, OSVERSIONINFOEXA):
-        return VerifyVersionInfoA(lpVersionInfo, dwTypeMask, dwlConditionMask)
-    if isinstance(lpVersionInfo, OSVERSIONINFOEXW):
-        return VerifyVersionInfoW(lpVersionInfo, dwTypeMask, dwlConditionMask)
-    raise TypeError, "Bad OSVERSIONINFOEX structure"
-
-def VerifyVersionInfoA(lpVersionInfo, dwTypeMask, dwlConditionMask):
-    _VerifyVersionInfoA = windll.kernel32.VerifyVersionInfoA
-    _VerifyVersionInfoA.argtypes = [LPOSVERSIONINFOEXA, DWORD, DWORDLONG]
-    _VerifyVersionInfoA.restype = bool
-    return _VerifyVersionInfoA(ctypes.byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
-
-def VerifyVersionInfoW(lpVersionInfo, dwTypeMask, dwlConditionMask):
-    _VerifyVersionInfoW = windll.kernel32.VerifyVersionInfoW
-    _VerifyVersionInfoW.argtypes = [LPOSVERSIONINFOEXW, DWORD, DWORDLONG]
-    _VerifyVersionInfoW.restype = bool
-    return _VerifyVersionInfoW(ctypes.byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
-
-# ULONGLONG WINAPI VerSetConditionMask(
-#   __in  ULONGLONG dwlConditionMask,
-#   __in  DWORD dwTypeBitMask,
-#   __in  BYTE dwConditionMask
-# );
-def VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask):
-    _VerSetConditionMask = windll.kernel32.VerSetConditionMask
-    _VerSetConditionMask.argtypes = [ULONGLONG, DWORD, BYTE]
-    _VerSetConditionMask.restype = ULONGLONG
-    return _VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask)
-
-# int WINAPI GetSystemMetrics(
-#   __in  int nIndex
-# );
-def GetSystemMetrics(nIndex):
-    _GetSystemMetrics = windll.kernel32.GetSystemMetrics
-    _GetSystemMetrics.argtypes = [ctypes.c_int]
-    _GetSystemMetrics.restype = [ctypes.c_int]
-    return _GetSystemMetrics(nIndex)
 
 #------------------------------------------------------------------------------
 # Wow64
