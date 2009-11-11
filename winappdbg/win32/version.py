@@ -31,7 +31,7 @@ Debugging API wrappers in ctypes.
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
 
-__revision__ = "$Id: defines.py 438 2009-11-10 21:35:20Z QvasiModo $"
+__revision__ = "$Id$"
 
 from defines import *
 
