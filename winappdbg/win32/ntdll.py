@@ -2528,7 +2528,7 @@ PTEB_ACTIVE_FRAME_CONTEXT = POINTER(TEB_ACTIVE_FRAME_CONTEXT)
 #    +0x000 Flags            : Uint4B
 #    +0x008 Previous         : Ptr64 _TEB_ACTIVE_FRAME
 #    +0x010 Context          : Ptr64 _TEB_ACTIVE_FRAME_CONTEXT
-class _TEB_ACTIVE_FRAME(Structure):
+class TEB_ACTIVE_FRAME(Structure):
     _fields_ = [
         ("Flags",       DWORD),
         ("Previous",    LPVOID),    # PTEB_ACTIVE_FRAME
