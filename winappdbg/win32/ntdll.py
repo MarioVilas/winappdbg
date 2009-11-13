@@ -234,7 +234,10 @@ ExceptionContinueSearch     = 1
 ExceptionNestedException    = 2
 ExceptionCollidedUnwind     = 3
 
-#--- PEB and TEB structure, constants and data types --------------------------
+#--- PEB and TEB structures, constants and data types -------------------------
+
+# XXX TODO
+# Move all this to new files (peb.py and teb.py)
 
 # From http://www.nirsoft.net/kernel_struct/vista/CLIENT_ID.html
 #
@@ -2450,15 +2453,16 @@ class _NT_TIB_UNION(Union):
     _fields_ = [
         ("FiberData",   PVOID),
         ("Version",     ULONG),
-]
+    ]
 class NT_TIB(Structure):
     _fields_ = [
+        ("ExceptionList",           PVOID), # PEXCEPTION_REGISTRATION_RECORD
         ("StackBase",               PVOID),
         ("StackLimit",              PVOID),
         ("SubSystemTib",            PVOID),
         ("u",                       _NT_TIB_UNION),
         ("ArbitraryUserPointer",    PVOID),
-        ("Self",                    PVOID),     # PNTTIB
+        ("Self",                    PVOID), # PNTTIB
     ]
 
     def __get_FiberData(self):
@@ -4245,14 +4249,10 @@ class PROCESS_BASIC_INFORMATION(Structure):
 #   KPRIORITY Priority;
 #   KPRIORITY BasePriority;
 # } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
-
-##PTEB = POINTER(TEB)
-PTEB = PVOID
-
 class THREAD_BASIC_INFORMATION(Structure):
     _fields_ = [
         ("ExitStatus",      NTSTATUS),
-        ("TebBaseAddress",  PTEB),
+        ("TebBaseAddress",  PVOID),     # PTEB
         ("ClientId",        CLIENT_ID),
         ("AffinityMask",    KAFFINITY),
         ("Priority",        KPRIORITY),

@@ -216,9 +216,17 @@ class PathOperations (object):
         @rtype:  str
         @return: Win32 absolute pathname.
         """
+        # XXX TODO
+        # There are probably some native paths that
+        # won't be converted by this naive approach.
         if name.startswith("\\"):
             if name.startswith("\\??\\"):
-                name = name[ 4: ]
+                name = name[4:]
+            elif name.startswith("\\SystemRoot\\"):
+                system_root_path = os.environ['SYSTEMROOT']
+                if system_root_path.endswith('\\'):
+                    system_root_path = system_root_path[:-1]
+                name = system_root_path + name[11:]
             else:
                 for drive_number in xrange(ord('A'), ord('Z') + 1):
                     drive_letter = '%c:' % drive_number
@@ -2859,11 +2867,17 @@ class ThreadDebugOperations (object):
 
         @rtype:  int
         @return: Remote pointer to the L{TEB} structure.
-            Returns C{None} on error.
+        @raise WindowsError: An exception is raised on error.
         """
-        tbi = win32.NtQueryInformationThread(self.get_handle(),
+        try:
+            tbi = win32.NtQueryInformationThread( self.get_handle(),
                                                   win32.ThreadBasicInformation)
-        return tbi.TebBaseAddress
+            address = tbi.TebBaseAddress
+        except WindowsError:
+            address = self.get_linear_address('SegFs', 0)   # fs:[0]
+            if not address:
+                raise
+        return address
 
     def get_linear_address(self, segment, address):
         """
@@ -2921,7 +2935,8 @@ class ThreadDebugOperations (object):
             This method is only supported in 32 bits versions of Windows.
         """
         if System.arch != 'i386':
-            raise NotImplementedError
+            raise NotImplementedError, \
+                "SEH chain parsing is only supported in 32-bit Windows."
         process   = self.get_process()
         seh_chain = list()
         try:
@@ -2948,7 +2963,6 @@ class ThreadDebugOperations (object):
         @see:
             U{http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx}
         """
-        # the docstring is bigger than the code :)
         hWct = win32.OpenThreadWaitChainSession()
         try:
             return win32.GetThreadWaitChain(hWct, None, 0, self.get_tid())
@@ -2961,17 +2975,9 @@ class ThreadDebugOperations (object):
         @return: Stack beginning and end pointers, in memory addresses order.
         @raise   WindowsError: Raises an exception on error.
         """
-        try:
-            address = self.get_teb_address()
-        except Exception:
-            address = self.get_linear_address('SegFs', 0)
-        if not address:
-            raise ctypes.WinError(win32.ERROR_BAD_ARGUMENTS)
-        ptrsize = win32.sizeof(win32.LPVOID)
-        process = self.get_process()
-        begin   = process.read_pointer(address + (ptrsize * 2))
-        end     = process.read_pointer(address + ptrsize)
-        return (begin, end)
+        teb = self.get_teb()
+        tib = teb.NtTib
+        return ( tib.StackBase, tib.StackLimit )
 
     def __get_stack_trace(self, depth = 16, bUseLabels = True,
                                                            bMakePretty = True):
@@ -3737,27 +3743,28 @@ class ProcessDebugOperations (object):
 
         name = None
 
-        # method 1: Module.get_filename()
-        # only works if the filename was already found by the other methods,
+        # Method 1: Module.fileName
+        # It's cached if the filename was already found by the other methods,
         # or it came with the corresponding debug event.
         if not name:
             try:
-                aModule = self.get_main_module()
-                name    = aModule.get_filename()
+                name = self.get_main_module().fileName
+                if not name:
+                    name = None
             except (KeyError, AttributeError, WindowsError):
                 name = None
 
-        # method 2: QueryFullProcessImageName()
-        # not implemented until Windows Vista.
+        # Method 2: QueryFullProcessImageName()
+        # Not implemented until Windows Vista.
         if not name:
             try:
                 name = win32.QueryFullProcessImageName(self.get_handle())
             except (AttributeError, WindowsError):
                 name = None
 
-        # method 3: GetProcessImageFileName()
-        # not implemented until Windows XP.
-        # for more info see http://blog.voidnish.com/?p=72
+        # Method 3: GetProcessImageFileName()
+        # Not implemented until Windows XP.
+        # For more info see http://blog.voidnish.com/?p=72
         if not name:
             try:
                 name = win32.GetProcessImageFileName(self.get_handle())
@@ -3769,8 +3776,8 @@ class ProcessDebugOperations (object):
                 if not name:
                     name = None
 
-        # method 4: GetModuleFileNameEx()
-        # not implemented until Windows 2000.
+        # Method 4: GetModuleFileNameEx()
+        # Not implemented until Windows 2000.
         if not name:
             try:
                 name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
@@ -3782,19 +3789,8 @@ class ProcessDebugOperations (object):
                 if not name:
                     name = None
 
-##        # method 5: NtQueryInformationProcess(ProcessImageFileName)
-##        # not implemented in W2K.
-##        # may fail since it's not officially part of the Win32 API.
-##        # FIXME not working on XP either :( returns STATUS_INVALID_INFO_CLASS
-##        if not name:
-##            try:
-##                name = win32.NtQueryInformationProcess(self.get_handle(),
-##                                                win32.ProcessImageFileName)
-##            except (AttributeError, WindowsError):
-##                name = None
-
-        # method 6: PEB.ProcessParameters->ImagePathName
-        # may fail since it's using an undocumented internal structure.
+        # Method 5: PEB.ProcessParameters->ImagePathName
+        # May fail since it's using an undocumented internal structure.
         if not name:
             try:
                 peb = self.get_peb()
@@ -3803,10 +3799,25 @@ class ProcessDebugOperations (object):
                 s = pp.ImagePathName
                 name = self.peek_string(s.Buffer,
                                     dwMaxSize=s.MaximumLength, fUnicode=True)
+                if name:
+                    name = PathOperations.native_to_win32_pathname(name)
+                else:
+                    name = None
             except (AttributeError, WindowsError):
                 name = None
 
-        # return the image filename, or None on error.
+        # Method 6: Module.get_filename()
+        # It tries to get the filename from the file handle.
+        # There are currently some problems due to the strange way the API
+        # works - it returns the pathname without the drive letter, and I
+        # couldn't figure out a way to fix it.
+        if not name:
+            try:
+                name = self.get_main_module().get_filename()
+            except (KeyError, AttributeError, WindowsError):
+                name = None
+
+        # Return the image filename, or None on error.
         return name
 
     def get_command_line(self):

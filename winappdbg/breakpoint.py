@@ -771,18 +771,25 @@ class Breakpoint (object):
 
 #==============================================================================
 
+# XXX TODO
+# Check if the user is trying to set a code breakpoint on a memory mapped file,
+# so we don't end up writing the int3 instruction in the file by accident.
+# It's probably enough to change the page protection to copy-on-write.
+
 class CodeBreakpoint (Breakpoint):
     """
     Code execution breakpoints (using an int3 opcode).
 
     @see: L{Debug.break_at}
 
-    @type int3: str
-    @cvar int3: Breakpoint instruction for Intel x86 processors.
+    @type bpInstruction: str
+    @cvar bpInstruction: Breakpoint instruction for the current processor.
     """
 
     typeName = 'code breakpoint'
-    int3     = '\xCC'
+
+    if System.arch in ('i386', 'amd64'):
+        bpInstruction = '\xCC'      # int 3
 
     def __init__(self, address, condition = True, action = None):
         """
@@ -799,8 +806,12 @@ class CodeBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        Breakpoint.__init__(self, address, len(self.int3), condition, action)
-        self.__previousValue = self.int3
+        if System.arch not in ('i386', 'amd64'):
+            msg = "Code breakpoints not supported for %s" % System.arch
+            raise NotImplementedError, msg
+        Breakpoint.__init__(self, address, len(self.bpInstruction),
+                            condition, action)
+        self.__previousValue = self.bpInstruction
 
     def __set_bp(self, aProcess):
         """
@@ -809,9 +820,20 @@ class CodeBreakpoint (Breakpoint):
         @type  aProcess: L{Process}
         @param aProcess: Process object.
         """
+        address = self.get_address()
         # XXX maybe if the previous value is \xCC we shouldn't trust it?
-        self.__previousValue = aProcess.read(self.get_address(), len(self.int3))
-        aProcess.write(self.get_address(), self.int3)
+        self.__previousValue = aProcess.read(address, len(self.bpInstruction))
+        try:
+            aProcess.write(address, self.bpInstruction)
+        except WindowsError:
+            mbi = aProcess.mquery(address)
+            if mbi.is_writeable():
+                raise
+            try:
+                aProcess.mprotect(address, win32.PAGE_WRITECOPY)
+                aProcess.write(address, self.bpInstruction)
+            finally:
+                aProcess.mprotect(address, mbi.Protect)
 
     def __clear_bp(self, aProcess):
         """
@@ -822,8 +844,8 @@ class CodeBreakpoint (Breakpoint):
         """
         # Only restore the previous value if the int3 is still there.
         address = self.get_address()
-        currentValue = aProcess.read(address, len(self.int3))
-        if currentValue == self.int3:
+        currentValue = aProcess.read(address, len(self.bpInstruction))
+        if currentValue == self.bpInstruction:
             aProcess.write(self.get_address(), self.__previousValue)
         else:
             self.__previousValue = currentValue
@@ -944,6 +966,9 @@ class PageBreakpoint (Breakpoint):
         super(PageBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
+        if System.arch not in ('i386', 'amd64'):
+            msg = "Only one-shot page breakpoints are supported for %s"
+            raise NotImplementedError, msg % System.arch
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).enable(aProcess, aThread)
@@ -1078,6 +1103,9 @@ class HardwareBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
+        if System.arch not in ('i386', 'amd64'):
+            msg = "Hardware breakpoints not supported for %s" % System.arch
+            raise NotImplementedError, msg
         if   sizeFlag == self.WATCH_BYTE:
             size = 1
         elif sizeFlag == self.WATCH_WORD:
