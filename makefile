@@ -16,7 +16,7 @@ EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epyte
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
 EPYDOC_TEST_OPT=--check
-EPYDOC_OUTPUT_OPT=--show-private --no-sourcecode --no-imports --inheritance=included --graph all
+EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included --graph all
 
 # Source package options
 SDIST_OPT=--formats=zip,bztar
