@@ -18,6 +18,8 @@ EPYDOC_PDF_OPT=--pdf --separate-classes
 EPYDOC_TEST_OPT=--check
 EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included --graph all
 
+# note to self: use --no-sourcecode to generate smaller documentation pages
+
 # Source package options
 SDIST_OPT=--formats=zip,bztar
 
