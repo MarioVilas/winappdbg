@@ -79,8 +79,6 @@ def main():
         print "Invalid value for size: %s" % sys.argv[3]
         return
 
-    System.request_debug_privileges()
-
     p = Process(pid)
     data = p.read(address, size)
 ##    data = p.peek(address, size)
