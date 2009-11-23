@@ -730,7 +730,7 @@ class CrashLogger (object):
                         process.close_handle()
                     except WindowsError, e:
                         parser.error("can't open process %d: %s" % (dwProcessId, e))
-                    attach_targets.append( process.get_pid() )
+                    attach_targets.append(dwProcessId)
         options.attach = attach_targets
 
         # Get the list of console programs to execute
