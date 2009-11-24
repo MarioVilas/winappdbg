@@ -87,7 +87,7 @@ def EnumDeviceDrivers():
 # );
 def EnumProcesses():
     _EnumProcesses = windll.psapi.EnumProcesses
-    _EnumProcesses.argtypes = [LPVOID, DWORD, DWORD]
+    _EnumProcesses.argtypes = [LPVOID, DWORD, LPDWORD]
     _EnumProcesses.restype = bool
     _EnumProcesses.errcheck = RaiseIfZero
 

@@ -76,7 +76,6 @@ import struct
 try:
     from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
 except ImportError:
-    raise
     Decode16Bits = None
     Decode32Bits = None
     Decode64Bits = None
@@ -4104,30 +4103,45 @@ class ProcessContainer (object):
         return win32.CommandLineToArgv(lpCmdLine)
 
     def start_process(self, lpCmdLine,
-            bConsole    = False,
-            bDebug      = False,
-            bFollow     = False,
-            bSuspended  = False
+            bConsole            = False,
+            bDebug              = False,
+            bFollow             = False,
+            bSuspended          = False,
+            bInheritHandles     = False,
+            dwParentProcessId   = None
         ):
         """
-        Starts a new process for debugging.
+        Starts a new process for instrumenting (or debugging).
 
         @type  lpCmdLine: str
         @param lpCmdLine: Command line to execute. Can't be an empty string.
 
         @type  bConsole: bool
         @param bConsole: C{True} if the new process should inherit the console.
+            Defaults to C{False}.
 
         @type  bDebug: bool
         @param bDebug: C{True} to attach to the new process.
             To debug a process it's best to use the L{Debug} class instead.
+            Defaults to C{False}.
 
         @type  bFollow: bool
         @param bFollow: C{True} to automatically attach to the child processes
             of the newly created process. Ignored unless C{bDebug} is C{True}.
+            Defaults to C{False}.
 
         @type  bSuspended: bool
         @param bSuspended: C{True} if the new process should be suspended.
+            Defaults to C{False}.
+
+        @type  bInheritHandles: bool
+        @param bInheritHandles: C{True} if the new process should inherit it's
+            parent process' handles. Defaults to C{False}.
+
+        @type  dwParentProcessId: int or None
+        @param dwParentProcessId: C{None} if the debugger process should be the
+            parent process (default), or a process ID to forcefully set as the
+            debuguee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: Process object.
@@ -4145,8 +4159,35 @@ class ProcessContainer (object):
             dwCreationFlags |= win32.DEBUG_PROCESS
         if bDebug and not bFollow:
             dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
+        lpStartupInfo = None
+        if dwParentProcessId is not None:
+            myPID = win32.GetProcessId( win32.GetCurrentProcess() )
+            if dwParentProcessId != myPID:
+                ParentProcess = Process(dwParentProcessId)
+                AttributeList = (
+                    (
+                        win32.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+                        ParentProcess.get_handle()._as_parameter_
+                    ),
+                )
+                AttributeList = win32.ProcThreadAttributeList(AttributeList)
+                StartupInfo             = win32.STARTUPINFO()
+                StartupInfo.cb          = win32.sizeof(win32.STARTUPINFOEX)
+                StartupInfo.lpReserved  = 0
+                StartupInfo.lpDesktop   = 0
+                StartupInfo.lpTitle     = 0
+                StartupInfo.dwFlags     = 0
+                StartupInfo.cbReserved2 = 0
+                StartupInfo.lpReserved2 = 0
+                StartupInfoEx                 = win32.STARTUPINFOEX()
+                StartupInfoEx.StartupInfo     = StartupInfo
+                StartupInfoEx.lpAttributeList = AttributeList.value
+                lpStartupInfo = StartupInfoEx
+                dwCreationFlags |= win32.EXTENDED_STARTUPINFO_PRESENT
         pi = win32.CreateProcess(win32.NULL, lpCmdLine,
-                                             dwCreationFlags = dwCreationFlags)
+                                 bInheritHandles = bInheritHandles,
+                                 dwCreationFlags = dwCreationFlags,
+                                 lpStartupInfo   = lpStartupInfo)
         aProcess = Process(pi.dwProcessId, pi.hProcess)
         aThread  = Thread (pi.dwThreadId,  pi.hThread)
         aProcess._ThreadContainer__add_thread(aThread)

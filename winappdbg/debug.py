@@ -268,7 +268,9 @@ class Debug (EventDispatcher, BreakpointContainer):
 
     def execv(self, argv,                                    bConsole = False,
                                                               bFollow = False,
-                                                           bSuspended = False):
+                                                           bSuspended = False,
+                                                      bInheritHandles = False,
+                                                    dwParentProcessId = None):
         """
         Starts a new process for debugging.
 
@@ -283,13 +285,24 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  bConsole: bool
         @param bConsole: True to inherit the console of the debugger.
+            Defaults to C{False}.
 
         @type  bFollow: bool
         @param bFollow: C{True} to automatically attach to child processes.
+            Defaults to C{False}.
 
         @type  bSuspended: bool
         @param bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee.
+            is executed in the debugee. Defaults to C{False}.
+
+        @type  bInheritHandles: bool
+        @param bInheritHandles: C{True} if the new process should inherit it's
+            parent process' handles. Defaults to C{False}.
+
+        @type  dwParentProcessId: int or None
+        @param dwParentProcessId: C{None} if the debugger process should be the
+            parent process (default), or a process ID to forcefully set as the
+            debuguee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -299,11 +312,15 @@ class Debug (EventDispatcher, BreakpointContainer):
         lpCmdLine = self.system.argv_to_cmdline(argv)
         return self.execl(lpCmdLine,   bConsole = bConsole,
                                         bFollow = bFollow,
-                                     bSuspended = bSuspended)
+                                     bSuspended = bSuspended,
+                                bInheritHandles = bInheritHandles,
+                              dwParentProcessId = dwParentProcessId)
 
     def execl(self, lpCmdLine,                               bConsole = False,
                                                               bFollow = False,
-                                                           bSuspended = False):
+                                                           bSuspended = False,
+                                                      bInheritHandles = False,
+                                                    dwParentProcessId = None):
         """
         Starts a new process for debugging.
 
@@ -321,13 +338,24 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  bConsole: bool
         @param bConsole: C{True} to inherit the console of the debugger.
+            Defaults to C{False}.
 
         @type  bFollow: bool
         @param bFollow: C{True} to automatically attach to child processes.
+            Defaults to C{False}.
 
         @type  bSuspended: bool
         @param bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee.
+            is executed in the debugee. Defaults to C{False}.
+
+        @type  bInheritHandles: bool
+        @param bInheritHandles: C{True} if the new process should inherit it's
+            parent process' handles. Defaults to C{False}.
+
+        @type  dwParentProcessId: int or None
+        @param dwParentProcessId: C{None} if the debugger process should be the
+            parent process (default), or a process ID to forcefully set as the
+            debuguee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -335,10 +363,12 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         aProcess = self.system.start_process(lpCmdLine,
-            bConsole    = bConsole,
-            bDebug      = True,
-            bFollow     = bFollow,
-            bSuspended  = bSuspended
+            bConsole          = bConsole,
+            bDebug            = True,
+            bFollow           = bFollow,
+            bSuspended        = bSuspended,
+            bInheritHandles   = bInheritHandles,
+            dwParentProcessId = dwParentProcessId,
         )
 
         self.__startedDebugees.add( aProcess.get_pid() )

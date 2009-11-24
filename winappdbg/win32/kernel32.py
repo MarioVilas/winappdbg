@@ -158,40 +158,37 @@ PROCESS_MODE_BACKGROUND_END     = 0x00200000
 
 DEBUG_PROCESS                     = 0x00000001
 DEBUG_ONLY_THIS_PROCESS           = 0x00000002
-
-CREATE_SUSPENDED                  = 0x00000004
-
+CREATE_SUSPENDED                  = 0x00000004    # Threads and processes
 DETACHED_PROCESS                  = 0x00000008
-
 CREATE_NEW_CONSOLE                = 0x00000010
-
 NORMAL_PRIORITY_CLASS             = 0x00000020
 IDLE_PRIORITY_CLASS               = 0x00000040
 HIGH_PRIORITY_CLASS               = 0x00000080
 REALTIME_PRIORITY_CLASS           = 0x00000100
-
 CREATE_NEW_PROCESS_GROUP          = 0x00000200
 CREATE_UNICODE_ENVIRONMENT        = 0x00000400
-
 CREATE_SEPARATE_WOW_VDM           = 0x00000800
 CREATE_SHARED_WOW_VDM             = 0x00001000
 CREATE_FORCEDOS                   = 0x00002000
-
 BELOW_NORMAL_PRIORITY_CLASS       = 0x00004000
 ABOVE_NORMAL_PRIORITY_CLASS       = 0x00008000
-STACK_SIZE_PARAM_IS_A_RESERVATION = 0x00010000
-
+INHERIT_PARENT_AFFINITY           = 0x00010000
+STACK_SIZE_PARAM_IS_A_RESERVATION = 0x00010000    # Threads only
+INHERIT_CALLER_PRIORITY           = 0x00020000    # Deprecated
+CREATE_PROTECTED_PROCESS          = 0x00040000
+EXTENDED_STARTUPINFO_PRESENT      = 0x00080000
+PROCESS_MODE_BACKGROUND_BEGIN     = 0x00100000
+PROCESS_MODE_BACKGROUND_END       = 0x00200000
 CREATE_BREAKAWAY_FROM_JOB         = 0x01000000
 CREATE_PRESERVE_CODE_AUTHZ_LEVEL  = 0x02000000
-
 CREATE_DEFAULT_ERROR_MODE         = 0x04000000
 CREATE_NO_WINDOW                  = 0x08000000
-
 PROFILE_USER                      = 0x10000000
 PROFILE_KERNEL                    = 0x20000000
 PROFILE_SERVER                    = 0x40000000
-
 CREATE_IGNORE_SYSTEM_DEFAULT      = 0x80000000
+
+# Thread priority values
 
 THREAD_BASE_PRIORITY_LOWRT  = 15    # value that gets a thread to LowRealtime-1
 THREAD_BASE_PRIORITY_MAX    = 2     # maximum thread base priority boost
@@ -755,6 +752,66 @@ class MemoryBasicInformation (object):
     def is_executable_and_writeable(self):
         return self.has_content() and self.Protect & self.EXECUTABLE_AND_WRITEABLE
 
+class ProcThreadAttributeList (object):
+    """
+    Extended process and thread attribute support.
+
+    To be used with L{STARTUPINFOEX}.
+    Only available for Windows Vista and above.
+
+    @type AttributeList: list of tuple( int, ctypes-compatible object )
+    @ivar AttributeList: List of (Attribute, Value) pairs.
+
+    @type AttributeListBuffer: L{LPPROC_THREAD_ATTRIBUTE_LIST}
+    @ivar AttributeListBuffer: Memory buffer used to store the attribute list.
+        L{InitializeProcThreadAttributeList},
+        L{UpdateProcThreadAttribute},
+        L{DeleteProcThreadAttributeList} and
+        L{STARTUPINFOEX}.
+    """
+
+    def __init__(self, AttributeList):
+        """
+        @type  AttributeList: list of tuple( int, ctypes-compatible object )
+        @param AttributeList: List of (Attribute, Value) pairs.
+        """
+        self.AttributeList = AttributeList
+        self.AttributeListBuffer = InitializeProcThreadAttributeList(
+                                                            len(AttributeList))
+        try:
+            for Attribute, Value in AttributeList:
+                UpdateProcThreadAttribute(self.AttributeListBuffer,
+                                          Attribute, Value)
+        except:
+            ProcThreadAttributeList.__del__(self)
+            raise
+
+    def __del__(self):
+        try:
+            DeleteProcThreadAttributeList(self.AttributeListBuffer)
+            del self.AttributeListBuffer
+        except Exception:
+            pass
+
+    def __copy__(self):
+        return self.__deepcopy__()
+
+    def __deepcopy__(self):
+        return self.__class__(self.AttributeList)
+
+    @property
+    def value(self):
+        return ctypes.cast(ctypes.pointer(self.AttributeListBuffer), LPVOID)
+
+    @property
+    def _as_parameter_(self):
+        return self.value
+
+    # XXX TODO
+    @staticmethod
+    def from_param(value):
+        raise NotImplementedError
+
 #--- OVERLAPPED structure -----------------------------------------------------
 
 # typedef struct _OVERLAPPED {
@@ -806,6 +863,40 @@ class SECURITY_ATTRIBUTES(Structure):
         ('bInheritHandle',          BOOL),
     ]
 LPSECURITY_ATTRIBUTES = POINTER(SECURITY_ATTRIBUTES)
+
+# --- Extended process and thread attribute support ---------------------------
+
+PPROC_THREAD_ATTRIBUTE_LIST  = LPVOID
+LPPROC_THREAD_ATTRIBUTE_LIST = PPROC_THREAD_ATTRIBUTE_LIST
+
+PROC_THREAD_ATTRIBUTE_NUMBER   = 0x0000FFFF
+PROC_THREAD_ATTRIBUTE_THREAD   = 0x00010000  # Attribute may be used with thread creation
+PROC_THREAD_ATTRIBUTE_INPUT    = 0x00020000  # Attribute is input only
+PROC_THREAD_ATTRIBUTE_ADDITIVE = 0x00040000  # Attribute may be "accumulated," e.g. bitmasks, counters, etc.
+
+# PROC_THREAD_ATTRIBUTE_NUM
+ProcThreadAttributeParentProcess    = 0
+ProcThreadAttributeExtendedFlags    = 1
+ProcThreadAttributeHandleList       = 2
+ProcThreadAttributeGroupAffinity    = 3
+ProcThreadAttributePreferredNode    = 4
+ProcThreadAttributeIdealProcessor   = 5
+ProcThreadAttributeUmsThread        = 6
+ProcThreadAttributeMitigationPolicy = 7
+ProcThreadAttributeMax              = 8
+
+PROC_THREAD_ATTRIBUTE_PARENT_PROCESS    = ProcThreadAttributeParentProcess      |                                PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS    = ProcThreadAttributeExtendedFlags      |                                PROC_THREAD_ATTRIBUTE_INPUT | PROC_THREAD_ATTRIBUTE_ADDITIVE
+PROC_THREAD_ATTRIBUTE_HANDLE_LIST       = ProcThreadAttributeHandleList         |                                PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY    = ProcThreadAttributeGroupAffinity      | PROC_THREAD_ATTRIBUTE_THREAD | PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_PREFERRED_NODE    = ProcThreadAttributePreferredNode      |                                PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR   = ProcThreadAttributeIdealProcessor     | PROC_THREAD_ATTRIBUTE_THREAD | PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_UMS_THREAD        = ProcThreadAttributeUmsThread          | PROC_THREAD_ATTRIBUTE_THREAD | PROC_THREAD_ATTRIBUTE_INPUT
+PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = ProcThreadAttributeMitigationPolicy   |                                PROC_THREAD_ATTRIBUTE_INPUT
+
+PROCESS_CREATION_MITIGATION_POLICY_DEP_ENABLE           = 0x01
+PROCESS_CREATION_MITIGATION_POLICY_DEP_ATL_THUNK_ENABLE = 0x02
+PROCESS_CREATION_MITIGATION_POLICY_SEHOP_ENABLE         = 0x04
 
 #--- VS_FIXEDFILEINFO structure -----------------------------------------------
 
@@ -1117,7 +1208,7 @@ class STARTUPINFOEX(Structure):
     _pack_ = 1
     _fields_ = [
         ('StartupInfo',     STARTUPINFO),
-        ('lpAttributeList', LPVOID),
+        ('lpAttributeList', PPROC_THREAD_ATTRIBUTE_LIST),
     ]
 LPSTARTUPINFOEX = POINTER(STARTUPINFOEX)
 
@@ -1532,7 +1623,7 @@ LPHEAPLIST32 = POINTER(HEAPLIST32)
 def GetLastError():
     _GetLastError = windll.kernel32.GetLastError
     _GetLastError.argtypes = []
-    _GetLastError.restype = DWORD
+    _GetLastError.restype  = DWORD
     return _GetLastError()
 
 # void WINAPI SetLastError(
@@ -1541,7 +1632,7 @@ def GetLastError():
 def SetLastError(dwErrCode):
     _SetLastError = windll.kernel32.SetLastError
     _SetLastError.argtypes = [DWORD]
-    _SetLastError.restype = None
+    _SetLastError.restype  = None
     _SetLastError(dwErrCode)
 
 # void WINAPI SetLastErrorEx(
@@ -1551,7 +1642,7 @@ def SetLastError(dwErrCode):
 def SetLastErrorEx(dwErrCode, dwType):
     _SetLastErrorEx = windll.kernel32.SetLastErrorEx
     _SetLastErrorEx.argtypes = [DWORD, DWORD]
-    _SetLastErrorEx.restype = None
+    _SetLastErrorEx.restype  = None
     _SetLastErrorEx(dwErrCode, dwType)
 
 # BOOL WINAPI CloseHandle(
@@ -1564,7 +1655,7 @@ def CloseHandle(hHandle):
     else:
         _CloseHandle = windll.kernel32.CloseHandle
         _CloseHandle.argtypes = [HANDLE]
-        _CloseHandle.restype = bool
+        _CloseHandle.restype  = bool
         _CloseHandle.errcheck = RaiseIfZero
         _CloseHandle(hHandle)
 
@@ -1580,7 +1671,7 @@ def CloseHandle(hHandle):
 def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHandle = None, dwDesiredAccess = STANDARD_RIGHTS_ALL, bInheritHandle = False, dwOptions = DUPLICATE_SAME_ACCESS):
     _DuplicateHandle = windll.kernel32.DuplicateHandle
     _DuplicateHandle.argtypes = [HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD]
-    _DuplicateHandle.restype = bool
+    _DuplicateHandle.restype  = bool
     _DuplicateHandle.errcheck = RaiseIfZero
 
     if hSourceProcessHandle is None:
@@ -1588,7 +1679,7 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
     if hTargetProcessHandle is None:
         hTargetProcessHandle = hSourceProcessHandle
     lpTargetHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
+    _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, ctypes.byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
     return Handle(lpTargetHandle.value)
 
 # void WINAPI OutputDebugString(
@@ -1597,13 +1688,13 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
 def OutputDebugStringA(lpOutputString):
     _OutputDebugStringA = windll.kernel32.OutputDebugStringA
     _OutputDebugStringA.argtypes = [LPSTR]
-    _OutputDebugStringA.restype = None
+    _OutputDebugStringA.restype  = None
     _OutputDebugStringA(lpOutputString)
 
 def OutputDebugStringW(lpOutputString):
     _OutputDebugStringW = windll.kernel32.OutputDebugStringW
     _OutputDebugStringW.argtypes = [LPWSTR]
-    _OutputDebugStringW.restype = None
+    _OutputDebugStringW.restype  = None
     _OutputDebugStringW(lpOutputString)
 
 OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
@@ -1614,14 +1705,14 @@ OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
 def SetDllDirectoryA(lpPathName):
     _SetDllDirectoryA = windll.kernel32.SetDllDirectoryA
     _SetDllDirectoryA.argytpes = [LPSTR]
-    _SetDllDirectoryA.restype = bool
+    _SetDllDirectoryA.restype  = bool
     _SetDllDirectoryA.errcheck = RaiseIfZero
     _SetDllDirectoryA(lpPathName)
 
 def SetDllDirectoryW(lpPathName):
     _SetDllDirectoryW = windll.kernel32.SetDllDirectoryW
     _SetDllDirectoryW.argytpes = [LPWSTR]
-    _SetDllDirectoryW.restype = bool
+    _SetDllDirectoryW.restype  = bool
     _SetDllDirectoryW.errcheck = RaiseIfZero
     _SetDllDirectoryW(lpPathName)
 
@@ -1633,7 +1724,7 @@ SetDllDirectory = GuessStringType(SetDllDirectoryA, SetDllDirectoryW)
 def LoadLibraryA(pszLibrary):
     _LoadLibraryA = windll.kernel32.LoadLibraryA
     _LoadLibraryA.argtypes = LPSTR
-    _LoadLibraryA.restype = HMODULE
+    _LoadLibraryA.restype  = HMODULE
     hModule = _LoadLibraryA(pszLibrary)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1642,7 +1733,7 @@ def LoadLibraryA(pszLibrary):
 def LoadLibraryW(pszLibrary):
     _LoadLibraryW = windll.kernel32.LoadLibraryW
     _LoadLibraryW.argtypes = LPWSTR
-    _LoadLibraryW.restype = HMODULE
+    _LoadLibraryW.restype  = HMODULE
     hModule = _LoadLibraryW(pszLibrary)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1658,7 +1749,7 @@ LoadLibrary = GuessStringType(LoadLibraryA, LoadLibraryW)
 def LoadLibraryExA(pszLibrary, dwFlags = 0):
     _LoadLibraryExA = windll.kernel32.LoadLibraryExA
     _LoadLibraryExA.argtypes = LPSTR, HANDLE, DWORD
-    _LoadLibraryExA.restype = HMODULE
+    _LoadLibraryExA.restype  = HMODULE
     hModule = _LoadLibraryExA(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1667,7 +1758,7 @@ def LoadLibraryExA(pszLibrary, dwFlags = 0):
 def LoadLibraryExW(pszLibrary, dwFlags = 0):
     _LoadLibraryExW = windll.kernel32.LoadLibraryExW
     _LoadLibraryExW.argtypes = LPWSTR, HANDLE, DWORD
-    _LoadLibraryExW.restype = HMODULE
+    _LoadLibraryExW.restype  = HMODULE
     hModule = _LoadLibraryExW(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1681,7 +1772,7 @@ LoadLibraryEx = GuessStringType(LoadLibraryExA, LoadLibraryExW)
 def GetModuleHandleA(lpModuleName):
     _GetModuleHandleA = windll.kernel32.GetModuleHandleA
     _GetModuleHandleA.argtypes = [LPSTR]
-    _GetModuleHandleA.restype = HMODULE
+    _GetModuleHandleA.restype  = HMODULE
     hModule = _GetModuleHandleA(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1690,7 +1781,7 @@ def GetModuleHandleA(lpModuleName):
 def GetModuleHandleW(lpModuleName):
     _GetModuleHandleW = windll.kernel32.GetModuleHandleW
     _GetModuleHandleW.argtypes = [LPWSTR]
-    _GetModuleHandleW.restype = HMODULE
+    _GetModuleHandleW.restype  = HMODULE
     hModule = _GetModuleHandleW(lpModuleName)
     if hModule == NULL:
         raise ctypes.WinError()
@@ -1705,7 +1796,7 @@ GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
 def GetProcAddress(hModule, lpProcName):
     _GetProcAddress = windll.kernel32.GetProcAddress
     _GetProcAddress.argtypes = [HMODULE, LPVOID]
-    _GetProcAddress.restype = LPVOID
+    _GetProcAddress.restype  = LPVOID
 
     try:
         lpProcName = ctypes.c_char_p(lpProcName)
@@ -1721,7 +1812,7 @@ def GetProcAddress(hModule, lpProcName):
 def FreeLibrary(hModule):
     _FreeLibrary = windll.kernel32.FreeLibrary
     _FreeLibrary.argtypes = [HMODULE]
-    _FreeLibrary.restype = bool
+    _FreeLibrary.restype  = bool
     _FreeLibrary.errcheck = RaiseIfZero
     _FreeLibrary(hModule)
 
@@ -1734,7 +1825,7 @@ def FreeLibrary(hModule):
 def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     _QueryFullProcessImageNameA = windll.kernel32.QueryFullProcessImageNameA
     _QueryFullProcessImageNameA.argtypes = [HANDLE, DWORD, LPSTR, PDWORD]
-    _QueryFullProcessImageNameA.restype = bool
+    _QueryFullProcessImageNameA.restype  = bool
 
     lpdwSize = DWORD(0)
     _QueryFullProcessImageNameA(hProcess, dwFlags, None, ctypes.byref(lpdwSize))
@@ -1749,7 +1840,7 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
 def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
     _QueryFullProcessImageNameW = windll.kernel32.QueryFullProcessImageNameW
     _QueryFullProcessImageNameW.argtypes = [HANDLE, DWORD, LPWSTR, PDWORD]
-    _QueryFullProcessImageNameW.restype = bool
+    _QueryFullProcessImageNameW.restype  = bool
 
     lpdwSize = DWORD(0)
     _QueryFullProcessImageNameW(hProcess, dwFlags, None, ctypes.byref(lpdwSize))
@@ -1770,7 +1861,7 @@ QueryFullProcessImageName = GuessStringType(QueryFullProcessImageNameA, QueryFul
 def GetLogicalDriveStringsA():
     _GetLogicalDriveStringsA = windll.kernel32.GetLogicalDriveStringsA
     _GetLogicalDriveStringsA.argtypes = [DWORD, LPSTR]
-    _GetLogicalDriveStringsA.restype = DWORD
+    _GetLogicalDriveStringsA.restype  = DWORD
     _GetLogicalDriveStringsA.errcheck = RaiseIfZero
 
     nBufferLength = 0x1000
@@ -1781,7 +1872,7 @@ def GetLogicalDriveStringsA():
 def GetLogicalDriveStringsW():
     _GetLogicalDriveStringsW = windll.kernel32.GetLogicalDriveStringsW
     _GetLogicalDriveStringsW.argtypes = [DWORD, LPWSTR]
-    _GetLogicalDriveStringsW.restype = DWORD
+    _GetLogicalDriveStringsW.restype  = DWORD
     _GetLogicalDriveStringsW.errcheck = RaiseIfZero
 
     nBufferLength = 0x1000
@@ -1799,7 +1890,7 @@ GetLogicalDriveStrings = GuessStringType(GetLogicalDriveStringsA, GetLogicalDriv
 def QueryDosDeviceA(lpDeviceName = None):
     _QueryDosDeviceA = windll.kernel32.QueryDosDeviceA
     _QueryDosDeviceA.argtypes = [LPSTR, LPSTR, DWORD]
-    _QueryDosDeviceA.restype = DWORD
+    _QueryDosDeviceA.restype  = DWORD
     _QueryDosDeviceA.errcheck = RaiseIfZero
 
     if not lpDeviceName:
@@ -1812,7 +1903,7 @@ def QueryDosDeviceA(lpDeviceName = None):
 def QueryDosDeviceW(lpDeviceName):
     _QueryDosDeviceW = windll.kernel32.QueryDosDeviceW
     _QueryDosDeviceW.argtypes = [LPWSTR, LPWSTR, DWORD]
-    _QueryDosDeviceW.restype = DWORD
+    _QueryDosDeviceW.restype  = DWORD
     _QueryDosDeviceW.errcheck = RaiseIfZero
 
     if not lpDeviceName:
@@ -1834,7 +1925,7 @@ QueryDosDevice = GuessStringType(QueryDosDeviceA, QueryDosDeviceW)
 def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FILE_MAP_EXECUTE, dwFileOffsetHigh = 0, dwFileOffsetLow = 0, dwNumberOfBytesToMap = 0):
     _MapViewOfFile = windll.kernel32.MapViewOfFile
     _MapViewOfFile.argtypes = [HANDLE, DWORD, DWORD, DWORD, SIZE_T]
-    _MapViewOfFile.restype = LPVOID
+    _MapViewOfFile.restype  = LPVOID
     lpBaseAddress = _MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
     if lpBaseAddress == NULL:
         raise ctypes.WinError()
@@ -1846,7 +1937,7 @@ def MapViewOfFile(hFileMappingObject, dwDesiredAccess = FILE_MAP_ALL_ACCESS | FI
 def UnmapViewOfFile(lpBaseAddress):
     _UnmapViewOfFile = windll.kernel32.UnmapViewOfFile
     _UnmapViewOfFile.argtypes = [LPVOID]
-    _UnmapViewOfFile.restype = bool
+    _UnmapViewOfFile.restype  = bool
     _UnmapViewOfFile.errcheck = RaiseIfZero
     _UnmapViewOfFile(lpBaseAddress)
 
@@ -1858,7 +1949,7 @@ def UnmapViewOfFile(lpBaseAddress):
 def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingA = windll.kernel32.OpenFileMappingA
     _OpenFileMappingA.argtypes = [DWORD, BOOL, LPSTR]
-    _OpenFileMappingA.restype = HANDLE
+    _OpenFileMappingA.restype  = HANDLE
     hFileMappingObject = _OpenFileMappingA(dwDesiredAccess, bool(bInheritHandle), lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
@@ -1867,7 +1958,7 @@ def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
 def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingW = windll.kernel32.OpenFileMappingW
     _OpenFileMappingW.argtypes = [DWORD, BOOL, LPWSTR]
-    _OpenFileMappingW.restype = HANDLE
+    _OpenFileMappingW.restype  = HANDLE
     hFileMappingObject = _OpenFileMappingW(dwDesiredAccess, bool(bInheritHandle), lpName)
     if hFileMappingObject == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
@@ -1886,7 +1977,7 @@ OpenFileMapping = GuessStringType(OpenFileMappingA, OpenFileMappingW)
 def CreateFileMappingA(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = None):
     _CreateFileMappingA = windll.kernel32.CreateFileMappingA
     _CreateFileMappingA.argtypes = [HANDLE, LPVOID, DWORD, DWORD, DWORD, LPSTR]
-    _CreateFileMappingA.restype = HANDLE
+    _CreateFileMappingA.restype  = HANDLE
 
     if lpAttributes:
         lpAttributes = ctypes.pointer(lpAttributes)
@@ -1900,7 +1991,7 @@ def CreateFileMappingA(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READ
 def CreateFileMappingW(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = None):
     _CreateFileMappingW = windll.kernel32.CreateFileMappingW
     _CreateFileMappingW.argtypes = [HANDLE, LPVOID, DWORD, DWORD, DWORD, LPWSTR]
-    _CreateFileMappingW.restype = HANDLE
+    _CreateFileMappingW.restype  = HANDLE
 
     if lpAttributes:
         lpAttributes = ctypes.pointer(lpAttributes)
@@ -1925,7 +2016,7 @@ CreateFileMapping = GuessStringType(CreateFileMappingA, CreateFileMappingW)
 def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = None, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = None):
     _CreateFileA = windll.kernel32.CreateFileA
     _CreateFileA.argtypes = [LPSTR, DWORD, DWORD, LPVOID, DWORD, DWORD, HANDLE]
-    _CreateFileA.restype = HANDLE
+    _CreateFileA.restype  = HANDLE
 
     if not lpFileName:
         lpFileName = None
@@ -1939,7 +2030,7 @@ def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
 def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = None, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = None):
     _CreateFileW = windll.kernel32.CreateFileW
     _CreateFileW.argtypes = [LPWSTR, DWORD, DWORD, LPVOID, DWORD, DWORD, HANDLE]
-    _CreateFileW.restype = HANDLE
+    _CreateFileW.restype  = HANDLE
 
     if not lpFileName:
         lpFileName = None
@@ -1958,7 +2049,7 @@ CreateFile = GuessStringType(CreateFileA, CreateFileW)
 def FlushFileBuffers(hFile):
     _FlushFileBuffers = windll.kernel32.FlushFileBuffers
     _FlushFileBuffers.argtypes = [HANDLE]
-    _FlushFileBuffers.restype = bool
+    _FlushFileBuffers.restype  = bool
     _FlushFileBuffers.errcheck = RaiseIfZero
     _FlushFileBuffers(hFile)
 
@@ -1969,7 +2060,7 @@ def FlushFileBuffers(hFile):
 def FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush = 0):
     _FlushViewOfFile = windll.kernel32.FlushViewOfFile
     _FlushViewOfFile.argtypes = [LPVOID, SIZE_T]
-    _FlushViewOfFile.restype = bool
+    _FlushViewOfFile.restype  = bool
     _FlushViewOfFile.errcheck = RaiseIfZero
     _FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush)
 
@@ -1984,7 +2075,7 @@ def FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush = 0):
 def SearchPathA(lpPath, lpFileName, lpExtension):
     _SearchPathA = windll.kernel32.SearchPathA
     _SearchPathA.argtypes = [LPSTR, LPSTR, LPSTR, DWORD, LPSTR, ctypes.POINTER(LPSTR)]
-    _SearchPathA.restype = DWORD
+    _SearchPathA.restype  = DWORD
     _SearchPathA.errcheck = RaiseIfZero
 
     if not lpPath:
@@ -2006,7 +2097,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
 def SearchPathW(lpPath, lpFileName, lpExtension):
     _SearchPathW = windll.kernel32.SearchPathW
     _SearchPathW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, POINTER(LPWSTR)]
-    _SearchPathW.restype = DWORD
+    _SearchPathW.restype  = DWORD
     _SearchPathW.errcheck = RaiseIfZero
 
     if not lpPath:
@@ -2033,7 +2124,7 @@ SearchPath = GuessStringType(SearchPathA, SearchPathW)
 def SetSearchPathMode(Flags):
     _SetSearchPathMode = windll.kernel32.SetSearchPathMode
     _SetSearchPathMode.argtypes = [DWORD]
-    _SetSearchPathMode.restype = bool
+    _SetSearchPathMode.restype  = bool
     _SetSearchPathMode.errcheck = RaiseIfZero
     _SetSearchPathMode(Flags)
 
@@ -2050,7 +2141,7 @@ def SetSearchPathMode(Flags):
 def DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, lpOverlapped):
     _DeviceIoControl = windll.kernel32.DeviceIoControl
     _DeviceIoControl.argtypes = [HANDLE, DWORD, LPVOID, DWORD, LPVOID, DWORD, LPDWORD, LPOVERLAPPED]
-    _DeviceIoControl.restype = bool
+    _DeviceIoControl.restype  = bool
     _DeviceIoControl.errcheck = RaiseIfZero
 
     if not lpInBuffer:
@@ -2070,7 +2161,7 @@ def DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBu
 def GetFileInformationByHandle(hFile):
     _GetFileInformationByHandle = windll.kernel32.GetFileInformationByHandle
     _GetFileInformationByHandle.argtypes = [HANDLE, LPBY_HANDLE_FILE_INFORMATION]
-    _GetFileInformationByHandle.restype = bool
+    _GetFileInformationByHandle.restype  = bool
     _GetFileInformationByHandle.errcheck = RaiseIfZero
 
     lpFileInformation = BY_HANDLE_FILE_INFORMATION()
@@ -2086,7 +2177,7 @@ def GetFileInformationByHandle(hFile):
 def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation, dwBufferSize):
     _GetFileInformationByHandleEx = windll.kernel32.GetFileInformationByHandleEx
     _GetFileInformationByHandleEx.argtypes = [HANDLE, DWORD, LPVOID, DWORD]
-    _GetFileInformationByHandleEx.restype = bool
+    _GetFileInformationByHandleEx.restype  = bool
     _GetFileInformationByHandleEx.errcheck = RaiseIfZero
     # XXX TODO
     # support each FileInformationClass so the function can allocate the
@@ -2102,7 +2193,7 @@ def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation,
 def GetFinalPathNameByHandleA(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS):
     _GetFinalPathNameByHandleA = windll.kernel32.GetFinalPathNameByHandleA
     _GetFinalPathNameByHandleA.argtypes = [HANDLE, LPSTR, DWORD, DWORD]
-    _GetFinalPathNameByHandleA.restype = DWORD
+    _GetFinalPathNameByHandleA.restype  = DWORD
 
     cchFilePath = _GetFinalPathNameByHandleA(hFile, None, 0, dwFlags)
     if cchFilePath == 0:
@@ -2116,7 +2207,7 @@ def GetFinalPathNameByHandleA(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAM
 def GetFinalPathNameByHandleW(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS):
     _GetFinalPathNameByHandleW = windll.kernel32.GetFinalPathNameByHandleW
     _GetFinalPathNameByHandleW.argtypes = [HANDLE, LPWSTR, DWORD, DWORD]
-    _GetFinalPathNameByHandleW.restype = DWORD
+    _GetFinalPathNameByHandleW.restype  = DWORD
 
     cchFilePath = _GetFinalPathNameByHandleW(hFile, None, 0, dwFlags)
     if cchFilePath == 0:
@@ -2138,7 +2229,7 @@ GetFinalPathNameByHandle = GuessStringType(GetFinalPathNameByHandleA, GetFinalPa
 def GetFullPathNameA(lpFileName):
     _GetFullPathNameA = windll.kernel32.GetFullPathNameA
     _GetFullPathNameA.argtypes = [LPSTR, DWORD, LPSTR, ctypes.POINTER(LPSTR)]
-    _GetFullPathNameA.restype = DWORD
+    _GetFullPathNameA.restype  = DWORD
 
     nBufferLength = _GetFullPathNameA(lpFileName, 0, None, None)
     if nBufferLength <= 0:
@@ -2153,7 +2244,7 @@ def GetFullPathNameA(lpFileName):
 def GetFullPathNameW(lpFileName):
     _GetFullPathNameW = windll.kernel32.GetFullPathNameW
     _GetFullPathNameW.argtypes = [LPWSTR, DWORD, LPWSTR, POINTER(LPWSTR)]
-    _GetFullPathNameW.restype = DWORD
+    _GetFullPathNameW.restype  = DWORD
 
     nBufferLength = _GetFullPathNameW(lpFileName, 0, None, None)
     if nBufferLength <= 0:
@@ -2174,7 +2265,7 @@ GetFullPathName = GuessStringType(GetFullPathNameA, GetFullPathNameW)
 def GetTempPathA():
     _GetTempPathA = windll.kernel32.GetTempPathA
     _GetTempPathA.argtypes = [DWORD, LPSTR]
-    _GetTempPathA.restype = DWORD
+    _GetTempPathA.restype  = DWORD
 
     nBufferLength = _GetTempPathA(0, None)
     if nBufferLength <= 0:
@@ -2188,7 +2279,7 @@ def GetTempPathA():
 def GetTempPathW():
     _GetTempPathW = windll.kernel32.GetTempPathW
     _GetTempPathW.argtypes = [DWORD, LPSTR]
-    _GetTempPathW.restype = DWORD
+    _GetTempPathW.restype  = DWORD
 
     nBufferLength = _GetTempPathW(0, None)
     if nBufferLength <= 0:
@@ -2210,7 +2301,7 @@ GetTempPath = GuessStringType(GetTempPathA, GetTempPathW)
 def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
     _GetTempFileNameA = windll.kernel32.GetTempFileNameA
     _GetTempFileNameA.argtypes = [LPSTR, LPSTR, UINT, LPSTR]
-    _GetTempFileNameA.restype = UINT
+    _GetTempFileNameA.restype  = UINT
 
     if lpPathName is None:
         lpPathName = GetTempPathA()
@@ -2223,7 +2314,7 @@ def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
 def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
     _GetTempFileNameW = windll.kernel32.GetTempFileNameW
     _GetTempFileNameW.argtypes = [LPSTR, LPSTR, UINT, LPSTR]
-    _GetTempFileNameW.restype = UINT
+    _GetTempFileNameW.restype  = UINT
 
     if lpPathName is None:
         lpPathName = GetTempPathW()
@@ -2242,7 +2333,7 @@ GetTempFileName = GuessStringType(GetTempFileNameA, GetTempFileNameW)
 def GetCurrentDirectoryA():
     _GetCurrentDirectoryA = windll.kernel32.GetCurrentDirectoryA
     _GetCurrentDirectoryA.argtypes = [DWORD, LPSTR]
-    _GetCurrentDirectoryA.restype = DWORD
+    _GetCurrentDirectoryA.restype  = DWORD
 
     nBufferLength = _GetCurrentDirectoryA(0, None)
     if nBufferLength <= 0:
@@ -2256,7 +2347,7 @@ def GetCurrentDirectoryA():
 def GetCurrentDirectoryW():
     _GetCurrentDirectoryW = windll.kernel32.GetCurrentDirectoryW
     _GetCurrentDirectoryW.argtypes = [DWORD, LPWSTR]
-    _GetCurrentDirectoryW.restype = DWORD
+    _GetCurrentDirectoryW.restype  = DWORD
 
     nBufferLength = _GetCurrentDirectoryW(0, None)
     if nBufferLength <= 0:
@@ -2275,7 +2366,7 @@ GetCurrentDirectory = GuessStringType(GetCurrentDirectoryA, GetCurrentDirectoryW
 def LocalFree(hMem):
     _LocalFree = windll.kernel32.LocalFree
     _LocalFree.argtypes = [HLOCAL]
-    _LocalFree.restype = HLOCAL
+    _LocalFree.restype  = HLOCAL
 
     result = _LocalFree(hMem)
     if result != NULL:
@@ -2293,7 +2384,7 @@ PHANDLER_ROUTINE = ctypes.WINFUNCTYPE(BOOL, DWORD)
 def SetConsoleCtrlHandler(HandlerRoutine = None, Add = True):
     _SetConsoleCtrlHandler = windll.kernel32.SetConsoleCtrlHandler
     _SetConsoleCtrlHandler.argtypes = [PHANDLER_ROUTINE, BOOL]
-    _SetConsoleCtrlHandler.restype = bool
+    _SetConsoleCtrlHandler.restype  = bool
     _SetConsoleCtrlHandler.errcheck = RaiseIfZero
 
     if callable(HandlerRoutine):
@@ -2311,7 +2402,7 @@ def SetConsoleCtrlHandler(HandlerRoutine = None, Add = True):
 def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
     _GenerateConsoleCtrlEvent = windll.kernel32.GenerateConsoleCtrlEvent
     _GenerateConsoleCtrlEvent.argtypes = [DWORD, DWORD]
-    _GenerateConsoleCtrlEvent.restype = bool
+    _GenerateConsoleCtrlEvent.restype  = bool
     _GenerateConsoleCtrlEvent.errcheck = RaiseIfZero
     _GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId)
 
@@ -2322,7 +2413,7 @@ def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
 def WaitForSingleObject(hHandle, dwMilliseconds = INFINITE):
     _WaitForSingleObject = windll.kernel32.WaitForSingleObject
     _WaitForSingleObject.argtypes = [HANDLE, DWORD]
-    _WaitForSingleObject.restype = DWORD
+    _WaitForSingleObject.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
@@ -2347,7 +2438,7 @@ def WaitForSingleObject(hHandle, dwMilliseconds = INFINITE):
 def WaitForSingleObjectEx(hHandle, dwMilliseconds = INFINITE, bAlertable = True):
     _WaitForSingleObjectEx = windll.kernel32.WaitForSingleObjectEx
     _WaitForSingleObjectEx.argtypes = [HANDLE, DWORD, BOOL]
-    _WaitForSingleObjectEx.restype = DWORD
+    _WaitForSingleObjectEx.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
@@ -2373,7 +2464,7 @@ def WaitForSingleObjectEx(hHandle, dwMilliseconds = INFINITE, bAlertable = True)
 def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE):
     _WaitForMultipleObjects = windll.kernel32.WaitForMultipleObjects
     _WaitForMultipleObjects.argtypes = [DWORD, ctypes.POINTER(HANDLE), BOOL, DWORD]
-    _WaitForMultipleObjects.restype = DWORD
+    _WaitForMultipleObjects.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
@@ -2403,7 +2494,7 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
 def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINITE):
     _WaitForMultipleObjectsEx = windll.kernel32.WaitForMultipleObjectsEx
     _WaitForMultipleObjectsEx.argtypes = [DWORD, ctypes.POINTER(HANDLE), BOOL, DWORD]
-    _WaitForMultipleObjectsEx.restype = DWORD
+    _WaitForMultipleObjectsEx.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
@@ -2430,7 +2521,7 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
 def WaitForDebugEvent(dwMilliseconds = INFINITE):
     _WaitForDebugEvent = windll.kernel32.WaitForDebugEvent
     _WaitForDebugEvent.argtypes = [LPDEBUG_EVENT, DWORD]
-    _WaitForDebugEvent.restype = DWORD
+    _WaitForDebugEvent.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
@@ -2460,7 +2551,7 @@ def WaitForDebugEvent(dwMilliseconds = INFINITE):
 def ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED):
     _ContinueDebugEvent = windll.kernel32.ContinueDebugEvent
     _ContinueDebugEvent.argtypes = [DWORD, DWORD, DWORD]
-    _ContinueDebugEvent.restype = bool
+    _ContinueDebugEvent.restype  = bool
     _ContinueDebugEvent.errcheck = RaiseIfZero
     _ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
@@ -2473,7 +2564,7 @@ def FlushInstructionCache(hProcess, lpBaseAddress = None, dwSize = 0):
     # http://blogs.msdn.com/oldnewthing/archive/2003/12/08/55954.aspx#55958
     _FlushInstructionCache = windll.kernel32.FlushInstructionCache
     _FlushInstructionCache.argtypes = [HANDLE, LPVOID, SIZE_T]
-    _FlushInstructionCache.restype = bool
+    _FlushInstructionCache.restype  = bool
     _FlushInstructionCache.errcheck = RaiseIfZero
     _FlushInstructionCache(hProcess, lpBaseAddress, dwSize)
 
@@ -2483,7 +2574,7 @@ def FlushInstructionCache(hProcess, lpBaseAddress = None, dwSize = 0):
 def DebugActiveProcess(dwProcessId):
     _DebugActiveProcess = windll.kernel32.DebugActiveProcess
     _DebugActiveProcess.argtypes = [DWORD]
-    _DebugActiveProcess.restype = bool
+    _DebugActiveProcess.restype  = bool
     _DebugActiveProcess.errcheck = RaiseIfZero
     _DebugActiveProcess(dwProcessId)
 
@@ -2493,7 +2584,7 @@ def DebugActiveProcess(dwProcessId):
 def DebugActiveProcessStop(dwProcessId):
     _DebugActiveProcessStop = windll.kernel32.DebugActiveProcessStop
     _DebugActiveProcessStop.argtypes = [DWORD]
-    _DebugActiveProcessStop.restype = bool
+    _DebugActiveProcessStop.restype  = bool
     _DebugActiveProcessStop.errcheck = RaiseIfZero
     _DebugActiveProcessStop(dwProcessId)
 
@@ -2511,8 +2602,8 @@ def DebugActiveProcessStop(dwProcessId):
 # );
 def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessA = windll.kernel32.CreateProcessA
-    _CreateProcessA.argtypes = [LPSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION]
-    _CreateProcessA.restype = bool
+    _CreateProcessA.argtypes = [LPSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPSTR, LPVOID, LPPROCESS_INFORMATION]
+    _CreateProcessA.restype  = bool
     _CreateProcessA.errcheck = RaiseIfZero
 
     if not lpApplicationName:
@@ -2554,8 +2645,8 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
 
 def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessW = windll.kernel32.CreateProcessW
-    _CreateProcessW.argtypes = [LPWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPWSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION]
-    _CreateProcessW.restype = bool
+    _CreateProcessW.argtypes = [LPWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPWSTR, LPVOID, LPPROCESS_INFORMATION]
+    _CreateProcessW.restype  = bool
     _CreateProcessW.errcheck = RaiseIfZero
 
     if not lpApplicationName:
@@ -2612,8 +2703,8 @@ CreateProcess = GuessStringType(CreateProcessA, CreateProcessW)
 # );
 def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessAsUserA = windll.kernel32.CreateProcessAsUserA
-    _CreateProcessAsUserA.argtypes = [HANDLE, LPSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION]
-    _CreateProcessAsUserA.restype = bool
+    _CreateProcessAsUserA.argtypes = [HANDLE, LPSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPSTR, LPVOID, LPPROCESS_INFORMATION]
+    _CreateProcessAsUserA.restype  = bool
     _CreateProcessAsUserA.errcheck = RaiseIfZero
 
     if not lpApplicationName:
@@ -2655,8 +2746,8 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
 
 def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessAsUserW = windll.kernel32.CreateProcessAsUserW
-    _CreateProcessAsUserW.argtypes = [HANDLE, LPWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPWSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION]
-    _CreateProcessAsUserW.restype = bool
+    _CreateProcessAsUserW.argtypes = [HANDLE, LPWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPWSTR, LPVOID, LPPROCESS_INFORMATION]
+    _CreateProcessAsUserW.restype  = bool
     _CreateProcessAsUserW.errcheck = RaiseIfZero
 
     if not lpApplicationName:
@@ -2698,6 +2789,53 @@ def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProces
 
 CreateProcessAsUser = GuessStringType(CreateProcessAsUserA, CreateProcessAsUserW)
 
+# BOOL WINAPI InitializeProcThreadAttributeList(
+#   __out_opt   LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+#   __in        DWORD dwAttributeCount,
+#   __reserved  DWORD dwFlags,
+#   __inout     PSIZE_T lpSize
+# );
+def InitializeProcThreadAttributeList(dwAttributeCount):
+    _InitializeProcThreadAttributeList = windll.kernel32.InitializeProcThreadAttributeList
+    _InitializeProcThreadAttributeList.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T]
+    _InitializeProcThreadAttributeList.restype  = bool
+
+    Size = SIZE_T(0)
+    _InitializeProcThreadAttributeList(NULL, dwAttributeCount, 0, ctypes.byref(Size))
+    RaiseIfZero(Size.value)
+    AttributeList = (BYTE * Size.value)()
+    success = _InitializeProcThreadAttributeList(ctypes.byref(AttributeList), dwAttributeCount, 0, ctypes.byref(Size))
+    RaiseIfZero(success)
+    return AttributeList
+
+# BOOL WINAPI UpdateProcThreadAttribute(
+#   __inout    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+#   __in       DWORD dwFlags,
+#   __in       DWORD_PTR Attribute,
+#   __in       PVOID lpValue,
+#   __in       SIZE_T cbSize,
+#   __out_opt  PVOID lpPreviousValue,
+#   __in_opt   PSIZE_T lpReturnSize
+# );
+def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
+    _UpdateProcThreadAttribute = windll.kernel32.UpdateProcThreadAttribute
+    _UpdateProcThreadAttribute.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, SIZE_T, PVOID, SIZE_T, PVOID, PSIZE_T]
+    _UpdateProcThreadAttribute.restype  = bool
+    _UpdateProcThreadAttribute.errcheck = RaiseIfZero
+
+    if cbSize is None:
+        cbSize = ctypes.sizeof(Value)
+    Attribute = DWORD(Attribute)
+    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, ctypes.byref(Value), cbSize, NULL, NULL)
+
+# VOID WINAPI DeleteProcThreadAttributeList(
+#   __inout  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList
+# );
+def DeleteProcThreadAttributeList(lpAttributeList):
+    _DeleteProcThreadAttributeList = windll.kernel32.DeleteProcThreadAttributeList
+    _DeleteProcThreadAttributeList.restype = None
+    _DeleteProcThreadAttributeList(ctypes.byref(lpAttributeList))
+
 # HANDLE WINAPI OpenProcess(
 #   __in  DWORD dwDesiredAccess,
 #   __in  BOOL bInheritHandle,
@@ -2706,7 +2844,7 @@ CreateProcessAsUser = GuessStringType(CreateProcessAsUserA, CreateProcessAsUserW
 def OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId):
     _OpenProcess = windll.kernel32.OpenProcess
     _OpenProcess.argtypes = [DWORD, BOOL, DWORD]
-    _OpenProcess.restype = HANDLE
+    _OpenProcess.restype  = HANDLE
 
     hProcess = _OpenProcess(dwDesiredAccess, bool(bInheritHandle), dwProcessId)
     if hProcess == NULL:
@@ -2721,7 +2859,7 @@ def OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId):
 def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
     _OpenThread = windll.kernel32.OpenThread
     _OpenThread.argtypes = [DWORD, BOOL, DWORD]
-    _OpenThread.restype = HANDLE
+    _OpenThread.restype  = HANDLE
 
     hProcess = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId)
     if hProcess == NULL:
@@ -2734,7 +2872,7 @@ def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
 def SuspendThread(hThread):
     _SuspendThread = windll.kernel32.SuspendThread
     _SuspendThread.argtypes = [HANDLE]
-    _SuspendThread.restype = DWORD
+    _SuspendThread.restype  = DWORD
 
     previousCount = _SuspendThread(hThread)
     if previousCount == DWORD(-1).value:
@@ -2747,7 +2885,7 @@ def SuspendThread(hThread):
 def ResumeThread(hThread):
     _ResumeThread = windll.kernel32.ResumeThread
     _ResumeThread.argtypes = [HANDLE]
-    _ResumeThread.restype = DWORD
+    _ResumeThread.restype  = DWORD
 
     previousCount = _ResumeThread(hThread)
     if previousCount == DWORD(-1).value:
@@ -2761,7 +2899,7 @@ def ResumeThread(hThread):
 def TerminateThread(hThread, dwExitCode = 0):
     _TerminateThread = windll.kernel32.TerminateThread
     _TerminateThread.argtypes = [HANDLE, DWORD]
-    _TerminateThread.restype = bool
+    _TerminateThread.restype  = bool
     _TerminateThread.errcheck = RaiseIfZero
     _TerminateThread(hThread, dwExitCode)
 
@@ -2772,7 +2910,7 @@ def TerminateThread(hThread, dwExitCode = 0):
 def TerminateProcess(hProcess, dwExitCode = 0):
     _TerminateProcess = windll.kernel32.TerminateProcess
     _TerminateProcess.argtypes = [HANDLE, DWORD]
-    _TerminateProcess.restype = bool
+    _TerminateProcess.restype  = bool
     _TerminateProcess.errcheck = RaiseIfZero
     _TerminateProcess(hProcess, dwExitCode)
 
@@ -2786,7 +2924,7 @@ def TerminateProcess(hProcess, dwExitCode = 0):
 def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
     _ReadProcessMemory = windll.kernel32.ReadProcessMemory
     _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
-    _ReadProcessMemory.restype = bool
+    _ReadProcessMemory.restype  = bool
 
     lpBuffer            = ctypes.create_string_buffer('', nSize)
     lpNumberOfBytesRead = SIZE_T(0)
@@ -2805,7 +2943,7 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
 def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
     _WriteProcessMemory = windll.kernel32.WriteProcessMemory
     _WriteProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
-    _WriteProcessMemory.restype = bool
+    _WriteProcessMemory.restype  = bool
 
     nSize                   = len(lpBuffer)
     lpBuffer                = ctypes.create_string_buffer(lpBuffer)
@@ -2825,7 +2963,7 @@ def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
 def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = MEM_COMMIT | MEM_RESERVE, flProtect = PAGE_EXECUTE_READWRITE):
     _VirtualAllocEx = windll.kernel32.VirtualAllocEx
     _VirtualAllocEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, DWORD]
-    _VirtualAllocEx.restype = LPVOID
+    _VirtualAllocEx.restype  = LPVOID
 
     lpAddress = _VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
     if lpAddress == NULL:
@@ -2841,7 +2979,7 @@ def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = 
 def VirtualQueryEx(hProcess, lpAddress):
     _VirtualQueryEx = windll.kernel32.VirtualQueryEx
     _VirtualQueryEx.argtypes = [HANDLE, LPVOID, PMEMORY_BASIC_INFORMATION, SIZE_T]
-    _VirtualQueryEx.restype = SIZE_T
+    _VirtualQueryEx.restype  = SIZE_T
 
     lpBuffer  = MEMORY_BASIC_INFORMATION()
     dwLength  = sizeof(MEMORY_BASIC_INFORMATION)
@@ -2860,7 +2998,7 @@ def VirtualQueryEx(hProcess, lpAddress):
 def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_READWRITE):
     _VirtualProtectEx = windll.kernel32.VirtualProtectEx
     _VirtualProtectEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, PDWORD]
-    _VirtualProtectEx.restype = bool
+    _VirtualProtectEx.restype  = bool
     _VirtualProtectEx.errcheck = RaiseIfZero
 
     flOldProtect = DWORD(0)
@@ -2876,7 +3014,7 @@ def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_RE
 def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
     _VirtualFreeEx = windll.kernel32.VirtualFreeEx
     _VirtualFreeEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD]
-    _VirtualFreeEx.restype = bool
+    _VirtualFreeEx.restype  = bool
     _VirtualFreeEx.errcheck = RaiseIfZero
     _VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
 
@@ -2892,7 +3030,7 @@ def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
 def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags):
     _CreateRemoteThread = windll.kernel32.CreateRemoteThread
     _CreateRemoteThread.argtypes = [HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPVOID, LPVOID, DWORD, LPDWORD]
-    _CreateRemoteThread.restype = HANDLE
+    _CreateRemoteThread.restype  = HANDLE
 
     if not lpThreadAttributes:
         lpThreadAttributes = None
@@ -2908,14 +3046,14 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
 def GetCurrentProcess():
     _GetCurrentProcess = windll.kernel32.GetCurrentProcess
     _GetCurrentProcess.argtypes = []
-    _GetCurrentProcess.restype = HANDLE
+    _GetCurrentProcess.restype  = HANDLE
     return _GetCurrentProcess()
 
 # HANDLE WINAPI GetCurrentThread(void);
 def GetCurrentThread():
     GetCurrentThread = windll.kernel32.GetCurrentThread
     _GetCurrentThread.argtypes = []
-    _GetCurrentThread.restype = HANDLE
+    _GetCurrentThread.restype  = HANDLE
     return _GetCurrentThread()
 
 # DWORD WINAPI GetProcessId(
@@ -2924,7 +3062,7 @@ def GetCurrentThread():
 def GetProcessId(hProcess):
     _GetProcessId = windll.kernel32.GetProcessId
     _GetProcessId.argtypes = [HANDLE]
-    _GetProcessId.restype = DWORD
+    _GetProcessId.restype  = DWORD
     _GetProcessId.errcheck = RaiseIfZero
     return _GetProcessId(hProcess)
 
@@ -2934,7 +3072,7 @@ def GetProcessId(hProcess):
 def GetThreadId(hThread):
     _GetThreadId = windll.kernel32._GetThreadId
     _GetThreadId.argtypes = [HANDLE]
-    _GetThreadId.restype = DWORD
+    _GetThreadId.restype  = DWORD
 
     dwThreadId = _GetThreadId(hThread)
     if dwThreadId == 0:
@@ -2947,7 +3085,7 @@ def GetThreadId(hThread):
 def GetProcessIdOfThread(hThread):
     _GetProcessIdOfThread = windll.kernel32.GetProcessIdOfThread
     _GetProcessIdOfThread.argtypes = [HANDLE]
-    _GetProcessIdOfThread.restype = DWORD
+    _GetProcessIdOfThread.restype  = DWORD
 
     dwProcessId = _GetProcessIdOfThread(hThread)
     if dwProcessId == 0:
@@ -2961,7 +3099,7 @@ def GetProcessIdOfThread(hThread):
 def GetExitCodeProcess(hProcess):
     _GetExitCodeProcess = windll.kernel32.GetExitCodeProcess
     _GetExitCodeProcess.argtypes = [HANDLE]
-    _GetExitCodeProcess.restype = bool
+    _GetExitCodeProcess.restype  = bool
     _GetExitCodeProcess.errcheck = RaiseIfZero
 
     lpExitCode = DWORD(0)
@@ -2975,7 +3113,7 @@ def GetExitCodeProcess(hProcess):
 def GetExitCodeThread(hThread):
     _GetExitCodeThread = windll.kernel32.GetExitCodeThread
     _GetExitCodeThread.argtypes = [HANDLE]
-    _GetExitCodeThread.restype = bool
+    _GetExitCodeThread.restype  = bool
     _GetExitCodeThread.errcheck = RaiseIfZero
 
     lpExitCode = DWORD(0)
@@ -2988,7 +3126,7 @@ def GetExitCodeThread(hThread):
 def GetProcessVersion(ProcessId):
     _GetProcessVersion = windll.kernel32.GetProcessVersion
     _GetProcessVersion.argtypes = [DWORD]
-    _GetProcessVersion.restype = DWORD
+    _GetProcessVersion.restype  = DWORD
 
     retval = _GetProcessVersion(ProcessId)
     if retval == 0:
@@ -3001,7 +3139,7 @@ def GetProcessVersion(ProcessId):
 def GetPriorityClass(hProcess):
     _GetPriorityClass = windll.kernel32.GetPriorityClass
     _GetPriorityClass.argtypes = [HANDLE]
-    _GetPriorityClass.restype = DWORD
+    _GetPriorityClass.restype  = DWORD
 
     retval = _GetPriorityClass(hProcess)
     if retval == 0:
@@ -3015,7 +3153,7 @@ def GetPriorityClass(hProcess):
 def SetPriorityClass(hProcess, dwPriorityClass = NORMAL_PRIORITY_CLASS):
     _SetPriorityClass = windll.kernel32.SetPriorityClass
     _SetPriorityClass.argtypes = [HANDLE, DWORD]
-    _SetPriorityClass.restype = bool
+    _SetPriorityClass.restype  = bool
     _SetPriorityClass.errcheck = RaiseIfZero
     _SetPriorityClass(hProcess, dwPriorityClass)
 
@@ -3026,7 +3164,7 @@ def SetPriorityClass(hProcess, dwPriorityClass = NORMAL_PRIORITY_CLASS):
 def GetProcessPriorityBoost(hProcess):
     _GetProcessPriorityBoost = windll.kernel32.GetProcessPriorityBoost
     _GetProcessPriorityBoost.argtypes = [HANDLE, PBOOL]
-    _GetProcessPriorityBoost.restype = bool
+    _GetProcessPriorityBoost.restype  = bool
     _GetProcessPriorityBoost.errcheck = RaiseIfZero
 
     pDisablePriorityBoost = BOOL(False)
@@ -3040,7 +3178,7 @@ def GetProcessPriorityBoost(hProcess):
 def SetProcessPriorityBoost(hProcess, DisablePriorityBoost):
     _SetProcessPriorityBoost = windll.kernel32.SetProcessPriorityBoost
     _SetProcessPriorityBoost.argtypes = [HANDLE, BOOL]
-    _SetProcessPriorityBoost.restype = bool
+    _SetProcessPriorityBoost.restype  = bool
     _SetProcessPriorityBoost.errcheck = RaiseIfZero
     _SetProcessPriorityBoost(hProcess, bool(DisablePriorityBoost))
 
@@ -3052,7 +3190,7 @@ def SetProcessPriorityBoost(hProcess, DisablePriorityBoost):
 def GetProcessAffinityMask(hProcess):
     _GetProcessAffinityMask = windll.kernel32.GetProcessAffinityMask
     _GetProcessAffinityMask.argtypes = [HANDLE, PDWORD_PTR, PDWORD_PTR]
-    _GetProcessAffinityMask.restype = bool
+    _GetProcessAffinityMask.restype  = bool
     _GetProcessAffinityMask.errcheck = RaiseIfZero
 
     lpProcessAffinityMask = DWORD_PTR(NULL)
@@ -3067,7 +3205,7 @@ def GetProcessAffinityMask(hProcess):
 def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
     _SetProcessAffinityMask = windll.kernel32.SetProcessAffinityMask
     _SetProcessAffinityMask.argtypes = [HANDLE, DWORD_PTR]
-    _SetProcessAffinityMask.restype = bool
+    _SetProcessAffinityMask.restype  = bool
     _SetProcessAffinityMask.errcheck = RaiseIfZero
     _SetProcessAffinityMask(hProcess, dwProcessAffinityMask)
 
@@ -3078,7 +3216,7 @@ def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
 def CheckRemoteDebuggerPresent(hProcess):
     _CheckRemoteDebuggerPresent = windll.kernel32.CheckRemoteDebuggerPresent
     _CheckRemoteDebuggerPresent.argtypes = [HANDLE, PBOOL]
-    _CheckRemoteDebuggerPresent.restype = bool
+    _CheckRemoteDebuggerPresent.restype  = bool
     _CheckRemoteDebuggerPresent.errcheck = RaiseIfZero
 
     pbDebuggerPresent = BOOL(0)
@@ -3091,7 +3229,7 @@ def CheckRemoteDebuggerPresent(hProcess):
 def DebugSetProcessKillOnExit(KillOnExit):
     _DebugSetProcessKillOnExit = windll.kernel32.DebugSetProcessKillOnExit
     _DebugSetProcessKillOnExit.argtypes = [BOOL]
-    _DebugSetProcessKillOnExit.restype = bool
+    _DebugSetProcessKillOnExit.restype  = bool
     _DebugSetProcessKillOnExit.errcheck = RaiseIfZero
     _DebugSetProcessKillOnExit(bool(KillOnExit))
 
@@ -3101,7 +3239,7 @@ def DebugSetProcessKillOnExit(KillOnExit):
 def DebugBreakProcess(hProcess):
     _DebugBreakProcess = windll.kernel32.DebugBreakProcess
     _DebugBreakProcess.argtypes = [HANDLE]
-    _DebugBreakProcess.restype = bool
+    _DebugBreakProcess.restype  = bool
     _DebugBreakProcess.errcheck = RaiseIfZero
     _DebugBreakProcess(hProcess)
 
@@ -3112,7 +3250,7 @@ def DebugBreakProcess(hProcess):
 def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
     _CreateToolhelp32Snapshot = windll.kernel32.CreateToolhelp32Snapshot
     _CreateToolhelp32Snapshot.argtypes = [DWORD, DWORD]
-    _CreateToolhelp32Snapshot.restype = HANDLE
+    _CreateToolhelp32Snapshot.restype  = HANDLE
 
     hSnapshot = _CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
     if hSnapshot == INVALID_HANDLE_VALUE:
@@ -3126,7 +3264,7 @@ def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
 def Process32First(hSnapshot):
     _Process32First = windll.kernel32.Process32First
     _Process32First.argtypes = [HANDLE, LPPROCESSENTRY32]
-    _Process32First.restype = bool
+    _Process32First.restype  = bool
 
     pe        = PROCESSENTRY32()
     pe.dwSize = sizeof(PROCESSENTRY32)
@@ -3144,7 +3282,7 @@ def Process32First(hSnapshot):
 def Process32Next(hSnapshot, pe = None):
     _Process32Next = windll.kernel32.Process32Next
     _Process32Next.argtypes = [HANDLE, LPPROCESSENTRY32]
-    _Process32Next.restype = bool
+    _Process32Next.restype  = bool
 
     if pe is None:
         pe = PROCESSENTRY32()
@@ -3163,7 +3301,7 @@ def Process32Next(hSnapshot, pe = None):
 def Thread32First(hSnapshot):
     _Thread32First = windll.kernel32.Thread32First
     _Thread32First.argtypes = [HANDLE, LPTHREADENTRY32]
-    _Thread32First.restype = bool
+    _Thread32First.restype  = bool
 
     te = THREADENTRY32()
     te.dwSize = sizeof(THREADENTRY32)
@@ -3181,7 +3319,7 @@ def Thread32First(hSnapshot):
 def Thread32Next(hSnapshot, te = None):
     _Thread32Next = windll.kernel32.Thread32Next
     _Thread32Next.argtypes = [HANDLE, LPTHREADENTRY32]
-    _Thread32Next.restype = bool
+    _Thread32Next.restype  = bool
 
     if te is None:
         te = THREADENTRY32()
@@ -3200,7 +3338,7 @@ def Thread32Next(hSnapshot, te = None):
 def Module32First(hSnapshot):
     _Module32First = windll.kernel32.Module32First
     _Module32First.argtypes = [HANDLE, LPMODULEENTRY32]
-    _Module32First.restype = bool
+    _Module32First.restype  = bool
 
     me = MODULEENTRY32()
     me.dwSize = sizeof(MODULEENTRY32)
@@ -3218,7 +3356,7 @@ def Module32First(hSnapshot):
 def Module32Next(hSnapshot, me = None):
     _Module32Next = windll.kernel32.Module32Next
     _Module32Next.argtypes = [HANDLE, LPMODULEENTRY32]
-    _Module32Next.restype = bool
+    _Module32Next.restype  = bool
 
     if me is None:
         me = MODULEENTRY32()
@@ -3238,7 +3376,7 @@ def Module32Next(hSnapshot, me = None):
 def Heap32First(th32ProcessID, th32HeapID):
     _Heap32First = windll.kernel32.Heap32First
     _Heap32First.argtypes = [LPHEAPENTRY32, DWORD, LPVOID]
-    _Heap32First.restype = bool
+    _Heap32First.restype  = bool
 
     he = HEAPENTRY32()
     he.dwSize = sizeof(HEAPENTRY32)
@@ -3255,7 +3393,7 @@ def Heap32First(th32ProcessID, th32HeapID):
 def Heap32Next(he):
     _Heap32Next = windll.kernel32.Heap32Next
     _Heap32Next.argtypes = [LPHEAPENTRY32]
-    _Heap32Next.restype = bool
+    _Heap32Next.restype  = bool
 
     he.dwSize = sizeof(HEAPENTRY32)
     success = _Heap32Next(ctypes.byref(he))
@@ -3272,7 +3410,7 @@ def Heap32Next(he):
 def Heap32ListFirst(hSnapshot):
     _Heap32ListFirst = windll.kernel32.Heap32ListFirst
     _Heap32ListFirst.argtypes = [HANDLE, LPHEAPLIST32]
-    _Heap32ListFirst.restype = bool
+    _Heap32ListFirst.restype  = bool
 
     hl = HEAPLIST32()
     hl.dwSize = sizeof(HEAPLIST32)
@@ -3290,7 +3428,7 @@ def Heap32ListFirst(hSnapshot):
 def Heap32ListNext(hSnapshot, hl = None):
     _Heap32ListNext = windll.kernel32.Heap32ListNext
     _Heap32ListNext.argtypes = [HANDLE, LPHEAPLIST32]
-    _Heap32ListNext.restype = bool
+    _Heap32ListNext.restype  = bool
 
     if hl is None:
         hl = HEAPLIST32()
@@ -3312,7 +3450,7 @@ def Heap32ListNext(hSnapshot, hl = None):
 def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
     _Toolhelp32ReadProcessMemory = windll.kernel32.Toolhelp32ReadProcessMemory
     _Toolhelp32ReadProcessMemory.argtypes = [DWORD, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
-    _Toolhelp32ReadProcessMemory.restype = bool
+    _Toolhelp32ReadProcessMemory.restype  = bool
 
     lpBuffer            = ctypes.create_string_buffer('', cbRead)
     lpNumberOfBytesRead = SIZE_T(0)
@@ -3325,7 +3463,7 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
 def GetCurrentProcessorNumber():
     _GetCurrentProcessorNumber = windll.kernel32.GetCurrentProcessorNumber
     _GetCurrentProcessorNumber.argtypes = []
-    _GetCurrentProcessorNumber.restype = DWORD
+    _GetCurrentProcessorNumber.restype  = DWORD
     _GetCurrentProcessorNumber.errcheck = RaiseIfZero
     return _GetCurrentProcessorNumber()
 
@@ -3333,7 +3471,7 @@ def GetCurrentProcessorNumber():
 def FlushProcessWriteBuffers():
     _FlushProcessWriteBuffers = windll.kernel32.FlushProcessWriteBuffers
     _FlushProcessWriteBuffers.argtypes = []
-    _FlushProcessWriteBuffers.restype = None
+    _FlushProcessWriteBuffers.restype  = None
     _FlushProcessWriteBuffers()
 
 # BOOL WINAPI GetLogicalProcessorInformation(
@@ -3357,7 +3495,7 @@ def FlushProcessWriteBuffers():
 def GetGuiResources(hProcess, uiFlags = GR_GDIOBJECTS):
     _GetGuiResources = windll.kernel32.GetGuiResources
     _GetGuiResources.argtypes = [HANDLE, DWORD]
-    _GetGuiResources.restype = DWORD
+    _GetGuiResources.restype  = DWORD
 
     dwCount = _GetGuiResources(hProcess, uiFlags)
     if dwCount == 0:
@@ -3373,7 +3511,7 @@ def GetGuiResources(hProcess, uiFlags = GR_GDIOBJECTS):
 def GetProcessHandleCount(hProcess):
     _GetProcessHandleCount = windll.kernel32.GetProcessHandleCount
     _GetProcessHandleCount.argtypes = [HANDLE, PDWORD]
-    _GetProcessHandleCount.restype = DWORD
+    _GetProcessHandleCount.restype  = DWORD
     _GetProcessHandleCount.errcheck = RaiseIfZero
 
     pdwHandleCount = DWORD(0)
@@ -3390,7 +3528,7 @@ def GetProcessHandleCount(hProcess):
 def GetProcessTimes(hProcess):
     _GetProcessTimes = windll.kernel32.GetProcessTimes
     _GetProcessTimes.argtypes = [HANDLE, LPFILETIME, LPFILETIME, LPFILETIME]
-    _GetProcessTimes.restype  = BOOL
+    _GetProcessTimes.restype  = bool
     _GetProcessTimes.errcheck = RaiseIfZero
 
     CreationTime = FILETIME()
@@ -3398,7 +3536,7 @@ def GetProcessTimes(hProcess):
     KernelTime   = FILETIME()
     UserTime     = FILETIME()
 
-    _GetProcessTimes(hProcess, byref(CreationTime), byref(ExitTime), byref(KernelTime), byref(UserTime))
+    _GetProcessTimes(hProcess, ctypes.byref(CreationTime), ctypes.byref(ExitTime), ctypes.byref(KernelTime), ctypes.byref(UserTime))
 
 ##    CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
 ##    ExitTime     = ExitTime.dwLowDateTime     + (ExitTime.dwHighDateTime     << 32)
@@ -3417,7 +3555,7 @@ def GetProcessTimes(hProcess):
 def FileTimeToSystemTime(lpFileTime):
     _FileTimeToSystemTime = windll.kernel32.FileTimeToSystemTime
     _FileTimeToSystemTime.argtypes = [LPFILETIME, LPSYSTEMTIME]
-    _FileTimeToSystemTime.restype  = BOOL
+    _FileTimeToSystemTime.restype  = bool
     _FileTimeToSystemTime.errcheck = RaiseIfZero
 
     if isinstance(lpFileTime, FILETIME):
@@ -3427,7 +3565,7 @@ def FileTimeToSystemTime(lpFileTime):
         FileTime.dwLowDateTime  = lpFileTime & 0xFFFFFFFF
         FileTime.dwHighDateTime = lpFileTime >> 32
     SystemTime = SYSTEMTIME()
-    _FileTimeToSystemTime(byref(FileTime), byref(SystemTime))
+    _FileTimeToSystemTime(ctypes.byref(FileTime), ctypes.byref(SystemTime))
     return SystemTime
 
 #------------------------------------------------------------------------------
@@ -3440,7 +3578,7 @@ def FileTimeToSystemTime(lpFileTime):
 def IsWow64Process(hProcess):
     _IsWow64Process = windll.kernel32.IsWow64Process
     _IsWow64Process.argtypes = [HANDLE, PBOOL]
-    _IsWow64Process.restype = BOOL
+    _IsWow64Process.restype  = bool
     _IsWow64Process.errcheck = RaiseIfZero
 
     Wow64Process = BOOL(FALSE)

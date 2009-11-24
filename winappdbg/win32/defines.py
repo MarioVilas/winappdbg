@@ -221,6 +221,7 @@ try:
 except AttributeError:
     # Size of a pointer
     SIZE_T  = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
+PSIZE_T     = POINTER(SIZE_T)
 
 PSTR        = LPSTR
 PWSTR       = LPWSTR
