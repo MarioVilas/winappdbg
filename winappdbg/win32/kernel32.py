@@ -2823,10 +2823,11 @@ def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
     _UpdateProcThreadAttribute.restype  = bool
     _UpdateProcThreadAttribute.errcheck = RaiseIfZero
 
+    Attribute = DWORD(Attribute)
+    lpValue   = ctypes.cast(ctypes.pointer(Value), PVOID)
     if cbSize is None:
         cbSize = ctypes.sizeof(Value)
-    Attribute = DWORD(Attribute)
-    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, ctypes.byref(Value), cbSize, NULL, NULL)
+    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, lpValue, cbSize, NULL, NULL)
 
 # VOID WINAPI DeleteProcThreadAttributeList(
 #   __inout  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList
