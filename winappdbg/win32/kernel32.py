@@ -827,19 +827,16 @@ class ProcThreadAttributeList (object):
 #   HANDLE    hEvent;
 # }OVERLAPPED, *LPOVERLAPPED;
 class _OVERLAPPED_STRUCT(Structure):
-    _pack_ = 1
     _fields_ = [
         ('Offset',          DWORD),
         ('OffsetHigh',      DWORD),
     ]
 class _OVERLAPPED_UNION(Union):
-    _pack_ = 1
     _fields_ = [
         ('s',               _OVERLAPPED_STRUCT),
         ('Pointer',         PVOID),
     ]
 class OVERLAPPED(Structure):
-    _pack_ = 1
     _fields_ = [
         ('Internal',        ULONG_PTR),
         ('InternalHigh',    ULONG_PTR),
@@ -856,7 +853,6 @@ LPOVERLAPPED = POINTER(OVERLAPPED)
 #     BOOL bInheritHandle;
 # } SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
 class SECURITY_ATTRIBUTES(Structure):
-    _pack_ = 1
     _fields_ = [
         ('nLength',                 DWORD),
         ('lpSecurityDescriptor',    LPVOID),
@@ -961,7 +957,6 @@ class THREADNAME_INFO(Structure):
 #     DWORD Type;
 # } MEMORY_BASIC_INFORMATION32, *PMEMORY_BASIC_INFORMATION32;
 class MEMORY_BASIC_INFORMATION32(Structure):
-    _pack_ = 1
     _fields_ = [
         ('BaseAddress',         DWORD),         # remote pointer
         ('AllocationBase',      DWORD),         # remote pointer
@@ -984,7 +979,6 @@ class MEMORY_BASIC_INFORMATION32(Structure):
 #     DWORD     __alignment2;
 # } MEMORY_BASIC_INFORMATION64, *PMEMORY_BASIC_INFORMATION64;
 class MEMORY_BASIC_INFORMATION64(Structure):
-    _pack_ = 1
     _fields_ = [
         ('BaseAddress',         ULONGLONG),     # remote pointer
         ('AllocationBase',      ULONGLONG),     # remote pointer
@@ -1032,7 +1026,6 @@ PMEMORY_BASIC_INFORMATION = POINTER(MEMORY_BASIC_INFORMATION)
 #    DWORD dwHighDateTime;
 # } FILETIME, *PFILETIME;
 class FILETIME(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwLowDateTime',       DWORD),
         ('dwHighDateTime',      DWORD),
@@ -1050,7 +1043,6 @@ LPFILETIME = POINTER(FILETIME)
 #   WORD wMilliseconds;
 # }SYSTEMTIME, *PSYSTEMTIME;
 class SYSTEMTIME(Structure):
-    _pack_ = 1
     _fields_ = [
         ('wYear',           WORD),
         ('wMonth',          WORD),
@@ -1076,7 +1068,6 @@ LPSYSTEMTIME = POINTER(SYSTEMTIME)
 #   DWORD nFileIndexLow;
 # } BY_HANDLE_FILE_INFORMATION, *PBY_HANDLE_FILE_INFORMATION;
 class BY_HANDLE_FILE_INFORMATION(Structure):
-    _pack_ = 1
     _fields_ = [
         ('dwFileAttributes',        DWORD),
         ('ftCreationTime',          FILETIME),
@@ -1128,7 +1119,6 @@ class FILE_INFO_BY_HANDLE_CLASS(object):
 #   WCHAR FileName[1];
 # } FILE_NAME_INFO, *PFILE_NAME_INFO;
 ##class FILE_NAME_INFO(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ('FileNameLength',  DWORD),
 ##        ('FileName',        WCHAR * 1),
@@ -1145,7 +1135,6 @@ class FILE_INFO_BY_HANDLE_CLASS(object):
 #     DWORD dwThreadId;
 # } PROCESS_INFORMATION, *PPROCESS_INFORMATION, *LPPROCESS_INFORMATION;
 class PROCESS_INFORMATION(Structure):
-    _pack_ = 1
     _fields_ = [
         ('hProcess',    HANDLE),
         ('hThread',     HANDLE),
@@ -1157,30 +1146,29 @@ LPPROCESS_INFORMATION = POINTER(PROCESS_INFORMATION)
 #--- STARTUPINFO and STARTUPINFOEX structures ---------------------------------
 
 # typedef struct _STARTUPINFO {
-#     DWORD   cb;
-#     LPSTR   lpReserved;
-#     LPSTR   lpDesktop;
-#     LPSTR   lpTitle;
-#     DWORD   dwX;
-#     DWORD   dwY;
-#     DWORD   dwXSize;
-#     DWORD   dwYSize;
-#     DWORD   dwXCountChars;
-#     DWORD   dwYCountChars;
-#     DWORD   dwFillAttribute;
-#     DWORD   dwFlags;
-#     WORD    wShowWindow;
-#     WORD    cbReserved2;
-#     LPBYTE  lpReserved2;
-#     HANDLE  hStdInput;
-#     HANDLE  hStdOutput;
-#     HANDLE  hStdError;
-# } STARTUPINFO, *LPSTARTUPINFO;
+#   DWORD  cb;
+#   LPTSTR lpReserved;
+#   LPTSTR lpDesktop;
+#   LPTSTR lpTitle;
+#   DWORD  dwX;
+#   DWORD  dwY;
+#   DWORD  dwXSize;
+#   DWORD  dwYSize;
+#   DWORD  dwXCountChars;
+#   DWORD  dwYCountChars;
+#   DWORD  dwFillAttribute;
+#   DWORD  dwFlags;
+#   WORD   wShowWindow;
+#   WORD   cbReserved2;
+#   LPBYTE lpReserved2;
+#   HANDLE hStdInput;
+#   HANDLE hStdOutput;
+#   HANDLE hStdError;
+# }STARTUPINFO, *LPSTARTUPINFO;
 class STARTUPINFO(Structure):
-    _pack_ = 1
     _fields_ = [
         ('cb',              DWORD),
-        ('lpReserved',      LPVOID),    # LPSTR
+        ('lpReserved',      LPSTR),
         ('lpDesktop',       LPSTR),
         ('lpTitle',         LPSTR),
         ('dwX',             DWORD),
@@ -1194,9 +1182,9 @@ class STARTUPINFO(Structure):
         ('wShowWindow',     WORD),
         ('cbReserved2',     WORD),
         ('lpReserved2',     LPVOID),    # LPBYTE
-        ('hStdInput',       DWORD),
-        ('hStdOutput',      DWORD),
-        ('hStdError',       DWORD),
+        ('hStdInput',       HANDLE),
+        ('hStdOutput',      HANDLE),
+        ('hStdError',       HANDLE),
     ]
 LPSTARTUPINFO = POINTER(STARTUPINFO)
 
@@ -1205,7 +1193,6 @@ LPSTARTUPINFO = POINTER(STARTUPINFO)
 #   PPROC_THREAD_ATTRIBUTE_LIST lpAttributeList;
 # } STARTUPINFOEX,  *LPSTARTUPINFOEX;
 class STARTUPINFOEX(Structure):
-    _pack_ = 1
     _fields_ = [
         ('StartupInfo',     STARTUPINFO),
         ('lpAttributeList', PPROC_THREAD_ATTRIBUTE_LIST),

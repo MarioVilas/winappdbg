@@ -271,7 +271,6 @@ class CLIENT_ID(Structure):
 #     ULONG TimeDateStamp;
 # } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 ##class LDR_DATA_TABLE_ENTRY(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("Reserved1",           BYTE * 2),
 ##        ("InMemoryOrderLinks",  LIST_ENTRY),
@@ -295,7 +294,6 @@ class CLIENT_ID(Structure):
 # } PEB_LDR_DATA,
 #  *PPEB_LDR_DATA;
 ##class PEB_LDR_DATA(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("Reserved1",               BYTE),
 ##        ("Reserved2",               PVOID),
@@ -312,7 +310,6 @@ class CLIENT_ID(Structure):
 # } RTL_USER_PROCESS_PARAMETERS,
 #  *PRTL_USER_PROCESS_PARAMETERS;
 ##class RTL_USER_PROCESS_PARAMETERS(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("Reserved1",               BYTE * 16),
 ##        ("Reserved2",               PVOID * 10),
@@ -320,7 +317,7 @@ class CLIENT_ID(Structure):
 ##        ("CommandLine",             UNICODE_STRING),
 ##]
 
-##PPS_POST_PROCESS_INIT_ROUTINE = PVOID
+PPS_POST_PROCESS_INIT_ROUTINE = PVOID
 
 #from MSDN:
 #
@@ -336,13 +333,12 @@ class CLIENT_ID(Structure):
 #     ULONG SessionId;
 # } PEB;
 ##class PEB(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("Reserved1",               BYTE * 2),
 ##        ("BeingDebugged",           BYTE),
 ##        ("Reserved2",               BYTE * 21),
-##        ("LoaderData",              POINTER(PEB_LDR_DATA)),
-##        ("ProcessParameters",       POINTER(RTL_USER_PROCESS_PARAMETERS)),
+##        ("LoaderData",              PVOID,    # PPEB_LDR_DATA
+##        ("ProcessParameters",       PVOID,    # PRTL_USER_PROCESS_PARAMETERS
 ##        ("Reserved3",               BYTE * 520),
 ##        ("PostProcessInitRoutine",  PPS_POST_PROCESS_INIT_ROUTINE),
 ##        ("Reserved4",               BYTE),
@@ -363,7 +359,6 @@ class CLIENT_ID(Structure):
 # } TEB,
 #  *PTEB;
 ##class TEB(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("Reserved1",           PVOID * 1952),
 ##        ("Reserved2",           PVOID * 412),
@@ -393,7 +388,6 @@ class CLIENT_ID(Structure):
 #   ULONG TimeDateStamp;
 # } LDR_MODULE, *PLDR_MODULE;
 class LDR_MODULE(Structure):
-    _pack_ = 1
     _fields_ = [
         ("InLoadOrderModuleList",           LIST_ENTRY),
         ("InMemoryOrderModuleList",         LIST_ENTRY),
@@ -421,7 +415,6 @@ class LDR_MODULE(Structure):
 #   LIST_ENTRY InInitializationOrderModuleList;
 # } PEB_LDR_DATA, *PPEB_LDR_DATA;
 class PEB_LDR_DATA(Structure):
-    _pack_ = 1
     _fields_ = [
         ("Length",                          ULONG),
         ("Initialized",                     BOOLEAN),
@@ -526,7 +519,6 @@ class RTL_USER_PROCESS_PARAMETERS(Structure):
 #    +0x090 CurrentDirectores : [32] _RTL_DRIVE_LETTER_CURDIR
 #    +0x290 EnvironmentSize  : Uint4B
 ##class RTL_USER_PROCESS_PARAMETERS(Structure):
-##    _pack_ = 1
 ##    _fields_ = [
 ##        ("MaximumLength",           ULONG),
 ##        ("Length",                  ULONG),
@@ -592,25 +584,19 @@ class RTL_USER_PROCESS_PARAMETERS(Structure):
 # } RTL_CRITICAL_SECTION, *PRTL_CRITICAL_SECTION;
 #
 class RTL_CRITICAL_SECTION(Structure):
-    _pack_ = 1
-class RTL_CRITICAL_SECTION_DEBUG(Structure):
-    _pack_ = 1
-##PRTL_CRITICAL_SECTION       = POINTER(RTL_CRITICAL_SECTION)
-##PRTL_CRITICAL_SECTION_DEBUG = POINTER(RTL_CRITICAL_SECTION_DEBUG)
-PRTL_CRITICAL_SECTION       = PVOID
-PRTL_CRITICAL_SECTION_DEBUG = PVOID
-RTL_CRITICAL_SECTION._fields_ = [
-        ("DebugInfo",       PRTL_CRITICAL_SECTION_DEBUG),
+    _fields_ = [
+        ("DebugInfo",       PVOID),     # PRTL_CRITICAL_SECTION_DEBUG
         ("LockCount",       LONG),
         ("RecursionCount",  LONG),
         ("OwningThread",    PVOID),
         ("LockSemaphore",   PVOID),
         ("SpinCount",       ULONG),
 ]
-RTL_CRITICAL_SECTION_DEBUG._fields_ = [
+class RTL_CRITICAL_SECTION_DEBUG(Structure):
+    _fields_ = [
         ("Type",                        WORD),
         ("CreatorBackTraceIndex",       WORD),
-        ("CriticalSection",             PRTL_CRITICAL_SECTION),
+        ("CriticalSection",             PVOID),         # PRTL_CRITICAL_SECTION
         ("ProcessLocksList",            LIST_ENTRY),
         ("EntryCount",                  ULONG),
         ("ContentionCount",             ULONG),
@@ -618,11 +604,11 @@ RTL_CRITICAL_SECTION_DEBUG._fields_ = [
         ("CreatorBackTraceIndexHigh",   WORD),
         ("SpareUSHORT",                 WORD),
 ]
+PRTL_CRITICAL_SECTION       = POINTER(RTL_CRITICAL_SECTION)
+PRTL_CRITICAL_SECTION_DEBUG = POINTER(RTL_CRITICAL_SECTION_DEBUG)
 
-##PPEB_LDR_DATA                   = POINTER(PEB_LDR_DATA)
-##PRTL_USER_PROCESS_PARAMETERS    = POINTER(RTL_USER_PROCESS_PARAMETERS)
-PPEB_LDR_DATA                   = PVOID
-PRTL_USER_PROCESS_PARAMETERS    = PVOID
+PPEB_LDR_DATA                   = POINTER(PEB_LDR_DATA)
+PRTL_USER_PROCESS_PARAMETERS    = POINTER(RTL_USER_PROCESS_PARAMETERS)
 
 PPEBLOCKROUTINE                 = PVOID
 
@@ -731,7 +717,7 @@ class _PEB_NT(Structure):
         ("ImageSubSystemMinorVersion",          ULONG),
         ("ImageProcessAffinityMask",            ULONG),
         ("GdiHandleBuffer",                     ULONG * 34),
-        ("PostProcessInitRoutine",              ULONG),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  ULONG),
         ("TlsExpansionBitmapBits",              BYTE * 128),
         ("SessionId",                           ULONG),
@@ -859,7 +845,7 @@ class _PEB_XP(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ImageProcessAffinityMask",            DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1001,7 +987,7 @@ class _PEB_XP_64(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ImageProcessAffinityMask",            QWORD),
         ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1148,7 +1134,7 @@ class _PEB_2003(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ImageProcessAffinityMask",            DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1295,7 +1281,7 @@ class _PEB_2003_64(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ImageProcessAffinityMask",            QWORD),
         ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1454,7 +1440,7 @@ class _PEB_2008(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ActiveProcessAffinityMask",           DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1620,7 +1606,7 @@ class _PEB_Vista(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ImageProcessAffinityMask",            DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1786,7 +1772,7 @@ class _PEB_Vista_64(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ActiveProcessAffinityMask",           QWORD),
         ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -1963,7 +1949,7 @@ class _PEB_W7_Beta(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ActiveProcessAffinityMask",           DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -2138,7 +2124,7 @@ class _PEB_W7(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ActiveProcessAffinityMask",           DWORD),
         ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),
@@ -2314,7 +2300,7 @@ class _PEB_W7_64(Structure):
         ("ImageSubsystemMinorVersion",          DWORD),
         ("ActiveProcessAffinityMask",           QWORD),
         ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PVOID),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
         ("TlsExpansionBitmap",                  PVOID),
         ("TlsExpansionBitmapBits",              DWORD * 32),
         ("SessionId",                           DWORD),

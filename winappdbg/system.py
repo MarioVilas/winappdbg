@@ -4167,14 +4167,16 @@ class ProcessContainer (object):
                     ParentProcess = self.get_process(dwParentProcessId)
                 else:
                     ParentProcess = Process(dwParentProcessId)
+                ParentProcessHandle = ParentProcess.get_handle()._as_parameter_
                 AttributeList = (
                     (
                         win32.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-                        ParentProcess.get_handle()._as_parameter_
+                        ParentProcessHandle
                     ),
                 )
                 AttributeList = win32.ProcThreadAttributeList(AttributeList)
-                StartupInfo             = win32.STARTUPINFO()
+                StartupInfoEx           = win32.STARTUPINFOEX()
+                StartupInfo             = StartupInfoEx.StartupInfo
                 StartupInfo.cb          = win32.sizeof(win32.STARTUPINFOEX)
                 StartupInfo.lpReserved  = 0
                 StartupInfo.lpDesktop   = 0
@@ -4182,8 +4184,6 @@ class ProcessContainer (object):
                 StartupInfo.dwFlags     = 0
                 StartupInfo.cbReserved2 = 0
                 StartupInfo.lpReserved2 = 0
-                StartupInfoEx                 = win32.STARTUPINFOEX()
-                StartupInfoEx.StartupInfo     = StartupInfo
                 StartupInfoEx.lpAttributeList = AttributeList.value
                 lpStartupInfo = StartupInfoEx
                 dwCreationFlags |= win32.EXTENDED_STARTUPINFO_PRESENT
