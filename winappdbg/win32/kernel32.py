@@ -2801,7 +2801,7 @@ def InitializeProcThreadAttributeList(dwAttributeCount):
     _InitializeProcThreadAttributeList.restype  = bool
 
     Size = SIZE_T(0)
-    _InitializeProcThreadAttributeList(NULL, dwAttributeCount, 0, ctypes.byref(Size))
+    _InitializeProcThreadAttributeList(None, dwAttributeCount, 0, ctypes.byref(Size))
     RaiseIfZero(Size.value)
     AttributeList = (BYTE * Size.value)()
     success = _InitializeProcThreadAttributeList(ctypes.byref(AttributeList), dwAttributeCount, 0, ctypes.byref(Size))
@@ -2823,11 +2823,9 @@ def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
     _UpdateProcThreadAttribute.restype  = bool
     _UpdateProcThreadAttribute.errcheck = RaiseIfZero
 
-    Attribute = DWORD(Attribute)
-    lpValue   = ctypes.cast(ctypes.pointer(Value), PVOID)
     if cbSize is None:
         cbSize = ctypes.sizeof(Value)
-    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, lpValue, cbSize, NULL, NULL)
+    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, ctypes.byref(Value), cbSize, None, None)
 
 # VOID WINAPI DeleteProcThreadAttributeList(
 #   __inout  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList
