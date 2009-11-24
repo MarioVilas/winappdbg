@@ -4163,7 +4163,10 @@ class ProcessContainer (object):
         if dwParentProcessId is not None:
             myPID = win32.GetProcessId( win32.GetCurrentProcess() )
             if dwParentProcessId != myPID:
-                ParentProcess = Process(dwParentProcessId)
+                if self.has_process(dwParentProcessId):
+                    ParentProcess = self.get_process(dwParentProcessId)
+                else:
+                    ParentProcess = Process(dwParentProcessId)
                 AttributeList = (
                     (
                         win32.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
