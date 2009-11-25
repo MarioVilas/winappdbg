@@ -5463,6 +5463,10 @@ class Thread (ThreadDebugOperations):
 #------------------------------------------------------------------------------
 
     def get_windows(self):
+        """
+        @rtype:  list of L{Window}
+        @return: Returns a list of windows handled by this thread.
+        """
         try:
             process = self.get_process()
         except Exception:
@@ -6134,6 +6138,10 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 #------------------------------------------------------------------------------
 
     def get_windows(self):
+        """
+        @rtype:  list of L{Window}
+        @return: Returns a list of windows handled by this process.
+        """
         window_list = list()
         for thread in self.iter_threads():
             window_list.extend( thread.get_windows() )
