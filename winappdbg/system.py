@@ -3693,7 +3693,7 @@ class ProcessDebugOperations (object):
         Returns a copy of the PEB.
         To dereference pointers in it call L{Process.read_structure}.
 
-        @rtype:  L{PEB}
+        @rtype:  L{win32.PEB}
         @return: PEB structure.
         @raise WindowsError: An exception is raised on error.
         """
@@ -3704,7 +3704,7 @@ class ProcessDebugOperations (object):
         Returns a remote pointer to the PEB.
 
         @rtype:  int
-        @return: Remote pointer to the L{PEB} structure.
+        @return: Remote pointer to the L{win32.PEB} structure.
             Returns C{None} on error.
         """
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
@@ -6346,15 +6346,15 @@ class System (ProcessContainer):
 
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.
-        For more details see L{version.get_arch}.
+        For more details see L{win32.version.get_arch}.
 
     @type bits: int
     @cvar bits: Size of the machine word in bits for the current architecture.
-        For more details see L{version.get_bits}.
+        For more details see L{win32.version.get_bits}.
 
     @type os: str
     @cvar os: Name of the Windows version we're runing on.
-        For more details see L{version.get_os}.
+        For more details see L{win32.version.get_os}.
 
     @type wow64: bool
     @cvar wow64: C{True} if the debugger is a 32 bits process running in a 64
