@@ -266,6 +266,15 @@ class ModuleContainer (object):
         super(ModuleContainer, self).__init__()
         self.__moduleDict = dict()
 
+    def __initialize_snapshot(self):
+        """
+        Private method to automatically initialize the snapshot
+        when you try to use it without calling any of the scan_*
+        methods first. You don't need to call this yourself.
+        """
+        if not self.__moduleDict:
+            self.scan_modules()
+
     def __contains__(self, anObject):
         """
         @type  anObject: L{Module}, int
@@ -306,6 +315,7 @@ class ModuleContainer (object):
         @return: C{True} if the snapshot contains a
             L{Module} object with the given base address.
         """
+        self.__initialize_snapshot()
         return lpBaseOfDll in self.__moduleDict
 
     def get_module(self, lpBaseOfDll):
@@ -316,6 +326,7 @@ class ModuleContainer (object):
         @rtype:  L{Module}
         @return: Module object with the given base address.
         """
+        self.__initialize_snapshot()
         if lpBaseOfDll not in self.__moduleDict:
             msg = "Unknown DLL base address %s"
             msg = msg % HexDump.address(lpBaseOfDll)
@@ -328,6 +339,7 @@ class ModuleContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of DLL base addresses in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__moduleDict.iterkeys()
 
     def iter_modules(self):
@@ -336,6 +348,7 @@ class ModuleContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Module} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__moduleDict.itervalues()
 
     def get_module_bases(self):
@@ -344,6 +357,7 @@ class ModuleContainer (object):
         @rtype:  list( int... )
         @return: List of DLL base addresses in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__moduleDict.keys()
 
     def get_module_count(self):
@@ -351,6 +365,7 @@ class ModuleContainer (object):
         @rtype:  int
         @return: Count of L{Module} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return len(self.__moduleDict)
 
 #------------------------------------------------------------------------------
@@ -482,6 +497,8 @@ class ModuleContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # XXX notify_* methods should not trigger a scan
+
     def __add_module(self, aModule):
 ##        if not isinstance(aModule, Module):
 ##            if hasattr(aModule, '__class__'):
@@ -505,7 +522,8 @@ class ModuleContainer (object):
     def __add_loaded_module(self, event):
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
-        if not self.has_module(lpBaseOfDll):
+##        if not self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
+        if not self.__moduleDict.has_key(lpBaseOfDll):
             fileName = event.get_filename()
             if not fileName:
                 fileName = None
@@ -535,6 +553,9 @@ class ModuleContainer (object):
         """
         Notify the load of the main module.
 
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
+
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
         """
@@ -544,6 +565,9 @@ class ModuleContainer (object):
     def notify_load_dll(self, event):
         """
         Notify the load of a new module.
+
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
 
         @type  event: L{LoadDLLEvent}
         @param event: Load DLL event.
@@ -555,11 +579,15 @@ class ModuleContainer (object):
         """
         Notify the release of a loaded module.
 
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
+
         @type  event: L{UnloadDLLEvent}
         @param event: Unload DLL event.
         """
         lpBaseOfDll = event.get_module_base()
-        if self.has_module(lpBaseOfDll):
+##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
+        if self.__moduleDict.has_key(lpBaseOfDll):
             self.__del_module(lpBaseOfDll)
         return True
 
@@ -588,6 +616,15 @@ class ThreadContainer (object):
     def __init__(self):
         super(ThreadContainer, self).__init__()
         self.__threadDict = dict()
+
+    def __initialize_snapshot(self):
+        """
+        Private method to automatically initialize the snapshot
+        when you try to use it without calling any of the scan_*
+        methods first. You don't need to call this yourself.
+        """
+        if not self.__threadDict:
+            self.scan_threads()
 
     def __contains__(self, anObject):
         """
@@ -620,27 +657,6 @@ class ThreadContainer (object):
         """
         return self.get_thread_count()
 
-    def __add_thread(self, aThread):
-##        if not isinstance(aThread, Thread):
-##            if hasattr(aThread, '__class__'):
-##                typename = aThread.__class__.__name__
-##            else:
-##                typename = str(type(aThread))
-##            msg = "Expected Thread, got %s instead" % typename
-##            raise TypeError, msg
-        dwThreadId = aThread.dwThreadId
-##        if dwThreadId in self.__threadDict:
-##            msg = "Already have a Thread object with ID %d" % dwThreadId
-##            raise KeyError, msg
-        aThread.dwProcessId = self.get_pid()
-        self.__threadDict[dwThreadId] = aThread
-
-    def __del_thread(self, dwThreadId):
-##        if dwThreadId not in self.__threadDict:
-##            msg = "Unknown thread ID: %d" % dwThreadId
-##            raise KeyError, msg
-        del self.__threadDict[dwThreadId]
-
     def has_thread(self, dwThreadId):
         """
         @type  dwThreadId: int
@@ -650,6 +666,7 @@ class ThreadContainer (object):
         @return: C{True} if the snapshot contains a
             L{Thread} object with the given global ID.
         """
+        self.__initialize_snapshot()
         return dwThreadId in self.__threadDict
 
     def get_thread(self, dwThreadId):
@@ -660,6 +677,7 @@ class ThreadContainer (object):
         @rtype:  L{Thread}
         @return: Thread object with the given global ID.
         """
+        self.__initialize_snapshot()
         if dwThreadId not in self.__threadDict:
             msg = "Unknown thread ID: %d" % dwThreadId
             raise KeyError, msg
@@ -671,6 +689,7 @@ class ThreadContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of global thread IDs in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__threadDict.iterkeys()
 
     def iter_threads(self):
@@ -679,6 +698,7 @@ class ThreadContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Thread} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__threadDict.itervalues()
 
     def get_thread_ids(self):
@@ -686,6 +706,7 @@ class ThreadContainer (object):
         @rtype:  list( int )
         @return: List of global thread IDs in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__threadDict.keys()
 
     def get_thread_count(self):
@@ -693,6 +714,7 @@ class ThreadContainer (object):
         @rtype:  int
         @return: Count of L{Thread} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return len(self.__threadDict)
 
 #------------------------------------------------------------------------------
@@ -819,20 +841,47 @@ class ThreadContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # XXX notify_* methods should not trigger a scan
+
+    def __add_thread(self, aThread):
+##        if not isinstance(aThread, Thread):
+##            if hasattr(aThread, '__class__'):
+##                typename = aThread.__class__.__name__
+##            else:
+##                typename = str(type(aThread))
+##            msg = "Expected Thread, got %s instead" % typename
+##            raise TypeError, msg
+        dwThreadId = aThread.dwThreadId
+##        if dwThreadId in self.__threadDict:
+##            msg = "Already have a Thread object with ID %d" % dwThreadId
+##            raise KeyError, msg
+        aThread.dwProcessId = self.get_pid()
+        self.__threadDict[dwThreadId] = aThread
+
+    def __del_thread(self, dwThreadId):
+##        if dwThreadId not in self.__threadDict:
+##            msg = "Unknown thread ID: %d" % dwThreadId
+##            raise KeyError, msg
+        del self.__threadDict[dwThreadId]
+
     def __add_created_thread(self, event):
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
-        if self.has_thread(dwThreadId):
+##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
+        if not self.__threadDict.has_key(dwThreadId):
+            aThread = Thread(dwThreadId, hThread, self)
+            self.__add_thread(aThread)
+        else:
             aThread = self.get_thread(dwThreadId)
             if hThread != win32.INVALID_HANDLE_VALUE:
                 aThread.hThread = hThread   # may have more privileges
-        else:
-            aThread = Thread(dwThreadId, hThread, self)
-            self.__add_thread(aThread)
 
     def notify_create_process(self, event):
         """
         Notify the creation of the main thread of this process.
+
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
@@ -844,6 +893,9 @@ class ThreadContainer (object):
         """
         Notify the creation of a new thread in this process.
 
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
+
         @type  event: L{CreateThreadEvent}
         @param event: Create thread event.
         """
@@ -854,11 +906,15 @@ class ThreadContainer (object):
         """
         Notify the termination of a thread.
 
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
+
         @type  event: L{ExitThreadEvent}
         @param event: Exit thread event.
         """
         dwThreadId = event.get_tid()
-        if self.has_thread(dwThreadId):
+##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
+        if self.__threadDict.has_key(dwThreadId):
             self.__del_thread(dwThreadId)
         return True
 
@@ -3914,6 +3970,17 @@ class ProcessContainer (object):
         super(ProcessContainer, self).__init__()
         self.__processDict = dict()
 
+    def __initialize_snapshot(self):
+        """
+        Private method to automatically initialize the snapshot
+        when you try to use it without calling any of the scan_*
+        methods first. You don't need to call this yourself.
+        """
+        if not self.__processDict:
+##            self.scan()                 # recursive scan
+            self.scan_processes()       # normal scan
+##            self.scan_processes_fast()  # fast scan (no filenames)
+
     def __contains__(self, anObject):
         """
         @type  anObject: L{Process}, L{Thread}, int
@@ -3952,26 +4019,6 @@ class ProcessContainer (object):
         """
         return self.get_process_count()
 
-    def __add_process(self, aProcess):
-##        if not isinstance(aProcess, Process):
-##            if hasattr(aProcess, '__class__'):
-##                typename = aProcess.__class__.__name__
-##            else:
-##                typename = str(type(aProcess))
-##            msg = "Expected Process, got %s instead" % typename
-##            raise TypeError, msg
-        dwProcessId = aProcess.dwProcessId
-##        if dwProcessId in self.__processDict:
-##            msg = "Process already exists: %d" % dwProcessId
-##            raise KeyError, msg
-        self.__processDict[dwProcessId] = aProcess
-
-    def __del_process(self, dwProcessId):
-##        if dwProcessId not in self.__processDict:
-##            msg = "Unknown process ID %d" % dwProcessId
-##            raise KeyError, msg
-        del self.__processDict[dwProcessId]
-
     def has_process(self, dwProcessId):
         """
         @type  dwProcessId: int
@@ -3981,6 +4028,7 @@ class ProcessContainer (object):
         @return: C{True} if the snapshot contains a
             L{Process} object with the given global ID.
         """
+        self.__initialize_snapshot()
         return dwProcessId in self.__processDict
 
     def get_process(self, dwProcessId):
@@ -3991,6 +4039,7 @@ class ProcessContainer (object):
         @rtype:  L{Process}
         @return: Process object with the given global ID.
         """
+        self.__initialize_snapshot()
         if dwProcessId not in self.__processDict:
             msg = "Unknown process ID %d" % dwProcessId
             raise KeyError, msg
@@ -4002,6 +4051,7 @@ class ProcessContainer (object):
         @rtype:  dictionary-keyiterator
         @return: Iterator of global process IDs in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__processDict.iterkeys()
 
     def iter_processes(self):
@@ -4010,6 +4060,7 @@ class ProcessContainer (object):
         @rtype:  dictionary-valueiterator
         @return: Iterator of L{Process} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__processDict.itervalues()
 
     def get_process_ids(self):
@@ -4018,6 +4069,7 @@ class ProcessContainer (object):
         @rtype:  list( int )
         @return: List of global process IDs in this snapshot.
         """
+        self.__initialize_snapshot()
         return self.__processDict.keys()
 
     def get_process_count(self):
@@ -4025,6 +4077,7 @@ class ProcessContainer (object):
         @rtype:  int
         @return: Count of L{Process} objects in this snapshot.
         """
+        self.__initialize_snapshot()
         return len(self.__processDict)
 
 #------------------------------------------------------------------------------
@@ -4536,10 +4589,35 @@ class ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # XXX notify_* methods should not trigger a scan
+
+    def __add_process(self, aProcess):
+##        if not isinstance(aProcess, Process):
+##            if hasattr(aProcess, '__class__'):
+##                typename = aProcess.__class__.__name__
+##            else:
+##                typename = str(type(aProcess))
+##            msg = "Expected Process, got %s instead" % typename
+##            raise TypeError, msg
+        dwProcessId = aProcess.dwProcessId
+##        if dwProcessId in self.__processDict:
+##            msg = "Process already exists: %d" % dwProcessId
+##            raise KeyError, msg
+        self.__processDict[dwProcessId] = aProcess
+
+    def __del_process(self, dwProcessId):
+##        if dwProcessId not in self.__processDict:
+##            msg = "Unknown process ID %d" % dwProcessId
+##            raise KeyError, msg
+        del self.__processDict[dwProcessId]
+
     # Notify the creation of a new process.
     def notify_create_process(self, event):
         """
         Notify the creation of a new process.
+
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
@@ -4547,7 +4625,12 @@ class ProcessContainer (object):
         dwProcessId = event.get_pid()
         dwThreadId  = event.get_tid()
         hProcess    = event.get_process_handle()
-        if self.has_process(dwProcessId):
+##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
+        if not self.__processDict.has_key(dwProcessId):
+            aProcess = Process(dwProcessId, hProcess)
+            self.__add_process(aProcess)
+            aProcess.fileName = event.get_filename()
+        else:
             aProcess = self.get_process(dwProcessId)
             if hProcess != win32.INVALID_HANDLE_VALUE:
                 aProcess.hProcess = hProcess    # may have more privileges
@@ -4555,21 +4638,21 @@ class ProcessContainer (object):
                 fileName = event.get_filename()
                 if fileName:
                     aProcess.fileName = fileName
-        else:
-            aProcess = Process(dwProcessId, hProcess)
-            self.__add_process(aProcess)
-            aProcess.fileName = event.get_filename()
         return aProcess.notify_create_process(event)   # pass it to the process
 
     def notify_exit_process(self, event):
         """
         Notify the termination of a process.
 
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
+
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
         """
         dwProcessId = event.get_pid()
-        if self.has_process(dwProcessId):
+##        if self.has_process(dwProcessId): # XXX this would trigger a scan
+        if self.__processDict.has_key(dwProcessId):
             self.__del_process(dwProcessId)
         return True
 
@@ -6322,6 +6405,9 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def notify_create_process(self, event):
         """
         Notify the creation of a new process.
+
+        This is done automatically by the L{Debug} class, you shouldn't need
+        to call it yourself.
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
