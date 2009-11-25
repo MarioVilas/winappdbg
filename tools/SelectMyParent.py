@@ -96,7 +96,8 @@ def main(argv):
     # Start the new process.
     try:
         process = system.start_process(system.argv_to_cmdline(argv[2:]),
-                                       bConsole = True,
+                                       bConsole          = True,
+                                       bInheritHandles   = True,
                                        dwParentProcessId = dwParentProcessId)
         dwProcessId = process.get_pid()
     except AttributeError, e:
