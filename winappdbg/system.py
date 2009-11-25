@@ -1803,7 +1803,7 @@ class MemoryOperations (object):
         """
         Retrieves the filenames for memory mapped files in the debugee.
 
-        @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
+        @type  memoryMap: list( L{win32.MemoryBasicInformation} )
         @param memoryMap: (Optional) Memory map returned by L{get_memory_map}.
             If not given, the current memory map is used.
 

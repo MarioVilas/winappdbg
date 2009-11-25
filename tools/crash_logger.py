@@ -463,9 +463,8 @@ class LoggingEventHandler(EventHandler):
 
         # Add the crash if this is an unexpected breakpoint event.
         # It may be signaling a C/C++ assert() failure.
-        if (not bOurs and not bSystem) or not bFirstChance or \
-                                          self.options.firstchance:
-            self.__add_crash(event, bFullReport = (not bOurs and not bSystem))
+        if (not bOurs and not bSystem) or not bFirstChance:
+            self.__add_crash(event, bFullReport = False)
 
         # If it's not a crash, log and take action as appropriate.
         else:

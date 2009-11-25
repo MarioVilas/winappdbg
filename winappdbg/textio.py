@@ -54,6 +54,7 @@ import win32
 
 import time
 import struct
+import traceback
 
 #------------------------------------------------------------------------------
 
@@ -1136,7 +1137,7 @@ class CrashDump (object):
         Dump the memory map of a process. Optionally show the filenames for
         memory mapped files as well.
 
-        @type  memoryMap: list( L{MEMORY_BASIC_INFORMATION} )
+        @type  memoryMap: list( L{win32.MemoryBasicInformation} )
         @param memoryMap: Memory map returned by L{Process.get_memory_map}.
 
         @type  mappedFilenames: dict( int S{->} str )
@@ -1160,58 +1161,61 @@ class CrashDump (object):
             RegionSize  = HexDump.address(mbi.RegionSize)
 
             # State (free or allocated).
-            if   mbi.State == win32.MEM_RESERVE:
+            mbiState = mbi.State
+            if   mbiState == win32.MEM_RESERVE:
                 State   = "Reserved"
-            elif mbi.State == win32.MEM_COMMIT:
+            elif mbiState == win32.MEM_COMMIT:
                 State   = "Commited"
-            elif mbi.State == win32.MEM_FREE:
+            elif mbiState == win32.MEM_FREE:
                 State   = "Free"
             else:
                 State   = "Unknown"
 
             # Page protection bits (R/W/X/G).
-            if mbi.State != win32.MEM_COMMIT:
+            if mbiState != win32.MEM_COMMIT:
                 Protect = ""
             else:
-                if   mbi.Protect & win32.PAGE_NOACCESS:
+                mbiProtect = mbi.Protect
+                if   mbiProtect & win32.PAGE_NOACCESS:
                     Protect = "--- "
-                elif mbi.Protect & win32.PAGE_READONLY:
+                elif mbiProtect & win32.PAGE_READONLY:
                     Protect = "R-- "
-                elif mbi.Protect & win32.PAGE_READWRITE:
+                elif mbiProtect & win32.PAGE_READWRITE:
                     Protect = "RW- "
-                elif mbi.Protect & win32.PAGE_WRITECOPY:
+                elif mbiProtect & win32.PAGE_WRITECOPY:
                     Protect = "RC- "
-                elif mbi.Protect & win32.PAGE_EXECUTE:
+                elif mbiProtect & win32.PAGE_EXECUTE:
                     Protect = "--X "
-                elif mbi.Protect & win32.PAGE_EXECUTE_READ:
+                elif mbiProtect & win32.PAGE_EXECUTE_READ:
                     Protect = "R-- "
-                elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
+                elif mbiProtect & win32.PAGE_EXECUTE_READWRITE:
                     Protect = "RW- "
-                elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
+                elif mbiProtect & win32.PAGE_EXECUTE_WRITECOPY:
                     Protect = "RCX "
                 else:
                     Protect = "??? "
-                if   mbi.Protect & win32.PAGE_GUARD:
+                if   mbiProtect & win32.PAGE_GUARD:
                     Protect += "G"
                 else:
                     Protect += "-"
-                if   mbi.Protect & win32.PAGE_NOCACHE:
+                if   mbiProtect & win32.PAGE_NOCACHE:
                     Protect += "N"
                 else:
                     Protect += "-"
-                if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+                if   mbiProtect & win32.PAGE_WRITECOMBINE:
                     Protect += "W"
                 else:
                     Protect += "-"
 
             # Type (file mapping, executable image, or private memory).
-            if   mbi.Type == win32.MEM_IMAGE:
+            mbiType = mbi.Type
+            if   mbiType == win32.MEM_IMAGE:
                 Type    = "Image"
-            elif mbi.Type == win32.MEM_MAPPED:
+            elif mbiType == win32.MEM_MAPPED:
                 Type    = "Mapped"
-            elif mbi.Type == win32.MEM_PRIVATE:
+            elif mbiType == win32.MEM_PRIVATE:
                 Type    = "Private"
-            elif mbi.Type == 0:
+            elif mbiType == 0:
                 Type    = ""
             else:
                 Type    = "Unknown"

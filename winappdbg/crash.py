@@ -816,6 +816,14 @@ class Crash (object):
             msg += HexDump.hexblock(self.faultMem, self.exceptionAddress,
                                     width = width)
 
+        if self.memoryMap:
+            msg += '\nMemory map:\n'
+            mappedFileNames = dict()
+            for mbi in self.memoryMap:
+                if hasattr(mbi, 'filename') and mbi.filename:
+                    mappedFileNames[mbi.BaseAddress] = mbi.filename
+            msg += CrashDump.dump_memory_map(self.memoryMap, mappedFileNames)
+
         if not msg.endswith('\n\n'):
             if not msg.endswith('\n'):
                 msg += '\n'
