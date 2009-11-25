@@ -568,9 +568,9 @@ class Crash (object):
         if self.stackRange and self.pc is not None and self.stackRange[0] <= self.pc < self.stackRange[1]:
             return ("Exploitable", "StackCodeExecution", "Code execution from the stack is considered exploitable.")
 
-        # This rule is NOT from !exploitable
-        if self.stackRange and self.sp is not None and not (self.stackRange[0] <= self.sp < self.stackRange[1]):
-            return ("Exploitable", "StackPointerCorruption", "Stack pointer corruption is considered exploitable.")
+##        # This rule is NOT from !exploitable
+##        if self.stackRange and self.sp is not None and not (self.stackRange[0] <= self.sp < self.stackRange[1]):
+##            return ("Exploitable", "StackPointerCorruption", "Stack pointer corruption is considered exploitable.")
 
         # XXX add rule to check if code is in writeable memory
 
