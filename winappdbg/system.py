@@ -39,10 +39,6 @@ Instrumentation module.
     SymbolEnumerator
 """
 
-# this module can be imported directly
-# to manipulate processes and threads
-# without the need for the debugger
-
 # FIXME
 # I've been told the host process for the latest versions of VMWare
 # can't be instrumented, because they try to stop code injection into the VMs.
