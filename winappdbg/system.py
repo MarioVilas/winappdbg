@@ -446,6 +446,7 @@ class ModuleContainer (object):
                         return module
         return None
 
+    # XXX this method musn't end up calling __initialize_snapshot by accident!
     def scan_modules(self):
         """
         Populates the snapshot with loaded modules.
@@ -465,7 +466,8 @@ class ModuleContainer (object):
                     if not fileName:
                         fileName = None
                 found_bases.add(lpBaseAddress)
-                if not self.has_module(lpBaseAddress):
+##                if not self.has_module(lpBaseAddress): # XXX triggers a scan
+                if not self.__moduleDict.has_key(lpBaseAddress):
                     aModule = Module(lpBaseAddress, fileName = fileName,
                                            SizeOfImage = me.modBaseSize,
                                            process = self)
@@ -785,11 +787,14 @@ class ThreadContainer (object):
 
     # TODO
     # maybe put all the toolhelp code into their own set of classes?
+    #
+    # XXX this method musn't end up calling __initialize_snapshot by accident!
     def scan_threads(self):
         """
         Populates the snapshot with running threads.
         """
-        dead_tids   = set( self.get_thread_ids() )
+##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
+        dead_tids   = self.__threadDict.keys()
         dwProcessId = self.get_pid()
         hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD,
                                                                  dwProcessId)
@@ -800,7 +805,8 @@ class ThreadContainer (object):
                     dwThreadId = te.th32ThreadID
                     if dwThreadId in dead_tids:
                         dead_tids.remove(dwThreadId)
-                    if not self.has_thread(dwThreadId):
+##                    if not self.has_thread(dwThreadId): # XXX triggers a scan
+                    if not self.__threadDict.has_key(dwThreadId):
                         aThread = Thread(dwThreadId, process = self)
                         self.__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
@@ -1234,6 +1240,8 @@ class ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # XXX this methods musn't end up calling __initialize_snapshot by accident!
+
     def scan(self):
         """
         Populates the snapshot with running processes and threads,
@@ -1247,7 +1255,8 @@ class ProcessContainer (object):
         Populates the snapshot with running processes and threads.
         """
         our_pid    = win32.GetProcessId( win32.GetCurrentProcess() )
-        dead_pids  = set( self.get_process_ids() )
+##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
+        dead_pids  = set( self.__processDict.keys() )
         found_tids = set()
 
         # Ignore our own process if it's in the snapshot for some reason
@@ -1267,7 +1276,8 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-                    if not self.has_process(dwProcessId):
+##                    if not self.has_process(dwProcessId): # XXX triggers a scan
+                    if not self.__processDict.has_key(dwProcessId):
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     elif pe.szExeFile:
@@ -1283,14 +1293,16 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-                    if self.has_process(dwProcessId):
+##                    if self.has_process(dwProcessId): # XXX triggers a scan
+                    if self.__processDict.has_key(dwProcessId):
                         aProcess = self.get_process(dwProcessId)
                     else:
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
-                    if not aProcess.has_thread(dwThreadId):
+##                    if not aProcess.has_thread(dwThreadId): # XXX triggers a scan
+                    if not aProcess._ThreadContainer__threadDict.has_key(dwThreadId):
                         aThread = Thread(dwThreadId, process = aProcess)
                         aProcess._ThreadContainer__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
@@ -1304,8 +1316,10 @@ class ProcessContainer (object):
             self.__del_process(pid)
 
         # Remove dead threads
-        for aProcess in self.iter_processes():
-            dead_tids = set( aProcess.get_thread_ids() )
+##        for aProcess in self.iter_processes(): # XXX triggers a scan
+        for aProcess in self.__processDict.itervalues():
+##            dead_tids = set( aProcess.get_thread_ids() ) # XXX triggers a scan
+            dead_tids = set( aProcess._ThreadContainer__threadDict.keys() )
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
                 aProcess._ThreadContainer__del_thread(tid)
@@ -1314,7 +1328,8 @@ class ProcessContainer (object):
         """
         Populates the snapshot with loaded modules.
         """
-        for aProcess in self.iter_processes():
+##        for aProcess in self.iter_processes(): # XXX triggers a scan
+        for aProcess in self.__processDict.itervalues():
             try:
                 aProcess.scan_modules()
             except WindowsError, e:
@@ -1328,7 +1343,8 @@ class ProcessContainer (object):
         Populates the snapshot with running processes.
         """
         our_pid   = win32.GetProcessId( win32.GetCurrentProcess() )
-        dead_pids = set( self.get_process_ids() )
+##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
+        dead_pids  = set( self.__processDict.keys() )
         if our_pid in dead_pids:
             dead_pids.remove(our_pid)
         hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPPROCESS)
@@ -1339,7 +1355,8 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-                    if not self.has_process(dwProcessId):
+##                    if not self.has_process(dwProcessId): # XXX triggers a scan
+                    if not self.__processDict.has_key(dwProcessId):
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     elif pe.szExeFile:
@@ -1367,7 +1384,8 @@ class ProcessContainer (object):
 
         # Get the new and old list of pids
         new_pids = set( win32.EnumProcesses() )
-        old_pids = set( self.get_process_ids() )
+##        old_pids = set( self.get_process_ids() ) # XXX triggers a scan
+        old_pids = set( self.__processDict.keys() )
 
         # Ignore our own pid
         our_pid  = win32.GetProcessId( win32.GetCurrentProcess() )
