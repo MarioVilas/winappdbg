@@ -3766,11 +3766,14 @@ class ThreadDebugOperations (object):
         """
         @rtype:  tuple( int, int )
         @return: Stack beginning and end pointers, in memory addresses order.
+            That is, the first pointer is the stack top, and the second pointer
+            is the stack bottom, since the stack grows towards lower memory
+            addresses.
         @raise   WindowsError: Raises an exception on error.
         """
         teb = self.get_teb()
         tib = teb.NtTib
-        return ( tib.StackBase, tib.StackLimit )
+        return ( tib.StackLimit, tib.StackBase )    # top, bottom
 
     def __get_stack_trace(self, depth = 16, bUseLabels = True,
                                                            bMakePretty = True):
@@ -3794,7 +3797,7 @@ class ThreadDebugOperations (object):
         @raise WindowsError: Raises an exception on error.
         """
         aProcess = self.get_process()
-        sb, sl   = self.get_stack_range()
+        st, sb   = self.get_stack_range()   # top, bottom
         fp       = self.get_fp()
         trace    = list()
         if aProcess.get_module_count() == 0:
@@ -3802,7 +3805,7 @@ class ThreadDebugOperations (object):
         while depth > 0:
             if fp == 0:
                 break
-            if not sb <= fp < sl:
+            if not st <= fp < sb:
                 break
             ra  = aProcess.peek_pointer(fp + 4)
             if ra == 0:
@@ -3880,13 +3883,13 @@ class ThreadDebugOperations (object):
 
         @raise WindowsError: An error occured when getting the thread context.
         """
-        sb, sl   = self.get_stack_range()
+        st, sb   = self.get_stack_range()   # top, bottom
         sp       = self.get_sp()
         fp       = self.get_fp()
         size     = fp - sp
-        if not sb <= sp < sl:
+        if not st <= sp < sb:
             raise RuntimeError, 'Stack pointer lies outside the stack'
-        if not sb <= fp < sl:
+        if not st <= fp < sb:
             raise RuntimeError, 'Frame pointer lies outside the stack'
         if sp > fp:
             raise RuntimeError, 'No valid stack frame found'
