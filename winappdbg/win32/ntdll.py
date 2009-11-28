@@ -253,6 +253,7 @@ ExceptionCollidedUnwind     = 3
 ##]
 
 # From http://catch22.net/tuts/tips2
+# (Only valid for 32 bits)
 #
 # typedef struct
 # {
@@ -263,14 +264,16 @@ ExceptionCollidedUnwind     = 3
 #     ULONG_PTR  UniqueProcessId;
 #     ULONG_PTR  InheritedFromUniqueProcessId;
 # } PROCESS_BASIC_INFORMATION;
+
+# My own definition follows:
 class PROCESS_BASIC_INFORMATION(Structure):
     _fields_ = [
-        ("ExitStatus",                      ULONG),
+        ("ExitStatus",                      NTSTATUS),
         ("PebBaseAddress",                  PVOID),
-        ("AffinityMask",                    ULONG),
-        ("BasePriority",                    ULONG),
-        ("UniqueProcessId",                 ULONG_PTR),
-        ("InheritedFromUniqueProcessId",    ULONG_PTR),
+        ("AffinityMask",                    KAFFINITY),
+        ("BasePriority",                    KPRIORITY),
+        ("UniqueProcessId",                 PVOID),
+        ("InheritedFromUniqueProcessId",    PVOID),
 ]
 
 # From http://undocumented.ntinternals.net/UserMode/Structures/THREAD_BASIC_INFORMATION.html
