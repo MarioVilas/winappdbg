@@ -38,7 +38,6 @@ from peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 
-NTSTATUS                = DWORD
 SYSDBG_COMMAND          = DWORD
 PROCESSINFOCLASS        = DWORD
 THREADINFOCLASS         = DWORD
@@ -234,6 +233,8 @@ ExceptionContinueSearch     = 1
 ExceptionNestedException    = 2
 ExceptionCollidedUnwind     = 3
 
+#--- PROCESS_BASIC_INFORMATION structure --------------------------------------
+
 # From MSDN:
 #
 # typedef struct _PROCESS_BASIC_INFORMATION {
@@ -269,12 +270,14 @@ ExceptionCollidedUnwind     = 3
 class PROCESS_BASIC_INFORMATION(Structure):
     _fields_ = [
         ("ExitStatus",                      NTSTATUS),
-        ("PebBaseAddress",                  PVOID),
+        ("PebBaseAddress",                  PVOID),     # PPEB
         ("AffinityMask",                    KAFFINITY),
-        ("BasePriority",                    KPRIORITY),
+        ("BasePriority",                    SDWORD),
         ("UniqueProcessId",                 PVOID),
         ("InheritedFromUniqueProcessId",    PVOID),
 ]
+
+#--- THREAD_BASIC_INFORMATION structure ---------------------------------------
 
 # From http://undocumented.ntinternals.net/UserMode/Structures/THREAD_BASIC_INFORMATION.html
 #
@@ -292,8 +295,8 @@ class THREAD_BASIC_INFORMATION(Structure):
         ("TebBaseAddress",  PVOID),     # PTEB
         ("ClientId",        CLIENT_ID),
         ("AffinityMask",    KAFFINITY),
-        ("Priority",        KPRIORITY),
-        ("BasePriority",    KPRIORITY),
+        ("Priority",        SDWORD),
+        ("BasePriority",    SDWORD),
 ]
 
 #--- FILE_NAME_INFORMATION structure ------------------------------------------

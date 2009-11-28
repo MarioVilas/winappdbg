@@ -6567,6 +6567,10 @@ class System (ProcessContainer):
         When tracing, call this on every single step event
         for step on branch mode.
 
+        @raise WindowsError:
+            Raises C{ERROR_DEBUGGER_INACTIVE} if the debugger is not attached
+            to least one process.
+
         @warning:
             This has a HARDCODED value for a machine specific register (MSR).
             It could potentially brick your machine.
@@ -6575,7 +6579,7 @@ class System (ProcessContainer):
         @note:
             It doesn't seem to work in VirtualBox machines.
             Maybe it fails in other virtualization/emulation environments,
-            not extensive testing was made so far.
+            no extensive testing was made so far.
         """
         msr         = win32.SYSDBG_MSR()
         msr.Address = 0x1D9
