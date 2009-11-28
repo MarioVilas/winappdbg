@@ -965,9 +965,11 @@ class ProcessContainer (object):
         methods first. You don't need to call this yourself.
         """
         if not self.__processDict:
-##            self.scan()                 # recursive scan
-            self.scan_processes()       # normal scan
-##            self.scan_processes_fast()  # fast scan (no filenames)
+##            self.scan()                     # recursive scan
+            try:
+                self.scan_processes()       # normal scan
+            except Exception:
+                self.scan_processes_fast()  # fast scan (no filenames)
 
     def __contains__(self, anObject):
         """
@@ -1247,7 +1249,11 @@ class ProcessContainer (object):
         Populates the snapshot with running processes and threads,
         and loaded modules.
         """
-        self.scan_processes_and_threads()
+        try:
+            self.scan_processes_and_threads()
+        except Exception:
+            self.scan_processes_fast()
+            raise
         self.scan_modules()
 
     def scan_processes_and_threads(self):
