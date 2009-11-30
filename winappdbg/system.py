@@ -451,11 +451,22 @@ class ModuleContainer (object):
         """
         Populates the snapshot with loaded modules.
         """
+
+        # Ignore process IDs 0 and 4.
+        # PID 0: System Idle Process. Also has a special meaning to the
+        #        toolhelp APIs (current process).
+        # PID 4: System Integrity Group. See this forum post for more info:
+        #        http://tinyurl.com/ycza8jo
+        #        (points to social.technet.microsoft.com)
+        dwProcessId = self.get_pid()
+        if dwProcessId in (0, 4):
+            return
+
         # It would seem easier to clear the snapshot first.
         # But then all open handles would be closed.
         found_bases = set()
         hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPMODULE, \
-                                                                self.get_pid())
+                                                                   dwProcessId)
         try:
             me = win32.Module32First(hSnapshot)
             while me is not None:
@@ -793,6 +804,17 @@ class ThreadContainer (object):
         """
         Populates the snapshot with running threads.
         """
+
+        # Ignore process IDs 0 and 4.
+        # PID 0: System Idle Process. Also has a special meaning to the
+        #        toolhelp APIs (current process).
+        # PID 4: System Integrity Group. See this forum post for more info:
+        #        http://tinyurl.com/ycza8jo
+        #        (points to social.technet.microsoft.com)
+        dwProcessId = self.get_pid()
+        if dwProcessId in (0, 4):
+            return
+
 ##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
         dead_tids   = self.__threadDict.keys()
         dwProcessId = self.get_pid()
