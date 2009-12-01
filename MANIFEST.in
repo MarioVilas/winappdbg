@@ -1,3 +1,5 @@
+include README
 include examples/instrumentation/*.py
 include examples/debugging/*.py
 include examples/win32_api_wrappers/*.py
+include examples/miscellaneous/*.py
