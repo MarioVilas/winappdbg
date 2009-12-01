@@ -77,17 +77,49 @@ source diStorm project, see http://ragestorm.net/distorm/), debugging multiple
 processes simultaneously and produce a detailed log of application crashes,
 useful for fuzzing and automated testing.
 
-
 Where can I find WinAppDbg?
 ===========================
 
-The WinAppDbg project is currently hosted at Sourceforge, and can be found at:
+Project homepage:
+-----------------
 
-    http://winappdbg.sourceforge.net/
+http://tinyurl.com/winappdbg
 
-It's also hosted at the Python Package Index (PyPi):
+Download links:
+---------------
 
-    http://pypi.python.org/pypi/winappdbg/1.3
+Windows installer (32 bits)
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32.exe/download
+
+Windows installer (64 bits)
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64.exe/download
+
+Source code
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.zip/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.tar.bz2/download
+
+Documentation:
+--------------
+
+Online
+
+http://winappdbg.sourceforge.net/doc/v1.3/
+
+http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
+
+For download:
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.chm/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.pdf/download
 """
 
 # Get the list of scripts in the "tools" folder
