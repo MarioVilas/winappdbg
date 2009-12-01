@@ -451,11 +451,22 @@ class ModuleContainer (object):
         """
         Populates the snapshot with loaded modules.
         """
+
+        # Ignore process IDs 0 and 4.
+        # PID 0: System Idle Process. Also has a special meaning to the
+        #        toolhelp APIs (current process).
+        # PID 4: System Integrity Group. See this forum post for more info:
+        #        http://tinyurl.com/ycza8jo
+        #        (points to social.technet.microsoft.com)
+        dwProcessId = self.get_pid()
+        if dwProcessId in (0, 4):
+            return
+
         # It would seem easier to clear the snapshot first.
         # But then all open handles would be closed.
         found_bases = set()
         hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPMODULE, \
-                                                                self.get_pid())
+                                                                   dwProcessId)
         try:
             me = win32.Module32First(hSnapshot)
             while me is not None:
@@ -793,6 +804,17 @@ class ThreadContainer (object):
         """
         Populates the snapshot with running threads.
         """
+
+        # Ignore process IDs 0 and 4.
+        # PID 0: System Idle Process. Also has a special meaning to the
+        #        toolhelp APIs (current process).
+        # PID 4: System Integrity Group. See this forum post for more info:
+        #        http://tinyurl.com/ycza8jo
+        #        (points to social.technet.microsoft.com)
+        dwProcessId = self.get_pid()
+        if dwProcessId in (0, 4):
+            return
+
 ##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
         dead_tids   = self.__threadDict.keys()
         dwProcessId = self.get_pid()
@@ -965,9 +987,11 @@ class ProcessContainer (object):
         methods first. You don't need to call this yourself.
         """
         if not self.__processDict:
-##            self.scan()                 # recursive scan
-            self.scan_processes()       # normal scan
-##            self.scan_processes_fast()  # fast scan (no filenames)
+##            self.scan()                     # recursive scan
+            try:
+                self.scan_processes()       # normal scan
+            except Exception:
+                self.scan_processes_fast()  # fast scan (no filenames)
 
     def __contains__(self, anObject):
         """
@@ -1247,7 +1271,11 @@ class ProcessContainer (object):
         Populates the snapshot with running processes and threads,
         and loaded modules.
         """
-        self.scan_processes_and_threads()
+        try:
+            self.scan_processes_and_threads()
+        except Exception:
+            self.scan_processes_fast()
+            raise
         self.scan_modules()
 
     def scan_processes_and_threads(self):
@@ -6561,6 +6589,10 @@ class System (ProcessContainer):
         When tracing, call this on every single step event
         for step on branch mode.
 
+        @raise WindowsError:
+            Raises C{ERROR_DEBUGGER_INACTIVE} if the debugger is not attached
+            to least one process.
+
         @warning:
             This has a HARDCODED value for a machine specific register (MSR).
             It could potentially brick your machine.
@@ -6569,7 +6601,7 @@ class System (ProcessContainer):
         @note:
             It doesn't seem to work in VirtualBox machines.
             Maybe it fails in other virtualization/emulation environments,
-            not extensive testing was made so far.
+            no extensive testing was made so far.
         """
         msr         = win32.SYSDBG_MSR()
         msr.Address = 0x1D9

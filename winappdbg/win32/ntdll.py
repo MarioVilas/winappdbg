@@ -38,7 +38,6 @@ from peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 
-NTSTATUS                = DWORD
 SYSDBG_COMMAND          = DWORD
 PROCESSINFOCLASS        = DWORD
 THREADINFOCLASS         = DWORD
@@ -234,6 +233,8 @@ ExceptionContinueSearch     = 1
 ExceptionNestedException    = 2
 ExceptionCollidedUnwind     = 3
 
+#--- PROCESS_BASIC_INFORMATION structure --------------------------------------
+
 # From MSDN:
 #
 # typedef struct _PROCESS_BASIC_INFORMATION {
@@ -253,6 +254,7 @@ ExceptionCollidedUnwind     = 3
 ##]
 
 # From http://catch22.net/tuts/tips2
+# (Only valid for 32 bits)
 #
 # typedef struct
 # {
@@ -263,15 +265,19 @@ ExceptionCollidedUnwind     = 3
 #     ULONG_PTR  UniqueProcessId;
 #     ULONG_PTR  InheritedFromUniqueProcessId;
 # } PROCESS_BASIC_INFORMATION;
+
+# My own definition follows:
 class PROCESS_BASIC_INFORMATION(Structure):
     _fields_ = [
-        ("ExitStatus",                      ULONG),
-        ("PebBaseAddress",                  PVOID),
-        ("AffinityMask",                    ULONG),
-        ("BasePriority",                    ULONG),
-        ("UniqueProcessId",                 ULONG_PTR),
-        ("InheritedFromUniqueProcessId",    ULONG_PTR),
+        ("ExitStatus",                      NTSTATUS),
+        ("PebBaseAddress",                  PVOID),     # PPEB
+        ("AffinityMask",                    KAFFINITY),
+        ("BasePriority",                    SDWORD),
+        ("UniqueProcessId",                 PVOID),
+        ("InheritedFromUniqueProcessId",    PVOID),
 ]
+
+#--- THREAD_BASIC_INFORMATION structure ---------------------------------------
 
 # From http://undocumented.ntinternals.net/UserMode/Structures/THREAD_BASIC_INFORMATION.html
 #
@@ -289,8 +295,8 @@ class THREAD_BASIC_INFORMATION(Structure):
         ("TebBaseAddress",  PVOID),     # PTEB
         ("ClientId",        CLIENT_ID),
         ("AffinityMask",    KAFFINITY),
-        ("Priority",        KPRIORITY),
-        ("BasePriority",    KPRIORITY),
+        ("Priority",        SDWORD),
+        ("BasePriority",    SDWORD),
 ]
 
 #--- FILE_NAME_INFORMATION structure ------------------------------------------
