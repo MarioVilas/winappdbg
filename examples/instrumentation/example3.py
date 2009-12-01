@@ -38,10 +38,6 @@ def print_threads_and_modules( pid ):
     process = Process( pid )
     print "Process %d" % process.get_pid()
 
-    # The Process snapshot is initially empty, so populate it
-    process.scan_threads()
-    process.scan_modules()
-
     # Now we can enumerate the threads in the process...
     print "Threads:"
     for thread in process.iter_threads():

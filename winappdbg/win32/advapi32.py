@@ -468,9 +468,11 @@ PWAITCHAINCALLBACK = WINFUNCTYPE(HWCT, LPVOID, DWORD, LPDWORD, PWAITCHAIN_NODE_I
 # );
 def OpenThreadWaitChainSession(Flags = 0, callback = None):
     _OpenThreadWaitChainSession = windll.advapi32.OpenThreadWaitChainSession
-    _OpenThreadWaitChainSession.argtypes = [DWORD, PWAITCHAINCALLBACK]
+    _OpenThreadWaitChainSession.argtypes = [DWORD, PVOID]
     _OpenThreadWaitChainSession.restype  = HWCT
     _OpenThreadWaitChainSession.errcheck = RaiseIfZero
+    if callback is not None:
+        callback = PWAITCHAINCALLBACK(callback)
     return _OpenThreadWaitChainSession(Flags, callback)
 
 # BOOL WINAPI GetThreadWaitChain(
@@ -488,9 +490,9 @@ def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
     _GetThreadWaitChain.restype  = BOOL
 
     NodeCount     = DWORD(WCT_MAX_NODE_COUNT)
-    NodeInfoArray = WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT
+    NodeInfoArray = (WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT)()
     IsCycle       = BOOL(FALSE)
-    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, ctypes.byref(NodeCount), ctypes.byref(NodeInfoArray), ctypes.byref(IsCycle))
+    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, ctypes.byref(NodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), ctypes.byref(IsCycle))
     NodeInfoArray = [ NodeInfoArray[index] for index in xrange(0, NodeCount.value) ]
     IsCycle       = bool(IsCycle)
     return NodeInfoArray, IsCycle
