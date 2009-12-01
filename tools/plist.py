@@ -104,9 +104,9 @@ def main(argv):
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
         if pid == 0:
-            fileName = "System Idle Process"
+            fileName = "[System Idle Process]"
         elif pid == 4:
-            fileName = "System Integrity Group"
+            fileName = "[System Integrity Group]"
 
         # Get the process filename (or pathname).
         else:
