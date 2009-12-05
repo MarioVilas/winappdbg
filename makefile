@@ -89,7 +89,9 @@ wininst:
 
 # Build the Windows installer package as MSI installer
 msi:
-	python -O setup.py bdist_msi
+	python -O setup.py bdist_msi --target-version=2.4
+	python -O setup.py bdist_msi --target-version=2.5
+	python -O setup.py bdist_msi --target-version=2.6
 
 
 # Clean up
