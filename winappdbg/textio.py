@@ -1187,9 +1187,9 @@ class CrashDump (object):
                 elif mbiProtect & win32.PAGE_EXECUTE:
                     Protect = "--X "
                 elif mbiProtect & win32.PAGE_EXECUTE_READ:
-                    Protect = "R-- "
+                    Protect = "R-X "
                 elif mbiProtect & win32.PAGE_EXECUTE_READWRITE:
-                    Protect = "RW- "
+                    Protect = "RWX "
                 elif mbiProtect & win32.PAGE_EXECUTE_WRITECOPY:
                     Protect = "RCX "
                 else:
