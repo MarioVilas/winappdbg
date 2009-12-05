@@ -114,9 +114,9 @@ for filename in sys.argv[1:]:
                 elif mbi.Protect & win32.PAGE_EXECUTE:
                     Protect = "--X "
                 elif mbi.Protect & win32.PAGE_EXECUTE_READ:
-                    Protect = "R-- "
+                    Protect = "R-X "
                 elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
-                    Protect = "RW- "
+                    Protect = "RWX "
                 elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
                     Protect = "RCX "
                 else:
@@ -173,4 +173,4 @@ for filename in sys.argv[1:]:
         print "Ok."
 print "Done."
 
- 	  	 
+

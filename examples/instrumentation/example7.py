@@ -81,9 +81,9 @@ def print_memory_map( pid ):
             elif mbi.Protect & win32.PAGE_EXECUTE:
                 Protect = "--X "
             elif mbi.Protect & win32.PAGE_EXECUTE_READ:
-                Protect = "R-- "
+                Protect = "R-X "
             elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
-                Protect = "RW- "
+                Protect = "RWX "
             elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
                 Protect = "RCX "
             else:
