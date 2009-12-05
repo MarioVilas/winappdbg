@@ -90,15 +90,23 @@ Download links:
 
 Windows installer (32 bits)
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32.msi/download
-
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32.exe/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.4.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.5.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.6.msi/download
 
 Windows installer (64 bits)
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64.msi/download
-
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64.exe/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.4.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.5.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.6.msi/download
 
 Source code
 
@@ -120,6 +128,8 @@ For download:
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.chm/download
 
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.pdf/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.ps/download
 """
 
 # Get the list of scripts in the "tools" folder
