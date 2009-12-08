@@ -2,6 +2,7 @@
 
 # Acknowledgements:
 #  Nicolas Economou, for his ptool suite on which this tool is inspired.
+#  http://tinyurl.com/nicolaseconomou
 
 # Process memory map
 # Copyright (c) 2009, Mario Vilas

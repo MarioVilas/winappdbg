@@ -2,6 +2,7 @@
 
 # Acknowledgements:
 #  Nicolas Economou, for his command line debugger on which this is inspired.
+#  http://tinyurl.com/nicolaseconomou
 
 # Command line debugger using WinAppDbg
 # Copyright (c) 2009, Mario Vilas
