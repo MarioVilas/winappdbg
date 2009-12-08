@@ -133,7 +133,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         self.system.request_debug_privileges()
 
 ##    # It's not hard to create circular references,
-##    # and since we have a destructor, we end up leaking everything.
+##    # and if we have a destructor, we can end up leaking everything.
 ##    # It's best to code the debugging loop properly to always
 ##    # stop the debugger before going out of scope.
 ##    def __del__(self):

@@ -4577,11 +4577,6 @@ class ProcessDebugOperations (object):
         """
         return self.get_peb().ImageBaseAddress
 
-    # TODO
-    # Still not working sometimes, I need more implementations.
-    # Example: PIFSvc.exe from Symantec, under Windows XP.
-    # Note that using the toolhelp api won't help, it also fails.
-    # My guess is tasklist.exe uses undocumented apis (at ntdll?).
     def get_image_name(self):
         """
         @rtype:  int
