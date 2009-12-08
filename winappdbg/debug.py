@@ -241,6 +241,15 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
+        # One might think of removing the process from the snapshot.
+        # But the process is not dead, and the user may want to do
+        # something with it after detaching.
+##        try:
+##            self.system._Process_Container__del_process(dwProcessId)
+##        except Exception:
+##            if not bIgnoreExceptions:
+##                raise
+
         # Detach from the process.
         try:
             win32.DebugActiveProcessStop(dwProcessId)
