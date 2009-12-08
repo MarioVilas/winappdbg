@@ -64,7 +64,7 @@ py2exe:
 
 
 # Compress with UPX
-upx:
+upx: py2exe
 	if exist dist\\*.exe upx $(UPX_OPT) dist\\*.exe
 	if exist dist\\pyexe\\*.exe upx $(UPX_OPT) dist\\py2exe\\*.exe
 	if exist dist\\pyexe\\*.dll upx $(UPX_OPT) dist\\py2exe\\*.dll
