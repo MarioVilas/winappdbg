@@ -1708,6 +1708,7 @@ class MemoryAddresses (object):
     def align_address_to_page_end(address):
         """
         Align the given address to the end of the page it occupies.
+        That is, to point to the start of the next page.
 
         @type  address: int
         @param address: Memory address.
@@ -2606,10 +2607,10 @@ class MemoryOperations (object):
             minAddr, maxAddr = maxAddr, minAddr
         minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
         maxAddr     = MemoryAddresses.align_address_to_page_end(maxAddr)
-        prevAddr    = minAddr
+        prevAddr    = minAddr - 1
         currentAddr = minAddr
         memoryMap   = list()
-        while currentAddr <= maxAddr and currentAddr >= prevAddr:
+        while currentAddr < maxAddr and currentAddr > prevAddr:
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
@@ -2679,6 +2680,12 @@ class MemoryOperations (object):
                 mbi.content = self.read(mbi.BaseAddress, mbi.RegionSize)
             else:
                 mbi.content = None
+        if maxAddr is not None and snapshot:
+            if maxAddr != MemoryAddresses.align_address_to_page_start(maxAddr):
+                maxAddr = MemoryAddresses.align_address_to_page_end(maxAddr)
+            mbi = snapshot[-1]
+            if mbi.BaseAddress + mbi.RegionSize > maxAddr:
+                mbi.RegionSize = maxAddr - mbi.BaseAddress
         return snapshot
 
     def restore_memory_snapshot(self, snapshot):
@@ -3744,6 +3751,24 @@ class ThreadDebugOperations (object):
         """
         return self.get_process().get_label_at_address( self.get_pc() )
 
+    def get_seh_chain_pointer(self):
+        """
+        @rtype:  int
+        @return: Remote pointer to the first block of the structured exception
+            handlers linked list. If the list is empty, the returned value is
+            C{0xFFFFFFFF}.
+
+        @raise NotImplementedError:
+            This method is only supported in 32 bits versions of Windows.
+        """
+        if System.arch != 'i386':
+            raise NotImplementedError, \
+                "SEH chain parsing is only supported in 32-bit Windows."
+
+        process = self.get_process()
+        address = self.get_linear_address( 'SegFs', 0 )
+        return process.read_pointer( address )
+
     def get_seh_chain(self):
         """
         @rtype:  list of tuple( int, int )
@@ -3758,14 +3783,15 @@ class ThreadDebugOperations (object):
         if System.arch != 'i386':
             raise NotImplementedError, \
                 "SEH chain parsing is only supported in 32-bit Windows."
-        process   = self.get_process()
+
         seh_chain = list()
         try:
-            seh = process.read_uint( self.get_linear_address('SegFs', 0) )
+            process = self.get_process()
+            seh = self.get_seh_chain_pointer()
             while seh != 0xFFFFFFFF:
-                seh_func = process.read_uint( seh + 4 )
+                seh_func = process.read_pointer( seh + 4 )
                 seh_chain.append( (seh, seh_func) )
-                seh = process.read_uint( seh )
+                seh = process.read_pointer( seh )
         except WindowsError, e:
             pass
         return seh_chain
