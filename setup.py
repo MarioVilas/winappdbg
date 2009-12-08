@@ -90,46 +90,46 @@ Download links:
 
 Windows installer (32 bits)
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32.exe/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.4.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.4.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.5.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.5.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win32-py2.6.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.6.msi/download
 
 Windows installer (64 bits)
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64.exe/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.4.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.4.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.5.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.5.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.win-amd64-py2.6.msi/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.6.msi/download
 
 Source code
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.zip/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.tar.bz2/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.tar.bz2/download
 
 Documentation:
 --------------
 
 Online
 
-http://winappdbg.sourceforge.net/doc/v1.3/
+http://winappdbg.sourceforge.net/doc/v1.4/
 
 http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
 
 For download:
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.chm/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.chm/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.pdf/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.pdf/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/winappdbg-1.3.ps/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.ps/download
 """
 
 # Get the list of scripts in the "tools" folder
@@ -162,7 +162,7 @@ params = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.3',
+    'version'           : '1.4',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
