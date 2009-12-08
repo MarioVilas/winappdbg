@@ -1,6 +1,14 @@
 # $Id$
 
-# The following packages need to be installed and present in the PATH environment variable:
+###############################################################################
+#                                                                             #
+#                          For more information see:                          #
+#      http://sourceforge.net/apps/trac/winappdbg/wiki/Redistribution         #
+#                                                                             #
+###############################################################################
+
+
+# The following packages should be installed and present in the PATH environment variable:
 #   Python (d'oh!)
 #   Make (try gnuwin32, cygwin's make doesn't seem to work well for me, but your mileage may vary)
 #   Tar and BZip2 (to compress the source packages to tar.bz2 format, also downloadable at gnuwin32)
@@ -87,7 +95,7 @@ bdist: wininst msi
 wininst:
 	python -O setup.py bdist_wininst $(BDIST_UAC)
 
-# Build the Windows installer package as MSI installer
+# Build the Windows MSI installer packages for each supported Python version
 msi:
 	python -O setup.py bdist_msi --target-version=2.4
 	python -O setup.py bdist_msi --target-version=2.5
