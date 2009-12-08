@@ -71,12 +71,18 @@ class Test( object ):
 
     def exception(self, event):
         if not self.testing:
+            self.logExceptionEvent(event)
             self.checkExceptionChain(event)
         if self.testing:    # don't use elif here!
             self.nextExceptionHandler(event)
 
+    def logExceptionEvent(self, event):
+        what  = event.get_exception_name()
+        where = HexDump.address( event.get_exception_address() )
+        msg   = "Caught %s at %s" % (what, where)
+        self.logger.log_event(event, msg)
+
     def checkExceptionChain(self, event):
-        self.logger.log_event(event, "Caught %s" % event.get_exception_name())
 
         # XXX TODO
         # + Add a list of exceptions to ignore
@@ -109,6 +115,25 @@ class Test( object ):
             self.memory   = process.take_memory_snapshot()
             self.iterator = ExecutableAddressIterator(self.memory)
             self.testing  = True
+
+            self.showBruteforceBanner(event)
+
+    def showBruteforceBanner(self, event):
+        count = 0
+        first = 0
+        last  = 0
+        for mbi in self.memory:
+            if mbi.is_executable():
+                count = count + mbi.RegionSize
+                address = mbi.BaseAddress
+                if first == 0:
+                    first = address
+                if last < address:
+                    last = address
+        msg   = "Bruteforcing %d addresses (%s-%s)..."
+        first = HexDump.address(first)
+        last  = HexDump.address(last)
+        self.logger.log(msg % (count, first, last))
 
     def nextExceptionHandler(self, event):
         debug   = event.debug
