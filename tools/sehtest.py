@@ -46,6 +46,7 @@ from winappdbg import HexInput, HexDump, CrashDump, Logger
 #------------------------------------------------------------------------------
 
 # XXX TODO
+# * log exceptions instead of stopping everything!
 # * filter out syscalls not issued from within the exception handling code in
 #   ntdll.dll (to avoid unwanted side effects)
 
@@ -58,10 +59,12 @@ def ExecutableAddressIterator(memory_map):
                 yield address
 
 class Test( object ):
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger  = logger
         self.testing = False
         self.seh     = None
         self.orig    = None
+        self.last    = None
         self.context = None
         self.memory  = None
 
@@ -69,7 +72,7 @@ class Test( object ):
         if not self.testing:
             self.checkExceptionChain(event)
         if self.testing:    # don't use elif here!
-            self.testExceptionHandler(event)
+            self.nextExceptionHandler(event)
 
     def checkExceptionChain(self, event):
 
@@ -103,9 +106,11 @@ class Test( object ):
         self.iterator = ExecutableAddressIterator(self.memory)
         self.testing  = True
 
-    def testExceptionHandler(self, event):
-        thread  = event.get_thread()
+    def nextExceptionHandler(self, event):
+        debug   = event.debug
         process = event.get_process()
+        thread  = event.get_thread()
+        pid     = process.get_pid()
 
         thread.set_context(self.context)
         process.restore_memory_snapshot(self.snapshot)
@@ -116,11 +121,17 @@ class Test( object ):
             process.write_pointer(self.seh + 4, self.orig)
             event.debug.detach( event.get_pid() )
             raise
+
+        if self.last:
+            debug.dont_break_at(pid, self.last)
         process.write_pointer(self.seh + 4, address)
+        debug.break_at(pid, address, self.foundValidHandler)
+        self.last = address
 
-
-
-
+    def foundValidHandler(self, event):
+        msg = HexDump.address( event.get_exception_address() )
+        self.logger.log_text(msg)
+        self.nextExceptionHandler()
 
 class Handler( EventHandler ):
 
@@ -128,13 +139,13 @@ class Handler( EventHandler ):
         super(Handler, self).__init__()
         self.options = options
         self.test    = dict()   # pid -> Test
-##        self.logger  = Logger()
+        self.logger  = Logger()
 
     def exception(self, event):
 ##        try:
             pid = event.get_pid()
             if not self.test.has_key(pid):
-                self.test[pid] = test = Test()
+                self.test[pid] = test = Test(self.logger)
             else:
                 test = self.test[pid]
             try:
@@ -155,9 +166,7 @@ def main( argv ):
     eventHandler = Handler(options)
 
     # Create the debug object
-    debug = Debug(eventHandler,
-                                bKillOnExit  = not options.autodetach,
-                                bHostileCode = options.hostile)
+    debug = Debug(eventHandler, bKillOnExit = not options.autodetach)
     try:
 
         # Attach to the targets
@@ -228,23 +237,18 @@ def parse_cmdline( argv ):
                   help="automatically detach from debugees on exit [default]")
     debugging.add_option("--follow", action="store_true",
                   help="automatically attach to child processes [default]")
-    debugging.add_option("--trusted", action="store_false", dest="hostile",
-                  help="treat debugees as trusted code [default]")
     debugging.add_option("--dont-autodetach", action="store_false",
                                                          dest="autodetach",
                   help="don't automatically detach from debugees on exit")
     debugging.add_option("--dont-follow", action="store_false",
                                                              dest="follow",
                   help="don't automatically attach to child processes")
-    debugging.add_option("--hostile", action="store_true",
-                  help="treat debugees as hostile code")
     parser.add_option_group(debugging)
 
     # Defaults
     parser.set_defaults(
         autodetach  = True,
         follow      = True,
-        hostile     = False,
         windowed    = list(),
         console     = list(),
         attach      = list(),
