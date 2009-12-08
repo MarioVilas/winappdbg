@@ -59,7 +59,8 @@ def ExecutableAddressIterator(memory_map):
                 yield address
 
 class Test( object ):
-    def __init__(self, logger):
+    def __init__(self, options, logger):
+        self.options = options
         self.logger  = logger
         self.testing = False
         self.seh     = None
@@ -75,6 +76,7 @@ class Test( object ):
             self.nextExceptionHandler(event)
 
     def checkExceptionChain(self, event):
+        self.logger.log_event(event, "Caught %s" % event.get_exception_name())
 
         # XXX TODO
         # + Add a list of exceptions to ignore
@@ -82,6 +84,7 @@ class Test( object ):
         # + Option to fail on missing SEH chain
 
         thread  = event.get_thread()
+        process = event.get_process()
         target  = self.options.seh
         if target:
             chain = thread.get_seh_chain()
@@ -100,11 +103,12 @@ class Test( object ):
         else:
             self.seh = thread.get_seh_chain_pointer()
 
-        self.orig     = process.read_pointer(self.seh + 4)
-        self.context  = thread.get_context()
-        self.memory   = process.take_memory_snapshot()
-        self.iterator = ExecutableAddressIterator(self.memory)
-        self.testing  = True
+        if self.seh:
+            self.orig     = process.read_pointer(self.seh + 4)
+            self.context  = thread.get_context()
+            self.memory   = process.take_memory_snapshot()
+            self.iterator = ExecutableAddressIterator(self.memory)
+            self.testing  = True
 
     def nextExceptionHandler(self, event):
         debug   = event.debug
@@ -122,6 +126,10 @@ class Test( object ):
             event.debug.detach( event.get_pid() )
             raise
 
+        msg = HexDump.address( event.get_exception_address() )
+        msg = "Trying %s" % msg
+        self.logger.log_text(msg)
+
         if self.last:
             debug.dont_break_at(pid, self.last)
         process.write_pointer(self.seh + 4, address)
@@ -129,8 +137,8 @@ class Test( object ):
         self.last = address
 
     def foundValidHandler(self, event):
-        msg = HexDump.address( event.get_exception_address() )
-        self.logger.log_text(msg)
+        address = HexDump.address( event.get_exception_address() )
+        self.logger.log_text("Found %s" % address)
         self.nextExceptionHandler()
 
 class Handler( EventHandler ):
@@ -145,7 +153,7 @@ class Handler( EventHandler ):
 ##        try:
             pid = event.get_pid()
             if not self.test.has_key(pid):
-                self.test[pid] = test = Test(self.logger)
+                self.test[pid] = test = Test(self.options, self.logger)
             else:
                 test = self.test[pid]
             try:
@@ -227,8 +235,8 @@ def parse_cmdline( argv ):
 
     # SEH test options
     sehtest = optparse.OptionGroup(parser, "SEH Test options")
-    commands.add_option("--seh ADDRESS", metavar="ADDRESS",
-                        help="address of SEH handler function to hijack [default: 0x41414141]")
+    sehtest.add_option("--seh", metavar="ADDRESS",
+                       help="address of SEH handler function to hijack [default: 0x41414141]")
     parser.add_option_group(sehtest)
 
     # Debugging options
