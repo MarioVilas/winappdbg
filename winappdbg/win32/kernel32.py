@@ -731,6 +731,15 @@ class MemoryBasicInformation (object):
     def is_commited(self):
         return self.State == MEM_COMMIT
 
+    def is_image(self):
+        return self.Type == MEM_IMAGE
+
+    def is_mapped(self):
+        return self.Type == MEM_MAPPED
+
+    def is_private(self):
+        return self.Type == MEM_PRIVATE
+
     def is_guard(self):
         return self.is_commited() and self.Protect & PAGE_GUARD
 
