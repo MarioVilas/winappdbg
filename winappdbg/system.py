@@ -2606,7 +2606,8 @@ class MemoryOperations (object):
         if minAddr > maxAddr:
             minAddr, maxAddr = maxAddr, minAddr
         minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
-        maxAddr     = MemoryAddresses.align_address_to_page_end(maxAddr)
+        if maxAddr != MemoryAddresses.align_address_to_page_start(maxAddr):
+            maxAddr = MemoryAddresses.align_address_to_page_end(maxAddr)
         prevAddr    = minAddr - 1
         currentAddr = minAddr
         memoryMap   = list()
