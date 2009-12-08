@@ -308,6 +308,7 @@ def parse_cmdline( argv ):
 
     # Get the list of attach targets
     system = System()
+    system.request_debug_privileges()
     system.scan_processes()
     attach_targets = list()
     for token in options.attach:
@@ -326,7 +327,10 @@ def parse_cmdline( argv ):
                 parser.error("can't open process %d: %s" % (dwProcessId, e))
             attach_targets.append(dwProcessId)
         else:
-            for process, name in system.find_processes_by_filename(token):
+            process_list = system.find_processes_by_filename(token)
+            if not process_list:
+                parser.error("can't find process %s" % token)
+            for process, name in process_list:
                 dwProcessId = process.get_pid()
                 try:
                     process = Process(dwProcessId)
