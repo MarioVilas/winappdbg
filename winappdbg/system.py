@@ -6596,6 +6596,11 @@ class System (ProcessContainer):
 
         @rtype:  bool
         @return: C{True} on success, C{False} on error.
+
+        @note:
+            This call will fail if a debug port was not created. That is, if
+            the debugger isn't attached to at least one process. For more info
+            see: U{http://msdn.microsoft.com/en-us/library/ms679307.aspx}
         """
         try:
             # won't work before calling CreateProcess or DebugActiveProcess
@@ -6635,8 +6640,8 @@ class System (ProcessContainer):
         msr.Data    = 0
         return win32.NtSystemDebugControl(win32.SysDbgReadMsr, msr)[0]
 
-    @staticmethod
-    def write_msr(address, value):
+    @classmethod
+    def write_msr(cls, address, value):
         """
         Set the contents of the specified MSR (Machine Specific Register).
 
@@ -6678,7 +6683,7 @@ class System (ProcessContainer):
             Current architecture is not Intel 32 bits.
 
         @warning:
-            This has a HARDCODED value for a machine specific register (MSR).
+            This method uses the processor's machine specific registers (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
 
@@ -6687,7 +6692,7 @@ class System (ProcessContainer):
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
-        cls.write_msr(0x1D9, 2)
+        cls.write_msr(0x1D9, 3)
 
     @classmethod
     def get_last_branch_location(cls):
@@ -6704,7 +6709,7 @@ class System (ProcessContainer):
             Current architecture is not Intel 32 bits.
 
         @warning:
-            This has a HARDCODED value for a machine specific register (MSR).
+            This method uses the processor's machine specific registers (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
