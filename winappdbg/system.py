@@ -6504,7 +6504,7 @@ class System (ProcessContainer):
     @group Global settings:
         arch, pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
-        enable_step_on_branch_mode
+        read_msr, write_msr, enable_step_on_branch_mode
 
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.
@@ -6606,8 +6606,66 @@ class System (ProcessContainer):
             pass
         return False
 
+    @classmethod
+    def read_msr(cls, address):
+        """
+        Read the contents of the specified MSR (Machine Specific Register).
+
+        @type  address: int
+        @param address: MSR to read.
+
+        @rtype:  int
+        @return: Value of the specified MSR.
+
+        @raise WindowsError:
+            Raises an exception on error.
+
+        @raise NotImplementedError:
+            Current architecture is not Intel 32 bits.
+
+        @warning:
+            It could potentially brick your machine.
+            It works on my machine, but your mileage may vary.
+        """
+        if cls.arch != 'i386':
+            raise NotImplementedError, \
+                "MSR reading is only supported in 32-bit Intel processors."
+        msr         = win32.SYSDBG_MSR()
+        msr.Address = address
+        msr.Data    = 0
+        return win32.NtSystemDebugControl(win32.SysDbgReadMsr, msr)[0]
+
     @staticmethod
-    def enable_step_on_branch_mode():
+    def write_msr(address, value):
+        """
+        Set the contents of the specified MSR (Machine Specific Register).
+
+        @type  address: int
+        @param address: MSR to write.
+
+        @type  value: int
+        @param value: Contents to write on the MSR.
+
+        @raise WindowsError:
+            Raises an exception on error.
+
+        @raise NotImplementedError:
+            Current architecture is not Intel 32 bits.
+
+        @warning:
+            It could potentially brick your machine.
+            It works on my machine, but your mileage may vary.
+        """
+        if cls.arch != 'i386':
+            raise NotImplementedError, \
+                "MSR writing is only supported in 32-bit Intel processors."
+        msr         = win32.SYSDBG_MSR()
+        msr.Address = address
+        msr.Data    = value
+        win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
+
+    @classmethod
+    def enable_step_on_branch_mode(cls):
         """
         When tracing, call this on every single step event
         for step on branch mode.
@@ -6615,6 +6673,9 @@ class System (ProcessContainer):
         @raise WindowsError:
             Raises C{ERROR_DEBUGGER_INACTIVE} if the debugger is not attached
             to least one process.
+
+        @raise NotImplementedError:
+            Current architecture is not Intel 32 bits.
 
         @warning:
             This has a HARDCODED value for a machine specific register (MSR).
@@ -6626,7 +6687,27 @@ class System (ProcessContainer):
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
-        msr         = win32.SYSDBG_MSR()
-        msr.Address = 0x1D9
-        msr.Data    = 2
-        return win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
+        cls.write_msr(0x1D9, 2)
+
+    @classmethod
+    def get_last_branch_location(cls):
+        """
+        Returns the source and destination addresses of the last taken branch.
+
+        @rtype: tuple( int, int )
+        @return: Source and destination addresses of the last taken branch.
+
+        @raise WindowsError:
+            Raises an exception on error.
+
+        @raise NotImplementedError:
+            Current architecture is not Intel 32 bits.
+
+        @warning:
+            This has a HARDCODED value for a machine specific register (MSR).
+            It could potentially brick your machine.
+            It works on my machine, but your mileage may vary.
+        """
+        lastBranchFromIP = cls.read_msr(0x1DB)
+        lastBranchToIP   = cls.read_msr(0x1DC)
+        return ( lastBranchFromIP, lastBranchToIP )
