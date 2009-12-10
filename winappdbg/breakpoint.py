@@ -77,9 +77,11 @@ class DebugRegister (object):
     @group Size flags used by HardwareBreakpoint:
         WATCH_BYTE, WATCH_WORD, WATCH_DWORD, WATCH_QWORD
     @group Bitwise masks for Dr7:
-        enableMask, disableMask, triggerMask, watchMask, clearMask
+        enableMask, disableMask, triggerMask, watchMask, clearMask,
+        generalDetectMask
     @group Bitwise masks for Dr6:
-        hitMask
+        hitMask, hitMaskAll, debugAccessMask, singleStepMask, taskSwitchMask,
+        clearDr6Mask, clearHitMask
 
     @type BREAK_ON_EXECUTION: int
     @cvar BREAK_ON_EXECUTION: Break on execution.
@@ -107,33 +109,65 @@ class DebugRegister (object):
 
     @type enableMask: 4-tuple of integers
     @cvar enableMask:
-        Enable bit on Dr7 for each slot.
+        Enable bit on C{Dr7} for each slot.
         Works as a bitwise-OR mask.
 
     @type disableMask: 4-tuple of integers
     @cvar disableMask:
-        Mask of the enable bit on Dr7 for each slot.
+        Mask of the enable bit on C{Dr7} for each slot.
         Works as a bitwise-AND mask.
 
     @type triggerMask: 4-tuple of 2-tuples of integers
     @cvar triggerMask:
-        Trigger bits on Dr7 for each trigger flag value.
+        Trigger bits on C{Dr7} for each trigger flag value.
         Each 2-tuple has the bitwise-OR mask and the bitwise-AND mask.
 
     @type watchMask: 4-tuple of 2-tuples of integers
     @cvar watchMask:
-        Watch bits on Dr7 for each watch flag value.
+        Watch bits on C{Dr7} for each watch flag value.
         Each 2-tuple has the bitwise-OR mask and the bitwise-AND mask.
 
     @type clearMask: 4-tuple of integers
     @cvar clearMask:
-        Mask of all important bits on Dr7 for each slot.
+        Mask of all important bits on C{Dr7} for each slot.
         Works as a bitwise-AND mask.
+
+    @type generalDetectMask: integer
+    @cvar generalDetectMask:
+        General detect mode bit. It enables the processor to notify the
+        debugger when the debugee is trying to access one of the debug
+        registers.
 
     @type hitMask: 4-tuple of integers
     @cvar hitMask:
-        Hit bit on Dr6 for each slot.
+        Hit bit on C{Dr6} for each slot.
         Works as a bitwise-AND mask.
+
+    @type hitMaskAll: integer
+    @cvar hitMaskAll:
+        Bitmask for all hit bits in C{Dr6}. Useful to know if at least one
+        hardware breakpoint was hit, or to clear the hit bits only.
+
+    @type clearHitMask: integer
+    @cvar clearHitMask:
+        Bitmask to clear all the hit bits in C{Dr6}.
+
+    @type debugAccessMask: integer
+    @cvar debugAccessMask:
+        The debugee tried to access a debug register. Needs bit
+        L{generalDetectMask} enabled in C{Dr7}.
+
+    @type singleStepMask: integer
+    @cvar singleStepMask:
+        A single step exception was raised. Needs the trap flag enabled.
+
+    @type taskSwitchMask: integer
+    @cvar taskSwitchMask:
+        A task switch has occurred. Needs the TSS T-bit set to 1.
+
+    @type clearDr6Mask: integer
+    @cvar clearDr6Mask:
+        Bitmask to clear all meaningful bits in C{Dr6}.
     """
 
     BREAK_ON_EXECUTION  = 0
@@ -262,6 +296,9 @@ class DebugRegister (object):
         registerMask ^ ( (1 << 6) + (3 << 28) + (3 << 30) ),    # Dr3
     )
 
+    # Dr7 = Dr7 | generalDetectMask
+    generalDetectMask = (1 << 13)
+
     # DR6 - Debug status
     #
     # The debug status register permits the debugger to determine which debug
@@ -280,6 +317,25 @@ class DebugRegister (object):
         (1 << 2),   # Dr2
         (1 << 3),   # Dr3
     )
+
+    # bool(Dr6 & anyHitMask)
+    hitMaskAll = hitMask[0] | hitMask[1] | hitMask[2] | hitMask[3]
+
+    # Dr6 = Dr6 & clearHitMask
+    clearHitMask = registerMask ^ hitMaskAll
+
+    # bool(Dr6 & debugAccessMask)
+    debugAccessMask = (1 << 13)
+
+    # bool(Dr6 & singleStepMask)
+    singleStepMask  = (1 << 14)
+
+    # bool(Dr6 & taskSwitchMask)
+    taskSwitchMask  = (1 << 15)
+
+    # Dr6 = Dr6 & clearDr6Mask
+    clearDr6Mask = registerMask ^ (hitMaskAll | \
+                            debugAccessMask | singleStepMask | taskSwitchMask)
 
 #------------------------------------------------------------------------------
 
@@ -3260,7 +3316,7 @@ class BreakpointContainer (object):
             aThread = event.get_thread()
             ctx     = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
             Dr6     = ctx['Dr6']
-            ctx['Dr6'] = Dr6 & 15
+            ctx['Dr6'] = Dr6 & DebugRegister.clearHitMask
             aThread.set_context(ctx)
             bFoundBreakpoint = False
             bCondition       = False
