@@ -494,7 +494,8 @@ class ModuleContainer (object):
                 me = win32.Module32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
-        for base in self.get_module_bases():
+##        for base in self.get_module_bases(): # XXX triggers a scan
+        for base in self.__moduleDict.keys():
             if base not in found_bases:
                 self.__del_module(base)
 
