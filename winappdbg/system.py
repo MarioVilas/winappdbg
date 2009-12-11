@@ -4666,6 +4666,12 @@ class ProcessDebugOperations (object):
             except (KeyError, AttributeError, WindowsError):
                 name = None
 
+        # Remember the filename.
+        try:
+            self.get_main_module().fileName = name
+        except Exception:
+            pass
+
         # Return the image filename, or None on error.
         return name
 
