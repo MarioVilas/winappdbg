@@ -196,10 +196,10 @@ def parse_cmdline( argv ):
                       help="Set the single step mode [default]")
     tracing.add_option("--branch", action="store_const", const="branch",
                                                                dest="mode",
-                      help="Set the step-on-branch mode")
+                      help="Set the step-on-branch mode (doesn't work on virtual machines)")
     tracing.add_option("--syscall", action="store_const", const="syscall",
                                                                dest="mode",
-                      help="Set the syscall trap mode")
+                      help="Set the syscall trap mode (requires Windows XP and above)")
 ##    tracing.add_options("--module", action="append", metavar="MODULE",
 ##                                                            dest="modules",
 ##                   help="only trace into the modules specified by this switch")
