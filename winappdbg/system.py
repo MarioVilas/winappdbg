@@ -62,6 +62,7 @@ __all__ =   [
 import win32
 import win32.version
 from textio import HexInput, HexDump
+from debugregister import DebugRegister
 
 import re
 import os
@@ -6692,7 +6693,8 @@ class System (ProcessContainer):
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
-        cls.write_msr(0x1D9, 3)
+        cls.write_msr(DebugRegister.DebugCtlMSR,
+                DebugRegister.BranchTrapFlag | DebugRegister.LastBranchRecord)
 
     @classmethod
     def get_last_branch_location(cls):
@@ -6713,6 +6715,6 @@ class System (ProcessContainer):
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
-        lastBranchFromIP = cls.read_msr(0x1DB)
-        lastBranchToIP   = cls.read_msr(0x1DC)
-        return ( lastBranchFromIP, lastBranchToIP )
+        LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
+        LastBranchToIP   = cls.read_msr(DebugRegister.LastBranchToIP)
+        return ( LastBranchFromIP, LastBranchToIP )

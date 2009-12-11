@@ -41,7 +41,7 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Crash reporting: Crash, CrashContainer, CrashDump
 @group Text input and output: HexInput, HexOutput, HexDump, DebugLog
 @group Win32 API wrappers: win32, Handle, ProcessHandle, ThreadHandle, FileHandle
-@group Internal use: breakpoint, crash, debug, event, system, textio
+@group Internal use: breakpoint, crash, debug, debugregister, event, system, textio
 
 @type version: str
 @var  version: This WinAppDbg release version.
@@ -55,7 +55,13 @@ __all__ =   [
                 'version',
 
                 # from breakpoint import *
-                'DebugRegister',
+##                'Breakpoint',
+##                'CodeBreakpoint',
+##                'PageBreakpoint',
+##                'HardwareBreakpoint',
+##                'Hook',
+##                'ApiHook',
+##                'BufferWatch',
 
                 # from crash import *
                 'Crash',
@@ -66,6 +72,9 @@ __all__ =   [
 
                 # from debug import *
                 'Debug',
+
+                # from debugregister import *
+                'DebugRegister',
 
                 # from system import *
                 'Module',
@@ -102,6 +111,7 @@ __all__ =   [
 from breakpoint import *
 from crash import *
 from debug import *
+from debugregister import *
 from event import *
 from system import *
 from textio import *
