@@ -30,7 +30,7 @@
 # Example #6
 # http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example6:tracingexecution
 
-from winappdbg import Debug, EventHandler, CrashDump, win32
+from winappdbg import Debug, EventHandler, HexDump, CrashDump, win32
 
 
 class MyEventHandler( EventHandler ):
@@ -57,7 +57,7 @@ class MyEventHandler( EventHandler ):
         thread = event.get_thread()
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
-        print "0x%.08x: %s" % ( code[0], code[2].lower() )
+        print "%s: %s" % ( HexDump.address(code[0]), code[2].lower() )
 
 
 def simple_debugger( argv ):

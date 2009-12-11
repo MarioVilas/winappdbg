@@ -129,15 +129,15 @@ class MyEventHandler( EventHandler ):
 
 def simple_debugger( argv ):
 
-    # Check we're running in a 32 bits machine
-    if win32.sizeof(win32.SIZE_T) != win32.sizeof(win32.DWORD):
-        raise NotImplementedError, "This example only runs in 32 bits"
-
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-    try:
 
-        # Start a new process for debugging
+    # Check we're running in a 32 bits machine
+    if debug.system.arch != 'i386':
+        raise NotImplementedError, "This example only runs in 32 bits"
+
+    # Start a new process for debugging
+    try:
         debug.execv( argv )
 
         # Wait for the debugee to finish

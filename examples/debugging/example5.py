@@ -30,7 +30,7 @@
 # Example #5
 # http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example5:handlingdebugevents
 
-from winappdbg import Debug
+from winappdbg import Debug, HexDump
 
 def my_event_handler( event ):
 
@@ -50,8 +50,8 @@ def my_event_handler( event ):
     pc = event.get_thread().get_pc()
 
     # Show something to the user
-    format_string = "%s (0x%.08x) at address 0x%.08x, process %d, thread %d"
-    message = format_string % ( name, code, pc, pid, tid )
+    format_string = "%s (%s) at address %s, process %d, thread %d"
+    message = format_string % ( name, HexDump.integer(code), HexDump.address(pc), pid, tid )
     print message
 
 def simple_debugger( argv ):
