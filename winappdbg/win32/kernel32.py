@@ -722,6 +722,13 @@ class MemoryBasicInformation (object):
         self.Protect            = mbi.Protect
         self.Type               = mbi.Type
 
+        # Only used when copying MemoryBasicInformation objects, instead of
+        # instancing them from a MEMORY_BASIC_INFORMATION structure.
+        if hasattr(mbi, 'content'):
+            self.content = mbi.content
+        if hasattr(mbi, 'filename'):
+            self.content = mbi.filename
+
     def is_free(self):
         return self.State == MEM_FREE
 
