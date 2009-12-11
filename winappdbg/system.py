@@ -6627,19 +6627,22 @@ class System (ProcessContainer):
             Raises an exception on error.
 
         @raise NotImplementedError:
-            Current architecture is not Intel 32 bits.
+            Current architecture is not C{i386} or C{amd64}.
 
         @warning:
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
-        if cls.arch != 'i386':
+        if cls.arch not in ('i386', 'amd64'):
             raise NotImplementedError, \
-                "MSR reading is only supported in 32-bit Intel processors."
+                "MSR reading is only supported on i386 or amd64 processors."
         msr         = win32.SYSDBG_MSR()
         msr.Address = address
         msr.Data    = 0
-        return win32.NtSystemDebugControl(win32.SysDbgReadMsr, msr)[0]
+        win32.NtSystemDebugControl(win32.SysDbgReadMsr,
+                                   InputBuffer  = msr,
+                                   OutputBuffer = msr)
+        return msr.Data
 
     @classmethod
     def write_msr(cls, address, value):
@@ -6656,19 +6659,19 @@ class System (ProcessContainer):
             Raises an exception on error.
 
         @raise NotImplementedError:
-            Current architecture is not Intel 32 bits.
+            Current architecture is not C{i386} or C{amd64}.
 
         @warning:
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
-        if cls.arch != 'i386':
+        if cls.arch not in ('i386', 'amd64'):
             raise NotImplementedError, \
-                "MSR writing is only supported in 32-bit Intel processors."
+                "MSR reading is only supported on i386 or amd64 processors."
         msr         = win32.SYSDBG_MSR()
         msr.Address = address
         msr.Data    = value
-        win32.NtSystemDebugControl(win32.SysDbgWriteMsr, msr)
+        win32.NtSystemDebugControl(win32.SysDbgWriteMsr, InputBuffer = msr)
 
     @classmethod
     def enable_step_on_branch_mode(cls):
@@ -6681,7 +6684,7 @@ class System (ProcessContainer):
             to least one process.
 
         @raise NotImplementedError:
-            Current architecture is not Intel 32 bits.
+            Current architecture is not C{i386} or C{amd64}.
 
         @warning:
             This method uses the processor's machine specific registers (MSR).
@@ -6708,7 +6711,7 @@ class System (ProcessContainer):
             Raises an exception on error.
 
         @raise NotImplementedError:
-            Current architecture is not Intel 32 bits.
+            Current architecture is not C{i386} or C{amd64}.
 
         @warning:
             This method uses the processor's machine specific registers (MSR).

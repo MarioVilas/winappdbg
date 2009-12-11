@@ -367,30 +367,43 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
     _NtSystemDebugControl = windll.ntdll.NtSystemDebugControl
     _NtSystemDebugControl.argtypes = [SYSDBG_COMMAND, PVOID, ULONG, PVOID, ULONG, PULONG]
     _NtSystemDebugControl.restype = NTSTATUS
+
+    # Validate the input buffer
     if InputBuffer is None:
-        InputBuffer = NULL
-    if InputBufferLength is None:
-        if InputBuffer == NULL:
+        if InputBufferLength is None:
             InputBufferLength = 0
         else:
+            raise ValueError, "Invalid call to NtSystemDebugControl:" \
+                "input buffer length given but no input buffer!"
+    else:
+        if InputBufferLength is None:
             InputBufferLength = sizeof(InputBuffer)
+        InputBuffer = ctypes.byref(InputBuffer)
+
+    # Validate the output buffer
     if OutputBuffer is None:
         if OutputBufferLength is None:
-            OutputBuffer       = NULL
             OutputBufferLength = 0
         else:
             OutputBuffer = ctypes.create_string_buffer("", OutputBufferLength)
     elif OutputBufferLength is None:
         OutputBufferLength = sizeof(OutputBuffer)
-    if InputBuffer != NULL:
-        InputBuffer = ctypes.byref(InputBuffer)
-    if OutputBuffer != NULL:
-        OutputBuffer = ctypes.byref(OutputBuffer)
-    ReturnLength = ULONG(0)
-    ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ctypes.byref(ReturnLength))
+
+    # Make the call (with an output buffer)
+    if OutputBuffer is not None:
+        ReturnLength = ULONG(0)
+        ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, ctypes.byref(OutputBuffer), OutputBufferLength, ctypes.byref(ReturnLength))
+        if ntstatus != 0:
+            raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
+        ReturnLength = ReturnLength.value
+        if ReturnLength != OutputBufferLength:
+            raise ctypes.WinError(ERROR_BAD_LENGTH)
+        return OutputBuffer, ReturnLength
+
+    # Make the call (without an output buffer)
+    ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, None)
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
-    return OutputBuffer, ReturnLength.value
 
 ZwSystemDebugControl = NtSystemDebugControl
 
