@@ -138,6 +138,7 @@ class Test( object ):
     def nextExceptionHandler(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
         if event.is_last_chance():
+            event.continueStatus = win32.DBG_CONTINUE
             return
 
         debug   = event.debug
