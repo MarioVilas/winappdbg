@@ -86,18 +86,67 @@ def main(argv):
             targets.add(pid)
     targets = list(targets)
     targets.sort()
+    count = 0
+
+    # Try to terminate the processes using the TerminateProcess() API.
+    next_targets = list()
+    for pid in targets:
+        next_targets.append(pid)
+        try:
+            # Note we don't really need to call open_handle and close_handle,
+            # but it's good to know exactly which API call it was that failed.
+            process = Process(pid)
+            process.open_handle()
+            try:
+                process.kill(-1)
+                next_targets.pop()
+                count += 1
+                print "Terminated process %d" % pid
+                try:
+                    process.close_handle()
+                except WindowsError, e:
+                    print "Warning: call to CloseHandle() failed: %s" % str(e)
+            except WindowsError, e:
+                print "Warning: call to TerminateProcess() failed: %s" % str(e)
+        except WindowsError, e:
+            print "Warning: call to OpenProcess() failed: %s" % str(e)
+    targets = next_targets
+
+    # Try to terminate processes by injecting a call to ExitProcess().
+    next_targets = list()
+    for pid in targets:
+        next_targets.append(pid)
+        try:
+            process = Process(pid)
+            process.scan_modules()
+            try:
+                module = process.get_module_by_name('kernel32')
+                pExitProcess = module.resolve('ExitProcess')
+                try:
+                    process.start_thread(pExitProcess, -1)
+                    next_targets.pop()
+                    count += 1
+                    print "Forced process %d exit" % pid
+                except WindowsError, e:
+                    print "Warning: call to CreateRemoteThread() failed %d: %s" % (pid, str(e))
+            except WindowsError, e:
+                print "Warning: resolving address of ExitProcess() failed %d: %s" % (pid, str(e))
+        except WindowsError, e:
+            print "Warning: scanning for loaded modules failed %d: %s" % (pid, str(e))
+    targets = next_targets    
 
     # Attach to every process.
-    # Print a message on errors, but don't stop.
-    count = 0
+    # Print a message on error, but don't stop.
     next_targets = list()
     for pid in targets:
         try:
             win32.DebugActiveProcess(pid)
             count += 1
+            print "Attached to process %d" % pid
         except WindowsError, e:
             next_targets.append(pid)
             print "Warning: error attaching to %d: %s" % (pid, str(e))
+    targets = next_targets
 
     # Try to call the DebugSetProcessKillOnExit() API.
     #
@@ -115,25 +164,6 @@ def main(argv):
         pass
     except WindowsError, e:
         print "Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e)
-
-    # Try to terminate the processes using the TerminateProcess() API.
-    for pid in next_targets:
-        process = Process(pid)
-        try:
-            # Note we don't really need to call open_handle and close_handle,
-            # but it's good to know exactly which API call it was that failed.
-            process.open_handle()
-            try:
-                process.kill()
-                count += 1
-                try:
-                    process.close_handle()
-                except WindowsError, e:
-                    print "Warning: call to CloseHandle() failed: %s" % str(e)
-            except WindowsError, e:
-                print "Warning: call to TerminateProcess() failed: %s" % str(e)
-        except WindowsError, e:
-            print "Warning: call to OpenProcess() failed: %s" % str(e)
 
     if count == 0:
         print "Failed! No process was killed."
