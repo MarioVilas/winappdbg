@@ -70,8 +70,8 @@ class Test( object ):
         self.memory  = None
 
     def exception(self, event):
+        self.logExceptionEvent(event)
         if not self.testing:
-            self.logExceptionEvent(event)
             self.checkExceptionChain(event)
         if self.testing:    # don't use elif here!
             self.nextExceptionHandler(event)
@@ -133,16 +133,20 @@ class Test( object ):
         msg   = "Bruteforcing %d addresses (%s-%s)..."
         first = HexDump.address(first)
         last  = HexDump.address(last)
-        self.logger.log(msg % (count, first, last))
+        self.logger.log_text(msg % (count, first, last))
 
     def nextExceptionHandler(self, event):
+        event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        if event.is_last_chance():
+            return
+
         debug   = event.debug
         process = event.get_process()
         thread  = event.get_thread()
         pid     = process.get_pid()
 
         thread.set_context(self.context)
-        process.restore_memory_snapshot(self.snapshot)
+        process.restore_memory_snapshot(self.memory)
 
         try:
             address = self.iterator.next()
@@ -151,20 +155,18 @@ class Test( object ):
             event.debug.detach( event.get_pid() )
             raise
 
-        msg = HexDump.address( event.get_exception_address() )
-        msg = "Trying %s" % msg
-        self.logger.log_text(msg)
-
         if self.last:
             debug.dont_break_at(pid, self.last)
+        self.logger.log_text("Trying %s" % HexDump.address(address))
         process.write_pointer(self.seh + 4, address)
         debug.break_at(pid, address, self.foundValidHandler)
         self.last = address
 
     def foundValidHandler(self, event):
+        self.logExceptionEvent(event)
         address = HexDump.address( event.get_exception_address() )
         self.logger.log_text("Found %s" % address)
-        self.nextExceptionHandler()
+        self.nextExceptionHandler(event)
 
 class Handler( EventHandler ):
 
