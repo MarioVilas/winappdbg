@@ -37,11 +37,21 @@ import time
 import struct
 import ctypes
 
+#------------------------------------------------------------------------------
+
+# Some stuff from ctypes we'll be using very frequently.
 sizeof      = ctypes.sizeof
 POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
 
+#------------------------------------------------------------------------------
+
+# Laxy reference to ctypes.windll.
+# Currently it's only use is to allow importing winappdbg in a non Windows
+# environment, for example to get the documentation or build the packages.
+# Later on it may be extended with some sort of syscall proxy, if it turns
+# out to be justified (I tend to think a high level RPC is a better approach).
 try:
     from ctypes import windll
 except ImportError:
@@ -52,6 +62,8 @@ except ImportError:
             raise ctypes.WinError(50)   # ERROR_NOT_SUPPORTED
     windll = FakeWinDll()
 
+# Lazy reference to ctypes.WINFUNCTYPE.
+# See explanation above.
 try:
     WINFUNCTYPE = ctypes.WINFUNCTYPE
 except AttributeError:
@@ -62,11 +74,11 @@ except AttributeError:
         def __call__(self, *argv):
             return ctypes.WINFUNCTYPE(self.restype, *self.argtypes)(*argv)
 
-try:
-    callable
-except NameError:
-    def callable(obj):
-        return hasattr(obj, '__call__')
+#------------------------------------------------------------------------------
+
+# The following code can be uncommented to enable debugging the Win32 API
+# wrappers. Basically what it does is hook every API call and print out some
+# info on the screen (dll and function name, parameter values, return value).
 
 ### XXX DEBUG
 ##class WinDllHook(object):
@@ -108,6 +120,41 @@ except NameError:
 ##        print "== %r" % (retval,)
 ##        return retval
 ##windll = WinDllHook()
+
+#------------------------------------------------------------------------------
+
+def winerror(e):
+    """
+    Auxiliary function to extract the Windows error code from a C{WindowError}
+    exception instance. This is only needed for compatibility with Python 2.3.
+
+    For example, replace this code::
+
+        try:
+            # ...some stuff...
+        except WindowsError, e:
+            if e.winerror == ERROR_ACCESS_DENIED:
+                print "Access denied!"
+            else:
+                print "Error: %s" % str(e)
+
+    With this code::
+
+        try:
+            # ...some stuff...
+        except WindowsError, e:
+            if win32.winerror(e) == ERROR_ACCESS_DENIED:
+                print "Access denied!"
+            else:
+                print "Error: %s" % str(e)
+
+    And it'll be automagically compatible with Python 2.3. :)
+    """
+    # Another example of the docstring being much more complex than the code :)
+    try:
+        return e.winerror   # Python 2.4 and better
+    except AttributeError:
+        return e.errno      # Python 2.3
 
 def RaiseIfZero(result, func = None, arguments = ()):
     """

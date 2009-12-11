@@ -230,8 +230,8 @@ class PathOperations (object):
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
                     except WindowsError, e:
-                        if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
-                                          win32.ERROR_PATH_NOT_FOUND):
+                        if win32.winerror(e) in (win32.ERROR_FILE_NOT_FOUND, \
+                                                 win32.ERROR_PATH_NOT_FOUND):
                             continue
                         raise
                     if not device_native_path.endswith('\\'):
@@ -461,7 +461,8 @@ class ModuleContainer (object):
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
         #        Only on XP and above
-        # PID 8: System (?) only in Windows 2000 and below AFAIK
+        # PID 8: System (?) only in Windows 2000 and below AFAIK.
+        #        It's probably the same as PID 4 in XP and above.
         dwProcessId = self.get_pid()
         if dwProcessId in (0, 4, 8):
             return
@@ -819,7 +820,8 @@ class ThreadContainer (object):
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
         #        Only on XP and above
-        # PID 8: System (?) only in Windows 2000 and below AFAIK
+        # PID 8: System (?) only in Windows 2000 and below AFAIK.
+        #        It's probably the same as PID 4 in XP and above.
         dwProcessId = self.get_pid()
         if dwProcessId in (0, 4, 8):
             return
@@ -1367,13 +1369,7 @@ class ProcessContainer (object):
         """
 ##        for aProcess in self.iter_processes(): # XXX triggers a scan
         for aProcess in self.__processDict.itervalues():
-            try:
-                aProcess.scan_modules()
-            except WindowsError, e:
-                # For some reason, scanning the modules of PID 4 always fails.
-                dwProcessId = aProcess.get_pid()
-                if dwProcessId == 4 and e.winerror == 8:
-                    continue
+            aProcess.scan_modules()
 
     def scan_processes(self):
         """
@@ -2355,7 +2351,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.has_content()
@@ -2375,7 +2371,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return True
@@ -2397,7 +2393,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_free()
@@ -2419,7 +2415,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_reserved()
@@ -2441,7 +2437,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_commited()
@@ -2463,7 +2459,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_guard()
@@ -2487,7 +2483,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_readable()
@@ -2511,7 +2507,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_writeable()
@@ -2535,7 +2531,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_copy_on_write()
@@ -2559,7 +2555,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable()
@@ -2587,7 +2583,7 @@ class MemoryOperations (object):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if e.winerror == win32.ERROR_INVALID_PARAMETER:
+            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable_and_writeable()
@@ -2624,7 +2620,7 @@ class MemoryOperations (object):
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
-                if e.winerror == win32.ERROR_INVALID_PARAMETER:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
             memoryMap.append(mbi)
@@ -6193,7 +6189,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         try:
             self.wait(0)
         except WindowsError, e:
-            return e.winerror == win32.WAIT_TIMEOUT
+            return win32.winerror(e) == win32.WAIT_TIMEOUT
         return False
 
     def get_exit_code(self):

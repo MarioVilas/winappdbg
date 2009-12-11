@@ -105,7 +105,8 @@ def main(argv):
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
         #        Only on XP and above
-        # PID 8: System (?) only in Windows 2000 and below AFAIK
+        # PID 8: System (?) only in Windows 2000 and below AFAIK.
+        #        It's probably the same as PID 4 in XP and above.
         if pid == 0:
             fileName = "[System Idle Process]"
         elif pid == 4:

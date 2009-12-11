@@ -10,7 +10,7 @@ try:
             print time()
             event = dbg.wait(1000)
         except WindowsError, e:
-            if e.winerror in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
+            if win32.winerror(e) in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
                 continue
             raise
         try:
@@ -19,5 +19,3 @@ try:
             dbg.cont(event)
 finally:
     dbg.stop()
-
- 	  	 
