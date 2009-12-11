@@ -4969,7 +4969,10 @@ class Module (SymbolContainer):
         """
         if self.fileName is None:
             if self.hFile not in (None, win32.INVALID_HANDLE_VALUE):
-                self.fileName = self.hFile.get_filename()
+                fileName = self.hFile.get_filename()
+                if fileName:
+                    fileName = PathOperations.native_to_win32_pathname(fileName)
+                    self.fileName = fileName
         return self.fileName
 
     def __filename_to_modname(self, pathname):
