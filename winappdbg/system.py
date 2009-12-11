@@ -1113,25 +1113,48 @@ class ProcessContainer (object):
 
     def get_pid_from_tid(self, dwThreadId):
         """
-        Tries to retrieve the global ID of the process that owns the thread.
-        If it's not possible, returns C{None}.
+        Retrieves the global ID of the process that owns the thread.
 
         @type  dwThreadId: int
         @param dwThreadId: Thread global ID.
 
-        @rtype:  int or None
-        @return: Process global ID, or C{None}.
+        @rtype:  int
+        @return: Process global ID.
+
+        @raise KeyError: The thread does not exist.
         """
         try:
-            dwProcessId = Thread(dwThreadId).get_pid()
+
+            # No good, because in XP and below it tries to get the PID
+            # through the toolhelp API, and that's slow. We don't want
+            # to scan for threads over and over for each call.
+##            dwProcessId = Thread(dwThreadId).get_pid()
+
+            # This API only exists in Vista and above.
+            hThread     = Thread(dwThreadId).get_handle()
+            dwProcessId = win32.GetProcessIdOfThread(hThread)
+
+        # If all else fails, go through all processes in the snapshot
+        # looking for the one that owns the thread we're looking for.
+        # If the snapshot was empty the iteration should trigger an
+        # automatic scan. Otherwise, it'll look for the thread in what
+        # could possibly be an outdated snapshot.
         except Exception:
-            dwProcessId = None
-        if dwProcessId is None:
             for aProcess in self.iter_processes():
                 if aProcess.has_thread(dwThreadId):
-                    dwProcessId = aProcess.get_pid()
-                    break
-        return dwProcessId
+                    return aProcess.get_pid()
+
+        # The thread wasn't found, so let's refresh the snapshot and retry.
+        # Normally this shouldn't happen since this function is only useful
+        # for the debugger, so the thread should already exist in the snapshot.
+        self.scan_processes_and_threads()
+        for aProcess in self.iter_processes():
+            if aProcess.has_thread(dwThreadId):
+                return aProcess.get_pid()
+
+        # No luck! It appears to be the thread doesn't exist after all.
+        msg = "Unknown thread ID %d" % dwThreadId
+        raise KeyError, msg
 
 #------------------------------------------------------------------------------
 
@@ -5414,10 +5437,10 @@ class Thread (ThreadDebugOperations):
         """
         if self.dwProcessId is None:
             if self.process is None:
-                hProcess = self.get_handle()
+                hThread = self.get_handle()
                 try:
                     # I wish this had been implemented before Vista...
-                    self.dwProcessId = win32.GetProcessIdOfThread(hProcess)
+                    self.dwProcessId = win32.GetProcessIdOfThread(hThread)
                 except AttributeError:
                     # This method really sucks :P
                     self.dwProcessId = self.__get_pid_by_scanning()
