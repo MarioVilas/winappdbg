@@ -4629,7 +4629,11 @@ class ProcessDebugOperations (object):
         # Not implemented until Windows 2000.
         if not name:
             try:
-                name = win32.GetModuleFileNameEx(self.get_handle(), win32.NULL)
+                try:
+                    name = win32.GetModuleFileNameEx(self.get_handle(), None)
+                except WindowsError:
+                    name = win32.GetModuleFileNameEx(self.get_handle(),
+                                                     self.get_image_base())
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
                 else:
