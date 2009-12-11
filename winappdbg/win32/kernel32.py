@@ -3046,10 +3046,24 @@ def GetCurrentProcess():
 
 # HANDLE WINAPI GetCurrentThread(void);
 def GetCurrentThread():
-    GetCurrentThread = windll.kernel32.GetCurrentThread
+    _GetCurrentThread = windll.kernel32.GetCurrentThread
     _GetCurrentThread.argtypes = []
     _GetCurrentThread.restype  = HANDLE
     return _GetCurrentThread()
+
+# DWORD WINAPI GetCurrentProcessId(void);
+def GetCurrentProcessId():
+    _GetCurrentProcessId = windll.kernel32.GetCurrentProcessId
+    _GetCurrentProcessId.argtypes = []
+    _GetCurrentProcessId.restype  = DWORD
+    return _GetCurrentProcessId()
+
+# DWORD WINAPI GetCurrentThreadId(void);
+def GetCurrentThreadId():
+    _GetCurrentThreadId = windll.kernel32.GetCurrentThreadId
+    _GetCurrentThreadId.argtypes = []
+    _GetCurrentThreadId.restype  = DWORD
+    return _GetCurrentThreadId()
 
 # DWORD WINAPI GetProcessId(
 #   __in  HANDLE hProcess

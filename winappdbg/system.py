@@ -1228,7 +1228,7 @@ class ProcessContainer (object):
             dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
         lpStartupInfo = None
         if dwParentProcessId is not None:
-            myPID = win32.GetProcessId( win32.GetCurrentProcess() )
+            myPID = win32.GetCurrentProcessId()
             if dwParentProcessId != myPID:
                 if self.has_process(dwParentProcessId):
                     ParentProcess = self.get_process(dwParentProcessId)
@@ -1284,7 +1284,7 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads.
         """
-        our_pid    = win32.GetProcessId( win32.GetCurrentProcess() )
+        our_pid    = win32.GetCurrentProcessId()
 ##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
         found_tids = set()
@@ -1372,7 +1372,7 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes.
         """
-        our_pid   = win32.GetProcessId( win32.GetCurrentProcess() )
+        our_pid   = win32.GetCurrentProcessId()
 ##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
         if our_pid in dead_pids:
@@ -1418,7 +1418,7 @@ class ProcessContainer (object):
         old_pids = set( self.__processDict.keys() )
 
         # Ignore our own pid
-        our_pid  = win32.GetProcessId( win32.GetCurrentProcess() )
+        our_pid  = win32.GetCurrentProcessId()
         if our_pid in new_pids:
             new_pids.remove(our_pid)
         if our_pid in old_pids:
