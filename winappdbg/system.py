@@ -454,14 +454,16 @@ class ModuleContainer (object):
         Populates the snapshot with loaded modules.
         """
 
-        # Ignore process IDs 0 and 4.
+        # Ignore special process IDs.
         # PID 0: System Idle Process. Also has a special meaning to the
         #        toolhelp APIs (current process).
         # PID 4: System Integrity Group. See this forum post for more info:
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
+        #        Only on XP and above
+        # PID 8: System (?) only in Windows 2000 and below AFAIK
         dwProcessId = self.get_pid()
-        if dwProcessId in (0, 4):
+        if dwProcessId in (0, 4, 8):
             return
 
         # It would seem easier to clear the snapshot first.
@@ -473,11 +475,13 @@ class ModuleContainer (object):
             me = win32.Module32First(hSnapshot)
             while me is not None:
                 lpBaseAddress = me.modBaseAddr
-                fileName      = me.szExePath
+                fileName      = me.szExePath    # full pathname
                 if not fileName:
-                    fileName  = me.szModule
+                    fileName  = me.szModule     # filename only
                     if not fileName:
                         fileName = None
+                else:
+                    fileName = PathOperations.native_to_win32_pathname(fileName)
                 found_bases.add(lpBaseAddress)
 ##                if not self.has_module(lpBaseAddress): # XXX triggers a scan
                 if not self.__moduleDict.has_key(lpBaseAddress):
@@ -808,14 +812,16 @@ class ThreadContainer (object):
         Populates the snapshot with running threads.
         """
 
-        # Ignore process IDs 0 and 4.
+        # Ignore special process IDs.
         # PID 0: System Idle Process. Also has a special meaning to the
         #        toolhelp APIs (current process).
         # PID 4: System Integrity Group. See this forum post for more info:
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
+        #        Only on XP and above
+        # PID 8: System (?) only in Windows 2000 and below AFAIK
         dwProcessId = self.get_pid()
-        if dwProcessId in (0, 4):
+        if dwProcessId in (0, 4, 8):
             return
 
 ##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
@@ -4590,18 +4596,17 @@ class ProcessDebugOperations (object):
             be returned instead.
         """
 
-        name = None
-
         # Method 1: Module.fileName
         # It's cached if the filename was already found by the other methods,
-        # or it came with the corresponding debug event.
-        if not name:
-            try:
-                name = self.get_main_module().fileName
-                if not name:
-                    name = None
-            except (KeyError, AttributeError, WindowsError):
+        # if it came with the corresponding debug event, or it was found by the
+        # toolhelp API.
+        try:
+            mainModule = self.get_main_module()
+            name = mainModule.fileName
+            if not name:
                 name = None
+        except (KeyError, AttributeError, WindowsError):
+            name = None
 
         # Method 2: QueryFullProcessImageName()
         # Not implemented until Windows Vista.
@@ -4666,15 +4671,18 @@ class ProcessDebugOperations (object):
         # couldn't figure out a way to fix it.
         if not name:
             try:
-                name = self.get_main_module().get_filename()
-            except (KeyError, AttributeError, WindowsError):
+                name = mainModule.get_filename()
+                if not name:
+                    name = None
+            except (UnboundLocalError, KeyError, AttributeError, WindowsError):
                 name = None
 
         # Remember the filename.
-        try:
-            self.get_main_module().fileName = name
-        except Exception:
-            pass
+        if name:
+            try:
+                mainModule.fileName = name
+            except UnboundLocalError:
+                pass
 
         # Return the image filename, or None on error.
         return name

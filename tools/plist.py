@@ -98,16 +98,20 @@ def main(argv):
     for pid in pid_list:
         p = s.get_process(pid)
 
-        # Special cases: PIDs 0 and 4.
+        # Special process IDs.
         # PID 0: System Idle Process. Also has a special meaning to the
         #        toolhelp APIs (current process).
         # PID 4: System Integrity Group. See this forum post for more info:
         #        http://tinyurl.com/ycza8jo
         #        (points to social.technet.microsoft.com)
+        #        Only on XP and above
+        # PID 8: System (?) only in Windows 2000 and below AFAIK
         if pid == 0:
             fileName = "[System Idle Process]"
         elif pid == 4:
-            fileName = "[System Integrity Group]"
+            fileName = "[System]"
+        elif pid == 8:
+            fileName = "[System]"
 
         # Get the process filename (or pathname).
         else:
