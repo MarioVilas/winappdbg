@@ -726,7 +726,7 @@ class MemoryBasicInformation (object):
         return self.State == MEM_FREE
 
     def is_reserved(self):
-        return self.State == MEM_RESERVED
+        return self.State == MEM_RESERVE
 
     def is_commited(self):
         return self.State == MEM_COMMIT
