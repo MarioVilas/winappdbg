@@ -78,8 +78,9 @@ except ImportError:
     Decode64Bits = None
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
-        msg = ("diStorm is not installed or can't be found. "
-        "Download it from: http://www.ragestorm.net/distorm/")
+        msg = ("diStorm is not installed or can't be found. Download it from: "
+        "http://sourceforge.net/projects/winappdbg/files/"
+        "additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/")
         raise NotImplementedError, msg
 
 #==============================================================================
