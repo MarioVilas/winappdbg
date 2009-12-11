@@ -76,50 +76,62 @@ except AttributeError:
 
 #------------------------------------------------------------------------------
 
-# The following code can be uncommented to enable debugging the Win32 API
-# wrappers. Basically what it does is hook every API call and print out some
-# info on the screen (dll and function name, parameter values, return value).
+# XXX DEBUG
+# The following code can be enabled to make the Win32 API wrappers log to
+# standard ouput the dll and function names, the parameter values and the
+# return value for each call.
 
-### XXX DEBUG
-##class WinDllHook(object):
-##    def __getattr__(self, name):
-##        if name.startswith('_'):
-##            return object.__getattr__(self, name)
-##        return WinFuncHook(name)
-##class WinFuncHook(object):
-##    def __init__(self, name):
-##        self.__name = name
-##    def __getattr__(self, name):
-##        if name.startswith('_'):
-##            return object.__getattr__(self, name)
-##        return WinCallHook(self.__name, name)
-##class WinCallHook(object):
-####    def __new__(typ, dllname, funcname):
-####        print dllname, funcname
-####        return getattr(getattr(ctypes.windll, dllname), funcname)
-##    def __init__(self, dllname, funcname):
-##        self.__dllname = dllname
-##        self.__funcname = funcname
-##        self.__func = getattr(getattr(ctypes.windll, dllname), funcname)
-##    def __copy_attribute(self, attribute):
-##        try:
-##            value = getattr(self, attribute)
-##            setattr(self.__func, attribute, value)
-##        except AttributeError:
-##            try:
-##                delattr(self.__func, attribute)
-##            except AttributeError:
-##                pass
-##    def __call__(self, *argv):
-##        self.__copy_attribute('argtypes')
-##        self.__copy_attribute('restype')
-##        self.__copy_attribute('errcheck')
-##        print "-"*10
-##        print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
-##        retval = self.__func(*argv)
-##        print "== %r" % (retval,)
-##        return retval
-##windll = WinDllHook()
+##WIN32_VERBOSE_MODE = True
+WIN32_VERBOSE_MODE = False
+
+if WIN32_VERBOSE_MODE:
+
+    class WinDllHook(object):
+        def __getattr__(self, name):
+            if name.startswith('_'):
+                return object.__getattr__(self, name)
+            return WinFuncHook(name)
+
+    class WinFuncHook(object):
+        def __init__(self, name):
+            self.__name = name
+
+        def __getattr__(self, name):
+            if name.startswith('_'):
+                return object.__getattr__(self, name)
+            return WinCallHook(self.__name, name)
+
+    class WinCallHook(object):
+##        def __new__(typ, dllname, funcname):
+##            print dllname, funcname
+##            return getattr(getattr(ctypes.windll, dllname), funcname)
+
+        def __init__(self, dllname, funcname):
+            self.__dllname = dllname
+            self.__funcname = funcname
+            self.__func = getattr(getattr(ctypes.windll, dllname), funcname)
+
+        def __copy_attribute(self, attribute):
+            try:
+                value = getattr(self, attribute)
+                setattr(self.__func, attribute, value)
+            except AttributeError:
+                try:
+                    delattr(self.__func, attribute)
+                except AttributeError:
+                    pass
+
+        def __call__(self, *argv):
+            self.__copy_attribute('argtypes')
+            self.__copy_attribute('restype')
+            self.__copy_attribute('errcheck')
+            print "-"*10
+            print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
+            retval = self.__func(*argv)
+            print "== %r" % (retval,)
+            return retval
+
+    windll = WinDllHook()
 
 #------------------------------------------------------------------------------
 
