@@ -320,6 +320,8 @@ class DebugRegister (object):
 
 #------------------------------------------------------------------------------
 
+#    (from the AMD64 manuals)
+
 #    The fields within the DebugCtlMSR register are:
 #
 #    Last-Branch Record (LBR) - Bit 0, read/write. Software sets this bit to 1
@@ -344,6 +346,14 @@ class DebugRegister (object):
 #
 #    All remaining bits in the DebugCtlMSR register are reserved.
 
+#    Software can enable control-transfer single stepping by setting
+#    DebugCtlMSR.BTF to 1 and rFLAGS.TF to 1. The processor automatically
+#    disables control-transfer single stepping when a debug exception (#DB)
+#    occurs by clearing DebugCtlMSR.BTF to 0. rFLAGS.TF is also cleared when a
+#    #DB exception occurs. Before exiting the debug-exception handler, software
+#    must set both DebugCtlMSR.BTF and rFLAGS.TF to 1 to restart single
+#    stepping.
+
     DebugCtlMSR      = 0x1D9
     LastBranchRecord = (1 << 0)
     BranchTrapFlag   = (1 << 1)
@@ -358,6 +368,12 @@ class DebugRegister (object):
 #    LastExceptionToIP, and LastExceptionFromIP. These registers are loaded
 #    automatically by the processor when the DebugCtlMSR.LBR bit is set to 1.
 #    These MSRs are read-only.
+
+#    The processor automatically disables control-transfer recording when a
+#    debug exception (#DB) occurs by clearing DebugCtlMSR.LBR to 0. The
+#    contents of the control-transfer recording MSRs are not altered by the
+#    processor when the #DB occurs. Before exiting the debug-exception handler,
+#    software can set DebugCtlMSR.LBR to 1 to re-enable the recording mechanism.
 
     LastBranchToIP      = 0x1DC
     LastBranchFromIP    = 0x1DB
