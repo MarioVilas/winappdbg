@@ -311,7 +311,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @type  dwParentProcessId: int or None
         @param dwParentProcessId: C{None} if the debugger process should be the
             parent process (default), or a process ID to forcefully set as the
-            debuguee's parent (only available for Windows Vista and above).
+            debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -364,7 +364,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         @type  dwParentProcessId: int or None
         @param dwParentProcessId: C{None} if the debugger process should be the
             parent process (default), or a process ID to forcefully set as the
-            debuguee's parent (only available for Windows Vista and above).
+            debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -555,7 +555,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         Simple debugging loop.
 
         This debugging loop is meant to be useful for most simple scripts.
-        It iterates as long as there is at least one debuguee, or an exception
+        It iterates as long as there is at least one debugee, or an exception
         is raised. Multiple calls are allowed.
 
         This is a trivial example script::

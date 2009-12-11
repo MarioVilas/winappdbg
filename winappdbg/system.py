@@ -1240,7 +1240,7 @@ class ProcessContainer (object):
         @type  dwParentProcessId: int or None
         @param dwParentProcessId: C{None} if the debugger process should be the
             parent process (default), or a process ID to forcefully set as the
-            debuguee's parent (only available for Windows Vista and above).
+            debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: Process object.

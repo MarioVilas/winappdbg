@@ -1169,7 +1169,7 @@ class EventHandler (object):
         Dictionary that maps module names to
         tuples of ( procedure name, parameter count ).
 
-        All procedures listed here will be hooked for calls from the debuguee.
+        All procedures listed here will be hooked for calls from the debugee.
         When this happens, the corresponding event handler is notified both
         when the procedure is entered and when it's left by the debugee.
 

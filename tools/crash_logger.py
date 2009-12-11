@@ -48,7 +48,7 @@ import traceback
 #==============================================================================
 
 # XXX TODO
-# Capture stderr from the debuguees
+# Capture stderr from the debugees
 
 class LoggingEventHandler(EventHandler):
     """
