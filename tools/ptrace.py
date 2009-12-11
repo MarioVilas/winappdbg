@@ -84,8 +84,11 @@ class Tracer( EventHandler ):
     # Disassemble the current instruction
     def __disasm(self, event):
         thread  = event.get_thread()
-        tid     = event.get_tid()
-        pc      = thread.get_pc()
+        tid     = thread.get_tid()
+        try:
+            pc  = event.get_exception_address()
+        except Exception:
+            pc  = thread.get_pc()
         code    = thread.disassemble( pc, 0x10 ) [0]
         line    = CrashDump.dump_code_line(code, dwDumpWidth=8*2)
         print "~%d %s" % ( tid, line )
