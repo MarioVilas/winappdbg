@@ -200,6 +200,9 @@ def parse_cmdline( argv ):
     tracing.add_option("--syscall", action="store_const", const="syscall",
                                                                dest="mode",
                       help="Set the syscall trap mode")
+##    tracing.add_options("--module", action="append", metavar="MODULE",
+##                                                            dest="modules",
+##                   help="only trace into the modules specified by this switch")
     parser.add_option_group(tracing)
 
     # Debugging options
@@ -228,6 +231,7 @@ def parse_cmdline( argv ):
         windowed    = list(),
         console     = list(),
         attach      = list(),
+##        modules     = list(),
         mode        = "trace",
     )
 
