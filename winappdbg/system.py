@@ -6692,7 +6692,7 @@ class System (ProcessContainer):
             It works on my machine, but your mileage may vary.
 
         @note:
-            It doesn't seem to work in VirtualBox machines.
+            It doesn't seem to work in VMWare or VirtualBox machines.
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
@@ -6717,6 +6717,11 @@ class System (ProcessContainer):
             This method uses the processor's machine specific registers (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
+
+        @note:
+            It doesn't seem to work in VMWare or VirtualBox machines.
+            Maybe it fails in other virtualization/emulation environments,
+            no extensive testing was made so far.
         """
         LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
         LastBranchToIP   = cls.read_msr(DebugRegister.LastBranchToIP)
