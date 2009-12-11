@@ -2727,10 +2727,30 @@ class MemoryOperations (object):
 
                 # If the region doesn't match, restore it page by page.
                 else:
-                    start = old_mbi.BaseAddress
-                    end   = start + old_mbi.RegionSize
-                    for address in xrange(start, end, System.pageSize):
-                        new_mbi = self.mquery(address)
+                    # We need a copy so we don't corrupt the snapshot.
+                    old_mbi = win32.MemoryBasicInformation(old_mbi)
+
+                    # Get the overlapping range of pages.
+                    old_start = old_mbi.BaseAddress
+                    old_end   = old_start + old_mbi.RegionSize
+                    new_start = new_mbi.BaseAddress
+                    new_end   = new_start + new_mbi.RegionSize
+                    if old_start > new_start:
+                        start = old_start
+                    else:
+                        start = new_start
+                    if old_end < new_end:
+                        end = old_end
+                    else:
+                        end = new_end
+
+                    # Restore each page in the overlapping range.
+                    step = System.pageSize
+                    old_mbi.RegionSize = step
+                    new_mbi.RegionSize = step
+                    for address in xrange(start, end, step):
+                        old_mbi.BaseAddress = address
+                        new_mbi.BaseAddress = address
                         self.__restore_mbi(hProcess, new_mbi, old_mbi)
 
         # Resume execution.
@@ -2755,7 +2775,7 @@ class MemoryOperations (object):
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError, msg
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
-                else:   # is_commited
+                else:   # elif old_mbi.is_commited():
                     address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE | win32.MEM_COMMIT, old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
@@ -2772,17 +2792,14 @@ class MemoryOperations (object):
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError, msg
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
-                else:   # is_free
+                else:   # elif old_mbi.is_free():
                     win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RELEASE)
-            else:   # is_commited
+            else:   # elif new_mbi.is_commited():
                 if old_mbi.is_reserved():
                     win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT)
-                else:   # is_free
+                else:   # elif old_mbi.is_free():
                     win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT | win32.MEM_RELEASE)
-
-        # Restore the region permissions.
-        if old_mbi.Protect != new_mbi.Protect:
-            win32.VirtualProtectEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, old_mbi.Protect)
+        new_mbi.State = old_mbi.State
 
         # Restore the region data.
         # Ignore write errors when the region belongs to a mapped file.
@@ -2791,6 +2808,13 @@ class MemoryOperations (object):
                 self.poke(old_mbi.BaseAddress, old_mbi.content)
             else:
                 self.write(old_mbi.BaseAddress, old_mbi.content)
+            new_mbi.content = old_mbi.content
+
+        # Restore the region permissions.
+        if old_mbi.is_commited() and old_mbi.Protect != new_mbi.Protect:
+            win32.VirtualProtectEx(hProcess, old_mbi.BaseAddress,
+                                   old_mbi.RegionSize, old_mbi.Protect)
+            new_mbi.Protect = old_mbi.Protect
 
 #==============================================================================
 
