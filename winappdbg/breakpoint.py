@@ -933,7 +933,8 @@ class HardwareBreakpoint (Breakpoint):
 # One possible solution would involve dictionary of lists, where the key
 # would be the thread ID and the value a stack of return addresses. But I
 # still don't know what to do if the "wrong" return address is hit for some
-# reason. Or if both a code and a hardware breakpoint are hit simultaneously.
+# reason (maybe check the stack pointer?). Or if both a code and a hardware
+# breakpoint are hit simultaneously.
 #
 # For now, the workaround for the user is to set only the "pre" callback for
 # functions that are known to be recursive.
@@ -945,14 +946,8 @@ class HardwareBreakpoint (Breakpoint):
 
 # XXX TODO
 # The assumption that all parameters are DWORDs and all we need is the count
-# is wrong for 64 bit Windows. Perhaps a better scheme is in order? There's
-# little chance of keeping it compatible with previous versions, though.
-
-# XXX FIXME
-# Hardware breakpoints don't work in VirtualBox. Maybe there should be a way
-# to autodetect VirtualBox and tell Hook objects not to use them.
-# The workaround is to fill all slots in each thread by setting dummy hardware
-# breakpoints.
+# is wrong for 64 bit Windows. Perhaps a better scheme is in order? Ideally
+# it should be kept compatible with previous versions.
 
 class Hook (object):
     """
@@ -968,7 +963,14 @@ class Hook (object):
         C{False} otherwise.
     """
 
-    # Set to False if using within VirtualBox.
+    # XXX FIXME
+    #
+    # Hardware breakpoints don't work in VirtualBox. Maybe there should be a
+    # way to autodetect VirtualBox and tell Hook objects not to use them.
+    #
+    # For now the workaround is to manually set this variable to False when
+    # WinAppDbg is installed in a virtual machine.
+    #
     useHardwareBreakpoints = True
 
     def __init__(self, preCB = None, postCB = None, paramCount = 0):
