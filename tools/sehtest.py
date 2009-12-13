@@ -52,7 +52,8 @@ from winappdbg import HexInput, HexDump, CrashDump, Logger
 
 def ExecutableAddressIterator(memory_map):
     for mbi in memory_map:
-        if mbi.is_executable():
+        if mbi.has_content():
+##        if mbi.is_executable():
             BaseAddress = mbi.BaseAddress
             RegionSize  = mbi.RegionSize
             for address in xrange(BaseAddress, BaseAddress + RegionSize):
@@ -110,6 +111,7 @@ class Test( object ):
             self.seh = thread.get_seh_chain_pointer()
 
         if self.seh:
+            self.logger.log_text("Target SEH found, preparing to bruteforce...")
             self.orig     = process.read_pointer(self.seh + 4)
             self.context  = thread.get_context()
             self.memory   = process.take_memory_snapshot()
@@ -136,9 +138,8 @@ class Test( object ):
         self.logger.log_text(msg % (count, first, last))
 
     def nextExceptionHandler(self, event):
-        event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
         if event.is_last_chance():
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             return
 
         debug   = event.debug
@@ -157,13 +158,14 @@ class Test( object ):
             raise
 
         if self.last:
-            debug.dont_break_at(pid, self.last)
+            debug.dont_stalk_at(pid, self.last)
         self.logger.log_text("Trying %s" % HexDump.address(address))
         process.write_pointer(self.seh + 4, address)
-        debug.break_at(pid, address, self.foundValidHandler)
+        debug.stalk_at(pid, address, self.foundValidHandler)
         self.last = address
 
     def foundValidHandler(self, event):
+##        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
         self.logExceptionEvent(event)
         address = HexDump.address( event.get_exception_address() )
         self.logger.log_text("Found %s" % address)
