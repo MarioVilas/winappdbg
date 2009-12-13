@@ -83,6 +83,29 @@ except ImportError:
         "additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/")
         raise NotImplementedError, msg
 
+# Internally used by generate_memory_snapshot()
+class Regenerator(object):
+    """
+    Calls a generator and iterates it. When it's finished iterating, the
+    generator is called again. This allows you to iterate a generator more
+    than once (well, sort of).
+    """
+    def __iter__(self):
+        return self
+    def __init__(self, g_function, *v_args, **d_args):
+        self.__g_function = g_function
+        self.__v_args     = v_args
+        self.__d_args     = d_args
+        self.__g_object   = None
+    def next(self):
+        if self.__g_object is None:
+            self.__g_object = self.__g_function( *self.__v_args, **self.__d_args )
+        try:
+            return self.__g_object.next()
+        except StopIteration:
+            self.__g_object = None
+            raise
+
 #==============================================================================
 
 class PathOperations (object):
@@ -2685,9 +2708,113 @@ class MemoryOperations (object):
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
 
+    def generate_memory_snapshot(self, minAddr = None, maxAddr = None):
+        """
+        Returns a generator that allows you to iterate through the memory
+        contents of a process.
+
+        It's basically the same as the L{take_memory_snapshot} method, but it
+        takes the snapshot of each memory region as it goes, as opposed to
+        taking the whole snapshot at once. This allows you to work with very
+        large snapshots without a significant performance penalty.
+
+        Example::
+            # Print the memory contents of a process.
+            process.suspend()
+            try:
+                snapshot = process.generate_memory_snapshot()
+                for mbi in snapshot:
+                    print HexDump.hexblock(mbi.content, mbi.BaseAddress)
+            finally:
+                process.resume()
+
+        The downside of this is the process must remain suspended while
+        iterating the snapshot, otherwise strange things may happen.
+
+        The snapshot can be iterated more than once. Each time it's iterated
+        the memory contents of the process will be fetched again.
+
+        You can also iterate the memory of a dead process, just as long as the
+        last open handle to it hasn't been closed.
+
+        @see: L{take_memory_snapshot}
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+
+        @rtype:  generator of L{win32.MemoryBasicInformation}
+        @return: Generator that when iterated returns memory region information
+            objects. Two extra properties are added to these objects:
+             - C{filename}: Mapped filename, or C{None}.
+             - C{content}: Memory contents, or C{None}.
+        """
+        return Regenerator(self.__generate_memory_snapshot, minAddr, maxAddr)
+
+    def __generate_memory_snapshot(self, minAddr = None, maxAddr = None):
+        """
+        Internally used by L{generate_memory_snapshot}.
+        """
+
+        # One may feel tempted to include calls to self.suspend() and
+        # self.resume() here, but that wouldn't work on a dead process.
+        # It also wouldn't be needed when debugging since the process is
+        # already suspended when the debug event arrives. So it's up to
+        # the user to suspend the process if needed.
+
+        # Get the memory map.
+        memory = self.get_memory_map(minAddr, maxAddr)
+
+        # Abort if the map couldn't be retrieved.
+        if not memory:
+            return
+
+        # Get the mapped filenames.
+        filenames = self.get_mapped_filenames(memory)
+
+        # Trim the first memory information block if needed.
+        if minAddr is not None:
+            minAddr = MemoryAddresses.align_address_to_page_start(minAddr)
+            mbi = memory[0]
+            if mbi.BaseAddress < minAddr:
+                mbi.RegionSize  = mbi.BaseAddress + mbi.RegionSize - minAddr
+                mbi.BaseAddress = minAddr
+
+        # Trim the last memory information block if needed.
+        if maxAddr is not None:
+            if maxAddr != MemoryAddresses.align_address_to_page_start(maxAddr):
+                maxAddr = MemoryAddresses.align_address_to_page_end(maxAddr)
+            mbi = memory[-1]
+            if mbi.BaseAddress + mbi.RegionSize > maxAddr:
+                mbi.RegionSize = maxAddr - mbi.BaseAddress
+
+        # Read the contents of each block and yield it.
+        while memory:
+            mbi = memory.pop(0) # so the garbage collector can take it
+            mbi.filename = filenames.get(mbi.BaseAddress, None)
+            if mbi.has_content():
+                mbi.content = self.read(mbi.BaseAddress, mbi.RegionSize)
+            else:
+                mbi.content = None
+            yield mbi
+
     def take_memory_snapshot(self, minAddr = None, maxAddr = None):
         """
         Takes a snapshot of the memory contents of the process.
+
+        It's best if the process is suspended when taking the snapshot.
+        Execution can be resumed afterwards.
+
+        You can also iterate the memory of a dead process, just as long as the
+        last open handle to it hasn't been closed.
+
+        @warning: If the target process has a very big memory footprint, the
+            resulting snapshot will be equally big. This may result in a severe
+            performance penalty.
+
+        @see: L{generate_memory_snapshot}
 
         @type  minAddr: int
         @param minAddr: (Optional) Starting address in address range to query.
@@ -2701,23 +2828,9 @@ class MemoryOperations (object):
              - C{filename}: Mapped filename, or C{None}.
              - C{content}: Memory contents, or C{None}.
         """
-        snapshot = self.get_memory_map(minAddr, maxAddr)
-        filenames = self.get_mapped_filenames(snapshot)
-        for mbi in snapshot:
-            mbi.filename = filenames.get(mbi.BaseAddress, None)
-            if mbi.has_content():
-                mbi.content = self.read(mbi.BaseAddress, mbi.RegionSize)
-            else:
-                mbi.content = None
-        if maxAddr is not None and snapshot:
-            if maxAddr != MemoryAddresses.align_address_to_page_start(maxAddr):
-                maxAddr = MemoryAddresses.align_address_to_page_end(maxAddr)
-            mbi = snapshot[-1]
-            if mbi.BaseAddress + mbi.RegionSize > maxAddr:
-                mbi.RegionSize = maxAddr - mbi.BaseAddress
-        return snapshot
+        return list( self.generate_memory_snapshot(minAddr, maxAddr) )
 
-    def restore_memory_snapshot(self, snapshot):
+    def restore_memory_snapshot(self, snapshot, bSkipMappedFiles = True):
         """
         Attempts to restore the memory state as it was when the given snapshot
         was taken.
@@ -2728,10 +2841,23 @@ class MemoryOperations (object):
 
         @type  snapshot: list( L{win32.MemoryBasicInformation} )
         @param snapshot: Memory snapshot returned by L{take_memory_snapshot}.
+            Snapshots returned by L{generate_memory_snapshot} don't work here.
+
+        @type  bSkipMappedFiles: bool
+        @param bSkipMappedFiles: C{True} to avoid restoring the contents of
+            memory mapped files, C{False} otherwise. Use with care! Setting
+            this to C{False} can cause undesired side effects - changes to
+            memory mapped files may be written to disk by the OS. Also note
+            that most mapped files are typically executables and don't change,
+            so trying to restore their contents is usually a waste of time.
 
         @raise WindowsError: An error occured while restoring the snapshot.
         @raise RuntimeError: An error occured while restoring the snapshot.
+        @raise TypeError: A snapshot of the wrong type was passed.
         """
+        if not isinstance(snapshot, list):
+            raise TypeError, "Only snapshots returned by " \
+                             "take_memory_snapshots() can be used here."
 
         # Get the process handle.
         hProcess = self.get_handle()
@@ -2791,6 +2917,8 @@ class MemoryOperations (object):
         if new_mbi.State != old_mbi.State:
             if new_mbi.is_free():
                 if old_mbi.is_reserved():
+
+                    # Free -> Reserved
                     address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE, old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
@@ -2798,7 +2926,10 @@ class MemoryOperations (object):
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError, msg
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
+
                 else:   # elif old_mbi.is_commited():
+
+                    # Free -> Commited
                     address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE | win32.MEM_COMMIT, old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
@@ -2806,8 +2937,11 @@ class MemoryOperations (object):
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError, msg
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
+
             elif new_mbi.is_reserved():
                 if old_mbi.is_commited():
+
+                    # Reserved -> Commited
                     address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_COMMIT, old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
@@ -2815,29 +2949,40 @@ class MemoryOperations (object):
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError, msg
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
+
                 else:   # elif old_mbi.is_free():
+
+                    # Reserved -> Free
                     win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RELEASE)
+
             else:   # elif new_mbi.is_commited():
                 if old_mbi.is_reserved():
-                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT)
-                else:   # elif old_mbi.is_free():
-                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT | win32.MEM_RELEASE)
-        new_mbi.State = old_mbi.State
 
-        # Restore the region data.
-        # Ignore write errors when the region belongs to a mapped file.
-        if old_mbi.has_content():
-            if old_mbi.Type != 0:
-                self.poke(old_mbi.BaseAddress, old_mbi.content)
-            else:
-                self.write(old_mbi.BaseAddress, old_mbi.content)
-            new_mbi.content = old_mbi.content
+                    # Commited -> Reserved
+                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT)
+
+                else:   # elif old_mbi.is_free():
+
+                    # Commited -> Free
+                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT | win32.MEM_RELEASE)
+
+        new_mbi.State = old_mbi.State
 
         # Restore the region permissions.
         if old_mbi.is_commited() and old_mbi.Protect != new_mbi.Protect:
             win32.VirtualProtectEx(hProcess, old_mbi.BaseAddress,
                                    old_mbi.RegionSize, old_mbi.Protect)
             new_mbi.Protect = old_mbi.Protect
+
+        # Restore the region data.
+        # Ignore write errors when the region belongs to a mapped file.
+        if old_mbi.has_content():
+            if old_mbi.Type != 0:
+                if not bSkipMappedFiles:
+                    self.poke(old_mbi.BaseAddress, old_mbi.content)
+            else:
+                self.write(old_mbi.BaseAddress, old_mbi.content)
+            new_mbi.content = old_mbi.content
 
 #==============================================================================
 

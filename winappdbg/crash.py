@@ -394,7 +394,11 @@ class Crash (object):
             Memory snapshot behavior:
              - C{0} to take no memory information (default).
              - C{1} to take only the memory map.
+               See L{Process.get_memory_map}.
              - C{2} to take a full memory snapshot.
+               See L{Process.take_memory_snapshot}.
+             - C{3} to take a full memory snapshot generator.
+               See L{Process.generate_memory_snapshot}.
         """
 
         # Get the process and thread, but dont't store them in the DB.
@@ -450,14 +454,16 @@ class Crash (object):
 
             # Take a snapshot of the process memory. Additionally get the
             # memory contents if requested.
-            if takeMemorySnapshot == 2:
-                self.memoryMap = process.take_memory_snapshot()
-            elif takeMemorySnapshot == 1:
+            if takeMemorySnapshot == 1:
                 self.memoryMap = process.get_memory_map()
                 mappedFilenames = process.get_mapped_filenames(self.memoryMap)
                 for mbi in self.memoryMap:
                     mbi.filename = mappedFilenames.get(mbi.BaseAddress, None)
                     mbi.content  = None
+            elif takeMemorySnapshot == 2:
+                self.memoryMap = process.take_memory_snapshot()
+            elif takeMemorySnapshot == 3:
+                self.memoryMap = process.generate_memory_snapshot()
 
     @property
     def pc(self):
@@ -641,11 +647,8 @@ class Crash (object):
             result = ("Unknown", "Breakpoint", "While a breakpoint itself is probably not exploitable, it may also be an indication that an attacker is testing a target. In either case breakpoints should not exist in production code.")
 
         # Rule: If the stack contains unknown symbols in user mode, call that out
-
         # Rule: Tainted information used to control the source of a later block move unknown, but called out explicitly
-
         # Rule: Tainted information used as an argument to a function is an unknown risk, but called out explicitly
-
         # Rule: Tainted information used to control branch selection is an unknown risk, but called out explicitly
 
         return result
@@ -1127,6 +1130,7 @@ class CrashContainer (object):
     def __marshall_value(self, value):
         """
         Marshalls a Crash object to be used in the database.
+        The C{memoryMap} member is B{NOT} stored here.
 
         @type  value: L{Crash}
         @param value: Object to convert.
@@ -1134,7 +1138,19 @@ class CrashContainer (object):
         @rtype:  str
         @return: Converted object.
         """
-        value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+        # XXX
+        # storing the memory map could be a performance problem!
+        crash = value
+        memoryMap = crash.memoryMap
+        try:
+            if memoryMap is not None:
+                # convert the generator to a list
+                crash.memoryMap = list(memoryMap)
+            value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
+        finally:
+            crash.memoryMap = memoryMap
+            del memoryMap
+            del crash
         value = optimize(value)
         return zlib.compress(value, zlib.Z_BEST_COMPRESSION)
 
@@ -1205,7 +1221,7 @@ class CrashTable (object):
     )
     __insert_row = (
         "INSERT INTO Crashes VALUES (null%s)"
-        % (',?' * len(__table_definition.split(',')))
+        % (',?' * (len(__table_definition.split(',')) - 1))
     )
 
     __select_pickle = "SELECT pickle FROM Crashes"
@@ -1439,15 +1455,15 @@ class CrashTable (object):
             self.__keys[key] = self.__marshall_key(key)
 
             # Insert the row into the table.
-            self.__cursor.execute(self.__insert_row,
-                                  self.__get_row_values(crash))
+            row_values = self.__get_row_values(crash)
+            self.__cursor.execute(self.__insert_row, row_values)
 
             # Save the memory snapshot, if any.
             if hasattr(crash, 'memoryMap') and crash.memoryMap:
                 cid = self.__cursor.lastrowid
                 for mbi in crash.memoryMap:
-                    self.__cursor.execute(self.__memory_insert_row,
-                             self.__memory_get_row_values(cid, mbi))
+                    row_values = self.__memory_get_row_values(cid, mbi)
+                    self.__cursor.execute(self.__memory_insert_row, row_values)
 
             # Commit the changes to the database.
             self.__db.commit()
@@ -1534,11 +1550,13 @@ class CrashTable (object):
         @rtype:  BLOB
         @return: Converted object.
         """
+        # XXX TODO
+        # maybe the memory map can be stored, if the raw data is stripped first
         crash = value
         memoryMap = crash.memoryMap
         try:
             crash.memoryMap = None
-            value = pickle.dumps(value, protocol = pickle.HIGHEST_PROTOCOL)
+            value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
         finally:
             crash.memoryMap = memoryMap
             del memoryMap

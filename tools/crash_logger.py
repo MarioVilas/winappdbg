@@ -73,8 +73,7 @@ class LoggingEventHandler(EventHandler):
         # Create the crash container.
         if not options.nodb:
             if options.dbm:
-                self.knownCrashes = CrashContainer( options.dbm,
-                                    allowRepeatedKeys = options.duplicates )
+                self.knownCrashes = CrashContainer( options.dbm )
             elif options.sqlite:
                 self.knownCrashes = CrashTable( options.sqlite,
                                     allowRepeatedKeys = options.duplicates )
@@ -616,7 +615,7 @@ class CrashLogger (object):
                           help="Don't save the memory state for each crash [default]")
         output.add_option("--memory-map", action="store_const", const=1, dest="memory",
                           help="Save the memory map for each crash")
-        output.add_option("--memory-snapshot", action="store_const", const=2, dest="memory",
+        output.add_option("--memory-snapshot", action="store_const", const=3, dest="memory",
                           help="Save the entire memory contents for each crash")
         output.add_option("--nodb", action="store_true",
                           help="Do not save a crash dump file [default]")
@@ -674,6 +673,10 @@ class CrashLogger (object):
                 print "  No database will be generated. Are you sure this is what you wanted?"
                 print
         elif options.dbm:
+            if options.memory > 1:
+                print "Warning: using --dbm and --memory-snapshot in combination can have a severe"
+                print "  performance penalty."
+                print
             if options.duplicates:
                 if options.verbose:
                     print "Warning: inconsistent use of --allow-duplicates"
