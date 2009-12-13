@@ -73,8 +73,7 @@ class LoggingEventHandler(EventHandler):
         # Create the crash container.
         if not options.nodb:
             if options.dbm:
-                self.knownCrashes = CrashContainer( options.dbm,
-                                    allowRepeatedKeys = options.duplicates )
+                self.knownCrashes = CrashContainer( options.dbm )
             elif options.sqlite:
                 self.knownCrashes = CrashTable( options.sqlite,
                                     allowRepeatedKeys = options.duplicates )

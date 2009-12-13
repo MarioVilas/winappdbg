@@ -1205,7 +1205,7 @@ class CrashTable (object):
     )
     __insert_row = (
         "INSERT INTO Crashes VALUES (null%s)"
-        % (',?' * len(__table_definition.split(',')))
+        % (',?' * (len(__table_definition.split(',')) - 1))
     )
 
     __select_pickle = "SELECT pickle FROM Crashes"
