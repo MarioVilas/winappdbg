@@ -726,31 +726,31 @@ class MemoryBasicInformation (object):
         return self.State == MEM_FREE
 
     def is_reserved(self):
-        return self.State == MEM_RESERVED
+        return self.State == MEM_RESERVE
 
     def is_commited(self):
         return self.State == MEM_COMMIT
 
     def is_guard(self):
-        return self.is_commited() and self.Protect & PAGE_GUARD
+        return self.is_commited() and bool(self.Protect & PAGE_GUARD)
 
     def has_content(self):
-        return self.is_commited() and not self.Protect & (PAGE_GUARD | PAGE_NOACCESS)
+        return self.is_commited() and not bool(self.Protect & (PAGE_GUARD | PAGE_NOACCESS))
 
     def is_readable(self):
-        return self.has_content() and self.Protect & self.READABLE
+        return self.has_content() and bool(self.Protect & self.READABLE)
 
     def is_writeable(self):
-        return self.has_content() and self.Protect & self.WRITEABLE
+        return self.has_content() and bool(self.Protect & self.WRITEABLE)
 
     def is_copy_on_write(self):
-        return self.has_content() and self.Protect & self.COPY_ON_WRITE
+        return self.has_content() and bool(self.Protect & self.COPY_ON_WRITE)
 
     def is_executable(self):
-        return self.has_content() and self.Protect & self.EXECUTABLE
+        return self.has_content() and bool(self.Protect & self.EXECUTABLE)
 
     def is_executable_and_writeable(self):
-        return self.has_content() and self.Protect & self.EXECUTABLE_AND_WRITEABLE
+        return self.has_content() and bool(self.Protect & self.EXECUTABLE_AND_WRITEABLE)
 
 class ProcThreadAttributeList (object):
     """

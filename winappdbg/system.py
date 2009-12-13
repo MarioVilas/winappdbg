@@ -494,7 +494,8 @@ class ModuleContainer (object):
                 me = win32.Module32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
-        for base in self.get_module_bases():
+##        for base in self.get_module_bases(): # XXX triggers a scan
+        for base in self.__moduleDict.keys():
             if base not in found_bases:
                 self.__del_module(base)
 
@@ -5348,10 +5349,10 @@ class Thread (ThreadDebugOperations):
         """
         if self.dwProcessId is None:
             if self.process is None:
-                hProcess = self.get_handle()
+                hThread = self.get_handle()
                 try:
                     # I wish this had been implemented before Vista...
-                    self.dwProcessId = win32.GetProcessIdOfThread(hProcess)
+                    self.dwProcessId = win32.GetProcessIdOfThread(hThread)
                 except AttributeError:
                     # This method really sucks :P
                     self.dwProcessId = self.__get_pid_by_scanning()

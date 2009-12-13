@@ -283,9 +283,9 @@ GetMappedFileName = GuessStringType(GetMappedFileNameA, GetMappedFileNameW)
 #   __in      DWORD nSize
 # );
 def GetModuleFileNameExA(hProcess, hModule):
-    _GetMappedFileNameExA = ctypes.windll.psapi.GetMappedFileNameExA
-    _GetMappedFileNameExA.argtypes = [HANDLE, HMODULE, LPSTR, DWORD]
-    _GetMappedFileNameExA.restype = DWORD
+    _GetModuleFileNameExA = ctypes.windll.psapi.GetModuleFileNameExA
+    _GetModuleFileNameExA.argtypes = [HANDLE, HMODULE, LPSTR, DWORD]
+    _GetModuleFileNameExA.restype = DWORD
 
     nSize = MAX_PATH
     while 1:
@@ -299,9 +299,9 @@ def GetModuleFileNameExA(hProcess, hModule):
     return lpFilename.value
 
 def GetModuleFileNameExW(hProcess, hModule):
-    _GetMappedFileNameExW = ctypes.windll.psapi.GetMappedFileNameExW
-    _GetMappedFileNameExW.argtypes = [HANDLE, HMODULE, LPWSTR, DWORD]
-    _GetMappedFileNameExW.restype = DWORD
+    _GetModuleFileNameExW = ctypes.windll.psapi.GetModuleFileNameExW
+    _GetModuleFileNameExW.argtypes = [HANDLE, HMODULE, LPWSTR, DWORD]
+    _GetModuleFileNameExW.restype = DWORD
 
     nSize = MAX_PATH
     while 1:
