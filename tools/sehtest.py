@@ -41,35 +41,15 @@ import optparse
 import winappdbg
 from winappdbg import win32
 from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
+from winappdbg import DataAddressIterator, ExecutableAddressIterator
 from winappdbg import HexInput, HexDump, CrashDump, Logger
 
 #------------------------------------------------------------------------------
 
 # XXX TODO
-# * log exceptions instead of stopping everything!
+# * log Python exceptions instead of stopping everything!
 # * filter out syscalls not issued from within the exception handling code in
 #   ntdll.dll (to avoid unwanted side effects)
-
-def CustomAddressIterator(memory_map, condition):
-    for mbi in memory_map:
-        if condition(mbi):
-            BaseAddress = mbi.BaseAddress
-            RegionSize  = mbi.RegionSize
-            print "Trying region %.8X - %.8X" % (BaseAddress, BaseAddress + RegionSize) # XXX DEBUG
-            for address in xrange(BaseAddress, BaseAddress + RegionSize):
-                yield address
-
-def DataAddressIterator(memory_map):
-    return CustomAddressIterator(memory_map, win32.MemoryBasicInformation.has_content)
-
-def ExecutableAddressIterator(memory_map):
-    return CustomAddressIterator(memory_map, win32.MemoryBasicInformation.is_executable)
-
-def ReadableAddressIterator(memory_map):
-    return CustomAddressIterator(memory_map, win32.MemoryBasicInformation.is_readable)
-
-def WriteableAddressIterator(memory_map):
-    return CustomAddressIterator(memory_map, win32.MemoryBasicInformation.is_writeable)
 
 class Test( object ):
     def __init__(self, options, logger):
@@ -83,11 +63,10 @@ class Test( object ):
         self.memory  = None
 
     def exception(self, event):
-        self.logExceptionEvent(event)   # XXX DEBUG
 ##        event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 ##        event.continueStatus = win32.DBG_CONTINUE
         if not self.testing:
-##            self.logExceptionEvent(event)
+            self.logExceptionEvent(event)
             if event.is_last_chance():
                 event.continueStatus = win32.DBG_TERMINATE_PROCESS
             else:
@@ -96,7 +75,6 @@ class Test( object ):
             if event.is_last_chance():
                 event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             else:
-                print "Current SEH set to %s" % HexDump.address(event.get_process().read_pointer(self.seh + 4)) # XXX DEBUG
                 if not self.checkProtectedPage(event):
                     self.nextExceptionHandler(event)
 
@@ -105,9 +83,6 @@ class Test( object ):
 ##            address = event.get_exception_address() # Oops! This returns EIP
             address = event.get_fault_address()
             address = MemoryAddresses.align_address_to_page_start(address)
-            print "Checking AV at %s" % HexDump.address(address)    # XXX DEBUG
-            print self.saved_pages.get(address, False)
-    ##        print [ (hex(k), v) for (k,v) in self.saved_pages.iteritems() ]
             if self.saved_pages.has_key(address):
                 if self.saved_pages[address] is None:
                     pageSize = System.pageSize
@@ -117,7 +92,6 @@ class Test( object ):
                     for mbi in self.memory:
                         if address in mbi:
                             process.mprotect(address, pageSize, mbi.Protect)
-                            print "Allowing memory access to %s" % HexDump.address(address)    # XXX DEBUG
                             return True
         return False
 
@@ -127,9 +101,6 @@ class Test( object ):
         process  = event.get_process()
         for mbi in self.memory:
             if mbi.is_writeable():
-                # XXX DEBUG
-                print "%.8x - %.8x - %s" % (mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, process.get_mapped_filenames([mbi]).get(mbi.BaseAddress))   # XXX
-##                print CrashDump.dump_memory_map([mbi], process.get_mapped_filenames([mbi]))
                 if mbi.is_executable():
                     flNewProtect = win32.PAGE_EXECUTE_READ
                 else:
@@ -152,8 +123,6 @@ class Test( object ):
         process  = event.get_process()
         for mbi in self.memory:
             if mbi.is_writeable():
-                # XXX DEBUG
-                print "%.8x - %.8x - %s" % (mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, process.get_mapped_filenames([mbi]).get(mbi.BaseAddress))   # XXX
                 for address in xrange(mbi.BaseAddress,
                                       mbi.BaseAddress + mbi.RegionSize,
                                       pageSize):
@@ -240,25 +209,25 @@ class Test( object ):
         self.memory   = process.get_memory_map()
         self.iterator = ExecutableAddressIterator(self.memory)
         self.protectPages(event)
-##        self.showBruteforceBanner(event)
+        self.showBruteforceBanner(event)
         self.nextExceptionHandler(event)
 
-##    def showBruteforceBanner(self, event):
-##        count = 0
-##        first = 0
-##        last  = 0
-##        for mbi in self.memory:
-##            if mbi.is_executable():
-##                count = count + mbi.RegionSize
-##                address = mbi.BaseAddress
-##                if first == 0:
-##                    first = address
-##                if last < address:
-##                    last = address
-##        msg   = "Bruteforcing %d addresses (%s-%s)..."
-##        first = HexDump.address(first)
-##        last  = HexDump.address(last)
-##        self.logger.log_text(msg % (count, first, last))
+    def showBruteforceBanner(self, event):
+        count = 0
+        first = 0
+        last  = 0
+        for mbi in self.memory:
+            if mbi.is_executable():
+                count = count + mbi.RegionSize
+                address = mbi.BaseAddress
+                if first == 0:
+                    first = address
+                if last < address:
+                    last = address
+        msg   = "Bruteforcing %d addresses (%s-%s)..."
+        first = HexDump.address(first)
+        last  = HexDump.address(last)
+        self.logger.log_text(msg % (count, first, last))
 
     def nextExceptionHandler(self, event):
         debug   = event.debug
@@ -268,27 +237,25 @@ class Test( object ):
 
         thread.set_context(self.context)
         thread.set_seh_chain_pointer(self.orig_fs0)
-##        self.restorePages(event)
+        self.restorePages(event)
 
         try:
             address = self.iterator.next()
         except StopIteration:
-##            self.unprotectPages(event)
+            self.unprotectPages(event)
             process.write_pointer(self.seh + 4, self.orig)
             event.debug.detach(pid)
             raise
 
         if self.last:
             debug.dont_stalk_at(pid, self.last)
-        self.logger.log_text("Trying %s" % HexDump.address(address))
+##        self.logger.log_text("Trying %s" % HexDump.address(address))
         process.write_pointer(self.seh + 4, address)
-        print "Written %.8x" % process.read_pointer(self.seh + 4)
         debug.stalk_at(pid, address, self.foundValidHandler)
-        print "Breakpoint %.2x" % process.read_char(address)
         self.last = address
 
     def foundValidHandler(self, event):
-##        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
         self.logExceptionEvent(event)
         address = HexDump.address( event.get_exception_address() )
         self.logger.log_text("Found %s" % address)
