@@ -30,8 +30,8 @@ Debugging module.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
-@group Instrumentation: System, Process, Thread, Module
-@group Debugging: Debug, EventHandler
+@group Debugging:
+    Debug
 """
 
 __revision__ = "$Id$"

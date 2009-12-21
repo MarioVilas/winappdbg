@@ -27,6 +27,10 @@
 
 """
 Crash logging module.
+
+@group Crash reporting:
+    Crash, CrashContainer, CrashTable,
+    VolatileCrashContainer, DummyCrashContainer
 """
 
 __revision__ = "$Id$"
@@ -82,10 +86,47 @@ class Crash (object):
         key
 
     @group Report:
-        briefReport, fullReport, notesReport
+        briefReport, fullReport, notesReport, isExploitable
 
     @group Notes:
-        addNote, getNotes, iterNotes, hasNotes, clearNotes
+        addNote, getNotes, iterNotes, hasNotes, clearNotes, notes
+
+    @group Miscellaneous:
+        fetch_extra_data
+
+    @group Basic information:
+        timeStamp, eventCode, eventName, pid, tid, registers, labelPC
+
+    @group Optional information:
+        debugString,
+        modFileName,
+        lpBaseOfDll,
+        exceptionCode,
+        exceptionName,
+        exceptionDescription,
+        exceptionAddress,
+        exceptionLabel,
+        firstChance,
+        faultType,
+        faultAddress,
+        faultLabel,
+        isOurBreakpoint,
+        isSystemBreakpoint,
+        stackTrace,
+        stackTracePC,
+        stackTraceLabels,
+        stackTracePretty
+
+    @group Extra information:
+        registersPeek,
+        stackRange,
+        stackFrame,
+        stackPeek,
+        faultCode,
+        faultMem,
+        faultPeek,
+        faultDisasm,
+        memoryMap
 
     @type timeStamp: float
     @ivar timeStamp: Timestamp as returned by time.time().
@@ -130,6 +171,11 @@ class Crash (object):
 
     @type exceptionName: None or str
     @ivar exceptionName: Exception code user-friendly name.
+
+        C{None} if unapplicable or unable to retrieve.
+
+    @type exceptionDescription: None or str
+    @ivar exceptionDescription: Exception description.
 
         C{None} if unapplicable or unable to retrieve.
 
@@ -292,19 +338,19 @@ class Crash (object):
         # The following properties are only retrieved for some events.
         self.registersPeek      = None
         self.debugString        = None
+        self.modFileName        = None
+        self.lpBaseOfDll        = None
         self.exceptionCode      = None
         self.exceptionName      = None
+        self.exceptionDescription = None
         self.exceptionAddress   = None
+        self.exceptionLabel     = None
+        self.firstChance        = None
         self.faultType          = None
         self.faultAddress       = None
         self.faultLabel         = None
-        self.firstChance        = None
         self.isOurBreakpoint    = None
         self.isSystemBreakpoint = None
-        self.modFileName        = None
-        self.lpBaseOfDll        = None
-        self.exceptionLabel     = None
-        self.stackLimits        = None
         self.stackTrace         = None
         self.stackTracePC       = None
         self.stackTraceLabels   = None
@@ -1111,8 +1157,7 @@ class CrashContainer (object):
         """
         if key in self.__keys:
             return self.__keys[key]
-        key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
-        key = optimize(key)
+        key = pickle.dumps(key, protocol = 0)
         return key
 
     def __unmarshall_key(self, key):
@@ -1174,7 +1219,7 @@ class CrashTable (object):
     Manages a database of persistent Crash objects, trying to avoid duplicates
     only when requested.
 
-    Uses a SQLite database file for persistency.
+    Uses an SQLite database file for persistency.
 
     @see: L{Crash.key}
     """
@@ -1704,7 +1749,8 @@ class VolatileCrashContainer(CrashContainer):
 class DummyCrashContainer(CrashContainer):
     """
     Fakes a database of volatile Crash objects,
-    trying to mimic part of it's interface.
+    trying to mimic part of it's interface, but
+    doesn't actually store anything.
 
     @see: L{Crash.key}
     """

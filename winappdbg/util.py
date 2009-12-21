@@ -26,21 +26,496 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debug registers manipulation.
+Miscellaneous utility classes and functions.
 
-@group Debug registers manipulation: DebugRegister
+@group Miscellaneous:
+    PathOperations,
+    MemoryAddresses,
+    CustomAddressIterator,
+    DataAddressIterator,
+    ImageAddressIterator,
+    MappedAddressIterator,
+    ExecutableAddressIterator,
+    ReadableAddressIterator,
+    WriteableAddressIterator,
+    ExecutableAndWriteableAddressIterator,
+    DebugRegister,
+    Regenerator
 """
 
 __revision__ = "$Id$"
 
 __all__ = [
 
+    # Filename and pathname manipulation
+    'PathOperations',
+
+    # Memory address operations
+    'MemoryAddresses',
+    'CustomAddressIterator',
+    'DataAddressIterator',
+    'ImageAddressIterator',
+    'MappedAddressIterator',
+    'ExecutableAddressIterator',
+    'ReadableAddressIterator',
+    'WriteableAddressIterator',
+    'ExecutableAndWriteableAddressIterator',
+
     # Debug registers manipulation
     'DebugRegister',
+
+    # Miscellaneous
+    'Regenerator',
 
     ]
 
 import win32
+
+#==============================================================================
+
+# See Process.generate_memory_snapshot()
+class Regenerator(object):
+    """
+    Calls a generator and iterates it. When it's finished iterating, the
+    generator is called again. This allows you to iterate a generator more
+    than once (well, sort of).
+    """
+
+    def __init__(self, g_function, *v_args, **d_args):
+        """
+        @type  g_function: function
+        @param g_function: Function that when called returns a generator.
+
+        @type  v_args: tuple
+        @param v_args: Variable arguments to pass to the generator function.
+
+        @type  d_args: dict
+        @param d_args: Variable arguments to pass to the generator function.
+        """
+        self.__g_function = g_function
+        self.__v_args     = v_args
+        self.__d_args     = d_args
+        self.__g_object   = None
+
+    def __iter__(self):
+        'x.__iter__() <==> iter(x)'
+        return self
+
+    def next(self):
+        'x.next() -> the next value, or raise StopIteration'
+        if self.__g_object is None:
+            self.__g_object = self.__g_function( *self.__v_args, **self.__d_args )
+        try:
+            return self.__g_object.next()
+        except StopIteration:
+            self.__g_object = None
+            raise
+
+#==============================================================================
+
+class PathOperations (object):
+    """
+    Static methods for filename and pathname manipulation.
+    """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
+
+    @staticmethod
+    def pathname_to_filename(pathname):
+        """
+        @type  pathname: str
+        @param pathname: Absolute path.
+
+        @rtype:  str
+        @return: Relative path.
+        """
+        return win32.PathFindFileName(pathname)
+
+    @staticmethod
+    def filename_to_pathname(filename):
+        """
+        @type  filename: str
+        @param filename: Relative path.
+
+        @rtype:  str
+        @return: Absolute path.
+        """
+        return win32.GetFullPathName(filename)
+
+    @staticmethod
+    def path_is_relative(path):
+        """
+        @see: L{path_is_absolute}
+
+        @type  path: str
+        @param path: Absolute or relative path.
+
+        @rtype:  bool
+        @return: C{True} if the path is relative, C{False} if it's absolute.
+        """
+        return win32.PathIsRelative(path)
+
+    @staticmethod
+    def path_is_absolute(path):
+        """
+        @see: L{path_is_relative}
+
+        @type  path: str
+        @param path: Absolute or relative path.
+
+        @rtype:  bool
+        @return: C{True} if the path is absolute, C{False} if it's relative.
+        """
+        return not win32.PathIsRelative(path)
+
+    @staticmethod
+    def split_extension(pathname):
+        """
+        @type  pathname: str
+        @param pathname: Absolute path.
+
+        @rtype:  tuple( str, str )
+        @return:
+            Tuple containing the file and extension components of the filename.
+        """
+        filepart = win32.PathRemoveExtension(pathname)
+        extpart  = win32.PathFindExtension(pathname)
+        return (filepart, extpart)
+
+    @staticmethod
+    def split_filename(pathname):
+        """
+        @type  pathname: str
+        @param pathname: Absolute path.
+
+        @rtype:  tuple( str, str )
+        @return: Tuple containing the path to the file and the base filename.
+        """
+        filepart = win32.PathFindFileName(pathname)
+        pathpart = win32.PathRemoveFileSpec(pathname)
+        return (pathpart, filepart)
+
+    @staticmethod
+    def split_path(path):
+        """
+        @see: L{join_path}
+
+        @type  path: str
+        @param path: Absolute or relative path.
+
+        @rtype:  list( str... )
+        @return: List of path components.
+        """
+        components = list()
+        while path:
+            next = win32.PathFindNextComponent(path)
+            if next:
+                prev = path[ : -len(next) ]
+                components.append(prev)
+            path = next
+        return components
+
+    @staticmethod
+    def join_path(*components):
+        """
+        @see: L{split_path}
+
+        @type  components: tuple( str... )
+        @param components: Path components.
+
+        @rtype:  str
+        @return: Absolute or relative path.
+        """
+        if components:
+            path = components[0]
+            for next in components[1:]:
+                path = win32.PathAppend(path, next)
+        else:
+            path = ""
+        return path
+
+    @staticmethod
+    def native_to_win32_pathname(name):
+        """
+        @type  name: str
+        @param name: Native (NT) absolute pathname.
+
+        @rtype:  str
+        @return: Win32 absolute pathname.
+        """
+        # XXX TODO
+        # There are probably some native paths that
+        # won't be converted by this naive approach.
+        if name.startswith("\\"):
+            if name.startswith("\\??\\"):
+                name = name[4:]
+            elif name.startswith("\\SystemRoot\\"):
+                system_root_path = os.environ['SYSTEMROOT']
+                if system_root_path.endswith('\\'):
+                    system_root_path = system_root_path[:-1]
+                name = system_root_path + name[11:]
+            else:
+                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                    drive_letter = '%c:' % drive_number
+                    try:
+                        device_native_path = win32.QueryDosDevice(drive_letter)
+                    except WindowsError, e:
+                        if win32.winerror(e) in (win32.ERROR_FILE_NOT_FOUND, \
+                                                 win32.ERROR_PATH_NOT_FOUND):
+                            continue
+                        raise
+                    if not device_native_path.endswith('\\'):
+                        device_native_path += '\\'
+                    if name.startswith(device_native_path):
+                        name = drive_letter + '\\' + \
+                                              name[ len(device_native_path) : ]
+                        break
+        return name
+
+#==============================================================================
+
+class MemoryAddresses (object):
+    """
+    Class to manipulate memory addresses.
+    """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
+
+    @staticmethod
+    def align_address_to_page_start(address):
+        """
+        Align the given address to the start of the page it occupies.
+
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  int
+        @return: Aligned memory address.
+        """
+        return address - ( address % System.pageSize )
+
+    @staticmethod
+    def align_address_to_page_end(address):
+        """
+        Align the given address to the end of the page it occupies.
+        That is, to point to the start of the next page.
+
+        @type  address: int
+        @param address: Memory address.
+
+        @rtype:  int
+        @return: Aligned memory address.
+        """
+        return address + System.pageSize - ( address % System.pageSize )
+
+    @classmethod
+    def align_address_range(cls, begin, end):
+        """
+        Align the given address range to the start and end of the page(s) it occupies.
+
+        @type  begin: int
+        @param begin: Memory address of the beginning of the buffer.
+
+        @type  end: int
+        @param end: Memory address of the end of the buffer.
+
+        @rtype:  tuple( int, int )
+        @return: Aligned memory addresses.
+        """
+        if end > begin:
+            begin, end = end, begin
+        return (
+            cls.align_address_to_page_start(begin),
+            cls.align_address_to_page_end(end)
+            )
+
+    @classmethod
+    def get_buffer_size_in_pages(cls, address, size):
+        """
+        Get the number of pages in use by the given buffer.
+
+        @type  address: int
+        @param address: Aligned memory address.
+
+        @type  size: int
+        @param size: Buffer size.
+
+        @rtype:  int
+        @return: Buffer size in number of pages.
+        """
+        if size < 0:
+            size    = -size
+            address = address - size
+        begin, end = cls.align_address_range(address, address + size)
+        # XXX FIXME
+        # I think this rounding fails at least for address 0xFFFFFFFF size 1
+        return int(float(end - begin) / float(System.pageSize))
+
+    @staticmethod
+    def do_ranges_intersect(begin, end, old_begin, old_end):
+        """
+        Determine if the two given memory address ranges intersect.
+
+        @type  begin: int
+        @param begin: Start address of the first range.
+
+        @type  end: int
+        @param end: End address of the first range.
+
+        @type  old_begin: int
+        @param old_begin: Start address of the second range.
+
+        @type  old_end: int
+        @param old_end: End address of the second range.
+
+        @rtype:  bool
+        @return: C{True} if the two ranges intersect, C{False} otherwise.
+        """
+        return  (old_begin <= begin < old_end) or \
+                (old_begin < end <= old_end)   or \
+                (begin <= old_begin < end)     or \
+                (begin < old_end <= end)
+
+#==============================================================================
+
+def CustomAddressIterator(memory_map, condition):
+    """
+    Generator function that iterates through a memory map, filtering memory
+    region blocks by any given condition.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @type  condition: function
+    @param condition: Callback function that returns C{True} if the memory
+        block should be returned, or C{False} if it should be filtered.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    for mbi in memory_map:
+        if condition(mbi):
+            BaseAddress = mbi.BaseAddress
+            RegionSize  = mbi.RegionSize
+            for address in xrange(BaseAddress, BaseAddress + RegionSize):
+                yield address
+
+def DataAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that contain data.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                      win32.MemoryBasicInformation.has_content)
+
+def ImageAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that belong to executable images.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                         win32.MemoryBasicInformation.is_image)
+
+def MappedAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that belong to memory mapped files.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                        win32.MemoryBasicInformation.is_mapped)
+
+def ReadableAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that are readable.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                      win32.MemoryBasicInformation.is_readable)
+
+def WriteableAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that are writeable.
+
+    @note: Writeable memory is always readable too.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                     win32.MemoryBasicInformation.is_writeable)
+
+def ExecutableAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that are executable.
+
+    @note: Executable memory is always readable too.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                                    win32.MemoryBasicInformation.is_executable)
+
+def ExecutableAndWriteableAddressIterator(memory_map):
+    """
+    Generator function that iterates through a memory map, returning only those
+    memory blocks that are executable and writeable.
+
+    @note: The presence of such pages make memory corruption vulnerabilities
+        much easier to exploit.
+
+    @type  memory_map: list( L{win32.MemoryBasicInformation} )
+    @param memory_map: List of memory region information objects.
+        Returned by L{Process.get_memory_map}.
+
+    @rtype:  generator of L{win32.MemoryBasicInformation}
+    @return: Generator object to iterate memory blocks.
+    """
+    return CustomAddressIterator(memory_map,
+                      win32.MemoryBasicInformation.is_executable_and_writeable)
 
 #==============================================================================
 
@@ -150,6 +625,10 @@ class DebugRegister (object):
     @cvar clearDr6Mask:
         Bitmask to clear all meaningful bits in C{Dr6}.
     """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     BREAK_ON_EXECUTION  = 0
     BREAK_ON_WRITE      = 1

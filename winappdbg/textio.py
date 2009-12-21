@@ -28,14 +28,18 @@
 """
 Functions for text input, logging or text output.
 
-@group Input:
-    HexInput
-@group Output:
-    HexOutput
-@group Logging:
-    HexDump,
-    CrashDump,
+@group Debugging:
     DebugLog
+
+@group Crash reporting:
+    CrashDump
+
+@group Miscellaneous:
+    HexDump,
+    HexInput,
+    HexOutput,
+    Table,
+    Logger
 """
 
 __revision__ = "$Id$"
@@ -63,6 +67,10 @@ class HexInput (object):
     Static functions for user input parsing.
     The counterparts for each method are in the L{HexOutput} class.
     """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     @staticmethod
     def integer(token):
@@ -287,6 +295,10 @@ class HexOutput (object):
     @cvar address_size: Size in characters of an outputted address.
         This value is platform dependent.
     """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     integer_size = len('%x' % (win32.DWORD(-1).value))+2
     address_size = len('%x' % (win32.SIZE_T(-1).value))+2
@@ -401,6 +413,10 @@ class HexDump (object):
     @cvar address_size: Size in characters of an outputted address.
         This value is platform dependent.
     """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     integer_size = len('%x' % (win32.DWORD(-1).value))
     address_size = len('%x' % (win32.SIZE_T(-1).value))
@@ -813,6 +829,10 @@ class CrashDump (object):
     @type reg_template: str
     @cvar reg_template: Template for the L{dump_registers} method.
     """
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     # Templates for the dump_registers method.
     reg_template = {
@@ -1234,6 +1254,10 @@ class CrashDump (object):
 
 class DebugLog (object):
     'Static functions for debug logging.'
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        'Don\'t try to instance this class, it\'s just a namespace!'
+        raise NotImplementedError
 
     @staticmethod
     def log_text(text):

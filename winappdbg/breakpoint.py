@@ -30,9 +30,12 @@ Breakpoints module.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/HowBreakpointsWork}
 
-@group Breakpoints: Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint
-@group Breakpoint wrappers: Hook, ApiHook, BufferWatch
-@group Breakpoint container capabilities: BreakpointContainer
+@group Breakpoints:
+    Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint,
+    BufferWatch, Hook, ApiHook
+
+@group Capabilities (private):
+    BreakpointContainer
 """
 
 __revision__ = "$Id$"
@@ -58,7 +61,7 @@ __all__ = [
     ]
 
 from system import Process, System, MemoryAddresses
-from debugregister import DebugRegister
+from util import DebugRegister
 from textio import HexDump
 import win32
 
@@ -532,17 +535,7 @@ class CodeBreakpoint (Breakpoint):
         address = self.get_address()
         # XXX maybe if the previous value is \xCC we shouldn't trust it?
         self.__previousValue = aProcess.read(address, len(self.bpInstruction))
-        try:
-            aProcess.write(address, self.bpInstruction)
-        except WindowsError:
-            mbi = aProcess.mquery(address)
-            if mbi.is_writeable():
-                raise
-            try:
-                aProcess.mprotect(address, win32.PAGE_WRITECOPY)
-                aProcess.write(address, self.bpInstruction)
-            finally:
-                aProcess.mprotect(address, mbi.Protect)
+        aProcess.write(address, self.bpInstruction)
 
     def __clear_bp(self, aProcess):
         """
@@ -1495,7 +1488,7 @@ class BreakpointContainer (object):
     """
     Encapsulates the capability to contain Breakpoint objects.
 
-    @group Simple breakpoint use:
+    @group Breakpoints:
         break_at, watch_variable, watch_buffer, hook_function,
         dont_break_at, dont_watch_variable, dont_watch_buffer,
         dont_hook_function, unhook_function
@@ -2841,6 +2834,9 @@ class BreakpointContainer (object):
 
         @type  event: L{ExceptionEvent}
         @param event: Guard page exception event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         address         = event.get_fault_address()
         pid             = event.get_pid()
@@ -2891,6 +2887,9 @@ class BreakpointContainer (object):
 
         @type  event: L{ExceptionEvent}
         @param event: Breakpoint exception event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         address         = event.get_exception_address()
         pid             = event.get_pid()
@@ -2947,6 +2946,9 @@ class BreakpointContainer (object):
 
         @type  event: L{ExceptionEvent}
         @param event: Single step exception event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         pid             = event.get_pid()
         tid             = event.get_tid()
@@ -3009,6 +3011,9 @@ class BreakpointContainer (object):
 
         @type  event: L{ExitThreadEvent}
         @param event: Exit thread event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__cleanup_thread(event)
         return True
@@ -3019,6 +3024,9 @@ class BreakpointContainer (object):
 
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__cleanup_process(event)
         self.__cleanup_thread(event)
@@ -3030,6 +3038,9 @@ class BreakpointContainer (object):
 
         @type  event: L{UnloadDLLEvent}
         @param event: Unload DLL event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__cleanup_module(event)
         return True

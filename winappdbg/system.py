@@ -32,11 +32,11 @@ Instrumentation module.
 
 @group Instrumentation:
     System, Process, Thread, Module
+
 @group Capabilities (private):
     ModuleContainer, ThreadContainer, ProcessContainer, SymbolContainer,
     ThreadDebugOperations, ProcessDebugOperations,
-    MemoryOperations, MemoryAddresses, SymbolOperations, PathOperations,
-    SymbolEnumerator
+    MemoryOperations, SymbolOperations, SymbolEnumerator
 """
 
 # FIXME
@@ -53,16 +53,12 @@ __all__ =   [
                 'Process',
                 'Thread',
                 'Module',
-
-                # Static functions
-                'MemoryAddresses',
-                'PathOperations',
             ]
 
 import win32
 import win32.version
 from textio import HexInput, HexDump
-from debugregister import DebugRegister
+from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
 import re
 import os
@@ -82,188 +78,6 @@ except ImportError:
         "http://sourceforge.net/projects/winappdbg/files/"
         "additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/")
         raise NotImplementedError, msg
-
-# Internally used by generate_memory_snapshot()
-class Regenerator(object):
-    """
-    Calls a generator and iterates it. When it's finished iterating, the
-    generator is called again. This allows you to iterate a generator more
-    than once (well, sort of).
-    """
-    def __iter__(self):
-        return self
-    def __init__(self, g_function, *v_args, **d_args):
-        self.__g_function = g_function
-        self.__v_args     = v_args
-        self.__d_args     = d_args
-        self.__g_object   = None
-    def next(self):
-        if self.__g_object is None:
-            self.__g_object = self.__g_function( *self.__v_args, **self.__d_args )
-        try:
-            return self.__g_object.next()
-        except StopIteration:
-            self.__g_object = None
-            raise
-
-#==============================================================================
-
-class PathOperations (object):
-    """
-    Static methods for filename and pathname manipulation.
-    """
-
-    @staticmethod
-    def pathname_to_filename(pathname):
-        """
-        @type  pathname: str
-        @param pathname: Absolute path.
-
-        @rtype:  str
-        @return: Relative path.
-        """
-        return win32.PathFindFileName(pathname)
-
-    @staticmethod
-    def filename_to_pathname(filename):
-        """
-        @type  filename: str
-        @param filename: Relative path.
-
-        @rtype:  str
-        @return: Absolute path.
-        """
-        return win32.GetFullPathName(filename)
-
-    @staticmethod
-    def path_is_relative(path):
-        """
-        @see: L{path_is_absolute}
-
-        @type  path: str
-        @param path: Absolute or relative path.
-
-        @rtype:  bool
-        @return: C{True} if the path is relative, C{False} if it's absolute.
-        """
-        return win32.PathIsRelative(path)
-
-    @staticmethod
-    def path_is_absolute(path):
-        """
-        @see: L{path_is_relative}
-
-        @type  path: str
-        @param path: Absolute or relative path.
-
-        @rtype:  bool
-        @return: C{True} if the path is absolute, C{False} if it's relative.
-        """
-        return not win32.PathIsRelative(path)
-
-    @staticmethod
-    def split_extension(pathname):
-        """
-        @type  pathname: str
-        @param pathname: Absolute path.
-
-        @rtype:  tuple( str, str )
-        @return:
-            Tuple containing the file and extension components of the filename.
-        """
-        filepart = win32.PathRemoveExtension(pathname)
-        extpart  = win32.PathFindExtension(pathname)
-        return (filepart, extpart)
-
-    @staticmethod
-    def split_filename(pathname):
-        """
-        @type  pathname: str
-        @param pathname: Absolute path.
-
-        @rtype:  tuple( str, str )
-        @return: Tuple containing the path to the file and the base filename.
-        """
-        filepart = win32.PathFindFileName(pathname)
-        pathpart = win32.PathRemoveFileSpec(pathname)
-        return (pathpart, filepart)
-
-    @staticmethod
-    def split_path(path):
-        """
-        @see: L{join_path}
-
-        @type  path: str
-        @param path: Absolute or relative path.
-
-        @rtype:  list( str... )
-        @return: List of path components.
-        """
-        components = list()
-        while path:
-            next = win32.PathFindNextComponent(path)
-            if next:
-                prev = path[ : -len(next) ]
-                components.append(prev)
-            path = next
-        return components
-
-    @staticmethod
-    def join_path(*components):
-        """
-        @see: L{split_path}
-
-        @type  components: tuple( str... )
-        @param components: Path components.
-
-        @rtype:  str
-        @return: Absolute or relative path.
-        """
-        if components:
-            path = components[0]
-            for next in components[1:]:
-                path = win32.PathAppend(path, next)
-        else:
-            path = ""
-        return path
-
-    @staticmethod
-    def native_to_win32_pathname(name):
-        """
-        @type  name: str
-        @param name: Native (NT) absolute pathname.
-
-        @rtype:  str
-        @return: Win32 absolute pathname.
-        """
-        # XXX TODO
-        # There are probably some native paths that
-        # won't be converted by this naive approach.
-        if name.startswith("\\"):
-            if name.startswith("\\??\\"):
-                name = name[4:]
-            elif name.startswith("\\SystemRoot\\"):
-                system_root_path = os.environ['SYSTEMROOT']
-                if system_root_path.endswith('\\'):
-                    system_root_path = system_root_path[:-1]
-                name = system_root_path + name[11:]
-            else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
-                    drive_letter = '%c:' % drive_number
-                    try:
-                        device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
-                        if win32.winerror(e) in (win32.ERROR_FILE_NOT_FOUND, \
-                                                 win32.ERROR_PATH_NOT_FOUND):
-                            continue
-                        raise
-                    if not device_native_path.endswith('\\'):
-                        device_native_path += '\\'
-                    if name.startswith(device_native_path):
-                        name = drive_letter + '\\' + \
-                                              name[ len(device_native_path) : ]
-                        break
-        return name
 
 #==============================================================================
 
@@ -598,6 +412,9 @@ class ModuleContainer (object):
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_loaded_module(event)
         return True
@@ -611,6 +428,9 @@ class ModuleContainer (object):
 
         @type  event: L{LoadDLLEvent}
         @param event: Load DLL event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_loaded_module(event)
         return True
@@ -624,6 +444,9 @@ class ModuleContainer (object):
 
         @type  event: L{UnloadDLLEvent}
         @param event: Unload DLL event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         lpBaseOfDll = event.get_module_base()
 ##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
@@ -644,7 +467,7 @@ class ThreadContainer (object):
         scan_threads,
         get_thread, get_thread_count, get_thread_ids,
         has_thread, iter_threads, iter_thread_ids,
-        find_threads_by_name,
+        find_threads_by_name, get_windows,
         clear_threads, clear_dead_threads, close_thread_handles
 
     @group Event notifications (private):
@@ -801,6 +624,18 @@ class ThreadContainer (object):
 
 #------------------------------------------------------------------------------
 
+    def get_windows(self):
+        """
+        @rtype:  list of L{Window}
+        @return: Returns a list of windows handled by this process.
+        """
+        window_list = list()
+        for thread in self.iter_threads():
+            window_list.extend( thread.get_windows() )
+        return window_list
+
+#------------------------------------------------------------------------------
+
     def start_thread(self, lpStartAddress, lpParameter=0,  bSuspended = False):
         """
         Remotely creates a new thread in the process.
@@ -943,6 +778,9 @@ class ThreadContainer (object):
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -956,6 +794,9 @@ class ThreadContainer (object):
 
         @type  event: L{CreateThreadEvent}
         @param event: Create thread event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -969,6 +810,9 @@ class ThreadContainer (object):
 
         @type  event: L{ExitThreadEvent}
         @param event: Exit thread event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwThreadId = event.get_tid()
 ##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
@@ -990,6 +834,7 @@ class ProcessContainer (object):
         get_process, get_process_count, get_process_ids,
         has_process, iter_processes, iter_process_ids,
         find_processes_by_filename, get_pid_from_tid,
+        get_windows,
         clear, clear_processes, clear_dead_processes,
         clear_unattached_processes,
         close_process_handles,
@@ -1129,6 +974,11 @@ class ProcessContainer (object):
 #------------------------------------------------------------------------------
 
     def get_windows(self):
+        """
+        @rtype:  list of L{Window}
+        @return: Returns a list of windows
+            handled by all processes in this snapshot.
+        """
         window_list = list()
         for process in self.iter_processes():
             window_list.extend( process.get_windows() )
@@ -1700,6 +1550,9 @@ class ProcessContainer (object):
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
         dwThreadId  = event.get_tid()
@@ -1728,94 +1581,15 @@ class ProcessContainer (object):
 
         @type  event: L{ExitProcessEvent}
         @param event: Exit process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
 ##        if self.has_process(dwProcessId): # XXX this would trigger a scan
         if self.__processDict.has_key(dwProcessId):
             self.__del_process(dwProcessId)
         return True
-
-#==============================================================================
-
-class MemoryAddresses (object):
-    """
-    Class to manipulate memory addresses.
-    """
-
-    @staticmethod
-    def align_address_to_page_start(address):
-        """
-        Align the given address to the start of the page it occupies.
-
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  int
-        @return: Aligned memory address.
-        """
-        return address - ( address % System.pageSize )
-
-    @staticmethod
-    def align_address_to_page_end(address):
-        """
-        Align the given address to the end of the page it occupies.
-        That is, to point to the start of the next page.
-
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  int
-        @return: Aligned memory address.
-        """
-        return address + System.pageSize - ( address % System.pageSize )
-
-    @classmethod
-    def align_address_range(cls, begin, end):
-        """
-        Align the given address range to the start and end of the page(s) it occupies.
-
-        @type  begin: int
-        @param begin: Memory address of the beginning of the buffer.
-
-        @type  end: int
-        @param end: Memory address of the end of the buffer.
-
-        @rtype:  tuple( int, int )
-        @return: Aligned memory addresses.
-        """
-        if end > begin:
-            begin, end = end, begin
-        return (
-            cls.align_address_to_page_start(begin),
-            cls.align_address_to_page_end(end)
-            )
-
-    @classmethod
-    def get_buffer_size_in_pages(cls, address, size):
-        """
-        Get the number of pages in use by the given buffer.
-
-        @type  address: int
-        @param address: Aligned memory address.
-
-        @type  size: int
-        @param size: Buffer size.
-
-        @rtype:  int
-        @return: Buffer size in number of pages.
-        """
-        if size < 0:
-            size    = -size
-            address = address - size
-        begin, end = cls.align_address_range(address, address + size)
-        return int(float(end - begin) / float(System.pageSize))
-
-    @staticmethod
-    def do_ranges_intersect(begin, end, old_begin, old_end):
-        return  (old_begin <= begin < old_end) or \
-                (old_begin < end <= old_end)   or \
-                (begin <= old_begin < end)     or \
-                (begin < old_end <= end)
 
 #==============================================================================
 
@@ -1828,15 +1602,19 @@ class MemoryOperations (object):
     """
     Encapsulates the capabilities to manipulate the memory of a process.
 
+    @group Instrumentation:
+        malloc, free, mprotect, mquery,
+        take_memory_snapshot, generate_memory_snapshot, restore_memory_snapshot
+
     @group Memory mapping:
-        get_memory_map, malloc, free, mprotect, mquery, is_pointer,
-        is_address_valid, is_address_free, is_address_reserved,
+        get_memory_map, get_mapped_filenames,
+        is_pointer, is_address_valid, is_address_free, is_address_reserved,
         is_address_commited, is_address_guard, is_address_readable,
         is_address_writeable, is_address_copy_on_write, is_address_executable,
         is_address_executable_and_writeable
 
     @group Memory read:
-        read, read_char, read_uint, read_pointer, read_structure,
+        read, read_char, read_uint, read_pointer, read_string, read_structure,
         peek, peek_char, peek_uint, peek_pointer, peek_string
 
     @group Memory write:
@@ -1883,14 +1661,12 @@ class MemoryOperations (object):
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
 
-        @type  lpBuffer: int
+        @type  lpBuffer: str
         @param lpBuffer: Bytes to write.
 
         @raise WindowsError: On error an exception is raised.
         """
-        if not self.mquery(lpBaseAddress).has_content():
-            raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
-        r = win32.WriteProcessMemory(self.get_handle(), lpBaseAddress, lpBuffer)
+        r = self.poke(lpBaseAddress, lpBuffer)
         if r != len(lpBuffer):
             raise ctypes.WinError()
 
@@ -2105,6 +1881,8 @@ class MemoryOperations (object):
         @return: Bytes read from the process memory.
             Returns an empty string on error.
         """
+        # XXX TODO
+        # Change page permissions before trying to read it
         data = ''
         if nSize > 0:
             try:
@@ -2130,12 +1908,26 @@ class MemoryOperations (object):
         @return: Number of bytes written.
             May be less than the number of bytes to write.
         """
+        hProcess = self.get_handle()
+        mbi = self.mquery(lpBaseAddress)
+        if not mbi.has_content():
+            raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
+        if mbi.is_image() or mbi.is_mapped():
+            prot = win32.PAGE_WRITECOPY
+        elif mbi.is_writeable():
+            prot = None
+        elif mbi.is_executable():
+            prot = win32.PAGE_EXECUTE_READWRITE
+        else:
+            prot = win32.PAGE_READWRITE
+        if prot is not None:
+            self.mprotect(lpBaseAddress, len(lpBuffer), prot)
         try:
-            bytesWritten = win32.WriteProcessMemory(self.get_handle(),
-                                                       lpBaseAddress, lpBuffer)
-        except WindowsError:
-            bytesWritten = 0
-        return bytesWritten
+            r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
+        finally:
+            if prot is not None:
+                self.mprotect(lpBaseAddress, len(lpBuffer), mbi.Protect)
+        return r
 
     def peek_uint(self, lpBaseAddress):
         """
@@ -2703,7 +2495,7 @@ class MemoryOperations (object):
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
             except WindowsError, e:
-##                    print str(e)    # XXX DEBUG
+##                print str(e)    # XXX DEBUG
                 pass
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
@@ -3126,6 +2918,19 @@ class SymbolContainer (object):
                     return SymbolAddress
 
     def get_symbol_at_address(self, address):
+        """
+        Tries to find the closest matching symbol for the given address.
+
+        @type  address: int
+        @param address: Memory address to query.
+
+        @rtype: None or tuple( str, int, int )
+        @return: Returns a tuple consisting of:
+             - Name
+             - Address
+             - Size (in bytes)
+            Returns C{None} if no symbol could be matched.
+        """
         found = None
         for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
             if SymbolAddress > address:
@@ -3166,8 +2971,10 @@ class SymbolOperations (object):
         resolve_symbol, get_symbol_at_address
 
     @group Debugging:
-        get_system_breakpoint, get_user_breakpoint, get_breakin_breakpoint,
-        is_system_defined_breakpoint
+        is_system_defined_breakpoint, get_system_breakpoint,
+        get_user_breakpoint, get_breakin_breakpoint,
+        get_wow64_system_breakpoint, get_wow64_user_breakpoint,
+        get_wow64_breakin_breakpoint
     """
 
     def __init__(self):
@@ -3789,14 +3596,32 @@ When called as an instance method, the fuzzy syntax mode is used::
             return None
 
     def load_symbols(self):
+        """
+        Loads the debugging symbols for all modules in this snapshot.
+        Automatically called by L{get_symbols}.
+        """
         for aModule in self.iter_modules():
             aModule.load_symbols()
 
     def unload_symbols(self):
+        """
+        Unloads the debugging symbols for all modules in this snapshot.
+        """
         for aModule in self.iter_modules():
             aModule.unload_symbols()
 
     def get_symbols(self):
+        """
+        Returns the debugging symbols for all modules in this snapshot.
+        The symbols are automatically loaded when needed.
+
+        @rtype:  list of tuple( str, int, int )
+        @return: List of symbols.
+            Each symbol is represented by a tuple that contains:
+                - Symbol name
+                - Symbol memory address
+                - Symbol size in bytes
+        """
         symbols = list()
         for aModule in self.iter_modules():
             for symbol in aModule.iter_symbols():
@@ -3804,17 +3629,62 @@ When called as an instance method, the fuzzy syntax mode is used::
         return symbols
 
     def iter_symbols(self):
+        """
+        Returns an iterator for the debugging symbols in all modules in this
+        snapshot, in no particular order.
+        The symbols are automatically loaded when needed.
+
+        @rtype:  iterator of tuple( str, int, int )
+        @return: Iterator of symbols.
+            Each symbol is represented by a tuple that contains:
+                - Symbol name
+                - Symbol memory address
+                - Symbol size in bytes
+        """
         for aModule in self.iter_modules():
             for symbol in aModule.iter_symbols():
                 yield symbol
 
-    def resolve_symbol(self, symbol):
-        symbol = symbol.lower()
-        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
-            if symbol == SymbolName.lower():
-                return SymbolAddress
+    def resolve_symbol(self, symbol, bCaseSensitive = False):
+        """
+        Resolves a debugging symbol's address.
+
+        @type  symbol: str
+        @param symbol: Name of the symbol to resolve.
+
+        @type  bCaseSensitive: bool
+        @param bCaseSensitive: C{True} for case sensitive matches,
+            C{False} for case insensitive.
+
+        @rtype:  int or None
+        @return: Memory address of symbol. C{None} if not found.
+        """
+        if bCaseSensitive:
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                if symbol == SymbolName:
+                    return SymbolAddress
+        else:
+            symbol = symbol.lower()
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                if symbol == SymbolName.lower():
+                    return SymbolAddress
 
     def get_symbol_at_address(self, address):
+        """
+        Tries to find the closest matching symbol for the given address.
+
+        @type  address: int
+        @param address: Memory address to query.
+
+        @rtype: None or tuple( str, int, int )
+        @return: Returns a tuple consisting of:
+             - Name
+             - Address
+             - Size (in bytes)
+            Returns C{None} if no symbol could be matched.
+        """
+        # Any module may have symbols pointing anywhere in memory, so there's
+        # no easy way to optimize this. I guess we're stuck with brute force.
         found = None
         for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
             if SymbolAddress <= address:
@@ -3835,6 +3705,10 @@ class ThreadDebugOperations (object):
     @group Properties:
         get_teb, get_teb_address, is_wow64
 
+    @group Debugging:
+        get_seh_chain_pointer, set_seh_chain_pointer,
+        get_seh_chain, get_wait_chain
+
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
         disassemble_string, disassemble_instruction, disassemble_current
@@ -3842,14 +3716,13 @@ class ThreadDebugOperations (object):
     @group Stack:
         get_stack_frame, get_stack_frame_range, get_stack_range,
         get_stack_trace, get_stack_trace_with_labels,
-        read_stack_data, read_stack_dwords,
-        peek_stack_data, peek_stack_dwords
+        read_stack_data, read_stack_dwords, read_stack_qwords,
+        peek_stack_data, peek_stack_dwords, peek_stack_qwords
 
     @group Miscellaneous:
         read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers,
-        get_linear_address, get_label_at_pc,
-        get_seh_chain, get_wait_chain
+        get_linear_address, get_label_at_pc
     """
 
     def is_wow64(self):
@@ -3951,6 +3824,8 @@ class ThreadDebugOperations (object):
 
     def get_seh_chain_pointer(self):
         """
+        Get the pointer to the first structured exception handler block.
+
         @rtype:  int
         @return: Remote pointer to the first block of the structured exception
             handlers linked list. If the list is empty, the returned value is
@@ -3967,13 +3842,14 @@ class ThreadDebugOperations (object):
         address = self.get_linear_address( 'SegFs', 0 )
         return process.read_pointer( address )
 
-    def get_seh_chain(self):
+    def set_seh_chain_pointer(self, value):
         """
-        @rtype:  list of tuple( int, int )
-        @return: List of structured exception handlers.
-            Each SEH is represented as a tuple of two addresses:
-                - Address of the SEH block
-                - Address of the SEH callback function
+        Change the pointer to the first structured exception handler block.
+
+        @type  value: int
+        @param value: Value of the remote pointer to the first block of the
+            structured exception handlers linked list. To disable SEH set the
+            value C{0xFFFFFFFF}.
 
         @raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
@@ -3982,6 +3858,23 @@ class ThreadDebugOperations (object):
             raise NotImplementedError, \
                 "SEH chain parsing is only supported in 32-bit Windows."
 
+        process = self.get_process()
+        address = self.get_linear_address( 'SegFs', 0 )
+        process.write_pointer( address, value )
+
+    def get_seh_chain(self):
+        """
+        @rtype:  list of tuple( int, int )
+        @return: List of structured exception handlers.
+            Each SEH is represented as a tuple of two addresses:
+                - Address of this SEH block
+                - Address of the SEH callback function
+            Do not confuse this with the contents of the SEH block itself,
+            where the first member is a pointer to the B{next} block instead.
+
+        @raise NotImplementedError:
+            This method is only supported in 32 bits versions of Windows.
+        """
         seh_chain = list()
         try:
             process = self.get_process()
@@ -3991,7 +3884,7 @@ class ThreadDebugOperations (object):
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_pointer( seh )
         except WindowsError, e:
-            pass
+            seh_chain.append( (seh, None) )
         return seh_chain
 
     def get_wait_chain(self):
@@ -4514,7 +4407,7 @@ class ProcessDebugOperations (object):
 
     @group Properties:
         get_peb, get_peb_address,
-        get_main_module, get_image_base, get_image_name,
+        get_main_module, get_image_base, get_image_name, get_command_line,
         is_wow64
 
     @group Disassembly:
@@ -5503,7 +5396,7 @@ class Thread (ThreadDebugOperations):
 
     @group Properties:
         get_tid, get_pid, get_process, get_exit_code, is_alive,
-        get_name, set_name
+        get_name, set_name, get_windows
     @group Instrumentation:
         suspend, resume, kill, wait
     @group Registers:
@@ -5511,11 +5404,13 @@ class Thread (ThreadDebugOperations):
         get_register,
         get_flags, get_flag_value,
         get_pc, get_sp, get_fp,
+        get_gp, get_rp,
         get_cf, get_df, get_sf, get_tf, get_zf,
         set_context,
         set_register,
         set_flags, set_flag_value,
         set_pc, set_sp, set_fp,
+        set_gp, set_rp,
         set_cf, set_df, set_sf, set_tf, set_zf,
         clear_cf, clear_df, clear_sf, clear_tf, clear_zf,
         Flags
@@ -5696,8 +5591,8 @@ class Thread (ThreadDebugOperations):
                 self.get_process().free(self.pInjectedMemory)
                 self.pInjectedMemory = None
             except Exception:
-                pass
 ##                raise           # XXX DEBUG
+                pass
 
     def suspend(self):
         """
@@ -6141,7 +6036,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         is_alive, is_debugged
 
     @group Instrumentation:
-        kill, wait, suspend, resume, inject_code, inject_dll
+        kill, wait, suspend, resume, inject_code, inject_dll, clean_exit
 
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__
@@ -6267,6 +6162,10 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.__container = container
             self.__iterator  = None
             self.__state     = 0
+
+        def __iter__(self):
+            'x.__iter__() <==> iter(x)'
+            return self
 
         def next(self):
             'x.next() -> the next value, or raise StopIteration'
@@ -6413,18 +6312,6 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         """
         self.clear_threads()
         self.clear_modules()
-
-#------------------------------------------------------------------------------
-
-    def get_windows(self):
-        """
-        @rtype:  list of L{Window}
-        @return: Returns a list of windows handled by this process.
-        """
-        window_list = list()
-        for thread in self.iter_threads():
-            window_list.extend( thread.get_windows() )
-        return window_list
 
 #------------------------------------------------------------------------------
 
@@ -6698,6 +6585,9 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
         @type  event: L{CreateProcessEvent}
         @param event: Create process event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         # Do not use super() here.
         bCallHandler = ThreadContainer.notify_create_process(self, event)
@@ -6713,9 +6603,10 @@ class System (ProcessContainer):
     Contains a snapshot of processes.
 
     @group Global settings:
-        arch, pageSize,
+        arch, bits, os, wow64, pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
-        read_msr, write_msr, enable_step_on_branch_mode
+        read_msr, write_msr, enable_step_on_branch_mode,
+        get_last_branch_location
 
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.

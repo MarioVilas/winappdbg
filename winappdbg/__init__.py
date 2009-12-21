@@ -36,12 +36,46 @@ Web:     U{http://winappdbg.sourceforge.net/}
 
 Blog:    U{http://breakingcode.wordpress.com}
 
-@group Instrumentation: System, Process, Thread, Module
-@group Debugging: Debug, EventHandler, NoEvent, DebugRegister
-@group Crash reporting: Crash, CrashContainer, CrashDump
-@group Text input and output: HexInput, HexOutput, HexDump, DebugLog
-@group Win32 API wrappers: win32, Handle, ProcessHandle, ThreadHandle, FileHandle
-@group Internal use: breakpoint, crash, debug, debugregister, event, system, textio
+@group Debugging:
+    Debug, EventHandler, DebugLog
+
+@group Instrumentation:
+    System, Process, Thread, Module
+
+@group Crash reporting:
+    Crash, CrashDump, CrashContainer, CrashTable,
+    VolatileCrashContainer, DummyCrashContainer
+
+@group Debug events:
+    Event,
+    NoEvent,
+    CreateProcessEvent,
+    CreateThreadEvent,
+    ExitProcessEvent,
+    ExitThreadEvent,
+    LoadDLLEvent,
+    UnloadDLLEvent,
+    OutputDebugStringEvent,
+    RIPEvent,
+    ExceptionEvent
+
+@group Win32 API wrappers:
+    win32, Handle, ProcessHandle, ThreadHandle, FileHandle
+
+@group Miscellaneous:
+    HexInput, HexOutput, HexDump, Table, Logger,
+    PathOperations,
+    MemoryAddresses,
+    CustomAddressIterator,
+    DataAddressIterator,
+    ImageAddressIterator,
+    MappedAddressIterator,
+    ExecutableAddressIterator,
+    ReadableAddressIterator,
+    WriteableAddressIterator,
+    ExecutableAndWriteableAddressIterator,
+    DebugRegister,
+    Regenerator
 
 @type version: str
 @var  version: This WinAppDbg release version.
@@ -73,9 +107,6 @@ __all__ =   [
                 # from debug import *
                 'Debug',
 
-                # from debugregister import *
-                'DebugRegister',
-
                 # from system import *
                 'Module',
                 'Thread',
@@ -83,10 +114,21 @@ __all__ =   [
                 'Process',
                 'System',
 
-                # from debug import *
+                # from event import *
                 'EventHandler',
 ##                'EventFactory',
-                'NoEvent',
+##                'EventDispatcher',
+                'Event',
+##                'NoEvent',
+                'CreateProcessEvent',
+                'CreateThreadEvent',
+                'ExitProcessEvent',
+                'ExitThreadEvent',
+                'LoadDLLEvent',
+                'UnloadDLLEvent',
+                'OutputDebugStringEvent',
+                'RIPEvent',
+                'ExceptionEvent',
 
                 # from textio import *
                 'HexDump',
@@ -96,6 +138,20 @@ __all__ =   [
                 'CrashDump',
                 'DebugLog',
                 'Logger',
+
+                # from util import *
+                'PathOperations',
+                'MemoryAddresses',
+                'CustomAddressIterator',
+                'DataAddressIterator',
+                'ImageAddressIterator',
+                'MappedAddressIterator',
+                'ExecutableAddressIterator',
+                'ReadableAddressIterator',
+                'WriteableAddressIterator',
+                'ExecutableAndWriteableAddressIterator',
+                'DebugRegister',
+##                'Regenerator',
 
                 # import win32
                 'win32',
@@ -111,10 +167,10 @@ __all__ =   [
 from breakpoint import *
 from crash import *
 from debug import *
-from debugregister import *
 from event import *
 from system import *
 from textio import *
+from util import *
 import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 

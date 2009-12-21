@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging API wrappers in ctypes.
+Detect the current architecture and operating system.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """

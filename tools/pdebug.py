@@ -44,6 +44,7 @@ from cmd import Cmd
 
 import winappdbg
 from winappdbg import EventHandler, win32
+from winappdbg.event import NoEvent
 
 try:
     import readline
@@ -545,13 +546,24 @@ class ConsoleDebugger (Cmd, EventHandler):
         label = process.get_label_at_address(pc)
         try:
             disasm = process.disassemble(pc, 15)
+        except WindowsError:
+            disasm = None
         except NotImplementedError:
             disasm = None
         print
         print winappdbg.CrashDump.dump_registers(ctx),
         print "%s:" % label
         if disasm:
-            print winappdbg.CrashDump.dump_code_line(disasm[0], pc, bShowDump = False)
+            print winappdbg.CrashDump.dump_code_line(disasm[0], pc, bShowDump = True)
+        else:
+            try:
+                data = process.peek(pc, 15)
+            except Exception:
+                data = None
+            if data:
+                print '%s: %s' % (winappdbg.HexDump.address(pc), winappdbg.HexDump.hexblock_byte(data))
+            else:
+                print '%s: ???' % winappdbg.HexDump.address(pc)
 
     # Display memory contents using a given method.
     def print_memory_display(self, arg, method):
@@ -1771,6 +1783,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         data       = winappdbg.HexInput.hexadecimal(' '.join(token_list[1:]))
         self.write_memory(address, data, pid)
 
+    # XXX TODO
+    # add ew, ed and eq here
+
     def do_find(self, arg):
         """
         [~process] f <string> - find the string in the process memory
@@ -1954,7 +1969,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         debug.system.scan()
 
         # Instance a dummy event, just to contain the debugger object.
-        self.lastEvent = winappdbg.NoEvent(debug)
+        self.lastEvent = NoEvent(debug)
 
         # Queue the attach command, if needed
         if self.options.attach:
@@ -2027,7 +2042,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                     print "*** Warning: " \
                           "last debug event wasn't properly handled."
                     lastEvent      = self.lastEvent
-                    self.lastEvent = winappdbg.NoEvent(debug)
+                    self.lastEvent = NoEvent(debug)
                     try:
                         debug.cont(lastEvent)
                     # On error, show the command prompt.
@@ -2050,7 +2065,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                         # Continue the debug event.
                         finally:
                             debug.cont(self.lastEvent)
-                            self.lastEvent = winappdbg.NoEvent(debug)
+                            self.lastEvent = NoEvent(debug)
 
                     # On error, show the command prompt.
                     except Exception:

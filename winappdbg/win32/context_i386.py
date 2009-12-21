@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging API wrappers in ctypes.
+CONTEXT structure for i386.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """

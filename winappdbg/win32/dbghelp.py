@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging API wrappers in ctypes.
+Wrapper for dbghelp.dll in ctypes.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
@@ -315,7 +315,7 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
     _SymLoadModule = windll.dbghelp.SymLoadModule
     _SymLoadModule.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD, DWORD]
     _SymLoadModule.restype = DWORD
-    
+
     if not ImageName:
         ImageName = None
     if not ModuleName:

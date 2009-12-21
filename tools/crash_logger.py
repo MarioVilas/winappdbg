@@ -48,7 +48,10 @@ import traceback
 #==============================================================================
 
 # XXX TODO
-# Capture stderr from the debugees
+# * Capture stderr from the debugees?
+# * Unless the full memory snapshot was requested, the debugger could return
+#   DEBUG_CONTINUE and store the crash info in the database in background,
+#   while the debugee tries to handle the exception.
 
 class LoggingEventHandler(EventHandler):
     """

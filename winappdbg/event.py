@@ -30,7 +30,12 @@ Event handling module.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging}
 
-@group Event objects:
+@group Debugging:
+    EventHandler
+
+@group Debug events:
+    EventFactory,
+    EventDispatcher,
     Event,
     NoEvent,
     CreateProcessEvent,
@@ -51,12 +56,29 @@ __all__ = [
             # Users should not need to instance Event objects directly.
             'EventFactory',
 
+            # Event dispatcher used internally by the Debug class.
+            'EventDispatcher',
+
             # Base class for user-defined event handlers.
             'EventHandler',
 
             # Dummy event object that can be used as a placeholder.
             # It's never returned by the EventFactory.
             'NoEvent',
+
+            # Base class for event objects.
+            'Event',
+
+            # Event objects.
+            'CreateProcessEvent',
+            'CreateThreadEvent',
+            'ExitProcessEvent',
+            'ExitThreadEvent',
+            'LoadDLLEvent',
+            'UnloadDLLEvent',
+            'OutputDebugStringEvent',
+            'RIPEvent',
+            'ExceptionEvent'
           ]
 
 import win32
@@ -173,15 +195,13 @@ class Event (object):
         @rtype:  L{Process}
         @return: Process where the event occured.
         """
-        # We can't assume the Process object will be in the System snapshot.
-        # The user may have cleared or otherwise modified the snapshot.
-        # Also some process creation events are missed on Wine.
         pid     = self.get_pid()
         system  = self.debug.system
         if system.has_process(pid):
             process = system.get_process(pid)
         else:
-##            print "Process notification missed! ID: %x" % pid       # XXX
+            # XXX HACK
+            # The process object was missing for some reason, so make a new one.
             process = Process(pid)
             system._ProcessContainer__add_process(process)
 ##            process.scan_threads()    # not needed
@@ -195,14 +215,13 @@ class Event (object):
         @rtype:  L{Thread}
         @return: Thread where the event occured.
         """
-        # We can't assume the Thread object will be in the Process snapshot.
-        # See the comments of get_process.
         tid     = self.get_tid()
         process = self.get_process()
         if process.has_thread(tid):
             thread = process.get_thread(tid)
         else:
-##            print "Thread notification missed! ID: %x" % tid        # XXX
+            # XXX HACK
+            # The thread object was missing for some reason, so make a new one.
             thread = Thread(tid)
             process._ThreadContainer__add_thread(thread)
         return thread
@@ -569,16 +588,14 @@ class CreateThreadEvent (Event):
         """
         @rtype:  L{ThreadHandle}
         @return: Thread handle received from the system.
-            If it's a valid handle, a new L{ThreadHandle} object is created.
-            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
-        @note: This method never returns C{NULL}.
+            Returns C{None} if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
         hThread = self.raw.u.CreateThread.hThread
-        if hThread == win32.NULL:
-            hThread = win32.INVALID_HANDLE_VALUE
-        elif hThread != win32.INVALID_HANDLE_VALUE:
+        if hThread in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
+            hThread = None
+        else:
             hThread = ThreadHandle(hThread, False)
         return hThread
 
@@ -614,22 +631,20 @@ class CreateProcessEvent (Event):
 
     def get_file_handle(self):
         """
-        @rtype:  L{FileHandle}
-        @return: File handle to the main module.
-            If it's a valid handle, a new L{FileHandle} object is created.
-            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
-        @note: This method never returns C{NULL}.
+        @rtype:  L{FileHandle} or None
+        @return: File handle to the main module, received from the system.
+            Returns C{None} if the handle is not available.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
         # get closed after the first call.
-        if hasattr(self, '_CreateProcessEvent__hFile'):
+        try:
             hFile = self.__hFile
-        else:
+        except AttributeError:
             hFile = self.raw.u.CreateProcessInfo.hFile
-            if hFile == win32.NULL:
-                hFile = win32.INVALID_HANDLE_VALUE
-            elif hFile != win32.INVALID_HANDLE_VALUE:
+            if hFile in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
+                hFile = None
+            else:
                 hFile = FileHandle(hFile, True)
             self.__hFile = hFile
         return hFile
@@ -638,16 +653,14 @@ class CreateProcessEvent (Event):
         """
         @rtype:  L{ProcessHandle}
         @return: Process handle received from the system.
-            If it's a valid handle, a new L{ProcessHandle} object is created.
-            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
-        @note: This method never returns C{NULL}.
+            Returns C{None} if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
         hProcess = self.raw.u.CreateProcessInfo.hProcess
-        if hProcess == win32.NULL:
-            hProcess = win32.INVALID_HANDLE_VALUE
-        elif hProcess != win32.INVALID_HANDLE_VALUE:
+        if hProcess in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
+            hProcess = None
+        else:
             hProcess = ProcessHandle(hProcess, False)
         return hProcess
 
@@ -655,16 +668,14 @@ class CreateProcessEvent (Event):
         """
         @rtype:  L{ThreadHandle}
         @return: Thread handle received from the system.
-            If it's a valid handle, a new L{ThreadHandle} object is created.
-            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
-        @note: This method never returns C{NULL}.
+            Returns C{None} if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
         hThread = self.raw.u.CreateProcessInfo.hThread
-        if hThread == win32.NULL:
-            hThread = win32.INVALID_HANDLE_VALUE
-        elif hThread != win32.INVALID_HANDLE_VALUE:
+        if hThread in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
+            hThread = None
+        else:
             hThread = ThreadHandle(hThread, False)
         return hThread
 
@@ -715,7 +726,10 @@ class CreateProcessEvent (Event):
         """
 
         # Try to get the filename from the file handle.
-        szFilename = self.get_file_handle().get_filename()
+        szFilename = None
+        hFile = self.get_file_handle()
+        if hFile:
+            szFilename = hFile.get_filename()
         if not szFilename:
 
             # Try to get it from CREATE_PROCESS_DEBUG_INFO.lpImageName
@@ -842,20 +856,20 @@ class LoadDLLEvent (Event):
         if aProcess.has_module(lpBaseOfDll):
             aModule = aProcess.get_module(lpBaseOfDll)
         else:
+            # XXX HACK
+            # For some reason the module object is missing, so make a new one.
             aModule = Module(lpBaseOfDll,
-                             hFile = self.get_file_handle(),
+                             hFile    = self.get_file_handle(),
                              fileName = get_filename(),
-                             process = aProcess)
+                             process  = aProcess)
             aProcess.__ModuleContainer_add_module(aModule)
         return aModule
 
     def get_file_handle(self):
         """
-        @rtype:  L{FileHandle}
-        @return: File handle to the newly loaded DLL.
-            If it's a valid handle, a new L{FileHandle} object is created.
-            Otherwise, the method returns C{INVALID_HANDLE_VALUE}.
-        @note: This method never returns C{NULL}.
+        @rtype:  L{FileHandle} or None
+        @return: File handle to the newly loaded DLL received from the system.
+            Returns C{None} if the handle is not available.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
@@ -864,9 +878,9 @@ class LoadDLLEvent (Event):
             hFile = self.__hFile
         except AttributeError:
             hFile = self.raw.u.LoadDll.hFile
-            if hFile == win32.NULL:
-                hFile = win32.INVALID_HANDLE_VALUE
-            elif hFile != win32.INVALID_HANDLE_VALUE:
+            if hFile in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
+                hFile = None
+            else:
                 hFile = FileHandle(hFile, True)
             self.__hFile = hFile
         return hFile
@@ -880,7 +894,10 @@ class LoadDLLEvent (Event):
         """
 
         # Try to get the filename from the file handle.
-        szFilename = self.get_file_handle().get_filename()
+        szFilename = None
+        hFile = self.get_file_handle()
+        if hFile:
+            szFilename = hFile.get_filename()
         if not szFilename:
 
             # Try to get it from LOAD_DLL_DEBUG_INFO.lpImageName
@@ -937,7 +954,7 @@ class UnloadDLLEvent (Event):
             Returns C{None} if the handle is not available.
         """
         hFile = self.get_module().hFile
-        if hFile == win32.INVALID_HANDLE_VALUE:
+        if hFile in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
             hFile = None
         return hFile
 
@@ -1161,6 +1178,7 @@ class EventHandler (object):
      - I{privileged_instruction}
      - I{single_step}
      - I{stack_overflow}
+     - I{wow64_breakpoint}
 
 
 

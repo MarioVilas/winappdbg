@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging API wrappers in ctypes.
+Common definitions.
 
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
@@ -402,6 +402,8 @@ MAX_PATH            = 260
 
 # Error codes
 # TODO maybe add more error codes?
+# if they're too many they could be pickled instead,
+# or at the very least put in a new file
 ERROR_SUCCESS                       = 0
 ERROR_INVALID_FUNCTION              = 1
 ERROR_FILE_NOT_FOUND                = 2
@@ -454,6 +456,8 @@ ERROR_DBG_CONTROL_BREAK             = 696
 ERROR_DBG_COMMAND_EXCEPTION         = 697
 ERROR_DBG_EXCEPTION_HANDLED         = 766
 ERROR_DBG_CONTINUE                  = 767
+
+ERROR_NOACCESS                      = 998
 
 ERROR_DEBUGGER_INACTIVE             = 1284
 
