@@ -279,14 +279,28 @@ class PathOperations (object):
 class MemoryAddresses (object):
     """
     Class to manipulate memory addresses.
+
+    @type pageSize: int
+    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
+        automatically updated on runtime when importing the module.
     """
     @classmethod
     def __new__(cls, *argv, **argd):
         'Don\'t try to instance this class, it\'s just a namespace!'
         raise NotImplementedError
 
-    @staticmethod
-    def align_address_to_page_start(address):
+    # Try to get the pageSize value on runtime,
+    # ignoring exceptions on failure.
+    try:
+        try:
+            pageSize = win32.GetSystemInfo().dwPageSize
+        except WindowsError:
+            pageSize = 0x1000
+    except NameError:
+        pageSize = 0x1000
+
+    @classmethod
+    def align_address_to_page_start(cls, address):
         """
         Align the given address to the start of the page it occupies.
 
@@ -296,10 +310,10 @@ class MemoryAddresses (object):
         @rtype:  int
         @return: Aligned memory address.
         """
-        return address - ( address % System.pageSize )
+        return address - ( address % cls.pageSize )
 
-    @staticmethod
-    def align_address_to_page_end(address):
+    @classmethod
+    def align_address_to_page_end(cls, address):
         """
         Align the given address to the end of the page it occupies.
         That is, to point to the start of the next page.
@@ -310,7 +324,7 @@ class MemoryAddresses (object):
         @rtype:  int
         @return: Aligned memory address.
         """
-        return address + System.pageSize - ( address % System.pageSize )
+        return address + cls.pageSize - ( address % cls.pageSize )
 
     @classmethod
     def align_address_range(cls, begin, end):
@@ -353,7 +367,7 @@ class MemoryAddresses (object):
         begin, end = cls.align_address_range(address, address + size)
         # XXX FIXME
         # I think this rounding fails at least for address 0xFFFFFFFF size 1
-        return int(float(end - begin) / float(System.pageSize))
+        return int(float(end - begin) / float(cls.pageSize))
 
     @staticmethod
     def do_ranges_intersect(begin, end, old_begin, old_end):

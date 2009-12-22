@@ -6640,15 +6640,7 @@ class System (ProcessContainer):
     except Exception:
         wow64 = False
 
-    # Try to get the pageSize value on runtime,
-    # ignoring exceptions on failure.
-    try:
-        try:
-            pageSize = win32.GetSystemInfo().dwPageSize
-        except WindowsError:
-            pageSize = 0x1000
-    except NameError:
-        pageSize = 0x1000
+    pageSize = util.MemoryAddresses.pageSize
 
 #------------------------------------------------------------------------------
 
