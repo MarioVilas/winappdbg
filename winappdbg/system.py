@@ -6640,7 +6640,7 @@ class System (ProcessContainer):
     except Exception:
         wow64 = False
 
-    pageSize = util.MemoryAddresses.pageSize
+    pageSize = MemoryAddresses.pageSize
 
 #------------------------------------------------------------------------------
 
