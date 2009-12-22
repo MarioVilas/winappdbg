@@ -954,152 +954,9 @@ class _PEB_2003(Structure):
         ("FlsHighIndex",                        DWORD),
     ]
 
-#    +0x000 InheritedAddressSpace : UChar
-#    +0x001 ReadImageFileExecOptions : UChar
-#    +0x002 BeingDebugged    : UChar
-#    +0x003 BitField         : UChar
-#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
-#    +0x003 SpareBits        : Pos 1, 7 Bits
-#    +0x008 Mutant           : Ptr64 Void
-#    +0x010 ImageBaseAddress : Ptr64 Void
-#    +0x018 Ldr              : Ptr64 _PEB_LDR_DATA
-#    +0x020 ProcessParameters : Ptr64 _RTL_USER_PROCESS_PARAMETERS
-#    +0x028 SubSystemData    : Ptr64 Void
-#    +0x030 ProcessHeap      : Ptr64 Void
-#    +0x038 FastPebLock      : Ptr64 _RTL_CRITICAL_SECTION
-#    +0x040 AtlThunkSListPtr : Ptr64 Void
-#    +0x048 SparePtr2        : Ptr64 Void
-#    +0x050 EnvironmentUpdateCount : Uint4B
-#    +0x058 KernelCallbackTable : Ptr64 Void
-#    +0x060 SystemReserved   : [1] Uint4B
-#    +0x064 SpareUlong       : Uint4B
-#    +0x068 FreeList         : Ptr64 _PEB_FREE_BLOCK
-#    +0x070 TlsExpansionCounter : Uint4B
-#    +0x078 TlsBitmap        : Ptr64 Void
-#    +0x080 TlsBitmapBits    : [2] Uint4B
-#    +0x088 ReadOnlySharedMemoryBase : Ptr64 Void
-#    +0x090 ReadOnlySharedMemoryHeap : Ptr64 Void
-#    +0x098 ReadOnlyStaticServerData : Ptr64 Ptr64 Void
-#    +0x0a0 AnsiCodePageData : Ptr64 Void
-#    +0x0a8 OemCodePageData  : Ptr64 Void
-#    +0x0b0 UnicodeCaseTableData : Ptr64 Void
-#    +0x0b8 NumberOfProcessors : Uint4B
-#    +0x0bc NtGlobalFlag     : Uint4B
-#    +0x0c0 CriticalSectionTimeout : _LARGE_INTEGER
-#    +0x0c8 HeapSegmentReserve : Uint8B
-#    +0x0d0 HeapSegmentCommit : Uint8B
-#    +0x0d8 HeapDeCommitTotalFreeThreshold : Uint8B
-#    +0x0e0 HeapDeCommitFreeBlockThreshold : Uint8B
-#    +0x0e8 NumberOfHeaps    : Uint4B
-#    +0x0ec MaximumNumberOfHeaps : Uint4B
-#    +0x0f0 ProcessHeaps     : Ptr64 Ptr64 Void
-#    +0x0f8 GdiSharedHandleTable : Ptr64 Void
-#    +0x100 ProcessStarterHelper : Ptr64 Void
-#    +0x108 GdiDCAttributeList : Uint4B
-#    +0x110 LoaderLock       : Ptr64 _RTL_CRITICAL_SECTION
-#    +0x118 OSMajorVersion   : Uint4B
-#    +0x11c OSMinorVersion   : Uint4B
-#    +0x120 OSBuildNumber    : Uint2B
-#    +0x122 OSCSDVersion     : Uint2B
-#    +0x124 OSPlatformId     : Uint4B
-#    +0x128 ImageSubsystem   : Uint4B
-#    +0x12c ImageSubsystemMajorVersion : Uint4B
-#    +0x130 ImageSubsystemMinorVersion : Uint4B
-#    +0x138 ImageProcessAffinityMask : Uint8B
-#    +0x140 GdiHandleBuffer  : [60] Uint4B
-#    +0x230 PostProcessInitRoutine : Ptr64     void
-#    +0x238 TlsExpansionBitmap : Ptr64 Void
-#    +0x240 TlsExpansionBitmapBits : [32] Uint4B
-#    +0x2c0 SessionId        : Uint4B
-#    +0x2c8 AppCompatFlags   : _ULARGE_INTEGER
-#    +0x2d0 AppCompatFlagsUser : _ULARGE_INTEGER
-#    +0x2d8 pShimData        : Ptr64 Void
-#    +0x2e0 AppCompatInfo    : Ptr64 Void
-#    +0x2e8 CSDVersion       : _UNICODE_STRING
-#    +0x2f8 ActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
-#    +0x300 ProcessAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
-#    +0x308 SystemDefaultActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
-#    +0x310 SystemAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
-#    +0x318 MinimumStackCommit : Uint8B
-#    +0x320 FlsCallback      : Ptr64 Ptr64 Void
-#    +0x328 FlsListHead      : _LIST_ENTRY
-#    +0x338 FlsBitmap        : Ptr64 Void
-#    +0x340 FlsBitmapBits    : [4] Uint4B
-#    +0x350 FlsHighIndex     : Uint4B
-class _PEB_2003_64(Structure):
-    _pack_   = 8
-    _fields_ = [
-        ("InheritedAddressSpace",               BOOLEAN),
-        ("ReadImageFileExecOptions",            UCHAR),
-        ("BeingDebugged",                       BOOLEAN),
-        ("BitField",                            UCHAR),
-        ("Mutant",                              HANDLE),
-        ("ImageBaseAddress",                    PVOID),
-        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
-        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
-        ("SubSystemData",                       PVOID),
-        ("ProcessHeap",                         PVOID),
-        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
-        ("AtlThunkSListPtr",                    PVOID),
-        ("SparePtr2",                           PVOID),
-        ("EnvironmentUpdateCount",              DWORD),
-        ("KernelCallbackTable",                 PVOID),
-        ("SystemReserved",                      DWORD),
-        ("SpareUlong",                          DWORD),
-        ("FreeList",                            PVOID), # PPEB_FREE_BLOCK
-        ("TlsExpansionCounter",                 DWORD),
-        ("TlsBitmap",                           PVOID),
-        ("TlsBitmapBits",                       DWORD * 2),
-        ("ReadOnlySharedMemoryBase",            PVOID),
-        ("ReadOnlySharedMemoryHeap",            PVOID),
-        ("ReadOnlyStaticServerData",            PVOID), # Ptr64 Ptr64 Void
-        ("AnsiCodePageData",                    PVOID),
-        ("OemCodePageData",                     PVOID),
-        ("UnicodeCaseTableData",                PVOID),
-        ("NumberOfProcessors",                  DWORD),
-        ("NtGlobalFlag",                        DWORD),
-        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
-        ("HeapSegmentReserve",                  QWORD),
-        ("HeapSegmentCommit",                   QWORD),
-        ("HeapDeCommitTotalFreeThreshold",      QWORD),
-        ("HeapDeCommitFreeBlockThreshold",      QWORD),
-        ("NumberOfHeaps",                       DWORD),
-        ("MaximumNumberOfHeaps",                DWORD),
-        ("ProcessHeaps",                        PVOID), # Ptr64 Ptr64 Void
-        ("GdiSharedHandleTable",                PVOID),
-        ("ProcessStarterHelper",                PVOID),
-        ("GdiDCAttributeList",                  DWORD),
-        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
-        ("OSMajorVersion",                      DWORD),
-        ("OSMinorVersion",                      DWORD),
-        ("OSBuildNumber",                       WORD),
-        ("OSCSDVersion",                        WORD),
-        ("OSPlatformId",                        DWORD),
-        ("ImageSubsystem",                      DWORD),
-        ("ImageSubsystemMajorVersion",          DWORD),
-        ("ImageSubsystemMinorVersion",          DWORD),
-        ("ImageProcessAffinityMask",            QWORD),
-        ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
-        ("TlsExpansionBitmap",                  PVOID),
-        ("TlsExpansionBitmapBits",              DWORD * 32),
-        ("SessionId",                           DWORD),
-        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
-        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
-        ("pShimData",                           PVOID),
-        ("AppCompatInfo",                       PVOID),
-        ("CSDVersion",                          UNICODE_STRING),
-        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
-        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
-        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
-        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
-        ("MinimumStackCommit",                  QWORD),
-        ("FlsCallback",                         PVOID), # Ptr64 Ptr64 Void
-        ("FlsListHead",                         LIST_ENTRY),
-        ("FlsBitmap",                           PVOID),
-        ("FlsBitmapBits",                       DWORD * 4),
-        ("FlsHighIndex",                        DWORD),
-    ]
+_PEB_2003_64    = _PEB_XP_64
+_PEB_2003_R2    = _PEB_2003
+_PEB_2003_R2_64 = _PEB_2003_64
 
 #    +0x000 InheritedAddressSpace : UChar
 #    +0x001 ReadImageFileExecOptions : UChar
@@ -1277,172 +1134,6 @@ class _PEB_2008(Structure):
 #    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
 #    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
 #    +0x003 SpareBits        : Pos 5, 3 Bits
-#    +0x004 Mutant           : Ptr32 Void
-#    +0x008 ImageBaseAddress : Ptr32 Void
-#    +0x00c Ldr              : Ptr32 _PEB_LDR_DATA
-#    +0x010 ProcessParameters : Ptr32 _RTL_USER_PROCESS_PARAMETERS
-#    +0x014 SubSystemData    : Ptr32 Void
-#    +0x018 ProcessHeap      : Ptr32 Void
-#    +0x01c FastPebLock      : Ptr32 _RTL_CRITICAL_SECTION
-#    +0x020 AtlThunkSListPtr : Ptr32 Void
-#    +0x024 IFEOKey          : Ptr32 Void
-#    +0x028 CrossProcessFlags : Uint4B
-#    +0x028 ProcessInJob     : Pos 0, 1 Bit
-#    +0x028 ProcessInitializing : Pos 1, 1 Bit
-#    +0x028 ProcessUsingVEH  : Pos 2, 1 Bit
-#    +0x028 ProcessUsingVCH  : Pos 3, 1 Bit
-#    +0x028 ReservedBits0    : Pos 4, 28 Bits
-#    +0x02c KernelCallbackTable : Ptr32 Void
-#    +0x02c UserSharedInfoPtr : Ptr32 Void
-#    +0x030 SystemReserved   : [1] Uint4B
-#    +0x034 SpareUlong       : Uint4B
-#    +0x038 SparePebPtr0     : Uint4B
-#    +0x03c TlsExpansionCounter : Uint4B
-#    +0x040 TlsBitmap        : Ptr32 Void
-#    +0x044 TlsBitmapBits    : [2] Uint4B
-#    +0x04c ReadOnlySharedMemoryBase : Ptr32 Void
-#    +0x050 HotpatchInformation : Ptr32 Void
-#    +0x054 ReadOnlyStaticServerData : Ptr32 Ptr32 Void
-#    +0x058 AnsiCodePageData : Ptr32 Void
-#    +0x05c OemCodePageData  : Ptr32 Void
-#    +0x060 UnicodeCaseTableData : Ptr32 Void
-#    +0x064 NumberOfProcessors : Uint4B
-#    +0x068 NtGlobalFlag     : Uint4B
-#    +0x070 CriticalSectionTimeout : _LARGE_INTEGER
-#    +0x078 HeapSegmentReserve : Uint4B
-#    +0x07c HeapSegmentCommit : Uint4B
-#    +0x080 HeapDeCommitTotalFreeThreshold : Uint4B
-#    +0x084 HeapDeCommitFreeBlockThreshold : Uint4B
-#    +0x088 NumberOfHeaps    : Uint4B
-#    +0x08c MaximumNumberOfHeaps : Uint4B
-#    +0x090 ProcessHeaps     : Ptr32 Ptr32 Void
-#    +0x094 GdiSharedHandleTable : Ptr32 Void
-#    +0x098 ProcessStarterHelper : Ptr32 Void
-#    +0x09c GdiDCAttributeList : Uint4B
-#    +0x0a0 LoaderLock       : Ptr32 _RTL_CRITICAL_SECTION
-#    +0x0a4 OSMajorVersion   : Uint4B
-#    +0x0a8 OSMinorVersion   : Uint4B
-#    +0x0ac OSBuildNumber    : Uint2B
-#    +0x0ae OSCSDVersion     : Uint2B
-#    +0x0b0 OSPlatformId     : Uint4B
-#    +0x0b4 ImageSubsystem   : Uint4B
-#    +0x0b8 ImageSubsystemMajorVersion : Uint4B
-#    +0x0bc ImageSubsystemMinorVersion : Uint4B
-#    +0x0c0 ActiveProcessAffinityMask : Uint4B
-#    +0x0c4 GdiHandleBuffer  : [34] Uint4B
-#    +0x14c PostProcessInitRoutine : Ptr32     void
-#    +0x150 TlsExpansionBitmap : Ptr32 Void
-#    +0x154 TlsExpansionBitmapBits : [32] Uint4B
-#    +0x1d4 SessionId        : Uint4B
-#    +0x1d8 AppCompatFlags   : _ULARGE_INTEGER
-#    +0x1e0 AppCompatFlagsUser : _ULARGE_INTEGER
-#    +0x1e8 pShimData        : Ptr32 Void
-#    +0x1ec AppCompatInfo    : Ptr32 Void
-#    +0x1f0 CSDVersion       : _UNICODE_STRING
-#    +0x1f8 ActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
-#    +0x1fc ProcessAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
-#    +0x200 SystemDefaultActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
-#    +0x204 SystemAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
-#    +0x208 MinimumStackCommit : Uint4B
-#    +0x20c FlsCallback      : Ptr32 _FLS_CALLBACK_INFO
-#    +0x210 FlsListHead      : _LIST_ENTRY
-#    +0x218 FlsBitmap        : Ptr32 Void
-#    +0x21c FlsBitmapBits    : [4] Uint4B
-#    +0x22c FlsHighIndex     : Uint4B
-#    +0x230 WerRegistrationData : Ptr32 Void
-#    +0x234 WerShipAssertPtr : Ptr32 Void
-class _PEB_Vista(Structure):
-    _pack_   = 8
-    _fields_ = [
-        ("InheritedAddressSpace",               BOOLEAN),
-        ("ReadImageFileExecOptions",            UCHAR),
-        ("BeingDebugged",                       BOOLEAN),
-        ("BitField",                            UCHAR),
-        ("Mutant",                              HANDLE),
-        ("ImageBaseAddress",                    PVOID),
-        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
-        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
-        ("SubSystemData",                       PVOID),
-        ("ProcessHeap",                         PVOID),
-        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
-        ("AtlThunkSListPtr",                    PVOID),
-        ("IFEOKey",                             PVOID),
-        ("CrossProcessFlags",                   DWORD),
-        ("KernelCallbackTable",                 PVOID),
-        ("SystemReserved",                      DWORD),
-        ("SpareUlong",                          DWORD),
-        ("SparePebPtr0",                        PVOID),
-        ("TlsExpansionCounter",                 DWORD),
-        ("TlsBitmap",                           PVOID),
-        ("TlsBitmapBits",                       DWORD * 2),
-        ("ReadOnlySharedMemoryBase",            PVOID),
-        ("HotpatchInformation",                 PVOID),
-        ("ReadOnlyStaticServerData",            PVOID), # Ptr32 Ptr32 Void
-        ("AnsiCodePageData",                    PVOID),
-        ("OemCodePageData",                     PVOID),
-        ("UnicodeCaseTableData",                PVOID),
-        ("NumberOfProcessors",                  DWORD),
-        ("NtGlobalFlag",                        DWORD),
-        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
-        ("HeapSegmentReserve",                  DWORD),
-        ("HeapSegmentCommit",                   DWORD),
-        ("HeapDeCommitTotalFreeThreshold",      DWORD),
-        ("HeapDeCommitFreeBlockThreshold",      DWORD),
-        ("NumberOfHeaps",                       DWORD),
-        ("MaximumNumberOfHeaps",                DWORD),
-        ("ProcessHeaps",                        PVOID), # Ptr32 Ptr32 Void
-        ("GdiSharedHandleTable",                PVOID),
-        ("ProcessStarterHelper",                PVOID),
-        ("GdiDCAttributeList",                  DWORD),
-        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
-        ("OSMajorVersion",                      DWORD),
-        ("OSMinorVersion",                      DWORD),
-        ("OSBuildNumber",                       WORD),
-        ("OSCSDVersion",                        WORD),
-        ("OSPlatformId",                        DWORD),
-        ("ImageSubsystem",                      DWORD),
-        ("ImageSubsystemMajorVersion",          DWORD),
-        ("ImageSubsystemMinorVersion",          DWORD),
-        ("ImageProcessAffinityMask",            DWORD),
-        ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
-        ("TlsExpansionBitmap",                  PVOID),
-        ("TlsExpansionBitmapBits",              DWORD * 32),
-        ("SessionId",                           DWORD),
-        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
-        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
-        ("pShimData",                           PVOID),
-        ("AppCompatInfo",                       PVOID),
-        ("CSDVersion",                          UNICODE_STRING),
-        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
-        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
-        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
-        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
-        ("MinimumStackCommit",                  DWORD),
-        ("FlsCallback",                         PVOID), # Ptr32 Ptr32 Void
-        ("FlsListHead",                         LIST_ENTRY),
-        ("FlsBitmap",                           PVOID),
-        ("FlsBitmapBits",                       DWORD * 4),
-        ("FlsHighIndex",                        DWORD),
-        ("WerRegistrationData",                 PVOID),
-        ("WerShipAssertPtr",                    PVOID),
-    ]
-    def __get_UserSharedInfoPtr(self):
-        return self.KernelCallbackTable
-    def __set_UserSharedInfoPtr(self, value):
-        self.KernelCallbackTable = value
-    UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
-
-#    +0x000 InheritedAddressSpace : UChar
-#    +0x001 ReadImageFileExecOptions : UChar
-#    +0x002 BeingDebugged    : UChar
-#    +0x003 BitField         : UChar
-#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
-#    +0x003 IsProtectedProcess : Pos 1, 1 Bit
-#    +0x003 IsLegacyProcess  : Pos 2, 1 Bit
-#    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
-#    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
-#    +0x003 SpareBits        : Pos 5, 3 Bits
 #    +0x008 Mutant           : Ptr64 Void
 #    +0x010 ImageBaseAddress : Ptr64 Void
 #    +0x018 Ldr              : Ptr64 _PEB_LDR_DATA
@@ -1517,7 +1208,7 @@ class _PEB_Vista(Structure):
 #    +0x350 FlsHighIndex     : Uint4B
 #    +0x358 WerRegistrationData : Ptr64 Void
 #    +0x360 WerShipAssertPtr : Ptr64 Void
-class _PEB_Vista_64(Structure):
+class _PEB_2008_64(Structure):
     _pack_   = 8
     _fields_ = [
         ("InheritedAddressSpace",               BOOLEAN),
@@ -1598,6 +1289,363 @@ class _PEB_Vista_64(Structure):
     def __set_UserSharedInfoPtr(self, value):
         self.KernelCallbackTable = value
     UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
+
+#    +0x000 InheritedAddressSpace : UChar
+#    +0x001 ReadImageFileExecOptions : UChar
+#    +0x002 BeingDebugged    : UChar
+#    +0x003 BitField         : UChar
+#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
+#    +0x003 IsProtectedProcess : Pos 1, 1 Bit
+#    +0x003 IsLegacyProcess  : Pos 2, 1 Bit
+#    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
+#    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
+#    +0x003 SpareBits        : Pos 5, 3 Bits
+#    +0x004 Mutant           : Ptr32 Void
+#    +0x008 ImageBaseAddress : Ptr32 Void
+#    +0x00c Ldr              : Ptr32 _PEB_LDR_DATA
+#    +0x010 ProcessParameters : Ptr32 _RTL_USER_PROCESS_PARAMETERS
+#    +0x014 SubSystemData    : Ptr32 Void
+#    +0x018 ProcessHeap      : Ptr32 Void
+#    +0x01c FastPebLock      : Ptr32 _RTL_CRITICAL_SECTION
+#    +0x020 AtlThunkSListPtr : Ptr32 Void
+#    +0x024 IFEOKey          : Ptr32 Void
+#    +0x028 CrossProcessFlags : Uint4B
+#    +0x028 ProcessInJob     : Pos 0, 1 Bit
+#    +0x028 ProcessInitializing : Pos 1, 1 Bit
+#    +0x028 ProcessUsingVEH  : Pos 2, 1 Bit
+#    +0x028 ProcessUsingVCH  : Pos 3, 1 Bit
+#    +0x028 ProcessUsingFTH  : Pos 4, 1 Bit
+#    +0x028 ReservedBits0    : Pos 5, 27 Bits
+#    +0x02c KernelCallbackTable : Ptr32 Void
+#    +0x02c UserSharedInfoPtr : Ptr32 Void
+#    +0x030 SystemReserved   : [1] Uint4B
+#    +0x034 AtlThunkSListPtr32 : Uint4B
+#    +0x038 ApiSetMap        : Ptr32 Void
+#    +0x03c TlsExpansionCounter : Uint4B
+#    +0x040 TlsBitmap        : Ptr32 Void
+#    +0x044 TlsBitmapBits    : [2] Uint4B
+#    +0x04c ReadOnlySharedMemoryBase : Ptr32 Void
+#    +0x050 HotpatchInformation : Ptr32 Void
+#    +0x054 ReadOnlyStaticServerData : Ptr32 Ptr32 Void
+#    +0x058 AnsiCodePageData : Ptr32 Void
+#    +0x05c OemCodePageData  : Ptr32 Void
+#    +0x060 UnicodeCaseTableData : Ptr32 Void
+#    +0x064 NumberOfProcessors : Uint4B
+#    +0x068 NtGlobalFlag     : Uint4B
+#    +0x070 CriticalSectionTimeout : _LARGE_INTEGER
+#    +0x078 HeapSegmentReserve : Uint4B
+#    +0x07c HeapSegmentCommit : Uint4B
+#    +0x080 HeapDeCommitTotalFreeThreshold : Uint4B
+#    +0x084 HeapDeCommitFreeBlockThreshold : Uint4B
+#    +0x088 NumberOfHeaps    : Uint4B
+#    +0x08c MaximumNumberOfHeaps : Uint4B
+#    +0x090 ProcessHeaps     : Ptr32 Ptr32 Void
+#    +0x094 GdiSharedHandleTable : Ptr32 Void
+#    +0x098 ProcessStarterHelper : Ptr32 Void
+#    +0x09c GdiDCAttributeList : Uint4B
+#    +0x0a0 LoaderLock       : Ptr32 _RTL_CRITICAL_SECTION
+#    +0x0a4 OSMajorVersion   : Uint4B
+#    +0x0a8 OSMinorVersion   : Uint4B
+#    +0x0ac OSBuildNumber    : Uint2B
+#    +0x0ae OSCSDVersion     : Uint2B
+#    +0x0b0 OSPlatformId     : Uint4B
+#    +0x0b4 ImageSubsystem   : Uint4B
+#    +0x0b8 ImageSubsystemMajorVersion : Uint4B
+#    +0x0bc ImageSubsystemMinorVersion : Uint4B
+#    +0x0c0 ActiveProcessAffinityMask : Uint4B
+#    +0x0c4 GdiHandleBuffer  : [34] Uint4B
+#    +0x14c PostProcessInitRoutine : Ptr32     void
+#    +0x150 TlsExpansionBitmap : Ptr32 Void
+#    +0x154 TlsExpansionBitmapBits : [32] Uint4B
+#    +0x1d4 SessionId        : Uint4B
+#    +0x1d8 AppCompatFlags   : _ULARGE_INTEGER
+#    +0x1e0 AppCompatFlagsUser : _ULARGE_INTEGER
+#    +0x1e8 pShimData        : Ptr32 Void
+#    +0x1ec AppCompatInfo    : Ptr32 Void
+#    +0x1f0 CSDVersion       : _UNICODE_STRING
+#    +0x1f8 ActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
+#    +0x1fc ProcessAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
+#    +0x200 SystemDefaultActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
+#    +0x204 SystemAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
+#    +0x208 MinimumStackCommit : Uint4B
+#    +0x20c FlsCallback      : Ptr32 _FLS_CALLBACK_INFO
+#    +0x210 FlsListHead      : _LIST_ENTRY
+#    +0x218 FlsBitmap        : Ptr32 Void
+#    +0x21c FlsBitmapBits    : [4] Uint4B
+#    +0x22c FlsHighIndex     : Uint4B
+#    +0x230 WerRegistrationData : Ptr32 Void
+#    +0x234 WerShipAssertPtr : Ptr32 Void
+#    +0x238 pContextData     : Ptr32 Void
+#    +0x23c pImageHeaderHash : Ptr32 Void
+#    +0x240 TracingFlags     : Uint4B
+#    +0x240 HeapTracingEnabled : Pos 0, 1 Bit
+#    +0x240 CritSecTracingEnabled : Pos 1, 1 Bit
+#    +0x240 SpareTracingBits : Pos 2, 30 Bits
+class _PEB_2008_R2(Structure):
+    _pack_   = 8
+    _fields_ = [
+        ("InheritedAddressSpace",               BOOLEAN),
+        ("ReadImageFileExecOptions",            UCHAR),
+        ("BeingDebugged",                       BOOLEAN),
+        ("BitField",                            UCHAR),
+        ("Mutant",                              HANDLE),
+        ("ImageBaseAddress",                    PVOID),
+        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
+        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
+        ("SubSystemData",                       PVOID),
+        ("ProcessHeap",                         PVOID),
+        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
+        ("AtlThunkSListPtr",                    PVOID),
+        ("IFEOKey",                             PVOID),
+        ("CrossProcessFlags",                   DWORD),
+        ("KernelCallbackTable",                 PVOID),
+        ("SystemReserved",                      DWORD),
+        ("AtlThunkSListPtr32",                  PVOID),
+        ("ApiSetMap",                           PVOID),
+        ("TlsExpansionCounter",                 DWORD),
+        ("TlsBitmap",                           PVOID),
+        ("TlsBitmapBits",                       DWORD * 2),
+        ("ReadOnlySharedMemoryBase",            PVOID),
+        ("HotpatchInformation",                 PVOID),
+        ("ReadOnlyStaticServerData",            PVOID), # Ptr32 Ptr32 Void
+        ("AnsiCodePageData",                    PVOID),
+        ("OemCodePageData",                     PVOID),
+        ("UnicodeCaseTableData",                PVOID),
+        ("NumberOfProcessors",                  DWORD),
+        ("NtGlobalFlag",                        DWORD),
+        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
+        ("HeapSegmentReserve",                  DWORD),
+        ("HeapSegmentCommit",                   DWORD),
+        ("HeapDeCommitTotalFreeThreshold",      DWORD),
+        ("HeapDeCommitFreeBlockThreshold",      DWORD),
+        ("NumberOfHeaps",                       DWORD),
+        ("MaximumNumberOfHeaps",                DWORD),
+        ("ProcessHeaps",                        PVOID), # Ptr32 Ptr32 Void
+        ("GdiSharedHandleTable",                PVOID),
+        ("ProcessStarterHelper",                PVOID),
+        ("GdiDCAttributeList",                  DWORD),
+        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
+        ("OSMajorVersion",                      DWORD),
+        ("OSMinorVersion",                      DWORD),
+        ("OSBuildNumber",                       WORD),
+        ("OSCSDVersion",                        WORD),
+        ("OSPlatformId",                        DWORD),
+        ("ImageSubsystem",                      DWORD),
+        ("ImageSubsystemMajorVersion",          DWORD),
+        ("ImageSubsystemMinorVersion",          DWORD),
+        ("ActiveProcessAffinityMask",           DWORD),
+        ("GdiHandleBuffer",                     DWORD * 34),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
+        ("TlsExpansionBitmap",                  PVOID),
+        ("TlsExpansionBitmapBits",              DWORD * 32),
+        ("SessionId",                           DWORD),
+        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
+        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
+        ("pShimData",                           PVOID),
+        ("AppCompatInfo",                       PVOID),
+        ("CSDVersion",                          UNICODE_STRING),
+        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
+        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
+        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
+        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
+        ("MinimumStackCommit",                  DWORD),
+        ("FlsCallback",                         PVOID), # PFLS_CALLBACK_INFO
+        ("FlsListHead",                         LIST_ENTRY),
+        ("FlsBitmap",                           PVOID),
+        ("FlsBitmapBits",                       DWORD * 4),
+        ("FlsHighIndex",                        DWORD),
+        ("WerRegistrationData",                 PVOID),
+        ("WerShipAssertPtr",                    PVOID),
+        ("pContextData",                        PVOID),
+        ("pImageHeaderHash",                    PVOID),
+        ("TracingFlags",                        DWORD),
+    ]
+    def __get_UserSharedInfoPtr(self):
+        return self.KernelCallbackTable
+    def __set_UserSharedInfoPtr(self, value):
+        self.KernelCallbackTable = value
+    UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
+
+#    +0x000 InheritedAddressSpace : UChar
+#    +0x001 ReadImageFileExecOptions : UChar
+#    +0x002 BeingDebugged    : UChar
+#    +0x003 BitField         : UChar
+#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
+#    +0x003 IsProtectedProcess : Pos 1, 1 Bit
+#    +0x003 IsLegacyProcess  : Pos 2, 1 Bit
+#    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
+#    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
+#    +0x003 SpareBits        : Pos 5, 3 Bits
+#    +0x008 Mutant           : Ptr64 Void
+#    +0x010 ImageBaseAddress : Ptr64 Void
+#    +0x018 Ldr              : Ptr64 _PEB_LDR_DATA
+#    +0x020 ProcessParameters : Ptr64 _RTL_USER_PROCESS_PARAMETERS
+#    +0x028 SubSystemData    : Ptr64 Void
+#    +0x030 ProcessHeap      : Ptr64 Void
+#    +0x038 FastPebLock      : Ptr64 _RTL_CRITICAL_SECTION
+#    +0x040 AtlThunkSListPtr : Ptr64 Void
+#    +0x048 IFEOKey          : Ptr64 Void
+#    +0x050 CrossProcessFlags : Uint4B
+#    +0x050 ProcessInJob     : Pos 0, 1 Bit
+#    +0x050 ProcessInitializing : Pos 1, 1 Bit
+#    +0x050 ProcessUsingVEH  : Pos 2, 1 Bit
+#    +0x050 ProcessUsingVCH  : Pos 3, 1 Bit
+#    +0x050 ProcessUsingFTH  : Pos 4, 1 Bit
+#    +0x050 ReservedBits0    : Pos 5, 27 Bits
+#    +0x058 KernelCallbackTable : Ptr64 Void
+#    +0x058 UserSharedInfoPtr : Ptr64 Void
+#    +0x060 SystemReserved   : [1] Uint4B
+#    +0x064 AtlThunkSListPtr32 : Uint4B
+#    +0x068 ApiSetMap        : Ptr64 Void
+#    +0x070 TlsExpansionCounter : Uint4B
+#    +0x078 TlsBitmap        : Ptr64 Void
+#    +0x080 TlsBitmapBits    : [2] Uint4B
+#    +0x088 ReadOnlySharedMemoryBase : Ptr64 Void
+#    +0x090 HotpatchInformation : Ptr64 Void
+#    +0x098 ReadOnlyStaticServerData : Ptr64 Ptr64 Void
+#    +0x0a0 AnsiCodePageData : Ptr64 Void
+#    +0x0a8 OemCodePageData  : Ptr64 Void
+#    +0x0b0 UnicodeCaseTableData : Ptr64 Void
+#    +0x0b8 NumberOfProcessors : Uint4B
+#    +0x0bc NtGlobalFlag     : Uint4B
+#    +0x0c0 CriticalSectionTimeout : _LARGE_INTEGER
+#    +0x0c8 HeapSegmentReserve : Uint8B
+#    +0x0d0 HeapSegmentCommit : Uint8B
+#    +0x0d8 HeapDeCommitTotalFreeThreshold : Uint8B
+#    +0x0e0 HeapDeCommitFreeBlockThreshold : Uint8B
+#    +0x0e8 NumberOfHeaps    : Uint4B
+#    +0x0ec MaximumNumberOfHeaps : Uint4B
+#    +0x0f0 ProcessHeaps     : Ptr64 Ptr64 Void
+#    +0x0f8 GdiSharedHandleTable : Ptr64 Void
+#    +0x100 ProcessStarterHelper : Ptr64 Void
+#    +0x108 GdiDCAttributeList : Uint4B
+#    +0x110 LoaderLock       : Ptr64 _RTL_CRITICAL_SECTION
+#    +0x118 OSMajorVersion   : Uint4B
+#    +0x11c OSMinorVersion   : Uint4B
+#    +0x120 OSBuildNumber    : Uint2B
+#    +0x122 OSCSDVersion     : Uint2B
+#    +0x124 OSPlatformId     : Uint4B
+#    +0x128 ImageSubsystem   : Uint4B
+#    +0x12c ImageSubsystemMajorVersion : Uint4B
+#    +0x130 ImageSubsystemMinorVersion : Uint4B
+#    +0x138 ActiveProcessAffinityMask : Uint8B
+#    +0x140 GdiHandleBuffer  : [60] Uint4B
+#    +0x230 PostProcessInitRoutine : Ptr64     void
+#    +0x238 TlsExpansionBitmap : Ptr64 Void
+#    +0x240 TlsExpansionBitmapBits : [32] Uint4B
+#    +0x2c0 SessionId        : Uint4B
+#    +0x2c8 AppCompatFlags   : _ULARGE_INTEGER
+#    +0x2d0 AppCompatFlagsUser : _ULARGE_INTEGER
+#    +0x2d8 pShimData        : Ptr64 Void
+#    +0x2e0 AppCompatInfo    : Ptr64 Void
+#    +0x2e8 CSDVersion       : _UNICODE_STRING
+#    +0x2f8 ActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
+#    +0x300 ProcessAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
+#    +0x308 SystemDefaultActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
+#    +0x310 SystemAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
+#    +0x318 MinimumStackCommit : Uint8B
+#    +0x320 FlsCallback      : Ptr64 _FLS_CALLBACK_INFO
+#    +0x328 FlsListHead      : _LIST_ENTRY
+#    +0x338 FlsBitmap        : Ptr64 Void
+#    +0x340 FlsBitmapBits    : [4] Uint4B
+#    +0x350 FlsHighIndex     : Uint4B
+#    +0x358 WerRegistrationData : Ptr64 Void
+#    +0x360 WerShipAssertPtr : Ptr64 Void
+#    +0x368 pContextData     : Ptr64 Void
+#    +0x370 pImageHeaderHash : Ptr64 Void
+#    +0x378 TracingFlags     : Uint4B
+#    +0x378 HeapTracingEnabled : Pos 0, 1 Bit
+#    +0x378 CritSecTracingEnabled : Pos 1, 1 Bit
+#    +0x378 SpareTracingBits : Pos 2, 30 Bits
+class _PEB_2008_R2_64(Structure):
+    _pack_   = 8
+    _fields_ = [
+        ("InheritedAddressSpace",               BOOLEAN),
+        ("ReadImageFileExecOptions",            UCHAR),
+        ("BeingDebugged",                       BOOLEAN),
+        ("BitField",                            UCHAR),
+        ("Mutant",                              HANDLE),
+        ("ImageBaseAddress",                    PVOID),
+        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
+        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
+        ("SubSystemData",                       PVOID),
+        ("ProcessHeap",                         PVOID),
+        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
+        ("AtlThunkSListPtr",                    PVOID),
+        ("IFEOKey",                             PVOID),
+        ("CrossProcessFlags",                   DWORD),
+        ("KernelCallbackTable",                 PVOID),
+        ("SystemReserved",                      DWORD),
+        ("AtlThunkSListPtr32",                  DWORD),
+        ("ApiSetMap",                           PVOID),
+        ("TlsExpansionCounter",                 DWORD),
+        ("TlsBitmap",                           PVOID),
+        ("TlsBitmapBits",                       DWORD * 2),
+        ("ReadOnlySharedMemoryBase",            PVOID),
+        ("HotpatchInformation",                 PVOID),
+        ("ReadOnlyStaticServerData",            PVOID), # Ptr32 Ptr32 Void
+        ("AnsiCodePageData",                    PVOID),
+        ("OemCodePageData",                     PVOID),
+        ("UnicodeCaseTableData",                PVOID),
+        ("NumberOfProcessors",                  DWORD),
+        ("NtGlobalFlag",                        DWORD),
+        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
+        ("HeapSegmentReserve",                  QWORD),
+        ("HeapSegmentCommit",                   QWORD),
+        ("HeapDeCommitTotalFreeThreshold",      QWORD),
+        ("HeapDeCommitFreeBlockThreshold",      QWORD),
+        ("NumberOfHeaps",                       DWORD),
+        ("MaximumNumberOfHeaps",                DWORD),
+        ("ProcessHeaps",                        PVOID), # Ptr64 Ptr64 Void
+        ("GdiSharedHandleTable",                PVOID),
+        ("ProcessStarterHelper",                PVOID),
+        ("GdiDCAttributeList",                  DWORD),
+        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
+        ("OSMajorVersion",                      DWORD),
+        ("OSMinorVersion",                      DWORD),
+        ("OSBuildNumber",                       WORD),
+        ("OSCSDVersion",                        WORD),
+        ("OSPlatformId",                        DWORD),
+        ("ImageSubsystem",                      DWORD),
+        ("ImageSubsystemMajorVersion",          DWORD),
+        ("ImageSubsystemMinorVersion",          DWORD),
+        ("ActiveProcessAffinityMask",           QWORD),
+        ("GdiHandleBuffer",                     DWORD * 60),
+        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
+        ("TlsExpansionBitmap",                  PVOID),
+        ("TlsExpansionBitmapBits",              DWORD * 32),
+        ("SessionId",                           DWORD),
+        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
+        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
+        ("pShimData",                           PVOID),
+        ("AppCompatInfo",                       PVOID),
+        ("CSDVersion",                          UNICODE_STRING),
+        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
+        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
+        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
+        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
+        ("MinimumStackCommit",                  QWORD),
+        ("FlsCallback",                         PVOID), # PFLS_CALLBACK_INFO
+        ("FlsListHead",                         LIST_ENTRY),
+        ("FlsBitmap",                           PVOID),
+        ("FlsBitmapBits",                       DWORD * 4),
+        ("FlsHighIndex",                        DWORD),
+        ("WerRegistrationData",                 PVOID),
+        ("WerShipAssertPtr",                    PVOID),
+        ("pContextData",                        PVOID),
+        ("pImageHeaderHash",                    PVOID),
+        ("TracingFlags",                        DWORD),
+    ]
+    def __get_UserSharedInfoPtr(self):
+        return self.KernelCallbackTable
+    def __set_UserSharedInfoPtr(self, value):
+        self.KernelCallbackTable = value
+    UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
+
+_PEB_Vista      = _PEB_2008
+_PEB_Vista_64   = _PEB_2008_64
+_PEB_W7         = _PEB_2008_R2
+_PEB_W7_64      = _PEB_2008_R2_64
 
 #    +0x000 InheritedAddressSpace : UChar
 #    +0x001 ReadImageFileExecOptions : UChar
@@ -1778,366 +1826,15 @@ class _PEB_W7_Beta(Structure):
         self.KernelCallbackTable = value
     UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
 
-#    +0x000 InheritedAddressSpace : UChar
-#    +0x001 ReadImageFileExecOptions : UChar
-#    +0x002 BeingDebugged    : UChar
-#    +0x003 BitField         : UChar
-#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
-#    +0x003 IsProtectedProcess : Pos 1, 1 Bit
-#    +0x003 IsLegacyProcess  : Pos 2, 1 Bit
-#    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
-#    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
-#    +0x003 SpareBits        : Pos 5, 3 Bits
-#    +0x004 Mutant           : Ptr32 Void
-#    +0x008 ImageBaseAddress : Ptr32 Void
-#    +0x00c Ldr              : Ptr32 _PEB_LDR_DATA
-#    +0x010 ProcessParameters : Ptr32 _RTL_USER_PROCESS_PARAMETERS
-#    +0x014 SubSystemData    : Ptr32 Void
-#    +0x018 ProcessHeap      : Ptr32 Void
-#    +0x01c FastPebLock      : Ptr32 _RTL_CRITICAL_SECTION
-#    +0x020 AtlThunkSListPtr : Ptr32 Void
-#    +0x024 IFEOKey          : Ptr32 Void
-#    +0x028 CrossProcessFlags : Uint4B
-#    +0x028 ProcessInJob     : Pos 0, 1 Bit
-#    +0x028 ProcessInitializing : Pos 1, 1 Bit
-#    +0x028 ProcessUsingVEH  : Pos 2, 1 Bit
-#    +0x028 ProcessUsingVCH  : Pos 3, 1 Bit
-#    +0x028 ProcessUsingFTH  : Pos 4, 1 Bit
-#    +0x028 ReservedBits0    : Pos 5, 27 Bits
-#    +0x02c KernelCallbackTable : Ptr32 Void
-#    +0x02c UserSharedInfoPtr : Ptr32 Void
-#    +0x030 SystemReserved   : [1] Uint4B
-#    +0x034 AtlThunkSListPtr32 : Uint4B
-#    +0x038 ApiSetMap        : Ptr32 Void
-#    +0x03c TlsExpansionCounter : Uint4B
-#    +0x040 TlsBitmap        : Ptr32 Void
-#    +0x044 TlsBitmapBits    : [2] Uint4B
-#    +0x04c ReadOnlySharedMemoryBase : Ptr32 Void
-#    +0x050 HotpatchInformation : Ptr32 Void
-#    +0x054 ReadOnlyStaticServerData : Ptr32 Ptr32 Void
-#    +0x058 AnsiCodePageData : Ptr32 Void
-#    +0x05c OemCodePageData  : Ptr32 Void
-#    +0x060 UnicodeCaseTableData : Ptr32 Void
-#    +0x064 NumberOfProcessors : Uint4B
-#    +0x068 NtGlobalFlag     : Uint4B
-#    +0x070 CriticalSectionTimeout : _LARGE_INTEGER
-#    +0x078 HeapSegmentReserve : Uint4B
-#    +0x07c HeapSegmentCommit : Uint4B
-#    +0x080 HeapDeCommitTotalFreeThreshold : Uint4B
-#    +0x084 HeapDeCommitFreeBlockThreshold : Uint4B
-#    +0x088 NumberOfHeaps    : Uint4B
-#    +0x08c MaximumNumberOfHeaps : Uint4B
-#    +0x090 ProcessHeaps     : Ptr32 Ptr32 Void
-#    +0x094 GdiSharedHandleTable : Ptr32 Void
-#    +0x098 ProcessStarterHelper : Ptr32 Void
-#    +0x09c GdiDCAttributeList : Uint4B
-#    +0x0a0 LoaderLock       : Ptr32 _RTL_CRITICAL_SECTION
-#    +0x0a4 OSMajorVersion   : Uint4B
-#    +0x0a8 OSMinorVersion   : Uint4B
-#    +0x0ac OSBuildNumber    : Uint2B
-#    +0x0ae OSCSDVersion     : Uint2B
-#    +0x0b0 OSPlatformId     : Uint4B
-#    +0x0b4 ImageSubsystem   : Uint4B
-#    +0x0b8 ImageSubsystemMajorVersion : Uint4B
-#    +0x0bc ImageSubsystemMinorVersion : Uint4B
-#    +0x0c0 ActiveProcessAffinityMask : Uint4B
-#    +0x0c4 GdiHandleBuffer  : [34] Uint4B
-#    +0x14c PostProcessInitRoutine : Ptr32     void
-#    +0x150 TlsExpansionBitmap : Ptr32 Void
-#    +0x154 TlsExpansionBitmapBits : [32] Uint4B
-#    +0x1d4 SessionId        : Uint4B
-#    +0x1d8 AppCompatFlags   : _ULARGE_INTEGER
-#    +0x1e0 AppCompatFlagsUser : _ULARGE_INTEGER
-#    +0x1e8 pShimData        : Ptr32 Void
-#    +0x1ec AppCompatInfo    : Ptr32 Void
-#    +0x1f0 CSDVersion       : _UNICODE_STRING
-#    +0x1f8 ActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
-#    +0x1fc ProcessAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
-#    +0x200 SystemDefaultActivationContextData : Ptr32 _ACTIVATION_CONTEXT_DATA
-#    +0x204 SystemAssemblyStorageMap : Ptr32 _ASSEMBLY_STORAGE_MAP
-#    +0x208 MinimumStackCommit : Uint4B
-#    +0x20c FlsCallback      : Ptr32 _FLS_CALLBACK_INFO
-#    +0x210 FlsListHead      : _LIST_ENTRY
-#    +0x218 FlsBitmap        : Ptr32 Void
-#    +0x21c FlsBitmapBits    : [4] Uint4B
-#    +0x22c FlsHighIndex     : Uint4B
-#    +0x230 WerRegistrationData : Ptr32 Void
-#    +0x234 WerShipAssertPtr : Ptr32 Void
-#    +0x238 pContextData     : Ptr32 Void
-#    +0x23c pImageHeaderHash : Ptr32 Void
-#    +0x240 TracingFlags     : Uint4B
-#    +0x240 HeapTracingEnabled : Pos 0, 1 Bit
-#    +0x240 CritSecTracingEnabled : Pos 1, 1 Bit
-#    +0x240 SpareTracingBits : Pos 2, 30 Bits
-class _PEB_W7(Structure):
-    _pack_   = 8
-    _fields_ = [
-        ("InheritedAddressSpace",               BOOLEAN),
-        ("ReadImageFileExecOptions",            UCHAR),
-        ("BeingDebugged",                       BOOLEAN),
-        ("BitField",                            UCHAR),
-        ("Mutant",                              HANDLE),
-        ("ImageBaseAddress",                    PVOID),
-        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
-        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
-        ("SubSystemData",                       PVOID),
-        ("ProcessHeap",                         PVOID),
-        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
-        ("AtlThunkSListPtr",                    PVOID),
-        ("IFEOKey",                             PVOID),
-        ("CrossProcessFlags",                   DWORD),
-        ("KernelCallbackTable",                 PVOID),
-        ("SystemReserved",                      DWORD),
-        ("AtlThunkSListPtr32",                  PVOID),
-        ("ApiSetMap",                           PVOID),
-        ("TlsExpansionCounter",                 DWORD),
-        ("TlsBitmap",                           PVOID),
-        ("TlsBitmapBits",                       DWORD * 2),
-        ("ReadOnlySharedMemoryBase",            PVOID),
-        ("HotpatchInformation",                 PVOID),
-        ("ReadOnlyStaticServerData",            PVOID), # Ptr32 Ptr32 Void
-        ("AnsiCodePageData",                    PVOID),
-        ("OemCodePageData",                     PVOID),
-        ("UnicodeCaseTableData",                PVOID),
-        ("NumberOfProcessors",                  DWORD),
-        ("NtGlobalFlag",                        DWORD),
-        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
-        ("HeapSegmentReserve",                  DWORD),
-        ("HeapSegmentCommit",                   DWORD),
-        ("HeapDeCommitTotalFreeThreshold",      DWORD),
-        ("HeapDeCommitFreeBlockThreshold",      DWORD),
-        ("NumberOfHeaps",                       DWORD),
-        ("MaximumNumberOfHeaps",                DWORD),
-        ("ProcessHeaps",                        PVOID), # Ptr32 Ptr32 Void
-        ("GdiSharedHandleTable",                PVOID),
-        ("ProcessStarterHelper",                PVOID),
-        ("GdiDCAttributeList",                  DWORD),
-        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
-        ("OSMajorVersion",                      DWORD),
-        ("OSMinorVersion",                      DWORD),
-        ("OSBuildNumber",                       WORD),
-        ("OSCSDVersion",                        WORD),
-        ("OSPlatformId",                        DWORD),
-        ("ImageSubsystem",                      DWORD),
-        ("ImageSubsystemMajorVersion",          DWORD),
-        ("ImageSubsystemMinorVersion",          DWORD),
-        ("ActiveProcessAffinityMask",           DWORD),
-        ("GdiHandleBuffer",                     DWORD * 34),
-        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
-        ("TlsExpansionBitmap",                  PVOID),
-        ("TlsExpansionBitmapBits",              DWORD * 32),
-        ("SessionId",                           DWORD),
-        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
-        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
-        ("pShimData",                           PVOID),
-        ("AppCompatInfo",                       PVOID),
-        ("CSDVersion",                          UNICODE_STRING),
-        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
-        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
-        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
-        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
-        ("MinimumStackCommit",                  DWORD),
-        ("FlsCallback",                         PVOID), # PFLS_CALLBACK_INFO
-        ("FlsListHead",                         LIST_ENTRY),
-        ("FlsBitmap",                           PVOID),
-        ("FlsBitmapBits",                       DWORD * 4),
-        ("FlsHighIndex",                        DWORD),
-        ("WerRegistrationData",                 PVOID),
-        ("WerShipAssertPtr",                    PVOID),
-        ("pContextData",                        PVOID),
-        ("pImageHeaderHash",                    PVOID),
-        ("TracingFlags",                        DWORD),
-    ]
-    def __get_UserSharedInfoPtr(self):
-        return self.KernelCallbackTable
-    def __set_UserSharedInfoPtr(self, value):
-        self.KernelCallbackTable = value
-    UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
-
-#    +0x000 InheritedAddressSpace : UChar
-#    +0x001 ReadImageFileExecOptions : UChar
-#    +0x002 BeingDebugged    : UChar
-#    +0x003 BitField         : UChar
-#    +0x003 ImageUsesLargePages : Pos 0, 1 Bit
-#    +0x003 IsProtectedProcess : Pos 1, 1 Bit
-#    +0x003 IsLegacyProcess  : Pos 2, 1 Bit
-#    +0x003 IsImageDynamicallyRelocated : Pos 3, 1 Bit
-#    +0x003 SkipPatchingUser32Forwarders : Pos 4, 1 Bit
-#    +0x003 SpareBits        : Pos 5, 3 Bits
-#    +0x008 Mutant           : Ptr64 Void
-#    +0x010 ImageBaseAddress : Ptr64 Void
-#    +0x018 Ldr              : Ptr64 _PEB_LDR_DATA
-#    +0x020 ProcessParameters : Ptr64 _RTL_USER_PROCESS_PARAMETERS
-#    +0x028 SubSystemData    : Ptr64 Void
-#    +0x030 ProcessHeap      : Ptr64 Void
-#    +0x038 FastPebLock      : Ptr64 _RTL_CRITICAL_SECTION
-#    +0x040 AtlThunkSListPtr : Ptr64 Void
-#    +0x048 IFEOKey          : Ptr64 Void
-#    +0x050 CrossProcessFlags : Uint4B
-#    +0x050 ProcessInJob     : Pos 0, 1 Bit
-#    +0x050 ProcessInitializing : Pos 1, 1 Bit
-#    +0x050 ProcessUsingVEH  : Pos 2, 1 Bit
-#    +0x050 ProcessUsingVCH  : Pos 3, 1 Bit
-#    +0x050 ProcessUsingFTH  : Pos 4, 1 Bit
-#    +0x050 ReservedBits0    : Pos 5, 27 Bits
-#    +0x058 KernelCallbackTable : Ptr64 Void
-#    +0x058 UserSharedInfoPtr : Ptr64 Void
-#    +0x060 SystemReserved   : [1] Uint4B
-#    +0x064 AtlThunkSListPtr32 : Uint4B
-#    +0x068 ApiSetMap        : Ptr64 Void
-#    +0x070 TlsExpansionCounter : Uint4B
-#    +0x078 TlsBitmap        : Ptr64 Void
-#    +0x080 TlsBitmapBits    : [2] Uint4B
-#    +0x088 ReadOnlySharedMemoryBase : Ptr64 Void
-#    +0x090 HotpatchInformation : Ptr64 Void
-#    +0x098 ReadOnlyStaticServerData : Ptr64 Ptr64 Void
-#    +0x0a0 AnsiCodePageData : Ptr64 Void
-#    +0x0a8 OemCodePageData  : Ptr64 Void
-#    +0x0b0 UnicodeCaseTableData : Ptr64 Void
-#    +0x0b8 NumberOfProcessors : Uint4B
-#    +0x0bc NtGlobalFlag     : Uint4B
-#    +0x0c0 CriticalSectionTimeout : _LARGE_INTEGER
-#    +0x0c8 HeapSegmentReserve : Uint8B
-#    +0x0d0 HeapSegmentCommit : Uint8B
-#    +0x0d8 HeapDeCommitTotalFreeThreshold : Uint8B
-#    +0x0e0 HeapDeCommitFreeBlockThreshold : Uint8B
-#    +0x0e8 NumberOfHeaps    : Uint4B
-#    +0x0ec MaximumNumberOfHeaps : Uint4B
-#    +0x0f0 ProcessHeaps     : Ptr64 Ptr64 Void
-#    +0x0f8 GdiSharedHandleTable : Ptr64 Void
-#    +0x100 ProcessStarterHelper : Ptr64 Void
-#    +0x108 GdiDCAttributeList : Uint4B
-#    +0x110 LoaderLock       : Ptr64 _RTL_CRITICAL_SECTION
-#    +0x118 OSMajorVersion   : Uint4B
-#    +0x11c OSMinorVersion   : Uint4B
-#    +0x120 OSBuildNumber    : Uint2B
-#    +0x122 OSCSDVersion     : Uint2B
-#    +0x124 OSPlatformId     : Uint4B
-#    +0x128 ImageSubsystem   : Uint4B
-#    +0x12c ImageSubsystemMajorVersion : Uint4B
-#    +0x130 ImageSubsystemMinorVersion : Uint4B
-#    +0x138 ActiveProcessAffinityMask : Uint8B
-#    +0x140 GdiHandleBuffer  : [60] Uint4B
-#    +0x230 PostProcessInitRoutine : Ptr64     void
-#    +0x238 TlsExpansionBitmap : Ptr64 Void
-#    +0x240 TlsExpansionBitmapBits : [32] Uint4B
-#    +0x2c0 SessionId        : Uint4B
-#    +0x2c8 AppCompatFlags   : _ULARGE_INTEGER
-#    +0x2d0 AppCompatFlagsUser : _ULARGE_INTEGER
-#    +0x2d8 pShimData        : Ptr64 Void
-#    +0x2e0 AppCompatInfo    : Ptr64 Void
-#    +0x2e8 CSDVersion       : _UNICODE_STRING
-#    +0x2f8 ActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
-#    +0x300 ProcessAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
-#    +0x308 SystemDefaultActivationContextData : Ptr64 _ACTIVATION_CONTEXT_DATA
-#    +0x310 SystemAssemblyStorageMap : Ptr64 _ASSEMBLY_STORAGE_MAP
-#    +0x318 MinimumStackCommit : Uint8B
-#    +0x320 FlsCallback      : Ptr64 _FLS_CALLBACK_INFO
-#    +0x328 FlsListHead      : _LIST_ENTRY
-#    +0x338 FlsBitmap        : Ptr64 Void
-#    +0x340 FlsBitmapBits    : [4] Uint4B
-#    +0x350 FlsHighIndex     : Uint4B
-#    +0x358 WerRegistrationData : Ptr64 Void
-#    +0x360 WerShipAssertPtr : Ptr64 Void
-#    +0x368 pContextData     : Ptr64 Void
-#    +0x370 pImageHeaderHash : Ptr64 Void
-#    +0x378 TracingFlags     : Uint4B
-#    +0x378 HeapTracingEnabled : Pos 0, 1 Bit
-#    +0x378 CritSecTracingEnabled : Pos 1, 1 Bit
-#    +0x378 SpareTracingBits : Pos 2, 30 Bits
-class _PEB_W7_64(Structure):
-    _pack_   = 8
-    _fields_ = [
-        ("InheritedAddressSpace",               BOOLEAN),
-        ("ReadImageFileExecOptions",            UCHAR),
-        ("BeingDebugged",                       BOOLEAN),
-        ("BitField",                            UCHAR),
-        ("Mutant",                              HANDLE),
-        ("ImageBaseAddress",                    PVOID),
-        ("Ldr",                                 PVOID), # PPEB_LDR_DATA
-        ("ProcessParameters",                   PVOID), # PRTL_USER_PROCESS_PARAMETERS
-        ("SubSystemData",                       PVOID),
-        ("ProcessHeap",                         PVOID),
-        ("FastPebLock",                         PVOID), # PRTL_CRITICAL_SECTION
-        ("AtlThunkSListPtr",                    PVOID),
-        ("IFEOKey",                             PVOID),
-        ("CrossProcessFlags",                   DWORD),
-        ("KernelCallbackTable",                 PVOID),
-        ("SystemReserved",                      DWORD),
-        ("AtlThunkSListPtr32",                  DWORD),
-        ("ApiSetMap",                           PVOID),
-        ("TlsExpansionCounter",                 DWORD),
-        ("TlsBitmap",                           PVOID),
-        ("TlsBitmapBits",                       DWORD * 2),
-        ("ReadOnlySharedMemoryBase",            PVOID),
-        ("HotpatchInformation",                 PVOID),
-        ("ReadOnlyStaticServerData",            PVOID), # Ptr32 Ptr32 Void
-        ("AnsiCodePageData",                    PVOID),
-        ("OemCodePageData",                     PVOID),
-        ("UnicodeCaseTableData",                PVOID),
-        ("NumberOfProcessors",                  DWORD),
-        ("NtGlobalFlag",                        DWORD),
-        ("CriticalSectionTimeout",              LONGLONG),  # LARGE_INTEGER
-        ("HeapSegmentReserve",                  QWORD),
-        ("HeapSegmentCommit",                   QWORD),
-        ("HeapDeCommitTotalFreeThreshold",      QWORD),
-        ("HeapDeCommitFreeBlockThreshold",      QWORD),
-        ("NumberOfHeaps",                       DWORD),
-        ("MaximumNumberOfHeaps",                DWORD),
-        ("ProcessHeaps",                        PVOID), # Ptr64 Ptr64 Void
-        ("GdiSharedHandleTable",                PVOID),
-        ("ProcessStarterHelper",                PVOID),
-        ("GdiDCAttributeList",                  DWORD),
-        ("LoaderLock",                          PVOID), # PRTL_CRITICAL_SECTION
-        ("OSMajorVersion",                      DWORD),
-        ("OSMinorVersion",                      DWORD),
-        ("OSBuildNumber",                       WORD),
-        ("OSCSDVersion",                        WORD),
-        ("OSPlatformId",                        DWORD),
-        ("ImageSubsystem",                      DWORD),
-        ("ImageSubsystemMajorVersion",          DWORD),
-        ("ImageSubsystemMinorVersion",          DWORD),
-        ("ActiveProcessAffinityMask",           QWORD),
-        ("GdiHandleBuffer",                     DWORD * 60),
-        ("PostProcessInitRoutine",              PPS_POST_PROCESS_INIT_ROUTINE),
-        ("TlsExpansionBitmap",                  PVOID),
-        ("TlsExpansionBitmapBits",              DWORD * 32),
-        ("SessionId",                           DWORD),
-        ("AppCompatFlags",                      ULONGLONG), # ULARGE_INTEGER
-        ("AppCompatFlagsUser",                  ULONGLONG), # ULARGE_INTEGER
-        ("pShimData",                           PVOID),
-        ("AppCompatInfo",                       PVOID),
-        ("CSDVersion",                          UNICODE_STRING),
-        ("ActivationContextData",               PVOID), # ACTIVATION_CONTEXT_DATA
-        ("ProcessAssemblyStorageMap",           PVOID), # ASSEMBLY_STORAGE_MAP
-        ("SystemDefaultActivationContextData",  PVOID), # ACTIVATION_CONTEXT_DATA
-        ("SystemAssemblyStorageMap",            PVOID), # ASSEMBLY_STORAGE_MAP
-        ("MinimumStackCommit",                  QWORD),
-        ("FlsCallback",                         PVOID), # PFLS_CALLBACK_INFO
-        ("FlsListHead",                         LIST_ENTRY),
-        ("FlsBitmap",                           PVOID),
-        ("FlsBitmapBits",                       DWORD * 4),
-        ("FlsHighIndex",                        DWORD),
-        ("WerRegistrationData",                 PVOID),
-        ("WerShipAssertPtr",                    PVOID),
-        ("pContextData",                        PVOID),
-        ("pImageHeaderHash",                    PVOID),
-        ("TracingFlags",                        DWORD),
-    ]
-    def __get_UserSharedInfoPtr(self):
-        return self.KernelCallbackTable
-    def __set_UserSharedInfoPtr(self, value):
-        self.KernelCallbackTable = value
-    UserSharedInfoPtr = property(__get_UserSharedInfoPtr, __set_UserSharedInfoPtr)
-
 # Use the correct PEB structure definition.
 # Defaults to the latest Windows version.
 class PEB(Structure):
     _pack_ = 8
     if os == 'Windows NT':
-        _pack_ = _PEB_NT._pack_
+        _pack_   = _PEB_NT._pack_
         _fields_ = _PEB_NT._fields_
     elif os == 'Windows 2000':
+        _pack_   = _PEB_2000._pack_
         _fields_ = _PEB_2000._fields_
     elif os == 'Windows XP':
         _fields_ = _PEB_XP._fields_
@@ -2147,10 +1844,18 @@ class PEB(Structure):
         _fields_ = _PEB_2003._fields_
     elif os == 'Windows 2003 (64 bits)':
         _fields_ = _PEB_2003_64._fields_
+    elif os == 'Windows 2003 R2':
+        _fields_ = _PEB_2003_R2._fields_
+    elif os == 'Windows 2003 R2 (64 bits)':
+        _fields_ = _PEB_2003_R2_64._fields_
     elif os == 'Windows 2008':
         _fields_ = _PEB_2008._fields_
     elif os == 'Windows 2008 (64 bits)':
         _fields_ = _PEB_2008_64._fields_
+    elif os == 'Windows 2008 R2':
+        _fields_ = _PEB_2008_R2._fields_
+    elif os == 'Windows 2008 R2 (64 bits)':
+        _fields_ = _PEB_2008_R2_64._fields_
     elif os == 'Windows Vista':
         _fields_ = _PEB_Vista._fields_
     elif os == 'Windows Vista (64 bits)':
@@ -2850,156 +2555,9 @@ class _TEB_2003(Structure):
         ("BooleanSpare",                    BOOLEAN * 3),
 ]
 
-#    +0x000 NtTib            : _NT_TIB
-#    +0x038 EnvironmentPointer : Ptr64 Void
-#    +0x040 ClientId         : _CLIENT_ID
-#    +0x050 ActiveRpcHandle  : Ptr64 Void
-#    +0x058 ThreadLocalStoragePointer : Ptr64 Void
-#    +0x060 ProcessEnvironmentBlock : Ptr64 _PEB
-#    +0x068 LastErrorValue   : Uint4B
-#    +0x06c CountOfOwnedCriticalSections : Uint4B
-#    +0x070 CsrClientThread  : Ptr64 Void
-#    +0x078 Win32ThreadInfo  : Ptr64 Void
-#    +0x080 User32Reserved   : [26] Uint4B
-#    +0x0e8 UserReserved     : [5] Uint4B
-#    +0x100 WOW32Reserved    : Ptr64 Void
-#    +0x108 CurrentLocale    : Uint4B
-#    +0x10c FpSoftwareStatusRegister : Uint4B
-#    +0x110 SystemReserved1  : [54] Ptr64 Void
-#    +0x2c0 ExceptionCode    : Int4B
-#    +0x2c8 ActivationContextStackPointer : Ptr64 _ACTIVATION_CONTEXT_STACK
-#    +0x2d0 SpareBytes1      : [28] UChar
-#    +0x2f0 GdiTebBatch      : _GDI_TEB_BATCH
-#    +0x7d8 RealClientId     : _CLIENT_ID
-#    +0x7e8 GdiCachedProcessHandle : Ptr64 Void
-#    +0x7f0 GdiClientPID     : Uint4B
-#    +0x7f4 GdiClientTID     : Uint4B
-#    +0x7f8 GdiThreadLocalInfo : Ptr64 Void
-#    +0x800 Win32ClientInfo  : [62] Uint8B
-#    +0x9f0 glDispatchTable  : [233] Ptr64 Void
-#    +0x1138 glReserved1      : [29] Uint8B
-#    +0x1220 glReserved2      : Ptr64 Void
-#    +0x1228 glSectionInfo    : Ptr64 Void
-#    +0x1230 glSection        : Ptr64 Void
-#    +0x1238 glTable          : Ptr64 Void
-#    +0x1240 glCurrentRC      : Ptr64 Void
-#    +0x1248 glContext        : Ptr64 Void
-#    +0x1250 LastStatusValue  : Uint4B
-#    +0x1258 StaticUnicodeString : _UNICODE_STRING
-#    +0x1268 StaticUnicodeBuffer : [261] Uint2B
-#    +0x1478 DeallocationStack : Ptr64 Void
-#    +0x1480 TlsSlots         : [64] Ptr64 Void
-#    +0x1680 TlsLinks         : _LIST_ENTRY
-#    +0x1690 Vdm              : Ptr64 Void
-#    +0x1698 ReservedForNtRpc : Ptr64 Void
-#    +0x16a0 DbgSsReserved    : [2] Ptr64 Void
-#    +0x16b0 HardErrorMode    : Uint4B
-#    +0x16b8 Instrumentation  : [14] Ptr64 Void
-#    +0x1728 SubProcessTag    : Ptr64 Void
-#    +0x1730 EtwTraceData     : Ptr64 Void
-#    +0x1738 WinSockData      : Ptr64 Void
-#    +0x1740 GdiBatchCount    : Uint4B
-#    +0x1744 InDbgPrint       : UChar
-#    +0x1745 FreeStackOnTermination : UChar
-#    +0x1746 HasFiberData     : UChar
-#    +0x1747 IdealProcessor   : UChar
-#    +0x1748 GuaranteedStackBytes : Uint4B
-#    +0x1750 ReservedForPerf  : Ptr64 Void
-#    +0x1758 ReservedForOle   : Ptr64 Void
-#    +0x1760 WaitingOnLoaderLock : Uint4B
-#    +0x1768 SparePointer1    : Uint8B
-#    +0x1770 SoftPatchPtr1    : Uint8B
-#    +0x1778 SoftPatchPtr2    : Uint8B
-#    +0x1780 TlsExpansionSlots : Ptr64 Ptr64 Void
-#    +0x1788 DeallocationBStore : Ptr64 Void
-#    +0x1790 BStoreLimit      : Ptr64 Void
-#    +0x1798 ImpersonationLocale : Uint4B
-#    +0x179c IsImpersonating  : Uint4B
-#    +0x17a0 NlsCache         : Ptr64 Void
-#    +0x17a8 pShimData        : Ptr64 Void
-#    +0x17b0 HeapVirtualAffinity : Uint4B
-#    +0x17b8 CurrentTransactionHandle : Ptr64 Void
-#    +0x17c0 ActiveFrame      : Ptr64 _TEB_ACTIVE_FRAME
-#    +0x17c8 FlsData          : Ptr64 Void
-#    +0x17d0 SafeThunkCall    : UChar
-#    +0x17d1 BooleanSpare     : [3] UChar
-class _TEB_2003_64(Structure):
-    _pack_ = 8
-    _fields_ = [
-        ("NtTib",                           NT_TIB),
-        ("EnvironmentPointer",              PVOID),
-        ("ClientId",                        CLIENT_ID),
-        ("ActiveRpcHandle",                 PVOID),
-        ("ThreadLocalStoragePointer",       PVOID),
-        ("ProcessEnvironmentBlock",         PVOID), # PPEB
-        ("LastErrorValue",                  DWORD),
-        ("CountOfOwnedCriticalSections",    DWORD),
-        ("CsrClientThread",                 PVOID),
-        ("Win32ThreadInfo",                 PVOID),
-        ("User32Reserved",                  DWORD * 26),
-        ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
-        ("CurrentLocale",                   DWORD),
-        ("FpSoftwareStatusRegister",        DWORD),
-        ("SystemReserved1",                 PVOID * 54),
-        ("ExceptionCode",                   SDWORD),
-        ("ActivationContextStackPointer",   PVOID), # PACTIVATION_CONTEXT_STACK
-        ("SpareBytes1",                     UCHAR * 28),
-        ("GdiTebBatch",                     GDI_TEB_BATCH),
-        ("RealClientId",                    CLIENT_ID),
-        ("GdiCachedProcessHandle",          HANDLE),
-        ("GdiClientPID",                    DWORD),
-        ("GdiClientTID",                    DWORD),
-        ("GdiThreadLocalInfo",              PVOID),
-        ("Win32ClientInfo",                 QWORD * 62),
-        ("glDispatchTable",                 PVOID * 233),
-        ("glReserved1",                     QWORD * 29),
-        ("glReserved2",                     PVOID),
-        ("glSectionInfo",                   PVOID),
-        ("glSection",                       PVOID),
-        ("glTable",                         PVOID),
-        ("glCurrentRC",                     PVOID),
-        ("glContext",                       PVOID),
-        ("LastStatusValue",                 NTSTATUS),
-        ("StaticUnicodeString",             UNICODE_STRING),
-        ("StaticUnicodeBuffer",             WCHAR * 261),
-        ("DeallocationStack",               PVOID),
-        ("TlsSlots",                        PVOID * 64),
-        ("TlsLinks",                        LIST_ENTRY),
-        ("Vdm",                             PVOID),
-        ("ReservedForNtRpc",                PVOID),
-        ("DbgSsReserved",                   PVOID * 2),
-        ("HardErrorMode",                   DWORD),
-        ("Instrumentation",                 PVOID * 14),
-        ("SubProcessTag",                   PVOID),
-        ("EtwTraceData",                    PVOID),
-        ("WinSockData",                     PVOID),
-        ("GdiBatchCount",                   DWORD),
-        ("InDbgPrint",                      BOOLEAN),
-        ("FreeStackOnTermination",          BOOLEAN),
-        ("HasFiberData",                    BOOLEAN),
-        ("IdealProcessor",                  UCHAR),
-        ("GuaranteedStackBytes",            DWORD),
-        ("ReservedForPerf",                 PVOID),
-        ("ReservedForOle",                  PVOID),
-        ("WaitingOnLoaderLock",             DWORD),
-        ("SparePointer1",                   PVOID),
-        ("SoftPatchPtr1",                   PVOID),
-        ("SoftPatchPtr2",                   PVOID),
-        ("TlsExpansionSlots",               PVOID), # Ptr64 Ptr64 Void
-        ("DeallocationBStore",              PVOID),
-        ("BStoreLimit",                     PVOID),
-        ("ImpersonationLocale",             DWORD),
-        ("IsImpersonating",                 BOOL),
-        ("NlsCache",                        PVOID),
-        ("pShimData",                       PVOID),
-        ("HeapVirtualAffinity",             DWORD),
-        ("CurrentTransactionHandle",        HANDLE),
-        ("ActiveFrame",                     PVOID), # PTEB_ACTIVE_FRAME
-        ("FlsData",                         PVOID),
-        ("SafeThunkCall",                   BOOLEAN),
-        ("BooleanSpare",                    BOOLEAN * 3),
-]
+_TEB_2003_64    = _TEB_XP_64
+_TEB_2003_R2    = _TEB_2003
+_TEB_2003_R2_64 = _TEB_2003_64
 
 #    +0x000 NtTib            : _NT_TIB
 #    +0x01c EnvironmentPointer : Ptr32 Void
@@ -3191,195 +2749,6 @@ class _TEB_2008(Structure):
 ]
 
 #    +0x000 NtTib            : _NT_TIB
-#    +0x01c EnvironmentPointer : Ptr32 Void
-#    +0x020 ClientId         : _CLIENT_ID
-#    +0x028 ActiveRpcHandle  : Ptr32 Void
-#    +0x02c ThreadLocalStoragePointer : Ptr32 Void
-#    +0x030 ProcessEnvironmentBlock : Ptr32 _PEB
-#    +0x034 LastErrorValue   : Uint4B
-#    +0x038 CountOfOwnedCriticalSections : Uint4B
-#    +0x03c CsrClientThread  : Ptr32 Void
-#    +0x040 Win32ThreadInfo  : Ptr32 Void
-#    +0x044 User32Reserved   : [26] Uint4B
-#    +0x0ac UserReserved     : [5] Uint4B
-#    +0x0c0 WOW32Reserved    : Ptr32 Void
-#    +0x0c4 CurrentLocale    : Uint4B
-#    +0x0c8 FpSoftwareStatusRegister : Uint4B
-#    +0x0cc SystemReserved1  : [54] Ptr32 Void
-#    +0x1a4 ExceptionCode    : Int4B
-#    +0x1a8 ActivationContextStackPointer : Ptr32 _ACTIVATION_CONTEXT_STACK
-#    +0x1ac SpareBytes1      : [36] UChar
-#    +0x1d0 TxFsContext      : Uint4B
-#    +0x1d4 GdiTebBatch      : _GDI_TEB_BATCH
-#    +0x6b4 RealClientId     : _CLIENT_ID
-#    +0x6bc GdiCachedProcessHandle : Ptr32 Void
-#    +0x6c0 GdiClientPID     : Uint4B
-#    +0x6c4 GdiClientTID     : Uint4B
-#    +0x6c8 GdiThreadLocalInfo : Ptr32 Void
-#    +0x6cc Win32ClientInfo  : [62] Uint4B
-#    +0x7c4 glDispatchTable  : [233] Ptr32 Void
-#    +0xb68 glReserved1      : [29] Uint4B
-#    +0xbdc glReserved2      : Ptr32 Void
-#    +0xbe0 glSectionInfo    : Ptr32 Void
-#    +0xbe4 glSection        : Ptr32 Void
-#    +0xbe8 glTable          : Ptr32 Void
-#    +0xbec glCurrentRC      : Ptr32 Void
-#    +0xbf0 glContext        : Ptr32 Void
-#    +0xbf4 LastStatusValue  : Uint4B
-#    +0xbf8 StaticUnicodeString : _UNICODE_STRING
-#    +0xc00 StaticUnicodeBuffer : [261] Wchar
-#    +0xe0c DeallocationStack : Ptr32 Void
-#    +0xe10 TlsSlots         : [64] Ptr32 Void
-#    +0xf10 TlsLinks         : _LIST_ENTRY
-#    +0xf18 Vdm              : Ptr32 Void
-#    +0xf1c ReservedForNtRpc : Ptr32 Void
-#    +0xf20 DbgSsReserved    : [2] Ptr32 Void
-#    +0xf28 HardErrorMode    : Uint4B
-#    +0xf2c Instrumentation  : [9] Ptr32 Void
-#    +0xf50 ActivityId       : _GUID
-#    +0xf60 SubProcessTag    : Ptr32 Void
-#    +0xf64 EtwLocalData     : Ptr32 Void
-#    +0xf68 EtwTraceData     : Ptr32 Void
-#    +0xf6c WinSockData      : Ptr32 Void
-#    +0xf70 GdiBatchCount    : Uint4B
-#    +0xf74 SpareBool0       : UChar
-#    +0xf75 SpareBool1       : UChar
-#    +0xf76 SpareBool2       : UChar
-#    +0xf77 IdealProcessor   : UChar
-#    +0xf78 GuaranteedStackBytes : Uint4B
-#    +0xf7c ReservedForPerf  : Ptr32 Void
-#    +0xf80 ReservedForOle   : Ptr32 Void
-#    +0xf84 WaitingOnLoaderLock : Uint4B
-#    +0xf88 SavedPriorityState : Ptr32 Void
-#    +0xf8c SoftPatchPtr1    : Uint4B
-#    +0xf90 ThreadPoolData   : Ptr32 Void
-#    +0xf94 TlsExpansionSlots : Ptr32 Ptr32 Void
-#    +0xf98 ImpersonationLocale : Uint4B
-#    +0xf9c IsImpersonating  : Uint4B
-#    +0xfa0 NlsCache         : Ptr32 Void
-#    +0xfa4 pShimData        : Ptr32 Void
-#    +0xfa8 HeapVirtualAffinity : Uint4B
-#    +0xfac CurrentTransactionHandle : Ptr32 Void
-#    +0xfb0 ActiveFrame      : Ptr32 _TEB_ACTIVE_FRAME
-#    +0xfb4 FlsData          : Ptr32 Void
-#    +0xfb8 PreferredLanguages : Ptr32 Void
-#    +0xfbc UserPrefLanguages : Ptr32 Void
-#    +0xfc0 MergedPrefLanguages : Ptr32 Void
-#    +0xfc4 MuiImpersonation : Uint4B
-#    +0xfc8 CrossTebFlags    : Uint2B
-#    +0xfc8 SpareCrossTebBits : Pos 0, 16 Bits
-#    +0xfca SameTebFlags     : Uint2B
-#    +0xfca DbgSafeThunkCall : Pos 0, 1 Bit
-#    +0xfca DbgInDebugPrint  : Pos 1, 1 Bit
-#    +0xfca DbgHasFiberData  : Pos 2, 1 Bit
-#    +0xfca DbgSkipThreadAttach : Pos 3, 1 Bit
-#    +0xfca DbgWerInShipAssertCode : Pos 4, 1 Bit
-#    +0xfca DbgRanProcessInit : Pos 5, 1 Bit
-#    +0xfca DbgClonedThread  : Pos 6, 1 Bit
-#    +0xfca DbgSuppressDebugMsg : Pos 7, 1 Bit
-#    +0xfca RtlDisableUserStackWalk : Pos 8, 1 Bit
-#    +0xfca RtlExceptionAttached : Pos 9, 1 Bit
-#    +0xfca SpareSameTebBits : Pos 10, 6 Bits
-#    +0xfcc TxnScopeEnterCallback : Ptr32 Void
-#    +0xfd0 TxnScopeExitCallback : Ptr32 Void
-#    +0xfd4 TxnScopeContext  : Ptr32 Void
-#    +0xfd8 LockCount        : Uint4B
-#    +0xfdc ProcessRundown   : Uint4B
-#    +0xfe0 LastSwitchTime   : Uint8B
-#    +0xfe8 TotalSwitchOutTime : Uint8B
-#    +0xff0 WaitReasonBitMap : _LARGE_INTEGER
-class _TEB_Vista(Structure):
-    _pack_ = 8
-    _fields_ = [
-        ("NtTib",                           NT_TIB),
-        ("EnvironmentPointer",              PVOID),
-        ("ClientId",                        CLIENT_ID),
-        ("ActiveRpcHandle",                 HANDLE),
-        ("ThreadLocalStoragePointer",       PVOID),
-        ("ProcessEnvironmentBlock",         PVOID), # PPEB
-        ("LastErrorValue",                  DWORD),
-        ("CountOfOwnedCriticalSections",    DWORD),
-        ("CsrClientThread",                 PVOID),
-        ("Win32ThreadInfo",                 PVOID),
-        ("User32Reserved",                  DWORD * 26),
-        ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
-        ("CurrentLocale",                   DWORD),
-        ("FpSoftwareStatusRegister",        DWORD),
-        ("SystemReserved1",                 PVOID * 54),
-        ("ExceptionCode",                   SDWORD),
-        ("ActivationContextStackPointer",   PVOID), # PACTIVATION_CONTEXT_STACK
-        ("SpareBytes1",                     UCHAR * 36),
-        ("TxFsContext",                     DWORD),
-        ("GdiTebBatch",                     GDI_TEB_BATCH),
-        ("RealClientId",                    CLIENT_ID),
-        ("GdiCachedProcessHandle",          HANDLE),
-        ("GdiClientPID",                    DWORD),
-        ("GdiClientTID",                    DWORD),
-        ("GdiThreadLocalInfo",              PVOID),
-        ("Win32ClientInfo",                 DWORD * 62),
-        ("glDispatchTable",                 PVOID * 233),
-        ("glReserved1",                     DWORD * 29),
-        ("glReserved2",                     PVOID),
-        ("glSectionInfo",                   PVOID),
-        ("glSection",                       PVOID),
-        ("glTable",                         PVOID),
-        ("glCurrentRC",                     PVOID),
-        ("glContext",                       PVOID),
-        ("LastStatusValue",                 NTSTATUS),
-        ("StaticUnicodeString",             UNICODE_STRING),
-        ("StaticUnicodeBuffer",             WCHAR * 261),
-        ("DeallocationStack",               PVOID),
-        ("TlsSlots",                        PVOID * 64),
-        ("TlsLinks",                        LIST_ENTRY),
-        ("Vdm",                             PVOID),
-        ("ReservedForNtRpc",                PVOID),
-        ("DbgSsReserved",                   PVOID * 2),
-        ("HardErrorMode",                   DWORD),
-        ("Instrumentation",                 PVOID * 9),
-        ("ActivityId",                      GUID),
-        ("SubProcessTag",                   PVOID),
-        ("EtwLocalData",                    PVOID),
-        ("EtwTraceData",                    PVOID),
-        ("WinSockData",                     PVOID),
-        ("GdiBatchCount",                   DWORD),
-        ("SpareBool0",                      BOOLEAN),
-        ("SpareBool1",                      BOOLEAN),
-        ("SpareBool2",                      BOOLEAN),
-        ("IdealProcessor",                  UCHAR),
-        ("GuaranteedStackBytes",            DWORD),
-        ("ReservedForPerf",                 PVOID),
-        ("ReservedForOle",                  PVOID),
-        ("WaitingOnLoaderLock",             DWORD),
-        ("SavedPriorityState",              PVOID),
-        ("SoftPatchPtr1",                   PVOID),
-        ("ThreadPoolData",                  PVOID),
-        ("TlsExpansionSlots",               PVOID), # Ptr32 Ptr32 Void
-        ("ImpersonationLocale",             DWORD),
-        ("IsImpersonating",                 BOOL),
-        ("NlsCache",                        PVOID),
-        ("pShimData",                       PVOID),
-        ("HeapVirtualAffinity",             DWORD),
-        ("CurrentTransactionHandle",        HANDLE),
-        ("ActiveFrame",                     PVOID), # PTEB_ACTIVE_FRAME
-        ("FlsData",                         PVOID),
-        ("PreferredLanguages",              PVOID),
-        ("UserPrefLanguages",               PVOID),
-        ("MergedPrefLanguages",             PVOID),
-        ("MuiImpersonation",                BOOL),
-        ("CrossTebFlags",                   WORD),
-        ("SameTebFlags",                    WORD),
-        ("TxnScopeEnterCallback",           PVOID),
-        ("TxnScopeExitCallback",            PVOID),
-        ("TxnScopeContext",                 PVOID),
-        ("LockCount",                       DWORD),
-        ("ProcessRundown",                  DWORD),
-        ("LastSwitchTime",                  QWORD),
-        ("TotalSwitchOutTime",              QWORD),
-        ("WaitReasonBitMap",                LONGLONG),  # LARGE_INTEGER
-]
-
-#    +0x000 NtTib            : _NT_TIB
 #    +0x038 EnvironmentPointer : Ptr64 Void
 #    +0x040 ClientId         : _CLIENT_ID
 #    +0x050 ActiveRpcHandle  : Ptr64 Void
@@ -3479,7 +2848,7 @@ class _TEB_Vista(Structure):
 #    +0x1810 LastSwitchTime   : Uint8B
 #    +0x1818 TotalSwitchOutTime : Uint8B
 #    +0x1820 WaitReasonBitMap : _LARGE_INTEGER
-class _TEB_Vista_64(Structure):
+class _TEB_2008_64(Structure):
     _pack_ = 8
     _fields_ = [
         ("NtTib",                           NT_TIB),
@@ -3671,7 +3040,7 @@ class _TEB_Vista_64(Structure):
 #    +0xfd8 LockCount        : Uint4B
 #    +0xfdc SpareUlong0      : Uint4B
 #    +0xfe0 ResourceRetValue : Ptr32 Void
-class _TEB_W7(Structure):
+class _TEB_2008_R2(Structure):
     _pack_ = 8
     _fields_ = [
         ("NtTib",                           NT_TIB),
@@ -3863,7 +3232,7 @@ class _TEB_W7(Structure):
 #    +0x1808 LockCount        : Uint4B
 #    +0x180c SpareUlong0      : Uint4B
 #    +0x1810 ResourceRetValue : Ptr64 Void
-class _TEB_W7_64(Structure):
+class _TEB_2008_R2_64(Structure):
     _pack_ = 8
     _fields_ = [
         ("NtTib",                           NT_TIB),
@@ -3956,6 +3325,11 @@ class _TEB_W7_64(Structure):
         ("ResourceRetValue",                PVOID),
 ]
 
+_TEB_Vista      = _TEB_2008
+_TEB_Vista_64   = _TEB_2008_64
+_TEB_W7         = _TEB_2008_R2
+_TEB_W7_64      = _TEB_2008_R2_64
+
 # Use the correct TEB structure definition.
 # Defaults to the latest Windows version.
 class TEB(Structure):
@@ -3964,6 +3338,7 @@ class TEB(Structure):
         _pack_   = _TEB_NT._pack_
         _fields_ = _TEB_NT._fields_
     elif os == 'Windows 2000':
+        _pack_   = _TEB_2000._pack_
         _fields_ = _TEB_2000._fields_
     elif os == 'Windows XP':
         _fields_ = _TEB_XP._fields_
@@ -3977,6 +3352,14 @@ class TEB(Structure):
         _fields_ = _TEB_2008._fields_
     elif os == 'Windows 2008 (64 bits)':
         _fields_ = _TEB_2008_64._fields_
+    elif os == 'Windows 2003 R2':
+        _fields_ = _TEB_2003_R2._fields_
+    elif os == 'Windows 2003 R2 (64 bits)':
+        _fields_ = _TEB_2003_R2_64._fields_
+    elif os == 'Windows 2008 R2':
+        _fields_ = _TEB_2008_R2._fields_
+    elif os == 'Windows 2008 R2 (64 bits)':
+        _fields_ = _TEB_2008_R2_64._fields_
     elif os == 'Windows Vista':
         _fields_ = _TEB_Vista._fields_
     elif os == 'Windows Vista (64 bits)':
