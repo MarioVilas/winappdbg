@@ -2694,7 +2694,7 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, MAX_PATH)
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine)
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -2737,7 +2737,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, MAX_PATH)
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -2795,7 +2795,7 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, MAX_PATH)
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine)
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -2838,7 +2838,7 @@ def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, MAX_PATH)
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
     if not lpEnvironment:
         lpEnvironment       = None
     else:
