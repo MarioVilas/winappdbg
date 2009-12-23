@@ -63,16 +63,19 @@ class Test( object ):
         self.memory  = None
 
     def exception(self, event):
-##        event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
-##        event.continueStatus = win32.DBG_CONTINUE
+        self.logExceptionEvent(event)   # XXX DEBUG
+##        print event.get_thread().get_seh_chain()
+##        print [ (hex(a),hex(b)) for (a,b) in event.get_thread().get_seh_chain() ] # XXX DEBUG
         if not self.testing:
-            self.logExceptionEvent(event)
+##            self.logExceptionEvent(event)
             if event.is_last_chance():
                 event.continueStatus = win32.DBG_TERMINATE_PROCESS
+                event.get_process().kill()
             else:
                 self.checkExceptionChain(event)
         else:
             if event.is_last_chance():
+##                event.continueStatus = win32.DBG_CONTINUE
                 event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             else:
                 if not self.checkProtectedPage(event):
@@ -249,10 +252,13 @@ class Test( object ):
 
         if self.last:
             debug.dont_stalk_at(pid, self.last)
-##        self.logger.log_text("Trying %s" % HexDump.address(address))
+        self.logger.log_text("Trying %s" % HexDump.address(address)) # XXX DEBUG
         process.write_pointer(self.seh + 4, address)
         debug.stalk_at(pid, address, self.foundValidHandler)
         self.last = address
+
+##        thread.set_pc(0)
+##        thread.set_pc(address)
 
     def foundValidHandler(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
