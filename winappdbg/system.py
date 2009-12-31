@@ -291,6 +291,10 @@ class ModuleContainer (object):
         Populates the snapshot with loaded modules.
         """
 
+        # The module filenames may be spoofed by malware,
+        # since this information resides in usermode space.
+        # See: http://www.ragestorm.net/blogs/?p=163
+
         # Ignore special process IDs.
         # PID 0: System Idle Process. Also has a special meaning to the
         #        toolhelp APIs (current process).
@@ -1189,6 +1193,11 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads.
         """
+
+        # The main module filename may be spoofed by malware,
+        # since this information resides in usermode space.
+        # See: http://www.ragestorm.net/blogs/?p=163
+
         our_pid    = win32.GetCurrentProcessId()
 ##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
@@ -1271,6 +1280,11 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes.
         """
+
+        # The module filenames may be spoofed by malware,
+        # since this information resides in usermode space.
+        # See: http://www.ragestorm.net/blogs/?p=163
+
         our_pid   = win32.GetCurrentProcessId()
 ##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
@@ -4698,6 +4712,7 @@ class ProcessDebugOperations (object):
                 name = None
 
         # Method 3: GetProcessImageFileName()
+        #
         # Not implemented until Windows XP.
         # For more info see http://blog.voidnish.com/?p=72
         if not name:
@@ -4713,10 +4728,13 @@ class ProcessDebugOperations (object):
 
         # Method 4: GetModuleFileNameEx()
         # Not implemented until Windows 2000.
+        #
+        # May be spoofed by malware, since this information resides
+        # in usermode space (see http://www.ragestorm.net/blogs/?p=163).
         if not name:
             try:
                 try:
-                    name = win32.GetModuleFileNameEx(self.get_handle(), None)
+                    name = win32.GetModuleFileNameEx(self.get_handle())
                 except WindowsError:
                     name = win32.GetModuleFileNameEx(self.get_handle(),
                                                      self.get_image_base())
@@ -4729,7 +4747,9 @@ class ProcessDebugOperations (object):
                     name = None
 
         # Method 5: PEB.ProcessParameters->ImagePathName
+        #
         # May fail since it's using an undocumented internal structure.
+        #
         # May be spoofed by malware, since this information resides
         # in usermode space (see http://www.ragestorm.net/blogs/?p=163).
         if not name:
@@ -4749,16 +4769,18 @@ class ProcessDebugOperations (object):
 
         # Method 6: Module.get_filename()
         # It tries to get the filename from the file handle.
+        #
         # There are currently some problems due to the strange way the API
         # works - it returns the pathname without the drive letter, and I
         # couldn't figure out a way to fix it.
         if not name:
-            try:
-                name = mainModule.get_filename()
-                if not name:
+            if vars().has_key('mainModule'):
+                try:
+                    name = mainModule.get_filename()
+                    if not name:
+                        name = None
+                except (AttributeError, WindowsError):
                     name = None
-            except (UnboundLocalError, KeyError, AttributeError, WindowsError):
-                name = None
 
         # Remember the filename.
         if name:
