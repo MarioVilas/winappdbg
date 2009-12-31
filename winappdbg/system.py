@@ -4730,6 +4730,8 @@ class ProcessDebugOperations (object):
 
         # Method 5: PEB.ProcessParameters->ImagePathName
         # May fail since it's using an undocumented internal structure.
+        # May be spoofed by malware, since this information resides
+        # in usermode space (see http://www.ragestorm.net/blogs/?p=163).
         if not name:
             try:
                 peb = self.get_peb()
