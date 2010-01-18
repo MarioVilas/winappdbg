@@ -46,226 +46,228 @@ from winappdbg import HexInput, HexDump, CrashDump, Logger
 
 #------------------------------------------------------------------------------
 
-# XXX TODO
-# * log Python exceptions instead of stopping everything!
-# * filter out syscalls not issued from within the exception handling code in
-#   ntdll.dll (to avoid unwanted side effects)
-
 class Test( object ):
+
+    protect_conversions = {
+        win32.PAGE_EXECUTE_READWRITE:   win32.PAGE_EXECUTE_READ,
+        win32.PAGE_EXECUTE_WRITECOPY:   win32.PAGE_EXECUTE_READ,
+        win32.PAGE_READWRITE:           win32.PAGE_READONLY,
+        win32.PAGE_WRITECOPY:           win32.PAGE_READONLY,
+    }
+
     def __init__(self, options, logger):
-        self.options = options
-        self.logger  = logger
-        self.testing = False
-        self.seh     = None
-        self.orig    = None
-        self.last    = None
-        self.context = None
-        self.memory  = None
+        self.options        = options
+        self.logger         = logger
+        self.testing        = None  # True if we're bruteforcing, False if we're waiting
+        self.debug          = None  # Debug object
+        self.pid            = None  # ID of process to bruteforce
+        self.tid            = None  # ID of thread to bruteforce
+        self.process        = None  # Process to bruteforce
+        self.thread         = None  # Thread to bruteforce
+        self.target_iter    = None  # Iterator of target addresses to bruteforce
+        self.context        = None  # Original thread context
+        self.memory         = None  # Dynamic memory snapshot: page -> (content, protect, tainted)
+        self.orig_seh_first = None  # Original SEH chain pointer
+        self.orig_seh_block = None  # Original SEH block contents
+        self.new_seh_first  = None  # New SEH chain pointer, for bruteforcing
+        self.new_seh_ptr    = None  # Pointer to pointer to exception handler
+        self.current_target = None  # Exception handler address being tested
 
     def exception(self, event):
-        self.logExceptionEvent(event)   # XXX DEBUG
-##        print event.get_thread().get_seh_chain()
-##        print [ (hex(a),hex(b)) for (a,b) in event.get_thread().get_seh_chain() ] # XXX DEBUG
+        print event.get_tid(), event.get_exception_name(), hex(event.get_fault_address())
+
+        if event.get_tid() != self.tid:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            return
+
+        # First exception event received, initialize
+        if self.testing is None:
+            self.testing = False
+            self.debug   = event.debug
+            self.pid     = event.get_pid()
+            self.tid     = event.get_tid()
+            self.process = event.get_process()
+            self.thread  = event.get_thread()
+
+        # Waiting for the SEH to be overwritten
         if not self.testing:
-##            self.logExceptionEvent(event)
-            if event.is_last_chance():
+            if event.is_first_chance():
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+                self.findAttackerExceptionHandler()
+                if self.testing:
+                    self.suspendOtherThreads()
+                    self.setupTargetAddressIterator()
+                    self.setupExceptionHandlerChain()
+                    self.setupSnapshot()        # must be taken LAST!
+            else:
                 event.continueStatus = win32.DBG_TERMINATE_PROCESS
-                event.get_process().kill()
-            else:
-                self.checkExceptionChain(event)
-        else:
+                self.thread.set_pc( self.process.resolve_label('kernel32!ExitProcess') )
+                return
+
+        # Bruteforcing all valid SEH locations
+        if self.testing:
             if event.is_last_chance():
+##                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+##                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+                event.continueStatus = win32.DBG_CONTINUE
+            else:
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+                self.nextExceptionHandler()
+
 ##                event.continueStatus = win32.DBG_CONTINUE
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-            else:
-                if not self.checkProtectedPage(event):
-                    self.nextExceptionHandler(event)
+##                if event.get_exception_code() == win32.EXCEPTION_ACCESS_VIOLATION and \
+##                    event.get_fault_type() == win32.EXCEPTION_WRITE_FAULT and \
+##                    self.updateSnapshot(event.get_fault_address()):
+##                        event.continueStatus = win32.DBG_CONTINUE
+####                        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+##                else:
+##                    self.nextExceptionHandler()
 
-    def checkProtectedPage(self, event):
-        if event.get_exception_code() == win32.EXCEPTION_ACCESS_VIOLATION:
-##            address = event.get_exception_address() # Oops! This returns EIP
-            address = event.get_fault_address()
-            address = MemoryAddresses.align_address_to_page_start(address)
-            if self.saved_pages.has_key(address):
-                if self.saved_pages[address] is None:
-                    pageSize = System.pageSize
-                    process  = event.get_process()
-                    data     = process.read(address, pageSize)
-                    self.saved_pages[address] = data
-                    for mbi in self.memory:
-                        if address in mbi:
-                            process.mprotect(address, pageSize, mbi.Protect)
-                            return True
-        return False
+    def breakpoint(self, event):
+        print event.get_exception_name()
+        if hasattr(event, 'bp'):
+            print "Found: %s" % HexDump.address(self.current_target)
+            self.nextExceptionHandler()
 
-    def protectPages(self, event):
-        self.saved_pages = dict()
-        pageSize = System.pageSize
-        process  = event.get_process()
-        for mbi in self.memory:
-            if mbi.is_writeable():
-                if mbi.is_executable():
-                    flNewProtect = win32.PAGE_EXECUTE_READ
-                else:
-                    flNewProtect = win32.PAGE_READONLY
-                try:
-                    process.mprotect(mbi.BaseAddress, mbi.RegionSize, flNewProtect)
-                except WindowsError:
-##                    msg = "  Skipped memory region: %.8x - %.8x - %s"
-##                    msg = msg % (mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize,
-##                        process.get_mapped_filenames([mbi]).get(mbi.BaseAddress))
-##                    print msg
-                    continue
-                for address in xrange(mbi.BaseAddress,
-                                      mbi.BaseAddress + mbi.RegionSize,
-                                      pageSize):
-                    self.saved_pages[address] = None
-
-    def unprotectPages(self, event):
-        pageSize = System.pageSize
-        process  = event.get_process()
-        for mbi in self.memory:
-            if mbi.is_writeable():
-                for address in xrange(mbi.BaseAddress,
-                                      mbi.BaseAddress + mbi.RegionSize,
-                                      pageSize):
-                    data = self.saved_pages.get(address, None)
-                    if data is not None:
-                        process.write(address, data)
-                process.mprotect(mbi.BaseAddress, mbi.RegionSize, mbi.Protect)
-        self.saved_pages = dict()
-
-    # XXX TODO
-    # This would be more efficient with a dictionary of SavedPage objects!
-    def restorePages(self, event):
-        pageSize = System.pageSize
-        process  = event.get_process()
-        for mbi in self.memory:
-            if mbi.is_writeable():
-                dirty = False
-                for address in xrange(mbi.BaseAddress,
-                                      mbi.BaseAddress + mbi.RegionSize,
-                                      pageSize):
-                    if self.saved_pages.has_key(address):
-                        data = self.saved_pages[address]
-                        if data is not None:
-                            process.write(address, data)
-                            self.saved_pages[address] = None
-                            dirty = True
-                if dirty:
-                    if mbi.is_executable():
-                        flNewProtect = win32.PAGE_EXECUTE_READ
-                    else:
-                        flNewProtect = win32.PAGE_READONLY
-                    process.mprotect(mbi.BaseAddress, mbi.RegionSize, flNewProtect)
-
-    def logExceptionEvent(self, event):
-        what  = event.get_exception_name()
-        where = HexDump.address( event.get_exception_address() )
-        if event.is_first_chance():
-            chance = 'first'
-        else:
-            chance = 'second'
-        msg   = "Caught %s (%s chance) at %s" % (what, chance, where)
-        self.logger.log_event(event, msg)
-
-    def checkExceptionChain(self, event):
-
-        # XXX TODO
-        # + Add a list of exceptions to ignore
-        # + Option to ignore first chance exceptions
-        # + Option to fail on missing SEH chain
-
-        thread  = event.get_thread()
-        process = event.get_process()
-        target  = self.options.seh
-        if target:
-            chain = thread.get_seh_chain()
-            if chain:
-                index = 0
-                for (_, address) in chain:
-                    if address == target:
-                        if index > 0:
-                            self.seh = chain[index - 1][0]
-                        else:
-                            self.seh = thread.get_seh_chain_pointer()
-                        break
-                    index += 1
-            else:
-                self.seh = thread.get_seh_chain_pointer()
-        else:
-            self.seh = thread.get_seh_chain_pointer()
-
-        if self.seh:
-            self.startBruteforcing(event)
-
-    def startBruteforcing(self, event):
-        thread  = event.get_thread()
-        process = event.get_process()
-        msg = "Target SEH found at %s, preparing to bruteforce..."
-        msg = msg % HexDump.address(self.seh)
-        self.logger.log_text(msg)
-        self.testing  = True
-        self.orig     = process.read_pointer(self.seh + 4)
-        self.context  = thread.get_context()
-        self.orig_fs0 = thread.get_seh_chain_pointer()
-        self.memory   = process.get_memory_map()
-        self.iterator = ExecutableAddressIterator(self.memory)
-        self.protectPages(event)
-        self.showBruteforceBanner(event)
-        self.nextExceptionHandler(event)
-
-    def showBruteforceBanner(self, event):
-        count = 0
-        first = 0
-        last  = 0
-        for mbi in self.memory:
-            if mbi.is_executable():
-                count = count + mbi.RegionSize
-                address = mbi.BaseAddress
-                if first == 0:
-                    first = address
-                if last < address:
-                    last = address
-        msg   = "Bruteforcing %d addresses (%s-%s)..."
-        first = HexDump.address(first)
-        last  = HexDump.address(last)
-        self.logger.log_text(msg % (count, first, last))
-
-    def nextExceptionHandler(self, event):
-        debug   = event.debug
-        process = event.get_process()
-        thread  = event.get_thread()
-        pid     = process.get_pid()
-
-        thread.set_context(self.context)
-        thread.set_seh_chain_pointer(self.orig_fs0)
-        self.restorePages(event)
-
+    def nextExceptionHandler(self):
+        self.removeBreakpoint(self.current_target)
+        self.restoreSnapshot()
         try:
-            address = self.iterator.next()
+            self.current_target = self.target_iter.next()
         except StopIteration:
-            self.unprotectPages(event)
-            process.write_pointer(self.seh + 4, self.orig)
-            event.debug.detach(pid)
+            self.cleanupSnapshot()  # inverse order, see Test.exception
+            self.restoreExceptionHandlerChain()
+            self.resumeOtherThreads()
+            self.testing        = None
+            self.pid            = None
+            self.tid            = None
+            self.process        = None
+            self.thread         = None
+            self.target_iter    = None
             raise
+        self.setupExceptionHandlerChain()
+        self.process.write_pointer(self.new_seh_ptr, self.current_target)
+        self.setBreakpoint(self.current_target)
 
-        if self.last:
-            debug.dont_stalk_at(pid, self.last)
-        self.logger.log_text("Trying %s" % HexDump.address(address)) # XXX DEBUG
-        process.write_pointer(self.seh + 4, address)
-        debug.stalk_at(pid, address, self.foundValidHandler)
-        self.last = address
+    def removeBreakpoint(self, address):
+        if address is not None:
+            self.debug.dont_stalk_at(self.process.get_pid(), address)
 
-##        thread.set_pc(0)
-##        thread.set_pc(address)
+    def setBreakpoint(self, address):
+##        self.updateSnapshot(address)
+##        self.thread.set_tf()
+        self.debug.stalk_at(self.process.get_pid(), address)
+##        self.debug.stalk_at(self.process.get_pid(), address, self.testme)
 
-    def foundValidHandler(self, event):
-        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.logExceptionEvent(event)
-        address = HexDump.address( event.get_exception_address() )
-        self.logger.log_text("Found %s" % address)
-        self.nextExceptionHandler(event)
+##    def testme(self, event):
+##        print "TEST ME!!!!!!!!"
+##        raise KeyboardInterrupt
+
+    def setupTargetAddressIterator(self):
+        self.target_iter = ExecutableAddressIterator(self.process.get_memory_map())
+
+    def setupSnapshot(self):
+        self.context = self.thread.get_context()
+        forbidden = set()
+        forbidden.add( MemoryAddresses.align_address_to_page_start( self.process.get_peb_address() ) )
+        for thread in self.process.iter_threads():
+            forbidden.add( MemoryAddresses.align_address_to_page_start( thread.get_teb_address() ) )
+        self.memory  = dict()
+        for mbi in self.process.get_memory_map():
+            if mbi.is_writeable():
+                for page in xrange(mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, System.pageSize):
+                    if page in forbidden:
+                        continue
+##                    self.process.mprotect(page, System.pageSize, self.protect_conversions[mbi.Protect])
+##                    self.memory[page] = (None, mbi.Protect, False)
+                    self.memory[page] = self.process.read(page, System.pageSize)
+
+##    def updateSnapshot(self, address):
+##        page = MemoryAddresses.align_address_to_page_start(address)
+##        if self.memory.has_key(page):
+##            (contents, protect, tainted) = self.memory[page]
+##            tainted = True
+##            if contents is None:
+##                contents = self.process.read(page, System.pageSize)
+##            self.process.mprotect(page, System.pageSize, protect)
+##            self.memory[page] = (contents, protect, tainted)
+##            print "Updated snapshot! Page %x" % page
+##            return True
+##        return False
+
+    def restoreSnapshot(self):
+        print "ANTES", self.thread.get_pc()
+        self.thread.set_context(self.context)
+        print "DESPUES", self.thread.get_pc()
+##        raise KeyboardInterrupt
+
+        for page, contents in self.memory.iteritems():
+            self.process.write(page, contents)
+
+##        for page in self.memory.keys():
+##            (contents, protect, tainted) = self.memory[page]
+##            if tainted:
+##                tainted = False
+##                self.process.write(page, contents)
+##                self.process.mprotect(page, System.pageSize, self.protect_conversions[protect])
+##                self.memory[page] = (contents, protect, tainted)
+
+    def cleanupSnapshot(self):
+        self.restoreSnapshot() # probably redundant, but keep it for robustness
+##        for page in self.memory.keys():
+##            (_, protect, _) = self.memory[page]
+##            self.process.mprotect(page, System.pageSize, protect)
+        self.memory = None
+
+    def findAttackerExceptionHandler(self):
+        attacker_seh = self.options.seh
+        sizeof_pvoid = win32.sizeof(win32.PVOID)
+        pfirst   = self.thread.get_seh_chain_pointer()
+        pcurrent = pfirst
+        while pcurrent != 0xFFFFFFFF:
+            try:
+                pnext = self.process.read_pointer(pcurrent)
+                pseh  = self.process.read_pointer(pcurrent + sizeof_pvoid)
+            except WindowsError:
+                break
+            if pseh == attacker_seh:
+                self.testing        = True
+                self.orig_seh_first = pfirst
+                self.orig_seh_block = (pnext, pseh)
+                self.new_seh_first  = pcurrent
+                self.new_seh_ptr    = pcurrent + sizeof_pvoid
+                break
+            pcurrent = pnext
+
+    def setupExceptionHandlerChain(self):
+        if self.orig_seh_first != self.new_seh_first:
+            self.thread.set_seh_chain_pointer(self.new_seh_first)
+        if self.orig_seh_block[0] != 0xFFFFFFFF:
+            self.process.write_pointer(self.new_seh_first, 0xFFFFFFFF)
+
+    def restoreExceptionHandlerChain(self):
+        self.process.write_pointer(self.new_seh_ptr, orig_seh_block[1])
+        if self.orig_seh_block[0] != 0xFFFFFFFF:
+            self.process.write_pointer(self.orig_seh_first, orig_seh_block[0])
+        if self.orig_seh_first != self.new_seh_first:
+            self.thread.set_seh_chain_pointer(self.orig_seh_first)
+        self.orig_seh_first = None
+        self.orig_seh_block = None
+        self.new_seh_first  = None
+        self.new_seh_ptr    = None
+
+    def suspendOtherThreads(self):
+        current_tid = self.thread.get_tid()
+        for thread in self.process.iter_threads():
+            if thread.get_tid() != current_tid:
+                thread.suspend()
+
+    def resumeOtherThreads(self):
+        current_tid = self.thread.get_tid()
+        for thread in self.process.iter_threads():
+            if thread.get_tid() != current_tid:
+                thread.resume()
+
 
 class Handler( EventHandler ):
 
@@ -275,22 +277,36 @@ class Handler( EventHandler ):
         self.test    = dict()   # pid -> Test
         self.logger  = Logger()
 
-    def exception(self, event):
+    def __forward_call(self, event, method_name):
 ##        try:
             pid = event.get_pid()
             if not self.test.has_key(pid):
                 self.test[pid] = test = Test(self.options, self.logger)
             else:
                 test = self.test[pid]
+            method = getattr(test, method_name)
             try:
-                test.exception(event)
+                method(event)
             except StopIteration:
                 del self.test[pid]
+                event.debug.detach(pid)
 ##        except Exception:
 ##            self.logger.log_exc()
 
+    def exception(self, event):
+        self.__forward_call(event, 'exception')
+
     def breakpoint(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        pc = event.get_exception_address()
+        if not event.get_process().is_system_defined_breakpoint(pc):
+            print "EEEESAAAA", hex(pc), event.get_process().get_label_at_address(pc)
+            self.__forward_call(event, 'breakpoint')
+
+##    def single_step(self, event):
+##        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+##        event.get_thread().set_tf()
+##        print event.get_exception_name(), HexDump.address(event.get_exception_address())
 
     def wow64_breakpoint(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
@@ -356,12 +372,9 @@ def parse_cmdline( argv ):
             "  Attach to a running process (by ID):\n"
             "    %prog [options] -a <process id>"
             )
-##    formatter = optparse.IndentedHelpFormatter()
-##    formatter = optparse.TitledHelpFormatter()
     parser = optparse.OptionParser(
                                     usage=usage,
                                     version=version,
-##                                    formatter=formatter,
                                   )
 
     # Commands
