@@ -88,8 +88,8 @@ class HexInput (object):
             result = int(token, 16)     # hexadecimal
         elif token.startswith('0b'):
             result = int(token[2:], 2)  # binary
-##        elif token.startswith('0'):
-##            result = int(token, 8)      # octal
+        elif token.startswith('0o'):
+            result = int(token, 8)      # octal
         else:
             try:
                 result = int(token)     # decimal
