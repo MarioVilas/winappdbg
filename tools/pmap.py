@@ -86,7 +86,41 @@ def main():
             print "Memory map for %d:" % pid
         print
 ##        print CrashDump.dump_memory_map(memoryMap),
-        print CrashDump.dump_memory_map(memoryMap, mappedFilenames),
+        print CrashDump.dump_memory_map(memoryMap, mappedFilenames)
+
+        readable    = 0
+        writeable   = 0
+        executable  = 0
+        private     = 0
+        mapped      = 0
+        image       = 0
+        total       = 0
+        for mbi in memoryMap:
+            size = mbi.RegionSize
+            if mbi.has_content():
+                total += size
+            if mbi.is_readable():
+                readable += size
+            if mbi.is_writeable():
+                writeable += size
+            if mbi.is_executable():
+                executable += size
+            if mbi.is_private():
+                private += size
+            if mbi.is_mapped():
+                mapped += size
+            if mbi.is_image():
+                image += size
+        width = len(str(total))
+        print ("  %%%dd bytes of readable memory" % width) % readable
+        print ("  %%%dd bytes of writeable memory" % width) % writeable
+        print ("  %%%dd bytes of executable memory" % width) % executable
+        print ("  %%%dd bytes of private memory" % width) % private
+        print ("  %%%dd bytes of mapped memory" % width) % mapped
+        print ("  %%%dd bytes of image memory" % width) % image
+        print ("  %%%dd bytes of total memory" % width) % total
+        print
+
 
 if __name__ == '__main__':
     try:
