@@ -39,6 +39,13 @@ import sys
 
 from winappdbg import Process, System, CrashDump, HexInput
 
+def number(value):
+    value = str(value)
+    if len(value) % 3:
+        value = ' ' * (3 - (len(value) % 3)) + value
+    value = ','.join([value[i:i+3] for i in range(0, len(value), 3)])
+    return value
+
 def main():
     print "Process memory map"
     print "by Mario Vilas (mvilas at gmail.com)"
@@ -111,16 +118,15 @@ def main():
                 mapped += size
             if mbi.is_image():
                 image += size
-        width = len(str(total))
-        print ("  %%%dd bytes of readable memory" % width) % readable
-        print ("  %%%dd bytes of writeable memory" % width) % writeable
-        print ("  %%%dd bytes of executable memory" % width) % executable
-        print ("  %%%dd bytes of private memory" % width) % private
-        print ("  %%%dd bytes of mapped memory" % width) % mapped
-        print ("  %%%dd bytes of image memory" % width) % image
-        print ("  %%%dd bytes of total memory" % width) % total
+        width = len(number(total))
+        print ("  %%%ds bytes of readable memory" % width) % number(readable)
+        print ("  %%%ds bytes of writeable memory" % width) % number(writeable)
+        print ("  %%%ds bytes of executable memory" % width) % number(executable)
+        print ("  %%%ds bytes of private memory" % width) % number(private)
+        print ("  %%%ds bytes of mapped memory" % width) % number(mapped)
+        print ("  %%%ds bytes of image memory" % width) % number(image)
+        print ("  %%%ds bytes of total memory" % width) % number(total)
         print
-
 
 if __name__ == '__main__':
     try:
