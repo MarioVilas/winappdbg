@@ -69,6 +69,11 @@ class Bruteforcer(EventHandler):
                     print "ignored exception"
                 else:
                     self.nextAddress()
+            elif self.findAttackerExceptionHandler(event):
+                print "found attacker seh"
+                self.testing = True
+                self.beginTesting(event)
+                self.nextAddress()
         else:
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             if not self.testing:
@@ -120,6 +125,26 @@ class Bruteforcer(EventHandler):
         print HexDump.address(event.get_exception_address())
         self.nextAddress()
 
+    def findAttackerExceptionHandler(self, event):
+        print "looking for attacker seh"
+        attacker_seh = self.process.resolve_label(self.options.seh)
+        print "attacker seh would be %s (%s)" % (self.options.seh, HexDump.address(attacker_seh))
+        sizeof_pvoid = win32.sizeof(win32.PVOID)
+        pfirst   = event.get_thread().get_seh_chain_pointer()
+        pcurrent = pfirst
+        while pcurrent != 0xFFFFFFFF:
+            try:
+                pnext = self.process.read_pointer(pcurrent)
+                pseh  = self.process.read_pointer(pcurrent + sizeof_pvoid)
+            except WindowsError:
+                break
+            print "looking at seh %s" % HexDump.address(pseh)
+            if pseh == attacker_seh:
+                return True
+            print "current (%s) -> next (%s)" % (HexDump.address(pcurrent), HexDump.address(pnext))
+            pcurrent = pnext
+        return False
+
     def setBreakpoint(self):
         print "set breakpoint"
         self.debug.stalk_at(self.pid, self.current_target, self.foundValidTarget)
@@ -160,20 +185,11 @@ class Bruteforcer(EventHandler):
 
     def takeSnapshot(self):
         print "take snapshot"
-
         self.context = self.thread.get_context()
-
-        forbidden = set()
-##        forbidden.add( MemoryAddresses.align_address_to_page_start( self.process.get_peb_address() ) )
-##        for thread in self.process.iter_threads():
-##            forbidden.add( MemoryAddresses.align_address_to_page_start( thread.get_teb_address() ) )
-
         self.memory = dict()
         for mbi in self.process.get_memory_map():
             if mbi.is_writeable():
                 for page in xrange(mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, System.pageSize):
-                    if page in forbidden:
-                        continue
                     self.memory[page] = self.process.read(page, System.pageSize)
 
     def restoreSnapshot(self):
@@ -330,6 +346,7 @@ def parse_cmdline( argv ):
         windowed    = list(),
         console     = list(),
         attach      = list(),
+        seh         = '0x41414141',
     )
 
     # Parse and validate the command line options
