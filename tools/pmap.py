@@ -104,7 +104,7 @@ def main():
         total       = 0
         for mbi in memoryMap:
             size = mbi.RegionSize
-            if mbi.has_content():
+            if not mbi.is_free():
                 total += size
             if mbi.is_readable():
                 readable += size
