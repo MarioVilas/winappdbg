@@ -4,6 +4,7 @@
 #  Nicolas Economou, for his ptool suite on which this tool is inspired.
 #  http://tinyurl.com/nicolaseconomou
 
+# Bruteforce valid addresses for an SEH overwrite buffer overflow
 # Copyright (c) 2009, Mario Vilas
 # All rights reserved.
 #
@@ -276,7 +277,7 @@ def parse_cmdline( argv ):
 
     # Help message and version string
     version = (
-              "Process execution tracer\n"
+              "Bruteforce valid addresses for an SEH overwrite buffer overflow\n"
               "by Mario Vilas (mvilas at gmail.com)\n"
               "%s\n"
               ) % winappdbg.version
@@ -293,12 +294,9 @@ def parse_cmdline( argv ):
             "  Attach to a running process (by ID):\n"
             "    %prog [options] -a <process id>"
             )
-##    formatter = optparse.IndentedHelpFormatter()
-##    formatter = optparse.TitledHelpFormatter()
     parser = optparse.OptionParser(
                                     usage=usage,
                                     version=version,
-##                                    formatter=formatter,
                                   )
 
     # Commands
@@ -310,6 +308,12 @@ def parse_cmdline( argv ):
     commands.add_option("-c", "--console", action="append",
                         help="Create a new console process [default]")
     parser.add_option_group(commands)
+
+    # SEH test options
+    sehtest = optparse.OptionGroup(parser, "SEH Test options")
+    sehtest.add_option("--seh", metavar="ADDRESS",
+                       help="address of SEH handler function to hijack [default: 0x41414141]")
+    parser.add_option_group(sehtest)
 
     # Debugging options
     debugging = optparse.OptionGroup(parser, "Debugging options")
