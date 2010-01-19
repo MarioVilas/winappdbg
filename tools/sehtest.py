@@ -44,14 +44,23 @@ from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
 from winappdbg import DataAddressIterator, ExecutableAddressIterator
 from winappdbg import HexInput, HexDump, CrashDump, Logger
 
+debug_prints = False
+
 #------------------------------------------------------------------------------
 
 class Bruteforcer(EventHandler):
+
+    protect_conversions = {
+        win32.PAGE_EXECUTE_READWRITE:   win32.PAGE_EXECUTE_READ,
+        win32.PAGE_EXECUTE_WRITECOPY:   win32.PAGE_EXECUTE_READ,
+        win32.PAGE_READWRITE:           win32.PAGE_READONLY,
+        win32.PAGE_WRITECOPY:           win32.PAGE_READONLY,
+    }
+
     def __init__(self, options):
         super(Bruteforcer, self).__init__()
         self.options = options
         self.testing = False
-        self.debug_prints = False
 
     def create_process(self, event):
         self.debug   = event.debug
@@ -66,13 +75,28 @@ class Bruteforcer(EventHandler):
         if event.is_first_chance():
             event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
             if self.testing:
-                if event.get_exception_address() == self.triggered_pc:
-                    if self.debug_prints:
+                if self.checkSnapshotPage(event):
+                    if debug_prints:
+                        print "updated snapshot"
+                    event.continueStatus = win32.DBG_CONTINUE
+                elif event.get_exception_address() == self.triggered_pc:
+                    if hasattr(event, 'get_fault_type') and event.get_fault_type() == win32.EXCEPTION_EXECUTE_FAULT:
+                        # XXX FIXME
+                        # if the crash is a DEP fault I get stuck here
+                        # forever and no SEH is used at all!
+                        # more research is needed to see if it's indeed a
+                        # protection of the OS or a bug in my debugger :/
+                        if debug_prints:
+                            print "dep fault, aborting"
+                        self.process.kill()
+                    if debug_prints:
                         print "ignored exception"
+                    # XXX FIXME
+                    # I don't know why I get these extra exceptions :(
                 else:
                     self.nextAddress()
             elif self.findAttackerExceptionHandler(event):
-                if self.debug_prints:
+                if debug_prints:
                     print "found attacker seh"
                 self.testing = True
                 self.beginTesting(event)
@@ -80,15 +104,24 @@ class Bruteforcer(EventHandler):
         else:
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             if not self.testing:
-                self.testing = True
-                self.beginTesting(event)
-                self.nextAddress()
+##                if debug_prints:
+##                    print "jumped to attacker seh"
+##                self.testing = True
+##                self.beginTesting(event)
+##                self.nextAddress()
+                if debug_prints:
+                    print "got a crash but seh is intact, aborting"
+                self.process.kill()
             else:
-                if self.debug_prints:
-                    print "ignored second chance"
+                if self.checkSnapshotPage(event):
+                    if debug_prints:
+                        print "updated snapshot"
+                else:
+                    if debug_prints:
+                        print "ignored second chance"
 
     def beginTesting(self, event):
-        if self.debug_prints:
+        if debug_prints:
             print "begin testing"
 
         self.tid    = event.get_tid()
@@ -107,15 +140,16 @@ class Bruteforcer(EventHandler):
         self.takeSnapshot()
 
     def stopTesting(self):
-        if self.debug_prints:
+        if debug_prints:
             print "stop testing"
-        self.restoreSnapshot()
+##        self.restoreSnapshot()
+        self.cleanupSnapshot()
         self.restoreExceptionHandler()
         self.resumeOtherThreads()
         self.process.kill()
 
     def nextAddress(self):
-        if self.debug_prints:
+        if debug_prints:
             print "continue testing"
         self.removeBreakpoint()
         try:
@@ -128,16 +162,16 @@ class Bruteforcer(EventHandler):
         self.setBreakpoint()
 
     def foundValidTarget(self, event):
-        if self.debug_prints:
+        if debug_prints:
             print "found valid target"
         print HexDump.address(event.get_exception_address())
         self.nextAddress()
 
     def findAttackerExceptionHandler(self, event):
-        if self.debug_prints:
+        if debug_prints:
             print "looking for attacker seh"
         attacker_seh = self.process.resolve_label(self.options.seh)
-        if self.debug_prints:
+        if debug_prints:
             print "attacker seh would be %s (%s)" % (self.options.seh, HexDump.address(attacker_seh))
         sizeof_pvoid = win32.sizeof(win32.PVOID)
         pfirst   = event.get_thread().get_seh_chain_pointer()
@@ -148,28 +182,28 @@ class Bruteforcer(EventHandler):
                 pseh  = self.process.read_pointer(pcurrent + sizeof_pvoid)
             except WindowsError:
                 break
-            if self.debug_prints:
+            if debug_prints:
                 print "looking at seh %s" % HexDump.address(pseh)
             if pseh == attacker_seh:
                 return True
-            if self.debug_prints:
+            if debug_prints:
                 print "current (%s) -> next (%s)" % (HexDump.address(pcurrent), HexDump.address(pnext))
             pcurrent = pnext
         return False
 
     def setBreakpoint(self):
-        if self.debug_prints:
+        if debug_prints:
             print "set breakpoint"
         self.debug.stalk_at(self.pid, self.current_target, self.foundValidTarget)
 
     def removeBreakpoint(self):
-        if self.debug_prints:
+        if debug_prints:
             print "remove breakpoint"
         if self.current_target is not None:
             self.debug.dont_stalk_at(self.pid, self.current_target)
 
     def rememberExceptionHandler(self):
-        if self.debug_prints:
+        if debug_prints:
             print "remember exception handler"
         self.first_seh        = self.thread.get_seh_chain_pointer()
         self.next_seh         = self.process.read_pointer(self.first_seh)
@@ -177,47 +211,99 @@ class Bruteforcer(EventHandler):
         self.function_seh     = self.process.read_pointer(self.ptr_function_seh)
 
     def changeExceptionHandler(self):
-        if self.debug_prints:
+        if debug_prints:
             print "change exception handler"
         self.process.write_pointer(self.first_seh, win32.LPVOID(-1).value)
         self.process.write_pointer(self.ptr_function_seh, self.current_target)
 
     def restoreExceptionHandler(self):
-        if self.debug_prints:
+        if debug_prints:
             print "restore exception handler"
         self.process.write_pointer(self.first_seh, self.next_seh)
         self.process.write_pointer(self.ptr_function_seh, self.function_seh)
 
     def suspendOtherThreads(self):
-        if self.debug_prints:
+        if debug_prints:
             print "suspend other threads"
         for thread in self.process.iter_threads():
             if thread.get_tid() != self.tid:
                 thread.suspend()
 
     def resumeOtherThreads(self):
-        if self.debug_prints:
+        if debug_prints:
             print "resume other threads"
         for thread in self.process.iter_threads():
             if thread.get_tid() != self.tid:
                 thread.resume()
 
     def takeSnapshot(self):
-        if self.debug_prints:
+        if debug_prints:
             print "take snapshot"
         self.context = self.thread.get_context()
+
+        pageSize = System.pageSize
+
+        self.special_pages = dict()
+        page = MemoryAddresses.align_address_to_page_start( self.process.get_peb_address() )
+        self.special_pages[page] = self.process.read(page, pageSize)
+        for thread in self.process.iter_threads():
+            page = MemoryAddresses.align_address_to_page_start( thread.get_teb_address() )
+            self.special_pages[page] = self.process.read(page, pageSize)
+
         self.memory = dict()
+        self.tainted = set()
         for mbi in self.process.get_memory_map():
             if mbi.is_writeable():
-                for page in xrange(mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, System.pageSize):
-                    self.memory[page] = self.process.read(page, System.pageSize)
+                for page in xrange(mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, pageSize):
+                    if not self.special_pages.has_key(page):
+                        protect = mbi.Protect
+                        new_protect = self.protect_conversions[protect]
+                        try:
+                            self.process.mprotect(page, pageSize, new_protect)
+                            self.memory[page] = (None, protect, new_protect)
+                        except WindowsError:
+                            self.special_pages[page] = self.process.read(page, pageSize)
+                            if debug_prints:
+                                print "unexpected special page %s" % HexDump.address(page)
 
     def restoreSnapshot(self):
-        if self.debug_prints:
+        if debug_prints:
             print "restore snapshot"
         self.thread.set_context(self.context)
-        for page, data in self.memory.iteritems():
-            self.process.write(page, data)
+        pageSize = System.pageSize
+        process = self.process
+        tainted = self.tainted
+        for page, content in self.special_pages.iteritems():
+            process.write(page, content)
+        for page, (content, protect, new_protect) in self.memory.iteritems():
+            if page in tainted:
+                process.write(page, content)
+                process.mprotect(page, pageSize, new_protect)
+                tainted.remove(page)
+
+    def checkSnapshotPage(self, event):
+        if event.get_tid() == self.tid:
+            try:
+                fault_type = event.get_fault_type()
+            except AttributeError:
+                fault_type = None
+            if fault_type == win32.EXCEPTION_WRITE_FAULT:
+                address = event.get_fault_address()
+                page = MemoryAddresses.align_address_to_page_start(address)
+                if self.memory.has_key(page):
+                    (content, protect, new_protect) = self.memory[page]
+                    content = self.process.read(page, System.pageSize)
+                    self.memory[page] = (content, protect, new_protect)
+                    self.tainted.add(page)
+                    self.process.mprotect(page, System.pageSize, protect)
+                    return True
+        return False
+
+    def cleanupSnapshot(self):
+        self.restoreSnapshot()
+        pageSize = System.pageSize
+        for page, (content, protect, new_protect) in self.memory.iteritems():
+            self.process.mprotect(page, pageSize, protect)
 
 #------------------------------------------------------------------------------
 
@@ -226,11 +312,10 @@ class EventForwarder(EventHandler):
         self.cls     = cls
         self.options = options
         self.forward = dict()
-        self.debug_prints = False
         super(EventForwarder, self).__init__()
 
     def log_event(self, event):
-        if self.debug_prints:
+        if debug_prints:
             try:
                 print HexDump.address(event.get_exception_address()), event.get_exception_description(), event.is_first_chance()
             except AttributeError:
