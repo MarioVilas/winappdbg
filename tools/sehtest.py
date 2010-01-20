@@ -62,6 +62,9 @@ class Bruteforcer(EventHandler):
         self.options = options
         self.testing = False
 
+        if options.output:
+            self.output_file = open(options.output, 'a+t')
+
     def create_process(self, event):
         self.debug   = event.debug
         self.pid     = event.get_pid()
@@ -79,18 +82,18 @@ class Bruteforcer(EventHandler):
                     if debug_prints:
                         print "updated snapshot"
                     event.continueStatus = win32.DBG_CONTINUE
-                elif event.get_exception_address() == self.triggered_pc:
-                    if hasattr(event, 'get_fault_type') and event.get_fault_type() == win32.EXCEPTION_EXECUTE_FAULT:
-                        # XXX FIXME
-                        # if the crash is a DEP fault I get stuck here
-                        # forever and no SEH is used at all!
-                        # more research is needed to see if it's indeed a
-                        # protection of the OS or a bug in my debugger :/
-                        if debug_prints:
-                            print "dep fault, aborting"
-                        self.process.kill()
+                elif hasattr(event, 'get_fault_type') and event.get_fault_type() == win32.EXCEPTION_EXECUTE_FAULT:
+                    # XXX FIXME
+                    # if the crash is a DEP fault I get stuck here
+                    # forever and no SEH is used at all!
+                    # more research is needed to see if it's indeed a
+                    # protection of the OS or a bug in my debugger :/
                     if debug_prints:
-                        print "ignored exception"
+                        print "dep fault, aborting"
+                    self.process.kill()
+##                elif event.get_exception_address() == self.triggered_pc:
+##                    if debug_prints:
+##                        print "ignored exception"
                     # XXX FIXME
                     # I don't know why I get these extra exceptions :(
                 else:
@@ -154,6 +157,10 @@ class Bruteforcer(EventHandler):
         self.removeBreakpoint()
         try:
             self.current_target = self.iter.next()
+            if debug_prints:
+                print "next target is %s" % HexDump.address(self.current_target)
+            if self.options.output:
+                print "Trying: %s" % HexDump.address(self.current_target)
         except StopIteration:
             self.stopTesting()
             return
@@ -164,7 +171,13 @@ class Bruteforcer(EventHandler):
     def foundValidTarget(self, event):
         if debug_prints:
             print "found valid target"
-        print HexDump.address(event.get_exception_address())
+        printable_address = HexDump.address(self.current_target)
+        if self.options.output:
+            print "FOUND: %s" % printable_address
+            print >> self.output_file, printable_address
+            self.output_file.flush()
+        else:
+            print printable_address
         self.nextAddress()
 
     def findAttackerExceptionHandler(self, event):
@@ -432,6 +445,8 @@ def parse_cmdline( argv ):
     sehtest = optparse.OptionGroup(parser, "SEH Test options")
     sehtest.add_option("--seh", metavar="ADDRESS",
                        help="address of SEH handler function to hijack [default: 0x41414141]")
+    sehtest.add_option("-o", "--output", metavar="FILE",
+                       help="write the output to FILE")
     parser.add_option_group(sehtest)
 
     # Debugging options
