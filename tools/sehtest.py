@@ -44,7 +44,52 @@ from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
 from winappdbg import DataAddressIterator, ExecutableAddressIterator
 from winappdbg import HexInput, HexDump, CrashDump, Logger
 
-debug_prints = False
+logger = Logger(logfile = None, verbose = False)
+
+#------------------------------------------------------------------------------
+
+class ExecutableAddressRangesIterator(object):
+    def __iter__(self):
+        return self
+
+    def __init__(self, process, ranges_list):
+        self.process     = process
+        self.ranges_list = ranges_list
+
+    def next(self):
+        valid_addresses = set(ExecutableAddressIterator(self.process.get_memory_map()))
+        for current_range in self.ranges_list:
+            try:
+                begin, end = current_range.split('-')
+            except ValueError:
+                logger.log_text("can't parse range: %s" % current_range)
+                continue
+            try:
+                begin = process.resolve_label(begin)
+            except Exception:
+                logger.log_text("can't resolve label: %s" % begin)
+                continue
+            try:
+                end = process.resolve_label(end)
+            except Exception:
+                logger.log_text("can't resolve label: %s" % end)
+                continue
+            if begin == end:
+                if begin in valid_addresses:
+                    yield begin
+                else:
+                    logger.log_text("invalid address: %s" % HexDump.address(page))
+            else:
+                if begin < end:
+                    step = 1
+                else:
+                    begin, end = end, begin
+                    step = -1
+                for page in xrange(begin, end, step):
+                    if page in valid_addresses:
+                        yield page
+                    else:
+                        logger.log_text("invalid address: %s" % HexDump.address(page))
 
 #------------------------------------------------------------------------------
 
@@ -79,8 +124,7 @@ class Bruteforcer(EventHandler):
             event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
             if self.testing:
                 if self.checkSnapshotPage(event):
-                    if debug_prints:
-                        print "updated snapshot"
+                    logger.log_text("updated snapshot")
                     event.continueStatus = win32.DBG_CONTINUE
                 elif hasattr(event, 'get_fault_type') and event.get_fault_type() == win32.EXCEPTION_EXECUTE_FAULT:
                     # XXX FIXME
@@ -88,50 +132,45 @@ class Bruteforcer(EventHandler):
                     # forever and no SEH is used at all!
                     # more research is needed to see if it's indeed a
                     # protection of the OS or a bug in my debugger :/
-                    if debug_prints:
-                        print "dep fault, aborting"
+                    logger.log_text("dep fault, aborting")
                     self.process.kill()
 ##                elif event.get_exception_address() == self.triggered_pc:
-##                    if debug_prints:
-##                        print "ignored exception"
+##                    logger.log_text("ignored exception")
                     # XXX FIXME
                     # I don't know why I get these extra exceptions :(
                 else:
                     self.nextAddress()
             elif self.findAttackerExceptionHandler(event):
-                if debug_prints:
-                    print "found attacker seh"
+                logger.log_text("found attacker seh")
                 self.testing = True
                 self.beginTesting(event)
                 self.nextAddress()
         else:
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             if not self.testing:
-##                if debug_prints:
-##                    print "jumped to attacker seh"
+##                logger.log_text("jumped to attacker seh")
 ##                self.testing = True
 ##                self.beginTesting(event)
 ##                self.nextAddress()
-                if debug_prints:
-                    print "got a crash but seh is intact, aborting"
+                logger.log_text("got a crash but seh is intact, aborting")
                 self.process.kill()
             else:
                 if self.checkSnapshotPage(event):
-                    if debug_prints:
-                        print "updated snapshot"
+                    logger.log_text("updated snapshot")
                 else:
-                    if debug_prints:
-                        print "ignored second chance"
+                    logger.log_text("ignored second chance")
 
     def beginTesting(self, event):
-        if debug_prints:
-            print "begin testing"
+        logger.log_text("begin testing")
 
         self.tid    = event.get_tid()
         self.thread = event.get_thread()
 
-        self.iter = ExecutableAddressIterator(self.process.get_memory_map())
         self.current_target = None
+        if self.options.range:
+            self.iter = ExecutableAddressRangesIterator(self.process, self.options.range)
+        else:
+            self.iter = ExecutableAddressIterator(self.process.get_memory_map())
 
         try:
             self.triggered_pc = event.get_exception_address()
@@ -143,8 +182,7 @@ class Bruteforcer(EventHandler):
         self.takeSnapshot()
 
     def stopTesting(self):
-        if debug_prints:
-            print "stop testing"
+        logger.log_text("stop testing")
 ##        self.restoreSnapshot()
         self.cleanupSnapshot()
         self.restoreExceptionHandler()
@@ -152,25 +190,28 @@ class Bruteforcer(EventHandler):
         self.process.kill()
 
     def nextAddress(self):
-        if debug_prints:
-            print "continue testing"
         self.removeBreakpoint()
-        try:
-            self.current_target = self.iter.next()
-            if debug_prints:
-                print "next target is %s" % HexDump.address(self.current_target)
-            if self.options.output:
-                print "Trying: %s" % HexDump.address(self.current_target)
-        except StopIteration:
-            self.stopTesting()
-            return
         self.restoreSnapshot()
+        while 1:
+            logger.log_text("continue testing")
+            try:
+                self.current_target = self.iter.next()
+                logger.log_text("next target is %s" % HexDump.address(self.current_target))
+                if self.options.output:
+                    print "Trying: %s" % HexDump.address(self.current_target)
+            except StopIteration:
+                self.stopTesting()
+                return
+            try:
+                self.setBreakpoint()
+                break
+            except Exception:
+                logger.log_text("exception raised, skipping target")
+                logger.log_exc()
         self.changeExceptionHandler()
-        self.setBreakpoint()
 
     def foundValidTarget(self, event):
-        if debug_prints:
-            print "found valid target"
+        logger.log_text("found valid target")
         printable_address = HexDump.address(self.current_target)
         if self.options.output:
             print "FOUND: %s" % printable_address
@@ -181,11 +222,13 @@ class Bruteforcer(EventHandler):
         self.nextAddress()
 
     def findAttackerExceptionHandler(self, event):
-        if debug_prints:
-            print "looking for attacker seh"
-        attacker_seh = self.process.resolve_label(self.options.seh)
-        if debug_prints:
-            print "attacker seh would be %s (%s)" % (self.options.seh, HexDump.address(attacker_seh))
+        logger.log_text("looking for attacker seh")
+        try:
+            attacker_seh = self.process.resolve_label(self.options.seh)
+        except Exception:
+            logger.log_text("failed to resolve: %s" % self.options.seh)
+            return False
+        logger.log_text("attacker seh would be %s (%s)" % (self.options.seh, HexDump.address(attacker_seh)))
         sizeof_pvoid = win32.sizeof(win32.PVOID)
         pfirst   = event.get_thread().get_seh_chain_pointer()
         pcurrent = pfirst
@@ -195,63 +238,53 @@ class Bruteforcer(EventHandler):
                 pseh  = self.process.read_pointer(pcurrent + sizeof_pvoid)
             except WindowsError:
                 break
-            if debug_prints:
-                print "looking at seh %s" % HexDump.address(pseh)
+            logger.log_text("looking at seh %s" % HexDump.address(pseh))
             if pseh == attacker_seh:
                 return True
-            if debug_prints:
-                print "current (%s) -> next (%s)" % (HexDump.address(pcurrent), HexDump.address(pnext))
+            logger.log_text("current (%s) -> next (%s)" % (HexDump.address(pcurrent), HexDump.address(pnext)))
             pcurrent = pnext
         return False
 
     def setBreakpoint(self):
-        if debug_prints:
-            print "set breakpoint"
+        logger.log_text("set breakpoint")
         self.debug.stalk_at(self.pid, self.current_target, self.foundValidTarget)
 
     def removeBreakpoint(self):
-        if debug_prints:
-            print "remove breakpoint"
+        logger.log_text("remove breakpoint")
         if self.current_target is not None:
             self.debug.dont_stalk_at(self.pid, self.current_target)
 
     def rememberExceptionHandler(self):
-        if debug_prints:
-            print "remember exception handler"
+        logger.log_text("remember exception handler")
         self.first_seh        = self.thread.get_seh_chain_pointer()
         self.next_seh         = self.process.read_pointer(self.first_seh)
         self.ptr_function_seh = self.first_seh + win32.sizeof(win32.LPVOID)
         self.function_seh     = self.process.read_pointer(self.ptr_function_seh)
 
     def changeExceptionHandler(self):
-        if debug_prints:
-            print "change exception handler"
+        logger.log_text("change exception handler")
         self.process.write_pointer(self.first_seh, win32.LPVOID(-1).value)
         self.process.write_pointer(self.ptr_function_seh, self.current_target)
 
     def restoreExceptionHandler(self):
-        if debug_prints:
-            print "restore exception handler"
+        logger.log_text("restore exception handler")
         self.process.write_pointer(self.first_seh, self.next_seh)
         self.process.write_pointer(self.ptr_function_seh, self.function_seh)
 
     def suspendOtherThreads(self):
-        if debug_prints:
-            print "suspend other threads"
+        logger.log_text("suspend other threads")
         for thread in self.process.iter_threads():
             if thread.get_tid() != self.tid:
                 thread.suspend()
 
     def resumeOtherThreads(self):
-        if debug_prints:
-            print "resume other threads"
+        logger.log_text("resume other threads")
         for thread in self.process.iter_threads():
             if thread.get_tid() != self.tid:
                 thread.resume()
 
     def takeSnapshot(self):
-        if debug_prints:
-            print "take snapshot"
+        logger.log_text("take snapshot")
         self.context = self.thread.get_context()
 
         pageSize = System.pageSize
@@ -276,12 +309,10 @@ class Bruteforcer(EventHandler):
                             self.memory[page] = (None, protect, new_protect)
                         except WindowsError:
                             self.special_pages[page] = self.process.read(page, pageSize)
-                            if debug_prints:
-                                print "unexpected special page %s" % HexDump.address(page)
+                            logger.log_text("unexpected special page %s" % HexDump.address(page))
 
     def restoreSnapshot(self):
-        if debug_prints:
-            print "restore snapshot"
+        logger.log_text("restore snapshot")
         self.thread.set_context(self.context)
         pageSize = System.pageSize
         process = self.process
@@ -327,27 +358,20 @@ class EventForwarder(EventHandler):
         self.forward = dict()
         super(EventForwarder, self).__init__()
 
-    def log_event(self, event):
-        if debug_prints:
-            try:
-                print HexDump.address(event.get_exception_address()), event.get_exception_description(), event.is_first_chance()
-            except AttributeError:
-                print HexDump.address(event.get_thread().get_pc()), event.get_event_name()
-
     def event(self, event):
-        self.log_event(event)
+        logger.log_event(event)
         pid = event.get_pid()
         if self.forward.has_key(pid):
             return self.forward[pid](event)
 
     def create_process(self, event):
-        self.log_event(event)
+        logger.log_event(event)
         handler = self.cls(self.options)
         self.forward[event.get_pid()] = handler
         return handler(event)
 
     def exit_process(self, event):
-        self.log_event(event)
+        logger.log_event(event)
         pid = event.get_pid()
         if self.forward.has_key(pid):
             retval = self.forward[pid](event)
@@ -356,23 +380,23 @@ class EventForwarder(EventHandler):
 
     def breakpoint(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.log_event(event)
+        logger.log_event(event)
 
     def wow64_breakpoint(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.log_event(event)
+        logger.log_event(event)
 
     def debug_control_c(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.log_event(event)
+        logger.log_event(event)
 
     def invalid_handle(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.log_event(event)
+        logger.log_event(event)
 
     def possible_deadlock(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.log_event(event)
+        logger.log_event(event)
 
 #------------------------------------------------------------------------------
 
@@ -445,8 +469,12 @@ def parse_cmdline( argv ):
     sehtest = optparse.OptionGroup(parser, "SEH Test options")
     sehtest.add_option("--seh", metavar="ADDRESS",
                        help="address of SEH handler function to hijack [default: 0x41414141]")
+    sehtest.add_option("-r", "--range", metavar="ADDRESS-ADDRESS", action="append",
+                       help="add a range of addresses to try [default: all executable memory]")
     sehtest.add_option("-o", "--output", metavar="FILE",
                        help="write the output to FILE")
+    sehtest.add_option("--debuglog", metavar="FILE",
+                       help="set FILE as a debug log (extremely verbose!)")
     parser.add_option_group(sehtest)
 
     # Debugging options
@@ -465,6 +493,9 @@ def parse_cmdline( argv ):
         console     = list(),
         attach      = list(),
         seh         = '0x41414141',
+        range       = list(),
+        output      = None,
+        debuglog    = None,
     )
 
     # Parse and validate the command line options
@@ -477,6 +508,11 @@ def parse_cmdline( argv ):
     else:
         if args:
             parser.error("don't know what to do with extra parameters: %s" % args)
+
+    # Open the debug log file if requested
+    if options.debuglog:
+        global logger
+        logger = Logger(logfile = options.debuglog, verbose = logger.verbose)
 
     # Get the list of attach targets
     system = System()
