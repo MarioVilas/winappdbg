@@ -1302,7 +1302,7 @@ class DebugLog (object):
                     what = '%s (second chance)' % what
                 try:
                     address = event.get_fault_address()
-                except AttributeError:
+                except NotImplementedError:
                     address = event.get_exception_address()
             else:
                 what    = event.get_event_name()
