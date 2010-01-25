@@ -1279,7 +1279,7 @@ class DebugLog (object):
         #return '[%s.%04d]\t%s' % (ltime, msecs, text)  # text CSV
 
     @classmethod
-    def log_event(cls, event, text):
+    def log_event(cls, event, text = None):
         """
         Log lines of text associated with a debug event.
 
@@ -1287,11 +1287,32 @@ class DebugLog (object):
         @param event: Event object.
 
         @type  text: str
-        @param text: Text to log.
+        @param text: (Optional) Text to log. If no text is provided the default
+            is to show a description of the event itself.
 
         @rtype:  str
         @return: Log line.
         """
+        if not text:
+            if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
+                what = event.get_exception_description()
+                if event.is_first_chance():
+                    what = '%s (first chance)' % what
+                else:
+                    what = '%s (second chance)' % what
+                try:
+                    address = event.get_fault_address()
+                except AttributeError:
+                    address = event.get_exception_address()
+            else:
+                what    = event.get_event_name()
+                address = event.get_thread().get_pc()
+            label = event.get_process().get_label_at_address(address)
+            if label:
+                where = '%s (%s)' % (HexDump.address(address), label)
+            else:
+                where = HexDump.address(address)
+            text = '%s at %s' % (what, where)
         text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
         #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
         return cls.log_text(text)
