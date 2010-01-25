@@ -1372,7 +1372,7 @@ class Logger(object):
         """
         self.__do_log( DebugLog.log_text(text) )
 
-    def log_event(self, event, text):
+    def log_event(self, event, text = None):
         """
         Log lines of text associated with a debug event.
 
@@ -1380,7 +1380,8 @@ class Logger(object):
         @param event: Event object.
 
         @type  text: str
-        @param text: Text to log.
+        @param text: (Optional) Text to log. If no text is provided the default
+            is to show a description of the event itself.
         """
         self.__do_log( DebugLog.log_event(event, text) )
 
