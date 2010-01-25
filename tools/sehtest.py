@@ -505,6 +505,8 @@ def parse_cmdline( argv ):
     args = args[1:]
     if not options.windowed and not options.console and not options.attach:
         options.console = [ System.argv_to_cmdline(args) ]
+        if not options.console:
+            parser.error("missing target application(s)")
     else:
         if args:
             parser.error("don't know what to do with extra parameters: %s" % args)

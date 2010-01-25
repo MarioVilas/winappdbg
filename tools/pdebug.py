@@ -43,7 +43,7 @@ import traceback
 from cmd import Cmd
 
 import winappdbg
-from winappdbg import EventHandler, win32
+from winappdbg import System, EventHandler, win32
 from winappdbg.event import NoEvent
 
 try:
@@ -1948,9 +1948,17 @@ class ConsoleDebugger (Cmd, EventHandler):
         )
 
         # Parse the command line
+        if len(self.argv) == 1:
+            self.argv = self.argv + [ '--help' ]
         (self.options, args) = self.parser.parse_args(self.argv)
-        if len(args) > 1:
-            self.parser.error("don't know what to do with: %r" % args[1])
+        args = args[1:]
+        if not self.options.windowed and not self.options.console and not self.options.attach:
+            self.options.console = [ System.argv_to_cmdline(args) ]
+            if not self.options.console:
+                self.parser.error("missing target application(s)")
+        else:
+            if args:
+                self.parser.error("don't know what to do with extra parameters: %s" % args)
 
 #------------------------------------------------------------------------------
 # Debugger create and destroy
