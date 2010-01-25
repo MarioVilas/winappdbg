@@ -523,7 +523,7 @@ class CrashLogger (object):
                 "\n"
                 "  Create a new process (parameters for the target must be escaped):\n"
                 "    %prog [options] -c <executable> [parameters for the target]\n"
-                "    %prog [options] -e <executable> [parameters for the target]\n"
+                "    %prog [options] -w <executable> [parameters for the target]\n"
                 "\n"
                 "  Attach to a running process (by filename):\n"
                 "    %prog [options] -a <executable>\n"
