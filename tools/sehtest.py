@@ -48,48 +48,40 @@ logger = Logger(logfile = None, verbose = False)
 
 #------------------------------------------------------------------------------
 
-class ExecutableAddressRangesIterator(object):
-    def __iter__(self):
-        return self
-
-    def __init__(self, process, ranges_list):
-        self.process     = process
-        self.ranges_list = ranges_list
-
-    def next(self):
-        valid_addresses = set(ExecutableAddressIterator(self.process.get_memory_map()))
-        for current_range in self.ranges_list:
-            try:
-                begin, end = current_range.split('-')
-            except ValueError:
-                logger.log_text("can't parse range: %s" % current_range)
-                continue
-            try:
-                begin = process.resolve_label(begin)
-            except Exception:
-                logger.log_text("can't resolve label: %s" % begin)
-                continue
-            try:
-                end = process.resolve_label(end)
-            except Exception:
-                logger.log_text("can't resolve label: %s" % end)
-                continue
-            if begin == end:
-                if begin in valid_addresses:
-                    yield begin
+def ExecutableAddressRangesIterator(process, ranges_list):
+    valid_addresses = set(ExecutableAddressIterator(process.get_memory_map()))
+    for current_range in ranges_list:
+        try:
+            begin, end = current_range.split('-')
+        except ValueError:
+            logger.log_text("can't parse range: %s" % current_range)
+            continue
+        try:
+            begin = process.resolve_label(begin)
+        except Exception:
+            logger.log_text("can't resolve label: %s" % begin)
+            continue
+        try:
+            end = process.resolve_label(end)
+        except Exception:
+            logger.log_text("can't resolve label: %s" % end)
+            continue
+        if begin == end:
+            if begin in valid_addresses:
+                yield begin
+            else:
+                logger.log_text("invalid address: %s" % HexDump.address(page))
+        else:
+            if begin < end:
+                step = 1
+            else:
+                begin, end = end, begin
+                step = -1
+            for page in xrange(begin, end, step):
+                if page in valid_addresses:
+                    yield page
                 else:
                     logger.log_text("invalid address: %s" % HexDump.address(page))
-            else:
-                if begin < end:
-                    step = 1
-                else:
-                    begin, end = end, begin
-                    step = -1
-                for page in xrange(begin, end, step):
-                    if page in valid_addresses:
-                        yield page
-                    else:
-                        logger.log_text("invalid address: %s" % HexDump.address(page))
 
 #------------------------------------------------------------------------------
 
