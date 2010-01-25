@@ -37,7 +37,7 @@ from os.path import join
 try:
     import py2exe
 except ImportError:
-    pass
+    py2exe = None
 
 # Get the list of supported database modules
 import anydbm
@@ -136,18 +136,21 @@ http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.ps/d
 scripts = glob(join('tools', '*.py'))
 
 # Set the options for py2exe
-options = {
-    'py2exe': {
-        'dist_dir'      :   'dist/py2exe',
-        'optimize'      :   2,
-        'compressed'    :   1,
-        'packages'      :   ['encodings'] + dbnames,
-        'excludes'      :   [
-                            'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
-                            'calendar', 'socket', 'pyreadline'
-                            ],
+if py2exe is None:
+    options = {}
+else:
+    options = {
+        'py2exe': {
+            'dist_dir'      :   'dist/py2exe',
+            'optimize'      :   2,
+            'compressed'    :   1,
+            'packages'      :   ['encodings'] + dbnames,
+            'excludes'      :   [
+                                'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
+                                'calendar', 'socket', 'pyreadline'
+                                ],
+        }
     }
-}
 
 # Set the parameters for the setup script
 params = {
@@ -157,7 +160,6 @@ params = {
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
-    'console'           : scripts,
     'options'           : options,
 
     # Metadata
@@ -184,6 +186,8 @@ params = {
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],
     }
+if py2exe is not None:
+    params['console'] = scripts
 
 # Execute the setup script
 setup(**params)
