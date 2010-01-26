@@ -5,7 +5,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process enumerator
-# Copyright (c) 2009, Mario Vilas
+# Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

@@ -1,4 +1,6 @@
-# Copyright (c) 2009, Mario Vilas
+#!~/.wine/drive_c/Python25/python.exe
+
+# Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

@@ -5,7 +5,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Bruteforce valid addresses for an SEH overwrite buffer overflow
-# Copyright (c) 2009, Mario Vilas
+# Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
