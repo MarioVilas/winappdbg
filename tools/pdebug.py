@@ -1912,12 +1912,15 @@ class ConsoleDebugger (Cmd, EventHandler):
                                         version=winappdbg.version,
                                       )
         commands = optparse.OptionGroup(self.parser, "Commands")
-        commands.add_option("-a", "--attach", action="append", metavar="PROCESS",
-                            help="attach to a running process")
-        commands.add_option("-w", "--windowed", action="append", metavar="CMDLINE",
-                            help="create a new windowed process for debugging")
-        commands.add_option("-c", "--console", action="append", metavar="CMDLINE",
-                            help="create a new console process for debugging")
+        commands.add_option("-a", "--attach", action="append", type="string",
+                            metavar="PROCESS",
+                            help="Attach to a running process")
+        commands.add_option("-w", "--windowed", action="callback", type="string",
+                            metavar="CMDLINE", callback=self.callback_execute_target,
+                            help="Create a new windowed process")
+        commands.add_option("-c", "--console", action="callback", type="string",
+                            metavar="CMDLINE", callback=self.callback_execute_target,
+                            help="Create a new console process [default]")
         self.parser.add_option_group(commands)
         debugging = optparse.OptionGroup(self.parser, "Debugging options")
         debugging.add_option("--autodetach", action="store_true",
@@ -1953,12 +1956,61 @@ class ConsoleDebugger (Cmd, EventHandler):
         (self.options, args) = self.parser.parse_args(self.argv)
         args = args[1:]
         if not self.options.windowed and not self.options.console and not self.options.attach:
-            self.options.console = [ System.argv_to_cmdline(args) ]
-            if not self.options.console:
+            if not args:
                 self.parser.error("missing target application(s)")
+            self.options.console = [ args ]
         else:
             if args:
                 self.parser.error("don't know what to do with extra parameters: %s" % args)
+
+    # Callback to parse -c and -w command line switches
+    @staticmethod
+    def callback_execute_target(option, opt_str, value, parser):
+
+        # Get the destination variable name.
+        dest_name = option.dest
+        if dest_name is None:
+            dest_name = option.get_opt_string().replace('-', '')
+
+        # Get the destination list to append.
+        # Create a new list if needed.
+        destination = getattr(parser.values, dest_name, None)
+        if destination is None:
+            destination = list()
+            setattr(parser.values, dest_name, destination)
+
+        # If a value is received from optparse, put it back in the list of
+        # arguments to be consumed.
+        #
+        # From what I gather by examining the examples in the documentation this
+        # wasn't even supposed to happen. (!)
+        #
+        # I suspect is happening because I had to force the argument type for the
+        # command line switch definition as a workaround for another bug (the
+        # metavariable wasn't being shown in the help message).
+        #
+        if value is not None:
+            parser.rargs.insert(0, value)
+
+        # Get the value from the command line arguments.
+        value = []
+        for arg in parser.rargs:
+
+            # Stop on --foo like options but not on -- alone.
+            if arg[:2] == "--" and len(arg) > 2:
+                break
+
+            # Stop on -a like options but not on - alone.
+            if arg[:1] == "-" and len(arg) > 1:
+                break
+
+            value.append(arg)
+
+        # Delete the command line arguments we consumed so they're not parsed again.
+        del parser.rargs[:len(value)]
+
+        # Append the value to the destination list.
+        destination.append(value)
 
 #------------------------------------------------------------------------------
 # Debugger create and destroy
@@ -1985,11 +2037,13 @@ class ConsoleDebugger (Cmd, EventHandler):
             self.cmdqueue.append(cmd)
 
         # Queue the start commands, if needed
-        for cmdline in self.options.windowed:
+        for argv in self.options.windowed:
+            cmdline = debug.system.argv_to_cmdline(argv)
             self.cmdqueue.append( 'windowed %s' % cmdline )
 
         # Queue the startc commands, if needed
-        for cmdline in self.options.console:
+        for argv in self.options.console:
+            cmdline = debug.system.argv_to_cmdline(argv)
             self.cmdqueue.append( 'console %s' % cmdline )
 
         # Queue the go command, if other commands were queued before

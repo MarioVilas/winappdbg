@@ -405,12 +405,12 @@ def main( argv ):
     try:
 
         # Attach to the targets
-        for dwProcessId in options.attach:
-            debug.attach(dwProcessId)
-        for lpCmdLine in options.console:
-            debug.execl(lpCmdLine, bConsole = True,  bFollow = options.follow)
-        for lpCmdLine in options.windowed:
-            debug.execl(lpCmdLine, bConsole = False, bFollow = options.follow)
+        for pid in options.attach:
+            debug.attach(pid)
+        for argv in options.console:
+            debug.execv(argv, bConsole = True,  bFollow = options.follow)
+        for argv in options.windowed:
+            debug.execv(argv, bConsole = False, bFollow = options.follow)
 
         # Run the debug loop
         debug.loop()
@@ -449,11 +449,14 @@ def parse_cmdline( argv ):
 
     # Commands
     commands = optparse.OptionGroup(parser, "Commands")
-    commands.add_option("-a", "--attach", action="append",
+    commands.add_option("-a", "--attach", action="append", type="string",
+                        metavar="PROCESS",
                         help="Attach to a running process")
-    commands.add_option("-w", "--windowed", action="append",
+    commands.add_option("-w", "--windowed", action="callback", type="string",
+                        metavar="CMDLINE", callback=callback_execute_target,
                         help="Create a new windowed process")
-    commands.add_option("-c", "--console", action="append",
+    commands.add_option("-c", "--console", action="callback", type="string",
+                        metavar="CMDLINE", callback=callback_execute_target,
                         help="Create a new console process [default]")
     parser.add_option_group(commands)
 
@@ -496,9 +499,9 @@ def parse_cmdline( argv ):
     (options, args) = parser.parse_args(argv)
     args = args[1:]
     if not options.windowed and not options.console and not options.attach:
-        options.console = [ System.argv_to_cmdline(args) ]
-        if not options.console:
+        if not args:
             parser.error("missing target application(s)")
+        options.console = [ args ]
     else:
         if args:
             parser.error("don't know what to do with extra parameters: %s" % args)
@@ -545,8 +548,7 @@ def parse_cmdline( argv ):
 
     # Get the list of console programs to execute
     console_targets = list()
-    for token in options.console:
-        vector = system.cmdline_to_argv(token)
+    for vector in options.console:
         if not vector:
             parser.error("bad use of --console")
         filename = vector[0]
@@ -556,14 +558,12 @@ def parse_cmdline( argv ):
             except WindowsError, e:
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
-            token     = system.argv_to_cmdline(vector)
-        console_targets.append(token)
+        console_targets.append(vector)
     options.console = console_targets
 
     # Get the list of windowed programs to execute
     windowed_targets = list()
-    for token in options.windowed:
-        vector = system.cmdline_to_argv(token)
+    for vector in options.windowed:
         if not vector:
             parser.error("bad use of --windowed")
         filename = vector[0]
@@ -573,8 +573,7 @@ def parse_cmdline( argv ):
             except WindowsError, e:
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
-            token     = system.argv_to_cmdline(vector)
-        windowed_targets.append(token)
+        windowed_targets.append(vector)
     options.windowed = windowed_targets
 
     # If no targets were set at all, show an error message
@@ -582,6 +581,54 @@ def parse_cmdline( argv ):
         parser.error("no targets found!")
 
     return options
+
+# Callback to parse -c and -w command line switches
+def callback_execute_target(option, opt_str, value, parser):
+
+    # Get the destination variable name.
+    dest_name = option.dest
+    if dest_name is None:
+        dest_name = option.get_opt_string().replace('-', '')
+
+    # Get the destination list to append.
+    # Create a new list if needed.
+    destination = getattr(parser.values, dest_name, None)
+    if destination is None:
+        destination = list()
+        setattr(parser.values, dest_name, destination)
+
+    # If a value is received from optparse, put it back in the list of
+    # arguments to be consumed.
+    #
+    # From what I gather by examining the examples in the documentation this
+    # wasn't even supposed to happen. (!)
+    #
+    # I suspect is happening because I had to force the argument type for the
+    # command line switch definition as a workaround for another bug (the
+    # metavariable wasn't being shown in the help message).
+    #
+    if value is not None:
+        parser.rargs.insert(0, value)
+
+    # Get the value from the command line arguments.
+    value = []
+    for arg in parser.rargs:
+
+        # Stop on --foo like options but not on -- alone.
+        if arg[:2] == "--" and len(arg) > 2:
+            break
+
+        # Stop on -a like options but not on - alone.
+        if arg[:1] == "-" and len(arg) > 1:
+            break
+
+        value.append(arg)
+
+    # Delete the command line arguments we consumed so they're not parsed again.
+    del parser.rargs[:len(value)]
+
+    # Append the value to the destination list.
+    destination.append(value)
 
 #------------------------------------------------------------------------------
 
