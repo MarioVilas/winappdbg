@@ -534,6 +534,16 @@ class ExceptionEvent (Event):
             raise NotImplementedError, msg
         return self.get_exception_information(2)
 
+    def is_nested(self):
+        """
+        @rtype:  bool
+        @return: Returns C{True} if there are additional exception records
+            associated with this exception. This would mean the exception
+            is nested, that is, it was triggered while trying to handle
+            at least one previous exception.
+        """
+        return bool(self.raw.u.Exception.ExceptionRecord.ExceptionRecord)
+
     def get_raw_exception_record_list(self):
         """
         Traverses the exception record linked list and builds a Python list.
@@ -550,28 +560,57 @@ class ExceptionEvent (Event):
             never empty. All other methods of this class read from the first
             exception record only, that is, the most recent exception.
         """
-
         # The first EXCEPTION_RECORD is contained in EXCEPTION_DEBUG_INFO.
-        record = self.raw.u.Exception.ExceptionRecord
-        nested = [ record ]
-
         # The remaining EXCEPTION_RECORD structures are linked by pointers.
-        while record.ExceptionRecord:
-            record = record.ExceptionRecord.contents
+        nested = list()
+        record = self.raw.u.Exception
+        while True:
+            record = record.ExceptionRecord
+            if not record:
+                break
             nested.append(record)
-
-        # Return the list of nested exceptions.
         return nested
 
-    # TODO
-    # Return the nested exceptions as a list of ExceptionEvent objects.
-    # The first element is always "self".
-    # Each element contains a pointer to the next exception record.
-    # New raw structures may have to be allocated for each object,
-    # but it's OK to reuse pointers since they're supposed to be read only.
-    # (Perhaps a custom DEBUG_EVENT has to be defined, where the first record
-    # is a pointer instead of an embedded structure).
-##    def get_nested_exceptions(self):
+    def get_nested_exceptions(self):
+        """
+        Traverses the exception record linked list and builds a Python list.
+
+        Nested exception records are received for nested exceptions. This
+        happens when an exception is raised in the debugee while trying to
+        handle a previous exception.
+
+        @rtype:  list( L{ExceptionEvent} )
+        @return:
+            List of ExceptionEvent objects representing each exception record
+            found in this event.
+
+            There is always at least one exception record, so the list is
+            never empty. All other methods of this class read from the first
+            exception record only, that is, the most recent exception.
+        """
+        # The list always begins with ourselves.
+        # Just put a reference to "self" as the first element,
+        # and start looping from the second exception record.
+        nested = [ self ]
+        raw = self.raw
+        dwDebugEventCode = raw.dwDebugEventCode
+        dwProcessId      = raw.dwProcessId
+        dwThreadId       = raw.dwThreadId
+        dwFirstChance    = raw.u.Exception.dwFirstChance
+        record           = raw.u.Exception.ExceptionRecord
+        while True:
+            record = record.ExceptionRecord
+            if not record:
+                break
+            raw = win32.DEBUG_EVENT()
+            raw.dwDebugEventCode            = dwDebugEventCode
+            raw.dwProcessId                 = dwProcessId
+            raw.dwThreadId                  = dwThreadId
+            raw.u.Exception.ExceptionRecord = record
+            raw.u.Exception.dwFirstChance   = dwFirstChance
+            event = EventFactory.get(self.debug, raw)
+            nested.append(event)
+        return nested
 
 #==============================================================================
 

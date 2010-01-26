@@ -429,7 +429,12 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         # By default, exceptions are handled by the debugee.
         if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
-            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            if event.is_continuable():
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            else:
+                event.continueStatus = win32.DBG_TERMINATE_PROCESS
+                # DBG_TERMINATE_PROCESS isn't supported in old Windows versions
+                event.get_process().kill()
         else:
             # Other events need this continue code.
             # Sometimes other codes can be used and are ignored, sometimes not.

@@ -1367,29 +1367,25 @@ class EXCEPTION_RECORD64(Structure):
 
 PEXCEPTION_RECORD64 = POINTER(EXCEPTION_RECORD64)
 
-if sizeof(SIZE_T) == sizeof(DWORD):
-    EXCEPTION_RECORD = EXCEPTION_RECORD32
-elif sizeof(SIZE_T) == sizeof(DWORD64):
-    EXCEPTION_RECORD = EXCEPTION_RECORD64
-else:
-    # typedef struct _EXCEPTION_RECORD {
-    #     DWORD ExceptionCode;
-    #     DWORD ExceptionFlags;
-    #     LPVOID ExceptionRecord;
-    #     LPVOID ExceptionAddress;
-    #     DWORD NumberParameters;
-    #     LPVOID ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
-    # } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
-    class EXCEPTION_RECORD(Structure):
-        _fields_ = [
-            ('ExceptionCode',           DWORD),
-            ('ExceptionFlags',          DWORD),
-            ('ExceptionRecord',         LPVOID),
-            ('ExceptionAddress',        LPVOID),
-            ('NumberParameters',        DWORD),
-            ('ExceptionInformation',    LPVOID * EXCEPTION_MAXIMUM_PARAMETERS),
-        ]
+# typedef struct _EXCEPTION_RECORD {
+#     DWORD ExceptionCode;
+#     DWORD ExceptionFlags;
+#     LPVOID ExceptionRecord;
+#     LPVOID ExceptionAddress;
+#     DWORD NumberParameters;
+#     LPVOID ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+# } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
+class EXCEPTION_RECORD(Structure):
+    pass
 PEXCEPTION_RECORD = POINTER(EXCEPTION_RECORD)
+EXCEPTION_RECORD._fields_ = [
+        ('ExceptionCode',           DWORD),
+        ('ExceptionFlags',          DWORD),
+        ('ExceptionRecord',         PEXCEPTION_RECORD),
+        ('ExceptionAddress',        LPVOID),
+        ('NumberParameters',        DWORD),
+        ('ExceptionInformation',    LPVOID * EXCEPTION_MAXIMUM_PARAMETERS),
+    ]
 
 # typedef struct _EXCEPTION_DEBUG_INFO {
 #   EXCEPTION_RECORD ExceptionRecord;
