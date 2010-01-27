@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #2
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example2:startinganewprocess
-
 from winappdbg import System
 
 import sys

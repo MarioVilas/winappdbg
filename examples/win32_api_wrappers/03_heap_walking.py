@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example3:enumeratingheapblocksusingtheToolhelplibrary
-
 from winappdbg.win32 import *
 
 def print_heap_blocks( pid ):

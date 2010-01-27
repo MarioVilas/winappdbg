@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example9:printathreadscontext
-
 from winappdbg import Thread, CrashDump, System
 
 def print_thread_context( tid ):

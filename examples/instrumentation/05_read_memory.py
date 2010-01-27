@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #5
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example5:readingtheprocessmemory
-
 from winappdbg import Process
 
 def process_read( pid, address, length ):

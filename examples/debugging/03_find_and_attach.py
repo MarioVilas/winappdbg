@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example3:attachingtoaprocessbyfilename
-
 from winappdbg import Debug
 
 import sys

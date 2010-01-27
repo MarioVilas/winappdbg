@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #12
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example12:gettingthelabelforagivenmemoryaddress
-
 from winappdbg import System, Process
 
 def print_label( pid, address ):

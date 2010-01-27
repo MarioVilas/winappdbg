@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #4
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers#Example4:enumeratingmodulesusingtheToolhelplibrary
-
 from winappdbg.win32 import *
 
 def print_modules( pid ):

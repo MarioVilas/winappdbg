@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #6
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example6:tracingexecution
-
 from winappdbg import Debug, EventHandler, HexDump, CrashDump, win32
 
 

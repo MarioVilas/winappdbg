@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example1:enumeratingrunningprocesses
-
 from winappdbg import System
 
 # Request debugging privileges for the current process

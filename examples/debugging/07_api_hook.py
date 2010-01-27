@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #7
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example7:interceptingAPIcalls
-
 from winappdbg import Debug, EventHandler
 
 

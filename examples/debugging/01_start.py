@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #1
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example1:startinganewprocessandwaitingforittofinish
-
 from winappdbg import Debug
 
 import sys

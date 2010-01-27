@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #4
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example4:killingaprocess
-
 from winappdbg import Process
 
 def process_kill( pid ):

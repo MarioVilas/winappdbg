@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #6
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example6:loadingaDLLintotheprocess
-
 from winappdbg import Process
 
 def load_dll( pid, filename ):

@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #11
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example11:resolveanAPIfunctioninaprocess
-
 from winappdbg import Process, System
 
 def print_api_address( pid, modName, procName ):

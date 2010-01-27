@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #9
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example9:hookingafunction
-
 from winappdbg import Debug, EventHandler
 
 

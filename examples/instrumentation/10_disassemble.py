@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example10:printathreadscodedisassembly
-
 from winappdbg import Thread, CrashDump, System
 
 def print_thread_disassembly( tid ):

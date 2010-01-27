@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #3
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation#Example3:enumeratingthreadsandDLLmodulesinaprocess
-
 from winappdbg import Process, HexDump
 
 def print_threads_and_modules( pid ):

@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #13
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example13:resolvingalabelbackintoamemoryaddress
-
 from winappdbg import System, Process
 
 def print_label_address( pid, label ):

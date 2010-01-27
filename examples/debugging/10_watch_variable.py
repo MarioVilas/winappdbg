@@ -29,9 +29,6 @@
 
 # $Id$
 
-# Example #10
-# http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging#Example10:watchingavariable
-
 import traceback
 
 from winappdbg import Debug, EventHandler, win32
