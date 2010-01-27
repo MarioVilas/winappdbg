@@ -62,7 +62,7 @@ If you're still using Python 2.4 you'll need to install some additional modules:
 
 * The `ctypes <http://python.net/crew/theller/ctypes/>`_ module is needed to interface with the Win32 API.
 
-* The `SQLite python bindings <http://www.pysqlite.org/>`_ can be used with the crash logger tool to store the crash information in an SQLite database file.
+* The `SQLite python bindings <http://sourceforge.net/projects/pysqlite/>`_ can be used with the crash logger tool to store the crash information in an SQLite database file.
 
 The `diStorm <http://ragestorm.net/distorm/>` disassembler is also required:
 
