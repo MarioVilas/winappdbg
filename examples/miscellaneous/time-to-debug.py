@@ -27,7 +27,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# http://sourceforge.net/apps/trac/winappdbg/wiki/TimeToDebug
+# $Id$
 
 from winappdbg import *
 from time import time

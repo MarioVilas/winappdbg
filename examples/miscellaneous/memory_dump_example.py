@@ -27,7 +27,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# http://sourceforge.net/apps/trac/winappdbg/wiki/MemoryDumpExample
+# $Id$
 
 import os
 import sys
@@ -174,5 +174,4 @@ for filename in sys.argv[1:]:
         database.close()
         print "Ok."
 print "Done."
-
 
