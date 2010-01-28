@@ -44,35 +44,8 @@ sizeof      = ctypes.sizeof
 POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
-
-#------------------------------------------------------------------------------
-
-# Laxy reference to ctypes.windll.
-# Currently it's only use is to allow importing winappdbg in a non Windows
-# environment, for example to get the documentation or build the packages.
-# Later on it may be extended with some sort of syscall proxy, if it turns
-# out to be justified (I tend to think a high level RPC is a better approach).
-try:
-    from ctypes import windll
-except ImportError:
-    class FakeWinDll(object):
-        def __getattr__(self, name):
-            return self
-        def __call__(self, *argv, **argd):
-            raise ctypes.WinError(50)   # ERROR_NOT_SUPPORTED
-    windll = FakeWinDll()
-
-# Lazy reference to ctypes.WINFUNCTYPE.
-# See explanation above.
-try:
-    WINFUNCTYPE = ctypes.WINFUNCTYPE
-except AttributeError:
-    class WINFUNCTYPE(object):
-        def __init__(self, restype, *argtypes):
-            self.restype  = restype
-            self.argtypes = argtypes
-        def __call__(self, *argv):
-            return ctypes.WINFUNCTYPE(self.restype, *self.argtypes)(*argv)
+WINFUNCTYPE = ctypes.WINFUNCTYPE
+windll      = ctypes.windll
 
 #------------------------------------------------------------------------------
 
