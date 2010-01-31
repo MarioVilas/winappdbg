@@ -7,7 +7,9 @@ You can implement process instrumentation in your Python scripts by using the pr
 
 A *System* object is a snapshot of all running processes. It contains *Process* objects, which in turn are snapshots of processes. A *Process* object contains *Thread* and *Module* objects.
 
-Note that you don't need to be attached as a debugger for these classes to work.
+.. note::
+
+    You don't need to be attached as a debugger for these classes to work.
 
 .. _the-system-class:
 
