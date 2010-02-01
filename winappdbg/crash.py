@@ -42,7 +42,7 @@ __all__ =   [
                 # Container that can store Crash objects in a DBM database.
                 'CrashContainer',
 
-                # Container that can store Crash objects in a SQLite database.
+                # Container that can store Crash objects in a SQL database.
                 'CrashTable',
 
                 # Volatile container that does not store Crash objects.
@@ -57,8 +57,10 @@ from textio import HexDump, CrashDump
 import win32
 
 import os
+import re
 import time
 import zlib
+import urlparse
 import traceback
 
 try:
@@ -75,6 +77,94 @@ except ImportError:
 # lazy imports
 anydbm = None
 sqlite = None
+
+#==============================================================================
+
+class SQLClient(object):
+
+    @staticmethod
+    def get_db_type(url):
+        return urlparse.urlparse(url).scheme
+
+    @staticmethod
+    def parse_db_url(url):
+        # Force urlparse to treat our custom schemes like http,
+        # but sqlite: should be parsed like file://
+        scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+        if scheme == 'sqlite':
+            fake_scheme = 'file'
+        else:
+            fake_scheme = 'http'
+        fake_url = urlparse.urlunparse( (fake_scheme, netloc, path, params, query, fragment) )
+        _, netloc, path, params, query, fragment = urlparse.urlparse(fake_url)
+        target = urlparse.ParseResult(scheme, netloc, path, params, query, fragment)
+        return target
+
+    @classmethod
+    def connect(cls, url):
+        target = cls.parse_db_url(url)
+        protocol = target.scheme
+        if '.' in protocol:
+            raise ValueError, "Invalid database protocol: %s" % protocol
+        connector = getattr(cls, '_connect_%s' % protocol, None)
+        if connector is None:
+            msg = "Unknown database protocol: %s" % protocol
+            raise NotImplementedError, msg
+        try:
+            return connector(target)
+        except ImportError:
+            msg = "Missing database driver for protocol: %s" % protocol
+            raise NotImplementedError, msg
+
+    @classmethod
+    def _connect_osql(cls, target):
+        return cls._connect_oracle(target)
+
+    @classmethod
+    def _connect_oracle(cls, target):
+        import cxOracle
+        port = target.port
+        if port:
+            port = int(port)
+        else:
+            port = 1521
+        dsn = cxOracle.makedsn(target.hostname, port, target.path)
+        connection = cxOracle.connect(target.username, target.password, dsn)
+        return connection
+
+    @classmethod
+    def _connect_mysql(cls, target):
+        import MySQLdb
+        return MySQLdb.connect( host    = target.netloc,
+                                user    = target.username,
+                                passwd  = target.password,
+                                db      = target.path )
+
+    @classmethod
+    def _connect_mssql(cls, target):
+        import pymssql
+        return pymssql.connect( host     = target.netloc,
+                                user     = target.username,
+                                password = target.password,
+                                database = target.path )
+
+    @classmethod
+    def _connect_pq(cls, target):
+        return cls._connect_pgsql(target)
+
+    @classmethod
+    def _connect_pgsql(cls, target):
+        try:
+            import psycopg2 as dbapi2
+        except ImportError:
+            try:
+                import pyPgSQL as dbapi2
+            except ImportError:
+                import pgdb as dbapi2
+        return dbapi2.connect(  host     = target.netloc,
+                                user     = target.username,
+                                password = target.password,
+                                database = target.path )
 
 #==============================================================================
 
@@ -1219,7 +1309,7 @@ class CrashTable (object):
     Manages a database of persistent Crash objects, trying to avoid duplicates
     only when requested.
 
-    Uses an SQLite database file for persistency.
+    Uses an SQL database file for persistency.
 
     @see: L{Crash.key}
     """
@@ -1399,13 +1489,20 @@ class CrashTable (object):
             Type    = "Unknown"
 
         # Memory contents.
+        #
+        # XXX TODO
+        # Storing this in the db is insane! :(
+        # Each memory dump has to be placed in an external file, using random
+        # filenames to avoid collisions. Then the filenames can be stored in
+        # this column instead of the data.
+        #
         content = mbi.content
         if not content:
             content = ''
         else:
-##            content = zlib.compress(content, zlib.Z_BEST_COMPRESSION)
-            pass
-        content = sqlite.Binary(content)
+            content = zlib.compress(content, zlib.Z_BEST_COMPRESSION)
+            content = buffer(content)
+##            content = content.encode('base64')
 
         # Return a tuple to pass to Cursor.execute().
         return (
@@ -1427,6 +1524,14 @@ class CrashTable (object):
 
             If the location is a filename, it's an SQLite database file.
 
+            If the location is an URL, it's a remote database of any of the
+            supported types. Currently the following databases are supported:
+
+             * mysql:// (using the C{MySQLdb} module)
+             * mssql:// (using the C{pymssql} module)
+             * oracle:// (using the C{cxOracle} module)
+             * pgsql:// (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
+
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
 
@@ -1438,21 +1543,28 @@ class CrashTable (object):
             previously existing object will be ignored.
         """
 
-        # Import sqlite if needed.
-        global sqlite
-        if sqlite is None:
-            try:
-                import sqlite3 as sqlite
-            except ImportError:
-                from pysqlite2 import dbapi2 as sqlite
+        # Local filenames are opened with SQLite.
+        if location is None or \
+                    not re.match('[^:]+://*', location): # crude URL detection
+            global sqlite
+            if sqlite is None:
+                try:
+                    import sqlite3 as sqlite
+                except ImportError:
+                    from pysqlite2 import dbapi2 as sqlite
+            if location is None:
+                location = ':memory:'
+            self.__location = location
+            self.__dbtype   = 'sqlite'
+            self.__db       = sqlite.connect(location)
 
-        # If no location is given store the database in memory.
-        if not location:
-            location = ':memory:'
-        self.__location = location
+        # URLs are connected to using the appropriate driver.
+        else:
+            self.__location = location
+            self.__dbtype   = SQLClient.get_db_type(location)
+            self.__db       = SQLClient.connect(location)
 
-        # Connect to the database and get a cursor.
-        self.__db       = sqlite.connect(self.__location)
+        # Get a DB-API cursor.
         self.__cursor   = self.__db.cursor()
 
         # Create the tables if needed.
@@ -1567,7 +1679,8 @@ class CrashTable (object):
             return self.__keys[key]
         key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
         key = optimize(key)
-        key = sqlite.Binary(key)
+        key = buffer(key)
+##        key = key.encode('base64')
         return key
 
     def __unmarshall_key(self, key):
@@ -1581,6 +1694,7 @@ class CrashTable (object):
         @return: Converted key.
         """
         key = str(key)
+##        key = key.decode('base64')
         key = pickle.loads(key)
         return key
 
@@ -1608,7 +1722,8 @@ class CrashTable (object):
             del crash
         value = optimize(value)
         value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
-        value = sqlite.Binary(value)
+        value = buffer(value)
+##        value = value.encode('base64')
         return value
 
     def __unmarshall_value(self, value):
@@ -1622,6 +1737,7 @@ class CrashTable (object):
         @return: Converted object.
         """
         value = str(value)
+##        value = value.decode('base64')
         value = zlib.decompress(value)
         value = pickle.loads(value)
         return value
