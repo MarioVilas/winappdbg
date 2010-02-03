@@ -88,6 +88,7 @@ from system import Module, Thread, Process, PathOperations
 from textio import HexDump
 
 import ctypes
+import weakref
 
 #==============================================================================
 
@@ -132,7 +133,7 @@ class Event (object):
         @type  raw: L{DEBUG_EVENT}
         @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
         """
-        self.debug          = debug
+        self.debug          = weakref.ref(debug)
         self.raw            = raw
         self.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 

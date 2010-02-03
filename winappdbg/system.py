@@ -65,6 +65,7 @@ import os
 import sys
 import ctypes
 import struct
+import weakref
 
 try:
     from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
@@ -274,7 +275,9 @@ class ModuleContainer (object):
 ##        bases.append(0x100000000)   # invalid, > 4 gb. address space
         bases.append(0x1000000000000000)    # invalid, > 64 bit address
         if address >= bases[0]:
-            for i in xrange(len(bases)-1):  # -1 because last base is fake
+            i = 0
+            max_i = len(bases) - 1  # -1 because last base is fake
+            while i < max_i: 
                 begin, end = bases[i:i+2]
                 if begin <= address <= end:
                     module = self.get_module(begin)
@@ -283,6 +286,7 @@ class ModuleContainer (object):
                         break
                     else:   # True or None
                         return module
+                i = i + 1
         return None
 
     # XXX this method musn't end up calling __initialize_snapshot by accident!
@@ -1267,6 +1271,7 @@ class ProcessContainer (object):
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
                 aProcess._ThreadContainer__del_thread(tid)
+
 
     def scan_modules(self):
         """
@@ -2703,10 +2708,12 @@ class MemoryOperations (object):
                     step = System.pageSize
                     old_mbi.RegionSize = step
                     new_mbi.RegionSize = step
-                    for address in xrange(start, end, step):
+                    address = start
+                    while address < end:
                         old_mbi.BaseAddress = address
                         new_mbi.BaseAddress = address
                         self.__restore_mbi(hProcess, new_mbi, old_mbi)
+                        address = address + step
 
         # Resume execution.
         finally:
@@ -5040,7 +5047,27 @@ class Module (SymbolContainer):
         self.fileName       = fileName
         self.SizeOfImage    = SizeOfImage
         self.EntryPoint     = EntryPoint
-        self.process        = process
+        self.set_process(process)
+
+    def get_process(self):
+        """
+        @rtpye:  L{Process} or None
+        @return: Process that owns this module.
+            Returns C{None} if unknown.
+        """
+        return self.process
+
+    def set_process(self, process = None):
+        """
+        Manually set the process that owns this module. Use with care!
+
+        @type process: L{Process}
+        @param process: (Optional) Process object. Use C{None} for no process.
+        """
+        if process is None:
+            self.process = None
+        else:
+            self.process = weakref.ref(process)
 
     def get_base(self):
         """
@@ -5475,7 +5502,10 @@ class Thread (ThreadDebugOperations):
         self.dwThreadId      = dwThreadId
         self.hThread         = hThread
         self.pInjectedMemory = None
-        self.process         = process
+        if process is None:
+            self.process     = None
+        else:
+            self.process     = weakref.ref(process)
         self.set_name()
         if process is not None and not isinstance(process, Process):
             msg  = "Parent process for Thread must be a Process instance, "
@@ -5488,8 +5518,22 @@ class Thread (ThreadDebugOperations):
         @return: Parent Process object.
         """
         if self.process is None:
-            self.process = Process(self.get_pid())
+            process = Process(self.get_pid())
+            self.process = weakref.ref(process)
+            return process
         return self.process
+
+    def set_process(self, process = None):
+        """
+        Manually set the process that owns this thread. Use with care!
+
+        @type process: L{Process}
+        @param process: (Optional) Process object. Use C{None} for no process.
+        """
+        if process is None:
+            self.process = None
+        else:
+            self.process = weakref.ref(process)
 
     def get_pid(self):
         """
@@ -5504,6 +5548,7 @@ class Thread (ThreadDebugOperations):
                 hThread = self.get_handle()
                 try:
                     # I wish this had been implemented before Vista...
+                    # XXX TODO find the real ntdll call under this api
                     self.dwProcessId = win32.GetProcessIdOfThread(hThread)
                 except AttributeError:
                     # This method really sucks :P

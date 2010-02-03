@@ -415,10 +415,11 @@ def CustomAddressIterator(memory_map, condition):
     """
     for mbi in memory_map:
         if condition(mbi):
-            BaseAddress = mbi.BaseAddress
-            RegionSize  = mbi.RegionSize
-            for address in xrange(BaseAddress, BaseAddress + RegionSize):
+            address  = mbi.BaseAddress
+            max_addr = address + mbi.RegionSize
+            while address < max_addr:
                 yield address
+                address = address + 1
 
 def DataAddressIterator(memory_map):
     """

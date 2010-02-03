@@ -3,19 +3,6 @@
 More examples
 *************
 
-.. _memory-dump-example:
-
-Dump the memory of a process
-++++++++++++++++++++++++++++
-
-This is an example on how to dump the memory map and contents of a process into an SQLite database. A table is created where each row is a memory region, and the columns are the properties of that region (address, size, mapped filename, etc.) and it's data. The data is compressed using zlib to reduce the database size, but simply commenting out line 160 stores the data in uncompressed form.
-
-:download:`Download <../../examples/miscellaneous/memory_dump_example.py>`
-
-.. literalinclude:: ../../examples/miscellaneous/memory_dump_example.py
-   :start-after: # $Id
-   :end-before: # When invoked from the command line,
-
 .. _time-to-debug:
 
 Set a debugging timeout
@@ -26,6 +13,30 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
 :download:`Download <../../examples/miscellaneous/time-to-debug.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/time-to-debug.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
+Find alphanumeric addresses to jump to
+++++++++++++++++++++++++++++++++++++++
+
+This example will find all memory addresses in a target process that are executable and whose address consists of alphanumeric characters only. This is useful when exploiting a stack buffer overflow and the input string is limited to alphanumeric characters only.
+
+:download:`Download <../../examples/miscellaneous/find_alnum.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/find_alnum.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
+.. _memory-dump-example:
+
+Dump the memory of a process
+++++++++++++++++++++++++++++
+
+This is an example on how to dump the memory map and contents of a process into an SQLite database. A table is created where each row is a memory region, and the columns are the properties of that region (address, size, mapped filename, etc.) and it's data. The data is compressed using zlib to reduce the database size, but simply commenting out line 160 stores the data in uncompressed form.
+
+:download:`Download <../../examples/miscellaneous/memory_dump_example.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/memory_dump_example.py
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 

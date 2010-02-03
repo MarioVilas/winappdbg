@@ -484,6 +484,12 @@ class Handle (object):
     @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
     """
 
+    # XXX DEBUG
+    # When this private flag is True each Handle will print a message to
+    # standard output when it's created and destroyed. This is useful for
+    # detecting handle leaks within WinAppDbg itself.
+    __bLeakDetection = False
+
     def __init__(self, aHandle = None, bOwnership = True):
         """
         @type  aHandle: int
@@ -497,11 +503,15 @@ class Handle (object):
         super(Handle, self).__init__()
         self.value      = self._normalize(aHandle)
         self.bOwnership = bOwnership
+        if Handle.__bLeakDetection:     # XXX DEBUG
+            print "INIT HANDLE (%r) %r" % (self.value, self)
 
     def __del__(self):
         """
         Closes the Win32 handle when the Python object is destroyed.
         """
+        if Handle.__bLeakDetection:     # XXX DEBUG
+            print "DEL HANDLE %r" % self
         try:
             self.close()
         except Exception:
@@ -549,6 +559,8 @@ class Handle (object):
         Closes the Win32 handle.
         """
         if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
+            if Handle.__bLeakDetection:     # XXX DEBUG
+                print "CLOSE HANDLE (%d) %r" % (self.value, self)
             try:
                 CloseHandle(self.value)
             finally:
@@ -559,7 +571,10 @@ class Handle (object):
         @rtype:  L{Handle}
         @return: A new handle to the same Win32 object.
         """
-        return DuplicateHandle(self.value)
+        new_value = DuplicateHandle(self.value)
+        if Handle.__bLeakDetection:     # XXX DEBUG
+            print "DUP HANDLE (%d -> %d) %r" % (self.value, new_value, self)
+        return new_value
 
     @staticmethod
     def _normalize(value):
@@ -661,6 +676,24 @@ class FileHandle (Handle):
         if not FileName:
             FileName = None
         return FileName
+
+# XXX maybe add functions related to the toolhelp snapshots here?
+class SnapshotHandle (Handle):
+    """
+    Toolhelp32 snapshot handle.
+
+    @see: L{Handle}
+    """
+
+    def dup(self):
+        "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError, \
+            "This method is meaningless for Toolhelp32 snaphots."
+
+    def wait(self, dwMilliseconds = None):
+        "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError, \
+            "This method is meaningless for Toolhelp32 snaphots."
 
 #--- Structure wrappers -------------------------------------------------------
 
@@ -3347,7 +3380,7 @@ def CreateToolhelp32Snapshot(dwFlags = TH32CS_SNAPALL, th32ProcessID = 0):
     hSnapshot = _CreateToolhelp32Snapshot(dwFlags, th32ProcessID)
     if hSnapshot == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return Handle(hSnapshot)
+    return SnapshotHandle(hSnapshot)
 
 # BOOL WINAPI Process32First(
 #   __in     HANDLE hSnapshot,

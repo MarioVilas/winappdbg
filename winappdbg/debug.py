@@ -126,13 +126,12 @@ class Debug (EventDispatcher, BreakpointContainer):
         self.system                         = System()
         self.__bKillOnExit                  = bKillOnExit
         self.__bHostileCode                 = bHostileCode
-        self.__attachedDebugees             = set()
-        self.__startedDebugees              = set()
+        self.__attachedDebugees             = set()     # set of pids
+        self.__startedDebugees              = set()     # set of pids
 
-##        self.system.request_debug_privileges(bIgnoreExceptions = True)
-        self.system.request_debug_privileges()
+        self.system.request_debug_privileges(bIgnoreExceptions = False)
 
-##    # It's not hard to create circular references,
+##    # It's hard not to create circular references,
 ##    # and if we have a destructor, we can end up leaking everything.
 ##    # It's best to code the debugging loop properly to always
 ##    # stop the debugger before going out of scope.
@@ -184,7 +183,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         else:
             aProcess = self.system.get_process(dwProcessId)
 
-        # XXX
+        # XXX HACK
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
         # properly give some information, like the filename for each module.
@@ -193,27 +192,27 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         return aProcess
 
-    def detach(self, dwProcessId, bIgnoreExceptions = False):
+    def __cleanup_process(self, dwProcessId, bIgnoreExceptions = False)
         """
-        Detaches from a process currently being debugged.
+        Perform the necessary cleanup of a process about to be killed or
+        detached from.
 
-        @see: L{attach}, L{detach_from_all}
+        This private method is called by L{kill} and L{detach}.
 
         @type  dwProcessId: int
-        @param dwProcessId: Global ID of a process to detach from.
+        @param dwProcessId: Global ID of a process to kill.
 
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
-            raised when detaching.
+            raised when killing the process.
 
         @raise WindowsError: Raises an exception on error, unless
             C{bIgnoreExceptions} is C{True}.
         """
 
-        # Disable all breakpoints in the process.
-        # XXX maybe they should be erased?
+        # Erase all breakpoints in the process.
         try:
-            self.disable_process_breakpoints(dwProcessId)
+            self.erase_process_breakpoints(dwProcessId)
         except Exception:
             if not bIgnoreExceptions:
                 raise
@@ -241,23 +240,104 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
-        # One might think of removing the process from the snapshot.
-        # But the process is not dead, and the user may want to do
-        # something with it after detaching.
-##        try:
-##            self.system._Process_Container__del_process(dwProcessId)
-##        except Exception:
-##            if not bIgnoreExceptions:
-##                raise
-
-        # Detach from the process.
+        # Remove the process from the snapshot.
+        # If the user may want to do something with it after detaching, she
+        # could keep a reference to it somewhere else, or a new Process
+        # instance could be created.
         try:
-            win32.DebugActiveProcessStop(dwProcessId)
+            self.system._Process_Container__del_process(dwProcessId)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+
+    def kill(self, dwProcessId, bIgnoreExceptions = False):
+        """
+        Kills a process currently being debugged.
+
+        @see: L{detach}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Global ID of a process to kill.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when killing the process.
+
+        @raise WindowsError: Raises an exception on error, unless
+            C{bIgnoreExceptions} is C{True}.
+        """
+
+        # XXX FIXME
+        # what happens if we didn't know the process ???
+        # more validation is needed here!
+
+        # Keep a reference to the process. We'll need it later.
+        aProcess = self.get_process(dwProcessId)
+
+        # Cleanup all data referring to the process.
+        self.__cleanup_process(dwProcess)
+
+        # Kill the process.
+        try:
+            aProcess.kill()
         except Exception:
              if not bIgnoreExceptions:
                 raise
 ##            traceback.print_exc()
 ##            print
+
+        # Cleanup what remains of the process data.
+        aProcess.clear()
+
+    def detach(self, dwProcessId, bIgnoreExceptions = False):
+        """
+        Detaches from a process currently being debugged.
+
+        @note: On Windows 2000 and below the process is killed.
+
+        @see: L{attach}, L{detach_from_all}
+
+        @type  dwProcessId: int
+        @param dwProcessId: Global ID of a process to detach from.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when detaching.
+
+        @raise WindowsError: Raises an exception on error, unless
+            C{bIgnoreExceptions} is C{True}.
+        """
+
+        # XXX FIXME
+        # what happens if we didn't know the process ???
+        # more validation is needed here!
+
+        # Keep a reference to the process. We'll need it later.
+        aProcess = self.get_process(dwProcessId)
+
+        # Cleanup all data referring to the process.
+        self.__cleanup_process(dwProcess)
+
+        # Detach from the process.
+        # On Windows 2000 and before, kill the process.
+        try:
+            win32.DebugActiveProcessStop(dwProcessId)
+        except AttributeError:
+            try:
+                aProcess.kill()
+            except Exception:
+                 if not bIgnoreExceptions:
+                    raise
+    ##            traceback.print_exc()
+    ##            print
+        except Exception:
+             if not bIgnoreExceptions:
+                raise
+##            traceback.print_exc()
+##            print
+
+        # Cleanup what remains of the process data.
+        aProcess.clear()
 
     def detach_from_all(self, bIgnoreExceptions = False):
         """

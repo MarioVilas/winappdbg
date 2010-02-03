@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2009-2001, Mario Vilas
+# Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,18 +40,20 @@ except ImportError:
     py2exe = None
 
 # Get the list of supported database modules
-import anydbm
-try:
-    _names = anydbm._names
-except NameError:
-    _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
-dbnames = ['anydbm', 'whichdb']
-for name in _names:
+# to be added to the py2exe generated package
+if py2exe is not None:
+    import anydbm
     try:
-        __import__(name)
-        dbnames.append(name)
-    except ImportError:
-        pass
+        _names = anydbm._names
+    except NameError:
+        _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
+    dbnames = ['anydbm', 'whichdb']
+    for name in _names:
+        try:
+            __import__(name)
+            dbnames.append(name)
+        except ImportError:
+            pass
 
 # Text describing the module (reStructured text)
 long_description = \
@@ -125,6 +127,8 @@ http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
 
 For download:
 
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/WinAppDbg.chm/download
+
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.chm/download
 
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.pdf/download
@@ -156,7 +160,7 @@ else:
 params = {
 
     # Setup instructions
-    'requires'          : ['ctypes'],
+    'requires'          : ['ctypes', 'distorm3', 'sqlite3', 'MySQLdb', 'pymssql', 'psycopg2'],
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
@@ -171,7 +175,7 @@ params = {
     'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
     'url'               : 'http://winappdbg.sourceforge.net/',
     'download_url'      : 'http://sourceforge.net/projects/winappdbg/',
-    'platforms'         : ['win32', 'cygwin'],
+    'platforms'         : ['win32', 'win64', 'cygwin'],
     'classifiers'       : [
                         'License :: OSI Approved :: BSD License',
                         'Development Status :: 5 - Production/Stable',

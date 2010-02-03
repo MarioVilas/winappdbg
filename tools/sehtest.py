@@ -77,11 +77,13 @@ def ExecutableAddressRangesIterator(process, ranges_list):
             else:
                 begin, end = end, begin
                 step = -1
-            for page in xrange(begin, end, step):
+            page = begin
+            while page < end:
                 if page in valid_addresses:
                     yield page
                 else:
                     logger.log_text("invalid address: %s" % HexDump.address(page))
+                page = page + step
 
 #------------------------------------------------------------------------------
 
@@ -292,7 +294,9 @@ class Bruteforcer(EventHandler):
         self.tainted = set()
         for mbi in self.process.get_memory_map():
             if mbi.is_writeable():
-                for page in xrange(mbi.BaseAddress, mbi.BaseAddress + mbi.RegionSize, pageSize):
+                page = mbi.BaseAddress
+                max_page = page + mbi.RegionSize
+                while page < max_page:
                     if not self.special_pages.has_key(page):
                         protect = mbi.Protect
                         new_protect = self.protect_conversions[protect]
@@ -302,6 +306,7 @@ class Bruteforcer(EventHandler):
                         except WindowsError:
                             self.special_pages[page] = self.process.read(page, pageSize)
                             logger.log_text("unexpected special page %s" % HexDump.address(page))
+                    page = page + pageSize
 
     def restoreSnapshot(self):
         logger.log_text("restore snapshot")

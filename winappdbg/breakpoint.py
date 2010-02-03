@@ -65,6 +65,8 @@ from util import DebugRegister
 from textio import HexDump
 import win32
 
+import weakref
+
 #==============================================================================
 
 class Breakpoint (object):
@@ -300,6 +302,8 @@ class Breakpoint (object):
         @type  condition: function
         @param condition: (Optional) Condition callback function.
         """
+        # XXX FIXME
+        # maybe this should be a weak reference ???
         if condition in (False, None):
             condition = True
         self.__condition = condition
@@ -350,6 +354,8 @@ class Breakpoint (object):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
+        # XXX FIXME
+        # maybe this should be a weak reference ???
         self.__action = action
 
     def run_action(self, event):
@@ -588,6 +594,9 @@ class CodeBreakpoint (Breakpoint):
 #   no change should be done on them when disabling the breakpoint. For this
 #   we need to remember the original page permissions instead of blindly
 #   setting and clearing the guard page bit on them.
+# * Some pages seem to be "magic" and resist all attempts at changing their
+#   protect bits (for example the pages where the PEB and TEB reside). Maybe
+#   a more descriptive error message could be shown in this case.
 
 class PageBreakpoint (Breakpoint):
     """
@@ -918,13 +927,18 @@ class HardwareBreakpoint (Breakpoint):
 
 # XXX FIXME
 #
+# The implementation of function hooks is very simple. A breakpoint is set at
+# the entry point. Each time it's hit the "pre" callback is executed. If a
+# "post" callback was defined, a one-shot breakpoint is set at the return
+# address - and when that breakpoint hits, the "post" callback is executed.
+#
 # Functions hooks, as they are implemented now, don't work correctly for
 # recursive functions. The problem is we don't know when to remove the
 # breakpoint at the return address. Also there could be more than one return
 # address.
 #
-# One possible solution would involve dictionary of lists, where the key
-# would be the thread ID and the value a stack of return addresses. But I
+# One possible solution would involve a dictionary of lists, where the key
+# would be the thread ID and the value a stack of return addresses. But we
 # still don't know what to do if the "wrong" return address is hit for some
 # reason (maybe check the stack pointer?). Or if both a code and a hardware
 # breakpoint are hit simultaneously.
@@ -932,10 +946,15 @@ class HardwareBreakpoint (Breakpoint):
 # For now, the workaround for the user is to set only the "pre" callback for
 # functions that are known to be recursive.
 #
+# If an exception is thrown by a hooked function and caught by one of it's
+# parent functions, the "post" callback won't be called and weird stuff may
+# happen. A possible solution is to put a breakpoint in the system call that
+# unwinds the stack, to detect this case and remove the "post" breakpoint.
+#
 # Hooks may also behave oddly if the return address is overwritten by a buffer
-# overflow bug. But it's probably a minor issue since when you're fuzzing a
-# function for overflows you're usually not interested in the return value
-# anyway.
+# overflow bug (this is similar to the exception problem). But it's probably a
+# minor issue since when you're fuzzing a function for overflows you're usually
+# not interested in the return value anyway.
 
 # XXX TODO
 # The assumption that all parameters are DWORDs and all we need is the count
@@ -958,11 +977,14 @@ class Hook (object):
 
     # XXX FIXME
     #
-    # Hardware breakpoints don't work in VirtualBox. Maybe there should be a
-    # way to autodetect VirtualBox and tell Hook objects not to use them.
+    # Hardware breakpoints don't work correctly (or al all) in old VirtualBox
+    # versions (3.0 and below).
+    #
+    # Maybe there should be a way to autodetect the buggy VirtualBox versions
+    # and tell Hook objects not to use hardware breakpoints?
     #
     # For now the workaround is to manually set this variable to False when
-    # WinAppDbg is installed in a virtual machine.
+    # WinAppDbg is installed in an old virtual machine.
     #
     useHardwareBreakpoints = True
 
@@ -1624,6 +1646,14 @@ class BreakpointContainer (object):
         self.__runningBP  = dict()  # tid -> set( Breakpoint )
         self.__tracing    = set()   # set( tid )
 
+        # XXX TODO
+        #
+        # We should add a list of Hook objects here too. The reason for this is
+        # if we later decide the reference from the breakpoint to the condition
+        # and action callbacks are to be weak, then the Hook objects will have
+        # to be kept somewhere to prevent the garbage collector from claiming
+        # them.
+
 #------------------------------------------------------------------------------
 
     def __has_running_bp(self, tid):
@@ -1822,16 +1852,21 @@ class BreakpointContainer (object):
         begin   = bp.get_address()
         end     = begin + bp.get_size()
 
-        for address in xrange(begin, end, System.pageSize):
+        address  = begin
+        pageSize = System.pageSize
+        while address < end:
             key = (dwProcessId, address)
             if key in self.__pageBP:
                 msg = "Already exists (PID %d) : %r"
                 msg = msg % (dwProcessId, self.__pageBP[key])
                 raise KeyError, msg
+            address = address + pageSize
 
-        for address in xrange(begin, end, System.pageSize):
+        address = begin
+        while address < end:
             key = (dwProcessId, address)
             self.__pageBP[key] = bp
+            address = address + pageSize
         return bp
 
     def define_hardware_breakpoint(self, dwThreadId, address,
@@ -2390,8 +2425,11 @@ class BreakpointContainer (object):
         end   = begin + bp.get_size()
         if not bp.is_disabled():
             self.disable_page_breakpoint(dwProcessId, address)
-        for address in xrange(begin, end, System.pageSize):
+        address  = begin
+        pageSize = System.pageSize
+        while address < end:
             del self.__pageBP[ (dwProcessId, address) ]
+            address = address + pageSize
 
     def erase_hardware_breakpoint(self, dwThreadId, address):
         """
@@ -3479,7 +3517,10 @@ class BreakpointContainer (object):
             bset = set()     # all breakpoints used
             nset = set()     # newly defined breakpoints
             cset = set()     # condition objects
-            for page_addr in xrange(base, limit, System.pageSize):
+
+            page_addr = base
+            pageSize  = System.pageSize
+            while address < limit:
 
                 # If a breakpoints exists, reuse it.
                 if self.has_page_breakpoint(pid, page_addr):
@@ -3504,6 +3545,9 @@ class BreakpointContainer (object):
                     bset.add(bp)
                     nset.add(bp)
                     cset.add(condition)
+
+                # Next page.
+                page_addr = page_addr + pageSize
 
             # For each breakpoint, enable it if needed.
             if bOneShot:
@@ -3559,7 +3603,9 @@ class BreakpointContainer (object):
         # For each condition, remove the buffer.
         # For each breakpoint, if no buffers are on watch, erase it.
         cset = set()     # condition objects
-        for page_addr in xrange(base, limit, System.pageSize):
+        page_addr = base
+        pageSize = System.pageSize
+        while page_addr < limit:
             if self.has_page_breakpoint(pid, page_addr):
                 bp = self.get_page_breakpoint(pid, page_addr)
                 condition = bp.get_condition()
@@ -3576,6 +3622,7 @@ class BreakpointContainer (object):
                             self.erase_page_breakpoint(pid, bp.get_address())
                         except WindowsError:
                             pass
+            page_addr = page_addr + pageSize
 
     def watch_buffer(self, pid, address, size, action = None):
         """
