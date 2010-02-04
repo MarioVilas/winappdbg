@@ -65,8 +65,6 @@ from util import DebugRegister
 from textio import HexDump
 import win32
 
-import weakref
-
 #==============================================================================
 
 class Breakpoint (object):
@@ -302,11 +300,10 @@ class Breakpoint (object):
         @type  condition: function
         @param condition: (Optional) Condition callback function.
         """
-        # XXX FIXME
-        # maybe this should be a weak reference ???
-        if condition in (False, None):
-            condition = True
-        self.__condition = condition
+        if condition in (True, False, None):
+            self.__condition = True
+        else:
+            self.__condition = condition
 
     def eval_condition(self, event):
         """
@@ -318,9 +315,12 @@ class Breakpoint (object):
         @rtype:  bool
         @return: C{True} to dispatch the event, C{False} otherwise.
         """
-        if self.__condition in (True, False, None):
-            return self.__condition
-        return self.__condition(event)
+        condition = self.get_condition()
+        if condition is True:
+            return True
+        if callable(condition):
+            return condition(event)
+        return condition
 
 #------------------------------------------------------------------------------
 
@@ -354,8 +354,6 @@ class Breakpoint (object):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        # XXX FIXME
-        # maybe this should be a weak reference ???
         self.__action = action
 
     def run_action(self, event):
@@ -365,8 +363,9 @@ class Breakpoint (object):
         @type  event: L{Event}
         @param event: Debug event triggered by the breakpoint.
         """
-        if self.__action is not None:
-            return bool( self.__action(event) )
+        action = self.get_action()
+        if action is not None:
+            return bool( action(event) )
         return True
 
 #------------------------------------------------------------------------------
@@ -1365,6 +1364,10 @@ class ApiHook (Hook):
         @param modName: Module name.
         """
         address = debug.resolve_exported_function(pid, modName, self.__procName)
+        if address is None:
+            msg = "Cannot resolve symbol %s at module %s"
+            msg = msg % (modName, self.__procName)
+            raise ValueError, msg
         Hook.hook(self, debug, pid, address)
 
     def unhook(self, debug, pid, modName):
@@ -1640,53 +1643,101 @@ class BreakpointContainer (object):
     BP_WATCH_DWORD          = HardwareBreakpoint.WATCH_DWORD
 
     def __init__(self):
-        self.__codeBP     = dict()  # (pid, address) -> CodeBreakpoint
-        self.__pageBP     = dict()  # (pid, address) -> PageBreakpoint
-        self.__hardwareBP = dict()  # tid -> [ HardwareBreakpoint ]
-        self.__runningBP  = dict()  # tid -> set( Breakpoint )
-        self.__tracing    = set()   # set( tid )
-
-        # XXX TODO
-        #
-        # We should add a list of Hook objects here too. The reason for this is
-        # if we later decide the reference from the breakpoint to the condition
-        # and action callbacks are to be weak, then the Hook objects will have
-        # to be kept somewhere to prevent the garbage collector from claiming
-        # them.
+        self.__codeBP       = dict()    # (pid, address) -> CodeBreakpoint
+        self.__pageBP       = dict()    # (pid, address) -> PageBreakpoint
+        self.__hardwareBP   = dict()    # tid -> [ HardwareBreakpoint ]
+        self.__runningBP    = dict()    # tid -> set( Breakpoint )
+        self.__tracing      = set()     # set( tid )
+##        self.__hook_objects = dict()    # (pid, address) -> Hook
 
 #------------------------------------------------------------------------------
 
+    # This operates on the dictionary of running breakpoints.
+    # Since the bps are meant to stay alive no cleanup is done here.
+
     def __has_running_bp(self, tid):
+        "Auxiliary method."
         return tid in self.__runningBP and self.__runningBP[tid]
 
     def __pop_running_bp(self, tid):
+        "Auxiliary method."
         return self.__runningBP[tid].pop()
 
     def __add_running_bp(self, tid, bp):
+        "Auxiliary method."
         if tid not in self.__runningBP:
             self.__runningBP[tid] = set()
         self.__runningBP[tid].add(bp)
 
     def __del_running_bp(self, tid, bp):
+        "Auxiliary method."
         self.__runningBP[tid].remove(bp)
         if not self.__runningBP[tid]:
             del self.__runningBP[tid]
 
     def __del_running_bp_from_all_threads(self, bp):
+        "Auxiliary method."
         for (tid, bpset) in self.__runningBP.iteritems():
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
+
+#------------------------------------------------------------------------------
+
+    # This operates on the set of hooks. It only exists so the user can
+    # enumerate the hooks he/she has set. In the future, with a more extensive
+    # use of weakrefs, it may also be useful to prevent the garbage collector
+    # from claiming hooks that are still active.
+
+##    def __add_hook(self, pid, address, hookObj):
+##        "Auxiliary method."
+##        self.__hook_objects[ (pid, address) ] = hookObj
+
+##    def __del_hook(self, pid, address):
+##        "Auxiliary method."
+##        try:
+##            del self.__hook_objects[ (pid, address) ]
+##        except KeyError:
+##            pass
+
+#------------------------------------------------------------------------------
+
+    # This is the cleanup code. Mostly called on response to exit/unload debug
+    # events. If possible it shouldn't raise exceptions on runtime errors.
+    # The main goal here is to avoid memory or handle leaks.
+
+    def __cleanup_breakpoint(self, event, bp):
+        "Auxiliary method."
+        try:
+            process = event.get_process()
+            thread  = event.get_thread()
+            bp.disable(process, thread) # clear the debug regs / trap flag
+        except Exception:
+            pass
+        bp.set_condition(True)  # break possible circular reference
+        bp.set_action(None)     # break possible circular reference
 
     def __cleanup_thread(self, event):
         """
         Auxiliary method for L{notify_exit_thread} and L{notify_exit_process}.
         """
         tid = event.get_tid()
-        if tid in list(self.__runningBP):
+
+        # Cleanup running breakpoints
+        try:
+            self.__cleanup_breakpoint( event, self.__runningBP[tid] )
             del self.__runningBP[tid]
-        if tid in list(self.__hardwareBP):
+        except KeyError:
+            pass
+
+        # Cleanup hardware breakpoints
+        try:
+            self.__cleanup_breakpoint( event, self.__hardwareBP[tid] )
             del self.__hardwareBP[tid]
+        except KeyError:
+            pass
+
+        # Cleanup set of threads being traced
         if tid in self.__tracing:
             self.__tracing.remove(tid)
 
@@ -1696,12 +1747,23 @@ class BreakpointContainer (object):
         """
         pid     = event.get_pid()
         process = event.get_process()
-        for (bp_pid, bp_address) in self.__codeBP.items():
+
+        # Cleanup code breakpoints
+        for (bp_pid, bp_address) in self.__codeBP.keys():
             if bp_pid == pid:
+                self.__cleanup_breakpoint( event, self.__codeBP[(bp_pid, bp_address)] )
                 del self.__codeBP[(bp_pid, bp_address)]
-        for (bp_pid, bp_address) in self.__pageBP.items():
+
+        # Cleanup page breakpoints
+        for (bp_pid, bp_address) in self.__pageBP.keys():
             if bp_pid == pid:
+                self.__cleanup_breakpoint( event, self.__pageBP[(bp_pid, bp_address)] )
                 del self.__pageBP[(bp_pid, bp_address)]
+
+##        # Cleanup hooks
+##        for (bp_pid, bp_address) in self.__hook_objects.keys():
+##            if bp_pid == pid:
+##                del self.__hook_objects[ (bp_pid, bp_address) ]
 
     def __cleanup_module(self, event):
         """
@@ -1710,32 +1772,52 @@ class BreakpointContainer (object):
         pid     = event.get_pid()
         process = event.get_process()
         module  = event.get_module()
+
+        # Cleanup thread breakpoints on this module
         for tid in process.iter_thread_ids():
             thread = process.get_thread(tid)
+
+            # Running breakpoints
             if tid in self.__runningBP:
                 bplist = list(self.__runningBP[tid])
                 for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
-                        bp.disable(process, thread)
+                        self.__cleanup_breakpoint(event, bp)
                         self.__runningBP[tid].remove(bp)
+
+            # Hardware breakpoints
             if tid in self.__hardwareBP:
                 bplist = list(self.__hardwareBP[tid])
                 for bp in bplist:
                     bp_address = bp.get_address()
                     if process.get_module_at_address(bp_address) == module:
-                        bp.disable(process, thread)
+                        self.__cleanup_breakpoint(event, bp)
                         self.__hardwareBP[tid].remove(bp)
-        for (bp_pid, bp_address) in self.__codeBP.items():
+
+        # Cleanup code breakpoints on this module
+        for (bp_pid, bp_address) in self.__codeBP.keys():
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
+                    self.__cleanup_breakpoint(event, bp)
                     del self.__codeBP[(bp_pid, bp_address)]
-        for (bp_pid, bp_address) in self.__pageBP.items():
+
+        # Cleanup page breakpoints on this module
+        for (bp_pid, bp_address) in self.__pageBP.keys():
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
+                    self.__cleanup_breakpoint(event, bp)
                     del self.__pageBP[(bp_pid, bp_address)]
 
+##        # Cleanup hooks on this module
+##        for (bp_pid, bp_address) in self.__hook_objects.keys():
+##            if bp_pid == pid:
+##                if process.get_module_at_address(bp_address) == module:
+##                    del self.__hook_objects[ (bp_pid, bp_address) ]
+
 #------------------------------------------------------------------------------
+
+    # Defining breakpoints.
 
     def define_code_breakpoint(self, dwProcessId, address,   condition = True,
                                                                 action = None):
@@ -1981,6 +2063,8 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # Checking breakpoint definitions.
+
     def has_code_breakpoint(self, dwProcessId, address):
         """
         Checks if a code breakpoint is defined at the given address.
@@ -2056,6 +2140,8 @@ class BreakpointContainer (object):
         return False
 
 #------------------------------------------------------------------------------
+
+    # Getting breakpoints.
 
     def get_code_breakpoint(self, dwProcessId, address):
         """
@@ -2157,6 +2243,8 @@ class BreakpointContainer (object):
         raise KeyError, msg % (dwThreadId, HexDump.address(address))
 
 #------------------------------------------------------------------------------
+
+    # Enabling and disabling breakpoints.
 
     def enable_code_breakpoint(self, dwProcessId, address):
         """
@@ -2379,6 +2467,8 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # Undefining (erasing) breakpoints.
+
     def erase_code_breakpoint(self, dwProcessId, address):
         """
         Erases the code breakpoint at the given address.
@@ -2458,6 +2548,8 @@ class BreakpointContainer (object):
             del self.__hardwareBP[dwThreadId]
 
 #------------------------------------------------------------------------------
+
+    # Listing breakpoints.
 
     def get_all_breakpoints(self):
         """
@@ -2581,11 +2673,8 @@ class BreakpointContainer (object):
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
-        result = list()
-        for ((pid, address), bp) in self.__codeBP.iteritems():
-            if pid == dwProcessId:
-                result.append(bp)
-        return result
+        return [ bp for ((pid, address), bp) in self.__codeBP.itervalues() \
+                if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
         """
@@ -2595,11 +2684,8 @@ class BreakpointContainer (object):
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
-        result = list()
-        for ((pid, address), bp) in self.__pageBP.itervalues():
-            if pid == dwProcessId:
-                result.append(bp)
-        return result
+        return [ bp for ((pid, address), bp) in self.__pageBP.itervalues() \
+                if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
         """
@@ -2638,7 +2724,34 @@ class BreakpointContainer (object):
                     result.append( (dwThreadId, bp) )
         return result
 
+##    def get_all_hooks(self):
+##        """
+##        @see: L{get_process_hooks}
+##
+##        @rtype:  list of tuple( int, int, L{Hook} )
+##        @return: All defined hooks as a list of tuples (pid, address, hook).
+##        """
+##        return [ (pid, address, hook) \
+##            for ((pid, address), hook) in self.__hook_objects ]
+##
+##    def get_process_hooks(self, dwProcessId):
+##        """
+##        @see: L{get_all_hooks}
+##
+##        @type  dwProcessId: int
+##        @param dwProcessId: Process global ID.
+##
+##        @rtype:  list of tuple( int, int, L{Hook} )
+##        @return: All hooks for the given process as a list of tuples
+##            (pid, address, hook).
+##        """
+##        return [ (pid, address, hook) \
+##            for ((pid, address), hook) in self.__hook_objects \
+##            if pid == dwProcessId ]
+
 #------------------------------------------------------------------------------
+
+    # Batch operations on all breakpoints.
 
     def enable_all_breakpoints(self):
         """
@@ -2722,29 +2835,33 @@ class BreakpointContainer (object):
             erase_hardware_breakpoint
         """
 
-        # XXX HACK
-        # With this trick we get to do it faster,
-        # but I'm leaving the "nice" version commented out below,
-        # just in case something breaks because of this.
-        self.disable_all_breakpoints()
-        self.__codeBP       = dict()
-        self.__pageBP       = dict()
-        self.__hardwareBP   = dict()
-        self.__runningBP    = dict()
+        # This should be faster but let's not trust the GC so much :P
+        # self.disable_all_breakpoints()
+        # self.__codeBP       = dict()
+        # self.__pageBP       = dict()
+        # self.__hardwareBP   = dict()
+        # self.__runningBP    = dict()
+        # self.__hook_objects = dict()
 
-##        # erase code breakpoints
-##        for (pid, bp) in self.get_all_code_breakpoints():
-##            self.erase_code_breakpoint(pid, bp.get_address())
-##
-##        # erase page breakpoints
-##        for (pid, bp) in self.get_all_page_breakpoints():
-##            self.erase_page_breakpoint(pid, bp.get_address())
-##
-##        # erase hardware breakpoints
-##        for (tid, bp) in self.get_all_hardware_breakpoints():
-##            self.erase_hardware_breakpoint(tid, bp.get_address())
+##        # erase hooks
+##        for (pid, address, hook) in self.get_all_hooks():
+##            self.dont_hook_function(pid, address)
+
+        # erase code breakpoints
+        for (pid, bp) in self.get_all_code_breakpoints():
+            self.erase_code_breakpoint(pid, bp.get_address())
+
+        # erase page breakpoints
+        for (pid, bp) in self.get_all_page_breakpoints():
+            self.erase_page_breakpoint(pid, bp.get_address())
+
+        # erase hardware breakpoints
+        for (tid, bp) in self.get_all_hardware_breakpoints():
+            self.erase_hardware_breakpoint(tid, bp.get_address())
 
 #------------------------------------------------------------------------------
+
+    # Batch operations on breakpoints per process.
 
     def enable_process_breakpoints(self, dwProcessId):
         """
@@ -2845,6 +2962,10 @@ class BreakpointContainer (object):
         # if an error occurs, no breakpoint is erased
         self.disable_breakpoints_for_process(dwProcessId)
 
+##        # erase hooks
+##        for address, hook in self.get_process_hooks(dwProcessId):
+##            self.dont_hook_function(dwProcessId, address)
+
         # erase code breakpoints
         for bp in self.get_process_code_breakpoints(dwProcessId):
             self.erase_code_breakpoint(dwProcessId, bp.get_address())
@@ -2865,6 +2986,8 @@ class BreakpointContainer (object):
                 self.erase_hardware_breakpoint(dwThreadId, bp.get_address())
 
 #------------------------------------------------------------------------------
+
+    # Internal handlers of debug events.
 
     def notify_guard_page(self, event):
         """
@@ -3085,6 +3208,16 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # This is the high level breakpoint interface. Here we don't have to care
+    # about defining or enabling breakpoints, and many errors are ignored
+    # (like for example setting the same breakpoint twice, here the second
+    # breakpoint replaces the first, much like in WinDBG). It should be easier
+    # and more intuitive, if less detailed.
+
+#------------------------------------------------------------------------------
+
+    # Code breakpoints
+
     def __set_break(self, pid, address, action):
         """
         Used by L{break_at} and L{stalk_at}.
@@ -3190,6 +3323,8 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # Function hooks
+
     def hook_function(self, pid, address,          preCB = None, postCB = None,
                                                                paramCount = 0):
         """
@@ -3244,6 +3379,7 @@ class BreakpointContainer (object):
 
         hookObj = Hook(preCB, postCB, paramCount)
         self.break_at(pid, address, hookObj)
+##        self.__add_hook(address, hookObj)
 
     def stalk_function(self, pid, address,         preCB = None, postCB = None,
                                                                paramCount = 0):
@@ -3299,6 +3435,7 @@ class BreakpointContainer (object):
 
         hookObj = Hook(preCB, postCB, paramCount)
         self.stalk_at(pid, address, hookObj)
+##        self.__add_hook(address, hookObj)
 
     def dont_hook_function(self, pid, address):
         """
@@ -3311,6 +3448,7 @@ class BreakpointContainer (object):
         @param address: Function address.
         """
         self.dont_break_at(pid, address)
+##        self.__del_hook(address)
 
     # alias
     unhook_function = dont_hook_function
@@ -3326,8 +3464,11 @@ class BreakpointContainer (object):
         @param address: Function address.
         """
         self.dont_stalk_at(pid, address)
+##        self.__del_hook(address)
 
 #------------------------------------------------------------------------------
+
+    # Variable watches
 
     def __set_variable_watch(self, tid, address, size, action):
         """
@@ -3468,6 +3609,8 @@ class BreakpointContainer (object):
         self.__clear_variable_watch(tid, address)
 
 #------------------------------------------------------------------------------
+
+    # Buffer watches
 
     def __set_buffer_watch(self, pid, address, size, action, bOneShot):
         """
@@ -3701,6 +3844,8 @@ class BreakpointContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # Tracing
+
 # XXX TODO
 # Add "action" parameter to tracing mode
 
@@ -3802,6 +3947,8 @@ class BreakpointContainer (object):
             self.stop_tracing_process(pid)
 
 #------------------------------------------------------------------------------
+
+    # Simplified symbol resolving, useful for hooking functions
 
     def resolve_exported_function(self, pid, modName, procName):
         """

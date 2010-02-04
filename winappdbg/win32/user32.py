@@ -34,6 +34,44 @@ Wrapper for user32.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from kernel32 import GetLastError
+
+#--- Helpers ------------------------------------------------------------------
+
+def MAKE_WPARAM(wParam):
+    """
+    Convert arguments to the WPARAM type.
+    Used automatically by SendMessage, PostMessage, etc.
+    You shouldn't need to call this function.
+    """
+    wParam = ctypes.cast(wParam, LPVOID).value
+    if wParam is None:
+        wParam = 0
+    return wParam
+
+def MAKE_LPARAM(lParam):
+    """
+    Convert arguments to the LPARAM type.
+    Used automatically by SendMessage, PostMessage, etc.
+    You shouldn't need to call this function.
+    """
+    return ctypes.cast(lParam, LPARAM)
+
+class WindowEnumerator (object):
+    """
+    Window enumerator class.  You can pass it's instances
+    as callback functions in window enumeration APIs.
+    """
+    def __init__(self):
+        self.hwnd = list()
+    def __call__(self, hwnd, lParam):
+##        print hwnd  # XXX DEBUG
+        self.hwnd.append(hwnd)
+        return TRUE
+
+#--- Types --------------------------------------------------------------------
+
+WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
 
 #--- Constants ----------------------------------------------------------------
 
@@ -255,16 +293,6 @@ WM_PENWINLAST                        = 0x38F
 
 #--- user32.dll --------------------------------------------------------------
 
-# Window enumerator class
-class __WindowEnumerator (object):
-    def __init__(self):
-        self.hwnd = list()
-    def __call__(self, hwnd, lParam):
-        self.hwnd.append(hwnd.value)
-        return TRUE
-
-WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
-
 # HWND FindWindow(
 #     LPCTSTR lpClassName,
 #     LPCTSTR lpWindowName
@@ -272,31 +300,25 @@ WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
 def FindWindowA(lpClassName = None, lpWindowName = None):
     _FindWindowA = windll.user32.FindWindowA
     _FindWindowA.argtypes = [LPSTR, LPSTR]
-    _FindWindowA.restype = HWND
+    _FindWindowA.restype  = HWND
 
-    if not lpClassName:
-        lpClassName = None
-    if not lpWindowName:
-        lpWindowName = None
     hWnd = _FindWindowA(lpClassName, lpWindowName)
-    hWnd = hWnd.value
-    if hWnd == NULL:
-        raise ctypes.WinError()
+    if not hWnd:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
     return hWnd
 
 def FindWindowW(lpClassName = None, lpWindowName = None):
     _FindWindowW = windll.user32.FindWindowW
-    _FindWindowW.argtypes = [LPSTR, LPSTR]
-    _FindWindowW.restype = HWND
+    _FindWindowW.argtypes = [LPWSTR, LPWSTR]
+    _FindWindowW.restype  = HWND
 
-    if not lpClassName:
-        lpClassName = None
-    if not lpWindowName:
-        lpWindowName = None
     hWnd = _FindWindowW(lpClassName, lpWindowName)
-    hWnd = hWnd.value
-    if hWnd == NULL:
-        raise ctypes.WinError()
+    if not hWnd:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
     return hWnd
 
 FindWindow = GuessStringType(FindWindowA, FindWindowW)
@@ -349,13 +371,13 @@ GetClassName = GuessStringType(GetClassNameA, GetClassNameW)
 def GetWindowLongA(hWnd, nIndex = 0):
     _GetWindowLongA = windll.user32.GetWindowLongA
     _GetWindowLongA.argtypes = [HWND, ctypes.c_int]
-    _GetWindowLongA.restype = LONG
+    _GetWindowLongA.restype  = LONG
     return _GetWindowLongA(hWnd, nIndex)
 
 def GetWindowLongW(hWnd, nIndex = 0):
     _GetWindowLongW = windll.user32.GetWindowLongW
     _GetWindowLongW.argtypes = [HWND, ctypes.c_int]
-    _GetWindowLongW.restype = LONG
+    _GetWindowLongW.restype  = LONG
     return _GetWindowLongW(hWnd, nIndex)
 
 ##GetWindowLong = GuessStringType(GetWindowLongA, GetWindowLongW)
@@ -376,12 +398,11 @@ def GetShellWindow():
 def GetWindowThreadProcessId(hWnd):
     _GetWindowThreadProcessId = windll.user32.GetWindowThreadProcessId
     _GetWindowThreadProcessId.argtypes = [HWND, LPDWORD]
-    _GetWindowThreadProcessId.restype = DWORD
+    _GetWindowThreadProcessId.restype  = DWORD
+    _GetWindowThreadProcessId.errcheck = RaiseIfZero
 
     dwProcessId = DWORD(0)
-    dwThreadId = _GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
-    if dwThreadId == 0:
-        raise ctypes.WinError()
+    dwThreadId  = _GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
     return dwThreadId, dwProcessId.value
 
 # HWND GetParent(
@@ -390,11 +411,10 @@ def GetWindowThreadProcessId(hWnd):
 def GetParent(hWnd):
     _GetParent = windll.user32.GetParent
     _GetParent.argtypes = [HWND]
-    _GetParent.restype = HWND
+    _GetParent.restype  = HWND
 
     hWndParent = _GetParent(hWnd)
-    hWndParent = hWndParent.value
-    if hWndParent == NULL:
+    if not hWndParent:
         winerr = GetLastError()
         if winerr != ERROR_SUCCESS:
             raise ctypes.WinError(winerr)
@@ -407,7 +427,7 @@ def GetParent(hWnd):
 def EnableWindow(hWnd, bEnable = True):
     _EnableWindow = windll.user32.EnableWindow
     _EnableWindow.argtypes = [HWND, BOOL]
-    _EnableWindow.restype = bool
+    _EnableWindow.restype  = bool
     return _EnableWindow(hWnd, bool(bEnable))
 
 # BOOL ShowWindow(
@@ -417,7 +437,7 @@ def EnableWindow(hWnd, bEnable = True):
 def ShowWindow(hWnd, nCmdShow = SW_SHOW):
     _ShowWindow = windll.user32.ShowWindow
     _ShowWindow.argtypes = [HWND, ctypes.c_int]
-    _ShowWindow.restype = bool
+    _ShowWindow.restype  = bool
     return _ShowWindow(hWnd, nCmdShow)
 
 # BOOL ShowWindowAsync(
@@ -427,14 +447,14 @@ def ShowWindow(hWnd, nCmdShow = SW_SHOW):
 def ShowWindowAsync(hWnd, nCmdShow = SW_SHOW):
     _ShowWindowAsync = windll.user32.ShowWindowAsync
     _ShowWindowAsync.argtypes = [HWND, ctypes.c_int]
-    _ShowWindowAsync.restype = bool
+    _ShowWindowAsync.restype  = bool
     return _ShowWindowAsync(hWnd, nCmdShow)
 
 # BOOL CALLBACK EnumWndProc(
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumWndProc (__WindowEnumerator):
+class __EnumWndProc (WindowEnumerator):
     pass
 
 # BOOL EnumWindows(
@@ -444,13 +464,13 @@ class __EnumWndProc (__WindowEnumerator):
 def EnumWindows():
     _EnumWindows = windll.user32.EnumWindows
     _EnumWindows.argtypes = [WNDENUMPROC, LPARAM]
-    _EnumWindows.restype = bool
+    _EnumWindows.restype  = bool
 
     EnumFunc = __EnumWndProc()
     lpEnumFunc = WNDENUMPROC(EnumFunc)
     if not _EnumWindows(lpEnumFunc, NULL):
         errcode = GetLastError()
-        if errcode != ERROR_NO_MORE_FILES:
+        if errcode not in (ERROR_NO_MORE_FILES, ERROR_SUCCESS):
             raise ctypes.WinError(errcode)
     return EnumFunc.hwnd
 
@@ -458,7 +478,7 @@ def EnumWindows():
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumThreadWndProc (__WindowEnumerator):
+class __EnumThreadWndProc (WindowEnumerator):
     pass
 
 # BOOL EnumThreadWindows(
@@ -469,13 +489,13 @@ class __EnumThreadWndProc (__WindowEnumerator):
 def EnumThreadWindows(dwThreadId):
     _EnumThreadWindows = windll.user32.EnumThreadWindows
     _EnumThreadWindows.argtypes = [DWORD, WNDENUMPROC, LPARAM]
-    _EnumThreadWindows.restype = bool
+    _EnumThreadWindows.restype  = bool
 
     fn = __EnumThreadWndProc()
     lpfn = WNDENUMPROC(fn)
     if not _EnumThreadWindows(dwThreadId, lpfn, NULL):
         errcode = GetLastError()
-        if errcode != ERROR_NO_MORE_FILES:
+        if errcode not in (ERROR_NO_MORE_FILES, ERROR_SUCCESS):
             raise ctypes.WinError(errcode)
     return fn.hwnd
 
@@ -483,7 +503,7 @@ def EnumThreadWindows(dwThreadId):
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumChildProc (__WindowEnumerator):
+class __EnumChildProc (WindowEnumerator):
     pass
 
 # BOOL EnumChildWindows(
@@ -494,13 +514,13 @@ class __EnumChildProc (__WindowEnumerator):
 def EnumChildWindows(hWndParent = NULL):
     _EnumChildWindows = windll.user32.EnumChildWindows
     _EnumChildWindows.argtypes = [HWND, WNDENUMPROC, LPARAM]
-    _EnumChildWindows.restype = bool
+    _EnumChildWindows.restype  = bool
 
     EnumFunc = __EnumChildProc()
     lpEnumFunc = WNDENUMPROC(EnumFunc)
     if not _EnumChildWindows(hWndParent, lpEnumFunc, NULL):
         errcode = GetLastError()
-        if errcode != ERROR_NO_MORE_FILES:
+        if errcode not in (ERROR_NO_MORE_FILES, ERROR_SUCCESS):
             raise ctypes.WinError(errcode)
     return EnumFunc.hwnd
 
@@ -513,13 +533,19 @@ def EnumChildWindows(hWndParent = NULL):
 def SendMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageA = windll.user32.SendMessageA
     _SendMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendMessageA.restype = LRESULT
+    _SendMessageA.restype  = LRESULT
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     return _SendMessageA(hWnd, Msg, wParam, lParam)
 
 def SendMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageW = windll.user32.SendMessageW
     _SendMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendMessageW.restype = LRESULT
+    _SendMessageW.restype  = LRESULT
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     return _SendMessageW(hWnd, Msg, wParam, lParam)
 
 SendMessage = GuessStringType(SendMessageA, SendMessageW)
@@ -533,15 +559,21 @@ SendMessage = GuessStringType(SendMessageA, SendMessageW)
 def PostMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _PostMessageA = windll.user32.PostMessageA
     _PostMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _PostMessageA.restype = bool
+    _PostMessageA.restype  = bool
     _PostMessageA.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _PostMessageA(hWnd, Msg, wParam, lParam)
 
 def PostMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _PostMessageW = windll.user32.PostMessageW
     _PostMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _PostMessageW.restype = bool
+    _PostMessageW.restype  = bool
     _PostMessageW.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _PostMessageW(hWnd, Msg, wParam, lParam)
 
 PostMessage = GuessStringType(PostMessageA, PostMessageW)
@@ -555,15 +587,21 @@ PostMessage = GuessStringType(PostMessageA, PostMessageW)
 def PostThreadMessageA(idThread, Msg, wParam = 0, lParam = 0):
     _PostThreadMessageA = windll.user32.PostThreadMessageA
     _PostThreadMessageA.argtypes = [DWORD, UINT, WPARAM, LPARAM]
-    _PostThreadMessageA.restype = bool
+    _PostThreadMessageA.restype  = bool
     _PostThreadMessageA.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _PostThreadMessageA(idThread, Msg, wParam, lParam)
 
 def PostThreadMessageW(idThread, Msg, wParam = 0, lParam = 0):
     _PostThreadMessageW = windll.user32.PostThreadMessageW
     _PostThreadMessageW.argtypes = [DWORD, UINT, WPARAM, LPARAM]
-    _PostThreadMessageW.restype = bool
+    _PostThreadMessageW.restype  = bool
     _PostThreadMessageW.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _PostThreadMessageW(idThread, Msg, wParam, lParam)
 
 PostThreadMessage = GuessStringType(PostThreadMessageA, PostThreadMessageW)
@@ -580,21 +618,25 @@ PostThreadMessage = GuessStringType(PostThreadMessageA, PostThreadMessageW)
 def SendMessageTimeoutA(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout = 0):
     _SendMessageTimeoutA = windll.user32.SendMessageTimeoutA
     _SendMessageTimeoutA.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
-    _SendMessageTimeoutA.restype = LRESULT
+    _SendMessageTimeoutA.restype  = LRESULT
+    _SendMessageTimeoutA.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     dwResult = DWORD(0)
-    success = _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
-    if success == 0:
-        raise ctypes.WinError()
+    _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
     return dwResult.value
 
 def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendMessageTimeoutW = windll.user32.SendMessageTimeoutW
     _SendMessageTimeoutW.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
-    _SendMessageTimeoutW.restype = LRESULT
+    _SendMessageTimeoutW.restype  = LRESULT
+    _SendMessageTimeoutW.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     dwResult = DWORD(0)
-    success = _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
-    if success == 0:
-        raise ctypes.WinError()
+    _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
     return dwResult.value
 
 SendMessageTimeout = GuessStringType(SendMessageTimeoutA, SendMessageTimeoutW)
@@ -608,15 +650,21 @@ SendMessageTimeout = GuessStringType(SendMessageTimeoutA, SendMessageTimeoutW)
 def SendNotifyMessageA(hWnd, Msg, wParam = 0, lParam = 0):
     _SendNotifyMessageA = windll.user32.SendNotifyMessageA
     _SendNotifyMessageA.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendNotifyMessageA.restype = bool
+    _SendNotifyMessageA.restype  = bool
     _SendNotifyMessageA.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _SendNotifyMessageA(hWnd, Msg, wParam, lParam)
 
 def SendNotifyMessageW(hWnd, Msg, wParam = 0, lParam = 0):
     _SendNotifyMessageW = windll.user32.SendNotifyMessageW
     _SendNotifyMessageW.argtypes = [HWND, UINT, WPARAM, LPARAM]
-    _SendNotifyMessageW.restype = bool
+    _SendNotifyMessageW.restype  = bool
     _SendNotifyMessageW.errcheck = RaiseIfZero
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     _SendNotifyMessageW(hWnd, Msg, wParam, lParam)
 
 SendNotifyMessage = GuessStringType(SendNotifyMessageA, SendNotifyMessageW)
@@ -631,13 +679,19 @@ SendNotifyMessage = GuessStringType(SendNotifyMessageA, SendNotifyMessageW)
 def SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
     _SendDlgItemMessageA = windll.user32.SendDlgItemMessageA
     _SendDlgItemMessageA.argtypes = [HWND, ctypes.c_int, UINT, WPARAM, LPARAM]
-    _SendDlgItemMessageA.restype = LRESULT
+    _SendDlgItemMessageA.restype  = LRESULT
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     return _SendDlgItemMessageA(hDlg, nIDDlgItem, Msg, wParam, lParam)
 
 def SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
     _SendDlgItemMessageW = windll.user32.SendDlgItemMessageW
     _SendDlgItemMessageW.argtypes = [HWND, ctypes.c_int, UINT, WPARAM, LPARAM]
-    _SendDlgItemMessageW.restype = LRESULT
+    _SendDlgItemMessageW.restype  = LRESULT
+
+    wParam = MAKE_WPARAM(wParam)
+    lParam = MAKE_LPARAM(lParam)
     return _SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam, lParam)
 
 SendDlgItemMessage = GuessStringType(SendDlgItemMessageA, SendDlgItemMessageW)
@@ -648,23 +702,15 @@ SendDlgItemMessage = GuessStringType(SendDlgItemMessageA, SendDlgItemMessageW)
 def RegisterWindowMessageA(lpString):
     _RegisterWindowMessageA = windll.user32.RegisterWindowMessageA
     _RegisterWindowMessageA.argtypes = [LPSTR]
-    _RegisterWindowMessageA.restype = UINT
-
-    lpString = ctypes.create_string_buffer(lpString)
-    uMsg = _RegisterWindowMessageA(lpString)
-    if uMsg == 0:
-        raise ctypes.WinError()
-    return uMsg
+    _RegisterWindowMessageA.restype  = UINT
+    _RegisterWindowMessageA.errcheck = RaiseIfZero
+    return _RegisterWindowMessageA(lpString)
 
 def RegisterWindowMessageW(lpString):
     _RegisterWindowMessageW = windll.user32.RegisterWindowMessageW
     _RegisterWindowMessageW.argtypes = [LPWSTR]
-    _RegisterWindowMessageW.restype = UINT
-
-    lpString = ctypes.create_unicode_buffer(lpString)
-    uMsg = _RegisterWindowMessageW(lpString)
-    if uMsg == 0:
-        raise ctypes.WinError()
-    return uMsg
+    _RegisterWindowMessageW.restype  = UINT
+    _RegisterWindowMessageW.errcheck = RaiseIfZero
+    return _RegisterWindowMessageW(lpString)
 
 RegisterWindowMessage = GuessStringType(RegisterWindowMessageA, RegisterWindowMessageW)

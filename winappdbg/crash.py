@@ -1527,10 +1527,10 @@ class CrashTable (object):
             If the location is an URL, it's a remote database of any of the
             supported types. Currently the following databases are supported:
 
-             * mysql:// (using the C{MySQLdb} module)
-             * mssql:// (using the C{pymssql} module)
-             * oracle:// (using the C{cxOracle} module)
-             * pgsql:// (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
+             - C{mysql://} (using the C{MySQLdb} module)
+             - C{mssql://} (using the C{pymssql} module)
+             - C{oracle://} (using the C{cxOracle} module)
+             - C{pgsql://} (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
 
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.

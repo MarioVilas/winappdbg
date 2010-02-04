@@ -88,7 +88,7 @@ from system import Module, Thread, Process, PathOperations
 from textio import HexDump
 
 import ctypes
-import weakref
+##import weakref
 
 #==============================================================================
 
@@ -133,9 +133,19 @@ class Event (object):
         @type  raw: L{DEBUG_EVENT}
         @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
         """
-        self.debug          = weakref.ref(debug)
+##        self.__debug        = weakref.ref(debug)
+        self.debug          = debug
         self.raw            = raw
         self.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+
+##    @property
+##    def debug(self):
+##        """
+##        @rtype  debug: L{Debug}
+##        @return debug:
+##            Debug object that received the event.
+##        """
+##        return self.__debug()
 
     def get_event_name(self):
         """
@@ -158,18 +168,18 @@ class Event (object):
         """
         return self.raw.dwDebugEventCode
 
-    # Compatibility with version 1.0
-    # XXX to be removed in version 1.3
-    def get_code(self):
-        """
-        Alias of L{get_event_code} for backwards compatibility
-        with WinAppDbg version 1.0.
-        Will be phased out in the next version.
-
-        @rtype:  int
-        @return: Debug event code as defined in the Win32 API.
-        """
-        return self.get_event_code()
+##    # Compatibility with version 1.0
+##    # XXX to be removed in version 1.4
+##    def get_code(self):
+##        """
+##        Alias of L{get_event_code} for backwards compatibility
+##        with WinAppDbg version 1.0.
+##        Will be phased out in the next version.
+##
+##        @rtype:  int
+##        @return: Debug event code as defined in the Win32 API.
+##        """
+##        return self.get_event_code()
 
     def get_pid(self):
         """
@@ -782,6 +792,10 @@ class CreateProcessEvent (Event):
                 fUnicode    = bool( self.raw.u.CreateProcessInfo.fUnicode )
                 szFilename  = aProcess.peek_string(lpFilename, fUnicode)
 
+                # XXX TODO
+                # Sometimes the filename is relative (ntdll.dll, kernel32.dll).
+                # It could be converted to an absolute pathname (SearchPath).
+
             # Try to get it from Process.get_image_name().
             if not szFilename:
                 szFilename = aProcess.get_image_name()
@@ -932,25 +946,25 @@ class LoadDLLEvent (Event):
         the newly loaded module. However, sometimes that's not
         possible, and C{None} is returned instead.
         """
+        szFilename = None
+
+        # Try to get it from LOAD_DLL_DEBUG_INFO.lpImageName
+        # It's NULL or *NULL most of the times, see MSDN:
+        # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
+        aProcess = self.get_process()
+        lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName
+        if lpRemoteFilenamePtr:
+            lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
+            fUnicode    = bool( self.raw.u.LoadDll.fUnicode )
+            szFilename  = aProcess.peek_string(lpFilename, fUnicode)
+            if not szFilename:
+                szFilename = None
 
         # Try to get the filename from the file handle.
-        szFilename = None
-        hFile = self.get_file_handle()
-        if hFile:
-            szFilename = hFile.get_filename()
         if not szFilename:
-
-            # Try to get it from LOAD_DLL_DEBUG_INFO.lpImageName
-            # It's NULL or *NULL most of the times, see MSDN:
-            # http://msdn.microsoft.com/en-us/library/ms679286(VS.85).aspx
-            aProcess = self.get_process()
-            lpRemoteFilenamePtr = self.raw.u.LoadDll.lpImageName
-            if lpRemoteFilenamePtr:
-                lpFilename  = aProcess.peek_uint(lpRemoteFilenamePtr)
-                fUnicode    = bool( self.raw.u.LoadDll.fUnicode )
-                szFilename  = aProcess.peek_string(lpFilename, fUnicode)
-                if not szFilename:
-                    szFilename = None
+            hFile = self.get_file_handle()
+            if hFile:
+                szFilename = hFile.get_filename()
 
         # Return the filename, or None on error.
         return szFilename
@@ -1304,11 +1318,12 @@ class EventHandler (object):
             fileName = event.get_module().get_filename()
             if fileName:
                 lib_name = PathOperations.pathname_to_filename(fileName).lower()
+                debug    = event.debug
+                pid      = event.get_pid()
                 for hook_lib, hook_api_list in self.__apiHooks.iteritems():
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:
-                            hook_api_stub.hook(event.debug, event.get_pid(),
-                                                                      lib_name)
+                            hook_api_stub.hook(debug, pid, lib_name)
 
     def __call__(self, event):
         """

@@ -31,7 +31,7 @@ Instrumentation module.
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation}
 
 @group Instrumentation:
-    System, Process, Thread, Module
+    System, Process, Thread, Module, Window
 
 @group Capabilities (private):
     ModuleContainer, ThreadContainer, ProcessContainer, SymbolContainer,
@@ -53,6 +53,7 @@ __all__ =   [
                 'Process',
                 'Thread',
                 'Module',
+                'Window',
             ]
 
 import win32
@@ -65,7 +66,7 @@ import os
 import sys
 import ctypes
 import struct
-import weakref
+##import weakref
 
 try:
     from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
@@ -379,6 +380,8 @@ class ModuleContainer (object):
 ##        if lpBaseOfDll not in self.__moduleDict:
 ##            msg = "Unknown base address %d" % lpBaseOfDll
 ##            raise KeyError, msg
+        self.__moduleDict[lpBaseOfDll].hFile   = None    # handle
+        self.__moduleDict[lpBaseOfDll].process = None    # circular reference
         del self.__moduleDict[lpBaseOfDll]
 
     def __add_loaded_module(self, event):
@@ -763,6 +766,8 @@ class ThreadContainer (object):
 ##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
 ##            raise KeyError, msg
+        self.__threadDict[dwThreadId].hThread = None    # handle
+        self.__threadDict[dwThreadId].process = None    # circular reference
         del self.__threadDict[dwThreadId]
 
     def __add_created_thread(self, event):
@@ -1557,6 +1562,8 @@ class ProcessContainer (object):
 ##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
 ##            raise KeyError, msg
+        self.__processDict[dwProcessId].hProcess = None # handle
+        self.__processDict[dwProcessId].clear()         # circular reference
         del self.__processDict[dwProcessId]
 
     # Notify the creation of a new process.
@@ -4858,118 +4865,430 @@ class ProcessDebugOperations (object):
 
 #==============================================================================
 
+# Unlike Process, Thread and Module, there's no container for Window objects.
+# That's because Window objects don't really store any data besides the handle.
+
 class Window (object):
+    """
+    Interface to an open window in the current desktop.
+
+    @group Properties:
+        hWnd, dwProcessId, dwThreadId,
+        get_handle, get_pid, get_tid, get_process, get_thread,
+        set_process, set_thread,
+        get_text, set_text, get_classname
+
+    @group Navigation:
+        get_parent, get_children, get_root, get_tree
+
+    @group Instrumentation:
+        enable, disable, show, hide, maximize, minimize, restore
+
+    @group Low-level access:
+        send, post
+
+    @type hWnd: int
+    @ivar hWnd: Window handle.
+
+    @type dwProcessId: int
+    @ivar dwProcessId: Global ID of the process that owns this window.
+
+    @type dwThreadId: int
+    @ivar dwThreadId: Global ID of the thread that owns this window.
+
+    @type process: L{Process}
+    @ivar process: Process that owns this window.
+        Use the L{get_process} method instead.
+
+    @type thread: L{Thread}
+    @ivar thread: Thread that owns this window.
+        Use the L{get_thread} method instead.
+    """
 
     def __init__(self, hWnd = None, process = None, thread = None):
+        """
+        @type  hWnd: int
+        @param hWnd: Window handle.
+
+        @type  process: L{Process}
+        @param process: (Optional) Process that owns this window.
+
+        @type  thread: L{Thread}
+        @param thread: (Optional) Thread that owns this window.
+        """
         self.hWnd        = hWnd
-        self.process     = process
-        self.thread      = thread
         self.dwProcessId = None
         self.dwThreadId  = None
+        self.set_process(process)
+        self.set_thread(thread)
 
     def get_handle(self):
+        """
+        @rtype:  int
+        @return: Window handle.
+        @raise ValueError: No window handle set.
+        """
         if self.hWnd is None:
             raise ValueError, "No window handle set!"
         return self.hWnd
 
     def get_pid(self):
-        if self.process:
-            return process.get_pid()
-        if not self.dwProcessId:
-            self.__get_pid_and_tid()
+        """
+        @rtype:  int
+        @return: Global ID of the process that owns this window.
+        """
+        if self.dwProcessId is not None:
+            return self.dwProcessId
+        self.__get_pid_and_tid()
         return self.dwProcessId
 
     def get_tid(self):
-        if self.thread:
-            return thread.get_tid()
-        if not self.dwThreadId:
-            self.__get_pid_and_tid()
+        """
+        @rtype:  int
+        @return: Global ID of the thread that owns this window.
+        """
+        if self.dwThreadId is not None:
+            return self.dwThreadId
+        self.__get_pid_and_tid()
         return self.dwThreadId
 
     def __get_pid_and_tid(self):
+        "Internally used by get_pid() and get_tid()."
         self.dwThreadId, self.dwProcessId = \
                                       win32.GetWindowThreadProcessId(self.hWnd)
 
     def get_process(self):
-        if not self.process:
-            self.process = self.get_thread().get_process()
-        return self.process
+        """
+        @rtype:  L{Process}
+        @return: Parent Process object.
+            Returns C{None} if unknown.
+        """
+        if self.__process is not None:
+##            if isinstance(self.__process, weakref.ref):
+##                process = self.__process()
+##                if process is not None:
+##                    return process
+####                else:   # XXX DEBUG
+####                    print "Lost reference to parent process at %r" % self
+##            else:
+                return self.__process
+        # can't use weakrefs here, it's our only reference
+        self.__process = Process(self.get_pid())
+        return self.__process
+
+    def set_process(self, process = None):
+        """
+        Manually set the parent process. Use with care!
+
+        @type  process: L{Process}
+        @param process: (Optional) Process object. Use C{None} for no process.
+        """
+        if process is None:
+            self.__process = None
+        else:
+            if not isinstance(process, Process):
+                msg  = "Parent process must be a Process instance, "
+                msg += "got %s instead" % type(process)
+                raise TypeError, msg
+            self.dwProcessId = process.get_pid()
+##            self.__process = weakref.ref(process)
+            self.__process = process
+
+    # This horrible kludge is needed to keep Epydoc from complaining...
+    # if it wasn't for that it'd be a tidy one liner. :P
+    tmp = get_process.__doc__, set_process.__doc__
+    del get_process.__doc__
+    del set_process.__doc__
+    process = property(get_process, set_process)
+    get_process.__doc__, set_process.__doc__ = tmp
+    del tmp
 
     def get_thread(self):
-        if not self.thread:
-            self.thread = Thread( self.get_tid() )
-        return self.thread
+        """
+        @rtype:  L{Thread}
+        @return: Parent Thread object.
+            Returns C{None} if unknown.
+        """
+        if self.__thread is not None:
+##            if isinstance(self.__thread, weakref.ref):
+##                thread = self.__thread()
+##                if thread is not None:
+##                    return thread
+####                else:   # XXX DEBUG
+####                    print "Lost reference to parent thread at %r" % self
+##            else:
+                return self.__thread
+        # can't use weakrefs here, it's our only reference
+        self.__thread = Thread(self.get_pid())
+        return self.__thread
+
+    def set_thread(self, thread = None):
+        """
+        Manually set the thread process. Use with care!
+
+        @type  thread: L{Thread}
+        @param thread: (Optional) Thread object. Use C{None} for no thread.
+        """
+        if thread is None:
+            self.__thread = None
+        else:
+            if not isinstance(thread, Thread):
+                msg  = "Parent thread must be a Thread instance, "
+                msg += "got %s instead" % type(thread)
+                raise TypeError, msg
+            self.dwThreadId = thread.get_tid()
+##            self.__thread = weakref.ref(thread)
+            self.__thread = thread
+
+    # This horrible kludge is needed to keep Epydoc from complaining...
+    # if it wasn't for that it'd be a tidy one liner. :P
+    tmp = get_thread.__doc__, set_thread.__doc__
+    del get_thread.__doc__
+    del set_thread.__doc__
+    thread = property(get_thread, set_thread)
+    get_thread.__doc__, set_thread.__doc__ = tmp
+    del tmp
+
+    def __get_window(self, hWnd):
+        """
+        User internally to get another Window from this one.
+        It'll try to copy the parent Process and Thread references if possible.
+        """
+        window = Window(hWnd)
+        if window.get_pid() == self.get_pid():
+            window.set_process( self.get_process() )
+        if window.get_tid() == self.get_tid():
+            window.set_thread( self.get_thread() )
+        return window        
 
     def get_classname(self):
+        """
+        @rtype:  str
+        @return: Window class name.
+        @raise WindowsError: An error occured while processing this request.
+        """
         return win32.GetClassName( self.get_handle() )
 
     def get_text(self):
-        buffer = ctypes.create_string_buffer("", 0x10000)
-        win32.SendMessageA(self.get_handle(), win32.WM_GETTEXT, ctypes.byref(buffer), 0x10000)
+        """
+        @see:    L{set_text}
+        @rtype:  str
+        @return: Window text (caption).
+        @raise WindowsError: An error occured while processing this request.
+        """
+        length = self.send(win32.WM_GETTEXTLENGTH)
+        if not length:
+            raise ctypes.WinError()
+        length = length + 1
+        buffer = ctypes.create_string_buffer("", length)
+        success = self.send(win32.WM_GETTEXT, length, buffer)
+        if success == 0:
+            raise ctypes.WinError()
         return buffer.value
 
     def set_text(self, text):
-        win32.SendMessage(self.get_handle(), win32.WM_SETTEXT, text, len(text))
+        """
+        Set the window text (caption).
+
+        @see: L{get_text}
+
+        @type  text: str
+        @param text: New window text.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        success = self.send(win32.WM_SETTEXT, len(text), text)
+        if success == 0:
+            raise ctypes.WinError()
 
     def get_parent(self):
-        return Window( win32.GetParent( self.get_handle() ), \
-                                                    self.process, self.thread )
+        """
+        @see:    L{get_children}
+        @rtype:  L{Window} or None
+        @return: Parent window. Returns C{None} if the window has no parent.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        hWnd = win32.GetParent( self.get_handle() )
+        if hWnd:
+            return self.__get_window(hWnd)
 
     def get_children(self):
+        """
+        @see:    L{get_parent}
+        @rtype:  list( L{Window} )
+        @return: List of child windows.
+        @raise WindowsError: An error occured while processing this request.
+        """
         return [
-                Window( hWnd, self.process, self.thread ) \
+                self.__get_window(hWnd) \
                 for hWnd in win32.EnumChildWindows( self.get_handle() )
                 ]
 
     def get_tree(self):
+        """
+        @see:    L{get_root}
+        @rtype:  dict( L{Window} S{->} dict( ... ) )
+        @return: Dictionary of dictionaries forming a tree of child windows.
+        @raise WindowsError: An error occured while processing this request.
+        """
         subtree = dict()
         for aWindow in self.get_children():
-            subtree[ aWindow.get_handle() ] = aWindow.get_tree()
+            subtree[ aWindow ] = aWindow.get_tree()
         return subtree
 
     def get_root(self):
+        """
+        @see:    L{get_tree}
+        @rtype:  L{Window}
+        @return: Root window for this tree.
+        @raise WindowsError: An error occured while processing this request.
+        """
         hWnd     = self.get_handle()
         hPrevWnd = hWnd
         while hWnd:
             hPrevWnd = hWnd
             hWnd     = win32.GetParent(hWnd)
-        return Window(hPrevWnd)
+        if hPrevWnd != self.hWnd:
+            return self.__get_window(hPrevWnd)
+        return self
 
     def enable(self):
+        """
+        Enable the user input for the window.
+
+        @see: L{disable}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         win32.EnableWindow( self.get_handle(), True )
 
     def disable(self):
+        """
+        Disable the user input for the window.
+
+        @see: L{enable}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         win32.EnableWindow( self.get_handle(), False )
 
     def show(self, bAsync = True):
+        """
+        Make the window visible.
+
+        @see: L{hide}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_SHOW )
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_SHOW )
 
     def hide(self, bAsync = True):
+        """
+        Make the window invisible.
+
+        @see: L{show}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_HIDE )
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_HIDE )
 
     def maximize(self, bAsync = True):
+        """
+        Maximize the window.
+
+        @see: L{minimize}, L{restore}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_MAXIMIZE )
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_MAXIMIZE )
 
     def minimize(self, bAsync = True):
+        """
+        Minimize the window.
+
+        @see: L{maximize}, L{restore}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_MINIMIZE )
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_MINIMIZE )
 
     def restore(self, bAsync = True):
+        """
+        Unmaximize and unminimize the window.
+
+        @see: L{maximize}, L{minimize}
+
+        @raise WindowsError: An error occured while processing this request.
+        """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_RESTORE )
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
+
+##    def destroy(self):
+##        """
+##        Destroy the window.
+##
+##        @raise WindowsError: An error occured while processing this request.
+##        """
+##        win32.DestroyWindow( self.get_handle() )
+
+##    def quit(self):
+##        """
+##        Signals the program to quit.
+##
+##        @raise WindowsError: An error occured while processing this request.
+##        """
+##        self.post(win32.WM_QUIT)
+
+    def send(self, uMsg, wParam = None, lParam = None):
+        """
+        Send a low-level window message syncronically.
+
+        @type  uMsg: int
+        @param uMsg: Message code.
+
+        @param wParam:
+            The type and meaning of this parameter depends on the message.
+
+        @param lParam:
+            The type and meaning of this parameter depends on the message.
+
+        @rtype:  int
+        @return: The meaning of the return value depends on the window message.
+            Typically a value of C{0} means an error occured. You can get the
+            error code by calling L{win32.GetLastError}.
+        """
+        return win32.SendMessage(self.get_handle(), uMsg, wParam, lParam)
+
+    def post(self, uMsg, wParam = None, lParam = None):
+        """
+        Post a low-level window message asyncronically.
+
+        @type  uMsg: int
+        @param uMsg: Message code.
+
+        @param wParam:
+            The type and meaning of this parameter depends on the message.
+
+        @param lParam:
+            The type and meaning of this parameter depends on the message.
+
+        @raise WindowsError: An error occured while sending the message.
+        """
+        win32.PostMessage(self.get_handle(), uMsg, wParam, lParam)
 
 #==============================================================================
 
@@ -4979,7 +5298,7 @@ class Module (SymbolContainer):
 
     @group Properties:
         get_base, get_filename, get_name, get_size, get_entry_point,
-        get_process, get_pid
+        get_process, set_process, get_pid
 
     @group Labels:
         get_label, get_label_at_address, is_address_here,
@@ -5013,7 +5332,7 @@ class Module (SymbolContainer):
 
     @type process: L{Process}
     @ivar process: Process where the module is loaded.
-        Use L{get_process} instead.
+        Use the L{get_process} method instead.
     """
 
     unknown = '<unknown>'
@@ -5051,23 +5370,57 @@ class Module (SymbolContainer):
 
     def get_process(self):
         """
-        @rtpye:  L{Process} or None
-        @return: Process that owns this module.
+        @rtype:  L{Process}
+        @return: Parent Process object.
             Returns C{None} if unknown.
         """
-        return self.process
+        if self.__process is not None:
+##            if isinstance(self.__process, weakref.ref):
+##                process = self.__process()
+##                if process is not None:
+##                    return process
+####                else:   # XXX DEBUG
+####                    print "Lost reference to parent process at %r" % self
+##            else:
+                return self.__process
+        # no way to guess!
+        return None
 
     def set_process(self, process = None):
         """
-        Manually set the process that owns this module. Use with care!
+        Manually set the parent process. Use with care!
 
-        @type process: L{Process}
+        @type  process: L{Process}
         @param process: (Optional) Process object. Use C{None} for no process.
         """
         if process is None:
-            self.process = None
+            self.__process = None
         else:
-            self.process = weakref.ref(process)
+            if not isinstance(process, Process):
+                msg  = "Parent process must be a Process instance, "
+                msg += "got %s instead" % type(process)
+                raise TypeError, msg
+##            self.__process = weakref.ref(process)
+            self.__process = process
+
+    # This horrible kludge is needed to keep Epydoc from complaining...
+    # if it wasn't for that it'd be a tidy one liner. :P
+    tmp = get_process.__doc__, set_process.__doc__
+    del get_process.__doc__
+    del set_process.__doc__
+    process = property(get_process, set_process)
+    get_process.__doc__, set_process.__doc__ = tmp
+    del tmp
+
+    def get_pid(self):
+        """
+        @rtype:  int or None
+        @return: Parent process global ID.
+            Returns C{None} on error.
+        """
+        process = self.get_process()
+        if process is not None:
+            return process.get_pid()
 
     def get_base(self):
         """
@@ -5195,29 +5548,13 @@ class Module (SymbolContainer):
         # No match.
         return False
 
-    def get_process(self):
-        """
-        @rtype:  L{Process} or None
-        @return: Parent Process object.
-            Returns C{None} on error.
-        """
-        return self.process
-
-    def get_pid(self):
-        """
-        @rtype:  int or None
-        @return: Parent process global ID.
-            Returns C{None} on error.
-        """
-        if self.process is None:
-            return None
-        return self.process.get_pid()
-
 #------------------------------------------------------------------------------
 
     def open_handle(self):
         """
         Opens a new handle to the module.
+
+        The new handle is stored in the L{hFile} property.
         """
 
         if not self.get_filename():
@@ -5228,14 +5565,22 @@ class Module (SymbolContainer):
         hFile = win32.CreateFile(self.get_filename(),
                                            dwShareMode = win32.FILE_SHARE_READ,
                                  dwCreationDisposition = win32.OPEN_EXISTING)
-        try:
+
+        # In case hFile was set to an actual handle value instead of a Handle
+        # object. This shouldn't happen unless the user tinkered with hFile.
+        if not hasattr(self.hFile, '__del__'):
             self.close_handle()
-        finally:
-            self.hFile = hFile
+
+        self.hFile = hFile
 
     def close_handle(self):
         """
         Closes the handle to the module.
+
+        @note: Normally you don't need to call this method. All handles
+            created by I{WinAppDbg} are automatically closed when the garbage
+            collector claims them. So unless you've been tinkering with it,
+            setting L{hFile} to C{None} should be enough.
         """
         try:
             if hasattr(self.hFile, 'close'):
@@ -5446,7 +5791,7 @@ class Thread (ThreadDebugOperations):
     Interface to a thread in another process.
 
     @group Properties:
-        get_tid, get_pid, get_process, get_exit_code, is_alive,
+        get_tid, get_pid, get_process, set_process, get_exit_code, is_alive,
         get_name, set_name, get_windows
     @group Instrumentation:
         suspend, resume, kill, wait
@@ -5502,38 +5847,54 @@ class Thread (ThreadDebugOperations):
         self.dwThreadId      = dwThreadId
         self.hThread         = hThread
         self.pInjectedMemory = None
-        if process is None:
-            self.process     = None
-        else:
-            self.process     = weakref.ref(process)
         self.set_name()
-        if process is not None and not isinstance(process, Process):
-            msg  = "Parent process for Thread must be a Process instance, "
-            msg += "got %s instead" % type(process)
-            raise TypeError, msg
+        self.set_process(process)
 
     def get_process(self):
         """
         @rtype:  L{Process}
         @return: Parent Process object.
+            Returns C{None} if unknown.
         """
-        if self.process is None:
-            process = Process(self.get_pid())
-            self.process = weakref.ref(process)
-            return process
-        return self.process
+        if self.__process is not None:
+##            if isinstance(self.__process, weakref.ref):
+##                process = self.__process()
+##                if process is not None:
+##                    return process
+####                else:   # XXX DEBUG
+####                    print "Lost reference to parent process at %r" % self
+##            else:
+                return self.__process
+        # can't use weakrefs here, it's our only reference
+        self.__process = Process(self.get_pid())
+        return self.__process
 
     def set_process(self, process = None):
         """
-        Manually set the process that owns this thread. Use with care!
+        Manually set the parent Process object. Use with care!
 
-        @type process: L{Process}
+        @type  process: L{Process}
         @param process: (Optional) Process object. Use C{None} for no process.
         """
         if process is None:
-            self.process = None
+            self.__process = None
         else:
-            self.process = weakref.ref(process)
+            if not isinstance(process, Process):
+                msg  = "Parent process must be a Process instance, "
+                msg += "got %s instead" % type(process)
+                raise TypeError, msg
+            self.dwProcessId = process.get_pid()
+##            self.__process = weakref.ref(process)
+            self.__process = process
+
+    # This horrible kludge is needed to keep Epydoc from complaining...
+    # if it wasn't for that it'd be a tidy one liner. :P
+    tmp = get_process.__doc__, set_process.__doc__
+    del get_process.__doc__
+    del set_process.__doc__
+    process = property(get_process, set_process)
+    get_process.__doc__, set_process.__doc__ = tmp
+    del tmp
 
     def get_pid(self):
         """
@@ -5544,7 +5905,10 @@ class Thread (ThreadDebugOperations):
         @raise RuntimeError: The parent process ID can't be found.
         """
         if self.dwProcessId is None:
-            if self.process is None:
+            if self.__process is not None:
+                # Infinite loop if self.__process is None
+                self.dwProcessId = self.get_process().get_pid()
+            else:
                 hThread = self.get_handle()
                 try:
                     # I wish this had been implemented before Vista...
@@ -5553,8 +5917,6 @@ class Thread (ThreadDebugOperations):
                 except AttributeError:
                     # This method really sucks :P
                     self.dwProcessId = self.__get_pid_by_scanning()
-            else:
-                self.dwProcessId = self.process.get_pid()
         return self.dwProcessId
 
     def __get_pid_by_scanning(self):
@@ -5604,16 +5966,26 @@ class Thread (ThreadDebugOperations):
     def open_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
         """
         Opens a new handle to the thread.
+
+        The new handle is stored in the L{hThread} property.
         """
         hThread = win32.OpenThread(dwDesiredAccess, win32.FALSE, self.dwThreadId)
-        try:
+
+        # In case hThread was set to an actual handle value instead of a Handle
+        # object. This shouldn't happen unless the user tinkered with hFile.
+        if not hasattr(self.hThread, '__del__'):
             self.close_handle()
-        finally:
-            self.hThread = hThread
+
+        self.hThread = hThread
 
     def close_handle(self):
         """
         Closes the handle to the thread.
+
+        @note: Normally you don't need to call this method. All handles
+            created by I{WinAppDbg} are automatically closed when the garbage
+            collector claims them. So unless you've been tinkering with it,
+            setting L{hThread} to C{None} should be enough.
         """
         try:
             if hasattr(self.hThread, 'close'):
@@ -6163,17 +6535,27 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
     def open_handle(self):
         """
         Opens a new handle to the process.
+
+        The new handle is stored in the L{hProcess} property.
         """
         hProcess = win32.OpenProcess(win32.PROCESS_ALL_ACCESS, win32.FALSE,
                                                               self.dwProcessId)
-        try:
+
+        # In case hProcess was set to an actual handle value instead of a Handle
+        # object. This shouldn't happen unless the user tinkered with hFile.
+        if not hasattr(self.hProcess, '__del__'):
             self.close_handle()
-        finally:
-            self.hProcess = hProcess
+
+        self.hProcess = hProcess
 
     def close_handle(self):
         """
         Closes the handle to the process.
+
+        @note: Normally you don't need to call this method. All handles
+            created by I{WinAppDbg} are automatically closed when the garbage
+            collector claims them. So unless you've been tinkering with it,
+            setting L{hProcess} to C{None} should be enough.
         """
         try:
             if hasattr(self.hProcess, 'close'):
@@ -6671,6 +7053,9 @@ class System (ProcessContainer):
     Interface to a batch of processes, plus some system wide settings.
     Contains a snapshot of processes.
 
+    @group Instrumentation:
+        find_window
+
     @group Global settings:
         arch, bits, os, wow64, pageSize,
         set_kill_on_exit_mode, request_debug_privileges,
@@ -6710,6 +7095,38 @@ class System (ProcessContainer):
         wow64 = False
 
     pageSize = MemoryAddresses.pageSize
+
+#------------------------------------------------------------------------------
+
+    @staticmethod
+    def find_window(className = None, windowName = None):
+        """
+        Find the first top-level window in the current desktop to match the
+        given class name and/or window name. If neither are provided any
+        top-level window will match.
+
+        @see: L{win32.FindWindow}
+
+        @type  className: str
+        @param className: (Optional) Class name of the window to find.
+            If C{None} or not used any class name will match the search.
+
+        @type  windowName: str
+        @param windowName: (Optional) Caption text of the window to find.
+            If C{None} or not used any caption text will match the search.
+
+        @rtype:  L{Window} or None
+        @return: A window that matches the request. There may be more matching
+            windows, but this method only returns one. If no matching window
+            is found, the return value is C{None}.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        # I'd love to reverse the order of the parameters
+        # but that might create some confusion. :(
+        hWnd = win32.FindWindow(className, windowName)
+        if hWnd:
+            return Window(hWnd)
 
 #------------------------------------------------------------------------------
 

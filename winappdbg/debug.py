@@ -192,7 +192,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         return aProcess
 
-    def __cleanup_process(self, dwProcessId, bIgnoreExceptions = False)
+    def __cleanup_process(self, dwProcessId, bIgnoreExceptions = False):
         """
         Perform the necessary cleanup of a process about to be killed or
         detached from.
@@ -509,12 +509,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         # By default, exceptions are handled by the debugee.
         if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
-            if event.is_continuable():
-                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
-            else:
-                event.continueStatus = win32.DBG_TERMINATE_PROCESS
-                # DBG_TERMINATE_PROCESS isn't supported in old Windows versions
-                event.get_process().kill()
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
         else:
             # Other events need this continue code.
             # Sometimes other codes can be used and are ignored, sometimes not.
@@ -556,6 +551,15 @@ class Debug (EventDispatcher, BreakpointContainer):
         except WindowsError:
             pass
 
+##        # XXX Just for testing, ignore this...
+##        print "ContinueDebugEvent(%d, %d, %s)" % (dwProcessId, dwThreadId, {
+##            win32.DBG_CONTINUE                    : "DBG_CONTINUE",
+##            win32.DBG_EXCEPTION_HANDLED           : "DBG_EXCEPTION_HANDLED",
+##            win32.DBG_EXCEPTION_NOT_HANDLED       : "DBG_EXCEPTION_NOT_HANDLED",
+##            win32.DBG_TERMINATE_THREAD            : "DBG_TERMINATE_THREAD",
+##            win32.DBG_TERMINATE_PROCESS           : "DBG_TERMINATE_PROCESS",
+##        }.get(dwContinueStatus, hex(dwContinueStatus)))
+
         # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
@@ -579,30 +583,39 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
             raised when detaching.
         """
-        # All these try / except / finally blocks may be masking some errors,
-        # but this way we get a better cleanup. Like that battery-powered
-        # rabbit, it just keeps going, and going, and going.
+        # I wish I knew a more pythonic way of doing this :(
+        has_event = False
         try:
-            if self.__bKillOnExit:
-                for pid in self.get_debugee_pids():
-                    try:
-                        self.system.get_process(pid).kill()
-                    except Exception:
-                        if not bIgnoreExceptions:
-                            raise
+            has_event = bool(event)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+        if has_event:
             try:
-                if event:
-                    try:
-                        try:
-                            pid = event.get_pid()
-                            self.disable_process_breakpoints(pid)
-                        finally:
-                            self.cont(event)
-                    except Exception:
-                        if not bIgnoreExceptions:
-                            raise
-            finally:
-                self.detach_from_all(bIgnoreExceptions)
+                pid = event.get_pid()
+                self.disable_process_breakpoints(pid)
+            except Exception:
+                if not bIgnoreExceptions:
+                    raise
+            try:
+                tid = event.get_tid()
+                self.disable_thread_breakpoints(tid)
+            except Exception:
+                if not bIgnoreExceptions:
+                    raise
+            try:
+                event.continueDebugEvent = win32.DBG_CONTINUE
+                self.cont(event)
+            except Exception:
+                if not bIgnoreExceptions:
+                    raise
+        try:
+            self.detach_from_all(bIgnoreExceptions)
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+        try:
+            self.system.clear()
         except Exception:
             if not bIgnoreExceptions:
                 raise

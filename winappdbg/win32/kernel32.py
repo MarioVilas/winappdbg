@@ -675,6 +675,11 @@ class FileHandle (Handle):
         FileName = ctypes.create_unicode_buffer(FileName).value
         if not FileName:
             FileName = None
+        elif FileName[1:2] != ':':
+            # When the drive letter is missing, we'll assume SYSTEMROOT.
+            # Not a good solution but it could be worse.
+            import os
+            FileName = os.environ['SYSTEMROOT'][:2] + FileName
         return FileName
 
 # XXX maybe add functions related to the toolhelp snapshots here?

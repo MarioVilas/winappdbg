@@ -40,7 +40,7 @@ Blog:    U{http://breakingcode.wordpress.com}
     Debug, EventHandler, DebugLog
 
 @group Instrumentation:
-    System, Process, Thread, Module
+    System, Process, Thread, Module, Window
 
 @group Crash reporting:
     Crash, CrashDump, CrashContainer, CrashTable,
@@ -110,7 +110,7 @@ __all__ =   [
                 # from system import *
                 'Module',
                 'Thread',
-##                'Window',
+                'Window',
                 'Process',
                 'System',
 

@@ -114,7 +114,7 @@ class MyEventHandler( EventHandler ):
     def __print_success( self, event, retval ):
         tid = event.get_tid()
         if retval:
-            print "%d: Success" % tid
+            print "%d: Success: %x" % (tid, retval)
         else:
             print "%d: Failed!" % tid
 
