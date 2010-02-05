@@ -43,7 +43,7 @@ Instrumentation module.
 # I've been told the host process for the latest versions of VMWare
 # can't be instrumented, because they try to stop code injection into the VMs.
 # The solution appears to be to run the debugger from a user account that
-# belongs to the VMware group. I haven't yet confirmed this.
+# belongs to the VMware group. I haven't confirmed this yet.
 
 __revision__ = "$Id$"
 
@@ -77,8 +77,7 @@ except ImportError:
     def Decode(*argv, **argd):
         "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
         msg = ("diStorm is not installed or can't be found. Download it from: "
-        "http://sourceforge.net/projects/winappdbg/files/"
-        "additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/")
+        "http://code.google.com/p/distorm3")
         raise NotImplementedError, msg
 
 #==============================================================================
@@ -4882,7 +4881,7 @@ class Window (object):
         get_parent, get_children, get_root, get_tree
 
     @group Instrumentation:
-        enable, disable, show, hide, maximize, minimize, restore
+        enable, disable, show, hide, maximize, minimize, restore, kill
 
     @group Low-level access:
         send, post
@@ -5237,21 +5236,13 @@ class Window (object):
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
 
-##    def destroy(self):
-##        """
-##        Destroy the window.
-##
-##        @raise WindowsError: An error occured while processing this request.
-##        """
-##        win32.DestroyWindow( self.get_handle() )
+    def kill(self):
+        """
+        Signals the program to quit.
 
-##    def quit(self):
-##        """
-##        Signals the program to quit.
-##
-##        @raise WindowsError: An error occured while processing this request.
-##        """
-##        self.post(win32.WM_QUIT)
+        @raise WindowsError: An error occured while processing this request.
+        """
+        self.post(win32.WM_QUIT)
 
     def send(self, uMsg, wParam = None, lParam = None):
         """
@@ -5367,6 +5358,23 @@ class Module (SymbolContainer):
         self.SizeOfImage    = SizeOfImage
         self.EntryPoint     = EntryPoint
         self.set_process(process)
+
+    # Not really sure if it's a good idea...
+##    def __eq__(self, aModule):
+##        """
+##        Compare two Module objects. The comparison is made using the process
+##        IDs and the module bases.
+##
+##        @type  aModule: L{Module}
+##        @param aModule: Another Module object.
+##
+##        @rtype:  bool
+##        @return: C{True} if the two process IDs and module bases are equal,
+##            C{False} otherwise.
+##        """
+##        return isinstance(aModule, Module)           and \
+##               self.get_pid() == aModule.get_pid()   and \
+##               self.get_base() == aModule.get_base()
 
     def get_process(self):
         """
@@ -5849,6 +5857,25 @@ class Thread (ThreadDebugOperations):
         self.pInjectedMemory = None
         self.set_name()
         self.set_process(process)
+
+    # Not really sure if it's a good idea...
+##    def __eq__(self, aThread):
+##        """
+##        Compare two Thread objects. The comparison is made using the IDs.
+##
+##        @warning:
+##            If you have two Thread instances with different handles the
+##            equality operator still returns C{True}, so be careful!
+##
+##        @type  aThread: L{Thread}
+##        @param aThread: Another Thread object.
+##
+##        @rtype:  bool
+##        @return: C{True} if the two thread IDs are equal,
+##            C{False} otherwise.
+##        """
+##        return isinstance(aThread, Thread)           and \
+##               self.get_tid() == aThread.get_tid()
 
     def get_process(self):
         """
@@ -6575,6 +6602,25 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         return self.hProcess
 
 #------------------------------------------------------------------------------
+
+    # Not really sure if it's a good idea...
+##    def __eq__(self, aProcess):
+##        """
+##        Compare two Process objects. The comparison is made using the IDs.
+##
+##        @warning:
+##            If you have two Process instances with different handles the
+##            equality operator still returns C{True}, so be careful!
+##
+##        @type  aProcess: L{Process}
+##        @param aProcess: Another Process object.
+##
+##        @rtype:  bool
+##        @return: C{True} if the two process IDs are equal,
+##            C{False} otherwise.
+##        """
+##        return isinstance(aProcess, Process)         and \
+##               self.get_pid() == aProcess.get_pid()
 
     def __contains__(self, anObject):
         """
