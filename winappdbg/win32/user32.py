@@ -34,7 +34,7 @@ Wrapper for user32.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
-from kernel32 import GetLastError
+from kernel32 import GetLastError, SetLastError
 
 #--- Helpers ------------------------------------------------------------------
 
@@ -106,6 +106,11 @@ SMTO_BLOCK                          = 1
 SMTO_ABORTIFHUNG                    = 2
 SMTO_NOTIMEOUTIFNOTHUNG 			= 8
 SMTO_ERRORONEXIT                    = 0x20
+
+# WINDOWPLACEMENT flags
+WPF_SETMINPOSITION                  = 1
+WPF_RESTORETOMAXIMIZED              = 2
+WPF_ASYNCWINDOWPLACEMENT            = 4
 
 #--- Window messages ----------------------------------------------------------
 
@@ -291,6 +296,82 @@ WM_PRINTCLIENT                       = 0x318
 WM_PENWINFIRST                       = 0x380
 WM_PENWINLAST                        = 0x38F
 
+#--- Structure ----------------------------------------------------------------
+
+# typedef struct _RECT {
+#   LONG left;
+#   LONG top;
+#   LONG right;
+#   LONG bottom;
+# }RECT, *PRECT;
+class RECT(Structure):
+    _fields_ = [
+        ('left',    LONG),
+        ('top',     LONG),
+        ('right',   LONG),
+        ('bottom',  LONG),
+    ]
+PRECT  = POINTER(RECT)
+LPRECT = PRECT
+
+# typedef struct tagPOINT {
+#   LONG x;
+#   LONG y;
+# } POINT;
+class POINT(Structure):
+    _fields_ = [
+        ('x',   LONG),
+        ('y',   LONG),
+    ]
+PPOINT  = POINTER(POINT)
+LPPOINT = PPOINT
+
+# typedef struct _WINDOWPLACEMENT {
+#     UINT length;
+#     UINT flags;
+#     UINT showCmd;
+#     POINT ptMinPosition;
+#     POINT ptMaxPosition;
+#     RECT rcNormalPosition;
+# } WINDOWPLACEMENT;
+class WINDOWPLACEMENT(Structure):
+    _fields_ = [
+        ('length',              UINT),
+        ('flags',               UINT),
+        ('showCmd',             UINT),
+        ('ptMinPosition',       POINT),
+        ('ptMaxPosition',       POINT),
+        ('rcNormalPosition',    RECT),
+    ]
+PWINDOWPLACEMENT  = POINTER(WINDOWPLACEMENT)
+LPWINDOWPLACEMENT = PWINDOWPLACEMENT
+
+# typedef struct tagGUITHREADINFO {
+#     DWORD cbSize;
+#     DWORD flags;
+#     HWND hwndActive;
+#     HWND hwndFocus;
+#     HWND hwndCapture;
+#     HWND hwndMenuOwner;
+#     HWND hwndMoveSize;
+#     HWND hwndCaret;
+#     RECT rcCaret;
+# } GUITHREADINFO, *PGUITHREADINFO;
+class GUITHREADINFO(Structure):
+    _fields_ = [
+        ('cbSize',          DWORD),
+        ('flags',           DWORD),
+        ('hwndActive',      HWND),
+        ('hwndFocus',       HWND),
+        ('hwndCapture',     HWND),
+        ('hwndMenuOwner',   HWND),
+        ('hwndMoveSize',    HWND),
+        ('hwndCaret',       HWND),
+        ('rcCaret',         RECT),
+    ]
+PGUITHREADINFO  = POINTER(GUITHREADINFO)
+LPGUITHREADINFO = PGUITHREADINFO
+
 #--- user32.dll --------------------------------------------------------------
 
 # HWND FindWindow(
@@ -449,6 +530,245 @@ def ShowWindowAsync(hWnd, nCmdShow = SW_SHOW):
     _ShowWindowAsync.argtypes = [HWND, ctypes.c_int]
     _ShowWindowAsync.restype  = bool
     return _ShowWindowAsync(hWnd, nCmdShow)
+
+# HWND GetDesktopWindow(VOID);
+def GetDesktopWindow():
+    _GetDesktopWindow = windll.user32.GetDesktopWindow
+    _GetDesktopWindow.argtypes = []
+    _GetDesktopWindow.restype  = HWND
+    _GetDesktopWindow.errcheck = RaiseIfZero
+    return _GetDesktopWindow()
+
+# HWND GetForegroundWindow(VOID);
+def GetForegroundWindow():
+    _GetForegroundWindow = windll.user32.GetForegroundWindow
+    _GetForegroundWindow.argtypes = []
+    _GetForegroundWindow.restype  = HWND
+    _GetForegroundWindow.errcheck = RaiseIfZero
+    return _GetForegroundWindow()
+
+# BOOL IsWindow(
+#     HWND hWnd
+# );
+def IsWindow(hWnd):
+    _IsWindow = windll.user32.IsWindow
+    _IsWindow.argtypes = [HWND]
+    _IsWindow.restype  = bool
+    return _IsWindow(hWnd)
+
+# BOOL IsWindowVisible(
+#     HWND hWnd
+# );
+def IsWindowVisible(hWnd):
+    _IsWindowVisible = windll.user32.IsWindowVisible
+    _IsWindowVisible.argtypes = [HWND]
+    _IsWindowVisible.restype  = bool
+    return _IsWindowVisible(hWnd)
+
+# BOOL IsWindowEnabled(
+#     HWND hWnd
+# );
+def IsWindowEnabled(hWnd):
+    _IsWindowEnabled = windll.user32.IsWindowEnabled
+    _IsWindowEnabled.argtypes = [HWND]
+    _IsWindowEnabled.restype  = bool
+    return _IsWindowEnabled(hWnd)
+
+# BOOL IsZoomed(
+#     HWND hWnd
+# );
+def IsZoomed(hWnd):
+    _IsZoomed = windll.user32.IsZoomed
+    _IsZoomed.argtypes = [HWND]
+    _IsZoomed.restype  = bool
+    return _IsZoomed(hWnd)
+
+# BOOL IsIconic(
+#     HWND hWnd
+# );
+def IsIconic(hWnd):
+    _IsIconic = windll.user32.IsIconic
+    _IsIconic.argtypes = [HWND]
+    _IsIconic.restype  = bool
+    return _IsIconic(hWnd)
+
+# BOOL IsChild(
+#     HWND hWnd
+# );
+def IsChild(hWnd):
+    _IsChild = windll.user32.IsChild
+    _IsChild.argtypes = [HWND]
+    _IsChild.restype  = bool
+    return _IsChild(hWnd)
+
+# DWORD GetWindowThreadProcessId(
+#     HWND hWnd,
+#     LPDWORD lpdwProcessId
+# );
+def GetWindowThreadProcessId(hWnd):
+    _GetWindowThreadProcessId = windll.user32.GetWindowThreadProcessId
+    _GetWindowThreadProcessId.argtypes = [HWND, LPDWORD]
+    _GetWindowThreadProcessId.restype  = DWORD
+    _GetWindowThreadProcessId.errcheck = RaiseIfZero
+
+    dwProcessId = DWORD(0)
+    dwThreadId = _GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
+    return (dwThreadId, dwProcessId)
+
+# HWND WindowFromPoint(
+#     POINT Point
+# );
+def WindowFromPoint(x, y):
+    _WindowFromPoint = windll.user32.WindowFromPoint
+    _WindowFromPoint.argtypes = [LONG, LONG]
+    _WindowFromPoint.restype  = HWND
+    _WindowFromPoint.errcheck = RaiseIfZero
+    return _WindowFromPoint(x, y)
+
+# HWND ChildWindowFromPoint(
+#     HWND hWndParent,
+#     POINT Point
+# );
+def ChildWindowFromPoint(hWndParent, x, y):
+    _ChildWindowFromPoint = windll.user32.ChildWindowFromPoint
+    _ChildWindowFromPoint.argtypes = [HWND, LONG, LONG]
+    _ChildWindowFromPoint.restype  = HWND
+    _ChildWindowFromPoint.errcheck = RaiseIfZero
+    return _ChildWindowFromPoint(hWndParent, x, y)
+
+#HWND RealChildWindowFromPoint(      
+#    HWND hwndParent,
+#    POINT ptParentClientCoords
+#);
+def RealChildWindowFromPoint(hWndParent, x, y):
+    _RealChildWindowFromPoint = windll.user32.RealChildWindowFromPoint
+    _RealChildWindowFromPoint.argtypes = [HWND, LONG, LONG]
+    _RealChildWindowFromPoint.restype  = HWND
+    _RealChildWindowFromPoint.errcheck = RaiseIfZero
+    return _RealChildWindowFromPoint(hWndParent, x, y)
+
+
+# BOOL ScreenToClient(
+#   __in  HWND hWnd,
+#         LPPOINT lpPoint
+# );
+def ScreenToClient(hWnd, x, y):
+    _ScreenToClient = windll.user32.ScreenToClient
+    _ScreenToClient.argtypes = [HWND, LPPOINT]
+    _ScreenToClient.restype  = bool
+    _ScreenToClient.errcheck = RaiseIfZero
+
+    Point = POINT()
+    Point.x = x
+    Point.y = y
+    _ScreenToClient(hWnd, ctypes.byref(Point))
+    return (Point.x, Point.y)
+
+# BOOL ClientToScreen(
+#   HWND hWnd, 
+#   LPPOINT lpPoint
+# );
+def ClientToScreen(hWnd, x, y):
+    _ClientToScreen = windll.user32.ClientToScreen
+    _ClientToScreen.argtypes = [HWND, LPPOINT]
+    _ClientToScreen.restype  = bool
+    _ClientToScreen.errcheck = RaiseIfZero
+
+    Point = POINT()
+    Point.x = x
+    Point.y = y
+    _ScreenToClient(hWnd, ctypes.byref(Point))
+    return (Point.x, Point.y)
+
+# int MapWindowPoints(
+#   __in     HWND hWndFrom,
+#   __in     HWND hWndTo,
+#   __inout  LPPOINT lpPoints,
+#   __in     UINT cPoints
+# );
+def MapWindowPoints(hWndFrom, hWndTo, lpPoints):
+    _MapWindowPoints = windll.user32.MapWindowPoints
+    _MapWindowPoints.argtypes = [HWND, HWND, LPPOINT, UINT]
+    _MapWindowPoints.restype  = ctypes.c_int
+
+    cPoints  = len(lpPoints)
+    lpPoints = (POINT * cPoints)(* lpPoints)
+    SetLastError(ERROR_SUCCESS)
+    number   = _MapWindowPoints(hWndFrom, hWndTo, ctypes.byref(lpPoints), cPoints)
+    if number == 0:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    x_delta = number & 0xFFFF
+    y_delta = (number >> 16) & 0xFFFF
+    return x_delta, y_delta, [ (Point.x, Point.y) for Point in lpPoints ]
+
+#BOOL SetForegroundWindow(      
+#    HWND hWnd
+#);
+def SetForegroundWindow(hWnd):
+    _SetForegroundWindow = windll.user32.SetForegroundWindow
+    _SetForegroundWindow.argtypes = [HWND]
+    _SetForegroundWindow.restype  = bool
+    _SetForegroundWindow.errcheck = RaiseIfZero
+    return _SetForegroundWindow(hWnd)
+
+# BOOL GetWindowPlacement(
+#     HWND hWnd,
+#     WINDOWPLACEMENT *lpwndpl
+# );
+def GetWindowPlacement(hWnd):
+    _GetWindowPlacement = windll.user32.GetWindowPlacement
+    _GetWindowPlacement.argtypes = [HWND, PWINDOWPLACEMENT]
+    _GetWindowPlacement.restype  = bool
+    _GetWindowPlacement.errcheck = RaiseIfZero
+
+    lpwndpl = WINDOWPLACEMENT()
+    lpwndpl.length = ctypes.sizeof(lpwndpl)
+    _GetWindowPlacement(hWnd, ctypes.byref(lpwndpl))
+    return lpwndpl
+
+# BOOL SetWindowPlacement(
+#     HWND hWnd,
+#     WINDOWPLACEMENT *lpwndpl
+# );
+def SetWindowPlacement(hWnd, lpwndpl):
+    _SetWindowPlacement = windll.user32.SetWindowPlacement
+    _SetWindowPlacement.argtypes = [HWND, PWINDOWPLACEMENT]
+    _SetWindowPlacement.restype  = bool
+    _SetWindowPlacement.errcheck = RaiseIfZero
+
+    lpwndpl.length = ctypes.sizeof(lpwndpl)
+    _SetWindowPlacement(hWnd, ctypes.byref(lpwndpl))
+
+#BOOL MoveWindow(      
+#    HWND hWnd,
+#    int X,
+#    int Y,
+#    int nWidth,
+#    int nHeight,
+#    BOOL bRepaint
+#);
+def MoveWindow(hWnd, X, Y, nWidth, nHeight, bRepaint):
+    _MoveWindow = windll.user32.MoveWindow
+    _MoveWindow.argtypes = [HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, BOOL]
+    _MoveWindow.restype  = bool
+    _MoveWindow.errcheck = RaiseIfZero
+    _MoveWindow(hWnd, X, Y, nWidth, nHeight, bool(bRepaint))
+
+# BOOL GetGUIThreadInfo(
+#     DWORD idThread,
+#     LPGUITHREADINFO lpgui
+# );
+def GetGUIThreadInfo(idThread):
+    _GetGUIThreadInfo = windll.user32.GetGUIThreadInfo
+    _GetGUIThreadInfo.argtypes = [DWORD, LPGUITHREADINFO]
+    _GetGUIThreadInfo.restype  = bool
+    _GetGUIThreadInfo.errcheck = RaiseIfZero
+
+    gui = GUITHREADINFO()
+    _GetGUIThreadInfo(idThread, ctypes.byref(gui))
+    return gui
 
 # BOOL CALLBACK EnumWndProc(
 #     HWND hwnd,
