@@ -613,10 +613,10 @@ class CrashLogger (object):
                           help="Stop only on newly found crashes")
         output.add_option("--allow-first-chance", action="store_true",
                           dest="firstchance",
-                          help="Stop on first and second chance exceptions [default]")
+                          help="Stop on first and second chance exceptions")
         output.add_option("--ignore-first-chance", action="store_false",
                           dest="firstchance",
-                          help="Stop only on second chance exceptions")
+                          help="Stop only on second chance exceptions [default]")
         output.add_option("--no-memory", action="store_const", const=0, dest="memory",
                           help="Don't save the memory state for each crash [default]")
         output.add_option("--memory-map", action="store_const", const=1, dest="memory",
@@ -639,7 +639,7 @@ class CrashLogger (object):
             verbose     = True,
             logfile     = None,
             duplicates  = True,
-            firstchance = True,
+            firstchance = False,
             memory      = 0,
             pause       = False,
             restart     = False,

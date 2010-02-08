@@ -63,20 +63,42 @@ import zlib
 import urlparse
 import traceback
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
-try:
-    from pickletools import optimize
-except ImportError:
-    def optimize(picklestring):
-        return picklestring
-
 # lazy imports
 anydbm = None
 sqlite = None
+
+#==============================================================================
+
+# Secure alternative to pickle, use it if present.
+try:
+    import cerealizer as pickle
+
+    # There is no optimization function for cerealized objects.
+    def optimize(picklestring):
+        return picklestring
+
+    # Note: it's important NOT to provide backwards compatibility, otherwise
+    # it'd be just the same as not having this! To disable this security
+    # upgrade simply uncomment the following line:
+    # raise ImportError, "Fallback to pickle for backwards compatibility"
+
+# If cerealizer is not present fallback to the insecure pickle module.
+except ImportError:
+
+    # Optimized version of pickle in C.
+    try:
+        import cPickle as pickle
+
+    # If all fails fallback to the classic pickle module.
+    except ImportError:
+        import pickle
+
+    # Try to use the pickle optimizer if found.
+    try:
+        from pickletools import optimize
+    except ImportError:
+        def optimize(picklestring):
+            return picklestring
 
 #==============================================================================
 
@@ -165,6 +187,909 @@ class SQLClient(object):
                                 user     = target.username,
                                 password = target.password,
                                 database = target.path )
+
+#==============================================================================
+
+class ContainerBase(object):
+    """
+    Base class for Container types. The code implemented here deals with
+    marshalling and unmarshalling of Crash objects and keys, and it's
+    independent of the database used later.
+
+    @see: L{CrashContainer}, L{CrashTable}, L{VolatileCrashContainer},
+        L{DummyCrashContainer}
+    """
+
+    def __init__(self, binaryKeys = False, initialKeys = None):
+        """
+        @type  binaryKeys: bool
+        @param binaryKeys: C{True} to marshall keys to binary format, C{False}
+            to use plaintext marshalled keys.
+
+        @type  initialKeys: dict( key S{->} marshalled key )
+        @param initialKeys:
+            (Optional) Use this dictionary (by reference) to add and match keys
+            to their marshalled counterparts.
+        """
+        self.binaryKeys = binaryKeys
+        if initialKeys is None:
+            self.__keys = dict()
+        else:
+            self.__keys = initialKeys
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of known keys.
+        """
+        return len(self.__keys)
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if there are no known keys.
+        """
+        return bool(self.__keys)
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return:
+            C{True} if a Crash object with the same key is in the container.
+        """
+        return self.has_key( crash.key() )
+
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} key.
+        @param key: Key to find.
+
+        @rtype:  bool
+        @return: C{True} if the key is present in the set of known keys.
+        """
+        return key in self.__keys
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of known L{Crash} keys.
+        """
+        return self.__keys.iterkeys()
+
+    def remove_key(self, key):
+        """
+        Removes the given key from the set of known keys.
+
+        @type  key: L{Crash} key.
+        @param key: Key to remove.
+        """
+        del self.__keys[key]
+
+    def marshall_key(self, key):
+        """
+        Marshalls a Crash key to be used in the database.
+
+        @see: L{__init__}
+
+        @type  key: L{Crash} key.
+        @param key: Key to convert.
+
+        @rtype:  str or buffer
+        @return: Converted key.
+        """
+        if key in self.__keys:
+            return self.__keys[key]
+        if self.binaryKeys:
+            # May return different marshalled versions for the same key.
+            skey = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+            skey = optimize(skey)
+            skey = zlib.compress(skey, zlib.Z_BEST_COMPRESSION)
+            skey = buffer(skey)
+        else:
+            # Always returns the same marshalled version for each key.
+            skey = pickle.dumps(key, protocol = 0)
+        self.__keys[key] = skey
+        return skey
+
+    def unmarshall_key(self, key):
+        """
+        Unmarshalls a Crash key read from the database.
+
+        @type  key: str or buffer
+        @param key: Key to convert.
+
+        @rtype:  L{Crash} key.
+        @return: Converted key.
+        """
+        key = str(key)
+        try:
+            key = zlib.decompress(key)
+        except Exception:
+            pass
+        key = pickle.loads(key)
+        return key
+
+    def marshall_value(self, value, storeMemoryMap = False):
+        """
+        Marshalls a Crash object to be used in the database.
+        The C{memoryMap} member is B{NOT} stored here.
+
+        @warning: Setting the C{storeMemoryMap} argument to C{True} can lead to
+            a severe performance penalty!
+
+        @type  value: L{Crash}
+        @param value: Object to convert.
+
+        @type  storeMemoryMap: bool
+        @param storeMemoryMap: C{True} to store the memory map, C{False}
+            otherwise.
+
+        @rtype:  str
+        @return: Converted object.
+        """
+        if hasattr(value, 'memoryMap'):
+            crash = value
+            memoryMap = crash.memoryMap
+            try:
+                crash.memoryMap = None
+                if storeMemoryMap and memoryMap is not None:
+                    # convert the generator to a list
+                    crash.memoryMap = list(memoryMap)
+                value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
+            finally:
+                crash.memoryMap = memoryMap
+                del memoryMap
+                del crash
+        value = optimize(value)
+        value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
+        value = buffer(value)
+        return value
+
+    def unmarshall_value(self, value):
+        """
+        Unmarshalls a Crash object read from the database.
+
+        @type  value: str
+        @param value: Object to convert.
+
+        @rtype:  L{Crash}
+        @return: Converted object.
+        """
+        value = str(value)
+        value = zlib.decompress(value)
+        value = pickle.loads(value)
+        return value
+
+#==============================================================================
+
+class CrashContainer (ContainerBase):
+    """
+    Manages a database of persistent Crash objects, trying to avoid duplicates.
+
+    Uses a DBM database file for persistency.
+
+    @see: L{Crash.key}
+    """
+
+    # The interface is meant to be similar to a Python set.
+    # However it may not be necessary to implement all of the set methods.
+    # Other methods like get, has_key, iterkeys and itervalues
+    # are dictionary-like.
+
+    class __CrashContainerIterator (object):
+        """
+        Iterator of Crash objects. Returned by L{CrashContainer.__iter__}.
+        """
+
+        def __init__(self, container):
+            """
+            @type  container: L{CrashContainer}
+            @param container: Crash set to iterate.
+            """
+            # It's important to keep a reference to the CrashContainer,
+            # rather than it's underlying database.
+            # Otherwise the destructor of CrashContainer may close the
+            # database while we're still iterating it.
+            #
+            # TODO: lock the database when iterating it.
+            #
+            self.__container = container
+            self.__keys_iter = container.iterkeys()
+
+        def next(self):
+            """
+            @rtype:  L{Crash}
+            @return: A B{copy} of a Crash object in the L{CrashContainer}.
+            @raise StopIteration: No more items left.
+            """
+            key  = self.__keys_iter.next()
+            return self.__container.get(key)
+
+    def __init__(self, filename = None, allowRepeatedKeys = False):
+        """
+        @type  filename: str
+        @param filename: (Optional) File name for crash database.
+            If no filename is specified, the container is volatile.
+
+            Volatile containers are stored only in memory and
+            destroyed when they go out of scope.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            Currently not supported, always use C{False}.
+        """
+        if allowRepeatedKeys:
+            raise NotImplementedError
+        self.__filename = filename
+        if filename:
+            global anydbm
+            if not anydbm:
+                import anydbm
+            self.__db = anydbm.open(filename, 'c')
+            keys = dict([ (self.unmarshall_key(mk), mk)
+                                                  for mk in self.__db.keys() ])
+            ContainerBase.__init__(self, False, keys)
+        else:
+            self.__db = dict()
+            ContainerBase.__init__(self, False)
+
+    def __del__(self):
+        "Class destructor. Closes the database when this object is destroyed."
+        try:
+            if self.__filename:
+                self.__db.close()
+        except:
+            pass
+
+    def __iter__(self):
+        """
+        @see:    L{itervalues}
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        """
+        return self.itervalues()
+
+    def itervalues(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return self.__CrashContainerIterator(self)
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+        If the crash appears to be already known, it's ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+        # XXX TODO
+        # Support duplicated keys
+        if crash not in self:
+            key  = crash.key()
+            skey = self.marshall_key(key)
+            data = self.marshall_value(crash, storeMemoryMap = True)
+            self.__db[skey] = data
+
+    def remove(self, crash):
+        """
+        Removes a crash from the container.
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to remove.
+        """
+        key  = crash.key()
+        skey = self.marshall_key(key)
+        del self.__db[skey]
+        self.remove_key(key)
+
+    def get(self, key):
+        """
+        Retrieves a crash from the container.
+
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+
+        @rtype:  L{Crash} object.
+        @return: Crash matching the given key.
+
+        @see:     L{iterkeys}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        skey  = self.marshall_key(key)
+        data  = self.__db[skey]
+        crash = self.unmarshall_value(data)
+        return crash
+
+#==============================================================================
+
+class CrashTable (ContainerBase):
+    """
+    Manages a database of persistent Crash objects, trying to avoid duplicates
+    only when requested.
+
+    Uses an SQL database for persistency.
+
+    @see: L{Crash.key}
+    """
+
+    # XXX TODO
+    # add support for deleting crashes
+    # add support for batch operations on crashes
+    #   (maybe with user-defined sql queries?)
+
+    __table_definition = (
+        "CREATE TABLE Crashes ("
+
+        # Sequential row IDs.
+        "id INTEGER PRIMARY KEY,"
+
+        # These are the bare minimum columns required to store the objects.
+        # The rest are just for convenience.
+        "timeStamp TIMESTAMP,"              # float converted to GMT timestamp
+        "key BLOB,"                         # the pickled key
+        "pickle BLOB,"                      # the pickled object
+
+        # Exploitability test.
+        "isExploitable TEXT,"               # the result
+        "isExploitableRule TEXT,"           # the matched rule
+
+        # Event description.
+        "eventCode INTEGER,"
+        "pid INTEGER,"
+        "tid INTEGER,"
+        "pc INTEGER,"
+        "sp INTEGER,"
+        "fp INTEGER,"
+        "labelPC TEXT,"
+
+        # Exception description.
+        "exceptionCode INTEGER,"
+        "exceptionAddress INTEGER,"
+        "exceptionLabel TEXT,"
+        "firstChance INTEGER,"              # 0 or 1
+        "faultType INTEGER,"
+        "faultAddress INTEGER,"
+        "faultLabel TEXT,"
+        "faultDisasm TEXT,"                 # dumped
+        "stackTrace TEXT,"                  # dumped stackTracePretty
+
+        # Additional notes.
+        "notes TEXT"                        # joined
+        ")"
+    )
+    __insert_row = (
+        "INSERT INTO Crashes VALUES (null%s)"
+        % (',?' * (len(__table_definition.split(',')) - 1))
+    )
+
+    __select_pickle = "SELECT pickle FROM Crashes"
+    __select_key    = "SELECT key FROM Crashes"
+    __select_count  = "SELECT COUNT(*) FROM Crashes"
+
+    __memory_table_definition = (
+        "CREATE TABLE Memory ("
+        "id INTEGER PRIMARY KEY,"       # Sequential row IDs.
+        "Crash INTEGER,"                # Row ID in the Crashes table.
+        "Address INTEGER,"              # Value of mbi.BaseAddress.
+        "Size INTEGER,"                 # Value of mbi.RegionSize.
+        "State TEXT,"                   # Value of mbi.State.
+        "Access TEXT,"                  # Value of mbi.Protect.
+        "Type TEXT,"                    # Value of mbi.Type.
+        "File TEXT,"                    # Value of mbi.filename.
+        "Data BLOB"                     # Value of mbi.content (compressed?).
+        ")"
+    )
+    __memory_insert_row = (
+        "INSERT INTO Memory VALUES "
+        "(null, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+
+    # XXX TODO
+    # this coupling won't behave all that well with subclasses of Crash...
+    # maybe the Crash class should have a way of reporting the CrashTable what
+    # columns to use and what data to put in each column
+    def __get_row_values(self, crash):
+        timeStamp           = time.asctime( time.gmtime( crash.timeStamp ) )
+        key                 = self.marshall_key( crash.key() )
+        pickle              = self.marshall_value(crash)
+        isExploitable, isExploitableRule, _ = crash.isExploitable()
+        eventCode           = crash.eventCode
+        pid                 = crash.pid
+        tid                 = crash.tid
+        pc                  = crash.pc
+        sp                  = crash.sp
+        fp                  = crash.fp
+        labelPC             = crash.labelPC
+        exceptionCode       = crash.exceptionCode
+        exceptionAddress    = crash.exceptionAddress
+        exceptionLabel      = crash.exceptionLabel
+        firstChance         = crash.firstChance # int(bool(crash.firstChance))
+        faultType           = crash.faultType
+        faultAddress        = crash.faultAddress
+        faultLabel          = crash.faultLabel
+        faultDisasm         = CrashDump.dump_code(crash.faultDisasm, crash.pc)
+        stackTrace          = CrashDump.dump_stack_trace_with_labels(
+                                                        crash.stackTracePretty)
+        notes               = crash.notesReport()
+        return (
+            timeStamp,
+            key,
+            pickle,
+            isExploitable,
+            isExploitableRule,
+            eventCode,
+            pid,
+            tid,
+            pc,
+            sp,
+            fp,
+            labelPC,
+            exceptionCode,
+            exceptionAddress,
+            exceptionLabel,
+            firstChance,
+            faultType,
+            faultAddress,
+            faultLabel,
+            faultDisasm,
+            stackTrace,
+            notes,
+        )
+
+    def __memory_get_row_values(self, CrashID, mbi):
+
+        # State (free or allocated).
+        if   mbi.State == win32.MEM_RESERVE:
+            State   = "Reserved"
+        elif mbi.State == win32.MEM_COMMIT:
+            State   = "Commited"
+        elif mbi.State == win32.MEM_FREE:
+            State   = "Free"
+        else:
+            State   = "Unknown"
+
+        # Page protection bits (R/W/X/G).
+        if mbi.State != win32.MEM_COMMIT:
+            Protect = ""
+        else:
+            if   mbi.Protect & win32.PAGE_NOACCESS:
+                Protect = "--- "
+            elif mbi.Protect & win32.PAGE_READONLY:
+                Protect = "R-- "
+            elif mbi.Protect & win32.PAGE_READWRITE:
+                Protect = "RW- "
+            elif mbi.Protect & win32.PAGE_WRITECOPY:
+                Protect = "RC- "
+            elif mbi.Protect & win32.PAGE_EXECUTE:
+                Protect = "--X "
+            elif mbi.Protect & win32.PAGE_EXECUTE_READ:
+                Protect = "R-- "
+            elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
+                Protect = "RW- "
+            elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
+                Protect = "RCX "
+            else:
+                Protect = "??? "
+            if   mbi.Protect & win32.PAGE_GUARD:
+                Protect += "G"
+            else:
+                Protect += "-"
+            if   mbi.Protect & win32.PAGE_NOCACHE:
+                Protect += "N"
+            else:
+                Protect += "-"
+            if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+                Protect += "W"
+            else:
+                Protect += "-"
+
+        # Type (file mapping, executable image, or private memory).
+        if   mbi.Type == win32.MEM_IMAGE:
+            Type    = "Image"
+        elif mbi.Type == win32.MEM_MAPPED:
+            Type    = "Mapped"
+        elif mbi.Type == win32.MEM_PRIVATE:
+            Type    = "Private"
+        elif mbi.Type == 0:
+            Type    = ""
+        else:
+            Type    = "Unknown"
+
+        # Memory contents.
+        #
+        # XXX TODO
+        # Storing this in the db is insane! :(
+        # Each memory dump has to be placed in an external file, using random
+        # filenames to avoid collisions. Then the filenames can be stored in
+        # this column instead of the data.
+        #
+        content = mbi.content
+        if not content:
+            content = ''
+        else:
+            content = zlib.compress(content, zlib.Z_BEST_COMPRESSION)
+            content = buffer(content)
+
+        # Return a tuple to pass to Cursor.execute().
+        return (
+            CrashID,
+            mbi.BaseAddress,
+            mbi.RegionSize,
+            State,
+            Protect,
+            Type,
+            mbi.filename,
+            content,
+        )
+
+    def __init__(self, location = None, allowRepeatedKeys = True):
+        """
+        @type  location: str
+        @param location: (Optional) Location of the crash database.
+            If no location is specified, the container is volatile.
+
+            If the location is a filename, it's an SQLite database file.
+
+            If the location is an URL, it's a remote database of any of the
+            supported types. Currently the following databases are supported:
+
+             - C{mysql://} (using the C{MySQLdb} module)
+             - C{mssql://} (using the C{pymssql} module)
+             - C{oracle://} (using the C{cxOracle} module)
+             - C{pgsql://} (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
+
+            Volatile containers are stored only in memory and
+            destroyed when they go out of scope.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} all L{Crash} objects are stored.
+
+            If C{False} any L{Crash} object with the same key as a
+            previously existing object will be ignored.
+        """
+
+        # Local filenames are opened with SQLite.
+        if location is None or \
+                    not re.match('[^:]+://*', location): # crude URL detection
+            global sqlite
+            if sqlite is None:
+                try:
+                    import sqlite3 as sqlite
+                except ImportError:
+                    from pysqlite2 import dbapi2 as sqlite
+            if location is None:
+                location = ':memory:'
+            self.__location = location
+            self.__dbtype   = 'sqlite'
+            self.__db       = sqlite.connect(location)
+
+        # URLs are connected to using the appropriate driver.
+        else:
+            self.__location = location
+            self.__dbtype   = SQLClient.get_db_type(location)
+            self.__db       = SQLClient.connect(location)
+
+        # Get a DB-API cursor.
+        self.__cursor   = self.__db.cursor()
+
+        # Create the tables if needed.
+        try:
+            self.__cursor.execute(self.__table_definition)
+            self.__cursor.execute(self.__memory_table_definition)
+            self.__db.commit()
+        except Exception:
+            pass
+
+        # Populate the cache of existing keys.
+        self.__allowRepeatedKeys = allowRepeatedKeys
+        keys = dict()
+        self.__cursor.execute(self.__select_key)
+        for row in self.__cursor:
+            marshalled_key   = row[0]
+            unmarshalled_key = self.unmarshall_key(marshalled_key)
+            keys[unmarshalled_key] = marshalled_key
+        ContainerBase.__init__(self, True, keys)
+
+        # Get the number of crashes stored in the database.
+        self.__cursor.execute(self.__select_count)
+        count = 0
+        for row in self.__cursor:
+            count = long(row[0])
+        self.__count = count
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{False}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+
+        # Filter out repeated crashes if requested.
+        if self.__allowRepeatedKeys or crash not in self:
+
+            # Insert the row into the table.
+            row_values = self.__get_row_values(crash)
+            self.__cursor.execute(self.__insert_row, row_values)
+
+            # Save the memory snapshot, if any.
+            if hasattr(crash, 'memoryMap') and crash.memoryMap:
+                cid = self.__cursor.lastrowid
+                for mbi in crash.memoryMap:
+                    row_values = self.__memory_get_row_values(cid, mbi)
+                    self.__cursor.execute(self.__memory_insert_row, row_values)
+
+            # Commit the changes to the database.
+            # On error discard the changes and raise an exception.
+            try:
+                self.__db.commit()
+            except Exception:
+                self.__db.rollback()
+                raise
+
+            # Increment the counter of crashes.
+            self.__count += 1
+
+    def __iter__(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        """
+        self.__cursor.execute(self.__select_pickle)
+        for row in self.__cursor:
+            crash = row[0]
+            crash = self.unmarshall_value(crash)
+            yield crash
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        return self.__count
+
+#==============================================================================
+
+class VolatileCrashContainer(CrashContainer):
+    """
+    Manages a database of volatile Crash objects,
+    trying to avoid duplicates if requested.
+
+    @see: L{Crash.key}
+    """
+
+    def __init__(self, allowRepeatedKeys = True):
+        """
+        Volatile containers are stored only in memory and
+        destroyed when they go out of scope.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} all L{Crash} objects are stored.
+
+            If C{False} any L{Crash} object with the same key as a
+            previously existing object will be ignored.
+        """
+        super(VolatileCrashContainer, self).__init__()
+        self.__allowRepeatedKeys = allowRepeatedKeys
+        self.__dict = dict()
+        self.__set  = set()
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return: C{True} if the Crash object is in the container.
+        """
+        return self.__dict.has_key( crash.key() )
+
+    def __iter__(self):
+        """
+        @see:    L{itervalues}
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+        """
+        return self.itervalues()
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        return len(self.__set)
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if the container is empty.
+        """
+        return bool(len(self))
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{False}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+        key = crash.key()
+        if self.__allowRepeatedKeys or key not in self.__dict:
+            self.__dict[key] = crash
+            self.__set.add(crash)
+
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+
+        @rtype:  bool
+        @return: C{True} if a matching L{Crash} object is in the container.
+        """
+        return self.__dict.has_key(key)
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} object keys.
+
+        @see:     L{get}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return self.__dict.iterkeys()
+
+    def itervalues(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return iter(self.__set)
+
+#==============================================================================
+
+class DummyCrashContainer(CrashContainer):
+    """
+    Fakes a database of volatile Crash objects,
+    trying to mimic part of it's interface, but
+    doesn't actually store anything.
+
+    @see: L{Crash.key}
+    """
+
+    def __init__(self, allowRepeatedKeys = True):
+        """
+        Fake containers don't store L{Crash} objects, but they implement the
+        interface properly.
+
+        @type  allowRepeatedKeys: bool
+        @param allowRepeatedKeys:
+            If C{True} the len() of the container returns the total number
+            of L{Crash} objects added.
+
+            If C{False} the len() of the container returns the total number
+            of L{Crash} objects keys added.
+        """
+        super(DummyCrashContainer, self).__init__()
+        self.__keys  = set()
+        self.__count = 0
+        self.__allowRepeatedKeys = allowRepeatedKeys
+
+    def __contains__(self, crash):
+        """
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return: C{True} if the Crash object is in the container.
+        """
+        return crash.key() in self.__keys
+
+    def __len__(self):
+        """
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        if self.__allowRepeatedKeys:
+            return self.__count
+        return len(self.__keys)
+
+    def __bool__(self):
+        """
+        @rtype:  bool
+        @return: C{False} if the container is empty.
+        """
+        return bool(len(self))
+
+    def add(self, crash):
+        """
+        Adds a new crash to the container.
+
+        @note:
+            When the C{allowRepeatedKeys} parameter of the constructor
+            is set to C{False}, duplicated crashes are ignored.
+
+        @see: L{Crash.key}
+
+        @type  crash: L{Crash}
+        @param crash: Crash object to add.
+        """
+        self.__keys.add( crash.key() )
+        self.__count += 1
+
+    def has_key(self, key):
+        """
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
+
+        @rtype:  bool
+        @return: C{True} if a matching L{Crash} object is in the container.
+        """
+        return self.__dict.has_key(key)
+
+    def iterkeys(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} object keys.
+
+        @see:     L{get}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return iter(self.__dict)
 
 #==============================================================================
 
@@ -418,7 +1343,7 @@ class Crash (object):
         thread                  = event.get_thread()
 
         # The following properties are always retrieved for all events.
-        self.eventCode          = event.get_code()
+        self.eventCode          = event.get_event_code()
         self.eventName          = event.get_event_name()
         self.pid                = event.get_pid()
         self.tid                = event.get_tid()
@@ -572,6 +1497,7 @@ class Crash (object):
             try:
                 self.faultDisasm = thread.disassemble_around_pc(32)
             except Exception, e:
+##                raise   # XXX DEBUG
                 pass
 
             # For memory related exceptions, get the memory contents
@@ -714,8 +1640,6 @@ class Crash (object):
         if self.stackRange and self.sp is not None and not (self.stackRange[0] <= self.sp < self.stackRange[1]):
             return ("Exploitable", "StackPointerCorruption", "Stack pointer corruption is considered exploitable.")
 
-        # XXX add rule to check if code is in writeable memory
-
         if self.exceptionCode == win32.EXCEPTION_ILLEGAL_INSTRUCTION:
             return ("Exploitable", "IllegalInstruction", "An illegal instruction exception indicates that the attacker controls execution flow.")
 
@@ -732,7 +1656,7 @@ class Crash (object):
             return ("Exploitable", "HeapCorruption", "Heap Corruption has been detected. This is considered exploitable, and must be fixed.")
 
         if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
-            nearNull      = self.faultAddress is None or MemoryAddresses.align_address_to_page_start(self.faultAddress) == win32.NULL
+            nearNull      = self.faultAddress is None or MemoryAddresses.align_address_to_page_start(self.faultAddress) == 0
             controlFlow   = self.__is_control_flow()
             blockDataMove = self.__is_block_data_move()
             if self.faultType == win32.EXCEPTION_EXECUTE_FAULT:
@@ -763,6 +1687,8 @@ class Crash (object):
                 # Rule: Tainted information used to control the target of a later write is probably exploitable
 
         # Non terminal rules
+
+        # XXX TODO add rule to check if code is in writeable memory (probably exploitable)
 
         # XXX TODO maybe we should be returning a list of tuples instead?
 
@@ -1027,932 +1953,3 @@ class Crash (object):
         """
         return bool( self.notes )
 
-#==============================================================================
-
-class CrashContainer (object):
-    """
-    Manages a database of persistent Crash objects, trying to avoid duplicates.
-
-    Uses a DBM database file for persistency.
-
-    @see: L{Crash.key}
-    """
-
-    # The interface is meant to be similar to a Python set.
-    # However it may not be necessary to implement all of the set methods.
-    # Other methods like get, has_key, iterkeys and itervalues
-    # are dictionary-like.
-
-    class __CrashContainerIterator (object):
-        """
-        Iterator of Crash objects. Returned by L{CrashContainer.__iter__}.
-        """
-
-        def __init__(self, container):
-            """
-            @type  container: L{CrashContainer}
-            @param container: Crash set to iterate.
-            """
-            # It's important to keep a reference to the CrashContainer,
-            # rather than it's underlying database.
-            # Otherwise the destructor of CrashContainer may close the
-            # database while we're still iterating it.
-            #
-            # TODO: lock the database when iterating it.
-            #
-            self.__container = container
-            self.__keys_iter = container.iterkeys()
-
-        def next(self):
-            """
-            @rtype:  L{Crash}
-            @return: A B{copy} of a Crash object in the L{CrashContainer}.
-            @raise StopIteration: No more items left.
-            """
-            key  = self.__keys_iter.next()
-            return self.__container.get(key)
-
-    def __init__(self, filename = None, allowRepeatedKeys = False):
-        """
-        @type  filename: str
-        @param filename: (Optional) File name for crash database.
-            If no filename is specified, the container is volatile.
-
-            Volatile containers are stored only in memory and
-            destroyed when they go out of scope.
-        """
-##
-##        @type  allowRepeatedKeys: bool
-##        @param allowRepeatedKeys:
-##            If C{True} all L{Crash} objects are stored.
-##
-##            If C{False} any L{Crash} object with the same key as a
-##            previously existing object will be ignored.
-        if allowRepeatedKeys:
-            raise NotImplementedError
-        self.__filename = filename
-        if filename:
-            global anydbm
-            if not anydbm:
-                import anydbm
-            self.__db   = anydbm.open(filename, 'c')
-            self.__keys = dict([ (self.__unmarshall_key(mk), mk) \
-                                                  for mk in self.__db.keys() ])
-        else:
-            self.__db   = dict()
-            self.__keys = dict()
-
-    def __del__(self):
-        try:
-            if self.__filename:
-                self.__db.close()
-        except:
-            pass
-
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return self.__keys.has_key( crash.key() )
-
-    def __iter__(self):
-        """
-        @see:    L{itervalues}
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
-        return self.itervalues()
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        return len(self.__keys)
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        return bool(self.__keys)
-
-    def has_key(self, key):
-        """
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
-
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
-        """
-        return key in self.__keys
-
-    def iterkeys(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} object keys.
-
-        @see:     L{get}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return self.__keys.iterkeys()
-
-    def itervalues(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return self.__CrashContainerIterator(self)
-
-    def add(self, crash):
-        """
-        Adds a new crash to the container.
-        If the crash appears to be already known, it's ignored.
-
-        @see: L{Crash.key}
-
-        @type  crash: L{Crash}
-        @param crash: Crash object to add.
-        """
-        if crash not in self:
-            key  = crash.key()
-            skey = self.__marshall_key(key)
-            data = self.__marshall_value(crash)
-            self.__db[skey]  = data
-            self.__keys[key] = skey
-
-    def remove(self, crash):
-        """
-        Removes a crash from the container.
-
-        @type  crash: L{Crash}
-        @param crash: Crash object to remove.
-        """
-        key  = crash.key()
-        skey = self.__keys[key]
-        del self.__db[skey]
-        del self.__keys[key]
-
-    def get(self, key):
-        """
-        Retrieves a crash from the container.
-
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
-
-        @rtype:  L{Crash} object.
-        @return: Crash matching the given key.
-
-        @see:     L{iterkeys}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        skey  = self.__keys[key]
-        data  = self.__db[skey]
-        crash = self.__unmarshall_value(data)
-        return crash
-
-    def __marshall_key(self, key):
-        """
-        Marshalls a Crash key to be used in the database.
-
-        @type  key: (opaque object)
-        @param key: Key to convert.
-
-        @rtype:  str
-        @return: Converted key.
-        """
-        if key in self.__keys:
-            return self.__keys[key]
-        key = pickle.dumps(key, protocol = 0)
-        return key
-
-    def __unmarshall_key(self, key):
-        """
-        Unmarshalls a Crash key read from the database.
-
-        @type  key: str
-        @param key: Key to convert.
-
-        @rtype:  (opaque object)
-        @return: Converted key.
-        """
-        return pickle.loads(key)
-
-    def __marshall_value(self, value):
-        """
-        Marshalls a Crash object to be used in the database.
-        The C{memoryMap} member is B{NOT} stored here.
-
-        @type  value: L{Crash}
-        @param value: Object to convert.
-
-        @rtype:  str
-        @return: Converted object.
-        """
-        # XXX
-        # storing the memory map could be a performance problem!
-        crash = value
-        memoryMap = crash.memoryMap
-        try:
-            if memoryMap is not None:
-                # convert the generator to a list
-                crash.memoryMap = list(memoryMap)
-            value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
-        finally:
-            crash.memoryMap = memoryMap
-            del memoryMap
-            del crash
-        value = optimize(value)
-        return zlib.compress(value, zlib.Z_BEST_COMPRESSION)
-
-    def __unmarshall_value(self, value):
-        """
-        Unmarshalls a Crash object read from the database.
-
-        @type  value: str
-        @param value: Object to convert.
-
-        @rtype:  L{Crash}
-        @return: Converted object.
-        """
-        value = zlib.decompress(value)
-        return pickle.loads(value)
-
-#==============================================================================
-
-class CrashTable (object):
-    """
-    Manages a database of persistent Crash objects, trying to avoid duplicates
-    only when requested.
-
-    Uses an SQL database file for persistency.
-
-    @see: L{Crash.key}
-    """
-
-    __table_definition = (
-        "CREATE TABLE Crashes ("
-
-        # Sequential row IDs.
-        "id INTEGER PRIMARY KEY,"
-
-        # These are the bare minimum columns required to store the objects.
-        # The rest are just for convenience.
-        "timeStamp TIMESTAMP,"              # float converted to GMT timestamp
-        "key BLOB,"                         # the pickled key
-        "pickle BLOB,"                      # the pickled object
-
-        # Exploitability test.
-        "isExploitable TEXT,"               # the result
-        "isExploitableRule TEXT,"           # the matched rule
-
-        # Event description.
-        "eventCode INTEGER,"
-        "pid INTEGER,"
-        "tid INTEGER,"
-        "pc INTEGER,"
-        "sp INTEGER,"
-        "fp INTEGER,"
-        "labelPC TEXT,"
-
-        # Exception description.
-        "exceptionCode INTEGER,"
-        "exceptionAddress INTEGER,"
-        "exceptionLabel TEXT,"
-        "firstChance INTEGER,"              # 0 or 1
-        "faultType INTEGER,"
-        "faultAddress INTEGER,"
-        "faultLabel TEXT,"
-        "faultDisasm TEXT,"                 # dumped
-        "stackTrace TEXT,"                  # dumped stackTracePretty
-
-        # Additional notes.
-        "notes TEXT"                        # joined
-        ")"
-    )
-    __insert_row = (
-        "INSERT INTO Crashes VALUES (null%s)"
-        % (',?' * (len(__table_definition.split(',')) - 1))
-    )
-
-    __select_pickle = "SELECT pickle FROM Crashes"
-    __select_key    = "SELECT key FROM Crashes"
-    __select_count  = "SELECT COUNT(*) FROM Crashes"
-
-    __memory_table_definition = (
-        "CREATE TABLE Memory ("
-        "id INTEGER PRIMARY KEY,"       # Sequential row IDs.
-        "Crash INTEGER,"                # Row ID in the Crashes table.
-        "Address INTEGER,"              # Value of mbi.BaseAddress.
-        "Size INTEGER,"                 # Value of mbi.RegionSize.
-        "State TEXT,"                   # Value of mbi.State.
-        "Access TEXT,"                  # Value of mbi.Protect.
-        "Type TEXT,"                    # Value of mbi.Type.
-        "File TEXT,"                    # Value of mbi.filename.
-        "Data BLOB"                     # Value of mbi.content (compressed?).
-        ")"
-    )
-    __memory_insert_row = (
-        "INSERT INTO Memory VALUES "
-        "(null, ?, ?, ?, ?, ?, ?, ?, ?)"
-    )
-
-    def __get_row_values(self, crash):
-        timeStamp           = time.asctime( time.gmtime( crash.timeStamp ) )
-        key                 = self.__marshall_key(crash.key())
-        pickle              = self.__marshall_value(crash)
-        isExploitable, isExploitableRule, _ = crash.isExploitable()
-        eventCode           = crash.eventCode
-        pid                 = crash.pid
-        tid                 = crash.tid
-        pc                  = crash.pc
-        sp                  = crash.sp
-        fp                  = crash.fp
-        labelPC             = crash.labelPC
-        exceptionCode       = crash.exceptionCode
-        exceptionAddress    = crash.exceptionAddress
-        exceptionLabel      = crash.exceptionLabel
-        firstChance         = crash.firstChance # int(bool(crash.firstChance))
-        faultType           = crash.faultType
-        faultAddress        = crash.faultAddress
-        faultLabel          = crash.faultLabel
-        faultDisasm         = CrashDump.dump_code(crash.faultDisasm, crash.pc)
-        stackTrace          = CrashDump.dump_stack_trace_with_labels(
-                                                        crash.stackTracePretty)
-        notes               = crash.notesReport()
-        return (
-            timeStamp,
-            key,
-            pickle,
-            isExploitable,
-            isExploitableRule,
-            eventCode,
-            pid,
-            tid,
-            pc,
-            sp,
-            fp,
-            labelPC,
-            exceptionCode,
-            exceptionAddress,
-            exceptionLabel,
-            firstChance,
-            faultType,
-            faultAddress,
-            faultLabel,
-            faultDisasm,
-            stackTrace,
-            notes,
-        )
-
-    def __memory_get_row_values(self, CrashID, mbi):
-
-        # State (free or allocated).
-        if   mbi.State == win32.MEM_RESERVE:
-            State   = "Reserved"
-        elif mbi.State == win32.MEM_COMMIT:
-            State   = "Commited"
-        elif mbi.State == win32.MEM_FREE:
-            State   = "Free"
-        else:
-            State   = "Unknown"
-
-        # Page protection bits (R/W/X/G).
-        if mbi.State != win32.MEM_COMMIT:
-            Protect = ""
-        else:
-            if   mbi.Protect & win32.PAGE_NOACCESS:
-                Protect = "--- "
-            elif mbi.Protect & win32.PAGE_READONLY:
-                Protect = "R-- "
-            elif mbi.Protect & win32.PAGE_READWRITE:
-                Protect = "RW- "
-            elif mbi.Protect & win32.PAGE_WRITECOPY:
-                Protect = "RC- "
-            elif mbi.Protect & win32.PAGE_EXECUTE:
-                Protect = "--X "
-            elif mbi.Protect & win32.PAGE_EXECUTE_READ:
-                Protect = "R-- "
-            elif mbi.Protect & win32.PAGE_EXECUTE_READWRITE:
-                Protect = "RW- "
-            elif mbi.Protect & win32.PAGE_EXECUTE_WRITECOPY:
-                Protect = "RCX "
-            else:
-                Protect = "??? "
-            if   mbi.Protect & win32.PAGE_GUARD:
-                Protect += "G"
-            else:
-                Protect += "-"
-            if   mbi.Protect & win32.PAGE_NOCACHE:
-                Protect += "N"
-            else:
-                Protect += "-"
-            if   mbi.Protect & win32.PAGE_WRITECOMBINE:
-                Protect += "W"
-            else:
-                Protect += "-"
-
-        # Type (file mapping, executable image, or private memory).
-        if   mbi.Type == win32.MEM_IMAGE:
-            Type    = "Image"
-        elif mbi.Type == win32.MEM_MAPPED:
-            Type    = "Mapped"
-        elif mbi.Type == win32.MEM_PRIVATE:
-            Type    = "Private"
-        elif mbi.Type == 0:
-            Type    = ""
-        else:
-            Type    = "Unknown"
-
-        # Memory contents.
-        #
-        # XXX TODO
-        # Storing this in the db is insane! :(
-        # Each memory dump has to be placed in an external file, using random
-        # filenames to avoid collisions. Then the filenames can be stored in
-        # this column instead of the data.
-        #
-        content = mbi.content
-        if not content:
-            content = ''
-        else:
-            content = zlib.compress(content, zlib.Z_BEST_COMPRESSION)
-            content = buffer(content)
-##            content = content.encode('base64')
-
-        # Return a tuple to pass to Cursor.execute().
-        return (
-            CrashID,
-            mbi.BaseAddress,
-            mbi.RegionSize,
-            State,
-            Protect,
-            Type,
-            mbi.filename,
-            content,
-        )
-
-    def __init__(self, location = None, allowRepeatedKeys = True):
-        """
-        @type  location: str
-        @param location: (Optional) Location of the crash database.
-            If no location is specified, the container is volatile.
-
-            If the location is a filename, it's an SQLite database file.
-
-            If the location is an URL, it's a remote database of any of the
-            supported types. Currently the following databases are supported:
-
-             - C{mysql://} (using the C{MySQLdb} module)
-             - C{mssql://} (using the C{pymssql} module)
-             - C{oracle://} (using the C{cxOracle} module)
-             - C{pgsql://} (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
-
-            Volatile containers are stored only in memory and
-            destroyed when they go out of scope.
-
-        @type  allowRepeatedKeys: bool
-        @param allowRepeatedKeys:
-            If C{True} all L{Crash} objects are stored.
-
-            If C{False} any L{Crash} object with the same key as a
-            previously existing object will be ignored.
-        """
-
-        # Local filenames are opened with SQLite.
-        if location is None or \
-                    not re.match('[^:]+://*', location): # crude URL detection
-            global sqlite
-            if sqlite is None:
-                try:
-                    import sqlite3 as sqlite
-                except ImportError:
-                    from pysqlite2 import dbapi2 as sqlite
-            if location is None:
-                location = ':memory:'
-            self.__location = location
-            self.__dbtype   = 'sqlite'
-            self.__db       = sqlite.connect(location)
-
-        # URLs are connected to using the appropriate driver.
-        else:
-            self.__location = location
-            self.__dbtype   = SQLClient.get_db_type(location)
-            self.__db       = SQLClient.connect(location)
-
-        # Get a DB-API cursor.
-        self.__cursor   = self.__db.cursor()
-
-        # Create the tables if needed.
-        try:
-            self.__cursor.execute(self.__table_definition)
-            self.__cursor.execute(self.__memory_table_definition)
-            self.__db.commit()
-        except Exception:
-            pass
-
-        # Populate the cache of existing keys.
-        self.__allowRepeatedKeys = allowRepeatedKeys
-        self.__keys = dict()
-        self.__cursor.execute(self.__select_key)
-        for row in self.__cursor:
-            marshalled_key   = row[0]
-            unmarshalled_key = self.__unmarshall_key(marshalled_key)
-            self.__keys[unmarshalled_key] = marshalled_key
-
-        # Get the number of crashes stored in the database.
-        self.__cursor.execute(self.__select_count)
-        count = 0
-        for row in self.__cursor:
-            count = long(row[0])
-        self.__count = count
-
-    def add(self, crash):
-        """
-        Adds a new crash to the container.
-
-        @note:
-            When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{False}, duplicated crashes are ignored.
-
-        @see: L{Crash.key}
-
-        @type  crash: L{Crash}
-        @param crash: Crash object to add.
-        """
-
-        # Add the key to the keys cache.
-        # Filter out by key if requested.
-        key = crash.key()
-        if self.__allowRepeatedKeys or key not in self.__keys:
-            self.__keys[key] = self.__marshall_key(key)
-
-            # Insert the row into the table.
-            row_values = self.__get_row_values(crash)
-            self.__cursor.execute(self.__insert_row, row_values)
-
-            # Save the memory snapshot, if any.
-            if hasattr(crash, 'memoryMap') and crash.memoryMap:
-                cid = self.__cursor.lastrowid
-                for mbi in crash.memoryMap:
-                    row_values = self.__memory_get_row_values(cid, mbi)
-                    self.__cursor.execute(self.__memory_insert_row, row_values)
-
-            # Commit the changes to the database.
-            self.__db.commit()
-
-            # Increment the counter of crashes.
-            self.__count += 1
-
-    def __iter__(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
-        self.__cursor.execute(self.__select_pickle)
-        for row in self.__cursor:
-            crash = row[0]
-            crash = self.__unmarshall_value(crash)
-            yield crash
-
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return self.__keys.has_key( crash.key() )
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        return self.__count
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        # XXX HACK
-        # Check if the keys cache is empty instead of querying the database.
-        return bool(self.__keys)
-
-    def __marshall_key(self, key):
-        """
-        Marshalls a Crash key to be used in the database.
-
-        @type  key: (opaque object)
-        @param key: Key to convert.
-
-        @rtype:  BLOB
-        @return: Converted key.
-        """
-        if key in self.__keys:
-            return self.__keys[key]
-        key = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
-        key = optimize(key)
-        key = buffer(key)
-##        key = key.encode('base64')
-        return key
-
-    def __unmarshall_key(self, key):
-        """
-        Unmarshalls a Crash key read from the database.
-
-        @type  key: str
-        @param key: Key to convert.
-
-        @rtype:  (opaque object)
-        @return: Converted key.
-        """
-        key = str(key)
-##        key = key.decode('base64')
-        key = pickle.loads(key)
-        return key
-
-    def __marshall_value(self, value):
-        """
-        Marshalls a Crash object to be used in the database.
-        The C{memoryMap} member is B{NOT} stored here.
-
-        @type  value: L{Crash}
-        @param value: Object to convert.
-
-        @rtype:  BLOB
-        @return: Converted object.
-        """
-        # XXX TODO
-        # maybe the memory map can be stored, if the raw data is stripped first
-        crash = value
-        memoryMap = crash.memoryMap
-        try:
-            crash.memoryMap = None
-            value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
-        finally:
-            crash.memoryMap = memoryMap
-            del memoryMap
-            del crash
-        value = optimize(value)
-        value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
-        value = buffer(value)
-##        value = value.encode('base64')
-        return value
-
-    def __unmarshall_value(self, value):
-        """
-        Unmarshalls a Crash object read from the database.
-
-        @type  value: str
-        @param value: Object to convert.
-
-        @rtype:  L{Crash}
-        @return: Converted object.
-        """
-        value = str(value)
-##        value = value.decode('base64')
-        value = zlib.decompress(value)
-        value = pickle.loads(value)
-        return value
-
-#==============================================================================
-
-class VolatileCrashContainer(CrashContainer):
-    """
-    Manages a database of volatile Crash objects,
-    trying to avoid duplicates if requested.
-
-    @see: L{Crash.key}
-    """
-
-    def __init__(self, allowRepeatedKeys = True):
-        """
-        Volatile containers are stored only in memory and
-        destroyed when they go out of scope.
-
-        @type  allowRepeatedKeys: bool
-        @param allowRepeatedKeys:
-            If C{True} all L{Crash} objects are stored.
-
-            If C{False} any L{Crash} object with the same key as a
-            previously existing object will be ignored.
-        """
-        super(VolatileCrashContainer, self).__init__()
-        self.__allowRepeatedKeys = allowRepeatedKeys
-        self.__dict = dict()
-        self.__set  = set()
-
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return self.__dict.has_key( crash.key() )
-
-    def __iter__(self):
-        """
-        @see:    L{itervalues}
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
-        return self.itervalues()
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        return len(self.__set)
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        return bool(len(self))
-
-    def add(self, crash):
-        """
-        Adds a new crash to the container.
-
-        @note:
-            When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{False}, duplicated crashes are ignored.
-
-        @see: L{Crash.key}
-
-        @type  crash: L{Crash}
-        @param crash: Crash object to add.
-        """
-        key = crash.key()
-        if self.__allowRepeatedKeys or key not in self.__dict:
-            self.__dict[key] = crash
-            self.__set.add(crash)
-
-    def has_key(self, key):
-        """
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
-
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
-        """
-        return self.__dict.has_key(key)
-
-    def iterkeys(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} object keys.
-
-        @see:     L{get}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return self.__dict.iterkeys()
-
-    def itervalues(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return iter(self.__set)
-
-#==============================================================================
-
-class DummyCrashContainer(CrashContainer):
-    """
-    Fakes a database of volatile Crash objects,
-    trying to mimic part of it's interface, but
-    doesn't actually store anything.
-
-    @see: L{Crash.key}
-    """
-
-    def __init__(self, allowRepeatedKeys = True):
-        """
-        Fake containers don't store L{Crash} objects, but they implement the
-        interface properly.
-
-        @type  allowRepeatedKeys: bool
-        @param allowRepeatedKeys:
-            If C{True} the len() of the container returns the total number
-            of L{Crash} objects added.
-
-            If C{False} the len() of the container returns the total number
-            of L{Crash} objects keys added.
-        """
-        super(DummyCrashContainer, self).__init__()
-        self.__keys  = set()
-        self.__count = 0
-        self.__allowRepeatedKeys = allowRepeatedKeys
-
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return crash.key() in self.__keys
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        if self.__allowRepeatedKeys:
-            return self.__count
-        return len(self.__keys)
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        return bool(len(self))
-
-    def add(self, crash):
-        """
-        Adds a new crash to the container.
-
-        @note:
-            When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{False}, duplicated crashes are ignored.
-
-        @see: L{Crash.key}
-
-        @type  crash: L{Crash}
-        @param crash: Crash object to add.
-        """
-        self.__keys.add( crash.key() )
-        self.__count += 1
-
-    def has_key(self, key):
-        """
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
-
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
-        """
-        return self.__dict.has_key(key)
-
-    def iterkeys(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} object keys.
-
-        @see:     L{get}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return iter(self.__dict)

@@ -119,7 +119,7 @@ def print_report_for_database(filename, options):
             msg = '%s %s.%04d' % (ldate, ltime, msecs)
             print msg
             if options.verbose:
-                print c.fullReport()
+                print c.fullReport(),
             else:
                 print c.briefReport()
             print '-' * 79

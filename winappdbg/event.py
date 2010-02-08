@@ -468,7 +468,10 @@ class ExceptionEvent (Event):
         @rtype:  int
         @return: Memory address where the exception occured.
         """
-        return self.raw.u.Exception.ExceptionRecord.ExceptionAddress
+        address = self.raw.u.Exception.ExceptionRecord.ExceptionAddress
+        if address is None:
+            address = 0
+        return address
 
     def get_exception_information(self, index):
         """
@@ -481,7 +484,10 @@ class ExceptionEvent (Event):
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
             raise IndexError, "Array index out of range: %s" % repr(index)
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return info[index]
+        value = info[index]
+        if value is None:
+            value = 0
+        return value
 
     def get_exception_information_as_list(self):
         """
@@ -489,8 +495,13 @@ class ExceptionEvent (Event):
         @return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
-        return [ info[i] \
-                 for i in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS) ]
+        data = list()
+        for index in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
+            value = info[index]
+            if value is None:
+                value = 0
+            data.append(value)
+        return data
 
     def get_fault_type(self):
         """
@@ -1434,7 +1445,7 @@ class EventDispatcher (object):
         bCallHandler = True
         pre_handler  = None
         post_handler = None
-        eventCode    = event.get_code()
+        eventCode    = event.get_event_code()
 
         # Get the pre and post notification methods for exceptions.
         # If not found, the following steps take care of that.

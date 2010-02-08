@@ -25,7 +25,7 @@ Crash logger
 
    Additional features allow setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
 
-* :download:`crash_logger_report.py <../../tools/crash_logger_report.py>` :
+* :download:`crash_report.py <../../tools/crash_report.py>` :
 
    Shows the contents of the crashes database to standard output.
 

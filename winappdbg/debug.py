@@ -240,12 +240,17 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            traceback.print_exc()
 ##            print
 
-        # Remove the process from the snapshot.
-        # If the user may want to do something with it after detaching, she
-        # could keep a reference to it somewhere else, or a new Process
-        # instance could be created.
+        # Clear and remove the process from the snapshot.
+        # If the user wants to do something with it after detaching
+        # a new Process instance must be created.
         try:
-            self.system._Process_Container__del_process(dwProcessId)
+            self.system.get_process(dwProcessId).clear()
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+        try:
+            # XXX HACK
+            self.system._ProcessContainer__del_process(dwProcessId)
         except Exception:
             if not bIgnoreExceptions:
                 raise
@@ -272,10 +277,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         # more validation is needed here!
 
         # Keep a reference to the process. We'll need it later.
-        aProcess = self.get_process(dwProcessId)
+        aProcess = self.system.get_process(dwProcessId)
 
         # Cleanup all data referring to the process.
-        self.__cleanup_process(dwProcess)
+        self.__cleanup_process(dwProcessId)
 
         # Kill the process.
         try:
@@ -313,10 +318,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         # more validation is needed here!
 
         # Keep a reference to the process. We'll need it later.
-        aProcess = self.get_process(dwProcessId)
+        aProcess = self.system.get_process(dwProcessId)
 
         # Cleanup all data referring to the process.
-        self.__cleanup_process(dwProcess)
+        self.__cleanup_process(dwProcessId)
 
         # Detach from the process.
         # On Windows 2000 and before, kill the process.
@@ -559,6 +564,11 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            win32.DBG_TERMINATE_THREAD            : "DBG_TERMINATE_THREAD",
 ##            win32.DBG_TERMINATE_PROCESS           : "DBG_TERMINATE_PROCESS",
 ##        }.get(dwContinueStatus, hex(dwContinueStatus)))
+
+##        # XXX Just for testing, ignore this...
+##        if hasattr(event, 'is_noncontinuable') and event.is_noncontinuable():
+##            from textio import DebugLog
+##            print DebugLog.log_event(event, "Warning: noncontinuable event!")
 
         # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)

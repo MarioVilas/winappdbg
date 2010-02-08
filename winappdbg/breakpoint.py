@@ -2960,7 +2960,7 @@ class BreakpointContainer (object):
 
         # disable breakpoints first
         # if an error occurs, no breakpoint is erased
-        self.disable_breakpoints_for_process(dwProcessId)
+        self.disable_process_breakpoints(dwProcessId)
 
 ##        # erase hooks
 ##        for address, hook in self.get_process_hooks(dwProcessId):

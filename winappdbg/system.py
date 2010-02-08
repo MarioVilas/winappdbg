@@ -69,16 +69,19 @@ import struct
 ##import weakref
 
 try:
-    from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
+    from distorm3 import Decode, Decode16Bits, Decode32Bits, Decode64Bits
 except ImportError:
-    Decode16Bits = None
-    Decode32Bits = None
-    Decode64Bits = None
-    def Decode(*argv, **argd):
-        "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
-        msg = ("diStorm is not installed or can't be found. Download it from: "
-        "http://code.google.com/p/distorm3")
-        raise NotImplementedError, msg
+    try:
+        from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
+    except ImportError:
+        Decode16Bits = None
+        Decode32Bits = None
+        Decode64Bits = None
+        def Decode(*argv, **argd):
+            "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
+            msg = ("diStorm is not installed or can't be found. Download it from: "
+            "http://code.google.com/p/distorm3")
+            raise NotImplementedError, msg
 
 #==============================================================================
 
@@ -634,6 +637,9 @@ class ThreadContainer (object):
 
 #------------------------------------------------------------------------------
 
+    # XXX TODO
+    # Support for string searches on the window captions.
+
     def get_windows(self):
         """
         @rtype:  list of L{Window}
@@ -984,6 +990,9 @@ class ProcessContainer (object):
         return len(self.__processDict)
 
 #------------------------------------------------------------------------------
+
+    # XXX TODO
+    # Support for string searches on the window captions.
 
     def get_windows(self):
         """
@@ -2114,7 +2123,7 @@ class MemoryOperations (object):
 
 #------------------------------------------------------------------------------
 
-    def malloc(self, dwSize, lpAddress = win32.NULL):
+    def malloc(self, dwSize, lpAddress = None):
         """
         Allocates memory into the address space of the process.
 
@@ -4481,6 +4490,9 @@ class ProcessDebugOperations (object):
              - Size of instruction in bytes.
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
+
+        @raise NotImplementedError:
+            No compatible disassembler was found for the current platform.
         """
         if System.arch not in ('i386', 'amd64'):
             raise NotImplementedError
@@ -4867,21 +4879,43 @@ class ProcessDebugOperations (object):
 # Unlike Process, Thread and Module, there's no container for Window objects.
 # That's because Window objects don't really store any data besides the handle.
 
+# XXX TODO
+# * implement sending fake user input (mouse and keyboard messages)
+# * maybe implement low-level hooks? (they don't require a dll to be injected)
+
+# XXX TODO
+#
+# Will it be possible to implement window hooks too? That requires a DLL to be
+# injected in the target process. Perhaps with CPython it could be done easier,
+# compiling a native extension is the safe bet, but both require having a non
+# pure Python module, which is something I was trying to avoid so far.
+#
+# Another possibility would be to malloc some CC's in the target process and
+# point the hook callback to it. We'd need to have the remote procedure call
+# feature first as (I believe) the hook can't be set remotely in this case.
+
 class Window (object):
     """
     Interface to an open window in the current desktop.
 
     @group Properties:
         hWnd, dwProcessId, dwThreadId,
-        get_handle, get_pid, get_tid, get_process, get_thread,
+        get_handle, get_pid, get_tid,
+        get_process, get_thread,
         set_process, set_thread,
-        get_text, set_text, get_classname
+        get_classname, get_text, set_text, get_placement, set_placement,
+        screen_to_client, client_to_screen
+
+    @group State:
+        is_valid, is_visible, is_enabled, is_maximized, is_minimized, is_child,
+        is_zoomed, is_iconic
 
     @group Navigation:
-        get_parent, get_children, get_root, get_tree
+        get_parent, get_children, get_root, get_tree,
+        get_child_at
 
     @group Instrumentation:
-        enable, disable, show, hide, maximize, minimize, restore, kill
+        enable, disable, show, hide, maximize, minimize, restore, move, kill
 
     @group Low-level access:
         send, post
@@ -4906,7 +4940,7 @@ class Window (object):
 
     def __init__(self, hWnd = None, process = None, thread = None):
         """
-        @type  hWnd: int
+        @type  hWnd: int or L{win32.HWND}
         @param hWnd: Window handle.
 
         @type  process: L{Process}
@@ -4920,6 +4954,14 @@ class Window (object):
         self.dwThreadId  = None
         self.set_process(process)
         self.set_thread(thread)
+
+    @property
+    def _as_parameter_(self):
+        """
+        Compatibility with ctypes.
+        Allows passing transparently a Window object to an API call.
+        """
+        return self.get_handle()
 
     def get_handle(self):
         """
@@ -5060,6 +5102,8 @@ class Window (object):
             window.set_thread( self.get_thread() )
         return window        
 
+#------------------------------------------------------------------------------
+
     def get_classname(self):
         """
         @rtype:  str
@@ -5099,6 +5143,81 @@ class Window (object):
         success = self.send(win32.WM_SETTEXT, len(text), text)
         if success == 0:
             raise ctypes.WinError()
+
+    def get_placement(self):
+        """
+        Retrieve the window placement in the desktop.
+
+        @see: L{set_placement}
+
+        @rtype:  L{win32.WindowPlacement}
+        @return: Window placement in the desktop.
+        """
+        return win32.GetWindowPlacement( self.get_handle() )
+
+    def set_placement(self, placement):
+        """
+        Set the window placement in the desktop.
+
+        @see: L{get_placement}
+
+        @type  placement: L{win32.WindowPlacement}
+        @param placement: Window placement in the desktop.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        win32.SetWindowPlacement( self.get_handle(), placement )
+
+    # XXX TODO
+    # * get_screen_rect, get_client_rect
+    # * properties x, y, width, height
+    # * properties left, top, right, bottom
+
+#------------------------------------------------------------------------------
+
+    def client_to_screen(self, x, y):
+        """
+        Translates window client coordinates to screen coordinates.
+
+        @note: This is a simplified interface to some of the functionality of
+            the L{win32.Point} class.
+
+        @see: {win32.Point.client_to_screen}
+
+        @type  x: int
+        @param x: Horizontal coordinate.
+        @type  y: int
+        @param y: Vertical coordinate.
+
+        @rtype:  tuple( int, int )
+        @return: Translated coordinates in a tuple (x, y).
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return tuple( ClientToScreen( self.get_handle(), (x, y) ) )
+
+    def screen_to_client(self, x, y):
+        """
+        Translates window screen coordinates to client coordinates.
+
+        @note: This is a simplified interface to some of the functionality of
+            the L{win32.Point} class.
+
+        @see: {win32.Point.screen_to_client}
+
+        @type  x: int
+        @param x: Horizontal coordinate.
+        @type  y: int
+        @param y: Vertical coordinate.
+
+        @rtype:  tuple( int, int )
+        @return: Translated coordinates in a tuple (x, y).
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return tuple( ScreenToClient( self.get_handle(), (x, y) ) )
+
+#------------------------------------------------------------------------------
 
     def get_parent(self):
         """
@@ -5151,6 +5270,81 @@ class Window (object):
             return self.__get_window(hPrevWnd)
         return self
 
+    def get_child_at(self, x, y):
+        """
+        Get the child window located at the given coordinates. If no such
+        window exists an exception is raised.
+
+        @see: L{get_children}
+
+        @type  x: int
+        @param x: Horizontal coordinate.
+        @type  y: int
+        @param y: Vertical coordinate.
+
+        @rtype:  L{Window}
+        @return: Child window at the requested position. If no such window
+            exists a C{WindowsError} exception is raised.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        win32.ChildWindowFromPoint( self.get_handle(), (x, y) )
+##        win32.RealChildWindowFromPoint( self.get_handle(), (x, y) )
+
+#------------------------------------------------------------------------------
+
+    def is_valid(self):
+        """
+        @rtype:  bool
+        @return: C{True} if the window handle is still valid.
+        """
+        return win32.IsWindow( self.get_handle() )
+
+    def is_visible(self):
+        """
+        @see: {show}, {hide}
+        @rtype:  bool
+        @return: C{True} if the window is in a visible state.
+        """
+        return win32.IsWindowVisible( self.get_handle() )
+
+    def is_enabled(self):
+        """
+        @see: {enable}, {disable}
+        @rtype:  bool
+        @return: C{True} if the window is in an enabled state.
+        """
+        return win32.IsWindowEnabled( self.get_handle() )
+
+    def is_maximized(self):
+        """
+        @see: L{maximize}
+        @rtype:  bool
+        @return: C{True} if the window is maximized.
+        """
+        return win32.IsZoomed( self.get_handle() )
+
+    def is_minimized(self):
+        """
+        @see: L{minimize}
+        @rtype:  bool
+        @return: C{True} if the window is minimized.
+        """
+        return win32.IsIconic( self.get_handle() )
+
+    def is_child(self):
+        """
+        @see: L{get_parent}
+        @rtype:  bool
+        @return: C{True} if the window is a child window.
+        """
+        return win32.IsChild( self.get_handle() )
+
+    is_zoomed = is_maximized
+    is_iconic = is_minimized
+
+#------------------------------------------------------------------------------
+
     def enable(self):
         """
         Enable the user input for the window.
@@ -5177,6 +5371,9 @@ class Window (object):
 
         @see: L{hide}
 
+        @type  bAsync: bool
+        @param bAsync: Perform the request asynchronously.
+
         @raise WindowsError: An error occured while processing this request.
         """
         if bAsync:
@@ -5189,6 +5386,9 @@ class Window (object):
         Make the window invisible.
 
         @see: L{show}
+
+        @type  bAsync: bool
+        @param bAsync: Perform the request asynchronously.
 
         @raise WindowsError: An error occured while processing this request.
         """
@@ -5203,6 +5403,9 @@ class Window (object):
 
         @see: L{minimize}, L{restore}
 
+        @type  bAsync: bool
+        @param bAsync: Perform the request asynchronously.
+
         @raise WindowsError: An error occured while processing this request.
         """
         if bAsync:
@@ -5215,6 +5418,9 @@ class Window (object):
         Minimize the window.
 
         @see: L{maximize}, L{restore}
+
+        @type  bAsync: bool
+        @param bAsync: Perform the request asynchronously.
 
         @raise WindowsError: An error occured while processing this request.
         """
@@ -5229,6 +5435,9 @@ class Window (object):
 
         @see: L{maximize}, L{minimize}
 
+        @type  bAsync: bool
+        @param bAsync: Perform the request asynchronously.
+
         @raise WindowsError: An error occured while processing this request.
         """
         if bAsync:
@@ -5236,9 +5445,38 @@ class Window (object):
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
 
+    def move(self, x, y, width, height, bRepaint = True):
+        """
+        Moves and/or resizes the window.
+
+        @note: This is request is performed syncronously.
+
+        @type  x: int
+        @param x: New horizontal coordinate.
+
+        @type  y: int
+        @param y: New vertical coordinate.
+
+        @type  width: int
+        @param width: Desired window width.
+
+        @type  height: int
+        @param height: Desired window height.
+
+        @type  bRepaint: bool
+        @param bRepaint: C{True} if the window should be redrawn afterwards.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        # XXX TODO
+        # Make the parameters optional by querying the current position first.
+        win32.MoveWindow(self.get_handle(), x, y, width, height, bRepaint)
+
     def kill(self):
         """
         Signals the program to quit.
+
+        @note: This is an asyncronous request.
 
         @raise WindowsError: An error occured while processing this request.
         """
@@ -5729,7 +5967,7 @@ class Module (SymbolContainer):
                 return None
 
         # A NULL pointer means the function was not found.
-        if address == win32.NULL:
+        if address in (None, 0):
             return None
 
         # Compensate for DLL base relocations locally and remotely.
@@ -6103,6 +6341,9 @@ class Thread (ThreadDebugOperations):
         return win32.GetExitCodeThread(self.get_handle())
 
 #------------------------------------------------------------------------------
+
+    # XXX TODO
+    # Support for string searches on the window captions.
 
     def get_windows(self):
         """
@@ -7100,7 +7341,7 @@ class System (ProcessContainer):
     Contains a snapshot of processes.
 
     @group Instrumentation:
-        find_window
+        find_window, get_window_at, get_desktop_window, get_foreground_window
 
     @group Global settings:
         arch, bits, os, wow64, pageSize,
@@ -7151,7 +7392,7 @@ class System (ProcessContainer):
         given class name and/or window name. If neither are provided any
         top-level window will match.
 
-        @see: L{win32.FindWindow}
+        @see: L{get_window_at}
 
         @type  className: str
         @param className: (Optional) Class name of the window to find.
@@ -7173,6 +7414,45 @@ class System (ProcessContainer):
         hWnd = win32.FindWindow(className, windowName)
         if hWnd:
             return Window(hWnd)
+
+    @staticmethod
+    def get_window_at(x, y):
+        """
+        Get the window located at the given coordinates in the desktop.
+        If no such window exists an exception is raised.
+
+        @see: L{find_window}
+
+        @type  x: int
+        @param x: Horizontal coordinate.
+        @type  y: int
+        @param y: Vertical coordinate.
+
+        @rtype:  L{Window}
+        @return: Window at the requested position. If no such window
+            exists a C{WindowsError} exception is raised.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return Window( win32.WindowFromPoint( (x, y) ) )
+
+    @staticmethod
+    def get_desktop_window():
+        """
+        @rtype:  L{Window}
+        @return: Returns the desktop window.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return Window( win32.GetDesktopWindow() )
+
+    @staticmethod
+    def get_foreground_window():
+        """
+        @rtype:  L{Window}
+        @return: Returns the foreground window.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return Window( win32.GetForegroundWindow() )
 
 #------------------------------------------------------------------------------
 
