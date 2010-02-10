@@ -537,6 +537,8 @@ class CrashTable (ContainerBase):
     # add support for deleting crashes
     # add support for batch operations on crashes
     #   (maybe with user-defined sql queries?)
+    # add constraints to foreign keys
+    #   (need to check compatibility issues first)
 
     __table_definition = (
         "CREATE TABLE Crashes ("
