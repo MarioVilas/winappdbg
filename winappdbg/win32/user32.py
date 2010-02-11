@@ -75,6 +75,13 @@ WNDENUMPROC = WINFUNCTYPE(BOOL, HWND, PVOID)
 
 #--- Constants ----------------------------------------------------------------
 
+HWND_DESKTOP    = 0
+HWND_TOP        = 1
+HWND_BOTTOM     = 1
+HWND_TOPMOST    = -1
+HWND_NOTOPMOST  = -2
+HWND_MESSAGE    = -3
+
 # GetWindowLong / SetWindowLong / GetWindowLongPtr / SetWindowLongPtr
 GWL_WNDPROC                          = -4
 GWL_HINSTANCE                        = -6

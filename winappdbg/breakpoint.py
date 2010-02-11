@@ -1725,14 +1725,16 @@ class BreakpointContainer (object):
 
         # Cleanup running breakpoints
         try:
-            self.__cleanup_breakpoint( event, self.__runningBP[tid] )
+            for bp in self.__runningBP[tid]:
+                self.__cleanup_breakpoint( event, bp )
             del self.__runningBP[tid]
         except KeyError:
             pass
 
         # Cleanup hardware breakpoints
         try:
-            self.__cleanup_breakpoint( event, self.__hardwareBP[tid] )
+            for bp in self.__hardwareBP[tid]:
+                self.__cleanup_breakpoint( event, bp )
             del self.__hardwareBP[tid]
         except KeyError:
             pass
