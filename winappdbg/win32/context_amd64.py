@@ -27,8 +27,6 @@
 
 """
 CONTEXT structure for amd64.
-
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
 
 __revision__ = "$Id$"

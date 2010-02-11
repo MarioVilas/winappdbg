@@ -28,8 +28,6 @@
 """
 Debugging module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
-
 @group Debugging:
     Debug
 """
@@ -68,8 +66,6 @@ import ctypes
 class Debug (EventDispatcher, BreakpointContainer):
     """
     The main debugger class.
-
-    @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/Debugging}
 
     @group Debugging:
         attach, detach, detach_from_all, execv, execl, clear,

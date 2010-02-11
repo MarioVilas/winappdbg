@@ -27,8 +27,6 @@
 
 """
 PEB and TEB structures, constants and data types.
-
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
 
 __revision__ = "$Id$"

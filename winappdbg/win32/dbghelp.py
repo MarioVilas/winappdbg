@@ -27,8 +27,6 @@
 
 """
 Wrapper for dbghelp.dll in ctypes.
-
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Win32APIWrappers}
 """
 
 __revision__ = "$Id$"

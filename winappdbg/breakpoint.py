@@ -28,8 +28,6 @@
 """
 Breakpoints module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/wiki/HowBreakpointsWork}
-
 @group Breakpoints:
     Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint,
     BufferWatch, Hook, ApiHook

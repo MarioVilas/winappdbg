@@ -28,8 +28,6 @@
 """
 Instrumentation module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Instrumentation}
-
 @group Instrumentation:
     System, Process, Thread, Module, Window
 
@@ -2989,9 +2987,6 @@ class SymbolOperations (object):
         with common modules. They are not meant to be perfectly unique, and
         some errors may occur when multiple modules with the same name are
         loaded, or when module filenames can't be retrieved.
-
-        Read more on labels here:
-        U{http://apps.sourceforge.net/trac/winappdbg/wiki/HowLabelsWork}
 
     @group Labels:
         parse_label,

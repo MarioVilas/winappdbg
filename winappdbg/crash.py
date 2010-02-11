@@ -1576,8 +1576,6 @@ class Crash (object):
         caused by the same software error. Ideally it should be treated as an
         opaque object.
 
-        @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/CrashKey}
-
         @rtype:  (opaque)
         @return: Crash unique key.
         """
