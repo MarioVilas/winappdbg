@@ -48,9 +48,9 @@ A *Process* object allows you to manipulate the process memory (read, write, all
 Example #3: enumerating threads and DLL modules in a process
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/03_show_threads.py>`
+:download:`Download <../../examples/instrumentation/03_show_threads_and_modules.py>`
 
-.. literalinclude:: ../../examples/instrumentation/03_show_threads.py
+.. literalinclude:: ../../examples/instrumentation/03_show_threads_and_modules.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
