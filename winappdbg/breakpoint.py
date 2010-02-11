@@ -3663,7 +3663,7 @@ class BreakpointContainer (object):
 
             page_addr = base
             pageSize  = System.pageSize
-            while address < limit:
+            while page_addr < limit:
 
                 # If a breakpoints exists, reuse it.
                 if self.has_page_breakpoint(pid, page_addr):

@@ -37,7 +37,7 @@ def my_event_handler( event ):
     name = event.get_event_name()
 
     # Get the event code
-    code = event.get_code()
+    code = event.get_event_code()
 
     # Get the process ID where the event occured
     pid = event.get_pid()

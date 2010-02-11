@@ -6295,6 +6295,10 @@ class Thread (ThreadDebugOperations):
 ##                raise           # XXX DEBUG
                 pass
 
+    # XXX TODO
+    # suspend() and resume() should have a counter of how many times a thread
+    # was suspended, so on debugger exit they could (optionally!) be restored
+
     def suspend(self):
         """
         Suspends the thread execution.
