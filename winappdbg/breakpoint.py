@@ -1259,8 +1259,18 @@ class Hook (object):
         C{False} otherwise.
     """
 
-    # Set to False if using within VirtualBox.
-    useHardwareBreakpoints = True
+    # XXX FIXME
+    #
+    # Hardware breakpoints don't work correctly (or al all) in old VirtualBox
+    # versions (3.0 and below).
+    #
+    # Maybe there should be a way to autodetect the buggy VirtualBox versions
+    # and tell Hook objects not to use hardware breakpoints?
+    #
+    # For now the workaround is to manually set this variable to True when
+    # WinAppDbg is installed on a physical machine.
+    #
+    useHardwareBreakpoints = False
 
     def __init__(self, preCB = None, postCB = None, paramCount = 0):
         """
