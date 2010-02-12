@@ -980,10 +980,10 @@ class Hook (object):
     # Maybe there should be a way to autodetect the buggy VirtualBox versions
     # and tell Hook objects not to use hardware breakpoints?
     #
-    # For now the workaround is to manually set this variable to False when
-    # WinAppDbg is installed in an old virtual machine.
+    # For now the workaround is to manually set this variable to True when
+    # WinAppDbg is installed on a physical machine.
     #
-    useHardwareBreakpoints = True
+    useHardwareBreakpoints = False
 
     def __init__(self, preCB = None, postCB = None, paramCount = 0):
         """
