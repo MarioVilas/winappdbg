@@ -54,9 +54,9 @@ Dependencies
 
 Naturally you need the Python interpreter. There are two basic flavors, just pick your favorite:
 
-* The official `Python <http://www.python.org/download/>`_ interpreter (free, open source):
+* The **official** `Python <http://www.python.org/download/>`_ interpreter (free, open source). This is the preferred choice.
 
-* ActiveState `ActivePython <http://www.activestate.com/store/activepython/download/>`_ (free, closed source):
+* ActiveState `ActivePython <http://www.activestate.com/store/activepython/download/>`_ (free, closed source). It should work but in 64 bit Windows the *ctypes* module is missing and you'll have to install it manually.
 
 If you're still using Python 2.4 you'll need to install some additional modules:
 
