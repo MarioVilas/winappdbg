@@ -69,7 +69,6 @@ import traceback
 
 # lazy imports
 anydbm = None
-sqlite = None
 
 #==============================================================================
 
@@ -134,7 +133,7 @@ class SQLClient(object):
         @param location: Database location.
             It can be an URL or a local filename.
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         # Local filenames default to SQLite.
         if not is_url(location):
@@ -205,7 +204,7 @@ class SQLClient(object):
         @type  filename: str
         @param filename: Local database file.
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         opener = getattr(cls, '_open_%s' % dbtype, None)
         if opener is None:
@@ -223,7 +222,7 @@ class SQLClient(object):
         @param filename: (Optional) Local database file.
             If C{None} or C{":memory:"} a memory database will be created.
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         try:
             import sqlite3 as dbapi2
@@ -241,7 +240,7 @@ class SQLClient(object):
         @type  url: str
         @param url: Database connection URL.
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         target = cls.parse_db_url(url)
         return cls._connect(target)
@@ -257,7 +256,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         protocol = target.scheme
         if '.' in protocol:
@@ -272,7 +271,7 @@ class SQLClient(object):
         try:
             return connector(target)
         except ImportError:
-            msg = "Missing database driver for protocol: %s" % protocol
+            msg = "Missing database adapter for protocol: %s" % protocol
             raise NotImplementedError, msg
 
     @classmethod
@@ -286,7 +285,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         return cls._connect_oracle(target)
 
@@ -301,7 +300,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         import cxOracle
         port = target.port
@@ -324,7 +323,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         import MySQLdb
         return MySQLdb.connect( host    = target.netloc,
@@ -343,7 +342,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         import pymssql
         return pymssql.connect( host     = target.netloc,
@@ -362,7 +361,7 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
         return cls._connect_pgsql(target)
 
@@ -377,8 +376,9 @@ class SQLClient(object):
         @param target: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
 
-        @return: Connection object supporting the dbapi2 interface.
+        @return: Connection object supporting the DBAPI-2.0 interface.
         """
+        # XXX TODO: For python 3: import postgresql as dbapi2
         try:
             import psycopg2 as dbapi2
         except ImportError:
@@ -980,7 +980,7 @@ class CrashTable (ContainerBase):
         self.__dbtype   = SQLClient.get_db_type(location)
         self.__db       = SQLClient(location)
 
-        # Get a dbapi2 cursor.
+        # Get a DBAPI-2.0 cursor.
         self.__cursor   = self.__db.cursor()
 
         # Create the tables if needed.
