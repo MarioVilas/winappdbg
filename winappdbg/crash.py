@@ -110,16 +110,57 @@ class SQLClient(object):
     """
     SQL client connector for WinAppDbg.
 
-    Currently supported databases are:
+    Open local databases with the L{open} method.
+    Connect to remote databases with the L{connect} method.
+
+    Currently supported local databases are:
+     - SQLite (C{'sqlite://'}) using the C{sqlite3} or C{pysqlite2} module
+
+    Currently supported remote databases are:
      - Microsoft SQL (C{"mssql://"}) using the C{pymssql} module
      - MySQL (C{"mysql://"}) using the C{MySQLdb} module
      - Oracle (C{"oracle://"}) using the C{cxOracle} module
      - PostgreSQL (C{"pgsql://"}) using the C{psycopg2}, C{pyPgSQL} or C{pgdb} module
-     - SQLite (C{"sqlite://"}) using the C{sqlite3} module
     """
 
+    @classmethod
+    def __new__(cls, location):
+        """
+        Connect to a local or remote database.
+
+        @note: Local filenames are assumed to be SQLite databases.
+
+        @type  location: str
+        @param location: Database location.
+            It can be an URL or a local filename.
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
+        # Local filenames default to SQLite.
+        if not is_url(location):
+            return cls.open('sqlite', location)
+        target = cls.parse_db_url(location)
+        if target.host is None:
+            dbtype = cls.get_db_type(location)
+            return cls.open(dbtype, target.path)
+##        return cls.connect(location)
+        return cls._connect(target)
+
     @staticmethod
-    def get_db_type(url):
+    def is_url(location):
+        """
+        @type  location: str
+        @param location: Database location.
+
+        @rtype:  bool
+        @return: C{True} if the database location is an URL, or C{False} if
+            it's a local filename.
+        """
+        # crude URL detection
+        return location is None or not re.match('[^:]+://*', location)
+
+    @classmethod
+    def get_db_type(cls, url):
         """
         @type  url: str
         @param url: Database connection URL.
@@ -154,6 +195,45 @@ class SQLClient(object):
         return target
 
     @classmethod
+    def open(cls, dbtype, filename):
+        """
+        Open a local database file.
+
+        @type  dbtype: str
+        @param dbtype: Database type.
+
+        @type  filename: str
+        @param filename: Local database file.
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
+        opener = getattr(cls, '_open_%s' % dbtype, None)
+        if opener is None:
+            raise ValueError, "Invalid database type: %s" % dbtype
+        return opener(filename)
+
+    @classmethod
+    def _open_sqlite(cls, filename = None):
+        """
+        Open a local SQLite database file.
+
+        @warning: This is a private method. Use L{open} instead.
+
+        @type  filename: str
+        @param filename: (Optional) Local database file.
+            If C{None} or C{":memory:"} a memory database will be created.
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
+        try:
+            import sqlite3 as dbapi2
+        except ImportError:
+            from pysqlite2 import dbapi2
+        if filename is None:
+            filename = ':memory:'
+        return dbapi2.connect(filename)
+
+    @classmethod
     def connect(cls, url):
         """
         Connect to the database using the given URL.
@@ -164,6 +244,21 @@ class SQLClient(object):
         @return: Connection object supporting the dbapi2 interface.
         """
         target = cls.parse_db_url(url)
+        return cls._connect(target)
+
+    @classmethod
+    def _connect(cls, target):
+        """
+        Connect to the database using the given URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         protocol = target.scheme
         if '.' in protocol:
             raise ValueError, "Invalid database protocol: %s" % protocol
@@ -288,9 +383,12 @@ class SQLClient(object):
             import psycopg2 as dbapi2
         except ImportError:
             try:
-                import pyPgSQL as dbapi2
+                import psycopg as dbapi2
             except ImportError:
-                import pgdb as dbapi2
+                try:
+                    import pyPgSQL as dbapi2
+                except ImportError:
+                    import pgdb as dbapi2
         return dbapi2.connect(  host     = target.netloc,
                                 user     = target.username,
                                 password = target.password,
@@ -855,6 +953,8 @@ class CrashTable (ContainerBase):
 
     def __init__(self, location = None, allowRepeatedKeys = True):
         """
+        @see: See L{SQLClient} for a list of supported SQL databases.
+
         @type  location: str
         @param location: (Optional) Location of the crash database.
             If no location is specified, the container is volatile.
@@ -862,12 +962,7 @@ class CrashTable (ContainerBase):
             If the location is a filename, it's an SQLite database file.
 
             If the location is an URL, it's a remote database of any of the
-            supported types. Currently the following databases are supported:
-
-             - C{mysql://} (using the C{MySQLdb} module)
-             - C{mssql://} (using the C{pymssql} module)
-             - C{oracle://} (using the C{cxOracle} module)
-             - C{pgsql://} (using the C{psycopg2}, C{pgdb} or C{pyPgSQL} module)
+            supported types.
 
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
@@ -880,28 +975,12 @@ class CrashTable (ContainerBase):
             previously existing object will be ignored.
         """
 
-        # Local filenames are opened with SQLite.
-        if location is None or \
-                    not re.match('[^:]+://*', location): # crude URL detection
-            global sqlite
-            if sqlite is None:
-                try:
-                    import sqlite3 as sqlite
-                except ImportError:
-                    from pysqlite2 import dbapi2 as sqlite
-            if location is None:
-                location = ':memory:'
-            self.__location = location
-            self.__dbtype   = 'sqlite'
-            self.__db       = sqlite.connect(location)
+        # Connect to the SQL database.
+        self.__location = location
+        self.__dbtype   = SQLClient.get_db_type(location)
+        self.__db       = SQLClient(location)
 
-        # URLs are connected to using the appropriate driver.
-        else:
-            self.__location = location
-            self.__dbtype   = SQLClient.get_db_type(location)
-            self.__db       = SQLClient.connect(location)
-
-        # Get a DB-API cursor.
+        # Get a dbapi2 cursor.
         self.__cursor   = self.__db.cursor()
 
         # Create the tables if needed.
