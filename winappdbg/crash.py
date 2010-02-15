@@ -169,7 +169,10 @@ class SQLClient(object):
             raise ValueError, "Invalid database protocol: %s" % protocol
         connector = getattr(cls, '_connect_%s' % protocol, None)
         if connector is None:
-            msg = "Unknown database protocol: %s" % protocol
+            if protocol:
+                msg = "Unknown database protocol: %s" % protocol
+            else:
+                msg = "Bad connection URL: %s" % url
             raise NotImplementedError, msg
         try:
             return connector(target)
