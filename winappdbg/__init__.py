@@ -44,7 +44,8 @@ Blog:    U{http://breakingcode.wordpress.com}
 
 @group Crash reporting:
     Crash, CrashDump, CrashContainer, CrashTable,
-    VolatileCrashContainer, DummyCrashContainer
+    VolatileCrashContainer, DummyCrashContainer,
+    SQLClient
 
 @group Debug events:
     Event,
@@ -103,6 +104,7 @@ __all__ =   [
                 'CrashTable',
                 'VolatileCrashContainer',
                 'DummyCrashContainer',
+                'SQLClient',
 
                 # from debug import *
                 'Debug',

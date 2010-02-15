@@ -30,7 +30,8 @@ Crash logging module.
 
 @group Crash reporting:
     Crash, CrashContainer, CrashTable,
-    VolatileCrashContainer, DummyCrashContainer
+    VolatileCrashContainer, DummyCrashContainer,
+    SQLClient
 """
 
 __revision__ = "$Id$"
@@ -50,6 +51,9 @@ __all__ =   [
 
                 # Fake Crash container.
                 'DummyCrashContainer',
+
+                # SQL client connector.
+                'SQLClient',
             ]
 
 from system import MemoryAddresses, PathOperations
@@ -103,13 +107,40 @@ except ImportError:
 #==============================================================================
 
 class SQLClient(object):
+    """
+    SQL client connector for WinAppDbg.
+
+    Currently supported databases are:
+     - Microsoft SQL (C{"mssql://"}) using the C{pymssql} module
+     - MySQL (C{"mysql://"}) using the C{MySQLdb} module
+     - Oracle (C{"oracle://"}) using the C{cxOracle} module
+     - PostgreSQL (C{"pgsql://"}) using the C{psycopg2}, C{pyPgSQL} or C{pgdb} module
+     - SQLite (C{"sqlite://"}) using the C{sqlite3} module
+    """
 
     @staticmethod
     def get_db_type(url):
+        """
+        @type  url: str
+        @param url: Database connection URL.
+
+        @rtype:  str
+        @return: Database type.
+        """
         return urlparse.urlparse(url).scheme
 
     @staticmethod
     def parse_db_url(url):
+        """
+        Parse the database connection URL.
+
+        @type  url: str
+        @param url: Database connection URL.
+
+        @rtype:  urlparse.ParseResult
+        @return: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+        """
         # Force urlparse to treat our custom schemes like http,
         # but sqlite: should be parsed like file://
         scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
@@ -124,6 +155,14 @@ class SQLClient(object):
 
     @classmethod
     def connect(cls, url):
+        """
+        Connect to the database using the given URL.
+
+        @type  url: str
+        @param url: Database connection URL.
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         target = cls.parse_db_url(url)
         protocol = target.scheme
         if '.' in protocol:
@@ -140,10 +179,32 @@ class SQLClient(object):
 
     @classmethod
     def _connect_osql(cls, target):
+        """
+        Connect to an Oracle database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         return cls._connect_oracle(target)
 
     @classmethod
     def _connect_oracle(cls, target):
+        """
+        Connect to an Oracle database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         import cxOracle
         port = target.port
         if port:
@@ -156,6 +217,17 @@ class SQLClient(object):
 
     @classmethod
     def _connect_mysql(cls, target):
+        """
+        Connect to a MySQL database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         import MySQLdb
         return MySQLdb.connect( host    = target.netloc,
                                 user    = target.username,
@@ -164,6 +236,17 @@ class SQLClient(object):
 
     @classmethod
     def _connect_mssql(cls, target):
+        """
+        Connect to a Microsoft SQL database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         import pymssql
         return pymssql.connect( host     = target.netloc,
                                 user     = target.username,
@@ -172,10 +255,32 @@ class SQLClient(object):
 
     @classmethod
     def _connect_pq(cls, target):
+        """
+        Connect to a PostgreSQL database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         return cls._connect_pgsql(target)
 
     @classmethod
     def _connect_pgsql(cls, target):
+        """
+        Connect to a PostgreSQL database using the given parsed URL.
+
+        @warning: This is a private method. Use L{connect} instead.
+
+        @type  target: urlparse.ParseResult
+        @param target: Parsed URL. Equivalent to the following tuple:
+            I{(scheme, netloc, path, params, query, fragment)}
+
+        @return: Connection object supporting the dbapi2 interface.
+        """
         try:
             import psycopg2 as dbapi2
         except ImportError:
