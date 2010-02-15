@@ -1420,7 +1420,16 @@ class EventDispatcher (object):
             of a subclass of L{EventHandler} here.
         """
         if eventHandler is not None and not callable(eventHandler):
-            raise TypeError, "Invalid event handler"
+            raise TypeError, "Event handler must be a callable object"
+        try:
+            if issubclass(eventHandler):
+                classname = str(eventHandler)
+                msg  = "Event handler must be an instance of class %s"
+                msg += "rather than the %s class itself. Missing brackets?"
+                msg  = msg % (classname, classname)
+                raise TypeError, msg
+        except TypeError:
+            pass
         self.__eventHandler = eventHandler
 
     def dispatch(self, event):
