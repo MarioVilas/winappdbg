@@ -58,10 +58,8 @@ from sql import SQLClient
 import win32
 
 import os
-import re
 import time
 import zlib
-import urlparse
 import traceback
 
 # lazy imports

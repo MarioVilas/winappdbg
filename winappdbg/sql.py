@@ -35,6 +35,11 @@ __revision__ = "$Id$"
 
 __all__ = [ 'SQLClient' ]
 
+import re
+import urlparse
+
+#==============================================================================
+
 class SQLClient(object):
     """
     SQL client connector for WinAppDbg.
@@ -52,8 +57,7 @@ class SQLClient(object):
      - PostgreSQL (C{"pgsql://"}) using the C{psycopg2}, C{pyPgSQL} or C{pgdb} module
     """
 
-    @classmethod
-    def __new__(cls, location):
+    def __new__(cls, location = None):
         """
         Connect to a local or remote database.
 
@@ -66,13 +70,11 @@ class SQLClient(object):
         @return: Connection object supporting the DBAPI-2.0 interface.
         """
         # Local filenames default to SQLite.
-        if not is_url(location):
+        if not cls.is_url(location):
             return cls.open('sqlite', location)
         target = cls.parse_db_url(location)
-        if target.host is None:
-            dbtype = cls.get_db_type(location)
-            return cls.open(dbtype, target.path)
-##        return cls.connect(location)
+        if not target.hostname:
+            return cls.open(target.scheme, target.path)
         return cls._connect(target)
 
     @staticmethod
@@ -86,7 +88,7 @@ class SQLClient(object):
             it's a local filename.
         """
         # crude URL detection
-        return location is None or not re.match('[^:]+://*', location)
+        return location is not None and re.match('[^:]+://*', location)
 
     @classmethod
     def get_db_type(cls, url):
@@ -111,17 +113,18 @@ class SQLClient(object):
         @return: Parsed URL. Equivalent to the following tuple:
             I{(scheme, netloc, path, params, query, fragment)}
         """
-        # Force urlparse to treat our custom schemes like http,
-        # but sqlite: should be parsed like file://
+        # SQLite URLs are parsed like file://
+        # All other schemes are parsed like http://
+        # XXX FIXME maybe urlparse isn't the best choice here :P
         scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
         if scheme == 'sqlite':
-            fake_scheme = 'file'
-        else:
-            fake_scheme = 'http'
-        fake_url = urlparse.urlunparse( (fake_scheme, netloc, path, params, query, fragment) )
+            return urlparse.ParseResult(scheme, '', url[ len(scheme) + 3 : ], '', '', '')
+        fake_url = urlparse.urlunparse( ('http', netloc, path, params, query, fragment) )
         _, netloc, path, params, query, fragment = urlparse.urlparse(fake_url)
-        target = urlparse.ParseResult(scheme, netloc, path, params, query, fragment)
-        return target
+        if params or query or fragment:
+            msg = "Bad connection URL: %s" % url
+            raise ValueError, msg
+        return urlparse.ParseResult(scheme, netloc, path, params, query, fragment)
 
     @classmethod
     def open(cls, dbtype, filename):
@@ -195,9 +198,9 @@ class SQLClient(object):
         if connector is None:
             if protocol:
                 msg = "Unknown database protocol: %s" % protocol
-            else:
-                msg = "Bad connection URL: %s" % url
-            raise NotImplementedError, msg
+                raise NotImplementedError, msg
+            msg = "Bad connection URL: %s" % url
+            raise ValueError, msg
         try:
             return connector(target)
         except ImportError:
