@@ -70,8 +70,8 @@ class LoggingEventHandler(EventHandler):
         # Copy the command line used in this fuzzing session.
         self.commandLine = commandLine
 
-	# Create the logger object.
-	self.logger = Logger(options.logfile, options.verbose)
+        # Create the logger object.
+        self.logger = Logger(options.logfile, options.verbose)
 
         # Create the crash container.
         if not options.nodb:
@@ -828,7 +828,10 @@ class CrashLogger (object):
 
         # Create the event handler
         oldCrashCount = 0
-        eventHandler  = LoggingEventHandler(options, original_args)
+        try:
+            eventHandler  = LoggingEventHandler(options, original_args)
+        except Exception, e:
+            parser.error("runtime error: %s" % str(e))
         eventHandler.logger.log_text("Crash logger started, %s" % time.ctime())
         eventHandler.logger.log_text("Command line options: %s" % original_args)
 
@@ -845,6 +848,10 @@ class CrashLogger (object):
                 debug.execv(argv, bConsole = True,  bFollow = options.follow)
             for argv in options.windowed:
                 debug.execv(argv, bConsole = False, bFollow = options.follow)
+
+            # XXX TODO
+            # Remove the background thread, the timeout can be implemented
+            # better without it.
 
             # Main debugging loop
             if options.time_limit:
