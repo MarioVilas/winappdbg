@@ -43,9 +43,8 @@ Blog:    U{http://breakingcode.wordpress.com}
     System, Process, Thread, Module, Window
 
 @group Crash reporting:
-    Crash, CrashDump, CrashContainer, CrashTable,
-    VolatileCrashContainer, DummyCrashContainer,
-    SQLClient
+    Crash, CrashDump, CrashContainer, CrashTable, CrashTableODBC,
+    VolatileCrashContainer, DummyCrashContainer
 
 @group Debug events:
     Event,
@@ -102,9 +101,9 @@ __all__ =   [
                 'Crash',
                 'CrashContainer',
                 'CrashTable',
+                'CrashTableODBC',
                 'VolatileCrashContainer',
                 'DummyCrashContainer',
-                'SQLClient',
 
                 # from debug import *
                 'Debug',
