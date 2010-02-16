@@ -80,6 +80,9 @@ class LoggingEventHandler(EventHandler):
             elif options.sqlite:
                 self.knownCrashes = CrashTable( options.sqlite,
                                     allowRepeatedKeys = options.duplicates )
+            elif options.odbc:
+                self.knownCrashes = CrashTableODBC( options.odbc,
+                                    allowRepeatedKeys = options.duplicates )
             else:
                 self.knownCrashes = DummyCrashContainer( \
                                     allowRepeatedKeys = options.duplicates )
@@ -629,6 +632,8 @@ class CrashLogger (object):
                           help="Save crash dumps to this DBM database")
         output.add_option("--sqlite", metavar="FILE",
                           help="Save crash dumps to this SQLite database")
+        output.add_option("--odbc", metavar="CONNSTR",
+                          help="Save crash dumps to an SQL database using this connection string")
         output.add_option("-f", "--file", metavar="FILE", dest="dbm",
                           help="Same as --dbm, deprecated")
         parser.add_option_group(output)
@@ -647,6 +652,7 @@ class CrashLogger (object):
             nodb        = False,
             dbm         = None,
             sqlite      = None,
+            odbc        = None,
             autodetach  = True,
             follow      = True,
             hostile     = False,
@@ -673,7 +679,7 @@ class CrashLogger (object):
 
         # Warn or fail about inconsistent use of output switches
         if options.nodb:
-            if options.dbm or options.sqlite:
+            if options.dbm or options.sqlite or options.odbc:
                 print "Warning: strange use of output switches"
                 print "  No database will be generated. Are you sure this is what you wanted?"
                 print
@@ -693,8 +699,10 @@ class CrashLogger (object):
                     msg  = "inconsistent use of --allow-duplicates: "
                     msg += "DBM databases do not allow duplicate entries with the same key"
                     parser.error(msg)
-            elif options.sqlite:
+            elif options.sqlite or options.odbc:
                 parser.error("cannot generate more than one database per session")
+        elif options.sqlite and options.odbc:
+            parser.error("cannot generate more than one database per session")
 
         # Warn about inconsistent use of --time-limit
         if options.time_limit and options.autodetach \
