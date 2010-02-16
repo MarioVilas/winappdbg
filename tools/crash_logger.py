@@ -823,75 +823,86 @@ class CrashLogger (object):
     # TODO
     # * Create a new crash dump file for each debugged executable
     def run(self, args):
-        original_args = System.argv_to_cmdline(args)
-        (parser, options, args) = self.parse_cmdline(args)
-
-        # Create the event handler
-        oldCrashCount = 0
         try:
-            eventHandler  = LoggingEventHandler(options, original_args)
+            original_args = System.argv_to_cmdline(args)
+            (parser, options, args) = self.parse_cmdline(args)
         except Exception, e:
-            parser.error("runtime error: %s" % str(e))
-        eventHandler.logger.log_text("Crash logger started, %s" % time.ctime())
-        eventHandler.logger.log_text("Command line options: %s" % original_args)
-
-        # Create the debug object
-        debug = Debug(eventHandler,
-                        bKillOnExit  = not options.autodetach,
-                        bHostileCode = options.hostile)
+            print "Runtime error: %s" % str(e)
+            return
         try:
 
-            # Attach to the targets
-            for pid in options.attach:
-                debug.attach(pid)
-            for argv in options.console:
-                debug.execv(argv, bConsole = True,  bFollow = options.follow)
-            for argv in options.windowed:
-                debug.execv(argv, bConsole = False, bFollow = options.follow)
+            # Create the event handler
+            oldCrashCount = 0
+            eventHandler  = LoggingEventHandler(options, original_args)
+            eventHandler.logger.log_text("Crash logger started, %s" % time.ctime())
+            eventHandler.logger.log_text("Command line options: %s" % original_args)
 
-            # XXX TODO
-            # Remove the background thread, the timeout can be implemented
-            # better without it.
+            # Create the debug object
+            debug = Debug(eventHandler,
+                            bKillOnExit  = not options.autodetach,
+                            bHostileCode = options.hostile)
+            try:
 
-            # Main debugging loop
-            if options.time_limit:
-                timer = threading.Timer(options.time_limit, self.timeoutReached)
-                timer.start()
-                eventHandler.logger.log_text("Started timer for %s seconds" % options.time_limit)
-            while debug.get_debugee_count() > 0:
-                while not self.timedOut:
-                    try:
-                        event = debug.wait(100)
-                        break
-                    except WindowsError, e:
-                        if win32.winerror(e) not in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
+                # Attach to the targets
+                for pid in options.attach:
+                    debug.attach(pid)
+                for argv in options.console:
+                    debug.execv(argv, bConsole = True,  bFollow = options.follow)
+                for argv in options.windowed:
+                    debug.execv(argv, bConsole = False, bFollow = options.follow)
+
+                # XXX TODO
+                # Remove the background thread, the timeout can be implemented
+                # better without it.
+
+                # Main debugging loop
+                if options.time_limit:
+                    timer = threading.Timer(options.time_limit, self.timeoutReached)
+                    timer.start()
+                    eventHandler.logger.log_text("Started timer for %s seconds" % options.time_limit)
+                while debug.get_debugee_count() > 0:
+                    while not self.timedOut:
+                        try:
+                            event = debug.wait(100)
+                            break
+                        except WindowsError, e:
+                            if win32.winerror(e) not in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
+                                eventHandler.logger.log_exc()
+                                raise   # don't ignore this error
+                        except Exception:
                             eventHandler.logger.log_exc()
                             raise   # don't ignore this error
+                    if self.timedOut:
+                        eventHandler.logger.log_text("Execution time limit reached")
+                        break
+                    try:
+                        try:
+                            debug.dispatch(event)
+                        finally:
+                            debug.cont(event)
                     except Exception:
                         eventHandler.logger.log_exc()
-                        raise   # don't ignore this error
-                if self.timedOut:
-                    eventHandler.logger.log_text("Execution time limit reached")
-                    break
+                        if not options.ignore_errors:
+                            raise
+            finally:
                 try:
                     try:
-                        debug.dispatch(event)
+                        if options.time_limit:
+                            timer.cancel()
                     finally:
-                        debug.cont(event)
-                except Exception:
-                    eventHandler.logger.log_exc()
-                    if not options.ignore_errors:
-                        raise
-        finally:
-            try:
-                try:
-                    if options.time_limit:
-                        timer.cancel()
+                        debug.stop(bIgnoreExceptions = options.ignore_errors)
                 finally:
-                    debug.stop(bIgnoreExceptions = options.ignore_errors)
-            finally:
-                if options.verbose:
-                    eventHandler.logger.log_text("Crash logger stopped, %s" % time.ctime())
+                    if options.verbose:
+                        eventHandler.logger.log_text("Crash logger stopped, %s" % time.ctime())
+
+        except Exception, e:
+            msg = "runtime error: %s" % str(e)
+            try:
+                eventHandler.logger.log_text(msg)
+            except Exception:
+                pass
+            parser.error(msg)
+            return
 
     # Callback to parse -c and -w command line switches
     @staticmethod
@@ -943,7 +954,10 @@ class CrashLogger (object):
         destination.append(value)
 
 def main(argv):
-    return CrashLogger().run(argv)
+    try:
+        return CrashLogger().run(argv)
+    except KeyboardInterrupt:
+        print "Interrupted by the user!"
 
 if __name__ == '__main__':
     try:
