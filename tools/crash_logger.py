@@ -45,6 +45,16 @@ import optparse
 import threading
 import traceback
 
+# XXX TODO
+# Use the "signal" module to avoid having to deal with unexpected
+# KeyboardInterrupt exceptions everywhere. Ideally there should be a way to
+# implement some form of "critical sections" (I'm using the term loosely here,
+# meaning "sections that can't be interrupted by the user"), something like
+# this: a global flag to enable and disable raising KeyboardInterrupt, and a
+# couple functions to set it. The function that enables back KeyboardInterrupt
+# should check for a queued interruption request. Some experimenting is needed
+# to see how well this would behave on a Windows environment.
+
 #==============================================================================
 
 # XXX TODO
