@@ -29,32 +29,36 @@
 Crash logging module.
 
 @group Crash reporting:
-    Crash, CrashContainer, CrashTable,
+    Crash, CrashContainer, CrashTable, CrashTableODBC,
     VolatileCrashContainer, DummyCrashContainer
 """
 
 __revision__ = "$Id$"
 
-__all__ =   [
-                # Object that represents a crash in the debugee.
-                'Crash',
+__all__ = [
 
-                # Container that can store Crash objects in a DBM database.
-                'CrashContainer',
+    # Object that represents a crash in the debugee.
+    'Crash',
 
-                # Container that can store Crash objects in a SQL database.
-                'CrashTable',
+    # Container that can store Crash objects in a DBM database.
+    'CrashContainer',
 
-                # Volatile container that does not store Crash objects.
-                'VolatileCrashContainer',
+    # Container that can store Crash objects in an SQLite database file.
+    'CrashTable',
 
-                # Fake Crash container.
-                'DummyCrashContainer',
-            ]
+    # Container that can store Crash objects in an SQL database using ODBC.
+    'CrashTableODBC',
+
+    # Volatile container that does not store Crash objects.
+    'VolatileCrashContainer',
+
+    # Fake Crash container.
+    'DummyCrashContainer',
+
+]
 
 from system import MemoryAddresses, PathOperations
 from textio import HexDump, CrashDump
-from sql import SQLClient
 import win32
 
 import os
@@ -64,6 +68,8 @@ import traceback
 
 # lazy imports
 anydbm = None
+sqlite = None
+pyodbc = None
 
 #==============================================================================
 
@@ -438,7 +444,7 @@ class CrashTable (ContainerBase):
     Manages a database of persistent Crash objects, trying to avoid duplicates
     only when requested.
 
-    Uses an SQL database for persistency.
+    Uses an SQLite database file for persistency.
 
     @see: L{Crash.key}
     """
@@ -657,17 +663,11 @@ class CrashTable (ContainerBase):
 
     def __init__(self, location = None, allowRepeatedKeys = True):
         """
-        @see: See L{SQLClient} for a list of supported SQL databases.
-
         @type  location: str
         @param location: (Optional) Location of the crash database.
-            If no location is specified, the container is volatile.
-
             If the location is a filename, it's an SQLite database file.
 
-            If the location is an URL, it's a remote database of any of the
-            supported types.
-
+            If no location is specified, the container is volatile.
             Volatile containers are stored only in memory and
             destroyed when they go out of scope.
 
@@ -679,13 +679,14 @@ class CrashTable (ContainerBase):
             previously existing object will be ignored.
         """
 
-        # Connect to the SQL database.
-        self.__location = location
-        self.__dbtype   = SQLClient.get_db_type(location)
-        self.__db       = SQLClient(location)
+        # Open the database file.
+        location, dbtype, db, cursor = self._connect(location)
 
-        # Get a DBAPI-2.0 cursor.
-        self.__cursor   = self.__db.cursor()
+        # Store the database connection objects.
+        self.__location = location
+        self.__dbtype   = dbtype
+        self.__db       = db
+        self.__cursor   = cursor
 
         # Create the tables if needed.
         try:
@@ -711,6 +712,42 @@ class CrashTable (ContainerBase):
         for row in self.__cursor:
             count = long(row[0])
         self.__count = count
+
+    def _connect(self, location):
+        """
+        Open the given SQLite file.
+
+        @note: This is a private method and you shouldn't need to call it.
+
+        @type  location: str
+        @param location: (Optional) Location of the crash database.
+            If the location is a filename, it's an SQLite database file.
+
+            If no location is specified, the container is volatile.
+            Volatile containers are stored only in memory and
+            destroyed when they go out of scope.
+
+        @rtype: tuple( str, str, database, cursor )
+        @return:
+            Tuple of location, database type, database object, cursor object.
+        """
+
+        # Load the SQLite module.
+        global sqlite
+        if not sqlite:
+            try:
+                import sqlite3 as sqlite
+            except ImportError:
+                from pysqlite2 import sqlite
+
+        # Connect to the SQL database.
+        if location is None:
+            location = ':memory:'
+        db = sqlite.connect(location)
+        cursor = db.cursor()
+
+        # Return the database connection.
+        return location, 'sqlite', db, cursor
 
     def add(self, crash):
         """
@@ -768,6 +805,44 @@ class CrashTable (ContainerBase):
         @return: Count of L{Crash} elements in the container.
         """
         return self.__count
+
+#==============================================================================
+
+class CrashTableODBC (CrashTable):
+    """
+    Manages a database of persistent Crash objects, trying to avoid duplicates
+    only when requested.
+
+    Uses an SQL database (ODBC) for persistency.
+
+    @see: L{Crash.key}
+    """
+
+    def _connect(self, connectionString):
+        """
+        Connect to a remote SQL database using the given connection string.
+
+        @note: This is a private method and you shouldn't need to call it.
+
+        @type  connectionString: str
+        @param connectionString: (Optional) ODBC connection string.
+
+        @rtype: tuple( str, str, database, cursor )
+        @return:
+            Tuple of location, database type, database object, cursor object.
+        """
+
+        # Load the pyODBC module.
+        global pyodbc
+        if not pyodbc:
+            import pyodbc
+
+        # Connect to the SQL database.
+        db = pyodbc.connect(connectionString, autocommit=True)
+        cursor = db.cursor()
+
+        # Return the database connection.
+        return location, 'odbc', db, cursor
 
 #==============================================================================
 
