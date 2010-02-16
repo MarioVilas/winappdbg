@@ -42,6 +42,18 @@ except ImportError:
 # Get the list of supported database modules
 # to be added to the py2exe generated package
 if py2exe is not None:
+    try:
+        import sqlite3
+    except ImportError:
+        print "Warning: sqlite3 not found!"
+        try:
+            from pysqlite2 import dbapi2
+        except ImportError:
+            print "Warning: pysqlite2 not found!"
+    try:
+        import pyodbc
+    except ImportError:
+        print "Warning: pyodbc not found!"
     import anydbm
     try:
         _names = anydbm._names
@@ -160,7 +172,7 @@ else:
 params = {
 
     # Setup instructions
-    'requires'          : ['ctypes', 'distorm3', 'sqlite3', 'MySQLdb', 'pymssql', 'psycopg2'],
+    'requires'          : ['ctypes', 'distorm3', 'sqlite3', 'pyodbc'],
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
