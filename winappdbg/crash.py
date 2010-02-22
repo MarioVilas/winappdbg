@@ -879,6 +879,12 @@ class CrashTable (ContainerBase):
 
 #==============================================================================
 
+# XXX TODO
+# Leave this class only as the base of more classes, each of which implement
+# the specifics of the databases we want to support. Currently the above code
+# only works for Microsoft SQL Server (or at least it'd be surprising to see it
+# run anywhere else).
+
 class CrashTableODBC (CrashTable):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates
