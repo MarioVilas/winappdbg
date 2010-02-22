@@ -112,22 +112,60 @@ class ContainerBase(object):
     marshalling and unmarshalling of Crash objects and keys, and it's
     independent of the database used later.
 
+    @type optimizeKeys: bool
+    @cvar optimizeKeys: C{True} to optimize the marshalling of keys, C{False}
+        otherwise. Only used with the C{pickle} module, ignored when using the
+        more secure C{cerealizer} module.
+
+    @type optimizeValues: bool
+    @cvar optimizeValues: C{True} to optimize the marshalling of keys, C{False}
+        otherwise. Only used with the C{pickle} module, ignored when using the
+        more secure C{cerealizer} module.
+
+    @type compressKeys: bool
+    @cvar compressKeys: C{True} to compress keys when marshalling, C{False}
+        to leave them uncompressed.
+
+    @type compressValues: bool
+    @cvar compressValues: C{True} to compress values when marshalling, C{False}
+        to leave them uncompressed.
+
+    @type escapeKeys: bool
+    @cvar escapeKeys: C{True} to escape keys when marshalling, C{False}
+        to leave them uncompressed.
+
+    @type escapeValues: bool
+    @cvar escapeValues: C{True} to escape values when marshalling, C{False}
+        to leave them uncompressed.
+
+    @type binaryKeys: bool
+    @cvar binaryKeys: C{True} to marshall keys to binary format (the Python
+        C{buffer} type), C{False} to use text marshalled keys (C{str} type).
+
+    @type binaryValues: bool
+    @cvar binaryValues: C{True} to marshall values to binary format (the Python
+        C{buffer} type), C{False} to use text marshalled values (C{str} type).
+
     @see: L{CrashContainer}, L{CrashTable}, L{VolatileCrashContainer},
         L{DummyCrashContainer}
     """
 
-    def __init__(self, binaryKeys = False, initialKeys = None):
-        """
-        @type  binaryKeys: bool
-        @param binaryKeys: C{True} to marshall keys to binary format, C{False}
-            to use plaintext marshalled keys.
+    optimizeKeys    = False
+    optimizeValues  = False
+    compressKeys    = False
+    compressValues  = False
+    escapeKeys      = False
+    escapeValues    = False
+    binaryKeys      = False
+    binaryValues    = False
 
+    def __init__(self, initialKeys = None):
+        """
         @type  initialKeys: dict( key S{->} marshalled key )
         @param initialKeys:
             (Optional) Use this dictionary (by reference) to add and match keys
             to their marshalled counterparts.
         """
-        self.binaryKeys = binaryKeys
         if initialKeys is None:
             self.__keys = dict()
         else:
@@ -198,15 +236,19 @@ class ContainerBase(object):
         """
         if key in self.__keys:
             return self.__keys[key]
-        if self.binaryKeys:
+        if self.optimizeKeys:
             # May return different marshalled versions for the same key.
             skey = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
             skey = optimize(skey)
-            skey = zlib.compress(skey, zlib.Z_BEST_COMPRESSION)
-            skey = buffer(skey)
         else:
             # Always returns the same marshalled version for each key.
             skey = pickle.dumps(key, protocol = 0)
+        if self.compressKeys:
+            skey = zlib.compress(skey, zlib.Z_BEST_COMPRESSION)
+        if self.escapeKeys:
+            skey = skey.encode('hex')
+        if self.binaryKeys:
+            skey = buffer(skey)
         self.__keys[key] = skey
         return skey
 
@@ -221,10 +263,10 @@ class ContainerBase(object):
         @return: Converted key.
         """
         key = str(key)
-        try:
+        if self.escapeKeys:
+            key = key.decode('hex')
+        if self.compressKeys:
             key = zlib.decompress(key)
-        except Exception:
-            pass
         key = pickle.loads(key)
         return key
 
@@ -254,14 +296,21 @@ class ContainerBase(object):
                 if storeMemoryMap and memoryMap is not None:
                     # convert the generator to a list
                     crash.memoryMap = list(memoryMap)
-                value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
+                if self.optimizeValues:
+                    value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
+                    value = optimize(value)
+                else:
+                    value = pickle.dumps(crash, protocol = 0)
             finally:
                 crash.memoryMap = memoryMap
                 del memoryMap
                 del crash
-        value = optimize(value)
-        value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
-        value = buffer(value)
+        if self.compressValues:
+            value = zlib.compress(value, zlib.Z_BEST_COMPRESSION)
+        if self.escapeValues:
+            value = value.encode('hex')
+        if self.binaryValues:
+            value = buffer(value)
         return value
 
     def unmarshall_value(self, value):
@@ -275,7 +324,10 @@ class ContainerBase(object):
         @return: Converted object.
         """
         value = str(value)
-        value = zlib.decompress(value)
+        if self.escapeValues:
+            value = value.decode('hex')
+        if self.compressValues:
+            value = zlib.decompress(value)
         value = pickle.loads(value)
         return value
 
@@ -289,6 +341,15 @@ class CrashContainer (ContainerBase):
 
     @see: L{Crash.key}
     """
+
+    optimizeKeys    = False
+    optimizeValues  = True
+    compressKeys    = False
+    compressValues  = True
+    escapeKeys      = False
+    escapeValues    = False
+    binaryKeys      = False
+    binaryValues    = False
 
     # The interface is meant to be similar to a Python set.
     # However it may not be necessary to implement all of the set methods.
@@ -347,10 +408,10 @@ class CrashContainer (ContainerBase):
             self.__db = anydbm.open(filename, 'c')
             keys = dict([ (self.unmarshall_key(mk), mk)
                                                   for mk in self.__db.keys() ])
-            ContainerBase.__init__(self, False, keys)
+            ContainerBase.__init__(self, keys)
         else:
             self.__db = dict()
-            ContainerBase.__init__(self, False)
+            ContainerBase.__init__(self)
 
     def __del__(self):
         "Class destructor. Closes the database when this object is destroyed."
@@ -449,6 +510,15 @@ class CrashTable (ContainerBase):
     @see: L{Crash.key}
     """
 
+    optimizeKeys    = True
+    optimizeValues  = True
+    compressKeys    = True
+    compressValues  = True
+    escapeKeys      = False
+    escapeValues    = False
+    binaryKeys      = True
+    binaryValues    = True
+
     # XXX TODO
     # add support for deleting crashes
     # add support for batch operations on crashes
@@ -456,7 +526,7 @@ class CrashTable (ContainerBase):
     # add constraints to foreign keys
     #   (need to check compatibility issues first)
 
-    __table_definition = (
+    _table_definition = (
         "CREATE TABLE Crashes ("
 
         # Sequential row IDs.
@@ -464,7 +534,7 @@ class CrashTable (ContainerBase):
 
         # These are the bare minimum columns required to store the objects.
         # The rest are just for convenience.
-        "timeStamp TIMESTAMP,"              # float converted to GMT timestamp
+        "timeStamp TEXT,"                   # float converted to GMT timestamp
         "key BLOB,"                         # the pickled key
         "pickle BLOB,"                      # the pickled object
 
@@ -496,16 +566,16 @@ class CrashTable (ContainerBase):
         "notes TEXT"                        # joined
         ")"
     )
-    __insert_row = (
-        "INSERT INTO Crashes VALUES (null%s)"
-        % (',?' * (len(__table_definition.split(',')) - 1))
+    _insert_row = (
+        "INSERT INTO Crashes VALUES (null, %s)"
+        % ','.join(['?'] * (len(_table_definition.split(',')) - 1))
     )
 
-    __select_pickle = "SELECT pickle FROM Crashes"
-    __select_key    = "SELECT key FROM Crashes"
-    __select_count  = "SELECT COUNT(*) FROM Crashes"
+    _select_pickle = "SELECT pickle FROM Crashes"
+    _select_key    = "SELECT key FROM Crashes"
+    _select_count  = "SELECT COUNT(*) FROM Crashes"
 
-    __memory_table_definition = (
+    _memory_table_definition = (
         "CREATE TABLE Memory ("
         "id INTEGER PRIMARY KEY,"       # Sequential row IDs.
         "Crash INTEGER,"                # Row ID in the Crashes table.
@@ -518,16 +588,16 @@ class CrashTable (ContainerBase):
         "Data BLOB"                     # Value of mbi.content (compressed?).
         ")"
     )
-    __memory_insert_row = (
-        "INSERT INTO Memory VALUES "
-        "(null, ?, ?, ?, ?, ?, ?, ?, ?)"
+    _memory_insert_row = (
+        "INSERT INTO Memory VALUES (null, %s)"
+        % ','.join(['?'] * (len(_memory_table_definition.split(',')) - 1))
     )
 
     # XXX TODO
     # this coupling won't behave all that well with subclasses of Crash...
     # maybe the Crash class should have a way of reporting the CrashTable what
     # columns to use and what data to put in each column
-    def __get_row_values(self, crash):
+    def _get_row_values(self, crash):
         timeStamp           = time.asctime( time.gmtime( crash.timeStamp ) )
         key                 = self.marshall_key( crash.key() )
         pickle              = self.marshall_value(crash)
@@ -575,7 +645,7 @@ class CrashTable (ContainerBase):
             notes,
         )
 
-    def __memory_get_row_values(self, CrashID, mbi):
+    def _memory_get_row_values(self, CrashID, mbi):
 
         # State (free or allocated).
         if   mbi.State == win32.MEM_RESERVE:
@@ -683,35 +753,36 @@ class CrashTable (ContainerBase):
         location, dbtype, db, cursor = self._connect(location)
 
         # Store the database connection objects.
-        self.__location = location
-        self.__dbtype   = dbtype
-        self.__db       = db
-        self.__cursor   = cursor
+        self._location = location
+        self._dbtype   = dbtype
+        self._db       = db
+        self._cursor   = cursor
 
         # Create the tables if needed.
         try:
-            self.__cursor.execute(self.__table_definition)
-            self.__cursor.execute(self.__memory_table_definition)
-            self.__db.commit()
+            self._cursor.execute(self._table_definition)
+            self._cursor.execute(self._memory_table_definition)
+            self._db.commit()
         except Exception:
+##            raise   # XXX DEBUG
             pass
 
         # Populate the cache of existing keys.
-        self.__allowRepeatedKeys = allowRepeatedKeys
+        self._allowRepeatedKeys = allowRepeatedKeys
         keys = dict()
-        self.__cursor.execute(self.__select_key)
-        for row in self.__cursor:
+        self._cursor.execute(self._select_key)
+        for row in self._cursor:
             marshalled_key   = row[0]
             unmarshalled_key = self.unmarshall_key(marshalled_key)
             keys[unmarshalled_key] = marshalled_key
-        ContainerBase.__init__(self, True, keys)
+        ContainerBase.__init__(self, keys)
 
         # Get the number of crashes stored in the database.
-        self.__cursor.execute(self.__select_count)
+        self._cursor.execute(self._select_count)
         count = 0
-        for row in self.__cursor:
+        for row in self._cursor:
             count = long(row[0])
-        self.__count = count
+        self._count = count
 
     def _connect(self, location):
         """
@@ -764,37 +835,37 @@ class CrashTable (ContainerBase):
         """
 
         # Filter out repeated crashes if requested.
-        if self.__allowRepeatedKeys or crash not in self:
+        if self._allowRepeatedKeys or crash not in self:
 
             # Insert the row into the table.
-            row_values = self.__get_row_values(crash)
-            self.__cursor.execute(self.__insert_row, row_values)
+            row_values = self._get_row_values(crash)
+            self._cursor.execute(self._insert_row, row_values)
 
             # Save the memory snapshot, if any.
             if hasattr(crash, 'memoryMap') and crash.memoryMap:
-                cid = self.__cursor.lastrowid
+                cid = self._cursor.lastrowid
                 for mbi in crash.memoryMap:
-                    row_values = self.__memory_get_row_values(cid, mbi)
-                    self.__cursor.execute(self.__memory_insert_row, row_values)
+                    row_values = self._memory_get_row_values(cid, mbi)
+                    self._cursor.execute(self._memory_insert_row, row_values)
 
             # Commit the changes to the database.
             # On error discard the changes and raise an exception.
             try:
-                self.__db.commit()
+                self._db.commit()
             except Exception:
-                self.__db.rollback()
+                self._db.rollback()
                 raise
 
             # Increment the counter of crashes.
-            self.__count += 1
+            self._count += 1
 
     def __iter__(self):
         """
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        self.__cursor.execute(self.__select_pickle)
-        for row in self.__cursor:
+        self._cursor.execute(self._select_pickle)
+        for row in self._cursor:
             crash = row[0]
             crash = self.unmarshall_value(crash)
             yield crash
@@ -804,7 +875,7 @@ class CrashTable (ContainerBase):
         @rtype:  int
         @return: Count of L{Crash} elements in the container.
         """
-        return self.__count
+        return self._count
 
 #==============================================================================
 
@@ -815,8 +886,87 @@ class CrashTableODBC (CrashTable):
 
     Uses an SQL database (ODBC) for persistency.
 
+    @note: Although it has only been tested with Microsoft SQL Server it's
+        possible it may work with other SQL drivers.
+
     @see: L{Crash.key}
     """
+
+    optimizeKeys    = True
+    optimizeValues  = True
+    compressKeys    = True
+    compressValues  = True
+    escapeKeys      = False
+    escapeValues    = False
+    binaryKeys      = True
+    binaryValues    = True
+
+    _table_definition = (
+        "CREATE TABLE Crashes ("
+
+        # Sequential row IDs.
+        "id INTEGER IDENTITY(1,1) PRIMARY KEY CLUSTERED,"
+
+        # These are the bare minimum columns required to store the objects.
+        # The rest are just for convenience.
+        "timeStamp TEXT NOT NULL,"          # float converted to GMT timestamp
+        "pickled_key IMAGE NOT NULL,"       # the pickled key
+        "pickled_obj IMAGE NOT NULL,"       # the pickled object
+
+        # Exploitability test.
+        "isExploitable TEXT,"               # the result
+        "isExploitableRule TEXT,"           # the matched rule
+
+        # Event description.
+        "eventCode BIGINT,"
+        "pid BIGINT,"
+        "tid BIGINT,"
+        "pc BIGINT,"
+        "sp BIGINT,"
+        "fp BIGINT,"
+        "labelPC TEXT,"
+
+        # Exception description.
+        "exceptionCode BIGINT,"
+        "exceptionAddress BIGINT,"
+        "exceptionLabel TEXT,"
+        "firstChance INTEGER,"              # 0 or 1
+        "faultType INTEGER,"
+        "faultAddress BIGINT,"
+        "faultLabel TEXT,"
+        "faultDisasm TEXT,"                 # dumped
+        "stackTrace TEXT,"                  # dumped stackTracePretty
+
+        # Additional notes.
+        "notes TEXT"                        # joined
+        ")"
+    )
+    _insert_row = (
+        "INSERT INTO Crashes VALUES (%s)"
+        % ', '.join(list('?' * 22))
+    )
+
+    _select_pickle = "SELECT pickled_obj FROM Crashes"
+    _select_key    = "SELECT pickled_key FROM Crashes"
+    _select_count  = "SELECT COUNT(*) FROM Crashes"
+
+    _memory_table_definition = (
+        "CREATE TABLE Memory ("
+        "id INTEGER IDENTITY(1,1) PRIMARY KEY CLUSTERED," # Sequential row IDs.
+        "Crash INTEGER,"                # Row ID in the Crashes table.
+        "Address BIGINT NOT NULL,"      # Value of mbi.BaseAddress.
+        "Size BIGINT NOT NULL,"         # Value of mbi.RegionSize.
+        "State TEXT NOT NULL,"          # Value of mbi.State.
+        "Access TEXT NOT NULL,"         # Value of mbi.Protect.
+        "Type TEXT NOT NULL,"           # Value of mbi.Type.
+        "Filename TEXT,"                # Value of mbi.filename.
+        "Data IMAGE"                    # Value of mbi.content (compressed?).
+        ")"
+    )
+    _memory_insert_row = (
+        "INSERT INTO Memory VALUES (%s)"
+        % ', '.join(list('?' * 8))
+    )
 
     def _connect(self, connectionString):
         """
@@ -842,7 +992,7 @@ class CrashTableODBC (CrashTable):
         cursor = db.cursor()
 
         # Return the database connection.
-        return location, 'odbc', db, cursor
+        return connectionString, 'odbc', db, cursor
 
 #==============================================================================
 
@@ -879,7 +1029,7 @@ class VolatileCrashContainer(CrashContainer):
         @rtype:  bool
         @return: C{True} if the Crash object is in the container.
         """
-        return self.__dict.has_key( crash.key() )
+        return self._dict.has_key( crash.key() )
 
     def __iter__(self):
         """
