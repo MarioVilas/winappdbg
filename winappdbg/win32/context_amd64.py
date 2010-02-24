@@ -32,6 +32,7 @@ CONTEXT structure for amd64.
 __revision__ = "$Id$"
 
 from defines import *
+import context_i386
 
 # The following values specify the type of access in the first parameter
 # of the exception record whan the exception code specifies an access
@@ -520,6 +521,40 @@ class LDT_ENTRY(Structure):
 
 PLDT_ENTRY = POINTER(LDT_ENTRY)
 LPLDT_ENTRY = PLDT_ENTRY
+
+#--- WOW64 CONTEXT structure and constants ------------------------------------
+
+# Value of SegCs in a Wow64 thread when running in 32 bits mode
+WOW64_CS32 = 0x23
+
+WOW64_CONTEXT_i386 = 0x00010000L
+WOW64_CONTEXT_i486 = 0x00010000L
+
+WOW64_CONTEXT_CONTROL               = (WOW64_CONTEXT_i386 | 0x00000001L)
+WOW64_CONTEXT_INTEGER               = (WOW64_CONTEXT_i386 | 0x00000002L)
+WOW64_CONTEXT_SEGMENTS              = (WOW64_CONTEXT_i386 | 0x00000004L)
+WOW64_CONTEXT_FLOATING_POINT        = (WOW64_CONTEXT_i386 | 0x00000008L)
+WOW64_CONTEXT_DEBUG_REGISTERS       = (WOW64_CONTEXT_i386 | 0x00000010L)
+WOW64_CONTEXT_EXTENDED_REGISTERS    = (WOW64_CONTEXT_i386 | 0x00000020L)
+
+WOW64_CONTEXT_FULL                  = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INTEGER | WOW64_CONTEXT_SEGMENTS)
+WOW64_CONTEXT_ALL                   = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INTEGER | WOW64_CONTEXT_SEGMENTS | WOW64_CONTEXT_FLOATING_POINT | WOW64_CONTEXT_DEBUG_REGISTERS | WOW64_CONTEXT_EXTENDED_REGISTERS)
+
+WOW64_SIZE_OF_80387_REGISTERS       = 80
+WOW64_MAXIMUM_SUPPORTED_EXTENSION   = 512
+
+class WOW64_FLOATING_SAVE_AREA (context_i386.FLOATING_SAVE_AREA):
+    pass
+
+class WOW64_CONTEXT (context_i386.CONTEXT):
+    pass
+
+class WOW64_LDT_ENTRY (context_i386.LDT_ENTRY):
+    pass
+
+PWOW64_FLOATING_SAVE_AREA   = POINTER(WOW64_FLOATING_SAVE_AREA)
+PWOW64_CONTEXT              = POINTER(WOW64_CONTEXT)
+PWOW64_LDT_ENTRY            = POINTER(WOW64_LDT_ENTRY)
 
 ###############################################################################
 
