@@ -1804,7 +1804,7 @@ SetDllDirectory = GuessStringType(SetDllDirectoryA, SetDllDirectoryW)
 # );
 def LoadLibraryA(pszLibrary):
     _LoadLibraryA = windll.kernel32.LoadLibraryA
-    _LoadLibraryA.argtypes = LPSTR
+    _LoadLibraryA.argtypes = [LPSTR]
     _LoadLibraryA.restype  = HMODULE
     hModule = _LoadLibraryA(pszLibrary)
     if hModule == NULL:
@@ -1813,7 +1813,7 @@ def LoadLibraryA(pszLibrary):
 
 def LoadLibraryW(pszLibrary):
     _LoadLibraryW = windll.kernel32.LoadLibraryW
-    _LoadLibraryW.argtypes = LPWSTR
+    _LoadLibraryW.argtypes = [LPWSTR]
     _LoadLibraryW.restype  = HMODULE
     hModule = _LoadLibraryW(pszLibrary)
     if hModule == NULL:
@@ -1829,7 +1829,7 @@ LoadLibrary = GuessStringType(LoadLibraryA, LoadLibraryW)
 # );
 def LoadLibraryExA(pszLibrary, dwFlags = 0):
     _LoadLibraryExA = windll.kernel32.LoadLibraryExA
-    _LoadLibraryExA.argtypes = LPSTR, HANDLE, DWORD
+    _LoadLibraryExA.argtypes = [LPSTR, HANDLE, DWORD]
     _LoadLibraryExA.restype  = HMODULE
     hModule = _LoadLibraryExA(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
@@ -1838,7 +1838,7 @@ def LoadLibraryExA(pszLibrary, dwFlags = 0):
 
 def LoadLibraryExW(pszLibrary, dwFlags = 0):
     _LoadLibraryExW = windll.kernel32.LoadLibraryExW
-    _LoadLibraryExW.argtypes = LPWSTR, HANDLE, DWORD
+    _LoadLibraryExW.argtypes = [LPWSTR, HANDLE, DWORD]
     _LoadLibraryExW.restype  = HMODULE
     hModule = _LoadLibraryExW(pszLibrary, NULL, dwFlags)
     if hModule == NULL:
