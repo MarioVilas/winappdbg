@@ -681,6 +681,8 @@ def Wow64SetThreadContext(hThread, lpContext):
     _Wow64SetThreadContext.restype = bool
     _Wow64SetThreadContext.errcheck = RaiseIfZero
 
+    # XXX doesn't exist in XP 64 bits
+
     if isinstance(lpContext, dict):
         lpContext = WOW64_CONTEXT.from_dict(lpContext)
     _Wow64SetThreadContext(hThread, ctypes.byref(lpContext))
