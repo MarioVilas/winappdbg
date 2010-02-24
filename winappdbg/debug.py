@@ -566,6 +566,12 @@ class Debug (EventDispatcher, BreakpointContainer):
 ##            from textio import DebugLog
 ##            print DebugLog.log_event(event, "Warning: noncontinuable event!")
 
+        # XXX TODO
+        # * try to execute the UnhandledExceptionFilter for second chance
+        # exceptions, at least when in hostile mode (in normal mode it would be
+        # breaking compatibility, as users may actually expect second chance
+        # exceptions to be raised again).
+
         # Continue execution of the debugee.
         win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 

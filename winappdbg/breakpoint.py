@@ -3121,6 +3121,9 @@ class BreakpointContainer (object):
         if self.is_tracing(tid):
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
             event.get_thread().set_tf()
+            # XXX TODO
+            # don't let popf instructions get the real value of the trap flag
+            # in i386/amd64 when debugging in hostile mode
 
         # Handle breakpoints in RUNNING state.
         while self.__has_running_bp(tid):
