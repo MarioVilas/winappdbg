@@ -515,6 +515,25 @@ class Handle (object):
         except Exception:
             pass
 
+    def __enter__(self):
+        """
+        Compatibility with the "C{with}" Python statement.
+        """
+        if Handle.__bLeakDetection:     # XXX DEBUG
+            print "ENTER HANDLE %r" % self
+        return self
+
+    def __exit__(self, type, value, traceback):
+        """
+        Compatibility with the "C{with}" Python statement.
+        """
+        if Handle.__bLeakDetection:     # XXX DEBUG
+            print "EXIT HANDLE %r" % self
+        try:
+            self.close()
+        except Exception:
+            pass
+
     def __copy__(self):
         """
         Duplicates the Win32 handle when copying the Python object.

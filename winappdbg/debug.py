@@ -139,6 +139,21 @@ class Debug (EventDispatcher, BreakpointContainer):
 ####            traceback.print_exc()
 ####            print
 
+    def __enter__(self):
+        """
+        Compatibility with the "C{with}" Python statement.
+        """
+        return self
+
+    def __exit__(self, type, value, traceback):
+        """
+        Compatibility with the "C{with}" Python statement.
+        """
+        try:
+            self.stop()
+        except Exception, e:
+            pass
+
     def __len__(self):
         """
         @rtype:  int
