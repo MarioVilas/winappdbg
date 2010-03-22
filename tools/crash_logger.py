@@ -396,12 +396,23 @@ class LoggingEventHandler(EventHandler):
 
 #-- Exceptions ----------------------------------------------------------------
 
+    # Kill the process if it's a second chance exception.
+    def _post_exception(self, event):
+        if event.is_last_chance():
+            try:
+                event.get_thread().set_pc(
+                    event.get_process().resolve_symbol('kernel32!ExitProcess')
+                )
+            except Exception:
+                event.get_process().kill()
+
     # Handle all exceptions not handled by the following methods.
     def exception(self, event):
         if event.is_last_chance() or self.options.firstchance:
             self.__add_crash(event, bFullReport = True)
         elif self.options.verbose:
             self.__log_exception(event)
+        self._post_exception(event)
 
     # Unknown (most likely C++) exceptions are not crashes.
     # Comment out this code if needed...
@@ -415,6 +426,8 @@ class LoggingEventHandler(EventHandler):
         if self.__action_requested(event):
             self.__action(event)
 
+        self._post_exception(event)
+
     # Microsoft Visual C exceptions are not crashes.
     # Comment out this code if needed...
     def ms_vc_exception(self, event):
@@ -426,6 +439,8 @@ class LoggingEventHandler(EventHandler):
         # Take action if requested.
         if self.__action_requested(event):
             self.__action(event)
+
+        self._post_exception(event)
 
 ##    # First chance single step events are not crashes.
 ##    # Comment out this code if needed...
@@ -449,6 +464,8 @@ class LoggingEventHandler(EventHandler):
 ##            # Take action if requested.
 ##            if self.__action_requested(event):
 ##                self.__action(event)
+##
+##        self._post_exception(event)
 
     # Breakpoint events are not crashes when they're ours,
     # or when they were triggered by known system-defined breakpoints.
@@ -506,6 +523,8 @@ class LoggingEventHandler(EventHandler):
                 # redefine them with the --break command line option.
                 if bOurs or (not bSystem and self.__action_requested(event)):
                     self.__action(event)
+
+        self._post_exception(event)
 
     # WOW64 breakpoints are treated the same way as normal breakpoints.
     # Change this code if needed...
