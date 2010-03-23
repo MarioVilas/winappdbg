@@ -5254,13 +5254,19 @@ class Window (object):
         @see:    L{get_tree}
         @rtype:  L{Window}
         @return: Root window for this tree.
+        @raise RuntimeError: Can't find the root window for this tree.
         @raise WindowsError: An error occured while processing this request.
         """
         hWnd     = self.get_handle()
+        history  = set()
         hPrevWnd = hWnd
-        while hWnd:
+        while hWnd and hWnd not in history:
+            history.add(hWnd)
             hPrevWnd = hWnd
             hWnd     = win32.GetParent(hWnd)
+        if hWnd in history:
+            # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
+            raise RuntimeError, "Can't find the root window for this tree"
         if hPrevWnd != self.hWnd:
             return self.__get_window(hPrevWnd)
         return self
