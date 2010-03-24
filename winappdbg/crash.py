@@ -562,7 +562,8 @@ class CrashTable (ContainerBase):
         "faultDisasm TEXT,"                 # dumped
         "stackTrace TEXT,"                  # dumped stackTracePretty
 
-        # Additional notes.
+        # Additional information.
+        "commandLine TEXT,"
         "notes TEXT"                        # joined
         ")"
     )
@@ -619,6 +620,7 @@ class CrashTable (ContainerBase):
         faultDisasm         = CrashDump.dump_code(crash.faultDisasm, crash.pc)
         stackTrace          = CrashDump.dump_stack_trace_with_labels(
                                                         crash.stackTracePretty)
+        commandLine         = crash.commandLine
         notes               = crash.notesReport()
         return (
             timeStamp,
@@ -642,6 +644,7 @@ class CrashTable (ContainerBase):
             faultLabel,
             faultDisasm,
             stackTrace,
+            commandLine,
             notes,
         )
 
@@ -1257,6 +1260,7 @@ class Crash (object):
         stackTracePretty
 
     @group Extra information:
+        commandLine,
         registersPeek,
         stackRange,
         stackFrame,
@@ -1284,6 +1288,11 @@ class Crash (object):
 
     @type tid: int
     @ivar tid: Thread global ID.
+
+    @type commandLine: None or str
+    @ivar commandLine: Command line for the target process.
+
+        C{None} if unapplicable or unable to retrieve.
 
     @type registers: dict( str S{->} int )
     @ivar registers: Dictionary mapping register names to their values.
@@ -1475,6 +1484,7 @@ class Crash (object):
         self.labelPC            = process.get_label_at_address(self.pc)
 
         # The following properties are only retrieved for some events.
+        self.commandLine        = None
         self.registersPeek      = None
         self.debugString        = None
         self.modFileName        = None
@@ -1589,6 +1599,12 @@ class Crash (object):
         # Get the process and thread, but dont't store them in the DB.
         process                 = event.get_process()
         thread                  = event.get_thread()
+
+        # Get the command line for the target process.
+        try:
+            self.commandLine = process.get_command_line()
+        except Exception:
+            pass
 
         # Get some information for exception events.
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
@@ -1952,6 +1968,9 @@ class Crash (object):
         if bShowNotes and self.notes:
             msg += '\nNotes:\n'
             msg += self.notesReport()
+
+        if self.commandLine:
+            msg += '\nCommand line: %s\n' % self.commandLine
 
         if not self.labelPC:
             base = HexDump.address(self.lpBaseOfDll)
