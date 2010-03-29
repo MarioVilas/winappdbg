@@ -479,7 +479,8 @@ class Handle (object):
     """
     Encapsulates Win32 handles to avoid leaking them.
 
-    @see: L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}
+    @see:
+        L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}, L{SnapshotHandle}
     """
 
     # XXX DEBUG
