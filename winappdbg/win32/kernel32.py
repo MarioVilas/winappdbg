@@ -1790,10 +1790,41 @@ def OutputDebugStringW(lpOutputString):
 
 OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
 
+# DWORD WINAPI GetDllDirectory(
+#   __in   DWORD nBufferLength,
+#   __out  LPTSTR lpBuffer
+# );
+def GetDllDirectoryA():
+    _GetDllDirectoryA = windll.kernel32.GetDllDirectoryA
+    _GetDllDirectoryA.argytpes = [DWORD, LPSTR]
+    _GetDllDirectoryA.restype  = DWORD
+
+    nBufferLength = _GetDllDirectoryA(0, None)
+    if nBufferLength == 0:
+        return None
+    lpBuffer = ctypes.create_string_buffer("", nBufferLength)
+    _GetDllDirectoryA(nBufferLength, ctypes.byref(lpBuffer))
+    return lpBuffer.value
+
+def GetDllDirectoryW():
+    _GetDllDirectoryW = windll.kernel32.GetDllDirectoryW
+    _GetDllDirectoryW.argytpes = [DWORD, LPSTR]
+    _GetDllDirectoryW.restype  = DWORD
+    _GetDllDirectoryW.errcheck = RaiseIfZero
+
+    nBufferLength = _GetDllDirectoryW(0, None)
+    if nBufferLength == 0:
+        return None
+    lpBuffer = ctypes.create_unicode_buffer(u"", nBufferLength)
+    _GetDllDirectoryW(nBufferLength, ctypes.byref(lpBuffer))
+    return lpBuffer.value
+
+GetDllDirectory = GuessStringType(GetDllDirectoryA, GetDllDirectoryW)
+
 # BOOL WINAPI SetDllDirectory(
 #   __in_opt  LPCTSTR lpPathName
 # );
-def SetDllDirectoryA(lpPathName):
+def SetDllDirectoryA(lpPathName = None):
     _SetDllDirectoryA = windll.kernel32.SetDllDirectoryA
     _SetDllDirectoryA.argytpes = [LPSTR]
     _SetDllDirectoryA.restype  = bool
@@ -1893,7 +1924,7 @@ def GetProcAddress(hModule, lpProcName):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
             raise ValueError, 'Ordinal number too large: %d' % lpProcName.value
-    elif type(lpProcName) == type("")
+    elif type(lpProcName) == type(""):
         lpProcName = ctypes.c_char_p(lpProcName)
     else:
         raise TypeError, str(type(lpProcName))
