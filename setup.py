@@ -29,20 +29,7 @@
 
 __revision__ = "$Id$"
 
-### Install setuptools if needed.
-##try:
-##    import ez_setup
-##    ez_setup.use_setuptools()
-##except ImportError:
-##    pass
-
-# Try to use setuptools, fallback to distutils if not found.
-try:
-    from setuptools import setup
-    using_setuptools = True
-except ImportError:
-    from distutils.core import setup
-    using_setuptools = False
+from distutils.core import setup
 
 from glob import glob
 from os.path import join
@@ -219,16 +206,6 @@ params = {
     }
 if py2exe is not None:
     params['console'] = scripts
-if using_setuptools:
-    params['zip_safe'] = True
-    params['install_requires'] = ['distorm', 'psyco', 'pyodbc', 'rpyc']
-    if version_info[0] == 2 and version_info[1] <= 3:
-        params['install_requires'].append('ctypes')
-    if version_info[0] == 2 and version_info[1] <= 4:
-        params['install_requires'].append('sqlite3')
-    params['dependency_links'] = [
-                                 'http://winappdbg.sourceforge.net/distorm3/distorm3-1.0-py2.x.zip',
-                                 ]
 
 # Execute the setup script
 setup(**params)
