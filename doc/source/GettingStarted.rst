@@ -75,7 +75,7 @@ Optional packages
 
 The following packages provide extra features and performance improvements, but they're not required to use *WinAppDbg*:
 
-* The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. You may experience some performance gain by installing it, but be aware that Psyco-accelerated code `doesn't behave exactly <http://psyco.sourceforge.net/psycoguide/bugs.html>`_ like pure Python code. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
+* The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
 
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
 
