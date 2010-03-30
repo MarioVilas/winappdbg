@@ -660,6 +660,16 @@ class WindowPlacement(object):
 
 #--- user32.dll ---------------------------------------------------------------
 
+# void WINAPI SetLastErrorEx(
+#   __in  DWORD dwErrCode,
+#   __in  DWORD dwType
+# );
+def SetLastErrorEx(dwErrCode, dwType = 0):
+    _SetLastErrorEx = windll.user32.SetLastErrorEx
+    _SetLastErrorEx.argtypes = [DWORD, DWORD]
+    _SetLastErrorEx.restype  = None
+    _SetLastErrorEx(dwErrCode, dwType)
+
 # HWND FindWindow(
 #     LPCTSTR lpClassName,
 #     LPCTSTR lpWindowName

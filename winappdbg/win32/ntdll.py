@@ -271,8 +271,8 @@ class PROCESS_BASIC_INFORMATION(Structure):
         ("PebBaseAddress",                  PVOID),     # PPEB
         ("AffinityMask",                    KAFFINITY),
         ("BasePriority",                    SDWORD),
-        ("UniqueProcessId",                 PVOID),
-        ("InheritedFromUniqueProcessId",    PVOID),
+        ("UniqueProcessId",                 ULONG_PTR),
+        ("InheritedFromUniqueProcessId",    ULONG_PTR),
 ]
 
 #--- THREAD_BASIC_INFORMATION structure ---------------------------------------

@@ -238,6 +238,17 @@ class WAITCHAIN_NODE_INFO(Structure):
 
 PWAITCHAIN_NODE_INFO = POINTER(WAITCHAIN_NODE_INFO)
 
+#--- Handle wrappers ----------------------------------------------------------
+
+# XXX maybe add functions related to the tokens here?
+class TokenHandle (Handle):
+    """
+    Access token handle.
+
+    @see: L{Handle}
+    """
+    pass
+
 #--- advapi32.dll -------------------------------------------------------------
 
 # BOOL WINAPI OpenProcessToken(
@@ -253,7 +264,7 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
 
     TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
     _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
-    return Handle(TokenHandle.value)
+    return TokenHandle(TokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
 #   __in   HANDLE ThreadHandle,
@@ -269,7 +280,7 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
 
     TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
     _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
-    return Handle(TokenHandle.value)
+    return TokenHandle(TokenHandle.value)
 
 # BOOL WINAPI LookupPrivilegeValue(
 #   __in_opt  LPCTSTR lpSystemName,
@@ -458,7 +469,7 @@ CreateProcessWithToken = CreateProcessWithTokenA
 #     PWAITCHAIN_NODE_INFO NodeInfoArray,
 #     LPBOOL IsCycle
 # );
-PWAITCHAINCALLBACK = WINFUNCTYPE(HWCT, LPVOID, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL)
+PWAITCHAINCALLBACK = WINFUNCTYPE(HWCT, DWORD_PTR, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL)
 
 # HWCT WINAPI OpenThreadWaitChainSession(
 #   __in      DWORD Flags,
@@ -484,7 +495,7 @@ def OpenThreadWaitChainSession(Flags = 0, callback = None):
 # );
 def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
     _GetThreadWaitChain = windll.advapi32.GetThreadWaitChain
-    _GetThreadWaitChain.argtypes = [HWCT, LPVOID, DWORD, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL]
+    _GetThreadWaitChain.argtypes = [HWCT, DWORD_PTR, DWORD, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL]
     _GetThreadWaitChain.restype  = BOOL
 
     NodeCount     = DWORD(WCT_MAX_NODE_COUNT)

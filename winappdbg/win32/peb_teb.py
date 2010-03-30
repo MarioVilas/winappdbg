@@ -32,7 +32,7 @@ PEB and TEB structures, constants and data types.
 __revision__ = "$Id$"
 
 from defines import *
-from version import arch, os
+from version import os
 
 #--- PEB and TEB structures, constants and data types -------------------------
 

@@ -31,8 +31,6 @@ Common definitions.
 
 __revision__ = "$Id$"
 
-import time
-import struct
 import ctypes
 
 #------------------------------------------------------------------------------
@@ -49,7 +47,7 @@ windll      = ctypes.windll
 
 # XXX DEBUG
 # The following code can be enabled to make the Win32 API wrappers log to
-# standard ouput the dll and function names, the parameter values and the
+# standard output the dll and function names, the parameter values and the
 # return value for each call.
 
 ##WIN32_VERBOSE_MODE = True
@@ -176,7 +174,6 @@ class GuessStringType(object):
         self.fn_unicode = fn_unicode
 
     def __call__(self, *argv, **argd):
-        guessed   = None
         t_ansi    = type('')
         t_unicode = type(u'')
         v_types   = [ type(item) for item in argv ]
@@ -224,6 +221,7 @@ class MakeANSIVersion(object):
 
 #--- Types --------------------------------------------------------------------
 
+# Map of basic C types to Win32 types
 LPVOID      = ctypes.c_void_p
 CHAR        = ctypes.c_char
 WCHAR       = ctypes.c_wchar
@@ -246,6 +244,7 @@ ULONGLONG   = ctypes.c_ulonglong
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
 
+# Map size_t to SIZE_T
 try:
     SIZE_T  = ctypes.c_size_t
 except AttributeError:
@@ -253,6 +252,12 @@ except AttributeError:
     SIZE_T  = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
 PSIZE_T     = POINTER(SIZE_T)
 
+# Not really pointers but pointer-sized integers
+DWORD_PTR   = SIZE_T
+ULONG_PTR   = SIZE_T
+LONG_PTR    = SIZE_T
+
+# Other Win32 types, more may be added as needed
 PVOID       = LPVOID
 PPVOID      = POINTER(PVOID)
 PSTR        = LPSTR
@@ -265,12 +270,12 @@ LPWORD      = POINTER(WORD)
 LPSWORD     = POINTER(SWORD)
 LPDWORD     = POINTER(DWORD)
 LPSDWORD    = POINTER(SDWORD)
-DWORD_PTR   = POINTER(DWORD)
-ULONG_PTR   = POINTER(ULONG)
-LONG_PTR    = POINTER(LONG)
-PDWORD      = DWORD_PTR
-PULONG      = ULONG_PTR
-PLONG       = LONG_PTR
+LPULONG     = POINTER(ULONG)
+LPLONG      = POINTER(LONG)
+PDWORD      = LPDWORD
+PDWORD_PTR  = POINTER(DWORD_PTR)
+PULONG      = LPULONG
+PLONG       = LPLONG
 BOOL        = DWORD
 BOOLEAN     = BYTE
 PBOOL       = POINTER(BOOL)
@@ -312,7 +317,7 @@ HMETAFILEPICT = HANDLE
 HWND        = HANDLE
 NTSTATUS    = LONG
 PNTSTATUS   = POINTER(NTSTATUS)
-KAFFINITY   = PVOID             # ULONG_PTR
+KAFFINITY   = ULONG_PTR
 RVA         = DWORD
 RVA64       = QWORD
 WPARAM      = DWORD

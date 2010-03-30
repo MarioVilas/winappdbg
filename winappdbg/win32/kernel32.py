@@ -1639,7 +1639,7 @@ class PROCESSENTRY32(Structure):
         ('dwSize',              DWORD),
         ('cntUsage',            DWORD),
         ('th32ProcessID',       DWORD),
-        ('th32DefaultHeapID',   LPVOID),    # remote pointer
+        ('th32DefaultHeapID',   ULONG_PTR),
         ('th32ModuleID',        DWORD),
         ('cntThreads',          DWORD),
         ('th32ParentProcessID', DWORD),
@@ -1692,13 +1692,13 @@ class HEAPENTRY32(Structure):
     _fields_ = [
         ("dwSize",          SIZE_T),
         ("hHandle",         HANDLE),
-        ("dwAddress",       LPVOID),    # remote pointer
+        ("dwAddress",       ULONG_PTR),
         ("dwBlockSize",     SIZE_T),
         ("dwFlags",         DWORD),
         ("dwLockCount",     DWORD),
         ("dwResvd",         DWORD),
         ("th32ProcessID",   DWORD),
-        ("th32HeapID",      LPVOID),    # remote pointer
+        ("th32HeapID",      ULONG_PTR),
 ]
 LPHEAPENTRY32 = ctypes.POINTER(HEAPENTRY32)
 
@@ -1713,7 +1713,7 @@ class HEAPLIST32(Structure):
     _fields_ = [
         ("dwSize",          SIZE_T),
         ("th32ProcessID",   DWORD),
-        ("th32HeapID",      LPVOID),    # remote pointer
+        ("th32HeapID",      ULONG_PTR),
         ("dwFlags",         DWORD),
 ]
 LPHEAPLIST32 = POINTER(HEAPLIST32)
@@ -1735,16 +1735,6 @@ def SetLastError(dwErrCode):
     _SetLastError.argtypes = [DWORD]
     _SetLastError.restype  = None
     _SetLastError(dwErrCode)
-
-# void WINAPI SetLastErrorEx(
-#   __in  DWORD dwErrCode,
-#   __in  DWORD dwType
-# );
-def SetLastErrorEx(dwErrCode, dwType):
-    _SetLastErrorEx = windll.kernel32.SetLastErrorEx
-    _SetLastErrorEx.argtypes = [DWORD, DWORD]
-    _SetLastErrorEx.restype  = None
-    _SetLastErrorEx(dwErrCode, dwType)
 
 # BOOL WINAPI CloseHandle(
 #   __in  HANDLE hObject
@@ -1899,12 +1889,14 @@ def GetProcAddress(hModule, lpProcName):
     _GetProcAddress.argtypes = [HMODULE, LPVOID]
     _GetProcAddress.restype  = LPVOID
 
-    try:
-        lpProcName = ctypes.c_char_p(lpProcName)
-    except TypeError:
+    if type(lpProcName) in (type(0), type(0L)):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
             raise ValueError, 'Ordinal number too large: %d' % lpProcName.value
+    elif type(lpProcName) == type("")
+        lpProcName = ctypes.c_char_p(lpProcName)
+    else:
+        raise TypeError, str(type(lpProcName))
     return _GetProcAddress(hModule, lpProcName)
 
 # BOOL WINAPI FreeLibrary(
@@ -2186,12 +2178,12 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
     nBufferLength = _SearchPathA(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_string_buffer('', nBufferLength + 1)
     lpFilePart = LPSTR()
-    nCount = _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
     if lpBuffer == '':
-        if GetLastError() == 0:
-            SetLastError(ERROR_FILE_NOT_FOUND)
+        if GetLastError() == ERROR_SUCCESS:
+            raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
     return (lpBuffer, lpFilePart)
 
@@ -2208,12 +2200,12 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
     nBufferLength = _SearchPathW(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
     lpFilePart = LPWSTR()
-    nCount = _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
     if lpBuffer == u'':
-        if GetLastError() == 0:
-            SetLastError(ERROR_FILE_NOT_FOUND)
+        if GetLastError() == ERROR_SUCCESS:
+            raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
     return (lpBuffer, lpFilePart)
 
@@ -2592,7 +2584,7 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
 #   DWORD dwMilliseconds,
 #   BOOL bAlertable
 # );
-def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINITE):
+def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINITE, bAlertable = True):
     _WaitForMultipleObjectsEx = windll.kernel32.WaitForMultipleObjectsEx
     _WaitForMultipleObjectsEx.argtypes = [DWORD, ctypes.POINTER(HANDLE), BOOL, DWORD]
     _WaitForMultipleObjectsEx.restype  = DWORD
@@ -2600,7 +2592,7 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
     if not dwMilliseconds and dwMilliseconds != 0:
         dwMilliseconds = INFINITE
     nCount          = len(handles)
-    lpHandlesType   = HANDLES * nCount
+    lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if dwMilliseconds != INFINITE:
         r = _WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bool(bWaitAll), dwMilliseconds, bool(bAlertable))
@@ -2920,7 +2912,7 @@ def InitializeProcThreadAttributeList(dwAttributeCount):
 # );
 def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
     _UpdateProcThreadAttribute = windll.kernel32.UpdateProcThreadAttribute
-    _UpdateProcThreadAttribute.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, SIZE_T, PVOID, SIZE_T, PVOID, PSIZE_T]
+    _UpdateProcThreadAttribute.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD_PTR, PVOID, SIZE_T, PVOID, PSIZE_T]
     _UpdateProcThreadAttribute.restype  = bool
     _UpdateProcThreadAttribute.errcheck = RaiseIfZero
 
@@ -3307,8 +3299,8 @@ def GetProcessAffinityMask(hProcess):
     _GetProcessAffinityMask.restype  = bool
     _GetProcessAffinityMask.errcheck = RaiseIfZero
 
-    lpProcessAffinityMask = DWORD_PTR(NULL)
-    lpSystemAffinityMask  = DWORD_PTR(NULL)
+    lpProcessAffinityMask = DWORD_PTR(0)
+    lpSystemAffinityMask  = DWORD_PTR(0)
     _GetProcessAffinityMask(hProcess, ctypes.byref(lpProcessAffinityMask), ctypes.byref(lpSystemAffinityMask))
     return lpProcessAffinityMask.value, lpSystemAffinityMask.value
 
@@ -3489,7 +3481,7 @@ def Module32Next(hSnapshot, me = None):
 # );
 def Heap32First(th32ProcessID, th32HeapID):
     _Heap32First = windll.kernel32.Heap32First
-    _Heap32First.argtypes = [LPHEAPENTRY32, DWORD, LPVOID]
+    _Heap32First.argtypes = [LPHEAPENTRY32, DWORD, ULONG_PTR]
     _Heap32First.restype  = bool
 
     he = HEAPENTRY32()

@@ -35,7 +35,7 @@ from defines import *
 import context_i386
 
 # The following values specify the type of access in the first parameter
-# of the exception record whan the exception code specifies an access
+# of the exception record when the exception code specifies an access
 # violation.
 EXCEPTION_READ_FAULT        = 0     # exception caused by a read
 EXCEPTION_WRITE_FAULT       = 1     # exception caused by a write
