@@ -649,8 +649,6 @@ class ThreadHandle (Handle):
         """
         return GetThreadId(self.value)
 
-# TODO
-# maybe add file mapping support here?
 class FileHandle (Handle):
     """
     Win32 file handle.
@@ -699,6 +697,14 @@ class FileHandle (Handle):
             import os
             FileName = os.environ['SYSTEMROOT'][:2] + FileName
         return FileName
+
+class FileMappingHandle (Handle):
+    """
+    File mapping handle.
+
+    @see: L{Handle}
+    """
+    pass
 
 # XXX maybe add functions related to the toolhelp snapshots here?
 class SnapshotHandle (Handle):
@@ -1771,7 +1777,11 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         hTargetProcessHandle = hSourceProcessHandle
     lpTargetHandle = HANDLE(INVALID_HANDLE_VALUE)
     _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, ctypes.byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
-    return Handle(lpTargetHandle.value)
+    if isinstance(hSourceHandle, Handle):
+        HandleClass = hSourceHandle.__class__
+    else:
+        HandleClass = Handle
+    return HandleClass(lpTargetHandle.value)
 
 # void WINAPI OutputDebugString(
 #   __in_opt  LPCTSTR lpOutputString
@@ -1808,9 +1818,8 @@ def GetDllDirectoryA():
 
 def GetDllDirectoryW():
     _GetDllDirectoryW = windll.kernel32.GetDllDirectoryW
-    _GetDllDirectoryW.argytpes = [DWORD, LPSTR]
+    _GetDllDirectoryW.argytpes = [DWORD, LPWSTR]
     _GetDllDirectoryW.restype  = DWORD
-    _GetDllDirectoryW.errcheck = RaiseIfZero
 
     nBufferLength = _GetDllDirectoryW(0, None)
     if nBufferLength == 0:
@@ -1990,7 +1999,7 @@ def GetLogicalDriveStringsA():
 
     nBufferLength = 0x1000
     lpBuffer = ctypes.create_string_buffer('', nBufferLength)
-    _GetLogicalDriveStringsA(nBufferLength, ctypes.byref(lpBuffer))
+    _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
     return lpBuffer.value
 
 def GetLogicalDriveStringsW():
@@ -2001,7 +2010,7 @@ def GetLogicalDriveStringsW():
 
     nBufferLength = 0x1000
     lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
-    _GetLogicalDriveStringsW(nBufferLength, ctypes.byref(lpBuffer))
+    _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
     return lpBuffer.value
 
 GetLogicalDriveStrings = GuessStringType(GetLogicalDriveStringsA, GetLogicalDriveStringsW)
@@ -2074,19 +2083,17 @@ def OpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingA = windll.kernel32.OpenFileMappingA
     _OpenFileMappingA.argtypes = [DWORD, BOOL, LPSTR]
     _OpenFileMappingA.restype  = HANDLE
+    _OpenFileMappingA.errcheck = RaiseIfZero
     hFileMappingObject = _OpenFileMappingA(dwDesiredAccess, bool(bInheritHandle), lpName)
-    if hFileMappingObject == INVALID_HANDLE_VALUE:
-        raise ctypes.WinError()
-    return Handle(hFileMappingObject)
+    return FileMappingHandle(hFileMappingObject)
 
 def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
     _OpenFileMappingW = windll.kernel32.OpenFileMappingW
     _OpenFileMappingW.argtypes = [DWORD, BOOL, LPWSTR]
     _OpenFileMappingW.restype  = HANDLE
+    _OpenFileMappingW.errcheck = RaiseIfZero
     hFileMappingObject = _OpenFileMappingW(dwDesiredAccess, bool(bInheritHandle), lpName)
-    if hFileMappingObject == INVALID_HANDLE_VALUE:
-        raise ctypes.WinError()
-    return Handle(hFileMappingObject)
+    return FileMappingHandle(hFileMappingObject)
 
 OpenFileMapping = GuessStringType(OpenFileMappingA, OpenFileMappingW)
 
@@ -2102,29 +2109,27 @@ def CreateFileMappingA(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READ
     _CreateFileMappingA = windll.kernel32.CreateFileMappingA
     _CreateFileMappingA.argtypes = [HANDLE, LPVOID, DWORD, DWORD, DWORD, LPSTR]
     _CreateFileMappingA.restype  = HANDLE
+    _CreateFileMappingA.errcheck = RaiseIfZero
 
     if lpAttributes:
         lpAttributes = ctypes.pointer(lpAttributes)
     if not lpName:
         lpName = None
     hFileMappingObject = _CreateFileMappingA(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
-    if hFileMappingObject == INVALID_HANDLE_VALUE:
-        raise ctypes.WinError()
-    return Handle(hFileMappingObject)
+    return FileMappingHandle(hFileMappingObject)
 
 def CreateFileMappingW(hFile, lpAttributes = None, flProtect = PAGE_EXECUTE_READWRITE, dwMaximumSizeHigh = 0, dwMaximumSizeLow = 0, lpName = None):
     _CreateFileMappingW = windll.kernel32.CreateFileMappingW
     _CreateFileMappingW.argtypes = [HANDLE, LPVOID, DWORD, DWORD, DWORD, LPWSTR]
     _CreateFileMappingW.restype  = HANDLE
+    _CreateFileMappingW.errcheck = RaiseIfZero
 
     if lpAttributes:
         lpAttributes = ctypes.pointer(lpAttributes)
     if not lpName:
         lpName = None
     hFileMappingObject = _CreateFileMappingW(hFile, lpAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
-    if hFileMappingObject == INVALID_HANDLE_VALUE:
-        raise ctypes.WinError()
-    return Handle(hFileMappingObject)
+    return FileMappingHandle(hFileMappingObject)
 
 CreateFileMapping = GuessStringType(CreateFileMappingA, CreateFileMappingW)
 
@@ -2149,7 +2154,7 @@ def CreateFileA(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
     hFile = _CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return Handle(hFile)
+    return FileHandle(hFile)
 
 def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSecurityAttributes = None, dwCreationDisposition = OPEN_ALWAYS, dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, hTemplateFile = None):
     _CreateFileW = windll.kernel32.CreateFileW
@@ -2163,7 +2168,7 @@ def CreateFileW(lpFileName, dwDesiredAccess = GENERIC_ALL, dwShareMode = 0, lpSe
     hFile = _CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
     if hFile == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
-    return Handle(hFile)
+    return FileHandle(hFile)
 
 CreateFile = GuessStringType(CreateFileA, CreateFileW)
 
