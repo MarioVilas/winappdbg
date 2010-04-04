@@ -5112,7 +5112,6 @@ class Window (object):
         @see:    L{set_text}
         @rtype:  str
         @return: Window text (caption).
-        @raise WindowsError: An error occured while processing this request.
         """
         length = self.send(win32.WM_GETTEXTLENGTH)
         if not length:
@@ -5121,7 +5120,7 @@ class Window (object):
         buffer = ctypes.create_string_buffer("", length)
         success = self.send(win32.WM_GETTEXT, length, buffer)
         if success == 0:
-            raise ctypes.WinError()
+            return ""
         return buffer.value
 
     def set_text(self, text):
@@ -5132,12 +5131,8 @@ class Window (object):
 
         @type  text: str
         @param text: New window text.
-
-        @raise WindowsError: An error occured while processing this request.
         """
-        success = self.send(win32.WM_SETTEXT, len(text), text)
-        if success == 0:
-            raise ctypes.WinError()
+        return self.send(win32.WM_SETTEXT, len(text), text)
 
     def get_placement(self):
         """
