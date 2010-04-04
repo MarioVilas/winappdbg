@@ -104,8 +104,7 @@ def open_database(filename):
         print "Error: %s: %r" % (error, filename)
     return cc
 
-def print_report_for_database(filename, options):
-    cc = open_database(filename)
+def print_report_for_database(cc, options):
     if cc:
         print "Found %d crashes:" % len(cc)
         print '-' * 79
@@ -138,7 +137,8 @@ def main(argv):
     parameters = filter_inexistent_files(parameters)
 
     for filename in parameters:
-        print_report_for_database(filename, options)
+        cc = open_database(filename)
+        print_report_for_database(cc, options)
 
 if __name__ == '__main__':
     try:
