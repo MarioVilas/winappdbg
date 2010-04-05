@@ -153,15 +153,31 @@ class GuessStringType(object):
     Decorator that guesses the correct version (A or W) to call
     based on the types of the strings passed as parameters.
 
-    Defaults to B{ANSI} if no string arguments are passed.
+    Calls the B{ANSI} version if the only string types are ANSI.
 
-    Defaults to B{Unicode} if mixed string types are passed.
+    Calls the B{Unicode} version if Unicode or mixed string types are passed.
+
+    The default if no string arguments are passed depends on the value of the
+    L{t_default} class variable.
 
     @type fn_ansi: function
     @ivar fn_ansi: ANSI version of the API function to call.
     @type fn_unicode: function
     @ivar fn_unicode: Unicode (wide) version of the API function to call.
+
+    @type t_default: type
+    @cvar t_default: Default string type to use.
+        Possible values are:
+         - type('') for ANSI
+         - type(u'') for Unicode
     """
+
+    # ANSI and Unicode types
+    t_ansi    = type('')
+    t_unicode = type(u'')
+
+    # Default is ANSI for Python 2.x
+    t_default = t_ansi
 
     def __init__(self, fn_ansi, fn_unicode):
         """
@@ -174,21 +190,46 @@ class GuessStringType(object):
         self.fn_unicode = fn_unicode
 
     def __call__(self, *argv, **argd):
-        t_ansi    = type('')
-        t_unicode = type(u'')
+
+        # Shortcut to self.t_ansi
+        t_ansi    = self.t_ansi
+
+        # Get the types of all arguments for the function
         v_types   = [ type(item) for item in argv ]
         v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
-        if t_unicode in v_types:
+
+        # Get the appropriate function for the default type
+        if self.t_default == t_ansi:
+            fn = self.fn_ansi
+        else:
+            fn = self.fn_unicode
+
+        # If at least one argument is a Unicode string...
+        if self.t_unicode in v_types:
+
+            # If al least one argument is an ANSI string,
+            # convert all ANSI strings to Unicode
             if t_ansi in v_types:
                 argv = list(argv)
                 for index in xrange(len(argv)):
                     if v_types[index] == t_ansi:
                         argv[index] = unicode(argv[index])
-                for key, value in argd.items():
+                for (key, value) in argd.items():
                     if type(value) == t_ansi:
                         argd[key] = unicode(value)
-            return self.fn_unicode(*argv, **argd)
-        return self.fn_ansi(*argv, **argd)
+
+            # Use the W version
+            fn = self.fn_unicode
+
+        # If at least one argument is an ANSI string,
+        # but there are no Unicode strings...
+        elif t_ansi in v_types:
+
+            # Use the A version
+            fn = self.fn_ansi
+
+        # Call the function and return the result
+        return fn(*argv, **argd)
 
 class MakeANSIVersion(object):
     """
