@@ -1960,14 +1960,21 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     _QueryFullProcessImageNameA.argtypes = [HANDLE, DWORD, LPSTR, PDWORD]
     _QueryFullProcessImageNameA.restype  = bool
 
-    lpdwSize = DWORD(0)
-    _QueryFullProcessImageNameA(hProcess, dwFlags, None, ctypes.byref(lpdwSize))
-    if lpdwSize.value == 0:
-        raise ctypes.WinError()
-    lpExeName = ctypes.create_string_buffer('', lpdwSize.value + 1)
-    success = _QueryFullProcessImageNameA(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
-    if not success:
-        raise ctypes.WinError()
+    dwSize = MAX_PATH
+    while 1:
+        lpdwSize = DWORD(dwSize)
+        lpExeName = ctypes.create_string_buffer('', lpdwSize.value + 1)
+        success = _QueryFullProcessImageNameA(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
+        if success and 0 < lpdwSize.value < dwSize:
+            break
+        error = GetLastError()
+        if error != ERROR_INSUFFICIENT_BUFFER:
+            raise ctypes.WinError(error)
+        dwSize = dwSize + 256
+        if dwSize > 0x1000:
+            # this prevents an infinite loop in Windows 2008 when the path has spaces,
+            # see http://msdn.microsoft.com/en-us/library/ms684919(VS.85).aspx#4
+            raise ctypes.WinError(error)
     return lpExeName.value
 
 def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
@@ -1975,14 +1982,21 @@ def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
     _QueryFullProcessImageNameW.argtypes = [HANDLE, DWORD, LPWSTR, PDWORD]
     _QueryFullProcessImageNameW.restype  = bool
 
-    lpdwSize = DWORD(0)
-    _QueryFullProcessImageNameW(hProcess, dwFlags, None, ctypes.byref(lpdwSize))
-    if lpdwSize.value == 0:
-        raise ctypes.WinError()
-    lpExeName = ctypes.create_unicode_buffer(u'', lpdwSize.value + 1)
-    success = _QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
-    if not success:
-        raise ctypes.WinError()
+    dwSize = MAX_PATH
+    while 1:
+        lpdwSize = DWORD(dwSize)
+        lpExeName = ctypes.create_unicode_buffer('', lpdwSize.value + 1)
+        success = _QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
+        if success and 0 < lpdwSize.value < dwSize:
+            break
+        error = GetLastError()
+        if error != ERROR_INSUFFICIENT_BUFFER:
+            raise ctypes.WinError(error)
+        dwSize = dwSize + 256
+        if dwSize > 0x1000:
+            # this prevents an infinite loop in Windows 2008 when the path has spaces,
+            # see http://msdn.microsoft.com/en-us/library/ms684919(VS.85).aspx#4
+            raise ctypes.WinError(error)
     return lpExeName.value
 
 QueryFullProcessImageName = GuessStringType(QueryFullProcessImageNameA, QueryFullProcessImageNameW)
@@ -1992,26 +2006,92 @@ QueryFullProcessImageName = GuessStringType(QueryFullProcessImageNameA, QueryFul
 #   __out  LPTSTR lpBuffer
 # );
 def GetLogicalDriveStringsA():
-    _GetLogicalDriveStringsA = windll.kernel32.GetLogicalDriveStringsA
+    _GetLogicalDriveStringsA = ctypes.windll.kernel32.GetLogicalDriveStringsA
     _GetLogicalDriveStringsA.argtypes = [DWORD, LPSTR]
     _GetLogicalDriveStringsA.restype  = DWORD
     _GetLogicalDriveStringsA.errcheck = RaiseIfZero
 
-    nBufferLength = 0x1000
+    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
     lpBuffer = ctypes.create_string_buffer('', nBufferLength)
     _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
-    return lpBuffer.value
-
+    drive_strings = list()
+    string_p = ctypes.addressof(lpBuffer)
+    sizeof_char = ctypes.sizeof(ctypes.c_char) 
+    while True:
+        string_v = ctypes.string_at(string_p)
+        if string_v == '':
+            break
+        drive_strings.append(string_v)
+        string_p += len(string_v) + sizeof_char
+    return drive_strings
+    
 def GetLogicalDriveStringsW():
-    _GetLogicalDriveStringsW = windll.kernel32.GetLogicalDriveStringsW
+    _GetLogicalDriveStringsW = ctypes.windll.kernel32.GetLogicalDriveStringsW
     _GetLogicalDriveStringsW.argtypes = [DWORD, LPWSTR]
     _GetLogicalDriveStringsW.restype  = DWORD
     _GetLogicalDriveStringsW.errcheck = RaiseIfZero
 
-    nBufferLength = 0x1000
-    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
+    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
+    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
     _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
-    return lpBuffer.value
+    drive_strings = list()
+    string_p = ctypes.addressof(lpBuffer)
+    sizeof_wchar = ctypes.sizeof(ctypes.c_wchar) 
+    while True:
+        string_v = ctypes.wstring_at(string_p)
+        if string_v == u'':
+            break
+        drive_strings.append(string_v)
+        string_p += (len(string_v) * sizeof_wchar) + sizeof_wchar
+    return drive_strings
+
+##def GetLogicalDriveStringsA():
+##    _GetLogicalDriveStringsA = windll.kernel32.GetLogicalDriveStringsA
+##    _GetLogicalDriveStringsA.argtypes = [DWORD, LPSTR]
+##    _GetLogicalDriveStringsA.restype  = DWORD
+##    _GetLogicalDriveStringsA.errcheck = RaiseIfZero
+##
+##    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
+##    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+##    _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
+##    result = list()
+##    index = 0
+##    while 1:
+##        string = list()
+##        while 1:
+##            character = lpBuffer[index]
+##            index = index + 1
+##            if character == '\0':
+##                break
+##            string.append(character)
+##        if not string:
+##            break
+##        result.append(''.join(string))
+##    return result
+##
+##def GetLogicalDriveStringsW():
+##    _GetLogicalDriveStringsW = windll.kernel32.GetLogicalDriveStringsW
+##    _GetLogicalDriveStringsW.argtypes = [DWORD, LPWSTR]
+##    _GetLogicalDriveStringsW.restype  = DWORD
+##    _GetLogicalDriveStringsW.errcheck = RaiseIfZero
+##
+##    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
+##    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+##    _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
+##    result = list()
+##    index = 0
+##    while 1:
+##        string = list()
+##        while 1:
+##            character = lpBuffer[index]
+##            index = index + 1
+##            if character == u'\0':
+##                break
+##            string.append(character)
+##        if not string:
+##            break
+##        result.append(u''.join(string))
+##    return result
 
 GetLogicalDriveStrings = GuessStringType(GetLogicalDriveStringsA, GetLogicalDriveStringsW)
 
