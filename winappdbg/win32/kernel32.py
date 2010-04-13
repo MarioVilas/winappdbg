@@ -3791,6 +3791,97 @@ def FileTimeToSystemTime(lpFileTime):
     return SystemTime
 
 #------------------------------------------------------------------------------
+# Global ATOM api
+
+# ATOM GlobalAddAtom(
+#   __in  LPCTSTR lpString
+# );
+def GlobalAddAtomA(lpString):
+    _GlobalAddAtomA = windll.kernel32.GlobalAddAtomA
+    _GlobalAddAtomA.argtypes = [LPSTR]
+    _GlobalAddAtomA.restype  = ATOM
+    _GlobalAddAtomA.errcheck = RaiseIfZero
+    return _GlobalAddAtomA(lpString)
+
+def GlobalAddAtomW(lpString):
+    _GlobalAddAtomW = windll.kernel32.GlobalAddAtomW
+    _GlobalAddAtomW.argtypes = [LPWSTR]
+    _GlobalAddAtomW.restype  = ATOM
+    _GlobalAddAtomW.errcheck = RaiseIfZero
+    return _GlobalAddAtomW(lpString)
+
+GlobalAddAtom = GuessStringType(GlobalAddAtomA, GlobalAddAtomW)
+
+# ATOM GlobalFindAtom(
+#   __in  LPCTSTR lpString
+# );
+def GlobalFindAtomA(lpString):
+    _GlobalFindAtomA = windll.kernel32.GlobalFindAtomA
+    _GlobalFindAtomA.argtypes = [LPSTR]
+    _GlobalFindAtomA.restype  = ATOM
+    _GlobalFindAtomA.errcheck = RaiseIfZero
+    return _GlobalFindAtomA(lpString)
+
+def GlobalFindAtomW(lpString):
+    _GlobalFindAtomW = windll.kernel32.GlobalFindAtomW
+    _GlobalFindAtomW.argtypes = [LPWSTR]
+    _GlobalFindAtomW.restype  = ATOM
+    _GlobalFindAtomW.errcheck = RaiseIfZero
+    return _GlobalFindAtomW(lpString)
+
+GlobalFindAtom = GuessStringType(GlobalFindAtomA, GlobalFindAtomW)
+
+# UINT GlobalGetAtomName(
+#   __in   ATOM nAtom,
+#   __out  LPTSTR lpBuffer,
+#   __in   int nSize
+# );
+def GlobalGetAtomNameA(nAtom):
+    _GlobalGetAtomNameA = windll.kernel32.GlobalGetAtomNameA
+    _GlobalGetAtomNameA.argtypes = [ATOM, LPSTR, ctypes.c_int]
+    _GlobalGetAtomNameA.restype  = UINT
+    _GlobalGetAtomNameA.errcheck = RaiseIfZero
+
+    nSize = 64
+    while 1:
+        lpBuffer = ctypes.create_string_buffer("", nSize)
+        nCopied  = _GlobalGetAtomNameA(nAtom, lpBuffer, nSize)
+        if nCopied < nSize - 1:
+            break
+        nSize = nSize + 64
+    return lpBuffer.value
+
+def GlobalGetAtomNameW(nAtom):
+    _GlobalGetAtomNameW = windll.kernel32.GlobalGetAtomNameW
+    _GlobalGetAtomNameW.argtypes = [ATOM, LPWSTR, ctypes.c_int]
+    _GlobalGetAtomNameW.restype  = UINT
+    _GlobalGetAtomNameW.errcheck = RaiseIfZero
+
+    nSize = 64
+    while 1:
+        lpBuffer = ctypes.create_unicode_buffer(u"", nSize)
+        nCopied  = _GlobalGetAtomNameW(nAtom, lpBuffer, nSize)
+        if nCopied < nSize - 1:
+            break
+        nSize = nSize + 64
+    return lpBuffer.value
+
+GlobalGetAtomName = GuessStringType(GlobalGetAtomNameA, GlobalGetAtomNameW)
+
+# ATOM GlobalDeleteAtom(
+#   __in  ATOM nAtom
+# );
+def GlobalDeleteAtom(nAtom):
+    _GlobalDeleteAtom = windll.kernel32.GlobalDeleteAtom
+    _GlobalDeleteAtom.argtypes
+    _GlobalDeleteAtom.restype
+    SetLastError(ERROR_SUCCESS)
+    _GlobalDeleteAtom(nAtom)
+    error = GetLastError()
+    if error != ERROR_SUCCESS:
+        raise ctypes.WinError(error)
+
+#------------------------------------------------------------------------------
 # Wow64
 
 # BOOL WINAPI IsWow64Process(

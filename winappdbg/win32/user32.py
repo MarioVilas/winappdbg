@@ -1342,3 +1342,23 @@ def RegisterWindowMessageW(lpString):
     return _RegisterWindowMessageW(lpString)
 
 RegisterWindowMessage = GuessStringType(RegisterWindowMessageA, RegisterWindowMessageW)
+
+# UINT RegisterClipboardFormat(
+#     LPCTSTR lpString
+# );
+def RegisterClipboardFormatA(lpString):
+    _RegisterClipboardFormatA = windll.user32.RegisterClipboardFormatA
+    _RegisterClipboardFormatA.argtypes = [LPSTR]
+    _RegisterClipboardFormatA.restype  = UINT
+    _RegisterClipboardFormatA.errcheck = RaiseIfZero
+    return _RegisterClipboardFormatA(lpString)
+
+def RegisterClipboardFormatW(lpString):
+    _RegisterClipboardFormatW = windll.user32.RegisterClipboardFormatW
+    _RegisterClipboardFormatW.argtypes = [LPWSTR]
+    _RegisterClipboardFormatW.restype  = UINT
+    _RegisterClipboardFormatW.errcheck = RaiseIfZero
+    return _RegisterClipboardFormatW(lpString)
+
+RegisterClipboardFormat = GuessStringType(RegisterClipboardFormatA, RegisterClipboardFormatW)
+
