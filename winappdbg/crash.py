@@ -64,6 +64,7 @@ import win32
 import os
 import time
 import zlib
+import pprint
 import traceback
 
 # lazy imports
@@ -564,6 +565,7 @@ class CrashTable (ContainerBase):
 
         # Additional information.
         "commandLine TEXT,"
+        "environment TEXT,"                 # joined
         "notes TEXT"                        # joined
         ")"
     )
@@ -621,6 +623,10 @@ class CrashTable (ContainerBase):
         stackTrace          = CrashDump.dump_stack_trace_with_labels(
                                                         crash.stackTracePretty)
         commandLine         = crash.commandLine
+        if type(crash.environmentData) == type(u''):
+            environment     = u'\0'.join(crash.environmentData) + u'\0'
+        else:
+            environment     = '\0'.join(crash.environmentData) + '\0'
         notes               = crash.notesReport()
         return (
             timeStamp,
@@ -645,6 +651,7 @@ class CrashTable (ContainerBase):
             faultDisasm,
             stackTrace,
             commandLine,
+            environment,
             notes,
         )
 
@@ -1294,6 +1301,16 @@ class Crash (object):
 
         C{None} if unapplicable or unable to retrieve.
 
+    @type environmentData: None or list of str
+    @ivar environmentData: Environment data for the target process.
+
+        C{None} if unapplicable or unable to retrieve.
+
+    @type environment: None or dict( str S{->} str )
+    @ivar environment: Environment variables for the target process.
+
+        C{None} if unapplicable or unable to retrieve.
+
     @type registers: dict( str S{->} int )
     @ivar registers: Dictionary mapping register names to their values.
 
@@ -1485,6 +1502,8 @@ class Crash (object):
 
         # The following properties are only retrieved for some events.
         self.commandLine        = None
+        self.environment        = None
+        self.environmentData    = None
         self.registersPeek      = None
         self.debugString        = None
         self.modFileName        = None
@@ -1604,6 +1623,16 @@ class Crash (object):
         try:
             self.commandLine = process.get_command_line()
         except Exception:
+##            raise   # XXX DEBUG
+            pass
+
+        # Get the environment variables for the target process.
+        try:
+            self.environmentData = process.get_environment_data()
+            self.environment     = process.parse_environment_data(
+                                                          self.environmentData)
+        except Exception:
+##            raise   # XXX DEBUG
             pass
 
         # Get some information for exception events.
@@ -1971,6 +2000,9 @@ class Crash (object):
 
         if self.commandLine:
             msg += '\nCommand line: %s\n' % self.commandLine
+
+        if self.environment:
+            msg += '\nEnvironment: %s\n' % pprint.pformat(self.environment)
 
         if not self.labelPC:
             base = HexDump.address(self.lpBaseOfDll)

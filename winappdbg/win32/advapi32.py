@@ -262,9 +262,9 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
     _OpenProcessToken.restype = bool
     _OpenProcessToken.errcheck = RaiseIfZero
 
-    TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(TokenHandle))
-    return TokenHandle(TokenHandle.value)
+    tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(tokenHandle))
+    return TokenHandle(tokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
 #   __in   HANDLE ThreadHandle,
@@ -278,9 +278,9 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken.restype = bool
     _OpenThreadToken.errcheck = RaiseIfZero
 
-    TokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(TokenHandle))
-    return TokenHandle(TokenHandle.value)
+    tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(tokenHandle))
+    return TokenHandle(tokenHandle.value)
 
 # BOOL WINAPI LookupPrivilegeValue(
 #   __in_opt  LPCTSTR lpSystemName,

@@ -2105,7 +2105,7 @@ class MemoryOperations (object):
 
         @rtype:  str, unicode
         @return: String read from the process memory space.
-            It doesn't include the terminating null character.
+            It B{doesn't} include the terminating null character.
             Returns an empty string on failure.
         """
         # It's copied to a ctypes buffer and back to Python string
@@ -4437,9 +4437,11 @@ class ProcessDebugOperations (object):
     Encapsulates several useful debugging routines for processes.
 
     @group Properties:
-        get_peb, get_peb_address,
-        get_main_module, get_image_base, get_image_name, get_command_line,
-        is_wow64
+        is_wow64, get_peb, get_peb_address,
+        get_main_module, get_image_base, get_image_name,
+        get_command_line, get_environment,
+        get_command_line_block,
+        get_environment_block, get_environment_data, parse_environment_data
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -4812,6 +4814,45 @@ class ProcessDebugOperations (object):
         # Return the image filename, or None on error.
         return name
 
+    def get_command_line_block(self):
+        """
+        Retrieves the command line block memory address and size.
+
+        @rtype:  tuple(int, int)
+        @return: Tuple with the memory address of the command line block
+            and it's maximum size in Unicode characters.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        peb = self.get_peb()
+        pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        s = pp.CommandLine
+        return (s.Buffer, s.MaximumLength)
+
+    def get_environment_block(self):
+        """
+        Retrieves the environment block memory address for the process.
+
+        @note: The size is always C{None} on Windows XP and below.
+
+        @rtype:  tuple(int, int)
+        @return: Tuple with the memory address of the environment block
+            and it's size.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        peb = self.get_peb()
+        pp = self.read_structure(peb.ProcessParameters,
+                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        Environment = pp.Environment
+        try:
+            EnvironmentSize = pp.EnvironmentSize
+        except AttributeError:
+            EnvironmentSize = None
+
+        return (Environment, EnvironmentSize)
+
     def get_command_line(self):
         """
         Retrieves the command line with wich the program was started.
@@ -4821,12 +4862,104 @@ class ProcessDebugOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters,
-                                             win32.RTL_USER_PROCESS_PARAMETERS)
-        s = pp.CommandLine
-        return self.peek_string(s.Buffer, dwMaxSize=s.MaximumLength,
+        (Buffer, MaximumLength) = self.get_command_line_block()
+        CommandLine = self.peek_string(Buffer, dwMaxSize=MaximumLength,
                                                             fUnicode=True)
+        gst = win32.GuessStringType
+        if gst.t_default == gst.t_ansi:
+            CommandLine = str(CommandLine)
+        return CommandLine
+
+    def get_environment_data(self):
+        """
+        Retrieves the environment block data with wich the program is running.
+
+        @rtype:  list of str
+        @return: Environment keys and values separated by a C{=} character,
+            as found in the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        block         = list()
+        address, size = self.get_environment_block()
+        char_size     = ctypes.sizeof(win32.WCHAR)
+
+        # If we know the block size, read the memory once and parse it.
+        if size:
+            data = self.peek(address, size)
+            while data:
+                chunk = ctypes.create_unicode_string(data).value
+                if not chunk:
+                    break
+                block.append(chunk)
+                data = data[ (len(chunk) + 1) * char_size : ]
+
+        # If we don't know the block size, read the memory many times.
+        # XXX FIXME
+        # This is inefficient! A process memory cache would help here...
+        else:
+            while 1:
+                chunk = self.peek_string(address,  dwMaxSize = System.pageSize,
+                                                    fUnicode = True)
+                print "Chunk: ",
+                print chunk
+                if not chunk:
+                    break
+                block.append(chunk)
+                address += (len(chunk) + 1) * char_size
+
+        # Return the environment data.
+        return block
+
+    @staticmethod
+    def parse_environment_data(block):
+        """
+        Parse the environment block into a Python dictionary.
+
+        @note: Duplicated keys are joined using null characters.
+
+        @type  block: list of str
+        @param block: List of Unicode strings as returned by
+            L{get_environment_data}.
+
+        @rtype:  dict(str S{->} str)
+        @return: Dictionary of environment keys and values.
+        """
+        environment = dict()
+
+        # Split the blocks into key/value pairs.
+        for chunk in block:
+            sep = chunk.find(u'=')
+            if sep >= 0:
+                key, value = chunk[:sep], chunk[sep:]
+            else:
+                key, value = chunk, u''
+            if not environment.has_key(key):
+                environment[key] = value
+            else:
+                environment[key] += u'\0' + value
+
+        # Convert to ANSI if this is the default string type.
+        gst = win32.GuessStringType
+        if gst.t_default == gst.t_ansi:
+            environment = dict( [ (str(key), str(value)) \
+                                for (key, value) in environment.iteritems() ] )
+
+        # Return the environment dictionary.
+        return environment
+
+    def get_environment(self):
+        """
+        Retrieves the environment with wich the program is running.
+
+        @note: Duplicated keys are joined using null characters.
+
+        @rtype:  dict(str S{->} str)
+        @return: Dictionary of environment keys and values.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.parse_environment_block( self.get_environment_data() )
 
 #------------------------------------------------------------------------------
 

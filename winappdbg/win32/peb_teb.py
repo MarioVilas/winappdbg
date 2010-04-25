@@ -106,13 +106,19 @@ class CLIENT_ID(Structure):
 #   UNICODE_STRING   CommandLine;
 # } RTL_USER_PROCESS_PARAMETERS,
 #  *PRTL_USER_PROCESS_PARAMETERS;
-##class RTL_USER_PROCESS_PARAMETERS(Structure):
-##    _fields_ = [
-##        ("Reserved1",               BYTE * 16),
-##        ("Reserved2",               PVOID * 10),
-##        ("ImagePathName",           UNICODE_STRING),
-##        ("CommandLine",             UNICODE_STRING),
-##]
+class RTL_USER_PROCESS_PARAMETERS(Structure):
+    _fields_ = [
+        ("Reserved1",               BYTE * 16),
+        ("Reserved2",               PVOID * 10),
+        ("ImagePathName",           UNICODE_STRING),
+        ("CommandLine",             UNICODE_STRING),
+        ("Environment",             PVOID),             # undocumented!
+        #
+        # XXX TODO
+        # This structure should be defined with all undocumented fields for
+        # each version of Windows, just like it's being done for PEB and TEB.
+        #
+]
 
 PPS_POST_PROCESS_INIT_ROUTINE = PVOID
 
@@ -276,13 +282,13 @@ class CURDIR(Structure):
 #   UNICODE_STRING CommandLine;
 # } RTL_USER_PROCESS_PARAMETERS,
 # *PRTL_USER_PROCESS_PARAMETERS;
-class RTL_USER_PROCESS_PARAMETERS(Structure):
-    _fields_ = [
-        ("Reserved1",       BYTE * 16),
-        ("Reserved2",       PVOID * 10),
-        ("ImagePathName",   UNICODE_STRING),
-        ("CommandLine",     UNICODE_STRING),
-]
+##class RTL_USER_PROCESS_PARAMETERS(Structure):
+##    _fields_ = [
+##        ("Reserved1",       BYTE * 16),
+##        ("Reserved2",       PVOID * 10),
+##        ("ImagePathName",   UNICODE_STRING),
+##        ("CommandLine",     UNICODE_STRING),
+##]
 
 # kd> dt _RTL_USER_PROCESS_PARAMETERS
 # ntdll!_RTL_USER_PROCESS_PARAMETERS
