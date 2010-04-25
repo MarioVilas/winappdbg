@@ -748,3 +748,432 @@ def SymSetHomeDirectoryW(hProcess, dir = None):
 
 SymSetHomeDirectory = GuessStringType(SymSetHomeDirectoryA, SymSetHomeDirectoryW)
 
+#--- DbgHelp 5+ support, patch by Neitsa --------------------------------------
+
+# XXX TODO
+# + use the GuessStringType decorator for ANSI/Wide versions
+# + replace hardcoded struct sizes with sizeof() calls
+# + StackWalk64 should raise on error, but something has to be done about it
+#   not setting the last error code (maybe we should call SetLastError
+#   ourselves with a default error code?)
+# /Mario
+
+#maximum length of a symbol name
+MAX_SYM_NAME = 2000
+
+class SYM_INFO(Structure):
+    _fields_ = [
+        ("SizeOfStruct",    ULONG),
+        ("TypeIndex",       ULONG),
+        ("Reserved",        ULONG64 * 2),
+        ("Index",           ULONG),
+        ("Size",            ULONG),
+        ("ModBase",         ULONG64),
+        ("Flags",           ULONG),
+        ("Value",           ULONG64),
+        ("Address",         ULONG64),
+        ("Register",        ULONG),
+        ("Scope",           ULONG),
+        ("Tag",             ULONG),
+        ("NameLen",         ULONG),
+        ("MaxNameLen",      ULONG),
+        ("Name",            CHAR * (MAX_SYM_NAME + 1)),
+    ]
+PSYM_INFO = POINTER(SYM_INFO)
+
+class SYM_INFOW(Structure):
+    _fields_ = [
+        ("SizeOfStruct",    ULONG),
+        ("TypeIndex",       ULONG),
+        ("Reserved",        ULONG64 * 2),
+        ("Index",           ULONG),
+        ("Size",            ULONG),
+        ("ModBase",         ULONG64),
+        ("Flags",           ULONG),
+        ("Value",           ULONG64),
+        ("Address",         ULONG64),
+        ("Register",        ULONG),
+        ("Scope",           ULONG),
+        ("Tag",             ULONG),
+        ("NameLen",         ULONG),
+        ("MaxNameLen",      ULONG),
+        ("Name",            WCHAR * (MAX_SYM_NAME + 1)),
+    ]
+PSYM_INFOW = POINTER(SYM_INFOW)    
+
+#===============================================================================
+# BOOL WINAPI SymFromName(
+#  __in     HANDLE hProcess,
+#  __in     PCTSTR Name,
+#  __inout  PSYMBOL_INFO Symbol
+# );
+#===============================================================================
+def SymFromName(hProcess, Name):
+    _SymFromNameA = windll.dbghelp.SymFromName
+    _SymFromNameA.argtypes = [HANDLE, LPSTR, PSYM_INFO]
+    _SymFromNameA.restype = bool
+    _SymFromNameA.errcheck = RaiseIfZero
+    
+    SymInfo = SYM_INFO()
+    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFO) in C.
+    SymInfo.MaxNameLen = MAX_SYM_NAME
+    
+    _SymFromNameA(hProcess, Name, ctypes.byref(SymInfo))
+    
+    return SymInfo
+    
+def SymFromNameW(hProcess, Name):
+    _SymFromNameW = windll.dbghelp.SymFromNameW
+    _SymFromNameW.argtypes = [HANDLE, LPWSTR, PSYM_INFOW]
+    _SymFromNameW.restype = bool
+    _SymFromNameW.errcheck = RaiseIfZero
+    
+    SymInfo = SYM_INFOW()
+    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFOW) in C.
+    SymInfo.MaxNameLen = MAX_SYM_NAME 
+    
+    _SymFromNameW(hProcess, Name, ctypes.byref(SymInfo))
+    
+    return SymInfo
+
+#===============================================================================
+# BOOL WINAPI SymFromAddr(
+#  __in       HANDLE hProcess,
+#  __in       DWORD64 Address,
+#  __out_opt  PDWORD64 Displacement,
+#  __inout    PSYMBOL_INFO Symbol
+# );
+#===============================================================================
+def SymFromAddr(hProcess, Address):
+    _SymFromAddr = windll.dbghelp.SymFromAddr
+    _SymFromAddr.argtypes = [HANDLE, DWORD64, PDWORD64, PSYM_INFO]
+    _SymFromAddr.restype = bool
+    _SymFromAddr.errcheck = RaiseIfZero
+    
+    SymInfo = SYM_INFO()
+    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFO) in C.
+    SymInfo.MaxNameLen = MAX_SYM_NAME
+    
+    Displacement = DWORD64(0)
+    _SymFromAddr(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(SymInfo))
+    
+    return (Displacement.value, SymInfo) 
+
+def SymFromAddrW(hProcess, Address):
+    _SymFromAddr = windll.dbghelp.SymFromAddrW
+    _SymFromAddr.argtypes = [HANDLE, DWORD64, PDWORD64, PSYM_INFOW]
+    _SymFromAddr.restype = bool
+    _SymFromAddr.errcheck = RaiseIfZero
+    
+    SymInfo = SYM_INFOW()
+    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFOW) in C.
+    SymInfo.MaxNameLen = MAX_SYM_NAME
+    
+    Displacement = DWORD64(0)
+    _SymFromAddr(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(SymInfo))
+    
+    return (Displacement.value, SymInfo)
+
+#===============================================================================
+# typedef struct _IMAGEHLP_SYMBOL64 {
+#  DWORD   SizeOfStruct;
+#  DWORD64 Address;
+#  DWORD   Size;
+#  DWORD   Flags;
+#  DWORD   MaxNameLength;
+#  CHAR   Name[1];
+# } IMAGEHLP_SYMBOL64, *PIMAGEHLP_SYMBOL64;
+#===============================================================================
+class IMAGEHLP_SYMBOL64 (Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("Address",         DWORD64),
+        ("Size",            DWORD),
+        ("Flags",           DWORD),
+        ("MaxNameLength",   DWORD),
+        ("Name",            CHAR * (MAX_SYM_NAME + 1)),
+    ]
+PIMAGEHLP_SYMBOL64 = POINTER(IMAGEHLP_SYMBOL64)   
+    
+#===============================================================================
+# typedef struct _IMAGEHLP_SYMBOLW64 {
+#  DWORD   SizeOfStruct;
+#  DWORD64 Address;
+#  DWORD   Size;
+#  DWORD   Flags;
+#  DWORD   MaxNameLength;
+#  WCHAR   Name[1];
+# } IMAGEHLP_SYMBOLW64, *PIMAGEHLP_SYMBOLW64;
+#===============================================================================
+class IMAGEHLP_SYMBOLW64 (Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("Address",         DWORD64),
+        ("Size",            DWORD),
+        ("Flags",           DWORD),
+        ("MaxNameLength",   DWORD),
+        ("Name",            WCHAR * (MAX_SYM_NAME + 1)),
+    ]
+PIMAGEHLP_SYMBOLW64 = POINTER(IMAGEHLP_SYMBOLW64)
+
+#===============================================================================
+# BOOL WINAPI SymGetSymFromAddr64(
+#  __in       HANDLE hProcess,
+#  __in       DWORD64 Address,
+#  __out_opt  PDWORD64 Displacement,
+#  __inout    PIMAGEHLP_SYMBOL64 Symbol
+# );
+#===============================================================================
+def SymGetSymFromAddr64(hProcess, Address):
+    _SymGetSymFromAddr64 = windll.dbghelp.SymGetSymFromAddr64
+    _SymGetSymFromAddr64.argtypes = [HANDLE, DWORD64, PDWORD64, PIMAGEHLP_SYMBOL64]
+    _SymGetSymFromAddr64.restype = bool
+    _SymGetSymFromAddr64.errcheck = RaiseIfZero
+    
+    imagehlp_symbol64 = IMAGEHLP_SYMBOL64()
+    imagehlp_symbol64.SizeOfStruct = 32 # *don't modify*: sizeof(IMAGEHLP_SYMBOL64) in C.
+    imagehlp_symbol64.MaxNameLen = MAX_SYM_NAME
+    
+    Displacement = DWORD64(0)
+    _SymGetSymFromAddr64(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(imagehlp_symbol64))
+    
+    return (Displacement.value, imagehlp_symbol64)     
+
+#TODO: check for the 'W' version of SymGetSymFromAddr64()
+
+
+#===============================================================================
+# typedef struct API_VERSION {
+#  USHORT MajorVersion;
+#  USHORT MinorVersion;
+#  USHORT Revision;
+#  USHORT Reserved;
+# } API_VERSION, *LPAPI_VERSION;
+#===============================================================================
+class API_VERSION (Structure):
+    _fields_ = [
+        ("MajorVersion",    USHORT),
+        ("MinorVersion",    USHORT),
+        ("Revision",        USHORT),
+        ("Reserved",        USHORT), 
+    ]
+PAPI_VERSION = POINTER(API_VERSION)
+LPAPI_VERSION = PAPI_VERSION
+
+#===============================================================================
+# LPAPI_VERSION WINAPI ImagehlpApiVersion(void);
+#===============================================================================
+def ImagehlpApiVersion():
+    _ImagehlpApiVersion = windll.dbghelp.ImagehlpApiVersion
+    _ImagehlpApiVersion.restype = LPAPI_VERSION
+    
+    api_version = _ImagehlpApiVersion()
+    return api_version.contents
+    
+    
+#===============================================================================
+# LPAPI_VERSION WINAPI ImagehlpApiVersionEx(
+#  __in  LPAPI_VERSION AppVersion
+# );
+#===============================================================================
+def ImagehlpApiVersionEx(MajorVersion, MinorVersion, Revision):
+    _ImagehlpApiVersionEx = windll.dbghelp.ImagehlpApiVersionEx
+    _ImagehlpApiVersionEx.argtypes = [LPAPI_VERSION]
+    _ImagehlpApiVersionEx.restype = LPAPI_VERSION
+    
+    api_version = API_VERSION(MajorVersion, MinorVersion, Revision, 0)
+    
+    ret_api_version = _ImagehlpApiVersionEx(ctypes.byref(api_version))
+    
+    return ret_api_version.contents
+
+#===============================================================================
+# typedef enum {
+#     AddrMode1616,
+#     AddrMode1632,
+#     AddrModeReal,
+#     AddrModeFlat
+# } ADDRESS_MODE;
+#===============================================================================
+AddrMode1616 = 0
+AddrMode1632 = 1
+AddrModeReal = 2
+AddrModeFlat = 3
+
+ADDRESS_MODE = DWORD #needed for the size of an ADDRESS_MODE (see ADDRESS64)
+
+#===============================================================================
+# typedef struct _tagADDRESS64 {
+#  DWORD64      Offset;
+#  WORD         Segment;
+#  ADDRESS_MODE Mode;
+# } ADDRESS64, *LPADDRESS64;
+#===============================================================================
+class ADDRESS64 (Structure):
+    _fields_ = [
+        ("Offset",      DWORD64),
+        ("Segment",     WORD),
+        ("Mode",        ADDRESS_MODE),  #it's a member of the ADDRESS_MODE enum.
+    ]
+LPADDRESS64 = POINTER(ADDRESS64)    
+
+#===============================================================================
+# typedef struct _KDHELP64 {
+#    DWORD64   Thread;
+#    DWORD   ThCallbackStack;
+#    DWORD   ThCallbackBStore;
+#    DWORD   NextCallback;
+#    DWORD   FramePointer;
+#    DWORD64   KiCallUserMode;
+#    DWORD64   KeUserCallbackDispatcher;
+#    DWORD64   SystemRangeStart;
+#    DWORD64   KiUserExceptionDispatcher;
+#    DWORD64   StackBase;
+#    DWORD64   StackLimit;
+#    DWORD64   Reserved[5];
+# } KDHELP64, *PKDHELP64;
+#===============================================================================
+class KDHELP64 (Structure):
+    _fields_ = [
+        ("Thread",              DWORD64),
+        ("ThCallbackStack",     DWORD),
+        ("ThCallbackBStore",    DWORD),
+        ("NextCallback",        DWORD),
+        ("FramePointer",        DWORD),
+        ("KiCallUserMode",      DWORD64),
+        ("KeUserCallbackDispatcher",    DWORD64),
+        ("SystemRangeStart",    DWORD64),
+        ("KiUserExceptionDispatcher",   DWORD64),
+        ("StackBase",           DWORD64),
+        ("StackLimit",          DWORD64),  
+        ("Reserved",            DWORD64 * 5),               
+    ]
+PKDHELP64 = POINTER(KDHELP64)
+
+#===============================================================================
+# typedef struct _tagSTACKFRAME64 {
+#  ADDRESS64 AddrPC;
+#  ADDRESS64 AddrReturn;
+#  ADDRESS64 AddrFrame;
+#  ADDRESS64 AddrStack;
+#  ADDRESS64 AddrBStore;
+#  PVOID     FuncTableEntry;
+#  DWORD64   Params[4];
+#  BOOL      Far;
+#  BOOL      Virtual;
+#  DWORD64   Reserved[3];
+#  KDHELP64  KdHelp;
+# } STACKFRAME64, *LPSTACKFRAME64;
+#===============================================================================
+class STACKFRAME64(Structure):
+    _fields_ = [
+        ("AddrPC",          ADDRESS64),
+        ("AddrReturn",      ADDRESS64),
+        ("AddrFrame",       ADDRESS64),
+        ("AddrStack",       ADDRESS64),
+        ("AddrBStore",      ADDRESS64),
+        ("FuncTableEntry",  PVOID),
+        ("Params",          DWORD64 * 4),
+        ("Far",             BOOL),
+        ("Virtual",         BOOL),
+        ("Reserved",        DWORD64 * 3),
+        ("KdHelp",          KDHELP64),                
+    ]
+LPSTACKFRAME64 = POINTER(STACKFRAME64)
+
+#===============================================================================
+# BOOL CALLBACK ReadProcessMemoryProc64(
+#  __in   HANDLE hProcess,
+#  __in   DWORD64 lpBaseAddress,
+#  __out  PVOID lpBuffer,
+#  __in   DWORD nSize,
+#  __out  LPDWORD lpNumberOfBytesRead
+# );
+#===============================================================================
+PREAD_PROCESS_MEMORY_ROUTINE64 = WINFUNCTYPE(BOOL, HANDLE, DWORD64, PVOID, DWORD, LPDWORD)
+
+#===============================================================================
+# PVOID CALLBACK FunctionTableAccessProc64(
+#  __in  HANDLE hProcess,
+#  __in  DWORD64 AddrBase
+# );
+#===============================================================================
+PFUNCTION_TABLE_ACCESS_ROUTINE64 = WINFUNCTYPE(PVOID, HANDLE, DWORD64)
+
+#===============================================================================
+# DWORD64 CALLBACK GetModuleBaseProc64(
+#  __in  HANDLE hProcess,
+#  __in  DWORD64 Address
+# );
+#===============================================================================
+PGET_MODULE_BASE_ROUTINE64 = WINFUNCTYPE(DWORD64, HANDLE, DWORD64)
+
+#===============================================================================
+# DWORD64 CALLBACK GetModuleBaseProc64(
+#  __in  HANDLE hProcess,
+#  __in  DWORD64 Address
+# );
+#===============================================================================
+PTRANSLATE_ADDRESS_ROUTINE64 = WINFUNCTYPE(DWORD64, HANDLE, DWORD64)
+
+# Valid machine types for StackWalk64 function
+IMAGE_FILE_MACHINE_I386 = 0x014c    #Intel x86
+IMAGE_FILE_MACHINE_IA64 = 0x0200    #Intel Itanium Processor Family (IPF)
+IMAGE_FILE_MACHINE_AMD64 = 0x8664   #x64 (AMD64 or EM64T)
+    
+#===============================================================================
+# BOOL WINAPI StackWalk64(
+#  __in      DWORD MachineType,
+#  __in      HANDLE hProcess,
+#  __in      HANDLE hThread,
+#  __inout   LPSTACKFRAME64 StackFrame,
+#  __inout   PVOID ContextRecord,
+#  __in_opt  PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
+#  __in_opt  PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
+#  __in_opt  PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
+#  __in_opt  PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
+# );
+#===============================================================================
+def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord, 
+                ReadMemoryRoutine = None,  FunctionTableAccessRoutine = None,
+                GetModuleBaseRoutine = None, TranslateAddress = None):  
+    _StackWalk64 = windll.dbghelp.StackWalk64
+    _StackWalk64.argtypes = [DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, 
+                             PREAD_PROCESS_MEMORY_ROUTINE64,
+                             PFUNCTION_TABLE_ACCESS_ROUTINE64,
+                             PGET_MODULE_BASE_ROUTINE64,
+                             PTRANSLATE_ADDRESS_ROUTINE64]
+    _StackWalk64.restype = bool 
+    
+    pReadMemoryRoutine = None
+    if ReadMemoryRoutine:
+        pReadMemoryRoutine = PREAD_PROCESS_MEMORY_ROUTINE64(ReadMemoryRoutine)
+    else:
+        pReadMemoryRoutine = ctypes.cast(None, PREAD_PROCESS_MEMORY_ROUTINE64)
+
+    pFunctionTableAccessRoutine = None
+    if FunctionTableAccessRoutine:
+        pFunctionTableAccessRoutine = PFUNCTION_TABLE_ACCESS_ROUTINE64(FunctionTableAccessRoutine)
+    else:
+        pFunctionTableAccessRoutine = ctypes.cast(None, PFUNCTION_TABLE_ACCESS_ROUTINE64)        
+        
+    pGetModuleBaseRoutine = None
+    if GetModuleBaseRoutine:
+        pGetModuleBaseRoutine = PGET_MODULE_BASE_ROUTINE64(GetModuleBaseRoutine)
+    else:
+        pGetModuleBaseRoutine = ctypes.cast(None, PGET_MODULE_BASE_ROUTINE64)        
+    
+    pTranslateAddress = None
+    if TranslateAddress:
+        pTranslateAddress =  PTRANSLATE_ADDRESS_ROUTINE64(TranslateAddress)  
+    else:
+        pTranslateAddress = ctypes.cast(None, PTRANSLATE_ADDRESS_ROUTINE64)
+          
+    
+    #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
+    ret = _StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
+                 pReadMemoryRoutine, pFunctionTableAccessRoutine, 
+                 pGetModuleBaseRoutine, pTranslateAddress)
+    
+    return ret
+
