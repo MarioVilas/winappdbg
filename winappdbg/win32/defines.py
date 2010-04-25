@@ -172,6 +172,12 @@ class GuessStringType(object):
          - type(u'') for Unicode
     """
 
+    # XXX TO DO
+    # Functions that do not take string parameters but return string values
+    # could use another decorator that simply chooses based on the default
+    # string type. This should still be done on runtime, NOT when importing
+    # the module, so the user can change the default string type at any time.
+
     # ANSI and Unicode types
     t_ansi    = type('')
     t_unicode = type(u'')

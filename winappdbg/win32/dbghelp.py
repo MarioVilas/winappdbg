@@ -34,6 +34,11 @@ __revision__ = "$Id$"
 from defines import *
 from kernel32 import *
 
+# SymGetHomeDirectory "type" values
+hdBase = 0
+hdSym  = 1
+hdSrc  = 2
+
 UNDNAME_32_BIT_DECODE           = 0x0800
 UNDNAME_COMPLETE                = 0x0000
 UNDNAME_NAME_ONLY               = 0x1000
@@ -248,7 +253,7 @@ PIMAGEHLP_MODULEW64 = POINTER(IMAGEHLP_MODULEW64)
 def SymInitialize(hProcess, UserSearchPath = None, fInvadeProcess = False):
     _SymInitialize = windll.dbghelp.SymInitialize
     _SymInitialize.argtypes = [HANDLE, LPSTR, BOOL]
-    _SymInitialize.restype = bool
+    _SymInitialize.restype  = bool
     _SymInitialize.errcheck = RaiseIfZero
     if not UserSearchPath:
         UserSearchPath = None
@@ -260,7 +265,7 @@ def SymInitialize(hProcess, UserSearchPath = None, fInvadeProcess = False):
 def SymCleanup(hProcess):
     _SymCleanup = windll.dbghelp.SymCleanup
     _SymCleanup.argtypes = [HANDLE]
-    _SymCleanup.restype = bool
+    _SymCleanup.restype  = bool
     _SymCleanup.errcheck = RaiseIfZero
     _SymCleanup(hProcess)
 
@@ -270,7 +275,7 @@ def SymCleanup(hProcess):
 def SymRefreshModuleList(hProcess):
     _SymRefreshModuleList = windll.dbghelp.SymRefreshModuleList
     _SymRefreshModuleList.argtypes = [HANDLE]
-    _SymRefreshModuleList.restype = bool
+    _SymRefreshModuleList.restype  = bool
     _SymRefreshModuleList.errcheck = RaiseIfZero
     _SymRefreshModuleList(hProcess)
 
@@ -280,7 +285,7 @@ def SymRefreshModuleList(hProcess):
 def SymSetParentWindow(hwnd):
     _SymSetParentWindow = windll.dbghelp.SymSetParentWindow
     _SymSetParentWindow.argtypes = [HWND]
-    _SymSetParentWindow.restype = bool
+    _SymSetParentWindow.restype  = bool
     _SymSetParentWindow.errcheck = RaiseIfZero
     _SymSetParentWindow(hwnd)
 
@@ -290,7 +295,7 @@ def SymSetParentWindow(hwnd):
 def SymSetOptions(SymOptions):
     _SymSetOptions = windll.dbghelp.SymSetOptions
     _SymSetOptions.argtypes = [DWORD]
-    _SymSetOptions.restype = DWORD
+    _SymSetOptions.restype  = DWORD
     _SymSetOptions.errcheck = RaiseIfZero
     _SymSetOptions(SymOptions)
 
@@ -298,7 +303,7 @@ def SymSetOptions(SymOptions):
 def SymGetOptions():
     _SymGetOptions = windll.dbghelp.SymGetOptions
     _SymGetOptions.argtypes = []
-    _SymGetOptions.restype = DWORD
+    _SymGetOptions.restype  = DWORD
     return _SymGetOptions()
 
 # DWORD WINAPI SymLoadModule(
@@ -312,7 +317,7 @@ def SymGetOptions():
 def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
     _SymLoadModule = windll.dbghelp.SymLoadModule
     _SymLoadModule.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD, DWORD]
-    _SymLoadModule.restype = DWORD
+    _SymLoadModule.restype  = DWORD
 
     if not ImageName:
         ImageName = None
@@ -340,7 +345,7 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
 def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
     _SymLoadModule64 = windll.dbghelp.SymLoadModule64
     _SymLoadModule64.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD64, DWORD]
-    _SymLoadModule64.restype = DWORD64
+    _SymLoadModule64.restype  = DWORD64
 
     if not ImageName:
         ImageName = None
@@ -364,7 +369,7 @@ def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None,
 def SymUnloadModule(hProcess, BaseOfDll):
     _SymUnloadModule = windll.dbghelp.SymUnloadModule
     _SymUnloadModule.argtypes = [HANDLE, DWORD]
-    _SymUnloadModule.restype = bool
+    _SymUnloadModule.restype  = bool
     _SymUnloadModule.errcheck = RaiseIfZero
     _SymUnloadModule(hProcess, BaseOfDll)
 
@@ -375,7 +380,7 @@ def SymUnloadModule(hProcess, BaseOfDll):
 def SymUnloadModule64(hProcess, BaseOfDll):
     _SymUnloadModule64 = windll.dbghelp.SymUnloadModule64
     _SymUnloadModule64.argtypes = [HANDLE, DWORD64]
-    _SymUnloadModule64.restype = bool
+    _SymUnloadModule64.restype  = bool
     _SymUnloadModule64.errcheck = RaiseIfZero
     _SymUnloadModule64(hProcess, BaseOfDll)
 
@@ -387,7 +392,7 @@ def SymUnloadModule64(hProcess, BaseOfDll):
 def SymGetModuleInfoA(hProcess, dwAddr):
     _SymGetModuleInfo = windll.dbghelp.SymGetModuleInfo
     _SymGetModuleInfo.argtypes = [HANDLE, DWORD, PIMAGEHLP_MODULE]
-    _SymGetModuleInfo.restype = bool
+    _SymGetModuleInfo.restype  = bool
     _SymGetModuleInfo.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULE()
@@ -398,7 +403,7 @@ def SymGetModuleInfoA(hProcess, dwAddr):
 def SymGetModuleInfoW(hProcess, dwAddr):
     _SymGetModuleInfoW = windll.dbghelp.SymGetModuleInfoW
     _SymGetModuleInfoW.argtypes = [HANDLE, DWORD, PIMAGEHLP_MODULEW]
-    _SymGetModuleInfoW.restype = bool
+    _SymGetModuleInfoW.restype  = bool
     _SymGetModuleInfoW.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULEW()
@@ -416,7 +421,7 @@ SymGetModuleInfo = GuessStringType(SymGetModuleInfoA, SymGetModuleInfoW)
 def SymGetModuleInfo64A(hProcess, dwAddr):
     _SymGetModuleInfo64 = windll.dbghelp.SymGetModuleInfo64
     _SymGetModuleInfo64.argtypes = [HANDLE, DWORD64, PIMAGEHLP_MODULE64]
-    _SymGetModuleInfo64.restype = bool
+    _SymGetModuleInfo64.restype  = bool
     _SymGetModuleInfo64.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULE64()
@@ -427,7 +432,7 @@ def SymGetModuleInfo64A(hProcess, dwAddr):
 def SymGetModuleInfo64W(hProcess, dwAddr):
     _SymGetModuleInfo64W = windll.dbghelp.SymGetModuleInfo64W
     _SymGetModuleInfo64W.argtypes = [HANDLE, DWORD64, PIMAGEHLP_MODULE64W]
-    _SymGetModuleInfo64W.restype = bool
+    _SymGetModuleInfo64W.restype  = bool
     _SymGetModuleInfo64W.errcheck = RaiseIfZero
 
     ModuleInfo = IMAGEHLP_MODULE64W()
@@ -461,7 +466,7 @@ PSYM_ENUMMODULES_CALLBACKW64 = WINFUNCTYPE(BOOL, LPWSTR, DWORD64, PVOID)
 def SymEnumerateModulesA(hProcess, EnumModulesCallback, UserContext = None):
     _SymEnumerateModules = windll.dbghelp.SymEnumerateModules
     _SymEnumerateModules.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK, PVOID]
-    _SymEnumerateModules.restype = bool
+    _SymEnumerateModules.restype  = bool
     _SymEnumerateModules.errcheck = RaiseIfZero
 
     EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK(EnumModulesCallback)
@@ -474,7 +479,7 @@ def SymEnumerateModulesA(hProcess, EnumModulesCallback, UserContext = None):
 def SymEnumerateModulesW(hProcess, EnumModulesCallback, UserContext = None):
     _SymEnumerateModulesW = windll.dbghelp.SymEnumerateModulesW
     _SymEnumerateModulesW.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACKW, PVOID]
-    _SymEnumerateModulesW.restype = bool
+    _SymEnumerateModulesW.restype  = bool
     _SymEnumerateModulesW.errcheck = RaiseIfZero
 
     EnumModulesCallback = PSYM_ENUMMODULES_CALLBACKW(EnumModulesCallback)
@@ -494,7 +499,7 @@ SymEnumerateModules = GuessStringType(SymEnumerateModulesA, SymEnumerateModulesW
 def SymEnumerateModules64A(hProcess, EnumModulesCallback, UserContext = None):
     _SymEnumerateModules64 = windll.dbghelp.SymEnumerateModules64
     _SymEnumerateModules64.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK64, PVOID]
-    _SymEnumerateModules64.restype = bool
+    _SymEnumerateModules64.restype  = bool
     _SymEnumerateModules64.errcheck = RaiseIfZero
 
     EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK64(EnumModulesCallback)
@@ -507,7 +512,7 @@ def SymEnumerateModules64A(hProcess, EnumModulesCallback, UserContext = None):
 def SymEnumerateModules64W(hProcess, EnumModulesCallback, UserContext = None):
     _SymEnumerateModules64W = windll.dbghelp.SymEnumerateModules64W
     _SymEnumerateModules64W.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID]
-    _SymEnumerateModules64W.restype = bool
+    _SymEnumerateModules64W.restype  = bool
     _SymEnumerateModules64W.errcheck = RaiseIfZero
 
     EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK64W(EnumModulesCallback)
@@ -546,7 +551,7 @@ PSYM_ENUMSYMBOLS_CALLBACKW64 = WINFUNCTYPE(BOOL, LPWSTR, DWORD64, ULONG, PVOID)
 def SymEnumerateSymbolsA(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
     _SymEnumerateSymbols = windll.dbghelp.SymEnumerateSymbols
     _SymEnumerateSymbols.argtypes = [HANDLE, ULONG, PSYM_ENUMSYMBOLS_CALLBACK, PVOID]
-    _SymEnumerateSymbols.restype = bool
+    _SymEnumerateSymbols.restype  = bool
     _SymEnumerateSymbols.errcheck = RaiseIfZero
 
     EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK(EnumSymbolsCallback)
@@ -559,7 +564,7 @@ def SymEnumerateSymbolsA(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext =
 def SymEnumerateSymbolsW(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
     _SymEnumerateSymbolsW = windll.dbghelp.SymEnumerateSymbolsW
     _SymEnumerateSymbolsW.argtypes = [HANDLE, ULONG, PSYM_ENUMSYMBOLS_CALLBACKW, PVOID]
-    _SymEnumerateSymbolsW.restype = bool
+    _SymEnumerateSymbolsW.restype  = bool
     _SymEnumerateSymbolsW.errcheck = RaiseIfZero
 
     EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACKW(EnumSymbolsCallback)
@@ -580,7 +585,7 @@ SymEnumerateSymbols = GuessStringType(SymEnumerateSymbolsA, SymEnumerateSymbolsW
 def SymEnumerateSymbols64A(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
     _SymEnumerateSymbols64 = windll.dbghelp.SymEnumerateSymbols64
     _SymEnumerateSymbols64.argtypes = [HANDLE, ULONG64, PSYM_ENUMSYMBOLS_CALLBACK64, PVOID]
-    _SymEnumerateSymbols64.restype = bool
+    _SymEnumerateSymbols64.restype  = bool
     _SymEnumerateSymbols64.errcheck = RaiseIfZero
 
     EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK64(EnumSymbolsCallback)
@@ -593,7 +598,7 @@ def SymEnumerateSymbols64A(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext
 def SymEnumerateSymbols64W(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
     _SymEnumerateSymbols64W = windll.dbghelp.SymEnumerateSymbols64W
     _SymEnumerateSymbols64W.argtypes = [HANDLE, ULONG64, PSYM_ENUMSYMBOLS_CALLBACK64W, PVOID]
-    _SymEnumerateSymbols64W.restype = bool
+    _SymEnumerateSymbols64W.restype  = bool
     _SymEnumerateSymbols64W.errcheck = RaiseIfZero
 
     EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK64W(EnumSymbolsCallback)
@@ -614,7 +619,7 @@ SymEnumerateSymbols64 = GuessStringType(SymEnumerateSymbols64A, SymEnumerateSymb
 def UnDecorateSymbolNameA(DecoratedName, Flags = UNDNAME_COMPLETE):
     _UnDecorateSymbolNameA = windll.dbghelp.UnDecorateSymbolName
     _UnDecorateSymbolNameA.argtypes = [LPSTR, LPSTR, DWORD, DWORD]
-    _UnDecorateSymbolNameA.restype = DWORD
+    _UnDecorateSymbolNameA.restype  = DWORD
     _UnDecorateSymbolNameA.errcheck = RaiseIfZero
 
     UndecoratedLength = _UnDecorateSymbolNameA(DecoratedName, None, 0, Flags)
@@ -625,7 +630,7 @@ def UnDecorateSymbolNameA(DecoratedName, Flags = UNDNAME_COMPLETE):
 def UnDecorateSymbolNameW(DecoratedName, Flags = UNDNAME_COMPLETE):
     _UnDecorateSymbolNameW = windll.dbghelp.UnDecorateSymbolNameW
     _UnDecorateSymbolNameW.argtypes = [LPWSTR, LPWSTR, DWORD, DWORD]
-    _UnDecorateSymbolNameW.restype = DWORD
+    _UnDecorateSymbolNameW.restype  = DWORD
     _UnDecorateSymbolNameW.errcheck = RaiseIfZero
 
     UndecoratedLength = _UnDecorateSymbolNameW(DecoratedName, None, 0, Flags)
@@ -643,23 +648,23 @@ UnDecorateSymbolName = GuessStringType(UnDecorateSymbolNameA, UnDecorateSymbolNa
 def SymGetSearchPathA(hProcess):
     _SymGetSearchPath = windll.dbghelp.SymGetSearchPath
     _SymGetSearchPath.argtypes = [HANDLE, LPSTR, DWORD]
-    _SymGetSearchPath.restype = bool
+    _SymGetSearchPath.restype  = bool
     _SymGetSearchPath.errcheck = RaiseIfZero
 
     SearchPathLength = MAX_PATH
     SearchPath = ctypes.create_string_buffer("", SearchPathLength)
-    _SymGetSearchPath(hProcess, ctypes.byref(SearchPath), SearchPathLength)
+    _SymGetSearchPath(hProcess, SearchPath, SearchPathLength)
     return SearchPath.value
 
 def SymGetSearchPathW(hProcess):
     _SymGetSearchPathW = windll.dbghelp.SymGetSearchPathW
     _SymGetSearchPathW.argtypes = [HANDLE, LPWSTR, DWORD]
-    _SymGetSearchPathW.restype = bool
+    _SymGetSearchPathW.restype  = bool
     _SymGetSearchPathW.errcheck = RaiseIfZero
 
     SearchPathLength = MAX_PATH
-    SearchPath = ctypes.create_unicode_buffer("", SearchPathLength)
-    _SymGetSearchPathW(hProcess, ctypes.byref(SearchPath), SearchPathLength)
+    SearchPath = ctypes.create_unicode_buffer(u"", SearchPathLength)
+    _SymGetSearchPathW(hProcess, SearchPath, SearchPathLength)
     return SearchPath.value
 
 SymGetSearchPath = GuessStringType(SymGetSearchPathA, SymGetSearchPathW)
@@ -671,7 +676,7 @@ SymGetSearchPath = GuessStringType(SymGetSearchPathA, SymGetSearchPathW)
 def SymSetSearchPathA(hProcess, SearchPath = None):
     _SymSetSearchPath = windll.dbghelp.SymSetSearchPath
     _SymSetSearchPath.argtypes = [HANDLE, LPSTR]
-    _SymSetSearchPath.restype = bool
+    _SymSetSearchPath.restype  = bool
     _SymSetSearchPath.errcheck = RaiseIfZero
     if not SearchPath:
         SearchPath = None
@@ -680,10 +685,66 @@ def SymSetSearchPathA(hProcess, SearchPath = None):
 def SymSetSearchPathW(hProcess, SearchPath = None):
     _SymSetSearchPathW = windll.dbghelp.SymSetSearchPathW
     _SymSetSearchPathW.argtypes = [HANDLE, LPWSTR]
-    _SymSetSearchPathW.restype = bool
+    _SymSetSearchPathW.restype  = bool
     _SymSetSearchPathW.errcheck = RaiseIfZero
     if not SearchPath:
         SearchPath = None
     _SymSetSearchPathW(hProcess, SearchPath)
 
 SymSetSearchPath = GuessStringType(SymSetSearchPathA, SymSetSearchPathW)
+
+# PTCHAR WINAPI SymGetHomeDirectory(
+#   __in   DWORD type,
+#   __out  PTSTR dir,
+#   __in   size_t size
+# );
+def SymGetHomeDirectoryA(type):
+    _SymGetHomeDirectoryA = windll.dbghelp.SymGetHomeDirectoryA
+    _SymGetHomeDirectoryA.argtypes = [DWORD, LPSTR, SIZE_T]
+    _SymGetHomeDirectoryA.restype  = LPSTR
+    _SymGetHomeDirectoryA.errcheck = RaiseIfZero
+
+    size = MAX_PATH
+    dir  = ctypes.create_string_buffer("", size)
+    _SymGetHomeDirectoryA(type, dir, size)
+    return dir.value
+
+def SymGetHomeDirectoryW(type):
+    _SymGetHomeDirectoryW = windll.dbghelp.SymGetHomeDirectoryW
+    _SymGetHomeDirectoryW.argtypes = [DWORD, LPWSTR, SIZE_T]
+    _SymGetHomeDirectoryW.restype  = LPWSTR
+    _SymGetHomeDirectoryW.errcheck = RaiseIfZero
+
+    size = MAX_PATH
+    dir  = ctypes.create_unicode_buffer(u"", size)
+    _SymGetHomeDirectoryW(type, dir, size)
+    return dir.value
+
+SymGetHomeDirectory = GuessStringType(SymGetHomeDirectoryA, SymGetHomeDirectoryW)
+
+# PTCHAR WINAPI SymSetHomeDirectory(
+#   __in      HANDLE hProcess,
+#   __in_opt  PCTSTR dir
+# );
+def SymSetHomeDirectoryA(hProcess, dir = None):
+    _SymSetHomeDirectoryA = windll.dbghelp.SymSetHomeDirectoryA
+    _SymSetHomeDirectoryA.argtypes = [HANDLE, LPSTR]
+    _SymSetHomeDirectoryA.restype  = LPSTR
+    _SymSetHomeDirectoryA.errcheck = RaiseIfZero
+    if not dir:
+        dir = None
+    _SymSetHomeDirectoryA(hProcess, dir)
+    return dir
+
+def SymSetHomeDirectoryW(hProcess, dir = None):
+    _SymSetHomeDirectoryW = windll.dbghelp.SymSetHomeDirectoryW
+    _SymSetHomeDirectoryW.argtypes = [HANDLE, LPWSTR]
+    _SymSetHomeDirectoryW.restype  = LPWSTR
+    _SymSetHomeDirectoryW.errcheck = RaiseIfZero
+    if not dir:
+        dir = None
+    _SymSetHomeDirectoryW(hProcess, dir)
+    return dir
+
+SymSetHomeDirectory = GuessStringType(SymSetHomeDirectoryA, SymSetHomeDirectoryW)
+
