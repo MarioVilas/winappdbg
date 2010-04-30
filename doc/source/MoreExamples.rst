@@ -40,3 +40,14 @@ This is an example on how to dump the memory map and contents of a process into 
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
+Enumerate all named global atoms
+++++++++++++++++++++++++++++++++
+
+Global atoms are WORD numeric values that can be associated to arbitrary strings. They are used primarily for IPC purposes on Windows. This example shows how to retrieve the string from any atom value.
+
+:download:`Download <../../examples/miscellaneous/memory_dump_example.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/atoms.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
