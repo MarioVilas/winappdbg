@@ -2612,6 +2612,16 @@ def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
 #------------------------------------------------------------------------------
 # Synchronization API
 
+# XXX NOTE
+#
+# Instead of waiting forever, we wait for a small period of time and loop.
+# This is a workaround for an unwanted behavior of psyco-accelerated code:
+# you can't interrupt a blocking call using Ctrl+C, because signal processing
+# is only done between C calls.
+#
+# Also see: bug #2793618 in Psyco project
+# http://sourceforge.net/tracker/?func=detail&aid=2793618&group_id=41036&atid=429622
+
 # DWORD WINAPI WaitForSingleObject(
 #   HANDLE hHandle,
 #   DWORD dwMilliseconds
