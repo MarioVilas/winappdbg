@@ -1785,22 +1785,20 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         HandleClass = Handle
     return HandleClass(lpTargetHandle.value)
 
-# void WINAPI OutputDebugString(
-#   __in_opt  LPCTSTR lpOutputString
+# HLOCAL WINAPI LocalFree(
+#   __in  HLOCAL hMem
 # );
-def OutputDebugStringA(lpOutputString):
-    _OutputDebugStringA = windll.kernel32.OutputDebugStringA
-    _OutputDebugStringA.argtypes = [LPSTR]
-    _OutputDebugStringA.restype  = None
-    _OutputDebugStringA(lpOutputString)
+def LocalFree(hMem):
+    _LocalFree = windll.kernel32.LocalFree
+    _LocalFree.argtypes = [HLOCAL]
+    _LocalFree.restype  = HLOCAL
 
-def OutputDebugStringW(lpOutputString):
-    _OutputDebugStringW = windll.kernel32.OutputDebugStringW
-    _OutputDebugStringW.argtypes = [LPWSTR]
-    _OutputDebugStringW.restype  = None
-    _OutputDebugStringW(lpOutputString)
+    result = _LocalFree(hMem)
+    if result != NULL:
+        ctypes.WinError()
 
-OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
+#------------------------------------------------------------------------------
+# DLL API
 
 # DWORD WINAPI GetDllDirectory(
 #   __in   DWORD nBufferLength,
@@ -1950,6 +1948,9 @@ def FreeLibrary(hModule):
     _FreeLibrary.restype  = bool
     _FreeLibrary.errcheck = RaiseIfZero
     _FreeLibrary(hModule)
+
+#------------------------------------------------------------------------------
+# File API and related
 
 # BOOL WINAPI QueryFullProcessImageName(
 #   __in     HANDLE hProcess,
@@ -2571,17 +2572,8 @@ def GetCurrentDirectoryW():
 
 GetCurrentDirectory = GuessStringType(GetCurrentDirectoryA, GetCurrentDirectoryW)
 
-# HLOCAL WINAPI LocalFree(
-#   __in  HLOCAL hMem
-# );
-def LocalFree(hMem):
-    _LocalFree = windll.kernel32.LocalFree
-    _LocalFree.argtypes = [HLOCAL]
-    _LocalFree.restype  = HLOCAL
-
-    result = _LocalFree(hMem)
-    if result != NULL:
-        ctypes.WinError()
+#------------------------------------------------------------------------------
+# Contrl-C handler
 
 # BOOL WINAPI HandlerRoutine(
 #   __in  DWORD dwCtrlType
@@ -2616,6 +2608,9 @@ def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
     _GenerateConsoleCtrlEvent.restype  = bool
     _GenerateConsoleCtrlEvent.errcheck = RaiseIfZero
     _GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId)
+
+#------------------------------------------------------------------------------
+# Synchronization API
 
 # DWORD WINAPI WaitForSingleObject(
 #   HANDLE hHandle,
@@ -2725,6 +2720,9 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
                 break
     return r
 
+#------------------------------------------------------------------------------
+# Debug API
+
 # BOOL WaitForDebugEvent(
 #   LPDEBUG_EVENT lpDebugEvent,
 #   DWORD dwMilliseconds
@@ -2798,6 +2796,188 @@ def DebugActiveProcessStop(dwProcessId):
     _DebugActiveProcessStop.restype  = bool
     _DebugActiveProcessStop.errcheck = RaiseIfZero
     _DebugActiveProcessStop(dwProcessId)
+
+# BOOL CheckRemoteDebuggerPresent(
+#   HANDLE hProcess,
+#   PBOOL pbDebuggerPresent
+# );
+def CheckRemoteDebuggerPresent(hProcess):
+    _CheckRemoteDebuggerPresent = windll.kernel32.CheckRemoteDebuggerPresent
+    _CheckRemoteDebuggerPresent.argtypes = [HANDLE, PBOOL]
+    _CheckRemoteDebuggerPresent.restype  = bool
+    _CheckRemoteDebuggerPresent.errcheck = RaiseIfZero
+
+    pbDebuggerPresent = BOOL(0)
+    _CheckRemoteDebuggerPresent(hProcess, ctypes.byref(pbDebuggerPresent))
+    return bool(pbDebuggerPresent.value)
+
+# BOOL DebugSetProcessKillOnExit(
+#   BOOL KillOnExit
+# );
+def DebugSetProcessKillOnExit(KillOnExit):
+    _DebugSetProcessKillOnExit = windll.kernel32.DebugSetProcessKillOnExit
+    _DebugSetProcessKillOnExit.argtypes = [BOOL]
+    _DebugSetProcessKillOnExit.restype  = bool
+    _DebugSetProcessKillOnExit.errcheck = RaiseIfZero
+    _DebugSetProcessKillOnExit(bool(KillOnExit))
+
+# BOOL DebugBreakProcess(
+#   HANDLE Process
+# );
+def DebugBreakProcess(hProcess):
+    _DebugBreakProcess = windll.kernel32.DebugBreakProcess
+    _DebugBreakProcess.argtypes = [HANDLE]
+    _DebugBreakProcess.restype  = bool
+    _DebugBreakProcess.errcheck = RaiseIfZero
+    _DebugBreakProcess(hProcess)
+
+# void WINAPI OutputDebugString(
+#   __in_opt  LPCTSTR lpOutputString
+# );
+def OutputDebugStringA(lpOutputString):
+    _OutputDebugStringA = windll.kernel32.OutputDebugStringA
+    _OutputDebugStringA.argtypes = [LPSTR]
+    _OutputDebugStringA.restype  = None
+    _OutputDebugStringA(lpOutputString)
+
+def OutputDebugStringW(lpOutputString):
+    _OutputDebugStringW = windll.kernel32.OutputDebugStringW
+    _OutputDebugStringW.argtypes = [LPWSTR]
+    _OutputDebugStringW.restype  = None
+    _OutputDebugStringW(lpOutputString)
+
+OutputDebugString = GuessStringType(OutputDebugStringA, OutputDebugStringW)
+
+# BOOL WINAPI ReadProcessMemory(
+#   __in   HANDLE hProcess,
+#   __in   LPCVOID lpBaseAddress,
+#   __out  LPVOID lpBuffer,
+#   __in   SIZE_T nSize,
+#   __out  SIZE_T* lpNumberOfBytesRead
+# );
+def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
+    _ReadProcessMemory = windll.kernel32.ReadProcessMemory
+    _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
+    _ReadProcessMemory.restype  = bool
+
+    lpBuffer            = ctypes.create_string_buffer('', nSize)
+    lpNumberOfBytesRead = SIZE_T(0)
+    success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesRead))
+    if not success and GetLastError() != ERROR_PARTIAL_COPY:
+        raise ctypes.WinError()
+    return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
+
+# BOOL WINAPI WriteProcessMemory(
+#   __in   HANDLE hProcess,
+#   __in   LPCVOID lpBaseAddress,
+#   __in   LPVOID lpBuffer,
+#   __in   SIZE_T nSize,
+#   __out  SIZE_T* lpNumberOfBytesWritten
+# );
+def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
+    _WriteProcessMemory = windll.kernel32.WriteProcessMemory
+    _WriteProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
+    _WriteProcessMemory.restype  = bool
+
+    nSize                   = len(lpBuffer)
+    lpBuffer                = ctypes.create_string_buffer(lpBuffer)
+    lpNumberOfBytesWritten  = SIZE_T(0)
+    success = _WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesWritten))
+    if not success and GetLastError() != ERROR_PARTIAL_COPY:
+        raise ctypes.WinError()
+    return lpNumberOfBytesWritten.value
+
+# LPVOID WINAPI VirtualAllocEx(
+#   __in      HANDLE hProcess,
+#   __in_opt  LPVOID lpAddress,
+#   __in      SIZE_T dwSize,
+#   __in      DWORD flAllocationType,
+#   __in      DWORD flProtect
+# );
+def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = MEM_COMMIT | MEM_RESERVE, flProtect = PAGE_EXECUTE_READWRITE):
+    _VirtualAllocEx = windll.kernel32.VirtualAllocEx
+    _VirtualAllocEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, DWORD]
+    _VirtualAllocEx.restype  = LPVOID
+
+    lpAddress = _VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
+    if lpAddress == NULL:
+        raise ctypes.WinError()
+    return lpAddress
+
+# SIZE_T WINAPI VirtualQueryEx(
+#   __in      HANDLE hProcess,
+#   __in_opt  LPCVOID lpAddress,
+#   __out     PMEMORY_BASIC_INFORMATION lpBuffer,
+#   __in      SIZE_T dwLength
+# );
+def VirtualQueryEx(hProcess, lpAddress):
+    _VirtualQueryEx = windll.kernel32.VirtualQueryEx
+    _VirtualQueryEx.argtypes = [HANDLE, LPVOID, PMEMORY_BASIC_INFORMATION, SIZE_T]
+    _VirtualQueryEx.restype  = SIZE_T
+
+    lpBuffer  = MEMORY_BASIC_INFORMATION()
+    dwLength  = sizeof(MEMORY_BASIC_INFORMATION)
+    success   = _VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
+    if success == 0:
+        raise ctypes.WinError()
+    return MemoryBasicInformation(lpBuffer)
+
+# BOOL WINAPI VirtualProtectEx(
+#   __in   HANDLE hProcess,
+#   __in   LPVOID lpAddress,
+#   __in   SIZE_T dwSize,
+#   __in   DWORD flNewProtect,
+#   __out  PDWORD lpflOldProtect
+# );
+def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_READWRITE):
+    _VirtualProtectEx = windll.kernel32.VirtualProtectEx
+    _VirtualProtectEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, PDWORD]
+    _VirtualProtectEx.restype  = bool
+    _VirtualProtectEx.errcheck = RaiseIfZero
+
+    flOldProtect = DWORD(0)
+    _VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
+    return flOldProtect.value
+
+# BOOL WINAPI VirtualFreeEx(
+#   __in  HANDLE hProcess,
+#   __in  LPVOID lpAddress,
+#   __in  SIZE_T dwSize,
+#   __in  DWORD dwFreeType
+# );
+def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
+    _VirtualFreeEx = windll.kernel32.VirtualFreeEx
+    _VirtualFreeEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD]
+    _VirtualFreeEx.restype  = bool
+    _VirtualFreeEx.errcheck = RaiseIfZero
+    _VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
+
+# HANDLE WINAPI CreateRemoteThread(
+#   __in   HANDLE hProcess,
+#   __in   LPSECURITY_ATTRIBUTES lpThreadAttributes,
+#   __in   SIZE_T dwStackSize,
+#   __in   LPTHREAD_START_ROUTINE lpStartAddress,
+#   __in   LPVOID lpParameter,
+#   __in   DWORD dwCreationFlags,
+#   __out  LPDWORD lpThreadId
+# );
+def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags):
+    _CreateRemoteThread = windll.kernel32.CreateRemoteThread
+    _CreateRemoteThread.argtypes = [HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPVOID, LPVOID, DWORD, LPDWORD]
+    _CreateRemoteThread.restype  = HANDLE
+
+    if not lpThreadAttributes:
+        lpThreadAttributes = None
+    else:
+        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+    dwThreadId = DWORD(0)
+    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
+    if hThread == INVALID_HANDLE_VALUE:
+        raise ctypes.WinError()
+    return ThreadHandle(hThread), dwThreadId.value
+
+#------------------------------------------------------------------------------
+# Process API
 
 # BOOL WINAPI CreateProcess(
 #   __in_opt     LPCTSTR lpApplicationName,
@@ -3124,134 +3304,6 @@ def TerminateProcess(hProcess, dwExitCode = 0):
     _TerminateProcess.errcheck = RaiseIfZero
     _TerminateProcess(hProcess, dwExitCode)
 
-# BOOL WINAPI ReadProcessMemory(
-#   __in   HANDLE hProcess,
-#   __in   LPCVOID lpBaseAddress,
-#   __out  LPVOID lpBuffer,
-#   __in   SIZE_T nSize,
-#   __out  SIZE_T* lpNumberOfBytesRead
-# );
-def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
-    _ReadProcessMemory = windll.kernel32.ReadProcessMemory
-    _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
-    _ReadProcessMemory.restype  = bool
-
-    lpBuffer            = ctypes.create_string_buffer('', nSize)
-    lpNumberOfBytesRead = SIZE_T(0)
-    success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesRead))
-    if not success and GetLastError() != ERROR_PARTIAL_COPY:
-        raise ctypes.WinError()
-    return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
-
-# BOOL WINAPI WriteProcessMemory(
-#   __in   HANDLE hProcess,
-#   __in   LPCVOID lpBaseAddress,
-#   __in   LPVOID lpBuffer,
-#   __in   SIZE_T nSize,
-#   __out  SIZE_T* lpNumberOfBytesWritten
-# );
-def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
-    _WriteProcessMemory = windll.kernel32.WriteProcessMemory
-    _WriteProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
-    _WriteProcessMemory.restype  = bool
-
-    nSize                   = len(lpBuffer)
-    lpBuffer                = ctypes.create_string_buffer(lpBuffer)
-    lpNumberOfBytesWritten  = SIZE_T(0)
-    success = _WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesWritten))
-    if not success and GetLastError() != ERROR_PARTIAL_COPY:
-        raise ctypes.WinError()
-    return lpNumberOfBytesWritten.value
-
-# LPVOID WINAPI VirtualAllocEx(
-#   __in      HANDLE hProcess,
-#   __in_opt  LPVOID lpAddress,
-#   __in      SIZE_T dwSize,
-#   __in      DWORD flAllocationType,
-#   __in      DWORD flProtect
-# );
-def VirtualAllocEx(hProcess, lpAddress = 0, dwSize = 0x1000, flAllocationType = MEM_COMMIT | MEM_RESERVE, flProtect = PAGE_EXECUTE_READWRITE):
-    _VirtualAllocEx = windll.kernel32.VirtualAllocEx
-    _VirtualAllocEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, DWORD]
-    _VirtualAllocEx.restype  = LPVOID
-
-    lpAddress = _VirtualAllocEx(hProcess, lpAddress, dwSize, flAllocationType, flProtect)
-    if lpAddress == NULL:
-        raise ctypes.WinError()
-    return lpAddress
-
-# SIZE_T WINAPI VirtualQueryEx(
-#   __in      HANDLE hProcess,
-#   __in_opt  LPCVOID lpAddress,
-#   __out     PMEMORY_BASIC_INFORMATION lpBuffer,
-#   __in      SIZE_T dwLength
-# );
-def VirtualQueryEx(hProcess, lpAddress):
-    _VirtualQueryEx = windll.kernel32.VirtualQueryEx
-    _VirtualQueryEx.argtypes = [HANDLE, LPVOID, PMEMORY_BASIC_INFORMATION, SIZE_T]
-    _VirtualQueryEx.restype  = SIZE_T
-
-    lpBuffer  = MEMORY_BASIC_INFORMATION()
-    dwLength  = sizeof(MEMORY_BASIC_INFORMATION)
-    success   = _VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
-    if success == 0:
-        raise ctypes.WinError()
-    return MemoryBasicInformation(lpBuffer)
-
-# BOOL WINAPI VirtualProtectEx(
-#   __in   HANDLE hProcess,
-#   __in   LPVOID lpAddress,
-#   __in   SIZE_T dwSize,
-#   __in   DWORD flNewProtect,
-#   __out  PDWORD lpflOldProtect
-# );
-def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_READWRITE):
-    _VirtualProtectEx = windll.kernel32.VirtualProtectEx
-    _VirtualProtectEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD, PDWORD]
-    _VirtualProtectEx.restype  = bool
-    _VirtualProtectEx.errcheck = RaiseIfZero
-
-    flOldProtect = DWORD(0)
-    _VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
-    return flOldProtect.value
-
-# BOOL WINAPI VirtualFreeEx(
-#   __in  HANDLE hProcess,
-#   __in  LPVOID lpAddress,
-#   __in  SIZE_T dwSize,
-#   __in  DWORD dwFreeType
-# );
-def VirtualFreeEx(hProcess, lpAddress, dwSize = 0, dwFreeType = MEM_RELEASE):
-    _VirtualFreeEx = windll.kernel32.VirtualFreeEx
-    _VirtualFreeEx.argtypes = [HANDLE, LPVOID, SIZE_T, DWORD]
-    _VirtualFreeEx.restype  = bool
-    _VirtualFreeEx.errcheck = RaiseIfZero
-    _VirtualFreeEx(hProcess, lpAddress, dwSize, dwFreeType)
-
-# HANDLE WINAPI CreateRemoteThread(
-#   __in   HANDLE hProcess,
-#   __in   LPSECURITY_ATTRIBUTES lpThreadAttributes,
-#   __in   SIZE_T dwStackSize,
-#   __in   LPTHREAD_START_ROUTINE lpStartAddress,
-#   __in   LPVOID lpParameter,
-#   __in   DWORD dwCreationFlags,
-#   __out  LPDWORD lpThreadId
-# );
-def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags):
-    _CreateRemoteThread = windll.kernel32.CreateRemoteThread
-    _CreateRemoteThread.argtypes = [HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPVOID, LPVOID, DWORD, LPDWORD]
-    _CreateRemoteThread.restype  = HANDLE
-
-    if not lpThreadAttributes:
-        lpThreadAttributes = None
-    else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
-    dwThreadId = DWORD(0)
-    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
-    if hThread == INVALID_HANDLE_VALUE:
-        raise ctypes.WinError()
-    return ThreadHandle(hThread), dwThreadId.value
-
 # HANDLE WINAPI GetCurrentProcess(void);
 def GetCurrentProcess():
     _GetCurrentProcess = windll.kernel32.GetCurrentProcess
@@ -3433,39 +3485,8 @@ def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
     _SetProcessAffinityMask.errcheck = RaiseIfZero
     _SetProcessAffinityMask(hProcess, dwProcessAffinityMask)
 
-# BOOL CheckRemoteDebuggerPresent(
-#   HANDLE hProcess,
-#   PBOOL pbDebuggerPresent
-# );
-def CheckRemoteDebuggerPresent(hProcess):
-    _CheckRemoteDebuggerPresent = windll.kernel32.CheckRemoteDebuggerPresent
-    _CheckRemoteDebuggerPresent.argtypes = [HANDLE, PBOOL]
-    _CheckRemoteDebuggerPresent.restype  = bool
-    _CheckRemoteDebuggerPresent.errcheck = RaiseIfZero
-
-    pbDebuggerPresent = BOOL(0)
-    _CheckRemoteDebuggerPresent(hProcess, ctypes.byref(pbDebuggerPresent))
-    return bool(pbDebuggerPresent.value)
-
-# BOOL DebugSetProcessKillOnExit(
-#   BOOL KillOnExit
-# );
-def DebugSetProcessKillOnExit(KillOnExit):
-    _DebugSetProcessKillOnExit = windll.kernel32.DebugSetProcessKillOnExit
-    _DebugSetProcessKillOnExit.argtypes = [BOOL]
-    _DebugSetProcessKillOnExit.restype  = bool
-    _DebugSetProcessKillOnExit.errcheck = RaiseIfZero
-    _DebugSetProcessKillOnExit(bool(KillOnExit))
-
-# BOOL DebugBreakProcess(
-#   HANDLE Process
-# );
-def DebugBreakProcess(hProcess):
-    _DebugBreakProcess = windll.kernel32.DebugBreakProcess
-    _DebugBreakProcess.argtypes = [HANDLE]
-    _DebugBreakProcess.restype  = bool
-    _DebugBreakProcess.errcheck = RaiseIfZero
-    _DebugBreakProcess(hProcess)
+#------------------------------------------------------------------------------
+# Toolhelp32 API
 
 # HANDLE WINAPI CreateToolhelp32Snapshot(
 #   __in  DWORD dwFlags,
@@ -3683,6 +3704,9 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
         raise ctypes.WinError()
     return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
 
+#------------------------------------------------------------------------------
+# Miscellaneous system information
+
 # DWORD WINAPI GetCurrentProcessorNumber(void);
 def GetCurrentProcessorNumber():
     _GetCurrentProcessorNumber = windll.kernel32.GetCurrentProcessorNumber
@@ -3793,7 +3817,7 @@ def FileTimeToSystemTime(lpFileTime):
     return SystemTime
 
 #------------------------------------------------------------------------------
-# Global ATOM api
+# Global ATOM API
 
 # ATOM GlobalAddAtom(
 #   __in  LPCTSTR lpString
@@ -3884,7 +3908,7 @@ def GlobalDeleteAtom(nAtom):
         raise ctypes.WinError(error)
 
 #------------------------------------------------------------------------------
-# Wow64
+# Wow64 API
 
 # BOOL WINAPI IsWow64Process(
 #   __in   HANDLE hProcess,
@@ -3899,6 +3923,38 @@ def IsWow64Process(hProcess):
     Wow64Process = BOOL(FALSE)
     _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
     return bool(Wow64Process)
+
+# BOOLEAN WINAPI Wow64EnableWow64FsRedirection(
+#   __in  BOOLEAN Wow64FsEnableRedirection
+# );
+def Wow64EnableWow64FsRedirection(Wow64FsEnableRedirection):
+    _Wow64EnableWow64FsRedirection = windll.kernel32.Wow64EnableWow64FsRedirection
+    _Wow64EnableWow64FsRedirection.argtypes = [BOOLEAN]
+    _Wow64EnableWow64FsRedirection.restype  = BOOLEAN
+    _Wow64EnableWow64FsRedirection.errcheck = RaiseIfZero
+
+# BOOL WINAPI Wow64DisableWow64FsRedirection(
+#   __out  PVOID *OldValue
+# );
+def Wow64DisableWow64FsRedirection():
+    _Wow64DisableWow64FsRedirection = windll.kernel32.Wow64DisableWow64FsRedirection
+    _Wow64DisableWow64FsRedirection.argtypes = [PPVOID]
+    _Wow64DisableWow64FsRedirection.restype  = BOOL
+    _Wow64DisableWow64FsRedirection.errcheck = RaiseIfZero
+
+    OldValue = PVOID(None)
+    _Wow64DisableWow64FsRedirection(ctypes.byref(OldValue))
+    return OldValue
+
+# BOOL WINAPI Wow64RevertWow64FsRedirection(
+#   __in  PVOID OldValue
+# );
+def Wow64RevertWow64FsRedirection(OldValue):
+    _Wow64RevertWow64FsRedirection = windll.kernel32.Wow64RevertWow64FsRedirection
+    _Wow64RevertWow64FsRedirection.argtypes = [PVOID]
+    _Wow64RevertWow64FsRedirection.restype  = BOOL
+    _Wow64RevertWow64FsRedirection.errcheck = RaiseIfZero
+    _Wow64RevertWow64FsRedirection(OldValue)
 
 #==============================================================================
 # Mark functions that Psyco cannot compile.
