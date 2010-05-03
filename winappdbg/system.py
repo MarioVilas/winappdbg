@@ -7478,7 +7478,7 @@ class System (ProcessContainer):
 
     @group Global settings:
         arch, bits, os, wow64, pageSize,
-        set_kill_on_exit_mode, request_debug_privileges,
+        set_kill_on_exit_mode, request_debug_privileges, load_dbghelp,
         read_msr, write_msr, enable_step_on_branch_mode,
         get_last_branch_location
 
@@ -7649,6 +7649,79 @@ class System (ProcessContainer):
         except (AttributeError, WindowsError):
             pass
         return False
+
+    @classmethod
+    def load_dbghelp(cls, pathname = None):
+        """
+        Load the C{dbghelp.dll} library shipped with the Debugging Tools for
+        Windows. Essentially this enables symbol server support, since this
+        version is newer than the one pre-installed with Windows, and the
+        symbol server loader library (C{SymSrv.dll}) is present in the same
+        directory.
+
+        For this method to have any effect it MUST be called BEFORE any
+        function in C{dbghelp.dll}. It's recommended that you call it right
+        after starting your debug script, or after instancing the L{Debug}
+        object.
+
+        Example::
+            from winappdbg import Debug
+
+            def simple_debugger( argv ):
+
+                # Instance a Debug object, passing it the event handler callback
+                debug = Debug( my_event_handler )
+                try:
+
+                    # Enable support for symbol downloading
+                    debug.system.load_dbghelp()
+
+                    # Start a new process for debugging
+                    debug.execv( argv )
+
+                    # Wait for the debugee to finish
+                    debug.loop()
+
+                # Stop the debugger
+                finally:
+                    debug.stop()
+
+        @see: L{http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx}
+
+        @type  pathname: str
+        @param pathname:
+            (Optional) Full pathname to the C{dbghelp.dll} library.
+
+        @rtype:  ctypes.WinDLL
+        @return: Loaded instance of C{dbghelp.dll}.
+
+        @raise NotImplementedError: This feature was not implemented for the
+            current architecture.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        if not pathname:
+            if cls.arch == 'amd64':
+                if cls.wow64:
+                    pathname = os.path.join(
+                                        os.getenv("ProgramFiles(x86)",
+                                            os.getenv("ProgramFiles")),
+                                        "Debugging Tools for Windows (x86)",
+                                        "dbghelp.dll")
+                else:
+                    pathname = os.path.join(
+                                        os.getenv("ProgramFiles"),
+                                        "Debugging Tools for Windows (x64)",
+                                        "dbghelp.dll")
+            elif cls.arch == 'i386':
+                pathname = os.path.join(
+                                    os.getenv("ProgramFiles"),
+                                    "Debugging Tools for Windows (x86)",
+                                    "dbghelp.dll")
+            else:
+                msg = "Architecture %s is not currently supported."
+                raise NotImplementedError, msg  % cls.arch
+        return ctypes.windll.LoadLibrary(pathname)
 
     @classmethod
     def read_msr(cls, address):
