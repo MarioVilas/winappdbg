@@ -37,6 +37,7 @@ import ctypes
 
 # Some stuff from ctypes we'll be using very frequently.
 sizeof      = ctypes.sizeof
+SIZEOF      = ctypes.sizeof
 POINTER     = ctypes.POINTER
 Structure   = ctypes.Structure
 Union       = ctypes.Union
