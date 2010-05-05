@@ -1,8 +1,9 @@
 include README
-include doc/*
-include doc/source/*
-include doc/source/_static/*
-include doc/source/_templates/*
+include doc/make.bat
+include doc/Makefile
+include doc/source/conf.py
+include doc/source/*.rst
+include doc/source/_static/*.png
 include examples/instrumentation/*.py
 include examples/debugging/*.py
 include examples/win32_api_wrappers/*.py
