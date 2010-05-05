@@ -16,17 +16,6 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
-Find alphanumeric addresses to jump to
-++++++++++++++++++++++++++++++++++++++
-
-This example will find all memory addresses in a target process that are executable and whose address consists of alphanumeric characters only. This is useful when exploiting a stack buffer overflow and the input string is limited to alphanumeric characters only.
-
-:download:`Download <../../examples/miscellaneous/find_alnum.py>`
-
-.. literalinclude:: ../../examples/miscellaneous/find_alnum.py
-   :start-after: # $Id
-   :end-before: # When invoked from the command line,
-
 .. _memory-dump-example:
 
 Dump the memory of a process
@@ -40,12 +29,40 @@ This is an example on how to dump the memory map and contents of a process into 
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
+.. _find-alnum:
+
+Find alphanumeric addresses to jump to
+++++++++++++++++++++++++++++++++++++++
+
+This example will find all memory addresses in a target process that are executable and whose address consists of alphanumeric characters only. This is useful when exploiting a stack buffer overflow and the input string is limited to alphanumeric characters only.
+
+:download:`Download <../../examples/miscellaneous/find_alnum.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/find_alnum.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
+.. _trace-gdi-text:
+
+Trace all calls to text drawing in GDI
+++++++++++++++++++++++++++++++++++++++
+
+This example hooks all text drawing functions in GDI and prints the text. It can be useful to extract text messages and logs from GUI programs.
+
+:download:`Download <../../examples/miscellaneous/trace_gdi_text.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/trace_gdi_text.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
+.. _atoms:
+
 Enumerate all named global atoms
 ++++++++++++++++++++++++++++++++
 
 Global atoms are WORD numeric values that can be associated to arbitrary strings. They are used primarily for IPC purposes on Windows. This example shows how to retrieve the string from any atom value.
 
-:download:`Download <../../examples/miscellaneous/memory_dump_example.py>`
+:download:`Download <../../examples/miscellaneous/atoms.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/atoms.py
    :start-after: # $Id
