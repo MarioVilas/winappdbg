@@ -33,56 +33,6 @@ from winappdbg import Debug, EventHandler, DebugLog
 from ctypes import *
 
 #------------------------------------------------------------------------------
-# Hooks in user32.dll
-
-# int DrawText(
-#   __in     HDC hDC,
-#   __inout  LPCTSTR lpchText,
-#   __in     int nCount,
-#   __inout  LPRECT lpRect,
-#   __in     UINT uFormat
-# );
-
-def DrawTextA(event, ra, hDC, lpchText, nCount, lpRect, uFormat):
-    log_ansi(event, "DrawTextA", lpchText, nCount)
-
-def DrawTextW(event, ra, hDC, lpchText, nCount, lpRect, uFormat):
-    log_wide(event, "DrawTextW", lpchText, nCount)
-
-# int DrawTextEx(
-#   __in     HDC hdc,
-#   __inout  LPTSTR lpchText,
-#   __in     int cchText,
-#   __inout  LPRECT lprc,
-#   __in     UINT dwDTFormat,
-#   __in     LPDRAWTEXTPARAMS lpDTParams
-# );
-
-def DrawTextExA(event, ra, hdc, lpchText, cchText, lprc, dwDTFormat, lpDTParams):
-    log_ansi(event, "DrawTextExA", lpchText, cchText)
-
-def DrawTextExW(event, ra, hdc, lpchText, cchText, lprc, dwDTFormat, lpDTParams):
-    log_wide(event, "DrawTextExW", lpchText, cchText)
-
-# LONG TabbedTextOut(
-#   __in  HDC hDC,
-#   __in  int X,
-#   __in  int Y,
-#   __in  LPCTSTR lpString,
-#   __in  int nCount,
-#   __in  int nTabPositions,
-#   __in  const LPINT lpnTabStopPositions,
-#   __in  int nTabOrigin
-# );
-
-def TabbedTextOutA(event, ra, hDC, X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin):
-    log_ansi(event, "TabbedTextOutA", lpString, nCount)
-
-def TabbedTextOutW(event, ra, hDC, X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin):
-    log_wide(event, "TabbedTextOutW", lpString, nCount)
-
-#------------------------------------------------------------------------------
-# Hooks in gdi32.dll
 
 # BOOL TextOut(
 #   __in  HDC hdc,
@@ -159,7 +109,6 @@ def PolyTextOutW(event, ra, hdc, pptxt, cStrings):
         cStrings = cStrings - 1
 
 #------------------------------------------------------------------------------
-# Debugger
 
 def log_ansi(event, fn, lpString, nCount):
     if lpString and nCount:
@@ -182,13 +131,6 @@ class MyEventHandler( EventHandler ):
     def load_dll(self, event):
         pid = event.get_pid()
         module = event.get_module()
-        if module.match_name("user32.dll"):
-            event.debug.hook_function(pid, module.resolve("DrawTextA"),      DrawTextA,      paramCount = 5)
-            event.debug.hook_function(pid, module.resolve("DrawTextW"),      DrawTextW,      paramCount = 5)
-            event.debug.hook_function(pid, module.resolve("DrawTextExA"),    DrawTextExA,    paramCount = 6)
-            event.debug.hook_function(pid, module.resolve("DrawTextExW"),    DrawTextExW,    paramCount = 6)
-            event.debug.hook_function(pid, module.resolve("TabbedTextOutA"), TabbedTextOutA, paramCount = 8)
-            event.debug.hook_function(pid, module.resolve("TabbedTextOutW"), TabbedTextOutW, paramCount = 8)
         if module.match_name("gdi32.dll"):
             event.debug.hook_function(pid, module.resolve("TextOutA"),       TextOutA,       paramCount = 5)
             event.debug.hook_function(pid, module.resolve("TextOutW"),       TextOutW,       paramCount = 5)
