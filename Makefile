@@ -24,7 +24,8 @@ EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epyte
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
 EPYDOC_TEST_OPT=--check
-EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included --graph all
+EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included
+EPYDOC_GRAPH_OPT=--graph all
 
 # note to self: use --no-sourcecode to generate smaller documentation pages
 
