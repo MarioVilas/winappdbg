@@ -278,7 +278,7 @@ class ModuleContainer (object):
         if address >= bases[0]:
             i = 0
             max_i = len(bases) - 1  # -1 because last base is fake
-            while i < max_i: 
+            while i < max_i:
                 begin, end = bases[i:i+2]
                 if begin <= address <= end:
                     module = self.get_module(begin)
@@ -1644,7 +1644,7 @@ class MemoryOperations (object):
         is_address_commited, is_address_guard, is_address_readable,
         is_address_writeable, is_address_copy_on_write, is_address_executable,
         is_address_executable_and_writeable,
-        is_buffer_mapped,
+        is_buffer,
         is_buffer_readable, is_buffer_writeable, is_buffer_executable,
         is_buffer_executable_and_writeable
 
@@ -2680,7 +2680,7 @@ class MemoryOperations (object):
             size = size - mbi.RegionSize
         return True
 
-    def is_buffer_writeable_and_executable(self, address, size):
+    def is_buffer_executable_and_writeable(self, address, size):
         """
         Determines if the given memory area is writeable and executable.
 
@@ -5488,7 +5488,7 @@ class Window (object):
             window.set_process( self.get_process() )
         if window.get_tid() == self.get_tid():
             window.set_thread( self.get_thread() )
-        return window        
+        return window
 
 #------------------------------------------------------------------------------
 
@@ -7946,7 +7946,7 @@ class System (ProcessContainer):
                 finally:
                     debug.stop()
 
-        @see: L{http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx}
+        @see: U{http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx}
 
         @type  pathname: str
         @param pathname:
