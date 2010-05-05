@@ -2148,14 +2148,6 @@ class MemoryOperations (object):
         # If the string is Unicode...
         if fUnicode:
 
-##            # Truncate the string when the first null char is found.
-##            pos = None
-##            for index in xrange(0, len(szString), 2):
-##                if szString[ index : index + 2 ] == '\0\0':
-##                    pos = index
-##                    break
-##            szString = szString[ : pos ]
-
             # Decode the string.
             szString = unicode(szString, 'U16', 'replace')
 ##            try:
