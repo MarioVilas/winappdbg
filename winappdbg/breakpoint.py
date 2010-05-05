@@ -2604,9 +2604,9 @@ class BreakpointContainer (object):
         @rtype:  list of tuple( int, L{PageBreakpoint} )
         @return: All page breakpoints as a list of tuples (pid, bp).
         """
-##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.itervalues() ] ) )
+##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.iteritems() ] ) )
         result = set()
-        for ((pid, address), bp) in self.__pageBP.itervalues():
+        for ((pid, address), bp) in self.__pageBP.iteritems():
             result.add( (pid, bp) )
         return list(result)
 
@@ -2673,7 +2673,7 @@ class BreakpointContainer (object):
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__codeBP.itervalues() \
+        return [ bp for ((pid, address), bp) in self.__codeBP.iteritems() \
                 if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
@@ -2684,7 +2684,7 @@ class BreakpointContainer (object):
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__pageBP.itervalues() \
+        return [ bp for ((pid, address), bp) in self.__pageBP.iteritems() \
                 if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
