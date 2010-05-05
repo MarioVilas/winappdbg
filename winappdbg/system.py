@@ -1643,7 +1643,10 @@ class MemoryOperations (object):
         is_pointer, is_address_valid, is_address_free, is_address_reserved,
         is_address_commited, is_address_guard, is_address_readable,
         is_address_writeable, is_address_copy_on_write, is_address_executable,
-        is_address_executable_and_writeable
+        is_address_executable_and_writeable,
+        is_buffer_mapped,
+        is_buffer_readable, is_buffer_writeable, is_buffer_executable,
+        is_buffer_executable_and_writeable
 
     @group Memory read:
         read, read_char, read_uint, read_pointer, read_string, read_structure,
@@ -1654,10 +1657,6 @@ class MemoryOperations (object):
         poke, poke_char, poke_uint, poke_pointer
     """
 
-    # FIXME
-    # * under Wine reading from an unmapped address returns nulls
-    #   this is wrong, the call to ReadProcessMemory should fail instead
-    # * under ReactOS it doesn't seem to work at all (more testing needed)
     def read(self, lpBaseAddress, nSize):
         """
         Reads from the memory of the process.
@@ -1675,18 +1674,20 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if not self.mquery(lpBaseAddress).has_content():
+        # XXX TODO
+        # + Maybe change page permissions before trying to read?
+        if not self.is_buffer(lpBaseAddress, nSize):
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
         data = win32.ReadProcessMemory(self.get_handle(), lpBaseAddress, nSize)
         if len(data) != nSize:
             raise ctypes.WinError()
         return data
 
-    # FIXME
-    # * under ReactOS it doesn't seem to work at all (more testing needed)
     def write(self, lpBaseAddress, lpBuffer):
         """
         Writes to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
 
         @see: L{poke}
 
@@ -1725,6 +1726,8 @@ class MemoryOperations (object):
     def write_uint(self, lpBaseAddress, unpackedDword):
         """
         Writes a single unsigned integer to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
 
         @see: L{poke_uint}
 
@@ -1766,6 +1769,8 @@ class MemoryOperations (object):
         """
         Writes a single pointer value to the memory of the process.
 
+        @note: Page permissions may be changed temporarily while writing.
+
         @see: L{poke_pointer}
 
         @type  lpBaseAddress: int
@@ -1804,6 +1809,8 @@ class MemoryOperations (object):
         """
         Writes a single character to the memory of the process.
 
+        @note: Page permissions may be changed temporarily while writing.
+
         @see: L{write_char}
 
         @type  lpBaseAddress: int
@@ -1841,10 +1848,12 @@ class MemoryOperations (object):
         ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
         return ptr.contents
 
-# TODO
+# XXX TODO
 ##    def write_structure(self, lpBaseAddress, sStructure):
 ##        """
 ##        Writes a ctypes structure into the memory of the process.
+##
+##        @note: Page permissions may be changed temporarily while writing.
 ##
 ##        @see: L{write}
 ##
@@ -1914,11 +1923,19 @@ class MemoryOperations (object):
             Returns an empty string on error.
         """
         # XXX TODO
-        # Change page permissions before trying to read it
+        # + Maybe change page permissions before trying to read?
+        # + Maybe use mquery instead of get_memory_map?
+        #   (less syscalls if we break out of the loop earlier)
         data = ''
         if nSize > 0:
             try:
-                data = win32.ReadProcessMemory(self.get_handle(),
+                for mbi in self.get_memory_map(lpBaseAddress,
+                                               lpBaseAddress + nSize):
+                    if not mbi.is_readable():
+                        nSize = mbi.BaseAddress - lpBaseAddress
+                        break
+                if nSize > 0:
+                    data = win32.ReadProcessMemory(self.get_handle(),
                                                           lpBaseAddress, nSize)
             except WindowsError:
                 pass
@@ -1927,6 +1944,8 @@ class MemoryOperations (object):
     def poke(self, lpBaseAddress, lpBuffer):
         """
         Writes to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
 
         @see: L{write}
 
@@ -1985,6 +2004,8 @@ class MemoryOperations (object):
         """
         Writes a single unsigned integer to the memory of the process.
 
+        @note: Page permissions may be changed temporarily while writing.
+
         @see: L{write_uint}
 
         @type  lpBaseAddress: int
@@ -2029,6 +2050,8 @@ class MemoryOperations (object):
         """
         Writes a single pointer value to the memory of the process.
 
+        @note: Page permissions may be changed temporarily while writing.
+
         @see: L{write_pointer}
 
         @type  lpBaseAddress: int
@@ -2072,6 +2095,8 @@ class MemoryOperations (object):
         """
         Writes a single character to the memory of the process.
 
+        @note: Page permissions may be changed temporarily while writing.
+
         @see: L{write_char}
 
         @type  lpBaseAddress: int
@@ -2108,15 +2133,48 @@ class MemoryOperations (object):
             It B{doesn't} include the terminating null character.
             Returns an empty string on failure.
         """
-        # It's copied to a ctypes buffer and back to Python string
-        # to make sure the string is parsed just like a C string should.
-        # This avoids having troublesome null characters around.
+
+        # Validate the parameters.
+        if not lpBaseAddress or dwMaxSize == 0:
+            if fUnicode:
+                return u''
+            return ''
+        if not dwMaxSize:
+            dwMaxSize = 0x1000
+
+        # Read the string.
         szString = self.peek(lpBaseAddress, dwMaxSize)
+
+        # If the string is Unicode...
         if fUnicode:
-            szString = unicode(szString, 'U16', 'ignore')
-            szString = ctypes.create_unicode_buffer(szString).value
+
+##            # Truncate the string when the first null char is found.
+##            pos = None
+##            for index in xrange(0, len(szString), 2):
+##                if szString[ index : index + 2 ] == '\0\0':
+##                    pos = index
+##                    break
+##            szString = szString[ : pos ]
+
+            # Decode the string.
+            szString = unicode(szString, 'U16', 'replace')
+##            try:
+##                szString = unicode(szString, 'U16')
+##            except UnicodeDecodeError:
+##                szString = struct.unpack('H' * (len(szString) / 2), szString)
+##                szString = [ unichr(c) for c in szString ]
+##                szString = u''.join(szString)
+
+            # Truncate the string when the first null char is found.
+            szString = szString[ : szString.find(u'\0') ]
+
+        # If the string is ANSI...
         else:
-            szString = ctypes.create_string_buffer(szString).value
+
+            # Truncate the string when the first null char is found.
+            szString = szString[ : szString.find('\0') ]
+
+        # Return the decoded string.
         return szString
 
 #------------------------------------------------------------------------------
@@ -2457,6 +2515,216 @@ class MemoryOperations (object):
                 return False
             raise
         return mbi.is_executable_and_writeable()
+
+    def is_buffer(self, address, size):
+        """
+        Determines if the given memory area is a valid code or data buffer.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is a valid code or data buffer,
+            C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.has_content():
+                return False
+            size = size - mbi.RegionSize
+        return True
+
+    def is_buffer_readable(self, address, size):
+        """
+        Determines if the given memory area is readable.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is readable, C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.is_readable():
+                return False
+            size = size - mbi.RegionSize
+        return True
+
+    def is_buffer_writeable(self, address, size):
+        """
+        Determines if the given memory area is writeable.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is writeable, C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.is_writeable():
+                return False
+            size = size - mbi.RegionSize
+        return True
+
+    def is_buffer_copy_on_write(self, address, size):
+        """
+        Determines if the given memory area is marked as copy-on-write.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is marked as copy-on-write,
+            C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.is_copy_on_write():
+                return False
+            size = size - mbi.RegionSize
+        return True
+
+    def is_buffer_executable(self, address, size):
+        """
+        Determines if the given memory area is executable.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is executable, C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.is_executable():
+                return False
+            size = size - mbi.RegionSize
+        return True
+
+    def is_buffer_writeable_and_executable(self, address, size):
+        """
+        Determines if the given memory area is writeable and executable.
+
+        Looking for writeable and executable pages is important when
+        exploiting a software vulnerability.
+
+        @note: Returns always C{False} for kernel mode addresses.
+
+        @see: L{mquery}
+
+        @type  address: int
+        @param address: Memory address.
+
+        @type  size: int
+        @param size: Number of bytes. Must be greater than zero.
+
+        @rtype:  bool
+        @return: C{True} if the memory area is writeable and executable,
+            C{False} otherwise.
+
+        @raise ValueError: The size argument must be greater than zero.
+        @raise WindowsError: On error an exception is raised.
+        """
+        if size <= 0:
+            raise ValueError, "the size argument must be greater than zero"
+        while size > 0:
+            try:
+                mbi = self.mquery(address)
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                    return False
+                raise
+            if not mbi.is_executable():
+                return False
+            size = size - mbi.RegionSize
+        return True
 
     def get_memory_map(self, minAddr = None, maxAddr = None):
         """
