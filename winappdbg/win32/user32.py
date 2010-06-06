@@ -33,6 +33,7 @@ __revision__ = "$Id$"
 
 from defines import *
 from kernel32 import GetLastError, SetLastError
+from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
 #--- Helpers ------------------------------------------------------------------
 
@@ -120,6 +121,8 @@ WPF_ASYNCWINDOWPLACEMENT            = 4
 #--- Window messages ----------------------------------------------------------
 
 WM_USER                              = 0x400
+WM_APP                               = 0x800
+
 WM_NULL                              = 0
 WM_CREATE                            = 1
 WM_DESTROY                           = 2
@@ -177,17 +180,21 @@ WM_COMPACTING                        = 0x41
 WM_OTHERWINDOWCREATED                = 0x42
 WM_OTHERWINDOWDESTROYED              = 0x43
 WM_COMMNOTIFY                        = 0x44
+
 CN_RECEIVE                           = 0x1
 CN_TRANSMIT                          = 0x2
 CN_EVENT                             = 0x4
+
 WM_WINDOWPOSCHANGING                 = 0x46
 WM_WINDOWPOSCHANGED                  = 0x47
 WM_POWER                             = 0x48
+
 PWR_OK                               = 1
 PWR_FAIL                             = -1
 PWR_SUSPENDREQUEST                   = 1
 PWR_SUSPENDRESUME                    = 2
 PWR_CRITICALRESUME                   = 3
+
 WM_COPYDATA                          = 0x4A
 WM_CANCELJOURNAL                     = 0x4B
 WM_NOTIFY                            = 0x4E
@@ -301,35 +308,7 @@ WM_PRINTCLIENT                       = 0x318
 WM_PENWINFIRST                       = 0x380
 WM_PENWINLAST                        = 0x38F
 
-#--- Structure ----------------------------------------------------------------
-
-# typedef struct _RECT {
-#   LONG left;
-#   LONG top;
-#   LONG right;
-#   LONG bottom;
-# }RECT, *PRECT;
-class RECT(Structure):
-    _fields_ = [
-        ('left',    LONG),
-        ('top',     LONG),
-        ('right',   LONG),
-        ('bottom',  LONG),
-    ]
-PRECT  = POINTER(RECT)
-LPRECT = PRECT
-
-# typedef struct tagPOINT {
-#   LONG x;
-#   LONG y;
-# } POINT;
-class POINT(Structure):
-    _fields_ = [
-        ('x',   LONG),
-        ('y',   LONG),
-    ]
-PPOINT  = POINTER(POINT)
-LPPOINT = PPOINT
+#--- Structures ---------------------------------------------------------------
 
 # typedef struct _WINDOWPLACEMENT {
 #     UINT length;
@@ -378,6 +357,9 @@ PGUITHREADINFO  = POINTER(GUITHREADINFO)
 LPGUITHREADINFO = PGUITHREADINFO
 
 #--- High level classes -------------------------------------------------------
+
+# Point() and Rect() are here instead of gdi32.py because they were mainly
+# created to handle window coordinates rather than drawing on the screen.
 
 class Point(object):
     """
@@ -920,7 +902,7 @@ def WindowFromPoint(point):
     _WindowFromPoint.restype  = HWND
     _WindowFromPoint.errcheck = RaiseIfZero
     if isinstance(point, tuple):
-        point = POINT(*point) 
+        point = POINT(*point)
     return _WindowFromPoint(point)
 
 # HWND ChildWindowFromPoint(
@@ -933,10 +915,10 @@ def ChildWindowFromPoint(hWndParent, point):
     _ChildWindowFromPoint.restype  = HWND
     _ChildWindowFromPoint.errcheck = RaiseIfZero
     if isinstance(point, tuple):
-        point = POINT(*point) 
+        point = POINT(*point)
     return _ChildWindowFromPoint(hWndParent, point)
 
-#HWND RealChildWindowFromPoint(      
+#HWND RealChildWindowFromPoint(
 #    HWND hwndParent,
 #    POINT ptParentClientCoords
 #);
@@ -946,7 +928,7 @@ def RealChildWindowFromPoint(hWndParent, ptParentClientCoords):
     _RealChildWindowFromPoint.restype  = HWND
     _RealChildWindowFromPoint.errcheck = RaiseIfZero
     if isinstance(ptParentClientCoords, tuple):
-        ptParentClientCoords = POINT(*ptParentClientCoords) 
+        ptParentClientCoords = POINT(*ptParentClientCoords)
     return _RealChildWindowFromPoint(hWndParent, ptParentClientCoords)
 
 # BOOL ScreenToClient(
@@ -969,7 +951,7 @@ def ScreenToClient(hWnd, lpPoint):
     return Point(lpPoint.x, lpPoint.y)
 
 # BOOL ClientToScreen(
-#   HWND hWnd, 
+#   HWND hWnd,
 #   LPPOINT lpPoint
 # );
 def ClientToScreen(hWnd, x, y):
@@ -1010,7 +992,7 @@ def MapWindowPoints(hWndFrom, hWndTo, lpPoints):
     y_delta = (number >> 16) & 0xFFFF
     return x_delta, y_delta, [ (Point.x, Point.y) for Point in lpPoints ]
 
-#BOOL SetForegroundWindow(      
+#BOOL SetForegroundWindow(
 #    HWND hWnd
 #);
 def SetForegroundWindow(hWnd):
@@ -1049,7 +1031,7 @@ def SetWindowPlacement(hWnd, lpwndpl):
         lpwndpl.length = ctypes.sizeof(lpwndpl)
     _SetWindowPlacement(hWnd, ctypes.byref(lpwndpl))
 
-#BOOL MoveWindow(      
+#BOOL MoveWindow(
 #    HWND hWnd,
 #    int X,
 #    int Y,
