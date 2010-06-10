@@ -2019,7 +2019,7 @@ def GetLogicalDriveStringsA():
     _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
     drive_strings = list()
     string_p = ctypes.addressof(lpBuffer)
-    sizeof_char = ctypes.sizeof(ctypes.c_char) 
+    sizeof_char = ctypes.sizeof(ctypes.c_char)
     while True:
         string_v = ctypes.string_at(string_p)
         if string_v == '':
@@ -2027,7 +2027,7 @@ def GetLogicalDriveStringsA():
         drive_strings.append(string_v)
         string_p += len(string_v) + sizeof_char
     return drive_strings
-    
+
 def GetLogicalDriveStringsW():
     _GetLogicalDriveStringsW = ctypes.windll.kernel32.GetLogicalDriveStringsW
     _GetLogicalDriveStringsW.argtypes = [DWORD, LPWSTR]
@@ -2039,7 +2039,7 @@ def GetLogicalDriveStringsW():
     _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
     drive_strings = list()
     string_p = ctypes.addressof(lpBuffer)
-    sizeof_wchar = ctypes.sizeof(ctypes.c_wchar) 
+    sizeof_wchar = ctypes.sizeof(ctypes.c_wchar)
     while True:
         string_v = ctypes.wstring_at(string_p)
         if string_v == u'':
@@ -2589,14 +2589,10 @@ def SetConsoleCtrlHandler(HandlerRoutine = None, Add = True):
     _SetConsoleCtrlHandler.argtypes = [PHANDLER_ROUTINE, BOOL]
     _SetConsoleCtrlHandler.restype  = bool
     _SetConsoleCtrlHandler.errcheck = RaiseIfZero
-
-    if callable(HandlerRoutine):
-        HandlerRoutine = PHANDLER_ROUTINE(HandlerRoutine)
-    elif not HandlerRoutine:
-        HandlerRoutine = None
-    else:
-        raise ValueError, "Bad argument for HandlerRoutine: %r" % HandlerRoutine
     _SetConsoleCtrlHandler(HandlerRoutine, bool(Add))
+    # we can't automagically transform Python functions to PHANDLER_ROUTINE
+    # because a) the actual pointer value is meaningful to the API
+    # and b) if it gets garbage collected bad things would happen
 
 # BOOL WINAPI GenerateConsoleCtrlEvent(
 #   __in  DWORD dwCtrlEvent,
