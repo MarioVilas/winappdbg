@@ -38,7 +38,6 @@ import winappdbg
 from winappdbg import *
 
 import os
-import re
 import sys
 import time
 import optparse
@@ -68,9 +67,6 @@ class LoggingEventHandler(EventHandler):
     Event handler that logs all events to standard output.
     It also remembers crashes, bugs or otherwise interesting events.
     """
-
-    # Regular expression to extract 8 digit hexadecimal numbers.
-    re_hexa = re.compile('[0-9A-F]' * 8, re.I)
 
     def __init__(self, options, currentConfig = None):
 

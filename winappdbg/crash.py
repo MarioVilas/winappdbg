@@ -601,6 +601,9 @@ class CrashTable (ContainerBase):
     # maybe the Crash class should have a way of reporting the CrashTable what
     # columns to use and what data to put in each column
     def _get_row_values(self, crash):
+        """
+        Private method, do not use.
+        """
         timeStamp           = time.asctime( time.gmtime( crash.timeStamp ) )
         key                 = self.marshall_key( crash.key() )
         pickle              = self.marshall_value(crash)
@@ -656,6 +659,9 @@ class CrashTable (ContainerBase):
         )
 
     def _memory_get_row_values(self, CrashID, mbi):
+        """
+        Private method, do not use.
+        """
 
         # State (free or allocated).
         if   mbi.State == win32.MEM_RESERVE:
@@ -1883,6 +1889,12 @@ class Crash (object):
         return result
 
     def __is_control_flow(self):
+        """
+        Private method to tell if the instruction pointed to by the program
+        counter is a control flow instruction.
+
+        Currently only works for x86 and amd64 architectures.
+        """
         jump_instructions = (
             'jmp', 'jecxz', 'jcxz',
             'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je',
@@ -1908,6 +1920,12 @@ class Crash (object):
         return isControlFlow
 
     def __is_block_data_move(self):
+        """
+        Private method to tell if the instruction pointed to by the program
+        counter is a block data move instruction.
+
+        Currently only works for x86 and amd64 architectures.
+        """
         block_data_move_instructions = ('movs', 'stos', 'lods')
         isBlockDataMove = False
         instruction = None

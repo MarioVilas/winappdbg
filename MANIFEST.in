@@ -1,5 +1,9 @@
 include README
-include doc/make.bat
+include Makefile
+include MANIFEST.in
+include setup.cfg
+include setup.py
+include winappdbg.hhp
 include doc/Makefile
 include doc/source/conf.py
 include doc/source/*.rst
@@ -8,3 +12,6 @@ include examples/instrumentation/*.py
 include examples/debugging/*.py
 include examples/win32_api_wrappers/*.py
 include examples/miscellaneous/*.py
+include tools/*.py
+include tools/plugins/*.py
+include tools/plugins/README

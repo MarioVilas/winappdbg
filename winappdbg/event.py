@@ -99,6 +99,7 @@ class Event (object):
     @type eventMethod: str
     @cvar eventMethod:
         Method name to call when using L{EventHandler} subclasses.
+        Used internally.
 
     @type eventName: str
     @cvar eventName:

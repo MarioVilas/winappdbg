@@ -1345,16 +1345,35 @@ class Logger(object):
         self.verbose = verbose
         self.logfile = logfile
         if self.logfile:
-	       self.fd = open(self.logfile, 'a+')
+            self.fd = open(self.logfile, 'a+')
 
     def __logfile_error(self, e):
-        msg = "Warning, error writing log file %s: %s"
+        """
+        Shows an error message to standard error
+        if the log file can't be written to.
+
+        Used internally.
+
+        @type  e: Exception
+        @param e: Exception raised when trying to write to the log file.
+        """
+        from sys import stderr
+        msg = "Warning, error writing log file %s: %s\n"
         msg = msg % (self.logfile, str(e))
-        print DebugLog.log_text(msg)
+        stderr.write(DebugLog.log_text(msg))
         self.logfile = None
-    	self.fd      = None
+        self.fd      = None
 
     def __do_log(self, text):
+        """
+        Writes the given text verbatim into the log file (if any)
+        and/or standard input (if the verbose flag is turned on).
+
+        Used internally.
+
+        @type  text: str
+        @param text: Text to print.
+        """
         if self.verbose:
             print text
         if self.logfile:

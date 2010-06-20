@@ -363,6 +363,12 @@ class ModuleContainer (object):
     # XXX notify_* methods should not trigger a scan
 
     def __add_module(self, aModule):
+        """
+        Private method to add a module object to the snapshot.
+
+        @type  aModule: L{Module}
+        @param aModule: Module object.
+        """
 ##        if not isinstance(aModule, Module):
 ##            if hasattr(aModule, '__class__'):
 ##                typename = aModule.__class__.__name__
@@ -377,6 +383,12 @@ class ModuleContainer (object):
         self.__moduleDict[lpBaseOfDll] = aModule
 
     def __del_module(self, lpBaseOfDll):
+        """
+        Private method to remove a module object from the snapshot.
+
+        @type  aModule: L{Module}
+        @param aModule: Module object.
+        """
 ##        if lpBaseOfDll not in self.__moduleDict:
 ##            msg = "Unknown base address %d" % lpBaseOfDll
 ##            raise KeyError, msg
@@ -385,6 +397,12 @@ class ModuleContainer (object):
         del self.__moduleDict[lpBaseOfDll]
 
     def __add_loaded_module(self, event):
+        """
+        Private method to automatically add new module objects from debug events.
+
+        @type  event: L{Event}
+        @param event: Event object.
+        """
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
 ##        if not self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
@@ -751,6 +769,12 @@ class ThreadContainer (object):
     # XXX notify_* methods should not trigger a scan
 
     def __add_thread(self, aThread):
+        """
+        Private method to add a thread object to the snapshot.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
 ##        if not isinstance(aThread, Thread):
 ##            if hasattr(aThread, '__class__'):
 ##                typename = aThread.__class__.__name__
@@ -766,6 +790,12 @@ class ThreadContainer (object):
         self.__threadDict[dwThreadId] = aThread
 
     def __del_thread(self, dwThreadId):
+        """
+        Private method to remove a thread object from the snapshot.
+
+        @type  aThread: L{Thread}
+        @param aThread: Thread object.
+        """
 ##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
 ##            raise KeyError, msg
@@ -774,6 +804,12 @@ class ThreadContainer (object):
         del self.__threadDict[dwThreadId]
 
     def __add_created_thread(self, event):
+        """
+        Private method to automatically add new thread objects from debug events.
+
+        @type  event: L{Event}
+        @param event: Event object.
+        """
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
 ##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
@@ -1551,6 +1587,12 @@ class ProcessContainer (object):
     # XXX notify_* methods should not trigger a scan
 
     def __add_process(self, aProcess):
+        """
+        Private method to add a process object to the snapshot.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
 ##        if not isinstance(aProcess, Process):
 ##            if hasattr(aProcess, '__class__'):
 ##                typename = aProcess.__class__.__name__
@@ -1565,6 +1607,12 @@ class ProcessContainer (object):
         self.__processDict[dwProcessId] = aProcess
 
     def __del_process(self, dwProcessId):
+        """
+        Private method to remove a process object from the snapshot.
+
+        @type  aProcess: L{Process}
+        @param aProcess: Process object.
+        """
 ##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
 ##            raise KeyError, msg
@@ -2245,11 +2293,9 @@ class MemoryOperations (object):
         @type  dwSize: int
         @param dwSize: (Optional) Number of bytes to free.
 
-        @rtype:  bool
-        @return: C{True} on success, C{False} on error.
+        @raise WindowsError: On error an exception is raised.
         """
-        success = win32.VirtualFreeEx(self.get_handle(), lpAddress, dwSize)
-        return bool(success)
+        win32.VirtualFreeEx(self.get_handle(), lpAddress, dwSize)
 
 #------------------------------------------------------------------------------
 
@@ -4711,9 +4757,20 @@ class ProcessDebugOperations (object):
         flush_instruction_cache, debug_break, peek_pointers_in_data
     """
 
+    # Regular expression to find hexadecimal values of any size.
     __hexa_parameter = re.compile('0x[0-9A-Za-z]+')
 
     def __fixup_labels(self, disasm):
+        """
+        Private method used when disassembling from process memory.
+
+        @type  disasm: list of tuple(int, int, str, str)
+        @param disasm: Output of one of the dissassembly functions.
+
+        @rtype  disasm: list of tuple(int, int, str, str)
+        @return disasm: Same disassembly output, but all raw memory addresses
+            are replaced by labels when possible.
+        """
         for index in xrange(len(disasm)):
             (address, size, text, dump) = disasm[index]
             m = self.__hexa_parameter.search(text)
@@ -5510,11 +5567,11 @@ class Window (object):
         if not length:
             raise ctypes.WinError()
         length = length + 1
-        buffer = ctypes.create_string_buffer("", length)
-        success = self.send(win32.WM_GETTEXT, length, buffer)
+        c_buffer = ctypes.create_string_buffer("", length)
+        success = self.send(win32.WM_GETTEXT, length, c_buffer)
         if success == 0:
             return ""
-        return buffer.value
+        return c_buffer.value
 
     def set_text(self, text):
         """
