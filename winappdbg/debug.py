@@ -39,10 +39,18 @@ __all__ =   [
                 'Debug',
             ]
 
-import win32
-from system import System, Process, Thread, Module
-from breakpoint import BreakpointContainer, CodeBreakpoint
-from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
+try:
+    exec('''
+from . import win32
+from .system import System, Process, Thread, Module
+from .breakpoint import BreakpointContainer, CodeBreakpoint
+from .event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
+'''
+except SyntaxError:
+    import win32
+    from system import System, Process, Thread, Module
+    from breakpoint import BreakpointContainer, CodeBreakpoint
+    from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
 import sys
 import ctypes
@@ -151,7 +159,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         try:
             self.stop()
-        except Exception, e:
+        except Exception:
             pass
 
     def __len__(self):

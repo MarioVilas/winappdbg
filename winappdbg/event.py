@@ -81,14 +81,37 @@ __all__ = [
             'ExceptionEvent'
           ]
 
-import win32
-from win32 import FileHandle, ProcessHandle, ThreadHandle
-from breakpoint import ApiHook
-from system import Module, Thread, Process, PathOperations
-from textio import HexDump
+try:
+    exec('''
+from . import win32
+from .win32 import FileHandle, ProcessHandle, ThreadHandle
+from .breakpoint import ApiHook
+from .system import Module, Thread, Process, PathOperations
+from .textio import HexDump
+'''
+except SyntaxError:
+    import win32
+    from win32 import FileHandle, ProcessHandle, ThreadHandle
+    from breakpoint import ApiHook
+    from system import Module, Thread, Process, PathOperations
+    from textio import HexDump
 
 import ctypes
 ##import weakref
+
+# Python 3.x compatibility
+try:
+    callable
+except NameError:
+    import collections
+    def callable(obj):
+        return isinstance(obj, collections.Callable)
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 #==============================================================================
 
@@ -483,7 +506,7 @@ class ExceptionEvent (Event):
         @return: Exception information DWORD.
         """
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
-            raise IndexError, "Array index out of range: %s" % repr(index)
+            raise IndexError("Array index out of range: %s" % repr(index))
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         value = info[index]
         if value is None:
@@ -497,7 +520,7 @@ class ExceptionEvent (Event):
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         data = list()
-        for index in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
+        for index in range(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
             value = info[index]
             if value is None:
                 value = 0
@@ -522,7 +545,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
             msg = "This method is not meaningful for %s."
-            raise NotImplementedError, msg % self.get_exception_name()
+            raise NotImplementedError(msg % self.get_exception_name())
         return self.get_exception_information(0)
 
     def get_fault_address(self):
@@ -538,7 +561,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
             msg = "This method is not meaningful for %s."
-            raise NotImplementedError, msg % self.get_exception_name()
+            raise NotImplementedError(msg % self.get_exception_name())
         return self.get_exception_information(1)
 
     def get_ntstatus_code(self):
@@ -554,7 +577,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() != win32.EXCEPTION_IN_PAGE_ERROR:
             msg = "This method is only meaningful "\
                   "for in-page memory error exceptions."
-            raise NotImplementedError, msg
+            raise NotImplementedError(msg)
         return self.get_exception_information(2)
 
     def is_nested(self):
@@ -1311,13 +1334,13 @@ class EventHandler (object):
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
         if self.apiHooks and win32.CONTEXT.arch != 'i386':
-            raise NotImplementedError, "Hooks are not yet implemented in 64 bits"
+            raise NotImplementedError("Hooks are not yet implemented in 64 bits")
 
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
         self.__apiHooks = dict()
-        for lib, hooks in self.apiHooks.iteritems():
+        for lib, hooks in self.apiHooks.items():
             self.__apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
 
     def __setApiHooksForDll(self, event):
@@ -1332,7 +1355,7 @@ class EventHandler (object):
                 lib_name = PathOperations.pathname_to_filename(fileName).lower()
                 debug    = event.debug
                 pid      = event.get_pid()
-                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
+                for hook_lib, hook_api_list in self.__apiHooks.items():     # XXX COMPAT
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:
                             hook_api_stub.hook(debug, pid, lib_name)
@@ -1421,14 +1444,14 @@ class EventDispatcher (object):
             of a subclass of L{EventHandler} here.
         """
         if eventHandler is not None and not callable(eventHandler):
-            raise TypeError, "Event handler must be a callable object"
+            raise TypeError("Event handler must be a callable object")
         try:
             if issubclass(eventHandler):
                 classname = str(eventHandler)
                 msg  = "Event handler must be an instance of class %s"
                 msg += "rather than the %s class itself. Missing brackets?"
                 msg  = msg % (classname, classname)
-                raise TypeError, msg
+                raise TypeError(msg)
         except TypeError:
             pass
         self.__eventHandler = eventHandler

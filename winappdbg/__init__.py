@@ -165,15 +165,28 @@ __all__ =   [
             ]
 
 # Import all public symbols
-from breakpoint import *
-from crash import *
-from debug import *
-from event import *
-from system import *
-from textio import *
-from util import *
-import win32
-from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+try:
+    exec('''
+from .breakpoint import *
+from .crash import *
+from .debug import *
+from .event import *
+from .system import *
+from .textio import *
+from .util import *
+from . import win32
+from .win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+''')
+except SyntaxError:
+    from breakpoint import *
+    from crash import *
+    from debug import *
+    from event import *
+    from system import *
+    from textio import *
+    from util import *
+    import win32
+    from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 # Library version
 version = "Version 1.4"

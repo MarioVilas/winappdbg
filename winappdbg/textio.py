@@ -54,11 +54,22 @@ __all__ =   [
                 'Logger',
             ]
 
-import win32
-
+import sys
 import time
 import struct
 import traceback
+
+# Python 2/3 compatible package imports
+try:
+    exec('from . import win32')
+except SyntaxError:
+    import win32
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 #------------------------------------------------------------------------------
 
@@ -123,7 +134,7 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         data = ''
         for i in xrange(0, len(token), 2):
             x = token[i:i+2]
@@ -153,7 +164,7 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         regexp = ''
         for i in xrange(0, len(token), 2):
             x = token[i:i+2]
@@ -204,10 +215,11 @@ class HexInput (object):
             if line:
                 try:
                     value = cls.integer(line)
-                except ValueError, e:
+                except ValueError:
+                    e = sys.exc_info()[1]
                     msg = "Error in line %d of %s: %s"
                     msg = msg % (count, filename, str(e))
-                    raise ValueError, msg
+                    raise ValueError(msg)
                 result.append(value)
         return result
 
@@ -275,7 +287,7 @@ class HexInput (object):
             if line:
                 try:
                     value = cls.integer(line)
-                except ValueError, e:
+                except ValueError:
                     value = line
                 result.append(value)
         return result
@@ -353,9 +365,11 @@ class HexOutput (object):
         @param values: List of integers to write to the file.
         """
         fd = open(filename, 'w')
-        for integer in values:
-            print >> fd, cls.integer(integer)
-        fd.close()
+        try:
+            for integer in values:
+                fd.write('%s\n' % cls.integer(integer))
+        finally:
+            fd.close()
 
     @classmethod
     def string_list_file(cls, filename, values):
@@ -372,9 +386,11 @@ class HexOutput (object):
         @param values: List of strings to write to the file.
         """
         fd = open(filename, 'w')
-        for string in values:
-            print >> fd, string
-        fd.close()
+        try:
+            for string in values:
+                fd.write('%s\n' % string)
+        finally:
+            fd.close()
 
     @classmethod
     def mixed_list_file(cls, filename, values):
@@ -391,13 +407,15 @@ class HexOutput (object):
         @param values: List of mixed values to write to the file.
         """
         fd = open(filename, 'w')
-        for original in values:
-            try:
-                parsed = cls.integer(original)
-            except TypeError:
-                parsed = repr(original)
-            print >> fd, parsed
-        fd.close()
+        try:
+            for original in values:
+                try:
+                    parsed = cls.integer(original)
+                except TypeError:
+                    parsed = repr(original)
+            fd.write('%s\n' % parsed)
+        finally:
+            fd.close()
 
 #------------------------------------------------------------------------------
 
@@ -791,7 +809,7 @@ class Table (object):
         elif direction == 1:
             self.__width[column] = - abs(self.__width[column])
         else:
-            raise ValueError, "Bad direction value."
+            raise ValueError("Bad direction value.")
 
     def getOutput(self):
         """
@@ -955,7 +973,7 @@ class CrashDump (object):
         """
         if None in (registers, data):
             return ''
-        names = data.keys()
+        names = list(data.keys())
         names.sort()
         result = ''
         for reg_name in names:
@@ -980,7 +998,7 @@ class CrashDump (object):
         """
         if data is None:
             return ''
-        pointers = data.keys()
+        pointers = list(data.keys())
         pointers.sort()
         result = ''
         for offset in pointers:
@@ -1001,7 +1019,7 @@ class CrashDump (object):
         """
         if data is None:
             return ''
-        pointers = data.keys()
+        pointers = list(data.keys())
         pointers.sort()
         result = ''
         if pointers:
@@ -1347,7 +1365,7 @@ class Logger(object):
         if self.logfile:
             self.fd = open(self.logfile, 'a+')
 
-    def __logfile_error(self, e):
+    def __logfile_error(self, e=None):
         """
         Shows an error message to standard error
         if the log file can't be written to.
@@ -1355,12 +1373,15 @@ class Logger(object):
         Used internally.
 
         @type  e: Exception
-        @param e: Exception raised when trying to write to the log file.
+        @param e:
+            (Optional) Exception raised when trying to write to the log file.
+            If not given the last raised exception will be used.
         """
-        from sys import stderr
+        if e is None:
+            e = sys.exc_info()[1]
         msg = "Warning, error writing log file %s: %s\n"
         msg = msg % (self.logfile, str(e))
-        stderr.write(DebugLog.log_text(msg))
+        sys.stderr.write(DebugLog.log_text(msg))
         self.logfile = None
         self.fd      = None
 
@@ -1375,12 +1396,12 @@ class Logger(object):
         @param text: Text to print.
         """
         if self.verbose:
-            print text
+            print(text)
         if self.logfile:
             try:
                 self.fd.writelines('%s\n' % text)
-            except IOError, e:
-                self.__logfile_error(e)
+            except IOError:
+                self.__logfile_error()
 
     def log_text(self, text):
         """

@@ -69,8 +69,26 @@ __all__ = [
 
     ]
 
+try:
+    exec('from . import win32')
+except SyntaxError:
+    import win32
+
 import os
-import win32
+import sys
+
+# Python 2.x compatibility
+try:
+    next
+except NameError:
+    def next(e):
+        return e.next()
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 #==============================================================================
 
@@ -102,15 +120,18 @@ class Regenerator(object):
         'x.__iter__() <==> iter(x)'
         return self
 
-    def next(self):
+    def __next__(self):
         'x.next() -> the next value, or raise StopIteration'
         if self.__g_object is None:
             self.__g_object = self.__g_function( *self.__v_args, **self.__d_args )
         try:
-            return self.__g_object.next()
+            return next(self.__g_object)
         except StopIteration:
             self.__g_object = None
             raise
+
+    # Python 2.x compatibility
+    next = __next__
 
 #==============================================================================
 
@@ -262,7 +283,8 @@ class PathOperations (object):
                     drive_letter = '%c:' % drive_number
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
+                    except WindowsError:
+                        e = sys.exc_info()[1]
                         if win32.winerror(e) in (win32.ERROR_FILE_NOT_FOUND, \
                                                  win32.ERROR_PATH_NOT_FOUND):
                             continue

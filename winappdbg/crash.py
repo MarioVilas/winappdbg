@@ -57,9 +57,16 @@ __all__ = [
 
 ]
 
-from system import MemoryAddresses, PathOperations
-from textio import HexDump, CrashDump
-import win32
+try:
+    exec('''
+from .system import MemoryAddresses, PathOperations
+from .textio import HexDump, CrashDump
+from . import win32
+'''
+except SyntaxError:
+    from system import MemoryAddresses, PathOperations
+    from textio import HexDump, CrashDump
+    import win32
 
 import os
 import time
@@ -71,6 +78,19 @@ import traceback
 anydbm = None
 sqlite = None
 pyodbc = None
+
+# Python 2.x compatibility
+try:
+    next
+except NameError:
+    def next(e):
+        return e.next()
+
+# Python 2.x compatibility
+try:
+    long
+except NameError:
+    long = int
 
 #==============================================================================
 
@@ -90,7 +110,7 @@ try:
 # If cerealizer is not present fallback to the insecure pickle module.
 except ImportError:
 
-    # Optimized version of pickle in C.
+    # Optimized version of pickle in C (Python 2.x).
     try:
         import cPickle as pickle
 
@@ -106,6 +126,17 @@ except ImportError:
             return picklestring
 
 #==============================================================================
+
+# XXX COMPAT
+#
+# The interface of ContainerBase somewhat mimics that of a dictionary...
+# but not quite. There's an important difference: the __contains__ method
+# behaves like a list instead of a dictionary.
+#
+# It can be kept that way, but in Python 3 there is no more has_key method,
+# so having one for ContainerBase just feels wrong.
+#
+# Maybe it's time to make ContainerBase behave like a real dictionary.
 
 class ContainerBase(object):
     """
@@ -195,7 +226,7 @@ class ContainerBase(object):
         @return:
             C{True} if a Crash object with the same key is in the container.
         """
-        return self.has_key( crash.key() )
+        return crash.key() in self.__keys
 
     def has_key(self, key):
         """
@@ -212,7 +243,12 @@ class ContainerBase(object):
         @rtype:  iterator
         @return: Iterator of known L{Crash} keys.
         """
-        return self.__keys.iterkeys()
+        # XXX COMPAT
+        # Same as has_key(), this syntax no longer exists in Python 3.
+        try:
+            return self.__keys.iterkeys()
+        except AttributeError:
+            return iter(self.__keys.keys())
 
     def remove_key(self, key):
         """
@@ -375,16 +411,19 @@ class CrashContainer (ContainerBase):
             # TODO: lock the database when iterating it.
             #
             self.__container = container
-            self.__keys_iter = container.iterkeys()
+            self.__keys_iter = container.iterkeys() # XXX COMPAT
 
-        def next(self):
+        def __next__(self):
             """
             @rtype:  L{Crash}
             @return: A B{copy} of a Crash object in the L{CrashContainer}.
             @raise StopIteration: No more items left.
             """
-            key  = self.__keys_iter.next()
+            key  = next(self.__keys_iter)
             return self.__container.get(key)
+
+        # Python 2.x compatibility
+        next = __next__
 
     def __init__(self, filename = None, allowRepeatedKeys = False):
         """
@@ -405,10 +444,15 @@ class CrashContainer (ContainerBase):
         if filename:
             global anydbm
             if not anydbm:
-                import anydbm
+                try:
+                    # Python 2.x
+                    import anydbm
+                except ImportError:
+                    # Python 3.x
+                    import dbm as anydbm
             self.__db = anydbm.open(filename, 'c')
             keys = dict([ (self.unmarshall_key(mk), mk)
-                                                  for mk in self.__db.keys() ])
+                                                  for mk in list(self.__db.keys()) ])
             ContainerBase.__init__(self, keys)
         else:
             self.__db = dict()
@@ -428,7 +472,7 @@ class CrashContainer (ContainerBase):
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        return self.itervalues()
+        return self.itervalues()    # XXX COMPAT
 
     def itervalues(self):
         """
@@ -444,6 +488,21 @@ class CrashContainer (ContainerBase):
                 3. Modify the object and add it again.
         """
         return self.__CrashContainerIterator(self)
+
+    def values(self):
+        """
+        @rtype:  list
+        @return: List of the contained L{Crash} objects.
+
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        return list(self.itervalues())  # XXX COMPAT
 
     def add(self, crash):
         """
@@ -626,8 +685,8 @@ class CrashTable (ContainerBase):
         stackTrace          = CrashDump.dump_stack_trace_with_labels(
                                                         crash.stackTracePretty)
         commandLine         = crash.commandLine
-        if type(crash.environmentData) == type(u''):
-            environment     = u'\0'.join(crash.environmentData) + u'\0'
+        if type(crash.environmentData) == type(''):     # XXX COMPAT UNICODE
+            environment     = '\0'.join(crash.environmentData) + '\0'
         else:
             environment     = '\0'.join(crash.environmentData) + '\0'
         notes               = crash.notesReport()
@@ -1051,7 +1110,7 @@ class VolatileCrashContainer(CrashContainer):
         @rtype:  bool
         @return: C{True} if the Crash object is in the container.
         """
-        return self._dict.has_key( crash.key() )
+        return crash.key() in self._dict
 
     def __iter__(self):
         """
@@ -1059,7 +1118,7 @@ class VolatileCrashContainer(CrashContainer):
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        return self.itervalues()
+        return self.itervalues()    # XXX COMPAT
 
     def __len__(self):
         """
@@ -1101,7 +1160,7 @@ class VolatileCrashContainer(CrashContainer):
         @rtype:  bool
         @return: C{True} if a matching L{Crash} object is in the container.
         """
-        return self.__dict.has_key(key)
+        return key in self.__dict
 
     def iterkeys(self):
         """
@@ -1117,7 +1176,11 @@ class VolatileCrashContainer(CrashContainer):
                 2. Delete the object from the set.
                 3. Modify the object and add it again.
         """
-        return self.__dict.iterkeys()
+        # XXX COMPAT
+        try:
+            return self.__dict.iterkeys()
+        except AttributeError:
+            return iter(self.__dict.keys())
 
     def itervalues(self):
         """
@@ -1213,7 +1276,7 @@ class DummyCrashContainer(CrashContainer):
         @rtype:  bool
         @return: C{True} if a matching L{Crash} object is in the container.
         """
-        return self.__dict.has_key(key)
+        return key in self.__dict
 
     def iterkeys(self):
         """
@@ -1586,7 +1649,7 @@ class Crash (object):
             # Stack trace.
             try:
                 self.stackTracePretty = thread.get_stack_trace_with_labels()
-            except Exception, e:
+            except Exception:
                 pass
             try:
                 self.stackTrace     = thread.get_stack_trace()
@@ -1595,7 +1658,7 @@ class Crash (object):
                 stackTraceLabels    = [ process.get_label_at_address(ra) \
                                              for ra in self.stackTracePC ]
                 self.stackTraceLabels = tuple(stackTraceLabels)
-            except Exception, e:
+            except Exception:
                 pass
 
     def fetch_extra_data(self, event, takeMemorySnapshot = 0):
@@ -1656,12 +1719,12 @@ class Crash (object):
             # Contents of the stack frame.
             try:
                 self.stackRange = thread.get_stack_range()
-            except Exception, e:
+            except Exception:
                 pass
             try:
                 self.stackFrame = thread.get_stack_frame()
                 stackFrame = self.stackFrame
-            except Exception, e:
+            except Exception:
                 self.stackFrame = thread.peek_stack_data()
                 stackFrame = self.stackFrame[:64]
             if stackFrame:
@@ -1671,7 +1734,7 @@ class Crash (object):
             self.faultCode   = thread.peek_code_bytes()
             try:
                 self.faultDisasm = thread.disassemble_around_pc(32)
-            except Exception, e:
+            except Exception:
 ##                raise   # XXX DEBUG
                 pass
 
