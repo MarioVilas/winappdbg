@@ -116,7 +116,7 @@ def log_ansi(event, fn, lpString, nCount):
             lpString = event.get_process().peek_string(lpString, fUnicode = False)
         else:
             lpString = event.get_process().peek(lpString, nCount)
-        print DebugLog.log_text("%s( %r );" % (fn, lpString))
+        print(DebugLog.log_text("%s( %r );" % (fn, lpString)))
 
 def log_wide(event, fn, lpString, nCount):
     if lpString and nCount:
@@ -124,8 +124,8 @@ def log_wide(event, fn, lpString, nCount):
             lpString = event.get_process().peek_string(lpString, fUnicode = True)
         else:
             lpString = event.get_process().peek(lpString, nCount * 2)
-            lpString = unicode(lpString, 'U16', 'replace')
-        print DebugLog.log_text("%s( %r );" % (fn, lpString))
+            lpString = str(lpString, 'U16', 'replace')                          # XXX COMPAT STRING
+        print(DebugLog.log_text("%s( %r );" % (fn, lpString)))
 
 class MyEventHandler( EventHandler ):
     def load_dll(self, event):
@@ -140,14 +140,14 @@ class MyEventHandler( EventHandler ):
             event.debug.hook_function(pid, module.resolve("PolyTextOutW"),   PolyTextOutW,   paramCount = 2)
 
 def simple_debugger(argv):
-    print DebugLog.log_text("Trace started on %s" % argv[0])
+    print(DebugLog.log_text("Trace started on %s" % argv[0]))
     debug = Debug( MyEventHandler() )
     try:
         debug.execv(argv)
         debug.loop()
     finally:
         debug.stop()
-    print DebugLog.log_text("Trace stopped on %s" % argv[0])
+    print(DebugLog.log_text("Trace stopped on %s" % argv[0]))
 
 # When invoked from the command line,
 # the first argument is an executable file,
