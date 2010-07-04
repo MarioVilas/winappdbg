@@ -164,6 +164,16 @@ __all__ =   [
                 'FileHandle',
             ]
 
+# XXX COMPAT
+# XXX TODO
+# 1) Define which will be the main development platform and prioritize
+#    performance for it when a choice must be made.
+# 2) Move all compatibility hacks to it's own submodule, except for the
+#    imports hack which obviously can't be moved.
+# 3) Change all existing hacks that detect the python version on runtime,
+#    so the detection is made on import time instead.
+# 4) When it's all done, update the docs and fix cosmetics where needed.
+
 # Import all public symbols
 try:
     exec('''
