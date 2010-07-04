@@ -51,7 +51,7 @@ def my_event_handler( event ):
     # Show something to the user
     format_string = "%s (%s) at address %s, process %d, thread %d"
     message = format_string % ( name, HexDump.integer(code), HexDump.address(pc), pid, tid )
-    print message
+    print(message)
 
 def simple_debugger( argv ):
 

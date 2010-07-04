@@ -54,7 +54,7 @@ class MyHook (object):
             return
 
         # Show a message to the user
-        print "GetProcAddress( %r );" % procName
+        print("GetProcAddress( %r );" % procName)
 
         # Watch the procedure name buffer for access
         pid     = event.get_pid()
@@ -96,14 +96,14 @@ class MyHook (object):
         thread = event.get_thread()
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
-        print "0x%.08x: %s" % ( code[0], code[2].lower() )
+        print("0x%.08x: %s" % ( code[0], code[2].lower() ))
 
 
 class MyEventHandler( EventHandler ):
 
     # Called guard page exceptions NOT raised by our breakpoints
     def guard_page( self, event ):
-        print event.get_exception_name()
+        print(event.get_exception_name())
 
     # Called on DLL load events
     def load_dll( self, event ):

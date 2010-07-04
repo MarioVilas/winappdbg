@@ -46,7 +46,7 @@ def print_label( pid, address ):
     label = process.get_label_at_address( address )
 
     # Print the label
-    print "%s == 0x%.08x" % ( label, address )
+    print("%s == 0x%.08x" % ( label, address ))
 
 # When invoked from the command line,
 # the first argument is a process ID,

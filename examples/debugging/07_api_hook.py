@@ -104,19 +104,19 @@ class MyEventHandler( EventHandler ):
     def __print_opening_ansi( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer )
         tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
+        print("%d: Opening %s: %s" % (tid, tag, string))
 
     def __print_opening_unicode( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer, fUnicode = True )
         tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
+        print("%d: Opening %s: %s" % (tid, tag, string))
 
     def __print_success( self, event, retval ):
         tid = event.get_tid()
         if retval:
-            print "%d: Success: %x" % (tid, retval)
+            print("%d: Success: %x" % (tid, retval))
         else:
-            print "%d: Failed!" % tid
+            print("%d: Failed!" % tid)
 
 
 def simple_debugger( argv ):

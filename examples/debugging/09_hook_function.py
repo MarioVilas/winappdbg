@@ -44,7 +44,7 @@ def wsprintf( event, ra, lpOut, lpFmt ):
 
     # Show a message to the user
     showparams = ", ".join( [ hex(x) for x in parameters ] )
-    print "wsprintf( %r, %s );" % ( lpFmt, showparams )
+    print("wsprintf( %r, %s );" % ( lpFmt, showparams ))
 
 
 class MyEventHandler( EventHandler ):

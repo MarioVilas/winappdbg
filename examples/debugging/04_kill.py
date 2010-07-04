@@ -32,7 +32,10 @@
 from winappdbg import Debug
 
 import sys
-import thread
+try:
+    import _thread
+except ImportError:
+    import thread as _thread
 
 # Get the process ID from the command line
 pid = int( sys.argv[1] )
@@ -44,4 +47,4 @@ debug = Debug( bKillOnExit = True )
 debug.attach( pid )
 
 # Exit the current thread, killing the attached process
-thread.exit()
+_thread.exit()

@@ -45,7 +45,7 @@ try:
 
     # For all processes that match the requested filename...
     for ( process, name ) in debug.system.find_processes_by_filename( filename ):
-        print process.get_pid(), name
+        print(process.get_pid(), name)
 
         # Attach to the process
         debug.attach( process.get_pid() )

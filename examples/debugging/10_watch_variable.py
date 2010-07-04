@@ -54,7 +54,7 @@ def entering( event ):
 
     # Show a message to the user
     message = "%.08x: GetProcAddress(0x%.08x, %r);"
-    print message % ( return_address, hModule, procedure_name )
+    print(message % ( return_address, hModule, procedure_name ))
 
     # Watch the DWORD at the top of the stack
     try:
@@ -84,7 +84,7 @@ def returning( event ):
 
     # Show a message to the user
     message = "%.08x: GetProcAddress() returned 0x%.08x"
-    print message % ( return_address, return_value )
+    print(message % ( return_address, return_value ))
 
 
 # This function will be called if we ran out of hardware breakpoints,
@@ -102,7 +102,7 @@ def returning_2( event ):
 
     # Show a message to the user
     message = "%.08x: GetProcAddress() returned 0x%.08x"
-    print message % ( return_address, return_value )
+    print(message % ( return_address, return_value ))
 
 
 # This event handler sets a breakpoint at kernel32!GetProcAddress
@@ -133,7 +133,7 @@ def simple_debugger( argv ):
 
     # Check we're running in a 32 bits machine
     if debug.system.arch != 'i386':
-        raise NotImplementedError, "This example only runs in 32 bits"
+        raise NotImplementedError("This example only runs in 32 bits")
 
     # Start a new process for debugging
     try:
