@@ -47,7 +47,7 @@ def print_memory_map( pid ):
     # ...but let's do it the hard way:
 
     # For each memory block in the map...
-    print "Address   \tSize      \tState     \tAccess    \tType"
+    print("Address   \tSize      \tState     \tAccess    \tType")
     for mbi in memoryMap:
 
         # Address and size of memory block
@@ -115,7 +115,7 @@ def print_memory_map( pid ):
 
         # Print the memory block information
         fmt = "%s\t%s\t%s\t%s\t%s"
-        print fmt % ( BaseAddress, RegionSize, State, Protect, Type )
+        print(fmt % ( BaseAddress, RegionSize, State, Protect, Type ))
 
 # When invoked from the command line,
 # the first argument is a process ID

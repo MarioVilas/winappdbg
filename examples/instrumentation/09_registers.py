@@ -51,8 +51,7 @@ def print_thread_context( tid ):
         thread.resume()
 
     # Display the thread context
-    print
-    print CrashDump.dump_registers( context ),
+    print(CrashDump.dump_registers( context ))
 
 # When invoked from the command line,
 # the first argument is a thread ID

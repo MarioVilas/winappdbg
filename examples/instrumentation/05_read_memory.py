@@ -51,4 +51,4 @@ if __name__ == "__main__":
     pid     = int( sys.argv[1] )
     address = int( sys.argv[2], 0x10 )
     length  = int( sys.argv[3] )
-    print "%r" % process_read( pid, address, length )
+    print("%r" % process_read( pid, address, length ))

@@ -59,8 +59,7 @@ def print_thread_disassembly( tid ):
         thread.resume()
 
     # Display the thread context
-    print
-    print CrashDump.dump_code( code, eip ),
+    print(CrashDump.dump_code( code, eip ))
 
 # When invoked from the command line,
 # the first argument is a thread ID

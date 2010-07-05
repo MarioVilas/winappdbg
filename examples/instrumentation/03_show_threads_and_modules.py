@@ -35,17 +35,17 @@ def print_threads_and_modules( pid ):
 
     # Instance a Process object
     process = Process( pid )
-    print "Process %d" % process.get_pid()
+    print("Process %d" % process.get_pid())
 
     # Now we can enumerate the threads in the process...
-    print "Threads:"
+    print("Threads:")
     for thread in process.iter_threads():
-        print "\t%d" % thread.get_tid()
+        print("\t%d" % thread.get_tid())
 
     # ...and the modules in the process
-    print "Modules:"
+    print("Modules:")
     for module in process.iter_modules():
-        print "\t%s\t%s" % ( HexDump.address( module.get_base() ), module.get_filename() )
+        print("\t%s\t%s" % ( HexDump.address( module.get_base() ), module.get_filename() ))
 
 # When invoked from the command line,
 # the first argument is a process ID

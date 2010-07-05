@@ -90,5 +90,5 @@ if __name__ == "__main__":
         unfreeze_threads( pid )   # to reverse the effect
     else:
         script = sys.argv[0]
-        print "%s f <pid> - freeze a process" % script
-        print "%s u <pid> - unfreeze a process" % script
+        print("%s f <pid> - freeze a process" % script)
+        print("%s u <pid> - unfreeze a process" % script)
