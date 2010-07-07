@@ -1344,3 +1344,60 @@ def RegisterClipboardFormatW(lpString):
 
 RegisterClipboardFormat = GuessStringType(RegisterClipboardFormatA, RegisterClipboardFormatW)
 
+# HANDLE WINAPI GetProp(
+#   __in  HWND hWnd,
+#   __in  LPCTSTR lpString
+# );
+def GetPropA(hWnd, lpString):
+    _GetPropA = windll.user32.GetPropA
+    _GetPropA.argtypes = [HWND, LPSTR]
+    _GetPropA.restype  = HANDLE
+    return _GetPropA(lpString)
+
+def GetPropW(hWnd, lpString):
+    _GetPropW = windll.user32.GetPropW
+    _GetPropW.argtypes = [HWND, LPWSTR]
+    _GetPropW.restype  = HANDLE
+    return _GetPropW(lpString)
+
+GetProp = GuessStringType(GetPropA, GetPropW)
+
+# BOOL WINAPI SetProp(
+#   __in      HWND hWnd,
+#   __in      LPCTSTR lpString,
+#   __in_opt  HANDLE hData
+# );
+def SetPropA(hWnd, lpString, hData):
+    _SetPropA = windll.user32.SetPropA
+    _SetPropA.argtypes = [HWND, LPSTR, HANDLE]
+    _SetPropA.restype  = BOOL
+    _SetPropA.errcheck = RaiseIfZero
+    return _SetPropA(lpString)
+
+def SetPropW(hWnd, lpString, hData):
+    _SetPropW = windll.user32.SetPropW
+    _SetPropW.argtypes = [HWND, LPWSTR, HANDLE]
+    _SetPropW.restype  = BOOL
+    _SetPropW.errcheck = RaiseIfZero
+    return _SetPropW(lpString)
+
+SetProp = GuessStringType(SetPropA, SetPropW)
+
+# HANDLE WINAPI RemoveProp(
+#   __in  HWND hWnd,
+#   __in  LPCTSTR lpString
+# );
+def RemovePropA(hWnd, lpString):
+    _RemovePropA = windll.user32.RemovePropA
+    _RemovePropA.argtypes = [HWND, LPSTR]
+    _RemovePropA.restype  = HANDLE
+    return _RemovePropA(lpString)
+
+def RemovePropW(hWnd, lpString):
+    _RemovePropW = windll.user32.RemovePropW
+    _RemovePropW.argtypes = [HWND, LPWSTR]
+    _RemovePropW.restype  = HANDLE
+    return _RemovePropW(lpString)
+
+RemoveProp = GuessStringType(RemovePropA, RemovePropW)
+
