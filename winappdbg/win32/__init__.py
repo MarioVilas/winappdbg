@@ -31,6 +31,8 @@ Debugging API wrappers in ctypes.
 
 __revision__ = "$Id$"
 
+try:
+    exec("""
 from defines    import *
 from kernel32   import *
 from user32     import *
@@ -40,3 +42,14 @@ from shlwapi    import *
 from psapi      import *
 from dbghelp    import *
 from ntdll      import *
+"""
+except SyntaxError:
+    from .defines    import *
+    from .kernel32   import *
+    from .user32     import *
+    from .advapi32   import *
+    from .shell32    import *
+    from .shlwapi    import *
+    from .psapi      import *
+    from .dbghelp    import *
+    from .ntdll      import *
