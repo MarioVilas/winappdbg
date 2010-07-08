@@ -56,16 +56,16 @@ __all__ =   [
 
 try:
     exec("""
-import win32
-import win32.version
-from textio import HexInput, HexDump
-from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
-"""
+from . import win32
+from . import win32.version
+from .textio import HexInput, HexDump
+from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
+""")
 except SyntaxError:
-    from . import win32
-    from . import win32.version
-    from .textio import HexInput, HexDump
-    from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
+    import win32
+    import win32.version
+    from textio import HexInput, HexDump
+    from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
 import re
 import os

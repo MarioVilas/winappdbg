@@ -42,7 +42,7 @@ from .shlwapi    import *
 from .psapi      import *
 from .dbghelp    import *
 from .ntdll      import *
-"""
+""")
 except SyntaxError:
     from defines    import *
     from kernel32   import *

@@ -62,7 +62,7 @@ try:
 from .system import MemoryAddresses, PathOperations
 from .textio import HexDump, CrashDump
 from . import win32
-'''
+''')
 except SyntaxError:
     from system import MemoryAddresses, PathOperations
     from textio import HexDump, CrashDump

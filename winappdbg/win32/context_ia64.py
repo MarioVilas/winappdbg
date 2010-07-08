@@ -32,9 +32,7 @@ CONTEXT structure for ia64.
 __revision__ = "$Id$"
 
 try:
-    exec("""
-from .defines import *
-"""
+    exec("from .defines import *")
 except SyntaxError:
     from defines import *
 

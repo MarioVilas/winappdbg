@@ -31,7 +31,16 @@ Wrapper for psapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
+try:
+    exec("from .defines import *")
+except SyntaxError:
+    from defines import *
+
+# Python 2.x/3.x compatibility hack
+try:
+    range = xrange
+except NameError:
+    xrange = range
 
 #--- PSAPI structures and constants -------------------------------------------
 
@@ -76,7 +85,7 @@ def EnumDeviceDrivers():
         if needed <= size:
             break
         size = needed
-    return [ lpImageBase[index] for index in xrange(0, (needed // unit)) ]
+    return [ lpImageBase[index] for index in range(0, (needed // unit)) ]
 
 # BOOL WINAPI EnumProcesses(
 #   __out  DWORD *pProcessIds,
@@ -129,7 +138,7 @@ def EnumProcessModules(hProcess):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, int(needed // unit)) ]
+    return [ lphModule[index] for index in range(0, int(needed // unit)) ]
 
 # BOOL WINAPI EnumProcessModulesEx(
 #   __in   HANDLE hProcess,
@@ -154,7 +163,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, (needed // unit)) ]
+    return [ lphModule[index] for index in range(0, (needed // unit)) ]
 
 # DWORD WINAPI GetDeviceDriverBaseName(
 #   __in   LPVOID ImageBase,
@@ -184,7 +193,7 @@ def GetDeviceDriverBaseNameW(ImageBase):
 
     nSize = MAX_PATH
     while 1:
-        lpBaseName = ctypes.create_unicode_buffer(u"", nSize)
+        lpBaseName = ctypes.create_unicode_buffer("", nSize)
         nCopied = _GetDeviceDriverBaseNameW(ImageBase, lpBaseName, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -223,7 +232,7 @@ def GetDeviceDriverFileNameW(ImageBase):
 
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_unicode_buffer(u"", nSize)
+        lpFilename = ctypes.create_unicode_buffer("", nSize)
         nCopied = ctypes.windll.psapi.GetDeviceDriverFileNameW(ImageBase, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -263,7 +272,7 @@ def GetMappedFileNameW(hProcess, lpv):
 
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_unicode_buffer(u"", nSize)
+        lpFilename = ctypes.create_unicode_buffer("", nSize)
         nCopied = _GetMappedFileNameW(hProcess, lpv, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -303,7 +312,7 @@ def GetModuleFileNameExW(hProcess, hModule = None):
 
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_unicode_buffer(u"", nSize)
+        lpFilename = ctypes.create_unicode_buffer("", nSize)
         nCopied = _GetModuleFileNameExW(hProcess, hModule, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -359,7 +368,7 @@ def GetProcessImageFileNameW(hProcess):
 
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_unicode_buffer(u"", nSize)
+        lpFilename = ctypes.create_unicode_buffer("", nSize)
         nCopied = _GetProcessImageFileNameW(hProcess, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()

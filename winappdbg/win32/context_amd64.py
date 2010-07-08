@@ -35,7 +35,7 @@ try:
     exec("""
 from .defines import *
 from . import context_i386
-"""
+""")
 except SyntaxError:
     from defines import *
     import context_i386

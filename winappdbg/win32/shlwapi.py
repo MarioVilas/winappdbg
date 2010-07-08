@@ -31,7 +31,10 @@ Wrapper for shlwapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
+try:
+    exec("from .defines import *")
+except SyntaxError:
+    from defines import *
 
 OS_WINDOWS                  = 0
 OS_NT                       = 1
@@ -199,7 +202,7 @@ def PathCombineW(lpszDir, lpszFile):
     _PathCombineW.argtypes = [LPWSTR, LPWSTR, LPWSTR]
     _PathCombineW.restype = LPWSTR
 
-    lpszDest = ctypes.create_unicode_buffer(u"", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
+    lpszDest = ctypes.create_unicode_buffer("", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
     retval = _PathCombineW(lpszDest, lpszDir, lpszFile)
     if retval == NULL:
         return None
@@ -227,7 +230,7 @@ def PathCanonicalizeW(lpszSrc):
     _PathCanonicalizeW.restype = bool
     _PathCanonicalizeW.errcheck = RaiseIfZero
 
-    lpszDst = ctypes.create_unicode_buffer(u"", MAX_PATH)
+    lpszDst = ctypes.create_unicode_buffer("", MAX_PATH)
     _PathCanonicalizeW(lpszDst, lpszSrc)
     return lpszDst.value
 
@@ -340,11 +343,11 @@ def PathFindOnPathW(pszFile, ppszOtherDirs = None):
     if not ppszOtherDirs:
         ppszOtherDirs = None
     else:
-        szArray = u""
+        szArray = ""
         for pszOtherDirs in ppszOtherDirs:
             if pszOtherDirs:
-                szArray = u"%s%s\0" % (szArray, pszOtherDirs)
-        szArray = szArray + u"\0"
+                szArray = "%s%s\0" % (szArray, pszOtherDirs)
+        szArray = szArray + "\0"
         pszOtherDirs = ctypes.create_unicode_buffer(szArray)
         ppszOtherDirs = ctypes.pointer(pszOtherDirs)
     if _PathFindOnPathW(pszFile, ppszOtherDirs):
@@ -672,7 +675,7 @@ def PathUnExpandEnvStringsW(pszPath):
     _PathUnExpandEnvStringsW.errcheck = RaiseIfZero
 
     cchBuf = MAX_PATH
-    pszBuf = ctypes.create_unicode_buffer(u"", cchBuf)
+    pszBuf = ctypes.create_unicode_buffer("", cchBuf)
     _PathUnExpandEnvStringsW(pszPath, pszBuf, cchBuf)
     return pszBuf.value
 

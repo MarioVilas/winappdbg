@@ -31,8 +31,14 @@ Wrapper for ntdll.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from peb_teb import *
+try:
+    exec("""
+from .defines import *
+from .peb_teb import *
+""")
+except SyntaxError:
+    from defines import *
+    from peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 
@@ -371,8 +377,8 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
         if InputBufferLength is None:
             InputBufferLength = 0
         else:
-            raise ValueError, "Invalid call to NtSystemDebugControl:" \
-                "input buffer length given but no input buffer!"
+            raise ValueError("Invalid call to NtSystemDebugControl:" \
+                "input buffer length given but no input buffer!")
     else:
         if InputBufferLength is None:
             InputBufferLength = sizeof(InputBuffer)
@@ -423,14 +429,14 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
             ProcessInformation = PROCESS_BASIC_INFORMATION()
             ProcessInformationLength = sizeof(PROCESS_BASIC_INFORMATION)
         elif ProcessInformationClass == ProcessImageFileName:
-            unicode_buffer = ctypes.create_unicode_buffer(u"", 0x1000)
+            unicode_buffer = ctypes.create_unicode_buffer("", 0x1000)
             ProcessInformation = UNICODE_STRING(0, 0x1000, ctypes.addressof(unicode_buffer))
             ProcessInformationLength = sizeof(UNICODE_STRING)
         elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
             ProcessInformation = DWORD()
             ProcessInformationLength = sizeof(DWORD)
         else:
-            raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
+            raise Exception("Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead")
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
@@ -473,7 +479,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
             ThreadInformation = LONGLONG()  # LARGE_INTEGER
             ThreadInformationLength = sizeof(LONGLONG)
         else:
-            raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
+            raise Exception("Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead")
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:

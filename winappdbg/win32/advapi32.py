@@ -35,7 +35,7 @@ try:
     exec("""
 from .defines import *
 from .kernel32 import *
-"""
+""")
 except SyntaxError:
     from defines import *
     from kernel32 import *

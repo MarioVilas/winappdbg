@@ -45,7 +45,7 @@ from . import win32
 from .system import System, Process, Thread, Module
 from .breakpoint import BreakpointContainer, CodeBreakpoint
 from .event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
-'''
+''')
 except SyntaxError:
     import win32
     from system import System, Process, Thread, Module

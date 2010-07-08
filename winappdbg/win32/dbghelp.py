@@ -31,8 +31,14 @@ Wrapper for dbghelp.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import *
+try:
+    exec("""
+from .defines import *
+from .kernel32 import *
+""")
+except SyntaxError:
+    from defines import *
+    from kernel32 import *
 
 # SymGetHomeDirectory "type" values
 hdBase = 0
@@ -634,7 +640,7 @@ def UnDecorateSymbolNameW(DecoratedName, Flags = UNDNAME_COMPLETE):
     _UnDecorateSymbolNameW.errcheck = RaiseIfZero
 
     UndecoratedLength = _UnDecorateSymbolNameW(DecoratedName, None, 0, Flags)
-    UnDecoratedName = ctypes.create_unicode_buffer(u'', UndecoratedLength + 1)
+    UnDecoratedName = ctypes.create_unicode_buffer('', UndecoratedLength + 1)
     _UnDecorateSymbolNameW(DecoratedName, UnDecoratedName, UndecoratedLength, Flags)
     return UnDecoratedName.value
 
@@ -663,7 +669,7 @@ def SymGetSearchPathW(hProcess):
     _SymGetSearchPathW.errcheck = RaiseIfZero
 
     SearchPathLength = MAX_PATH
-    SearchPath = ctypes.create_unicode_buffer(u"", SearchPathLength)
+    SearchPath = ctypes.create_unicode_buffer("", SearchPathLength)
     _SymGetSearchPathW(hProcess, SearchPath, SearchPathLength)
     return SearchPath.value
 
@@ -716,7 +722,7 @@ def SymGetHomeDirectoryW(type):
     _SymGetHomeDirectoryW.errcheck = RaiseIfZero
 
     size = MAX_PATH
-    dir  = ctypes.create_unicode_buffer(u"", size)
+    dir  = ctypes.create_unicode_buffer("", size)
     _SymGetHomeDirectoryW(type, dir, size)
     return dir.value
 

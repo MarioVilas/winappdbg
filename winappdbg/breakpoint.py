@@ -60,16 +60,16 @@ __all__ = [
 
 try:
     exec("""
-from system import Process, System, MemoryAddresses
-from util import DebugRegister
-from textio import HexDump
-import win32
-"""
+from .system import Process, System, MemoryAddresses
+from .util import DebugRegister
+from .textio import HexDump
+from . import win32
+""")
 except SyntaxError:
-    from .system import Process, System, MemoryAddresses
-    from .util import DebugRegister
-    from .textio import HexDump
-    from . import win32
+    from system import Process, System, MemoryAddresses
+    from util import DebugRegister
+    from textio import HexDump
+    import win32
 
 # Python 3.x compatibility
 try:

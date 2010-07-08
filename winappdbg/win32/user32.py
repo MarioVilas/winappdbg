@@ -31,9 +31,16 @@ Wrapper for user32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import GetLastError, SetLastError
-from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
+try:
+    exec("""
+from .defines import *
+from .kernel32 import GetLastError, SetLastError
+from .gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
+""")
+except SyntaxError:
+    from defines import *
+    from kernel32 import GetLastError, SetLastError
+    from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
 #--- Helpers ------------------------------------------------------------------
 
@@ -397,7 +404,7 @@ class Point(object):
         elif index == 1:
             self.y = value
         else:
-            raise IndexError, "index out of range"
+            raise IndexError("index out of range")
 
     @property
     def _as_parameter_(self):
@@ -512,7 +519,7 @@ class Rect(object):
         elif index == 3:
             self.bottom = value
         else:
-            raise IndexError, "index out of range"
+            raise IndexError("index out of range")
 
     @property
     def _as_parameter_(self):
@@ -712,7 +719,7 @@ def GetClassNameW(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(WCHAR)
     while 1:
-        lpClassName = ctypes.create_unicode_buffer(u"", nMaxCount)
+        lpClassName = ctypes.create_unicode_buffer("", nMaxCount)
         nCount = _GetClassNameW(hWnd, lpClassName, nMaxCount)
         if nCount == 0:
             raise ctypes.WinError()
@@ -1343,4 +1350,61 @@ def RegisterClipboardFormatW(lpString):
     return _RegisterClipboardFormatW(lpString)
 
 RegisterClipboardFormat = GuessStringType(RegisterClipboardFormatA, RegisterClipboardFormatW)
+
+# HANDLE WINAPI GetProp(
+#   __in  HWND hWnd,
+#   __in  LPCTSTR lpString
+# );
+def GetPropA(hWnd, lpString):
+    _GetPropA = windll.user32.GetPropA
+    _GetPropA.argtypes = [HWND, LPSTR]
+    _GetPropA.restype  = HANDLE
+    return _GetPropA(lpString)
+
+def GetPropW(hWnd, lpString):
+    _GetPropW = windll.user32.GetPropW
+    _GetPropW.argtypes = [HWND, LPWSTR]
+    _GetPropW.restype  = HANDLE
+    return _GetPropW(lpString)
+
+GetProp = GuessStringType(GetPropA, GetPropW)
+
+# BOOL WINAPI SetProp(
+#   __in      HWND hWnd,
+#   __in      LPCTSTR lpString,
+#   __in_opt  HANDLE hData
+# );
+def SetPropA(hWnd, lpString, hData):
+    _SetPropA = windll.user32.SetPropA
+    _SetPropA.argtypes = [HWND, LPSTR, HANDLE]
+    _SetPropA.restype  = BOOL
+    _SetPropA.errcheck = RaiseIfZero
+    return _SetPropA(lpString)
+
+def SetPropW(hWnd, lpString, hData):
+    _SetPropW = windll.user32.SetPropW
+    _SetPropW.argtypes = [HWND, LPWSTR, HANDLE]
+    _SetPropW.restype  = BOOL
+    _SetPropW.errcheck = RaiseIfZero
+    return _SetPropW(lpString)
+
+SetProp = GuessStringType(SetPropA, SetPropW)
+
+# HANDLE WINAPI RemoveProp(
+#   __in  HWND hWnd,
+#   __in  LPCTSTR lpString
+# );
+def RemovePropA(hWnd, lpString):
+    _RemovePropA = windll.user32.RemovePropA
+    _RemovePropA.argtypes = [HWND, LPSTR]
+    _RemovePropA.restype  = HANDLE
+    return _RemovePropA(lpString)
+
+def RemovePropW(hWnd, lpString):
+    _RemovePropW = windll.user32.RemovePropW
+    _RemovePropW.argtypes = [HWND, LPWSTR]
+    _RemovePropW.restype  = HANDLE
+    return _RemovePropW(lpString)
+
+RemoveProp = GuessStringType(RemovePropA, RemovePropW)
 
