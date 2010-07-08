@@ -31,7 +31,12 @@ CONTEXT structure for ia64.
 
 __revision__ = "$Id$"
 
-from defines import *
+try:
+    exec("""
+from .defines import *
+"""
+except SyntaxError:
+    from defines import *
 
 ###############################################################################
 ##                                                                           ##
@@ -54,12 +59,12 @@ EXCEPTION_EXECUTE_FAULT     = 2     # exception caused by an instruction fetch
 
 CONTEXT_IA64                    = 0x00080000
 
-CONTEXT_CONTROL                 = (CONTEXT_IA64 | 0x00000001L)
-CONTEXT_LOWER_FLOATING_POINT    = (CONTEXT_IA64 | 0x00000002L)
-CONTEXT_HIGHER_FLOATING_POINT   = (CONTEXT_IA64 | 0x00000004L)
-CONTEXT_INTEGER                 = (CONTEXT_IA64 | 0x00000008L)
-CONTEXT_DEBUG                   = (CONTEXT_IA64 | 0x00000010L)
-CONTEXT_IA32_CONTROL            = (CONTEXT_IA64 | 0x00000020L)  # Includes StIPSR
+CONTEXT_CONTROL                 = (CONTEXT_IA64 | 0x00000001)
+CONTEXT_LOWER_FLOATING_POINT    = (CONTEXT_IA64 | 0x00000002)
+CONTEXT_HIGHER_FLOATING_POINT   = (CONTEXT_IA64 | 0x00000004)
+CONTEXT_INTEGER                 = (CONTEXT_IA64 | 0x00000008)
+CONTEXT_DEBUG                   = (CONTEXT_IA64 | 0x00000010)
+CONTEXT_IA32_CONTROL            = (CONTEXT_IA64 | 0x00000020)  # Includes StIPSR
 
 
 CONTEXT_FLOATING_POINT          = (CONTEXT_LOWER_FLOATING_POINT | CONTEXT_HIGHER_FLOATING_POINT)

@@ -31,7 +31,18 @@ CONTEXT structure for i386.
 
 __revision__ = "$Id$"
 
-from defines import *
+try:
+    exec("""
+from .defines import *
+"""
+except SyntaxError:
+    from defines import *
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access
@@ -43,12 +54,12 @@ EXCEPTION_EXECUTE_FAULT     = 8     # exception caused by an instruction fetch
 CONTEXT_i386                = 0x00010000    # this assumes that i386 and
 CONTEXT_i486                = 0x00010000    # i486 have identical context records
 
-CONTEXT_CONTROL             = (CONTEXT_i386 | 0x00000001L) # SS:SP, CS:IP, FLAGS, BP
-CONTEXT_INTEGER             = (CONTEXT_i386 | 0x00000002L) # AX, BX, CX, DX, SI, DI
-CONTEXT_SEGMENTS            = (CONTEXT_i386 | 0x00000004L) # DS, ES, FS, GS
-CONTEXT_FLOATING_POINT      = (CONTEXT_i386 | 0x00000008L) # 387 state
-CONTEXT_DEBUG_REGISTERS     = (CONTEXT_i386 | 0x00000010L) # DB 0-3,6,7
-CONTEXT_EXTENDED_REGISTERS  = (CONTEXT_i386 | 0x00000020L) # cpu specific extensions
+CONTEXT_CONTROL             = (CONTEXT_i386 | 0x00000001) # SS:SP, CS:IP, FLAGS, BP
+CONTEXT_INTEGER             = (CONTEXT_i386 | 0x00000002) # AX, BX, CX, DX, SI, DI
+CONTEXT_SEGMENTS            = (CONTEXT_i386 | 0x00000004) # DS, ES, FS, GS
+CONTEXT_FLOATING_POINT      = (CONTEXT_i386 | 0x00000008) # 387 state
+CONTEXT_DEBUG_REGISTERS     = (CONTEXT_i386 | 0x00000010) # DB 0-3,6,7
+CONTEXT_EXTENDED_REGISTERS  = (CONTEXT_i386 | 0x00000020) # cpu specific extensions
 
 CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS)
 
