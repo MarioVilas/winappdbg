@@ -31,7 +31,12 @@ Detect the current architecture and operating system.
 
 __revision__ = "$Id$"
 
-from defines import *
+try:
+    exec("""
+from .defines import *
+"""
+except SyntaxError:
+    from defines import *
 
 #--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
 
@@ -438,7 +443,7 @@ def VerifyVersionInfo(lpVersionInfo, dwTypeMask, dwlConditionMask):
         return VerifyVersionInfoA(lpVersionInfo, dwTypeMask, dwlConditionMask)
     if isinstance(lpVersionInfo, OSVERSIONINFOEXW):
         return VerifyVersionInfoW(lpVersionInfo, dwTypeMask, dwlConditionMask)
-    raise TypeError, "Bad OSVERSIONINFOEX structure"
+    raise TypeError("Bad OSVERSIONINFOEX structure")
 
 def VerifyVersionInfoA(lpVersionInfo, dwTypeMask, dwlConditionMask):
     _VerifyVersionInfoA = windll.kernel32.VerifyVersionInfoA

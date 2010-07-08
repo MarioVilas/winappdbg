@@ -31,7 +31,14 @@ Common definitions.
 
 __revision__ = "$Id$"
 
+import sys
 import ctypes
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 #------------------------------------------------------------------------------
 
@@ -95,10 +102,10 @@ if WIN32_VERBOSE_MODE:
             self.__copy_attribute('argtypes')
             self.__copy_attribute('restype')
             self.__copy_attribute('errcheck')
-            print "-"*10
-            print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
+            print("-"*10)
+            print("%s ! %s %r" % (self.__dllname, self.__funcname, argv))
             retval = self.__func(*argv)
-            print "== %r" % (retval,)
+            print("== %r" % (retval,))
             return retval
 
     windll = WinDllHook()
@@ -149,6 +156,124 @@ def RaiseIfZero(result, func = None, arguments = ()):
         raise ctypes.WinError()
     return result
 
+class AnsiWide(object):
+    """
+    Static class to be used by decorators
+    that handle ANSI and Unicode (wide) API calls.
+
+    @type t_ansi: type
+    @cvar t_ansi: String type for ANSI functions.
+
+    @type t_wide: type
+    @cvar t_wide: String type for Wide functions.
+
+    @type t_default: type
+    @cvar t_default: Default string type to use.
+        Possible values for Python 2.x are:
+         - C{str} for ANSI
+         - C{unicode} for Unicode
+        Possible values for Python 3.x are:
+         - C{byte} for ANSI
+         - C{str} for Unicode
+    """
+
+    # Default is ANSI for Python 2.x and Unicode for 3.x
+    if sys.version_info[0] == 2:
+        t_ansi    = str
+        t_wide    = unicode
+        t_default = t_ansi
+    else:
+        t_ansi    = byte
+        t_wide    = str
+        t_default = t_unicode
+
+    @staticmethod
+    def ansi(b):
+        """
+        Converts Unicode (wide) strings to ANSI format.
+        """
+        if hasattr(b, 'encode'):
+            return b.encode()
+        return str(b)
+
+    @staticmethod
+    def wide(b):
+        """
+        Converts ANSI strings to Unicode (wide) format.
+        """
+        if hasattr(b, 'decode'):
+            return b.decode()
+        return unicode(b)
+
+    @classmethod
+    def wide_args(cls, argv, argd):
+        """
+        Convert ANSI strings to Unicode (wide)
+        in the given arguments list and/or dictionary.
+
+        @type  argv: list
+        @param argv: Positional arguments list.
+
+        @type  argd: dict
+        @param argd: Keyword arguments dictionary.
+
+        @rtype:  None
+        @return: No return value, since the arguments are converted in-place.
+        """
+        t_ansi = cls.t_ansi
+        for index in xrange(len(argv)):
+            x = argv[index]
+            if isinstance(x, t_ansi):
+                argv[index] = cls.wide(x)
+        for key in argv.keys():
+            x = argv[key]
+            if isinstance(x, t_ansi):
+                argv[key] = cls.wide(x)
+
+    @classmethod
+    def has_ansi(cls, argv, argd):
+        """
+        Find out if there are ANSI strings
+        passed as an argument.
+
+        @type  argv: list
+        @param argv: Positional arguments list.
+
+        @type  argd: dict
+        @param argd: Keyword arguments dictionary.
+
+        @rtype:  bool
+        @return: C{True} if there's at least one ANSI string,
+            C{False} otherwise.
+        """
+        t_ansi = cls.t_ansi
+        for x in argv:
+            if isinstance(x, t_ansi):
+                return True
+        return False
+
+    @classmethod
+    def has_wide(cls, argv, argd):
+        """
+        Find out if there are Unicode (wide) strings
+        passed as an argument.
+
+        @type  argv: list
+        @param argv: Positional arguments list.
+
+        @type  argd: dict
+        @param argd: Keyword arguments dictionary.
+
+        @rtype:  bool
+        @return: C{True} if there's at least one Unicode (wide) string,
+            C{False} otherwise.
+        """
+        t_wide = cls.t_wide
+        for x in argv:
+            if isinstance(x, t_wide):
+                return True
+        return False
+
 class GuessStringType(object):
     """
     Decorator that guesses the correct version (A or W) to call
@@ -163,14 +288,8 @@ class GuessStringType(object):
 
     @type fn_ansi: function
     @ivar fn_ansi: ANSI version of the API function to call.
-    @type fn_unicode: function
-    @ivar fn_unicode: Unicode (wide) version of the API function to call.
-
-    @type t_default: type
-    @cvar t_default: Default string type to use.
-        Possible values are:
-         - type('') for ANSI
-         - type(u'') for Unicode
+    @type fn_wide: function
+    @ivar fn_wide: Unicode (wide) version of the API function to call.
     """
 
     # XXX TO DO
@@ -179,58 +298,40 @@ class GuessStringType(object):
     # string type. This should still be done on runtime, NOT when importing
     # the module, so the user can change the default string type at any time.
 
-    # ANSI and Unicode types
-    t_ansi    = type('')
-    t_unicode = type(u'')
-
-    # Default is ANSI for Python 2.x
-    t_default = t_ansi
-
-    def __init__(self, fn_ansi, fn_unicode):
+    def __init__(self, fn_ansi, fn_wide):
         """
         @type  fn_ansi: function
         @param fn_ansi: ANSI version of the API function to call.
-        @type  fn_unicode: function
-        @param fn_unicode: Unicode (wide) version of the API function to call.
+        @type  fn_wide: function
+        @param fn_wide: Unicode (wide) version of the API function to call.
         """
-        self.fn_ansi    = fn_ansi
-        self.fn_unicode = fn_unicode
+        self.fn_ansi = fn_ansi
+        self.fn_wide = fn_wide
 
     def __call__(self, *argv, **argd):
 
-        # Shortcut to self.t_ansi
-        t_ansi    = self.t_ansi
-
-        # Get the types of all arguments for the function
-        v_types   = [ type(item) for item in argv ]
-        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
-
         # Get the appropriate function for the default type
-        if self.t_default == t_ansi:
+        # (we do this here instead of in the constructor so
+        # the default type can be changed on runtime)
+        # XXX TODO there may be a better solution using properties
+        if AnsiWide.t_default == AnsiWide.t_ansi:
             fn = self.fn_ansi
         else:
-            fn = self.fn_unicode
+            fn = self.fn_wide
 
         # If at least one argument is a Unicode string...
-        if self.t_unicode in v_types:
+        if AnsiWide.has_wide(argv, argd):
 
             # If al least one argument is an ANSI string,
             # convert all ANSI strings to Unicode
-            if t_ansi in v_types:
-                argv = list(argv)
-                for index in xrange(len(argv)):
-                    if v_types[index] == t_ansi:
-                        argv[index] = unicode(argv[index])
-                for (key, value) in argd.items():
-                    if type(value) == t_ansi:
-                        argd[key] = unicode(value)
+            AnsiWide.wide_args(argv, argd)
 
             # Use the W version
-            fn = self.fn_unicode
+            fn = self.fn_wide
 
         # If at least one argument is an ANSI string,
         # but there are no Unicode strings...
-        elif t_ansi in v_types:
+        elif AnsiWide.has_ansi(argv, argd):
 
             # Use the A version
             fn = self.fn_ansi
@@ -254,17 +355,7 @@ class MakeANSIVersion(object):
         self.fn = fn
 
     def __call__(self, *argv, **argd):
-        t_ansi    = type('')
-        v_types   = [ type(item) for item in argv ]
-        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
-        if t_ansi in v_types:
-            argv = list(argv)
-            for index in xrange(len(argv)):
-                if v_types[index] == t_ansi:
-                    argv[index] = unicode(argv[index])
-            for key, value in argd.items():
-                if type(value) == t_ansi:
-                    argd[key] = unicode(value)
+        AnsiWide.wide_args(argv, argd)
         return self.fn(*argv, **argd)
 
 #--- Types --------------------------------------------------------------------
