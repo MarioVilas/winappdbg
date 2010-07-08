@@ -2490,7 +2490,7 @@ def GetTempPathA():
 
 def GetTempPathW():
     _GetTempPathW = windll.kernel32.GetTempPathW
-    _GetTempPathW.argtypes = [DWORD, LPSTR]
+    _GetTempPathW.argtypes = [DWORD, LPWSTR]
     _GetTempPathW.restype  = DWORD
 
     nBufferLength = _GetTempPathW(0, None)
@@ -2525,7 +2525,7 @@ def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
 
 def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
     _GetTempFileNameW = windll.kernel32.GetTempFileNameW
-    _GetTempFileNameW.argtypes = [LPSTR, LPSTR, UINT, LPSTR]
+    _GetTempFileNameW.argtypes = [LPWSTR, LPWSTR, UINT, LPWSTR]
     _GetTempFileNameW.restype  = UINT
 
     if lpPathName is None:
