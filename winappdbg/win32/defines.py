@@ -188,7 +188,7 @@ class AnsiWide(object):
         t_default = t_unicode
 
     @staticmethod
-    def ansi(b, codec=None):
+    def ansi(b, codec=None, error=None):
         """
         Converts Unicode (wide) strings to ANSI format.
 
@@ -198,19 +198,20 @@ class AnsiWide(object):
         @type  codec: str or None
         @param codec: (Optional) Codec to use.
 
+        @type  error: str or None
+        @param error: (Optional) Behavior on error.
+
         @rtype:  str (Python 3.x) or unicode (Python 2.x)
         @return: Converted string.
         """
         if hasattr(b, 'encode'):
-            if not codec:
-                return b.encode()
-            return b.encode(codec)
-        if not codec:
-            return str(b)
-        return str(b, codec)
+            return b.encode(codec, error)
+        if codec or error:
+            return str(b, codec, error)
+        return str(b)
 
     @staticmethod
-    def wide(b, codec=None):
+    def wide(b, codec=None, error=None):
         """
         Converts ANSI strings to Unicode (wide) format.
 
@@ -220,16 +221,15 @@ class AnsiWide(object):
         @type  codec: str or None
         @param codec: (Optional) Codec to use.
 
+        @type  error: str or None
+        @param error: (Optional) Behavior on error.
+
         @rtype:  bytes (Python 3.x) or str (Python 2.x)
         @return: Converted string.
         """
         if hasattr(b, 'decode'):
-            if not codec:
-                return b.decode()
-            return b.decode(codec)
-        if not codec:
-            return unicode(b)
-        return unicode(b, codec)
+            return b.decode(codec, error)
+        return unicode(b, codec, error)
 
     @classmethod
     def wide_args(cls, argv, argd):
