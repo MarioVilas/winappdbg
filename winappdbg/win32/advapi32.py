@@ -31,8 +31,20 @@ Wrapper for advapi32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import *
+try:
+    exec("""
+from .defines import *
+from .kernel32 import *
+"""
+except SyntaxError:
+    from defines import *
+    from kernel32 import *
+
+# Python 2.x/3.x compatibility hack
+try:
+    range = xrange
+except NameError:
+    xrange = range
 
 #--- Constants ----------------------------------------------------------------
 
@@ -340,7 +352,7 @@ def LookupPrivilegeNameW(lpSystemName, lpLuid):
 
     cchName = DWORD(0)
     _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
-    lpName = ctypes.create_unicode_buffer(u"", cchName.value)
+    lpName = ctypes.create_unicode_buffer("", cchName.value)
     _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
     return lpName.value
 
@@ -502,7 +514,7 @@ def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
     NodeInfoArray = (WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT)()
     IsCycle       = BOOL(FALSE)
     _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, ctypes.byref(NodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), ctypes.byref(IsCycle))
-    NodeInfoArray = [ NodeInfoArray[index] for index in xrange(0, NodeCount.value) ]
+    NodeInfoArray = [ NodeInfoArray[index] for index in range(0, NodeCount.value) ]
     IsCycle       = bool(IsCycle)
     return NodeInfoArray, IsCycle
 
