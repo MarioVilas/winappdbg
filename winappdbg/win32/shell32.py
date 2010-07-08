@@ -31,8 +31,20 @@ Wrapper for shell32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import LocalFree
+try:
+    exec("""
+from .defines import *
+from .kernel32 import LocalFree
+"""
+except SyntaxError:
+    from defines import *
+    from kernel32 import LocalFree
+
+# Python 3.x compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
 
 #--- shell32.dll --------------------------------------------------------------
 
