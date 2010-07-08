@@ -191,33 +191,6 @@ class ModuleContainer (object):
             raise KeyError(msg)
         return self.__moduleDict[lpBaseOfDll]
 
-    def iter_module_addresses(self):
-        """
-        @see:    L{iter_modules}
-        @rtype:  dictionary-keyiterator
-        @return: Iterator of DLL base addresses in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__moduleDict.keys())       # XXX COMPAT
-
-    def iter_modules(self):
-        """
-        @see:    L{iter_module_addresses}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Module} objects in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__moduleDict.values())     # XXX COMPAT
-
-    def get_module_bases(self):
-        """
-        @see:    L{iter_module_addresses}
-        @rtype:  list( int... )
-        @return: List of DLL base addresses in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return list(self.__moduleDict.keys())       # XXX COMPAT
-
     def get_module_count(self):
         """
         @rtype:  int
@@ -225,6 +198,70 @@ class ModuleContainer (object):
         """
         self.__initialize_snapshot()
         return len(self.__moduleDict)
+
+#------------------------------------------------------------------------------
+# Python 2.x
+
+    if sys.version_info()[0] == 2:
+
+        def iter_module_addresses(self):
+            """
+            @see:    L{iter_modules}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of DLL base addresses in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__moduleDict.keys())
+
+        def iter_modules(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Module} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__moduleDict.values())
+
+        def get_module_bases(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  list( int... )
+            @return: List of DLL base addresses in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__moduleDict.keys()
+
+#------------------------------------------------------------------------------
+# Python 3.x
+
+    else:
+
+        def iter_module_addresses(self):
+            """
+            @see:    L{iter_modules}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of DLL base addresses in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__moduleDict.iterkeys()
+
+        def iter_modules(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Module} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__moduleDict.itervalues()
+
+        def get_module_bases(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  list( int... )
+            @return: List of DLL base addresses in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return list(self.__moduleDict.keys())
 
 #------------------------------------------------------------------------------
 
@@ -596,32 +633,6 @@ class ThreadContainer (object):
             raise KeyError(msg)
         return self.__threadDict[dwThreadId]
 
-    def iter_thread_ids(self):
-        """
-        @see:    L{iter_threads}
-        @rtype:  dictionary-keyiterator
-        @return: Iterator of global thread IDs in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__threadDict.keys())   # XXX COMPAT
-
-    def iter_threads(self):
-        """
-        @see:    L{iter_thread_ids}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Thread} objects in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__threadDict.values()) # XXX COMPAT
-
-    def get_thread_ids(self):
-        """
-        @rtype:  list( int )
-        @return: List of global thread IDs in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return list(self.__threadDict.keys())   # XXX COMPAT
-
     def get_thread_count(self):
         """
         @rtype:  int
@@ -629,6 +640,68 @@ class ThreadContainer (object):
         """
         self.__initialize_snapshot()
         return len(self.__threadDict)
+
+#------------------------------------------------------------------------------
+# Python 2.x
+
+    if sys.version_info()[0] == 2:
+
+        def iter_thread_ids(self):
+            """
+            @see:    L{iter_threads}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global thread IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__threadDict.iterkeys()
+
+        def iter_threads(self):
+            """
+            @see:    L{iter_thread_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Thread} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__threadDict.itervalues()
+
+        def get_thread_ids(self):
+            """
+            @rtype:  list( int )
+            @return: List of global thread IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__threadDict.keys()
+
+#------------------------------------------------------------------------------
+# Python 3.x
+
+    else:
+
+        def iter_thread_ids(self):
+            """
+            @see:    L{iter_threads}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global thread IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__threadDict.keys())
+
+        def iter_threads(self):
+            """
+            @see:    L{iter_thread_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Thread} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__threadDict.values())
+
+        def get_thread_ids(self):
+            """
+            @rtype:  list( int )
+            @return: List of global thread IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return list(self.__threadDict.keys())
 
 #------------------------------------------------------------------------------
 
@@ -1009,33 +1082,6 @@ class ProcessContainer (object):
             raise KeyError(msg)
         return self.__processDict[dwProcessId]
 
-    def iter_process_ids(self):
-        """
-        @see:    L{iter_processes}
-        @rtype:  dictionary-keyiterator
-        @return: Iterator of global process IDs in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__processDict.keys())      # XXX COMPAT
-
-    def iter_processes(self):
-        """
-        @see:    L{iter_process_ids}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Process} objects in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return iter(self.__processDict.values())    # XXX COMPAT
-
-    def get_process_ids(self):
-        """
-        @see:    L{iter_process_ids}
-        @rtype:  list( int )
-        @return: List of global process IDs in this snapshot.
-        """
-        self.__initialize_snapshot()
-        return list(self.__processDict.keys())      # XXX COMPATs
-
     def get_process_count(self):
         """
         @rtype:  int
@@ -1043,6 +1089,70 @@ class ProcessContainer (object):
         """
         self.__initialize_snapshot()
         return len(self.__processDict)
+
+#------------------------------------------------------------------------------
+# Python 2.x
+
+    if sys.version_info()[0] == 2:
+
+        def iter_process_ids(self):
+            """
+            @see:    L{iter_processes}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global process IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__processDict.iterkeys()
+
+        def iter_processes(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Process} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__processDict.itervalues()
+
+        def get_process_ids(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  list( int )
+            @return: List of global process IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return self.__processDict.keys()
+
+#------------------------------------------------------------------------------
+# Python 3.x
+
+    else:
+
+        def iter_process_ids(self):
+            """
+            @see:    L{iter_processes}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global process IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__processDict.keys())
+
+        def iter_processes(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Process} objects in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return iter(self.__processDict.values())
+
+        def get_process_ids(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  list( int )
+            @return: List of global process IDs in this snapshot.
+            """
+            self.__initialize_snapshot()
+            return list(self.__processDict.keys())
 
 #------------------------------------------------------------------------------
 
