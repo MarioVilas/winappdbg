@@ -38,9 +38,9 @@ from .defines import *
 except SyntaxError:
     from defines import *
 
-# Python 3.x compatibility
+# Python 2.x/3.x compatibility hack
 try:
-    xrange
+    range = xrange
 except NameError:
     xrange = range
 
@@ -106,7 +106,7 @@ class FLOATING_SAVE_AREA(Structure):
             setattr(s, key, fsa.get(key))
         ra = fsa.get('RegisterArea', None)
         if ra is not None:
-            for index in xrange(0, SIZE_OF_80387_REGISTERS):
+            for index in range(0, SIZE_OF_80387_REGISTERS):
                 s.RegisterArea[index] = ra[index]
         return s
 
@@ -115,7 +115,7 @@ class FLOATING_SAVE_AREA(Structure):
         fsa = dict()
         for key in self._integer_members:
             fsa[key] = getattr(self, key)
-        ra = [ self.RegisterArea[index] for index in xrange(0, SIZE_OF_80387_REGISTERS) ]
+        ra = [ self.RegisterArea[index] for index in range(0, SIZE_OF_80387_REGISTERS) ]
         ra = tuple(ra)
         fsa['RegisterArea'] = ra
         return fsa
@@ -263,7 +263,7 @@ class CONTEXT(Structure):
                 setattr(s, key, ctx[key])
         if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
             er = ctx['ExtendedRegisters']
-            for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION):
+            for index in range(0, MAXIMUM_SUPPORTED_EXTENSION):
                 s.ExtendedRegisters[index] = er[index]
         return s
 
@@ -287,7 +287,7 @@ class CONTEXT(Structure):
             for key in self._ctx_ctrl:
                 ctx[key] = getattr(self, key)
         if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
-            er = [ self.ExtendedRegisters[index] for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION) ]
+            er = [ self.ExtendedRegisters[index] for index in range(0, MAXIMUM_SUPPORTED_EXTENSION) ]
             er = tuple(er)
             ctx['ExtendedRegisters'] = er
         return ctx

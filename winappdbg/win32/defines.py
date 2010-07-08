@@ -34,9 +34,9 @@ __revision__ = "$Id$"
 import sys
 import ctypes
 
-# Python 3.x compatibility
+# Python 2.x/3.x compatibility hack
 try:
-    xrange
+    range = xrange
 except NameError:
     xrange = range
 
@@ -221,7 +221,7 @@ class AnsiWide(object):
         @return: No return value, since the arguments are converted in-place.
         """
         t_ansi = cls.t_ansi
-        for index in xrange(len(argv)):
+        for index in range(len(argv)):
             x = argv[index]
             if isinstance(x, t_ansi):
                 argv[index] = cls.wide(x)

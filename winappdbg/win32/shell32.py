@@ -40,9 +40,9 @@ except SyntaxError:
     from defines import *
     from kernel32 import LocalFree
 
-# Python 3.x compatibility
+# Python 2.x/3.x compatibility hack
 try:
-    xrange
+    range = xrange
 except NameError:
     xrange = range
 
@@ -69,7 +69,7 @@ def CommandLineToArgvW(lpCmdLine):
         if argc <= 0:
             raise ctypes.WinError()
         argv = ctypes.cast(argv, ctypes.POINTER(LPWSTR * argc) )
-        argv = [ argv.contents[i] for i in xrange(0, argc) ]
+        argv = [ argv.contents[i] for i in range(0, argc) ]
     finally:
         if vptr is not None:
             LocalFree(vptr)
