@@ -31,18 +31,45 @@ Wrapper for kernel32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from version import *
+try:
+    exec("""
+from .defines import *
+from .version import os
+"""
+except SyntaxError:
+    from defines import *
+    from version import *
+
+# Python 3.x compatibility
+try:
+    long
+except NameError:
+    long = int
+if long == int:
+    def isnumtype(x):
+        return isinstance(x, int)
+else:
+    def isnumtype(x):
+        return isinstance(x, int) or isinstance(x, long)
 
 #--- CONTEXT structure and constants ------------------------------------------
 
-import context_i386
-import context_amd64
-import context_ia64
-
-from context_i386  import CONTEXT_i386, CONTEXT_i486
-from context_amd64 import CONTEXT_AMD64
-from context_ia64  import CONTEXT_IA64
+try:
+    exec("""
+from . import context_i386
+from . import context_amd64
+from . import context_ia64
+from .context_i386  import CONTEXT_i386, CONTEXT_i486
+from .context_amd64 import CONTEXT_AMD64
+from .context_ia64  import CONTEXT_IA64
+""")
+except SyntaxError:
+    import context_i386
+    import context_amd64
+    import context_ia64
+    from context_i386  import CONTEXT_i386, CONTEXT_i486
+    from context_amd64 import CONTEXT_AMD64
+    from context_ia64  import CONTEXT_IA64
 
 ContextArchMask = context_i386.CONTEXT_i386
 ##ContextArchMask = ContextArchMask | context_amd64.CONTEXT_i486
@@ -50,19 +77,34 @@ ContextArchMask = ContextArchMask | context_amd64.CONTEXT_AMD64
 ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
 
 if   arch == 'i386':
-    from context_i386 import *
+    try:
+        exec("from .context_i386 import *")
+    except SyntaxError:
+        from context_i386 import *
 elif arch == 'amd64':
     if sizeof(SIZE_T) == sizeof(DWORD64):
-        from context_amd64 import *
+        try:
+            exec("from .context_amd64 import *")
+        except SyntaxError:
+            from context_amd64 import *
     else:
-        from context_i386 import *
+        try:
+            exec("from .context_i386 import *")
+        except SyntaxError:
+            from context_i386 import *
 elif arch == 'ia64':
     if sizeof(SIZE_T) == sizeof(DWORD64):
-        from context_ia64 import *
+        try:
+            exec("from .context_ia64 import *")
+        except SyntaxError:
+            from context_ia64 import *
     else:
-        from context_i386 import *
+        try:
+            exec("from .context_i386 import *")
+        except SyntaxError:
+            from context_i386 import *
 else:
-    print "Warning, unknown or unsupported architecture"
+    print("Warning, unknown or unsupported architecture")
 
 #--- Constants ----------------------------------------------------------------
 
@@ -115,17 +157,17 @@ HEAP_ZERO_MEMORY            = 0x00000008
 HEAP_CREATE_ENABLE_EXECUTE  = 0x00040000
 
 # Standard access rights
-DELETE                      = (0x00010000L)
-READ_CONTROL                = (0x00020000L)
-WRITE_DAC                   = (0x00040000L)
-WRITE_OWNER                 = (0x00080000L)
-SYNCHRONIZE                 = (0x00100000L)
-STANDARD_RIGHTS_REQUIRED    = (0x000F0000L)
+DELETE                      = (0x00010000)
+READ_CONTROL                = (0x00020000)
+WRITE_DAC                   = (0x00040000)
+WRITE_OWNER                 = (0x00080000)
+SYNCHRONIZE                 = (0x00100000)
+STANDARD_RIGHTS_REQUIRED    = (0x000F0000)
 STANDARD_RIGHTS_READ        = (READ_CONTROL)
 STANDARD_RIGHTS_WRITE       = (READ_CONTROL)
 STANDARD_RIGHTS_EXECUTE     = (READ_CONTROL)
-STANDARD_RIGHTS_ALL         = (0x001F0000L)
-SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
+STANDARD_RIGHTS_ALL         = (0x001F0000)
+SPECIFIC_RIGHTS_ALL         = (0x0000FFFF)
 
 # Process access rights for OpenProcess
 PROCESS_TERMINATE         = (0x0001)
@@ -200,7 +242,7 @@ THREAD_PRIORITY_BELOW_NORMAL    = (THREAD_PRIORITY_LOWEST+1)
 THREAD_PRIORITY_NORMAL          = 0
 THREAD_PRIORITY_HIGHEST         = THREAD_BASE_PRIORITY_MAX
 THREAD_PRIORITY_ABOVE_NORMAL    = (THREAD_PRIORITY_HIGHEST-1)
-THREAD_PRIORITY_ERROR_RETURN    = (0xFFFFFFFFL)
+THREAD_PRIORITY_ERROR_RETURN    = (0xFFFFFFFF)
 
 THREAD_PRIORITY_TIME_CRITICAL   = THREAD_BASE_PRIORITY_LOWRT
 THREAD_PRIORITY_IDLE            = THREAD_BASE_PRIORITY_IDLE
@@ -318,60 +360,60 @@ OUTPUT_DEBUG_STRING_EVENT   = 8
 RIP_EVENT                   = 9
 
 # Debug status codes
-DBG_CONTINUE                    = 0x00010002L
-DBG_EXCEPTION_HANDLED           = 0x00010001L
-DBG_EXCEPTION_NOT_HANDLED       = 0x80010001L
-DBG_TERMINATE_THREAD            = 0x40010003L
-DBG_TERMINATE_PROCESS           = 0x40010004L
-DBG_CONTROL_C                   = 0x40010005L
-DBG_CONTROL_BREAK               = 0x40010008L
-DBG_COMMAND_EXCEPTION           = 0x40010009L
+DBG_CONTINUE                    = 0x00010002
+DBG_EXCEPTION_HANDLED           = 0x00010001
+DBG_EXCEPTION_NOT_HANDLED       = 0x80010001
+DBG_TERMINATE_THREAD            = 0x40010003
+DBG_TERMINATE_PROCESS           = 0x40010004
+DBG_CONTROL_C                   = 0x40010005
+DBG_CONTROL_BREAK               = 0x40010008
+DBG_COMMAND_EXCEPTION           = 0x40010009
 
 # Status codes
-STATUS_WAIT_0                   = 0x00000000L
-STATUS_ABANDONED_WAIT_0         = 0x00000080L
-STATUS_USER_APC                 = 0x000000C0L
-STATUS_TIMEOUT                  = 0x00000102L
-STATUS_PENDING                  = 0x00000103L
-STATUS_SEGMENT_NOTIFICATION     = 0x40000005L
-STATUS_GUARD_PAGE_VIOLATION     = 0x80000001L
-STATUS_DATATYPE_MISALIGNMENT    = 0x80000002L
-STATUS_BREAKPOINT               = 0x80000003L
-STATUS_SINGLE_STEP              = 0x80000004L
-STATUS_INVALID_INFO_CLASS       = 0xC0000003L
-STATUS_ACCESS_VIOLATION         = 0xC0000005L
-STATUS_IN_PAGE_ERROR            = 0xC0000006L
-STATUS_INVALID_HANDLE           = 0xC0000008L
-STATUS_NO_MEMORY                = 0xC0000017L
-STATUS_ILLEGAL_INSTRUCTION      = 0xC000001DL
-STATUS_NONCONTINUABLE_EXCEPTION = 0xC0000025L
-STATUS_INVALID_DISPOSITION      = 0xC0000026L
-STATUS_ARRAY_BOUNDS_EXCEEDED    = 0xC000008CL
-STATUS_FLOAT_DENORMAL_OPERAND   = 0xC000008DL
-STATUS_FLOAT_DIVIDE_BY_ZERO     = 0xC000008EL
-STATUS_FLOAT_INEXACT_RESULT     = 0xC000008FL
-STATUS_FLOAT_INVALID_OPERATION  = 0xC0000090L
-STATUS_FLOAT_OVERFLOW           = 0xC0000091L
-STATUS_FLOAT_STACK_CHECK        = 0xC0000092L
-STATUS_FLOAT_UNDERFLOW          = 0xC0000093L
-STATUS_INTEGER_DIVIDE_BY_ZERO   = 0xC0000094L
-STATUS_INTEGER_OVERFLOW         = 0xC0000095L
-STATUS_PRIVILEGED_INSTRUCTION   = 0xC0000096L
-STATUS_STACK_OVERFLOW           = 0xC00000FDL
-STATUS_CONTROL_C_EXIT           = 0xC000013AL
-STATUS_FLOAT_MULTIPLE_FAULTS    = 0xC00002B4L
-STATUS_FLOAT_MULTIPLE_TRAPS     = 0xC00002B5L
-STATUS_REG_NAT_CONSUMPTION      = 0xC00002C9L
-STATUS_SXS_EARLY_DEACTIVATION   = 0xC015000FL
-STATUS_SXS_INVALID_DEACTIVATION = 0xC0150010L
+STATUS_WAIT_0                   = 0x00000000
+STATUS_ABANDONED_WAIT_0         = 0x00000080
+STATUS_USER_APC                 = 0x000000C0
+STATUS_TIMEOUT                  = 0x00000102
+STATUS_PENDING                  = 0x00000103
+STATUS_SEGMENT_NOTIFICATION     = 0x40000005
+STATUS_GUARD_PAGE_VIOLATION     = 0x80000001
+STATUS_DATATYPE_MISALIGNMENT    = 0x80000002
+STATUS_BREAKPOINT               = 0x80000003
+STATUS_SINGLE_STEP              = 0x80000004
+STATUS_INVALID_INFO_CLASS       = 0xC0000003
+STATUS_ACCESS_VIOLATION         = 0xC0000005
+STATUS_IN_PAGE_ERROR            = 0xC0000006
+STATUS_INVALID_HANDLE           = 0xC0000008
+STATUS_NO_MEMORY                = 0xC0000017
+STATUS_ILLEGAL_INSTRUCTION      = 0xC000001D
+STATUS_NONCONTINUABLE_EXCEPTION = 0xC0000025
+STATUS_INVALID_DISPOSITION      = 0xC0000026
+STATUS_ARRAY_BOUNDS_EXCEEDED    = 0xC000008C
+STATUS_FLOAT_DENORMAL_OPERAND   = 0xC000008D
+STATUS_FLOAT_DIVIDE_BY_ZERO     = 0xC000008E
+STATUS_FLOAT_INEXACT_RESULT     = 0xC000008F
+STATUS_FLOAT_INVALID_OPERATION  = 0xC0000090
+STATUS_FLOAT_OVERFLOW           = 0xC0000091
+STATUS_FLOAT_STACK_CHECK        = 0xC0000092
+STATUS_FLOAT_UNDERFLOW          = 0xC0000093
+STATUS_INTEGER_DIVIDE_BY_ZERO   = 0xC0000094
+STATUS_INTEGER_OVERFLOW         = 0xC0000095
+STATUS_PRIVILEGED_INSTRUCTION   = 0xC0000096
+STATUS_STACK_OVERFLOW           = 0xC00000FD
+STATUS_CONTROL_C_EXIT           = 0xC000013A
+STATUS_FLOAT_MULTIPLE_FAULTS    = 0xC00002B4
+STATUS_FLOAT_MULTIPLE_TRAPS     = 0xC00002B5
+STATUS_REG_NAT_CONSUMPTION      = 0xC00002C9
+STATUS_SXS_EARLY_DEACTIVATION   = 0xC015000F
+STATUS_SXS_INVALID_DEACTIVATION = 0xC0150010
 
-STATUS_STACK_BUFFER_OVERRUN     = 0xC0000409L
-STATUS_WX86_BREAKPOINT          = 0x4000001FL
-STATUS_HEAP_CORRUPTION          = 0xC0000374L
+STATUS_STACK_BUFFER_OVERRUN     = 0xC0000409
+STATUS_WX86_BREAKPOINT          = 0x4000001F
+STATUS_HEAP_CORRUPTION          = 0xC0000374
 
-STATUS_POSSIBLE_DEADLOCK        = 0xC0000194L
+STATUS_POSSIBLE_DEADLOCK        = 0xC0000194
 
-STATUS_UNWIND_CONSOLIDATE       = 0x80000029L
+STATUS_UNWIND_CONSOLIDATE       = 0x80000029
 
 # Exception codes
 
@@ -403,8 +445,8 @@ EXCEPTION_WX86_BREAKPOINT           = STATUS_WX86_BREAKPOINT
 
 CONTROL_C_EXIT                      = STATUS_CONTROL_C_EXIT
 
-DBG_CONTROL_C                       = 0x40010005L
-MS_VC_EXCEPTION                     = 0x406D1388L
+DBG_CONTROL_C                       = 0x40010005
+MS_VC_EXCEPTION                     = 0x406D1388
 
 # Access violation types
 ACCESS_VIOLATION_TYPE_READ      = EXCEPTION_READ_FAULT
@@ -505,14 +547,14 @@ class Handle (object):
         self.value      = self._normalize(aHandle)
         self.bOwnership = bOwnership
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "INIT HANDLE (%r) %r" % (self.value, self)
+            print("INIT HANDLE (%r) %r" % (self.value, self))
 
     def __del__(self):
         """
         Closes the Win32 handle when the Python object is destroyed.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "DEL HANDLE %r" % self
+            print("DEL HANDLE %r" % self)
         try:
             self.close()
         except Exception:
@@ -523,7 +565,7 @@ class Handle (object):
         Compatibility with the "C{with}" Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "ENTER HANDLE %r" % self
+            print("ENTER HANDLE %r" % self)
         return self
 
     def __exit__(self, type, value, traceback):
@@ -531,7 +573,7 @@ class Handle (object):
         Compatibility with the "C{with}" Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "EXIT HANDLE %r" % self
+            print("EXIT HANDLE %r" % self)
         try:
             self.close()
         except Exception:
@@ -580,7 +622,7 @@ class Handle (object):
         """
         if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
             if Handle.__bLeakDetection:     # XXX DEBUG
-                print "CLOSE HANDLE (%d) %r" % (self.value, self)
+                print("CLOSE HANDLE (%d) %r" % (self.value, self))
             try:
                 CloseHandle(self.value)
             finally:
@@ -593,7 +635,7 @@ class Handle (object):
         """
         new_value = DuplicateHandle(self.value)
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "DUP HANDLE (%d -> %d) %r" % (self.value, new_value, self)
+            print("DUP HANDLE (%d -> %d) %r" % (self.value, new_value, self))
         return new_value
 
     @staticmethod
@@ -682,15 +724,16 @@ class FileHandle (Handle):
                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
                                         lpFileInformation, dwBufferSize)
         except AttributeError:
-            from ntdll import NtQueryInformationFile, \
-                              FileNameInformation, \
-                              FILE_NAME_INFORMATION
-            NtQueryInformationFile(self.value,
-                                   FileNameInformation,
+            try:
+                exec("from . import ntdll")
+            except SyntaxError:
+                import ntdll
+            ntdll.NtQueryInformationFile(self.value,
+                                   ntdll.FileNameInformation,
                                    lpFileInformation,
                                    dwBufferSize)
-        FileName = unicode(lpFileInformation.raw[sizeof(DWORD):], 'U16')
-        FileName = ctypes.create_unicode_buffer(FileName).value
+        FileName = AnsiWide.wide(lpFileInformation.raw[sizeof(DWORD):], 'U16')
+        FileName = ctypes.create_unicode_buffer(FileName).value                 # XXX COMPAT STRING
         if not FileName:
             FileName = None
         elif FileName[1:2] != ':':
@@ -718,13 +761,13 @@ class SnapshotHandle (Handle):
 
     def dup(self):
         "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError, \
-            "This method is meaningless for Toolhelp32 snaphots."
+        msg = "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError(msg)
 
     def wait(self, dwMilliseconds = None):
         "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError, \
-            "This method is meaningless for Toolhelp32 snaphots."
+        msg = "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError(msg)
 
 #--- Structure wrappers -------------------------------------------------------
 
@@ -1824,7 +1867,7 @@ def GetDllDirectoryW():
     nBufferLength = _GetDllDirectoryW(0, None)
     if nBufferLength == 0:
         return None
-    lpBuffer = ctypes.create_unicode_buffer(u"", nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer("", nBufferLength)
     _GetDllDirectoryW(nBufferLength, ctypes.byref(lpBuffer))
     return lpBuffer.value
 
@@ -1929,14 +1972,14 @@ def GetProcAddress(hModule, lpProcName):
     _GetProcAddress.argtypes = [HMODULE, LPVOID]
     _GetProcAddress.restype  = LPVOID
 
-    if type(lpProcName) in (type(0), type(0L)):
+    if isnumtype(lpProcName):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
-            raise ValueError, 'Ordinal number too large: %d' % lpProcName.value
+            raise ValueError('Ordinal number too large: %d' % lpProcName.value)
     elif type(lpProcName) == type(""):
         lpProcName = ctypes.c_char_p(lpProcName)
     else:
-        raise TypeError, str(type(lpProcName))
+        raise TypeError(str(type(lpProcName)))
     return _GetProcAddress(hModule, lpProcName)
 
 # BOOL WINAPI FreeLibrary(
@@ -2022,7 +2065,7 @@ def GetLogicalDriveStringsA():
     sizeof_char = ctypes.sizeof(ctypes.c_char)
     while True:
         string_v = ctypes.string_at(string_p)
-        if string_v == '':
+        if not string_v:
             break
         drive_strings.append(string_v)
         string_p += len(string_v) + sizeof_char
@@ -2035,14 +2078,14 @@ def GetLogicalDriveStringsW():
     _GetLogicalDriveStringsW.errcheck = RaiseIfZero
 
     nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
     drive_strings = list()
     string_p = ctypes.addressof(lpBuffer)
     sizeof_wchar = ctypes.sizeof(ctypes.c_wchar)
     while True:
         string_v = ctypes.wstring_at(string_p)
-        if string_v == u'':
+        if not string_v:
             break
         drive_strings.append(string_v)
         string_p += (len(string_v) * sizeof_wchar) + sizeof_wchar
@@ -2125,7 +2168,7 @@ def QueryDosDeviceW(lpDeviceName):
     if not lpDeviceName:
         lpDeviceName = None
     ucchMax = 0x1000
-    lpTargetPath = ctypes.create_unicode_buffer(u'', ucchMax)
+    lpTargetPath = ctypes.create_unicode_buffer('', ucchMax)
     _QueryDosDeviceW(lpDeviceName, lpTargetPath, ucchMax)
     return lpTargetPath.value
 
@@ -2300,7 +2343,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
     _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
-    if lpBuffer == '':
+    if not lpBuffer:
         if GetLastError() == ERROR_SUCCESS:
             raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
@@ -2317,12 +2360,12 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
     if not lpExtension:
         lpExtension = None
     nBufferLength = _SearchPathW(lpPath, lpFileName, lpExtension, 0, None, None)
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength + 1)
     lpFilePart = LPWSTR()
     _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
-    if lpBuffer == u'':
+    if not lpBuffer:
         if GetLastError() == ERROR_SUCCESS:
             raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
@@ -2424,7 +2467,7 @@ def GetFinalPathNameByHandleW(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAM
     cchFilePath = _GetFinalPathNameByHandleW(hFile, None, 0, dwFlags)
     if cchFilePath == 0:
         raise ctypes.WinError()
-    lpszFilePath = ctypes.create_unicode_buffer(u'', cchFilePath + 1)
+    lpszFilePath = ctypes.create_unicode_buffer('', cchFilePath + 1)
     nCopied = _GetFinalPathNameByHandleW(hFile, lpszFilePath, cchFilePath, dwFlags)
     if nCopied <= 0 or nCopied > cchFilePath:
         raise ctypes.WinError()
@@ -2461,7 +2504,7 @@ def GetFullPathNameW(lpFileName):
     nBufferLength = _GetFullPathNameW(lpFileName, 0, None, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer   = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
+    lpBuffer   = ctypes.create_unicode_buffer('', nBufferLength + 1)
     lpFilePart = LPSTR
     nCopied = _GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:
@@ -2490,13 +2533,13 @@ def GetTempPathA():
 
 def GetTempPathW():
     _GetTempPathW = windll.kernel32.GetTempPathW
-    _GetTempPathW.argtypes = [DWORD, LPSTR]
+    _GetTempPathW.argtypes = [DWORD, LPWSTR]
     _GetTempPathW.restype  = DWORD
 
     nBufferLength = _GetTempPathW(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     nCopied = _GetTempPathW(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -2523,14 +2566,14 @@ def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
         raise ctypes.WinError()
     return lpTempFileName.value, uUnique
 
-def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
+def GetTempFileNameW(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
     _GetTempFileNameW = windll.kernel32.GetTempFileNameW
-    _GetTempFileNameW.argtypes = [LPSTR, LPSTR, UINT, LPSTR]
+    _GetTempFileNameW.argtypes = [LPWSTR, LPWSTR, UINT, LPWSTR]
     _GetTempFileNameW.restype  = UINT
 
     if lpPathName is None:
         lpPathName = GetTempPathW()
-    lpTempFileName = ctypes.create_unicode_buffer(u'', MAX_PATH)
+    lpTempFileName = ctypes.create_unicode_buffer('', MAX_PATH)
     uUnique = _GetTempFileNameW(lpPathName, lpPrefixString, uUnique, lpTempFileName)
     if uUnique == 0:
         raise ctypes.WinError()
@@ -2564,7 +2607,7 @@ def GetCurrentDirectoryW():
     nBufferLength = _GetCurrentDirectoryW(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     nCopied = _GetCurrentDirectoryW(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3891,7 +3934,7 @@ def GlobalGetAtomNameW(nAtom):
 
     nSize = 64
     while 1:
-        lpBuffer = ctypes.create_unicode_buffer(u"", nSize)
+        lpBuffer = ctypes.create_unicode_buffer("", nSize)
         nCopied  = _GlobalGetAtomNameW(nAtom, lpBuffer, nSize)
         if nCopied < nSize - 1:
             break
