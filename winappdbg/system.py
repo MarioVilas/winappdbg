@@ -174,6 +174,17 @@ class ModuleContainer (object):
             L{Module} object with the given base address.
         """
         self.__initialize_snapshot()
+        return self.__has_module(lpBaseOfDll)
+
+    def __has_module(self, lpBaseOfDll):
+        """
+        @type  lpBaseOfDll: int
+        @param lpBaseOfDll: Base address of the DLL to look for.
+
+        @rtype:  bool
+        @return: C{True} if the snapshot contains a
+            L{Module} object with the given base address.
+        """
         return lpBaseOfDll in self.__moduleDict
 
     def get_module(self, lpBaseOfDll):
@@ -185,6 +196,16 @@ class ModuleContainer (object):
         @return: Module object with the given base address.
         """
         self.__initialize_snapshot()
+        return self.__get_module(lpBaseOfDll)
+
+    def __get_module(self, lpBaseOfDll):
+        """
+        @type  lpBaseOfDll: int
+        @param lpBaseOfDll: Base address of the DLL to look for.
+
+        @rtype:  L{Module}
+        @return: Module object with the given base address.
+        """
         if lpBaseOfDll not in self.__moduleDict:
             msg = "Unknown DLL base address %s"
             msg = msg % HexDump.address(lpBaseOfDll)
@@ -197,71 +218,99 @@ class ModuleContainer (object):
         @return: Count of L{Module} objects in this snapshot.
         """
         self.__initialize_snapshot()
+        return self.__get_module_count()
+
+    def __get_module_count(self):
+        """
+        @rtype:  int
+        @return: Count of L{Module} objects in this snapshot.
+        """
         return len(self.__moduleDict)
+
+    def get_module_bases(self):
+        """
+        @see:    L{iter_module_addresses}
+        @rtype:  list( int... )
+        @return: List of DLL base addresses in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__get_module_bases()
+
+    def iter_module_addresses(self):
+        """
+        @see:    L{iter_modules}
+        @rtype:  dictionary-keyiterator
+        @return: Iterator of DLL base addresses in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_module_addresses()
+
+    def iter_modules(self):
+        """
+        @see:    L{iter_module_addresses}
+        @rtype:  dictionary-valueiterator
+        @return: Iterator of L{Module} objects in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_modules()
 
 #------------------------------------------------------------------------------
 # Python 2.x
 
     if sys.version_info()[0] == 2:
 
-        def iter_module_addresses(self):
-            """
-            @see:    L{iter_modules}
-            @rtype:  dictionary-keyiterator
-            @return: Iterator of DLL base addresses in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return iter(self.__moduleDict.keys())
-
-        def iter_modules(self):
-            """
-            @see:    L{iter_module_addresses}
-            @rtype:  dictionary-valueiterator
-            @return: Iterator of L{Module} objects in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return iter(self.__moduleDict.values())
-
-        def get_module_bases(self):
+        def __get_module_bases(self):
             """
             @see:    L{iter_module_addresses}
             @rtype:  list( int... )
             @return: List of DLL base addresses in this snapshot.
             """
-            self.__initialize_snapshot()
             return self.__moduleDict.keys()
+
+        def __iter_module_addresses(self):
+            """
+            @see:    L{iter_modules}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of DLL base addresses in this snapshot.
+            """
+            return iter(self.__moduleDict.keys())
+
+        def __iter_modules(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Module} objects in this snapshot.
+            """
+            return iter(self.__moduleDict.values())
 
 #------------------------------------------------------------------------------
 # Python 3.x
 
     else:
 
-        def iter_module_addresses(self):
-            """
-            @see:    L{iter_modules}
-            @rtype:  dictionary-keyiterator
-            @return: Iterator of DLL base addresses in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return self.__moduleDict.iterkeys()
-
-        def iter_modules(self):
-            """
-            @see:    L{iter_module_addresses}
-            @rtype:  dictionary-valueiterator
-            @return: Iterator of L{Module} objects in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return self.__moduleDict.itervalues()
-
-        def get_module_bases(self):
+        def __get_module_bases(self):
             """
             @see:    L{iter_module_addresses}
             @rtype:  list( int... )
             @return: List of DLL base addresses in this snapshot.
             """
-            self.__initialize_snapshot()
             return list(self.__moduleDict.keys())
+
+        def __iter_module_addresses(self):
+            """
+            @see:    L{iter_modules}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of DLL base addresses in this snapshot.
+            """
+            return self.__moduleDict.iterkeys()
+
+        def __iter_modules(self):
+            """
+            @see:    L{iter_module_addresses}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Module} objects in this snapshot.
+            """
+            return self.__moduleDict.itervalues()
 
 #------------------------------------------------------------------------------
 
@@ -388,8 +437,7 @@ class ModuleContainer (object):
                 else:
                     fileName = PathOperations.native_to_win32_pathname(fileName)
                 found_bases.add(lpBaseAddress)
-##                if not self.has_module(lpBaseAddress): # XXX triggers a scan
-                if lpBaseAddress not in self.__moduleDict:
+                if not self.__has_module(lpBaseAddress):
                     aModule = Module(lpBaseAddress, fileName = fileName,
                                            SizeOfImage = me.modBaseSize,
                                            process = self)
@@ -405,8 +453,7 @@ class ModuleContainer (object):
                 me = win32.Module32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
-##        for base in self.get_module_bases(): # XXX triggers a scan
-        for base in self.__moduleDict.keys():
+        for base in self.__get_module_bases():
             if base not in found_bases:
                 self.__del_module(base)
 
@@ -463,8 +510,7 @@ class ModuleContainer (object):
         """
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
-##        if not self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
-        if lpBaseOfDll not in self.__moduleDict:
+        if not self.__has_module(lpBaseOfDll):
             fileName = event.get_filename()
             if not fileName:
                 fileName = None
@@ -477,7 +523,7 @@ class ModuleContainer (object):
                                                    process = self)
             self.__add_module(aModule)
         else:
-            aModule = self.get_module(lpBaseOfDll)
+            aModule = self.__get_module(lpBaseOfDll)
             if hFile != win32.INVALID_HANDLE_VALUE:
                 aModule.hFile = hFile
             if not aModule.process:
@@ -536,8 +582,7 @@ class ModuleContainer (object):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         lpBaseOfDll = event.get_module_base()
-##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
-        if lpBaseOfDll in self.__moduleDict:
+        if self.__has_module(lpBaseOfDll):
             self.__del_module(lpBaseOfDll)
         return True
 
@@ -617,6 +662,17 @@ class ThreadContainer (object):
             L{Thread} object with the given global ID.
         """
         self.__initialize_snapshot()
+        return self.__has_thread(dwThreadId)
+
+    def __has_thread(self, dwThreadId):
+        """
+        @type  dwThreadId: int
+        @param dwThreadId: Global ID of the thread to look for.
+
+        @rtype:  bool
+        @return: C{True} if the snapshot contains a
+            L{Thread} object with the given global ID.
+        """
         return dwThreadId in self.__threadDict
 
     def get_thread(self, dwThreadId):
@@ -628,6 +684,16 @@ class ThreadContainer (object):
         @return: Thread object with the given global ID.
         """
         self.__initialize_snapshot()
+        return self.__get_thread(dwThreadId)
+
+    def __get_thread(self, dwThreadId):
+        """
+        @type  dwThreadId: int
+        @param dwThreadId: Global ID of the thread to look for.
+
+        @rtype:  L{Thread}
+        @return: Thread object with the given global ID.
+        """
         if dwThreadId not in self.__threadDict:
             msg = "Unknown thread ID: %d" % dwThreadId
             raise KeyError(msg)
@@ -639,69 +705,96 @@ class ThreadContainer (object):
         @return: Count of L{Thread} objects in this snapshot.
         """
         self.__initialize_snapshot()
+        return self.__get_thread_count()
+
+    def __get_thread_count(self):
+        """
+        @rtype:  int
+        @return: Count of L{Thread} objects in this snapshot.
+        """
         return len(self.__threadDict)
+
+    def get_thread_ids(self):
+        """
+        @rtype:  list( int )
+        @return: List of global thread IDs in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__get_thread_ids()
+
+    def iter_thread_ids(self):
+        """
+        @see:    L{iter_threads}
+        @rtype:  dictionary-keyiterator
+        @return: Iterator of global thread IDs in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_thread_ids()
+
+    def iter_threads(self):
+        """
+        @see:    L{iter_thread_ids}
+        @rtype:  dictionary-valueiterator
+        @return: Iterator of L{Thread} objects in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_threads()
 
 #------------------------------------------------------------------------------
 # Python 2.x
 
     if sys.version_info()[0] == 2:
 
-        def iter_thread_ids(self):
+        def __get_thread_ids(self):
+            """
+            @rtype:  list( int )
+            @return: List of global thread IDs in this snapshot.
+            """
+            return self.__threadDict.keys()
+
+        def __iter_thread_ids(self):
             """
             @see:    L{iter_threads}
             @rtype:  dictionary-keyiterator
             @return: Iterator of global thread IDs in this snapshot.
             """
-            self.__initialize_snapshot()
             return self.__threadDict.iterkeys()
 
-        def iter_threads(self):
+        def __iter_threads(self):
             """
             @see:    L{iter_thread_ids}
             @rtype:  dictionary-valueiterator
             @return: Iterator of L{Thread} objects in this snapshot.
             """
-            self.__initialize_snapshot()
             return self.__threadDict.itervalues()
-
-        def get_thread_ids(self):
-            """
-            @rtype:  list( int )
-            @return: List of global thread IDs in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return self.__threadDict.keys()
 
 #------------------------------------------------------------------------------
 # Python 3.x
 
     else:
 
-        def iter_thread_ids(self):
+        def __get_thread_ids(self):
+            """
+            @rtype:  list( int )
+            @return: List of global thread IDs in this snapshot.
+            """
+            return list(self.__threadDict.keys())
+
+        def __iter_thread_ids(self):
             """
             @see:    L{iter_threads}
             @rtype:  dictionary-keyiterator
             @return: Iterator of global thread IDs in this snapshot.
             """
-            self.__initialize_snapshot()
             return iter(self.__threadDict.keys())
 
-        def iter_threads(self):
+        def __iter_threads(self):
             """
             @see:    L{iter_thread_ids}
             @rtype:  dictionary-valueiterator
             @return: Iterator of L{Thread} objects in this snapshot.
             """
-            self.__initialize_snapshot()
             return iter(self.__threadDict.values())
-
-        def get_thread_ids(self):
-            """
-            @rtype:  list( int )
-            @return: List of global thread IDs in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return list(self.__threadDict.keys())
 
 #------------------------------------------------------------------------------
 
@@ -810,8 +903,8 @@ class ThreadContainer (object):
         if dwProcessId in (0, 4, 8):
             return
 
-##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
-        dead_tids   = self.__threadDict.keys()
+##        dead_tids   = set( self.__get_thread_ids() )    # slower!
+        dead_tids   = set( self.__threadDict.keys() )   # XXX HACK
         dwProcessId = self.get_pid()
         hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD,
                                                                  dwProcessId)
@@ -822,8 +915,7 @@ class ThreadContainer (object):
                     dwThreadId = te.th32ThreadID
                     if dwThreadId in dead_tids:
                         dead_tids.remove(dwThreadId)
-##                    if not self.has_thread(dwThreadId): # XXX triggers a scan
-                    if dwThreadId not in self.__threadDict:
+                    if not self.__has_thread(dwThreadId):
                         aThread = Thread(dwThreadId, process = self)
                         self.__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
@@ -906,12 +998,11 @@ class ThreadContainer (object):
         """
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
-##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
-        if dwThreadId not in self.__threadDict:
+        if not self.__has_thread(dwThreadId):
             aThread = Thread(dwThreadId, hThread, self)
             self.__add_thread(aThread)
         else:
-            aThread = self.get_thread(dwThreadId)
+            aThread = self.__get_thread(dwThreadId)
             if hThread != win32.INVALID_HANDLE_VALUE:
                 aThread.hThread = hThread   # may have more privileges
 
@@ -961,8 +1052,7 @@ class ThreadContainer (object):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwThreadId = event.get_tid()
-##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
-        if dwThreadId in self.__threadDict:
+        if self.__has_thread(dwThreadId):
             self.__del_thread(dwThreadId)
         return True
 
@@ -1066,6 +1156,17 @@ class ProcessContainer (object):
             L{Process} object with the given global ID.
         """
         self.__initialize_snapshot()
+        return self.__has_process(dwProcessId)
+
+    def __has_process(self, dwProcessId):
+        """
+        @type  dwProcessId: int
+        @param dwProcessId: Global ID of the process to look for.
+
+        @rtype:  bool
+        @return: C{True} if the snapshot contains a
+            L{Process} object with the given global ID.
+        """
         return dwProcessId in self.__processDict
 
     def get_process(self, dwProcessId):
@@ -1077,6 +1178,16 @@ class ProcessContainer (object):
         @return: Process object with the given global ID.
         """
         self.__initialize_snapshot()
+        return self.__get_process(dwProcessId)
+
+    def __get_process(self, dwProcessId):
+        """
+        @type  dwProcessId: int
+        @param dwProcessId: Global ID of the process to look for.
+
+        @rtype:  L{Process}
+        @return: Process object with the given global ID.
+        """
         if dwProcessId not in self.__processDict:
             msg = "Unknown process ID %d" % dwProcessId
             raise KeyError(msg)
@@ -1088,71 +1199,99 @@ class ProcessContainer (object):
         @return: Count of L{Process} objects in this snapshot.
         """
         self.__initialize_snapshot()
+        return self.__get_process_count()
+
+    def __get_process_count(self):
+        """
+        @rtype:  int
+        @return: Count of L{Process} objects in this snapshot.
+        """
         return len(self.__processDict)
+
+    def get_process_ids(self):
+        """
+        @see:    L{iter_process_ids}
+        @rtype:  list( int )
+        @return: List of global process IDs in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__get_process_ids()
+
+    def iter_process_ids(self):
+        """
+        @see:    L{iter_processes}
+        @rtype:  dictionary-keyiterator
+        @return: Iterator of global process IDs in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_process_ids()
+
+    def iter_processes(self):
+        """
+        @see:    L{iter_process_ids}
+        @rtype:  dictionary-valueiterator
+        @return: Iterator of L{Process} objects in this snapshot.
+        """
+        self.__initialize_snapshot()
+        return self.__iter_processes()
 
 #------------------------------------------------------------------------------
 # Python 2.x
 
     if sys.version_info()[0] == 2:
 
-        def iter_process_ids(self):
-            """
-            @see:    L{iter_processes}
-            @rtype:  dictionary-keyiterator
-            @return: Iterator of global process IDs in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return self.__processDict.iterkeys()
-
-        def iter_processes(self):
-            """
-            @see:    L{iter_process_ids}
-            @rtype:  dictionary-valueiterator
-            @return: Iterator of L{Process} objects in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return self.__processDict.itervalues()
-
-        def get_process_ids(self):
+        def __get_process_ids(self):
             """
             @see:    L{iter_process_ids}
             @rtype:  list( int )
             @return: List of global process IDs in this snapshot.
             """
-            self.__initialize_snapshot()
             return self.__processDict.keys()
+
+        def __iter_process_ids(self):
+            """
+            @see:    L{iter_processes}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global process IDs in this snapshot.
+            """
+            return self.__processDict.iterkeys()
+
+        def __iter_processes(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Process} objects in this snapshot.
+            """
+            return self.__processDict.itervalues()
 
 #------------------------------------------------------------------------------
 # Python 3.x
 
     else:
 
-        def iter_process_ids(self):
-            """
-            @see:    L{iter_processes}
-            @rtype:  dictionary-keyiterator
-            @return: Iterator of global process IDs in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return iter(self.__processDict.keys())
-
-        def iter_processes(self):
-            """
-            @see:    L{iter_process_ids}
-            @rtype:  dictionary-valueiterator
-            @return: Iterator of L{Process} objects in this snapshot.
-            """
-            self.__initialize_snapshot()
-            return iter(self.__processDict.values())
-
-        def get_process_ids(self):
+        def __get_process_ids(self):
             """
             @see:    L{iter_process_ids}
             @rtype:  list( int )
             @return: List of global process IDs in this snapshot.
             """
-            self.__initialize_snapshot()
             return list(self.__processDict.keys())
+
+        def __iter_process_ids(self):
+            """
+            @see:    L{iter_processes}
+            @rtype:  dictionary-keyiterator
+            @return: Iterator of global process IDs in this snapshot.
+            """
+            return iter(self.__processDict.keys())
+
+        def __iter_processes(self):
+            """
+            @see:    L{iter_process_ids}
+            @rtype:  dictionary-valueiterator
+            @return: Iterator of L{Process} objects in this snapshot.
+            """
+            return iter(self.__processDict.values())
 
 #------------------------------------------------------------------------------
 
@@ -1381,8 +1520,8 @@ class ProcessContainer (object):
         # See: http://www.ragestorm.net/blogs/?p=163
 
         our_pid    = win32.GetCurrentProcessId()
-##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
-        dead_pids  = set( self.__processDict.keys() )
+##        dead_pids  = set( self.__get_process_ids() )    # slower!
+        dead_pids  = set( self.__processDict.keys() )   # XXX HACK
         found_tids = set()
 
         # Ignore our own process if it's in the snapshot for some reason
@@ -1402,12 +1541,11 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-##                    if not self.has_process(dwProcessId): # XXX triggers a scan
-                    if dwProcessId not in self.__processDict:
+                    if not self.__has_process(dwProcessId):
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     elif pe.szExeFile:
-                        aProcess = self.get_process(dwProcessId)
+                        aProcess = self.__get_process(dwProcessId)
                         if not aProcess.fileName:
                             aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
@@ -1419,16 +1557,14 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-##                    if self.has_process(dwProcessId): # XXX triggers a scan
-                    if dwProcessId in self.__processDict:
-                        aProcess = self.get_process(dwProcessId)
+                    if self.__has_process(dwProcessId):
+                        aProcess = self.__get_process(dwProcessId)
                     else:
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
-##                    if not aProcess.has_thread(dwThreadId): # XXX triggers a scan
-                    if dwThreadId not in aProcess._ThreadContainer__threadDict:
+                    if not aProcess.__ThreadContainer__has_thread(dwThreadId):
                         aThread = Thread(dwThreadId, process = aProcess)
                         aProcess._ThreadContainer__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
@@ -1442,21 +1578,17 @@ class ProcessContainer (object):
             self.__del_process(pid)
 
         # Remove dead threads
-##        for aProcess in self.iter_processes(): # XXX triggers a scan
-        for aProcess in self.__processDict.values():    # XXX COMPAT
-##            dead_tids = set( aProcess.get_thread_ids() ) # XXX triggers a scan
-            dead_tids = set( aProcess._ThreadContainer__threadDict.keys() )
+        for aProcess in self.__iter_processes():
+            dead_tids = set( aProcess._ThreadContainer__get_thread_ids() )
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
                 aProcess._ThreadContainer__del_thread(tid)
-
 
     def scan_modules(self):
         """
         Populates the snapshot with loaded modules.
         """
-##        for aProcess in self.iter_processes(): # XXX triggers a scan
-        for aProcess in self.__processDict.values():    # XXX COMPAT
+        for aProcess in self.__iter_processes():
             aProcess.scan_modules()
 
     def scan_processes(self):
@@ -1469,8 +1601,8 @@ class ProcessContainer (object):
         # See: http://www.ragestorm.net/blogs/?p=163
 
         our_pid   = win32.GetCurrentProcessId()
-##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
-        dead_pids  = set( self.__processDict.keys() )
+##        dead_pids  = set( self.__get_process_ids() )    # slower!
+        dead_pids  = set( self.__processDict.keys() )   # XXX HACK
         if our_pid in dead_pids:
             dead_pids.remove(our_pid)
         hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPPROCESS)
@@ -1481,12 +1613,11 @@ class ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-##                    if not self.has_process(dwProcessId): # XXX triggers a scan
-                    if dwProcessId not in self.__processDict:
+                    if not self.__has_process(dwProcessId):
                         aProcess = Process(dwProcessId)
                         self.__add_process(aProcess)
                     elif pe.szExeFile:
-                        aProcess = self.get_process(dwProcessId)
+                        aProcess = self.__get_process(dwProcessId)
                         if not aProcess.fileName:
                             aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
@@ -1510,8 +1641,8 @@ class ProcessContainer (object):
 
         # Get the new and old list of pids
         new_pids = set( win32.EnumProcesses() )
-##        old_pids = set( self.get_process_ids() ) # XXX triggers a scan
-        old_pids = set( self.__processDict.keys() )
+##        old_pids = set( self.__get_process_ids() )      # slower!
+        old_pids = set( self.__processDict.keys() )     # XXX HACK
 
         # Ignore our own pid
         our_pid  = win32.GetCurrentProcessId()
@@ -1527,6 +1658,8 @@ class ProcessContainer (object):
         # Remove missing pids
         for pid in old_pids.difference(new_pids):
             self.__del_process(pid)
+
+#------------------------------------------------------------------------------
 
     def clear_dead_processes(self):
         """
