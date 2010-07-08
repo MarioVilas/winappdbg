@@ -58,12 +58,14 @@ try:
     exec("""
 from . import win32
 from . import win32.version
+from .win32 import AnsiWide
 from .textio import HexInput, HexDump
 from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 """)
 except SyntaxError:
     import win32
     import win32.version
+    from win32 import AnsiWide
     from textio import HexInput, HexDump
     from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
@@ -101,6 +103,159 @@ try:
     range = xrange
 except NameError:
     xrange = range
+
+# Python 3.x compatibility
+try:
+    long
+except NameError:
+    long = int
+if long == int:
+    def isnumtype(x):
+        return isinstance(x, int)
+else:
+    def isnumtype(x):
+        return isinstance(x, int) or isinstance(x, long)
+
+#==============================================================================
+
+if sys.version_info()[0] == 2:
+
+    def _inject_dll_shellcode(dllname, plllib, procname, pgpad, lpParameter, pvf):
+
+        # Shellcode follows...
+        code  =  ''
+
+        # push dllname
+        code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
+
+        # mov eax, LoadLibraryA
+        code += '\xb8' + struct.pack('<L', pllib)
+
+        # call eax
+        code += '\xff\xd0'
+
+        if procname:
+
+            # push procname
+            code += '\xe8' + struct.pack('<L', len(procname) + 1)
+            code += procname + '\0'
+
+            # push eax
+            code += '\x50'
+
+            # mov eax, GetProcAddress
+            code += '\xb8' + struct.pack('<L', pgpad)
+
+            # call eax
+            code += '\xff\xd0'
+
+            # mov ebp, esp      ; preserve stack pointer
+            code += '\x8b\xec'
+
+            # push lpParameter
+            code += '\x68' + struct.pack('<L', lpParameter)
+
+            # call eax
+            code += '\xff\xd0'
+
+            # mov esp, ebp      ; restore stack pointer
+            code += '\x8b\xe5'
+
+        # pop edx       ; our own return address
+        code += '\x5a'
+
+        # push MEM_RELEASE  ; dwFreeType
+        code += '\x68' + struct.pack('<L', win32.MEM_RELEASE)
+
+        # push 0x1000       ; dwSize, shellcode max size 4096 bytes
+        code += '\x68' + struct.pack('<L', 0x1000)
+
+        # call $+5
+        code += '\xe8\x00\x00\x00\x00'
+
+        # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
+        code += '\x81\x24\x24\x00\xf0\xff\xff'
+
+        # mov eax, VirtualFree
+        code += '\xb8' + struct.pack('<L', pvf)
+
+        # push edx      ; our own return address
+        code += '\x52'
+
+        # jmp eax   ; VirtualFree will return to our own return address
+        code += '\xff\xe0'
+
+        return code
+
+else:
+    exec("""
+def _inject_dll_shellcode(dllname, plllib, procname, pgpad, lpParameter, pvf):
+
+    # Shellcode follows...
+    code  =  b''
+
+    # push dllname
+    code += b'\\xe8' + struct.pack('<L', len(dllname) + 1).encode() + dllname.encode() + b'\\0'
+
+    # mov eax, LoadLibraryA
+    code += b'\\xb8' + struct.pack('<L', pllib).encode()
+
+    # call eax
+    code += b'\\xff\\xd0'
+
+    if procname:
+
+        # push procname
+        code += b'\\xe8' + struct.pack('<L', len(procname) + 1).encode()
+        code += procname.encode() + b'\\0'
+
+        # push eax
+        code += b'\\x50'
+
+        # mov eax, GetProcAddress
+        code += b'\\xb8' + struct.pack('<L', pgpad).encode()
+
+        # call eax
+        code += b'\\xff\\xd0'
+
+        # mov ebp, esp      ; preserve stack pointer
+        code += b'\\x8b\\xec'
+
+        # push lpParameter
+        code += b'\\x68' + struct.pack('<L', lpParameter).encode()
+
+        # call eax
+        code += b'\\xff\\xd0'
+
+        # mov esp, ebp      ; restore stack pointer
+        code += b'\\x8b\\xe5'
+
+    # pop edx       ; our own return address
+    code += b'\\x5a'
+
+    # push MEM_RELEASE  ; dwFreeType
+    code += b'\\x68' + struct.pack('<L', win32.MEM_RELEASE).encode()
+
+    # push 0x1000       ; dwSize, shellcode max size 4096 bytes
+    code += b'\\x68' + struct.pack('<L', 0x1000).encode()
+
+    # call $+5
+    code += b'\\xe8\\x00\\x00\\x00\\x00'
+
+    # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
+    code += b'\\x81\\x24\\x24\\x00\\xf0\\xff\\xff'
+
+    # mov eax, VirtualFree
+    code += b'\\xb8' + struct.pack('<L', pvf).encode()
+
+    # push edx      ; our own return address
+    code += b'\\x52'
+
+    # jmp eax   ; VirtualFree will return to our own return address
+    code += b'\\xff\\xe0'
+
+    return code
+""")
 
 #==============================================================================
 
@@ -2153,7 +2308,7 @@ class MemoryOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if type(lpBaseAddress) not in (type(0), type(0)):                   # XXX COMPAT BUG
+        if not isnumtype(lpBaseAddress):
             lpBaseAddress = ctypes.cast(lpBaseAddress, ctypes.c_void_p)
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
@@ -2213,7 +2368,7 @@ class MemoryOperations (object):
             nChars = nChars * 2
         szString = self.read(lpBaseAddress, nChars)
         if fUnicode:
-            szString = str(szString, 'U16', 'ignore')       # XXX COMPAT STRING
+            szString = AnsiWide.wide(szString, 'U16', 'ignore')
         return szString
 
 #------------------------------------------------------------------------------
@@ -2449,8 +2604,8 @@ class MemoryOperations (object):
         # Validate the parameters.
         if not lpBaseAddress or dwMaxSize == 0:
             if fUnicode:
-                return ''                           # XXX COMPAT STRING
-            return ''
+                return AnsiWide.t_wide()
+            return AnsiWide.t_ansi()
         if not dwMaxSize:
             dwMaxSize = 0x1000
 
@@ -2461,22 +2616,16 @@ class MemoryOperations (object):
         if fUnicode:
 
             # Decode the string.
-            szString = str(szString, 'U16', 'replace')  # XXX COMPAT STRING
-##            try:
-##                szString = unicode(szString, 'U16')
-##            except UnicodeDecodeError:
-##                szString = struct.unpack('H' * (len(szString) / 2), szString)
-##                szString = [ unichr(c) for c in szString ]
-##                szString = u''.join(szString)
-
-            # Truncate the string when the first null char is found.
-            szString = szString[ : szString.find('\0') ]    # XXX COMPAT
+            szString = AnsiWide.wide(szString, 'U16', 'replace')
 
         # If the string is ANSI...
         else:
 
-            # Truncate the string when the first null char is found.
-            szString = szString[ : szString.find('\0') ]    # XXX COMPAT
+            # Decode the string.
+            szString = AnsiWide.ansi(szString)
+
+        # Truncate the string when the first null char is found.
+        szString = szString[ : szString.find('\0') ]
 
         # Return the decoded string.
         return szString
@@ -4856,7 +5005,7 @@ class ThreadDebugOperations (object):
                                        win32.CONTEXT_INTEGER)
         aProcess    = self.get_process()
         data        = dict()
-        for (reg_name, reg_value) in context.items():   # XXX COMPAT
+        for (reg_name, reg_value) in context.items():
             if reg_name not in peekable_registers:
                 continue
 ##            if reg_name == 'Ebp':
@@ -5529,21 +5678,21 @@ class ProcessDebugOperations (object):
 
         # Split the blocks into key/value pairs.
         for chunk in block:
-            sep = chunk.find('=')
+            sep = chunk.find(AnsiWide.t_wide('='))
             if sep >= 0:
                 key, value = chunk[:sep], chunk[sep:]
             else:
-                key, value = chunk, ''                      # XXX COMPAT STRING
+                key, value = chunk, AnsiWide.t_wide('')
             if key not in environment:
                 environment[key] = value
             else:
-                environment[key] += '\0' + value            # XXX COMPAT STRING
+                environment[key] += AnsiWide.t_wide('\0') + value
 
         # Convert to ANSI if this is the default string type.
-        gst = win32.GuessStringType
-        if gst.t_default == gst.t_ansi:
-            environment = dict( [ (str(key), str(value)) \
-                                for (key, value) in environment.items() ] )     # XXX COMPAT
+        if AnsiWide.t_default == AnsiWide.t_ansi:
+            environment = dict(
+                        [ (AnsiWide.t_ansi(key), AnsiWide.t_ansi(value)) \
+                                for (key, value) in environment.items() ] )
 
         # Return the environment dictionary.
         return environment
@@ -7914,68 +8063,8 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
                     "Cannot resolve kernel32.dll!VirtualFree"
                     " in the remote process" )
 
-            # Shellcode follows...
-            code  = ''.encode('utf8')       # XXX COMPAT STRING
-
-            # push dllname
-            code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
-
-            # mov eax, LoadLibraryA
-            code += '\xb8' + struct.pack('<L', pllib)
-
-            # call eax
-            code += '\xff\xd0'
-
-            if procname:
-
-                # push procname
-                code += '\xe8' + struct.pack('<L', len(procname) + 1)
-                code += procname + '\0'
-
-                # push eax
-                code += '\x50'
-
-                # mov eax, GetProcAddress
-                code += '\xb8' + struct.pack('<L', pgpad)
-
-                # call eax
-                code += '\xff\xd0'
-
-                # mov ebp, esp      ; preserve stack pointer
-                code += '\x8b\xec'
-
-                # push lpParameter
-                code += '\x68' + struct.pack('<L', lpParameter)
-
-                # call eax
-                code += '\xff\xd0'
-
-                # mov esp, ebp      ; restore stack pointer
-                code += '\x8b\xe5'
-
-            # pop edx       ; our own return address
-            code += '\x5a'
-
-            # push MEM_RELEASE  ; dwFreeType
-            code += '\x68' + struct.pack('<L', win32.MEM_RELEASE)
-
-            # push 0x1000       ; dwSize, shellcode max size 4096 bytes
-            code += '\x68' + struct.pack('<L', 0x1000)
-
-            # call $+5
-            code += '\xe8\x00\x00\x00\x00'
-
-            # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
-            code += '\x81\x24\x24\x00\xf0\xff\xff'
-
-            # mov eax, VirtualFree
-            code += '\xb8' + struct.pack('<L', pvf)
-
-            # push edx      ; our own return address
-            code += '\x52'
-
-            # jmp eax   ; VirtualFree will return to our own return address
-            code += '\xff\xe0'
+            # Shellcode
+            code = _inject_dll_shellcode(dllname, plllib, procname, pgpad, lpParameter, pvf)
 
             # Inject the shellcode.
             aThread, lpStartAddress = self.inject_code(code, lpParameter)
@@ -7988,13 +8077,15 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
         else:
 
             # Resolve kernel32.dll!LoadLibrary (A/W)
-            if type(dllname) == type(''):                   # XXX COMPAT STRING
+            if isinstance(dllname, AnsiWide.t_wide):
                 pllibname = 'LoadLibraryW'
                 bufferlen = (len(dllname) + 1) * 2
-                dllname = win32.ctypes.create_unicode_buffer(dllname).raw[:bufferlen + 1]
+                dllname = dllname + '\0'
+                dllname = dllname.encode('U16')     # XXX COMPAT 2.3
             else:
                 pllibname = 'LoadLibraryA'
-                dllname   = str(dllname) + '\x00'
+                dllname = dllname + '\0'
+                dllname = dllname.encode()          # XXX COMPAT 2.3
                 bufferlen = len(dllname)
             pllib = aModule.resolve(pllibname)
             if not pllib:
