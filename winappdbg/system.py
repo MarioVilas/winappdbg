@@ -89,18 +89,18 @@ except ImportError:
             "http://code.google.com/p/distorm3")
             raise NotImplementedError(msg)
 
-# Python 3.x compatibility
-try:
-    xrange
-except NameError:
-    xrange = range
-
 # Python 2.x compatibility
 try:
     next
 except NameError:
     def next(e):
         return e.next()
+
+# Python 2.x/3.x compatibility hack
+try:
+    range = xrange
+except NameError:
+    xrange = range
 
 #==============================================================================
 
@@ -4811,7 +4811,7 @@ class ProcessDebugOperations (object):
         @return disasm: Same disassembly output, but all raw memory addresses
             are replaced by labels when possible.
         """
-        for index in xrange(len(disasm)):
+        for index in range(len(disasm)):
             (address, size, text, dump) = disasm[index]
             m = self.__hexa_parameter.search(text)
             while m:
@@ -5349,7 +5349,7 @@ class ProcessDebugOperations (object):
         else:
             ptrFmt = '<Q'
         if len(data) > 0:
-            for i in xrange(0, len(data), peekStep):
+            for i in range(0, len(data), peekStep):
                 packed          = data[i:i+ptrSize]
                 if len(packed) == ptrSize:
                     address     = struct.unpack(ptrFmt, packed)[0]

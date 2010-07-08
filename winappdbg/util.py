@@ -84,9 +84,9 @@ except NameError:
     def next(e):
         return e.next()
 
-# Python 3.x compatibility
+# Python 2.x/3.x compatibility hack
 try:
-    xrange
+    range = xrange
 except NameError:
     xrange = range
 
@@ -279,7 +279,7 @@ class PathOperations (object):
                     system_root_path = system_root_path[:-1]
                 name = system_root_path + name[11:]
             else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                for drive_number in range(ord('A'), ord('Z') + 1):
                     drive_letter = '%c:' % drive_number
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)

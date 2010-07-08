@@ -107,9 +107,9 @@ except NameError:
     def callable(obj):
         return isinstance(obj, collections.Callable)
 
-# Python 3.x compatibility
+# Python 2.x/3.x compatibility hack
 try:
-    xrange
+    range = xrange
 except NameError:
     xrange = range
 
