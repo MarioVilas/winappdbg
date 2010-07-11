@@ -82,6 +82,7 @@ class Tracer( EventHandler ):
         print("-" * 79)
 
     # Disassemble the current instruction
+    # TODO also show the contents of any register used, and follow pointers
     def __disasm(self, event):
         thread  = event.get_thread()
         tid     = thread.get_tid()
