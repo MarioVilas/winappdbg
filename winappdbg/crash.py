@@ -29,7 +29,7 @@
 Crash logging module.
 
 @group Crash reporting:
-    Crash, CrashContainer, CrashTable, CrashTableODBC,
+    Crash, CrashContainer, CrashTable, CrashTableMSSQL,
     VolatileCrashContainer, DummyCrashContainer
 """
 
@@ -46,8 +46,8 @@ __all__ = [
     # Container that can store Crash objects in an SQLite database file.
     'CrashTable',
 
-    # Container that can store Crash objects in an SQL database using ODBC.
-    'CrashTableODBC',
+    # Container that can store Crash objects in a Microsoft SQL database.
+    'CrashTableMSSQL',
 
     # Volatile container that does not store Crash objects.
     'VolatileCrashContainer',
@@ -895,21 +895,12 @@ class CrashTable (ContainerBase):
 
 #==============================================================================
 
-# XXX TODO
-# Leave this class only as the base of more classes, each of which implement
-# the specifics of the databases we want to support. Currently the above code
-# only works for Microsoft SQL Server (or at least it'd be surprising to see it
-# run anywhere else).
-
-class CrashTableODBC (CrashTable):
+class CrashTableMSSQL (CrashTable):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates
     only when requested.
 
-    Uses an SQL database (ODBC) for persistency.
-
-    @note: Although it has only been tested with Microsoft SQL Server it's
-        possible it may work with other SQL drivers.
+    Uses a Microsoft SQL database for persistency.
 
     @see: L{Crash.key}
     """

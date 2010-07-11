@@ -1,6 +1,6 @@
 #!~/.wine/drive_c/Python25/python.exe
 
-# Crash logger report, ODBC version (see crash_logger.py)
+# Crash logger report, MS SQL version (see crash_logger.py)
 # Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
@@ -34,21 +34,21 @@ import os
 import sys
 import time
 
-from winappdbg import CrashTableODBC
+from winappdbg import CrashTableMSSQL
 from crash_report import print_report_for_database
 
 def connect_to_database(connection_string):
     print "Connecting to database..."
     cc = None
     try:
-        cc = CrashTableODBC(connection_string)
+        cc = CrashTableMSSQL(connection_string)
     except Exception, e:
         print "Could not connect to database!"
         print "Error: %s" % str(e)
     return cc
 
 def main(argv):
-    print "Crash logger report (ODBC)"
+    print "Crash logger report (MS SQL)"
     print "by Mario Vilas (mvilas at gmail.com)"
     print
     if len(argv) == 1 or '--help' in argv:
