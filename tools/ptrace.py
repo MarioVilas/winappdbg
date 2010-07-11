@@ -354,13 +354,12 @@ def callback_execute_target(option, opt_str, value, parser):
     # Get the value from the command line arguments.
     value = []
     for arg in parser.rargs:
-        print "FOUND %r" % arg
 
-        # Stop on --foo like options but not on "--" alone.
+        # Stop on "--foo" like options but not on "--" alone.
         if arg[:2] == "--" and len(arg) > 2:
             break
 
-        # Stop on -a like options but not on "-" alone.
+        # Stop on "-a" like options but not on "-" alone.
         if arg[:1] == "-" and len(arg) > 1:
             break
 
