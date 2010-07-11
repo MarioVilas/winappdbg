@@ -78,8 +78,7 @@ class Tracer( EventHandler ):
             label = thread.get_label_at_pc()
         print(label)
         print(CrashDump.dump_registers(ctx))
-        print(CrashDump.dump_stack_trace_with_labels(trace), end=' ')
-        print("-" * 79)
+        print(CrashDump.dump_stack_trace_with_labels(trace) + ("-" * 79))
 
     # Disassemble the current instruction
     # TODO also show the contents of any register used, and follow pointers

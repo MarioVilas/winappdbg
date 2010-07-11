@@ -5650,8 +5650,7 @@ class ProcessDebugOperations (object):
             while 1:
                 chunk = self.peek_string(address,  dwMaxSize = System.pageSize,
                                                     fUnicode = True)
-                print("Chunk: ", end=' ')
-                print(chunk)
+                print("Chunk: %s" % chunk)
                 if not chunk:
                     break
                 block.append(chunk)

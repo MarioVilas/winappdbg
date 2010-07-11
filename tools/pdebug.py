@@ -1322,7 +1322,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             stack_trace = thread.get_stack_trace_with_labels()
             if stack_trace:
-                print(winappdbg.CrashDump.dump_stack_trace_with_labels(stack_trace), end=' ')
+                if sys.version_info[0] == 2:
+                    exec("print(winappdbg.CrashDump.dump_stack_trace_with_labels(stack_trace), end=' ')")
+                else:
+                    exec("print winappdbg.CrashDump.dump_stack_trace_with_labels(stack_trace),")
             else:
                 print("No stack trace available for thread (%d)" % tid)
         except WindowsError:

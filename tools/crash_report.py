@@ -123,9 +123,12 @@ def print_report_for_database(cc, options):
             msg = '%s %s.%04d' % (ldate, ltime, msecs)
             print(msg)
             if options.verbose:
-                print(c.fullReport(), end=' ')
+                report = c.fullReport()
+                if report.endswith('\n\n'):
+                    report = report[:-1]
             else:
-                print(c.briefReport())
+                report = c.briefReport()
+            print(report)
             print('-' * 79)
     elif cc is not None:
         print("No crashes to report.")
