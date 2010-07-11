@@ -33,16 +33,16 @@ __revision__ = "$Id$"
 from winappdbg import HexDump
 
 def main(argv):
-    print "Hex dumper using WinAppDbg"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Hex dumper using WinAppDbg")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
     if len(argv) != 2:
         import os
         script = os.path.basename(argv[0])
-        print "  %s <filename>"
+        print("  %s <filename>")
         return
     data = open(argv[1], 'rb').read()
-    print HexDump.hexblock(data, 0)
+    print(HexDump.hexblock(data, 0))
 
 if __name__ == '__main__':
     import sys
