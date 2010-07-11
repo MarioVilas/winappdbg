@@ -76,10 +76,10 @@ class Tracer( EventHandler ):
         ctx    = thread.get_context(win32.CONTEXT_FULL)
         if not label:
             label = thread.get_label_at_pc()
-        print label
-        print CrashDump.dump_registers(ctx)
-        print CrashDump.dump_stack_trace_with_labels(trace),
-        print "-" * 79
+        print(label)
+        print(CrashDump.dump_registers(ctx))
+        print(CrashDump.dump_stack_trace_with_labels(trace), end=' ')
+        print("-" * 79)
 
     # Disassemble the current instruction
     def __disasm(self, event):
@@ -91,7 +91,7 @@ class Tracer( EventHandler ):
             pc  = thread.get_pc()
         code    = thread.disassemble( pc, 0x10 ) [0]
         line    = CrashDump.dump_code_line(code, dwDumpWidth=8*2)
-        print "~%d %s" % ( tid, line )
+        print("~%d %s" % ( tid, line ))
 
     # Events
 
@@ -268,7 +268,8 @@ def parse_cmdline( argv ):
                 process = Process(dwProcessId)
                 process.open_handle()
                 process.close_handle()
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("can't open process %d: %s" % (dwProcessId, e))
             attach_targets.append(dwProcessId)
         else:
@@ -281,7 +282,8 @@ def parse_cmdline( argv ):
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
-                except WindowsError, e:
+                except WindowsError:
+                    e = sys.exc_info()[1]
                     parser.error("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append( process.get_pid() )
     options.attach = attach_targets
@@ -295,7 +297,8 @@ def parse_cmdline( argv ):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
         console_targets.append(vector)
@@ -310,7 +313,8 @@ def parse_cmdline( argv ):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
         windowed_targets.append(vector)
@@ -353,13 +357,12 @@ def callback_execute_target(option, opt_str, value, parser):
     # Get the value from the command line arguments.
     value = []
     for arg in parser.rargs:
-        print "FOUND %r" % arg
 
-        # Stop on --foo like options but not on "--" alone.
+        # Stop on "--foo" like options but not on "--" alone.
         if arg[:2] == "--" and len(arg) > 2:
             break
 
-        # Stop on -a like options but not on "-" alone.
+        # Stop on "-a" like options but not on "-" alone.
         if arg[:1] == "-" and len(arg) > 1:
             break
 
