@@ -41,14 +41,14 @@ import struct
 from winappdbg import Process, System, HexInput
 
 def main():
-    print "Process memory writer"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process memory writer")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
 
     if len(sys.argv) < 4:
         script = os.path.basename(sys.argv[0])
-        print "  %s <pid> <address> {binary input file / hex data}" % script
-        print "  %s <process.exe> <address> {binary input file / hex data}" % script
+        print("  %s <pid> <address> {binary input file / hex data}" % script)
+        print("  %s <process.exe> <address> {binary input file / hex data}" % script)
         return
 
     System.request_debug_privileges()
@@ -60,35 +60,35 @@ def main():
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
-            print "Process not found: %s" % sys.argv[1]
+            print("Process not found: %s" % sys.argv[1])
             return
         if len(pl) > 1:
-            print "Multiple processes found for %s" % sys.argv[1]
+            print("Multiple processes found for %s" % sys.argv[1])
             for p,n in pl:
-                print "\t%s: %s" % (HexDump.integer(p),n)
+                print("\t%s: %s" % (HexDump.integer(p),n))
             return
         pid = pl[0][0].get_pid()
 
     try:
         address = HexInput.integer(sys.argv[2])
     except Exception:
-        print "Invalid value for address: %s" % sys.argv[2]
+        print("Invalid value for address: %s" % sys.argv[2])
         return
 
     filename = ' '.join(sys.argv[3:])
     if os.path.exists(filename):
         data = open(filename, 'rb').read()
-        print "Read %d bytes from %s" % (len(data), filename)
+        print("Read %d bytes from %s" % (len(data), filename))
     else:
         try:
             data = HexInput.hexadecimal(filename)
         except Exception:
-            print "Invalid filename or hex block: %s" % filename
+            print("Invalid filename or hex block: %s" % filename)
             return
 
     p = Process(pid)
     p.write(address, data)
-    print "Written %d bytes to PID %d" % (len(data), pid)
+    print("Written %d bytes to PID %d" % (len(data), pid))
 
 if __name__ == '__main__':
     try:

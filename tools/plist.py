@@ -69,9 +69,9 @@ def main(argv):
     'Main function.'
 
     # Print the banner.
-    print "Process enumerator"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process enumerator")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
 
     # Parse the command line options.
     (options, argv)  = parse_cmdline(argv)
@@ -133,7 +133,7 @@ def main(argv):
     # Print the output table.
     table.justify(0, 1)
     for row in table.yieldOutput():
-        print row
+        print(row)
 
 if __name__ == '__main__':
     import sys

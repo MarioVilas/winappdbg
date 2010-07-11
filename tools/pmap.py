@@ -47,15 +47,15 @@ def number(value):
     return value
 
 def main():
-    print "Process memory map"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Process memory map")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
 
     if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
         script = os.path.basename(sys.argv[0])
-        print "Usage:"
-        print "  %s <pid>..." % script
-        print "  %s <process.exe>..." % script
+        print("Usage:")
+        print("  %s <pid>..." % script)
+        print("  %s <process.exe>..." % script)
         return
 
     s = System()
@@ -67,13 +67,13 @@ def main():
         try:
             pid = HexInput.integer(token)
             if not s.has_process(pid):
-                print "Process not found: %s" % token
+                print("Process not found: %s" % token)
                 return
             targets.add(pid)
         except ValueError:
             pl = s.find_processes_by_filename(token)
             if not pl:
-                print "Process not found: %s" % token
+                print("Process not found: %s" % token)
                 return
             for p,n in pl:
                 pid = p.get_pid()
@@ -88,12 +88,12 @@ def main():
         memoryMap       = process.get_memory_map()
         mappedFilenames = process.get_mapped_filenames()
         if fileName:
-            print "Memory map for %d (%s):" % (pid, fileName)
+            print("Memory map for %d (%s):" % (pid, fileName))
         else:
-            print "Memory map for %d:" % pid
-        print
+            print("Memory map for %d:" % pid)
+        print()
 ##        print CrashDump.dump_memory_map(memoryMap),
-        print CrashDump.dump_memory_map(memoryMap, mappedFilenames)
+        print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
 
         readable    = 0
         writeable   = 0
@@ -119,14 +119,14 @@ def main():
             if mbi.is_image():
                 image += size
         width = len(number(total))
-        print ("  %%%ds bytes of readable memory" % width) % number(readable)
-        print ("  %%%ds bytes of writeable memory" % width) % number(writeable)
-        print ("  %%%ds bytes of executable memory" % width) % number(executable)
-        print ("  %%%ds bytes of private memory" % width) % number(private)
-        print ("  %%%ds bytes of mapped memory" % width) % number(mapped)
-        print ("  %%%ds bytes of image memory" % width) % number(image)
-        print ("  %%%ds bytes of total memory" % width) % number(total)
-        print
+        print(("  %%%ds bytes of readable memory" % width) % number(readable))
+        print(("  %%%ds bytes of writeable memory" % width) % number(writeable))
+        print(("  %%%ds bytes of executable memory" % width) % number(executable))
+        print(("  %%%ds bytes of private memory" % width) % number(private))
+        print(("  %%%ds bytes of mapped memory" % width) % number(mapped))
+        print(("  %%%ds bytes of image memory" % width) % number(image))
+        print(("  %%%ds bytes of total memory" % width) % number(total))
+        print("")
 
 if __name__ == '__main__':
     try:
