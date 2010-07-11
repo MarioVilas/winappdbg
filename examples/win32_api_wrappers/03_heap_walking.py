@@ -42,8 +42,8 @@ def print_heap_blocks( pid ):
         hdr = "%-16s\t%-16s\t%-16s"
 
     # Print a banner
-    print "Heaps for process %d:" % pid
-    print hdr % ("Heap ID", "Address", "Size")
+    print("Heaps for process %d:" % pid)
+    print(hdr % ("Heap ID", "Address", "Size"))
 
     # Create a snapshot of the process, only take the heap list
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPHEAPLIST, pid )
@@ -57,7 +57,7 @@ def print_heap_blocks( pid ):
         while entry is not None:
 
             # Print the heap id and the entry address and size
-            print fmt % (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize)
+            print(fmt % (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize))
 
             # Next entry in the heap
             entry = Heap32Next( entry )

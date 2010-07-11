@@ -30,7 +30,11 @@
 # $Id$
 
 import sys
-import thread
+
+try:
+    import _thread as thread
+except ImportError:
+    import thread
 
 from winappdbg import win32
 

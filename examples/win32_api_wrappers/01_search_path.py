@@ -35,5 +35,5 @@ from winappdbg import win32
 
 fullpath, basename = win32.SearchPath( None, sys.argv[1], '.dll' )
 
-print "Full path: %s" % fullpath
-print "Base name: %s" % basename
+print("Full path: %s" % fullpath)
+print("Base name: %s" % basename)

@@ -43,9 +43,9 @@ def print_drivers( fFullPath = False ):
 
     # Get the list of loaded device drivers
     ImageBaseList = EnumDeviceDrivers()
-    print "Device drivers found: %d" % len(ImageBaseList)
-    print
-    print hdr % ("Image base", "File name")
+    print("Device drivers found: %d" % len(ImageBaseList))
+    print("")
+    print(hdr % ("Image base", "File name"))
 
     # For each device driver...
     for ImageBase in ImageBaseList:
@@ -57,7 +57,7 @@ def print_drivers( fFullPath = False ):
             DriverName = GetDeviceDriverBaseName(ImageBase)
 
         # Print the device driver image base and filename
-        print fmt % (ImageBase, DriverName)
+        print(fmt % (ImageBase, DriverName))
 
 # When invoked from the command line,
 # -f means show full pathnames instead of base filenames
