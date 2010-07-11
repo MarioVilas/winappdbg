@@ -34,7 +34,7 @@ __revision__ = "$Id$"
 try:
     exec("""
 from .defines import *
-"""
+""")
 except SyntaxError:
     from defines import *
 
