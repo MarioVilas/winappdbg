@@ -44,6 +44,23 @@ from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
 from winappdbg import DataAddressIterator, ExecutableAddressIterator
 from winappdbg import HexInput, HexDump, CrashDump, Logger
 
+# Python 2.x compatibility
+try:
+    next
+except NameError:
+    def next(e):
+        return e.next()
+
+# Python 2.x compatibility
+if sys.version_info[0] == 2:
+    def items(x):
+        return x.iteritems()
+else:
+    def items(x):
+        return x.items()
+
+#------------------------------------------------------------------------------
+
 logger = Logger(logfile = None, verbose = False)
 
 #------------------------------------------------------------------------------
@@ -189,10 +206,10 @@ class Bruteforcer(EventHandler):
         while 1:
             logger.log_text("continue testing")
             try:
-                self.current_target = self.iter.next()
+                self.current_target = next(self.iter)
                 logger.log_text("next target is %s" % HexDump.address(self.current_target))
                 if self.options.output:
-                    print "Trying: %s" % HexDump.address(self.current_target)
+                    print("Trying: %s" % HexDump.address(self.current_target))
             except StopIteration:
                 self.stopTesting()
                 return
@@ -208,11 +225,14 @@ class Bruteforcer(EventHandler):
         logger.log_text("found valid target")
         printable_address = HexDump.address(self.current_target)
         if self.options.output:
-            print "FOUND: %s" % printable_address
-            print >> self.output_file, printable_address
+            print("FOUND: %s" % printable_address)
+            if sys.version_info[0] == 2:
+                exec("print >> self.output_file, printable_address")
+            else:
+                exec("print(printable_address, file=self.output_file)")
             self.output_file.flush()
         else:
-            print printable_address
+            print(printable_address)
         self.nextAddress()
 
     def findAttackerExceptionHandler(self, event):
@@ -297,7 +317,7 @@ class Bruteforcer(EventHandler):
                 page = mbi.BaseAddress
                 max_page = page + mbi.RegionSize
                 while page < max_page:
-                    if not self.special_pages.has_key(page):
+                    if page not in self.special_pages:
                         protect = mbi.Protect
                         new_protect = self.protect_conversions[protect]
                         try:
@@ -314,9 +334,9 @@ class Bruteforcer(EventHandler):
         pageSize = System.pageSize
         process = self.process
         tainted = self.tainted
-        for page, content in self.special_pages.iteritems():
+        for page, content in items(self.special_pages):
             process.write(page, content)
-        for page, (content, protect, new_protect) in self.memory.iteritems():
+        for page, (content, protect, new_protect) in items(self.memory):
             if page in tainted:
                 process.write(page, content)
                 process.mprotect(page, pageSize, new_protect)
@@ -331,7 +351,7 @@ class Bruteforcer(EventHandler):
             if fault_type == win32.EXCEPTION_WRITE_FAULT:
                 address = event.get_fault_address()
                 page = MemoryAddresses.align_address_to_page_start(address)
-                if self.memory.has_key(page):
+                if page in self.memory:
                     (content, protect, new_protect) = self.memory[page]
                     content = self.process.read(page, System.pageSize)
                     self.memory[page] = (content, protect, new_protect)
@@ -343,7 +363,7 @@ class Bruteforcer(EventHandler):
     def cleanupSnapshot(self):
         self.restoreSnapshot()
         pageSize = System.pageSize
-        for page, (content, protect, new_protect) in self.memory.iteritems():
+        for page, (content, protect, new_protect) in items(self.memory):
             self.process.mprotect(page, pageSize, protect)
 
 #------------------------------------------------------------------------------
@@ -358,7 +378,7 @@ class EventForwarder(EventHandler):
     def event(self, event):
         logger.log_event(event)
         pid = event.get_pid()
-        if self.forward.has_key(pid):
+        if pid in self.forward:
             return self.forward[pid](event)
 
     def create_process(self, event):
@@ -370,7 +390,7 @@ class EventForwarder(EventHandler):
     def exit_process(self, event):
         logger.log_event(event)
         pid = event.get_pid()
-        if self.forward.has_key(pid):
+        if pid in self.forward:
             retval = self.forward[pid](event)
             del self.forward[pid]
             return retval
@@ -533,7 +553,8 @@ def parse_cmdline( argv ):
                 process = Process(dwProcessId)
                 process.open_handle()
                 process.close_handle()
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("can't open process %d: %s" % (dwProcessId, e))
             attach_targets.append(dwProcessId)
         else:
@@ -546,7 +567,8 @@ def parse_cmdline( argv ):
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
-                except WindowsError, e:
+                except WindowsError:
+                    e = sys.exc_info()[1]
                     parser.error("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append( process.get_pid() )
     options.attach = attach_targets
@@ -560,7 +582,8 @@ def parse_cmdline( argv ):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
         console_targets.append(vector)
@@ -575,7 +598,8 @@ def parse_cmdline( argv ):
         if not os.path.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 parser.error("error searching for %s: %s" % (filename, str(e)))
             vector[0] = filename
         windowed_targets.append(vector)
