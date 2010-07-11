@@ -85,6 +85,14 @@ try:
 except NameError:
     long = int
 
+# Python 2.x/3.x compatibility
+if sys.version_info[0] == 2:
+    def items(x):
+        return x.iteritems()
+else:
+    def items(x):
+        return x.items()
+
 #==============================================================================
 
 class Breakpoint (object):
@@ -1485,7 +1493,7 @@ class BufferWatch (object):
         """
         min_start = 0
         max_end   = 0
-        for ((start, end), action) in self.__ranges.items():    # XXX COMPAT
+        for ((start, end), action) in items(self.__ranges):
             if start < min_start:
                 min_start = start
             if end > max_end:
@@ -1519,7 +1527,7 @@ class BufferWatch (object):
         """
         address    = event.get_exception_information(1)
         bCondition = False
-        for ((start, end), action) in self.__ranges.items():    # XXX COMPAT
+        for ((start, end), action) in items(self.__ranges):
             bMatched = ( start <= address < end )
             if bMatched and action is not None:
                 action(event)
@@ -1697,7 +1705,7 @@ class BreakpointContainer (object):
 
     def __del_running_bp_from_all_threads(self, bp):
         "Auxiliary method."
-        for (tid, bpset) in self.__runningBP.items():       # XXX COMPAT
+        for (tid, bpset) in items(self.__runningBP):
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
@@ -2619,16 +2627,16 @@ class BreakpointContainer (object):
         @rtype:  list of tuple( int, L{CodeBreakpoint} )
         @return: All code breakpoints as a list of tuples (pid, bp).
         """
-        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.items() ]  # XXX COMPAT
+        return [ (pid, bp) for ((pid, address), bp) in items(self.__codeBP) ]
 
     def get_all_page_breakpoints(self):
         """
         @rtype:  list of tuple( int, L{PageBreakpoint} )
         @return: All page breakpoints as a list of tuples (pid, bp).
         """
-##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.iteritems() ] ) )
+##        return list( set( [ (pid, bp) for ((pid, address), bp) in items(self.__pageBP) ] ) )
         result = set()
-        for ((pid, address), bp) in self.__pageBP.items():                      # XXX COMPAT
+        for ((pid, address), bp) in items(self.__pageBP):
             result.add( (pid, bp) )
         return list(result)
 
@@ -2638,7 +2646,7 @@ class BreakpointContainer (object):
         @return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.items():                         # XXX COMPAT
+        for (tid, bplist) in items(self.__hardwareBP):
             for bp in bplist:
                 result.append( (tid, bp) )
         return result
@@ -2695,8 +2703,8 @@ class BreakpointContainer (object):
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__codeBP.items() \
-                if pid == dwProcessId ]                                         # XXX COMPAT
+        return [ bp for ((pid, address), bp) in items(self.__codeBP) \
+                if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
         """
@@ -2706,8 +2714,8 @@ class BreakpointContainer (object):
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__pageBP.items() \
-                if pid == dwProcessId ]                                         # XXX COMPAT
+        return [ bp for ((pid, address), bp) in items(self.__pageBP) \
+                if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
         """
@@ -2720,7 +2728,7 @@ class BreakpointContainer (object):
         @return: All hardware breakpoints for the given thread.
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.items():                         # XXX COMPAT
+        for (tid, bplist) in items(self.__hardwareBP):
             if tid == dwThreadId:
                 for bp in bplist:
                     result.append(bp)

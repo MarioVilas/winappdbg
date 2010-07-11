@@ -51,7 +51,7 @@ except NameError:
     def next(e):
         return e.next()
 
-# Python 2.x compatibility
+# Python 2.x/3.x compatibility
 if sys.version_info[0] == 2:
     def items(x):
         return x.iteritems()

@@ -733,7 +733,7 @@ class FileHandle (Handle):
                                    lpFileInformation,
                                    dwBufferSize)
         FileName = AnsiWide.wide(lpFileInformation.raw[sizeof(DWORD):], 'U16')
-        FileName = ctypes.create_unicode_buffer(FileName).value                 # XXX COMPAT STRING
+        FileName = FileName[:FileName.find('\0')]
         if not FileName:
             FileName = None
         elif FileName[1:2] != ':':

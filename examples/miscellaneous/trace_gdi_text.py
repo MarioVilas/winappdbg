@@ -30,6 +30,7 @@
 # $Id$
 
 from winappdbg import Debug, EventHandler, DebugLog
+from winappdbg.win32 import AnsiWide
 from ctypes import *
 
 #------------------------------------------------------------------------------
@@ -124,7 +125,7 @@ def log_wide(event, fn, lpString, nCount):
             lpString = event.get_process().peek_string(lpString, fUnicode = True)
         else:
             lpString = event.get_process().peek(lpString, nCount * 2)
-            lpString = str(lpString, 'U16', 'replace')                          # XXX COMPAT STRING
+            lpString = AnsiWide.wide(lpString, 'U16', 'replace')
         print(DebugLog.log_text("%s( %r );" % (fn, lpString)))
 
 class MyEventHandler( EventHandler ):
