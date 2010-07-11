@@ -34,14 +34,14 @@ import os
 import sys
 import time
 
-from winappdbg import CrashTableODBC
+from winappdbg import CrashTableMSSQL
 from crash_report import print_report_for_database
 
 def connect_to_database(connection_string):
     print("Connecting to database...")
     cc = None
     try:
-        cc = CrashTableODBC(connection_string)
+        cc = CrashTableMSSQL(connection_string)
     except Exception:
         e = sys.exc_info()[1]
         print("Could not connect to database!")
@@ -49,7 +49,7 @@ def connect_to_database(connection_string):
     return cc
 
 def main(argv):
-    print("Crash logger report (ODBC)")
+    print("Crash logger report (MS SQL)")
     print("by Mario Vilas (mvilas at gmail.com)")
     print("")
     if len(argv) == 1 or '--help' in argv:
