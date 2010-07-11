@@ -27,7 +27,11 @@ Crash logger
 
 * :download:`crash_report.py <../../tools/crash_report.py>` :
 
-   Shows the contents of the crashes database to standard output.
+   Shows the contents of the crashes database file to standard output.
+
+* :download:`crash_report_mssql.py <../../tools/crash_report_mssql.py>` :
+
+   Shows the contents of the crashes MS SQL database to standard output.
 
 Process tools
 +++++++++++++
