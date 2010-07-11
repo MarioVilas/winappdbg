@@ -266,6 +266,7 @@ class ContainerBase(object):
 
         def iterkeys(self):
             """
+            @note: This method is deprecated in Python 3.x.
             @rtype:  iterator
             @return: Iterator of known L{Crash} keys.
             """
@@ -283,6 +284,8 @@ class ContainerBase(object):
             """
             @rtype:  iterator
             @return: Iterator of known L{Crash} objects.
+
+            @note: This method is deprecated in Python 3.x.
 
             @warning: A B{copy} of each object is returned,
                 so any changes made to them will be lost.
@@ -315,6 +318,8 @@ class ContainerBase(object):
             """
             @rtype:  iterator
             @return: Iterator of known L{Crash} keys and objects.
+
+            @note: This method is deprecated in Python 3.x.
 
             @warning: A B{copy} of each object is returned,
                 so any changes made to them will be lost.
