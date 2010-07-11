@@ -3865,6 +3865,18 @@ def FileTimeToSystemTime(lpFileTime):
     _FileTimeToSystemTime(ctypes.byref(FileTime), ctypes.byref(SystemTime))
     return SystemTime
 
+# void WINAPI GetSystemTimeAsFileTime(
+#   __out  LPFILETIME lpSystemTimeAsFileTime
+# );
+def GetSystemTimeAsFileTime():
+    _GetSystemTimeAsFileTime = windll.kernel32.GetSystemTimeAsFileTime
+    _GetSystemTimeAsFileTime.argtypes = [LPFILETIME]
+    _GetSystemTimeAsFileTime.restype  = None
+
+    FileTime = FILETIME()
+    _GetSystemTimeAsFileTime(ctypes.byref(FileTime))
+    return FileTime
+
 #------------------------------------------------------------------------------
 # Global ATOM API
 

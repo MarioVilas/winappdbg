@@ -31,9 +31,19 @@ __revision__ = "$Id$"
 
 from distutils.core import setup
 
+import warnings
+warnings.filterwarnings("ignore", "Unknown distribution option")
+
 from glob import glob
 from os.path import join
 from sys import version_info
+
+import sys
+# patch distutils if it can't cope with the "classifiers" keyword
+if sys.version < '2.2.3':
+    from distutils.dist import DistributionMetadata
+    DistributionMetadata.classifiers = None
+    DistributionMetadata.download_url = None
 
 # Use py2exe if installed
 try:
@@ -47,21 +57,32 @@ if py2exe is not None:
     try:
         import sqlite3
     except ImportError:
-        print "Warning: sqlite3 not found!"
+        print("Warning: sqlite3 not found!")
         try:
             from pysqlite2 import dbapi2
         except ImportError:
-            print "Warning: pysqlite2 not found!"
+            print("Warning: pysqlite2 not found!")
     try:
         import pyodbc
     except ImportError:
-        print "Warning: pyodbc not found!"
-    import anydbm
+        print("Warning: pyodbc not found!")
     try:
-        _names = anydbm._names
-    except NameError:
-        _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
-    dbnames = ['anydbm', 'whichdb']
+        import anydbm
+    except ImportError:
+        anydbm = None
+    if anydbm:                          # Python 2.x
+        try:
+            _names = anydbm._names
+        except NameError:
+            _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
+        dbnames = ['anydbm', 'whichdb']
+    else:                               # Python 3.x
+        import dbm
+        try:
+            _names = dbm._names
+        except NameError:
+            _names = ['dbm.bsd', 'dbm.gnu', 'dbm.ndbm', 'dbm.dumb']
+        dbnames = ['dbm', 'dbm.whichdb']
     for name in _names:
         try:
             __import__(name)
