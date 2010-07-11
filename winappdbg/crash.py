@@ -29,7 +29,7 @@
 Crash logging module.
 
 @group Crash reporting:
-    Crash, CrashContainer, CrashTable, CrashTableODBC,
+    Crash, CrashContainer, CrashTable, CrashTableMSSQL,
     VolatileCrashContainer, DummyCrashContainer
 """
 
@@ -46,8 +46,8 @@ __all__ = [
     # Container that can store Crash objects in an SQLite database file.
     'CrashTable',
 
-    # Container that can store Crash objects in an SQL database using ODBC.
-    'CrashTableODBC',
+    # Container that can store Crash objects in a Microsoft SQL database.
+    'CrashTableMSSQL',
 
     # Volatile container that does not store Crash objects.
     'VolatileCrashContainer',
@@ -127,22 +127,15 @@ except ImportError:
 
 #==============================================================================
 
-# XXX COMPAT
-#
-# The interface of ContainerBase somewhat mimics that of a dictionary...
-# but not quite. There's an important difference: the __contains__ method
-# behaves like a list instead of a dictionary.
-#
-# It can be kept that way, but in Python 3 there is no more has_key method,
-# so having one for ContainerBase just feels wrong.
-#
-# Maybe it's time to make ContainerBase behave like a real dictionary.
-
 class ContainerBase(object):
     """
     Base class for Container types. The code implemented here deals with
     marshalling and unmarshalling of Crash objects and keys, and it's
     independent of the database used later.
+
+    The class variables defined here are used by the subclasses to control
+    the behavior of the marshaller. Unless you're implementing your own Crash
+    container you don't need to use them.
 
     @type optimizeKeys: bool
     @cvar optimizeKeys: C{True} to optimize the marshalling of keys, C{False}
@@ -182,6 +175,7 @@ class ContainerBase(object):
         L{DummyCrashContainer}
     """
 
+    # Default vainilla configuration.
     optimizeKeys    = False
     optimizeValues  = False
     compressKeys    = False
@@ -203,30 +197,48 @@ class ContainerBase(object):
         else:
             self.__keys = initialKeys
 
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of known keys.
-        """
-        return len(self.__keys)
-
     def __bool__(self):
         """
         @rtype:  bool
         @return: C{False} if there are no known keys.
         """
-        return bool(self.__keys)
+        return bool(len(self))
 
-    def __contains__(self, crash):
+    # To allow duplicate crashes this method MUST be subclassed.
+    def __len__(self):
         """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
+        @rtype:  int
+        @return: Count of L{Crash} elements in the container.
+        """
+        return len(self.__keys)
+
+    def __contains__(self, obj):
+        """
+        @param obj: Either a L{Crash} instance or an opaque crash key.
 
         @rtype:  bool
         @return:
             C{True} if a Crash object with the same key is in the container.
         """
-        return crash.key() in self.__keys
+        if isinstance(obj, Crash):
+            return self.has_value(obj)
+        return self.has_key(obj)
+
+    # This method MUST be subclassed.
+    def __iter__(self):
+        """
+        @rtype:  iterator
+        @return: Iterator of the contained L{Crash} objects.
+
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        raise NotImplementedError
 
     def has_key(self, key):
         """
@@ -238,17 +250,138 @@ class ContainerBase(object):
         """
         return key in self.__keys
 
-    def iterkeys(self):
+    # To allow duplicate crashes this method MUST be subclassed.
+    def has_value(self, value):
         """
-        @rtype:  iterator
-        @return: Iterator of known L{Crash} keys.
+        @type  crash: L{Crash}
+        @param crash: Crash object.
+
+        @rtype:  bool
+        @return:
+            C{True} if a Crash object with the same key is in the container.
         """
-        # XXX COMPAT
-        # Same as has_key(), this syntax no longer exists in Python 3.
-        try:
+        return crash.key() in self.__keys
+
+    if sys.version_info[0] == 2:
+
+        def iterkeys(self):
+            """
+            @rtype:  iterator
+            @return: Iterator of known L{Crash} keys.
+            """
             return self.__keys.iterkeys()
-        except AttributeError:
-            return iter(self.__keys.keys())
+
+        def keys(self):
+            """
+            @rtype:  list
+            @return: Known L{Crash} keys.
+            """
+            return self.__keys.keys()
+
+        # This method MUST be subclassed.
+        def itervalues(self):
+            """
+            @rtype:  iterator
+            @return: Iterator of known L{Crash} objects.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
+
+        # This method MUST be subclassed.
+        def values(self):
+            """
+            @rtype:  list
+            @return: List of the contained L{Crash} objects.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
+
+        # This method MUST be subclassed.
+        def iteritems(self):
+            """
+            @rtype:  iterator
+            @return: Iterator of known L{Crash} keys and objects.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
+
+        # This method MUST be subclassed.
+        def items(self):
+            """
+            @rtype:  list
+            @return: Known L{Crash} keys and values.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
+
+    else:
+
+        def keys(self):
+            """
+            @rtype:  dict_keys
+            @return: Known L{Crash} keys.
+            """
+            return self.__keys.keys()
+
+        # This method MUST be subclassed.
+        def values(self):
+            """
+            @rtype:  dict_values
+            @return: Contained L{Crash} objects.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
+
+        # This method MUST be subclassed.
+        def items(self):
+            """
+            @rtype:  dict_items
+            @return: Known L{Crash} keys and values.
+
+            @warning: A B{copy} of each object is returned,
+                so any changes made to them will be lost.
+
+                To preserve changes do the following:
+                    1. Keep a reference to the object.
+                    2. Delete the object from the set.
+                    3. Modify the object and add it again.
+            """
+            raise NotImplementedError
 
     def remove_key(self, key):
         """
@@ -379,6 +512,7 @@ class CrashContainer (ContainerBase):
     @see: L{Crash.key}
     """
 
+    # Configuration for ContainerBase.
     optimizeKeys    = False
     optimizeValues  = True
     compressKeys    = False
@@ -411,7 +545,7 @@ class CrashContainer (ContainerBase):
             # TODO: lock the database when iterating it.
             #
             self.__container = container
-            self.__keys_iter = container.iterkeys() # XXX COMPAT
+            self.__keys_iter = keys(container)
 
         def __next__(self):
             """
@@ -458,51 +592,26 @@ class CrashContainer (ContainerBase):
             self.__db = dict()
             ContainerBase.__init__(self)
 
+    def close(self):
+        "Close the database."
+        if self.__filename:
+            self.__db.close()
+
     def __del__(self):
         "Class destructor. Closes the database when this object is destroyed."
         try:
-            if self.__filename:
-                self.__db.close()
+            self.close()
         except:
             pass
 
     def __iter__(self):
-        """
-        @see:    L{itervalues}
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
-        return self.itervalues()    # XXX COMPAT
-
-    def itervalues(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
         return self.__CrashContainerIterator(self)
 
+    if sys.version_info[0] == 2:
+        itervalues = __iter__
+
     def values(self):
-        """
-        @rtype:  list
-        @return: List of the contained L{Crash} objects.
-
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return list(self.itervalues())  # XXX COMPAT
+        return list(self)
 
     def add(self, crash):
         """
@@ -570,6 +679,7 @@ class CrashTable (ContainerBase):
     @see: L{Crash.key}
     """
 
+    # Configuration for ContainerBase.
     optimizeKeys    = True
     optimizeValues  = True
     compressKeys    = True
@@ -685,10 +795,9 @@ class CrashTable (ContainerBase):
         stackTrace          = CrashDump.dump_stack_trace_with_labels(
                                                         crash.stackTracePretty)
         commandLine         = crash.commandLine
-        if type(crash.environmentData) == type(''):     # XXX COMPAT UNICODE
-            environment     = '\0'.join(crash.environmentData) + '\0'
-        else:
-            environment     = '\0'.join(crash.environmentData) + '\0'
+        str_null            = type(crash.environmentData)('\0')
+        environment         = str_null.join(crash.environmentData) \
+                                                          + str_null + str_null
         notes               = crash.notesReport()
         return (
             timeStamp,
@@ -935,10 +1044,6 @@ class CrashTable (ContainerBase):
             self._count += 1
 
     def __iter__(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
         self._cursor.execute(self._select_pickle)
         for row in self._cursor:
             crash = row[0]
@@ -946,33 +1051,19 @@ class CrashTable (ContainerBase):
             yield crash
 
     def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
         return self._count
 
 #==============================================================================
 
-# XXX TODO
-# Leave this class only as the base of more classes, each of which implement
-# the specifics of the databases we want to support. Currently the above code
-# only works for Microsoft SQL Server (or at least it'd be surprising to see it
-# run anywhere else).
-
 class CrashTableODBC (CrashTable):
     """
-    Manages a database of persistent Crash objects, trying to avoid duplicates
-    only when requested.
-
-    Uses an SQL database (ODBC) for persistency.
-
-    @note: Although it has only been tested with Microsoft SQL Server it's
-        possible it may work with other SQL drivers.
+    Base class for Crash containers that
+    use an SQL database (ODBC) for persistency.
 
     @see: L{Crash.key}
     """
 
+    # Configuration for ContainerBase.
     optimizeKeys    = True
     optimizeValues  = True
     compressKeys    = True
@@ -981,6 +1072,44 @@ class CrashTableODBC (CrashTable):
     escapeValues    = False
     binaryKeys      = True
     binaryValues    = True
+
+    def _connect(self, connectionString):
+        """
+        Connect to a remote SQL database using the given connection string.
+
+        @note: This is a private method and you shouldn't need to call it.
+
+        @type  connectionString: str
+        @param connectionString: (Optional) ODBC connection string.
+
+        @rtype: tuple( str, str, database, cursor )
+        @return:
+            Tuple of location, database type, database object, cursor object.
+        """
+
+        # Load the pyODBC module.
+        global pyodbc
+        if not pyodbc:
+            import pyodbc
+
+        # Connect to the SQL database.
+        db = pyodbc.connect(connectionString, autocommit=True)
+        cursor = db.cursor()
+
+        # Return the database connection.
+        return connectionString, 'odbc', db, cursor
+
+#==============================================================================
+
+class CrashTableMSSQL (CrashTableODBC):
+    """
+    Manages a database of persistent Crash objects, trying to avoid duplicates
+    only when requested.
+
+    Uses a Microsoft SQL database (ODBC) for persistency.
+
+    @see: L{Crash.key}
+    """
 
     _table_definition = (
         "CREATE TABLE Crashes ("
@@ -1049,32 +1178,6 @@ class CrashTableODBC (CrashTable):
         % ', '.join(list('?' * 8))
     )
 
-    def _connect(self, connectionString):
-        """
-        Connect to a remote SQL database using the given connection string.
-
-        @note: This is a private method and you shouldn't need to call it.
-
-        @type  connectionString: str
-        @param connectionString: (Optional) ODBC connection string.
-
-        @rtype: tuple( str, str, database, cursor )
-        @return:
-            Tuple of location, database type, database object, cursor object.
-        """
-
-        # Load the pyODBC module.
-        global pyodbc
-        if not pyodbc:
-            import pyodbc
-
-        # Connect to the SQL database.
-        db = pyodbc.connect(connectionString, autocommit=True)
-        cursor = db.cursor()
-
-        # Return the database connection.
-        return connectionString, 'odbc', db, cursor
-
 #==============================================================================
 
 class VolatileCrashContainer(CrashContainer):
@@ -1102,38 +1205,6 @@ class VolatileCrashContainer(CrashContainer):
         self.__dict = dict()
         self.__set  = set()
 
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return crash.key() in self._dict
-
-    def __iter__(self):
-        """
-        @see:    L{itervalues}
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-        """
-        return self.itervalues()    # XXX COMPAT
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        return len(self.__set)
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        return bool(len(self))
-
     def add(self, crash):
         """
         Adds a new crash to the container.
@@ -1152,50 +1223,31 @@ class VolatileCrashContainer(CrashContainer):
             self.__dict[key] = crash
             self.__set.add(crash)
 
-    def has_key(self, key):
-        """
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
+    def __len__(self):
+        return len(self.__set)
 
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
-        """
+    def __iter__(self):
+        return iter(self.__set)
+
+    def has_key(self, key):
         return key in self.__dict
 
-    def iterkeys(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} object keys.
+    def has_value(self, value):
+        return value in self.__set
 
-        @see:     L{get}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
+    def keys(self):
+        return self.__dict.keys()
 
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        # XXX COMPAT
-        try:
+    def values(self):
+        return self.__dict.values()
+
+    if sys.version_info[0] == 2:
+
+        def iterkeys(self):
             return self.__dict.iterkeys()
-        except AttributeError:
-            return iter(self.__dict.keys())
 
-    def itervalues(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
-
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
-
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return iter(self.__set)
+        def itervalues(self):
+            return self.__dict.itervalues()
 
 #==============================================================================
 
@@ -1226,32 +1278,6 @@ class DummyCrashContainer(CrashContainer):
         self.__count = 0
         self.__allowRepeatedKeys = allowRepeatedKeys
 
-    def __contains__(self, crash):
-        """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
-        """
-        return crash.key() in self.__keys
-
-    def __len__(self):
-        """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
-        """
-        if self.__allowRepeatedKeys:
-            return self.__count
-        return len(self.__keys)
-
-    def __bool__(self):
-        """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
-        """
-        return bool(len(self))
-
     def add(self, crash):
         """
         Adds a new crash to the container.
@@ -1268,31 +1294,24 @@ class DummyCrashContainer(CrashContainer):
         self.__keys.add( crash.key() )
         self.__count += 1
 
-    def has_key(self, key):
-        """
-        @type  key: L{Crash} unique key.
-        @param key: Key of the crash to get.
+    def __len__(self):
+        if self.__allowRepeatedKeys:
+            return self.__count
+        return len(self.__keys)
 
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
-        """
+    def has_key(self, key):
         return key in self.__dict
 
-    def iterkeys(self):
-        """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} object keys.
+    def has_value(self, value):
+        return value.key() in self.__dict
 
-        @see:     L{get}
-        @warning: A B{copy} of each object is returned,
-            so any changes made to them will be lost.
+    def keys(self):
+        return self.__dict.keys()
 
-            To preserve changes do the following:
-                1. Keep a reference to the object.
-                2. Delete the object from the set.
-                3. Modify the object and add it again.
-        """
-        return iter(self.__dict)
+    if sys.version_info[0] == 2:
+
+        def iterkeys(self):
+            return iter(self.__dict)
 
 #==============================================================================
 
