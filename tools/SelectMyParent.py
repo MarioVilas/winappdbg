@@ -42,15 +42,15 @@ from winappdbg import win32, System, HexInput
 def main(argv):
 
     # Print the banner.
-    print "SelectMyParent: Start a program with a selected parent process"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print "based on a Didier Stevens tool (https://DidierStevens.com)"
-    print
+    print("SelectMyParent: Start a program with a selected parent process")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("based on a Didier Stevens tool (https://DidierStevens.com)")
+    print("")
 
     # Check the command line arguments.
     if len(argv) < 3:
         script = os.path.basename(argv[0])
-        print "  %s <pid> <process.exe> [arguments]" % script
+        print("  %s <pid> <process.exe> [arguments]" % script)
         return
 
     # Request debug privileges.
@@ -67,18 +67,18 @@ def main(argv):
         if dwParentProcessId != dwMyProcessId:
             system.scan_processes_fast()
             if not system.has_process(dwParentProcessId):
-                print "Can't find process ID %d" % dwParentProcessId
+                print("Can't find process ID %d" % dwParentProcessId)
                 return
     else:
         system.scan_processes()
         process_list = system.find_processes_by_filename(argv[1])
         if not process_list:
-            print "Can't find process %r" % argv[1]
+            print("Can't find process %r" % argv[1])
             return
         if len(process_list) > 1:
-            print "Too many processes found:"
+            print("Too many processes found:")
             for process, name in process_list:
-                print "\t%d:\t%s" % (process.get_pid(), name)
+                print("\t%d:\t%s" % (process.get_pid(), name))
             return
         dwParentProcessId = process_list[0][0].get_pid()
 
@@ -87,8 +87,9 @@ def main(argv):
     if not os.path.exists(filename):
         try:
             filename = win32.SearchPath(None, filename, '.exe')[0]
-        except WindowsError, e:
-            print "Error searching for %s: %s" % (filename, str(e))
+        except WindowsError:
+            e = sys.exc_info()[1]
+            print("Error searching for %s: %s" % (filename, str(e)))
             return
         argv = list(argv)
         argv[2] = filename
@@ -100,16 +101,18 @@ def main(argv):
                                        bInheritHandles   = True,
                                        dwParentProcessId = dwParentProcessId)
         dwProcessId = process.get_pid()
-    except AttributeError, e:
+    except AttributeError:
+        e = sys.exc_info()[1]
         if "InitializeProcThreadAttributeList" in str(e):
-            print "This tool requires Windows Vista or above."
+            print("This tool requires Windows Vista or above.")
         else:
-            print "Error starting new process: %s" % str(e)
+            print("Error starting new process: %s" % str(e))
         return
-    except WindowsError, e:
-        print "Error starting new process: %s" % str(e)
+    except WindowsError:
+        e = sys.exc_info()[1]
+        print("Error starting new process: %s" % str(e))
         return
-    print "Process created: %d" % dwProcessId
+    print("Process created: %d" % dwProcessId)
     return dwProcessId
 
 # Run main() binded to Psyco if available.
