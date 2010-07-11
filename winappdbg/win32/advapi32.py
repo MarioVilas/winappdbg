@@ -34,6 +34,10 @@ __revision__ = "$Id$"
 from defines import *
 from kernel32 import *
 
+# XXX TODO
+# + add registry APIs
+# + add service control manager APIs
+
 #--- Constants ----------------------------------------------------------------
 
 # Privilege constants
@@ -77,6 +81,13 @@ TOKEN_ADJUST_PRIVILEGES         = 0x00000020
 
 LOGON_WITH_PROFILE              = 0x00000001
 LOGON_NETCREDENTIALS_ONLY       = 0x00000002
+
+HKEY_CLASSES_ROOT       = 0x80000000
+HKEY_CURRENT_USER       = 0x80000001
+HKEY_LOCAL_MACHINE      = 0x80000002
+HKEY_USERS              = 0x80000003
+HKEY_PERFORMANCE_DATA   = 0x80000004
+HKEY_CURRENT_CONFIG     = 0x80000005
 
 #--- TOKEN_PRIVILEGE structure ------------------------------------------------
 
