@@ -33,8 +33,8 @@ from winappdbg import HexDump, Table
 
 def do(self, arg):
     thread = self.get_thread_from_prefix()
-    print "Exception handlers for thread %d" % thread.get_tid()
-    print
+    print("Exception handlers for thread %d" % thread.get_tid())
+    print("")
     table = Table()
     table.addRow( ("Block", "Function") )
     for (seh, seh_func) in thread.get_seh_chain():
@@ -43,5 +43,5 @@ def do(self, arg):
         if seh_func is not None:
             seh_func = HexDump.address(seh_func)
         table.addRow( (seh, seh_func) )
-    print table.getOutput()
+    print(table.getOutput())
 
