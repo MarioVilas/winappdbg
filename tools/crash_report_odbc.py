@@ -38,24 +38,25 @@ from winappdbg import CrashTableODBC
 from crash_report import print_report_for_database
 
 def connect_to_database(connection_string):
-    print "Connecting to database..."
+    print("Connecting to database...")
     cc = None
     try:
         cc = CrashTableODBC(connection_string)
-    except Exception, e:
-        print "Could not connect to database!"
-        print "Error: %s" % str(e)
+    except Exception:
+        e = sys.exc_info()[1]
+        print("Could not connect to database!")
+        print("Error: %s" % str(e))
     return cc
 
 def main(argv):
-    print "Crash logger report (ODBC)"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Crash logger report (ODBC)")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
     if len(argv) == 1 or '--help' in argv:
-        print "Usage:"
-        print "    %s <ODBC connection string>" % os.path.basename(argv[0])
-        print
-        print "Produces a full report of each crash found by crash_logger.py"
+        print("Usage:")
+        print("    %s <ODBC connection string>" % os.path.basename(argv[0]))
+        print("")
+        print("Produces a full report of each crash found by crash_logger.py")
     else:
         connection_string = ' '.join(argv[1:])
         cc = connect_to_database(connection_string)

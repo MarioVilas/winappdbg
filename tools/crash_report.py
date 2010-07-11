@@ -60,7 +60,7 @@ def filter_duplicates(old_list):
         if filename not in new_list:
             new_list.append(filename)
         else:
-            print "Skipping duplicate file: %s" % filename
+            print("Skipping duplicate file: %s" % filename)
     return new_list
 
 def filter_inexistent_files(old_list):
@@ -69,22 +69,26 @@ def filter_inexistent_files(old_list):
         if os.path.exists(filename):
             new_list.append(filename)
         else:
-            print "Cannot find file: %s" % filename
+            print("Cannot find file: %s" % filename)
     return new_list
 
 def open_database(filename):
-    print "Opening database: %s" % filename
+    print("Opening database: %s" % filename)
     cc = None
 
     # Try opening as a DBM database.
     try:
-        import anydbm
+        try:
+            import anydbm as dbm
+        except ImportError:
+            import dbm
         try:
             cc = CrashContainer( filename )
-        except anydbm.error, e:
+        except dbm.error:
+            e = sys.exc_info()[1]
             error = str(e)
     except ImportError:
-        print "Warning: no DBM support present"
+        print("Warning: no DBM support present")
 
     # Try opening as a SQLite database.
     if cc is None:
@@ -95,19 +99,20 @@ def open_database(filename):
                 from pysqlite2 import dbapi2 as sqlite
             try:
                 cc = CrashTable( filename )
-            except sqlite.DatabaseError, e:
+            except sqlite.DatabaseError:
+                e = sys.exc_info()[1]
                 error = str(e)
         except ImportError:
-            print "Warning: no SQLite support present"
+            print("Warning: no SQLite support present")
 
     if cc is None:
-        print "Error: %s: %r" % (error, filename)
+        print("Error: %s: %r" % (error, filename))
     return cc
 
 def print_report_for_database(cc, options):
     if cc:
-        print "Found %d crashes:" % len(cc)
-        print '-' * 79
+        print("Found %d crashes:" % len(cc))
+        print('-' * 79)
         ccl = [(c.timeStamp, c) for c in cc]    # XXX may use a lot of memory
         ccl.sort()                  # XXX may fail if timestamps are repeated
         for (timeStamp, c) in ccl:
@@ -116,20 +121,20 @@ def print_report_for_database(cc, options):
             ltime = time.strftime("%X", local)
             msecs = (c.timeStamp % 1) * 1000
             msg = '%s %s.%04d' % (ldate, ltime, msecs)
-            print msg
+            print(msg)
             if options.verbose:
-                print c.fullReport(),
+                print(c.fullReport(), end=' ')
             else:
-                print c.briefReport()
-            print '-' * 79
+                print(c.briefReport())
+            print('-' * 79)
     elif cc is not None:
-        print "No crashes to report."
-        print
+        print("No crashes to report.")
+        print("")
 
 def main(argv):
-    print "Crash logger report"
-    print "by Mario Vilas (mvilas at gmail.com)"
-    print
+    print("Crash logger report")
+    print("by Mario Vilas (mvilas at gmail.com)")
+    print("")
 
     (options, parameters) = parse_cmdline(argv)
 
