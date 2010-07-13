@@ -20,6 +20,7 @@
 
 
 # Epydoc command line options
+EPYDOC_CMD=epydoc.py
 EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epytext --name "WinAppDbg - Programming Reference" --url "http://sourceforge.net/projects/winappdbg/" winappdbg
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
@@ -74,7 +75,7 @@ upx: py2exe
 
 # Generate the HTML documentation only
 html:
-	epydoc.py $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+	$(EPYDOC_CMD) $(EPYDOC_HTML_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 # Compile the HTML documentation into a CHM file
 chm: html
@@ -82,7 +83,7 @@ chm: html
 
 # Generate the PDF documentation only
 pdf:
-	epydoc.py $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
+	$(EPYDOC_CMD) $(EPYDOC_PDF_OPT) $(EPYDOC_OUTPUT_OPT) $(EPYDOC_OPT)
 
 
 # Build the source distribution package
