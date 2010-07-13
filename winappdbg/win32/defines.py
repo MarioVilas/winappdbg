@@ -115,9 +115,9 @@ if WIN32_VERBOSE_MODE:
 def winerror(e):
     """
     Auxiliary function to extract the Windows error code from a C{WindowError}
-    exception instance. This is only needed for compatibility with Python 2.3.
+    exception instance. This is only needed for compatibility with Python 2.4.
 
-    For example, replace this code::
+    For example, replace this Python 2 code::
 
         try:
             # ...some stuff...
@@ -137,13 +137,24 @@ def winerror(e):
             else:
                 print "Error: %s" % str(e)
 
-    And it'll be automagically compatible with Python 2.3. :)
+    And it'll be automagically compatible with Python 2.4. :)
+
+    To have compatibility with Python 3.x too you would do this instead::
+
+        try:
+            # ...some stuff...
+        except WindowsError:
+            e = sys.exc_info()[1]
+            if win32.winerror(e) == ERROR_ACCESS_DENIED:
+                print("Access denied!")
+            else:
+                print("Error: %s" % str(e))
     """
     # Another example of the docstring being much more complex than the code :)
     try:
-        return e.winerror   # Python 2.4 and better
+        return e.winerror   # Python 2.5 and better
     except AttributeError:
-        return e.errno      # Python 2.3
+        return e.errno      # Python 2.4
 
 def RaiseIfZero(result, func = None, arguments = ()):
     """
