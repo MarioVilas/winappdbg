@@ -108,7 +108,7 @@ else:
 
 #==============================================================================
 
-if sys.version_info()[0] == 2:
+if sys.version_info[0] == 2:
 
     def _inject_dll_shellcode(dllname, plllib, procname, pgpad, lpParameter, pvf):
 
@@ -402,7 +402,7 @@ class ModuleContainer (object):
 #------------------------------------------------------------------------------
 # Python 2.x
 
-    if sys.version_info()[0] == 2:
+    if sys.version_info[0] == 2:
 
         def __get_module_bases(self):
             """
@@ -888,7 +888,7 @@ class ThreadContainer (object):
 #------------------------------------------------------------------------------
 # Python 2.x
 
-    if sys.version_info()[0] == 2:
+    if sys.version_info[0] == 2:
 
         def __get_thread_ids(self):
             """
@@ -1383,7 +1383,7 @@ class ProcessContainer (object):
 #------------------------------------------------------------------------------
 # Python 2.x
 
-    if sys.version_info()[0] == 2:
+    if sys.version_info[0] == 2:
 
         def __get_process_ids(self):
             """

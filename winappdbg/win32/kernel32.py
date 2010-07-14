@@ -32,7 +32,7 @@ Wrapper for kernel32.dll in ctypes.
 __revision__ = "$Id$"
 
 from .defines import *
-from .version import os
+from .version import arch, os
 
 # Python 3.x compatibility
 try:

@@ -32,6 +32,7 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 from .defines    import *
+from .version    import *
 from .kernel32   import *
 from .user32     import *
 from .advapi32   import *

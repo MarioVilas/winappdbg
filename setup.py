@@ -59,7 +59,7 @@ if py2exe is not None:
         import pyodbc
     except ImportError:
         print("Warning: pyodbc not found!")
-    if version_info[1] == 2:            # Python 2.x
+    if version_info[0] == 2:            # Python 2.x
         import anydbm
         try:
             _names = anydbm._names
