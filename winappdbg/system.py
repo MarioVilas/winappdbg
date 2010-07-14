@@ -62,8 +62,7 @@ import struct
 ##import weakref
 
 from . import win32
-from . import win32.version
-from .win32 import AnsiWide
+from .win32 import version, AnsiWide
 from .textio import HexInput, HexDump
 from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
