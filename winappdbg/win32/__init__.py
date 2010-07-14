@@ -43,7 +43,7 @@ from .psapi      import *
 from .dbghelp    import *
 from .ntdll      import *
 """)
-except SyntaxError:
+except Exception:
     from defines    import *
     from kernel32   import *
     from user32     import *

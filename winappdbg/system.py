@@ -62,7 +62,7 @@ from .win32 import AnsiWide
 from .textio import HexInput, HexDump
 from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 """)
-except SyntaxError:
+except Exception:
     import win32
     import win32.version
     from win32 import AnsiWide

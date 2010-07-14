@@ -71,7 +71,7 @@ __all__ = [
 
 try:
     exec('from . import win32')
-except SyntaxError:
+except Exception:
     import win32
 
 import os

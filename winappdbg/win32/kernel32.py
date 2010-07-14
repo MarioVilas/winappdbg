@@ -38,7 +38,7 @@ from .version import os
 """)
 except SyntaxError:
     from defines import *
-    from version import *
+    from version import os
 
 # Python 3.x compatibility
 try:
@@ -63,7 +63,7 @@ from .context_i386  import CONTEXT_i386, CONTEXT_i486
 from .context_amd64 import CONTEXT_AMD64
 from .context_ia64  import CONTEXT_IA64
 """)
-except SyntaxError:
+except Exception:
     import context_i386
     import context_amd64
     import context_ia64
@@ -79,29 +79,29 @@ ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
 if   arch == 'i386':
     try:
         exec("from .context_i386 import *")
-    except SyntaxError:
+    except Exception:
         from context_i386 import *
 elif arch == 'amd64':
     if sizeof(SIZE_T) == sizeof(DWORD64):
         try:
             exec("from .context_amd64 import *")
-        except SyntaxError:
+        except Exception:
             from context_amd64 import *
     else:
         try:
             exec("from .context_i386 import *")
-        except SyntaxError:
+        except Exception:
             from context_i386 import *
 elif arch == 'ia64':
     if sizeof(SIZE_T) == sizeof(DWORD64):
         try:
             exec("from .context_ia64 import *")
-        except SyntaxError:
+        except Exception:
             from context_ia64 import *
     else:
         try:
             exec("from .context_i386 import *")
-        except SyntaxError:
+        except Exception:
             from context_i386 import *
 else:
     print("Warning, unknown or unsupported architecture")

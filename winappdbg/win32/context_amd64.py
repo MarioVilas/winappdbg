@@ -36,7 +36,7 @@ try:
 from .defines import *
 from . import context_i386
 """)
-except SyntaxError:
+except Exception:
     from defines import *
     import context_i386
 

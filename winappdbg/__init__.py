@@ -177,7 +177,7 @@ from .util import *
 from . import win32
 from .win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 ''')
-except SyntaxError:
+except Exception:
     from breakpoint import *
     from crash import *
     from debug import *

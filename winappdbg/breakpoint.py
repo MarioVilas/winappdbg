@@ -65,7 +65,7 @@ from .util import DebugRegister
 from .textio import HexDump
 from . import win32
 """)
-except SyntaxError:
+except Exception:
     from system import Process, System, MemoryAddresses
     from util import DebugRegister
     from textio import HexDump

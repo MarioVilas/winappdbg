@@ -36,7 +36,7 @@ try:
 from .defines import *
 from .kernel32 import LocalFree
 """)
-except SyntaxError:
+except Exception:
     from defines import *
     from kernel32 import LocalFree
 

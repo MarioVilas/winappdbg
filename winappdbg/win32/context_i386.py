@@ -33,7 +33,7 @@ __revision__ = "$Id$"
 
 try:
     exec("from .defines import *")
-except SyntaxError:
+except Exception:
     from defines import *
 
 # Python 2.x/3.x compatibility hack

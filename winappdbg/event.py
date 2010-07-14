@@ -89,7 +89,7 @@ from .breakpoint import ApiHook
 from .system import Module, Thread, Process, PathOperations
 from .textio import HexDump
 ''')
-except SyntaxError:
+except Exception:
     import win32
     from win32 import FileHandle, ProcessHandle, ThreadHandle
     from breakpoint import ApiHook

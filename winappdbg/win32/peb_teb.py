@@ -36,7 +36,7 @@ try:
 from .defines import *
 from .version import os
 """)
-except SyntaxError:
+except Exception:
     from defines import *
     from version import os
 

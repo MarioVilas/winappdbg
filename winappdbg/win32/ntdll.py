@@ -36,7 +36,7 @@ try:
 from .defines import *
 from .peb_teb import *
 """)
-except SyntaxError:
+except Exception:
     from defines import *
     from peb_teb import *
 

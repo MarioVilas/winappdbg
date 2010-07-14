@@ -35,7 +35,7 @@ try:
     exec("""
 from .defines import *
 """)
-except SyntaxError:
+except Exception:
     from defines import *
 
 #--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
