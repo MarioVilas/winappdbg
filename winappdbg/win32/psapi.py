@@ -31,10 +31,7 @@ Wrapper for psapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("from .defines import *")
-except Exception:
-    from defines import *
+from .defines import *
 
 # Python 2.x/3.x compatibility hack
 try:

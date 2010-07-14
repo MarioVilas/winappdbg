@@ -31,12 +31,7 @@ Detect the current architecture and operating system.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
-""")
-except Exception:
-    from defines import *
 
 #--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
 

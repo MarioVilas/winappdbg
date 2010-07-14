@@ -31,14 +31,8 @@ CONTEXT structure for amd64.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from . import context_i386
-""")
-except Exception:
-    from defines import *
-    import context_i386
 
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access

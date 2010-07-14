@@ -31,14 +31,8 @@ Wrapper for gdi32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .kernel32 import GetLastError, SetLastError
-""")
-except Exception:
-    from defines import *
-    from kernel32 import GetLastError, SetLastError
 
 #--- Helpers ------------------------------------------------------------------
 

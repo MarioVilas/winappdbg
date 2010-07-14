@@ -38,13 +38,6 @@ from glob import glob
 from os.path import join
 from sys import version_info
 
-import sys
-# patch distutils if it can't cope with the "classifiers" keyword
-if sys.version < '2.2.3':
-    from distutils.dist import DistributionMetadata
-    DistributionMetadata.classifiers = None
-    DistributionMetadata.download_url = None
-
 # Use py2exe if installed
 try:
     import py2exe
@@ -59,18 +52,15 @@ if py2exe is not None:
     except ImportError:
         print("Warning: sqlite3 not found!")
         try:
-            from pysqlite2 import dbapi2
+            from pysqlite2 import dbapi2 as sqlite3
         except ImportError:
             print("Warning: pysqlite2 not found!")
     try:
         import pyodbc
     except ImportError:
         print("Warning: pyodbc not found!")
-    try:
+    if version_info[1] == 2:            # Python 2.x
         import anydbm
-    except ImportError:
-        anydbm = None
-    if anydbm:                          # Python 2.x
         try:
             _names = anydbm._names
         except NameError:
@@ -120,55 +110,65 @@ Where can I find WinAppDbg?
 Project homepage:
 -----------------
 
-http://tinyurl.com/winappdbg
+ - http://winappdbg.sourceforge.net/
 
 Download links:
 ---------------
 
-Windows installer (32 bits)
+Windows installers
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.4.msi/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.5.msi/download
+Windows MSI installers (32 bits)
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.6.msi/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.5.msi/download
 
-Windows installer (64 bits)
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.6.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.7.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.4.msi/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py3.0.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.5.msi/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py3.1.msi/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.6.msi/download
+Windows MSI installers (64 bits)
+
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.5.msi/download
+
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.6.msi/download
+
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.7.msi/download
+
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py3.0.msi/download
+
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py3.1.msi/download
 
 Source code
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.tar.bz2/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.tar.bz2/download
 
 Documentation:
 --------------
 
 Online
 
-http://winappdbg.sourceforge.net/doc/v1.4/
+ - http://winappdbg.sourceforge.net/doc/v1.4/
 
-http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
+ - http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
 
-For download:
+For download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/WinAppDbg.chm/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/WinAppDbg.chm/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.chm/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.chm/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.pdf/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.pdf/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.ps/download
+ - http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.ps/download
 """
 
 # Get the list of scripts in the "tools" folder
@@ -218,9 +218,11 @@ params = {
                         'Intended Audience :: Developers',
                         'Natural Language :: English',
                         'Operating System :: Microsoft :: Windows',
-                        'Programming Language :: Python :: 2.4',
                         'Programming Language :: Python :: 2.5',
                         'Programming Language :: Python :: 2.6',
+                        'Programming Language :: Python :: 2.7',
+                        'Programming Language :: Python :: 3.0',
+                        'Programming Language :: Python :: 3.1',
                         'Topic :: Software Development :: Debuggers',
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],

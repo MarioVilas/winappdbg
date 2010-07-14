@@ -54,27 +54,18 @@ __all__ =   [
                 'Window',
             ]
 
-try:
-    exec("""
-from . import win32
-from . import win32.version
-from .win32 import AnsiWide
-from .textio import HexInput, HexDump
-from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
-""")
-except Exception:
-    import win32
-    import win32.version
-    from win32 import AnsiWide
-    from textio import HexInput, HexDump
-    from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
-
 import re
 import os
 import sys
 import ctypes
 import struct
 ##import weakref
+
+from . import win32
+from . import win32.version
+from .win32 import AnsiWide
+from .textio import HexInput, HexDump
+from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
 try:
     from distorm3 import Decode, Decode16Bits, Decode32Bits, Decode64Bits
@@ -2731,7 +2722,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.has_content()
@@ -2752,7 +2743,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return True
@@ -2775,7 +2766,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_free()
@@ -2798,7 +2789,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_reserved()
@@ -2821,7 +2812,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_commited()
@@ -2844,7 +2835,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_guard()
@@ -2869,7 +2860,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_readable()
@@ -2894,7 +2885,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_writeable()
@@ -2919,7 +2910,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_copy_on_write()
@@ -2944,7 +2935,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable()
@@ -2973,7 +2964,7 @@ class MemoryOperations (object):
             mbi = self.mquery(address)
         except WindowsError:
             e = sys.exc_info()[1]
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable_and_writeable()
@@ -3006,7 +2997,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.has_content():
@@ -3041,7 +3032,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_readable():
@@ -3076,7 +3067,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_writeable():
@@ -3112,7 +3103,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_copy_on_write():
@@ -3147,7 +3138,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_executable():
@@ -3186,7 +3177,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(address)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_executable():
@@ -3227,7 +3218,7 @@ class MemoryOperations (object):
                 mbi = self.mquery(currentAddr)
             except WindowsError:
                 e = sys.exc_info()[1]
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
             memoryMap.append(mbi)
@@ -7903,7 +7894,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.wait(0)
         except WindowsError:
             e = sys.exc_info()[1]
-            return win32.winerror(e) == win32.WAIT_TIMEOUT
+            return e.winerror == win32.WAIT_TIMEOUT
         return False
 
     def get_exit_code(self):

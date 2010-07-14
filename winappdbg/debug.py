@@ -39,22 +39,14 @@ __all__ =   [
                 'Debug',
             ]
 
-try:
-    exec('''
+import sys
+import ctypes
+##import traceback
+
 from . import win32
 from .system import System, Process, Thread, Module
 from .breakpoint import BreakpointContainer, CodeBreakpoint
 from .event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
-''')
-except Exception:
-    import win32
-    from system import System, Process, Thread, Module
-    from breakpoint import BreakpointContainer, CodeBreakpoint
-    from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
-
-import sys
-import ctypes
-##import traceback
 
 #==============================================================================
 

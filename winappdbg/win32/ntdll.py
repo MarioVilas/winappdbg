@@ -31,14 +31,8 @@ Wrapper for ntdll.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .peb_teb import *
-""")
-except Exception:
-    from defines import *
-    from peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 

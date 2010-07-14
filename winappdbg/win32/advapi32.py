@@ -31,14 +31,8 @@ Wrapper for advapi32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .kernel32 import *
-""")
-except Exception:
-    from defines import *
-    from kernel32 import *
 
 # Python 2.x/3.x compatibility hack
 try:

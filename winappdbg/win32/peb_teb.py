@@ -31,14 +31,8 @@ PEB and TEB structures, constants and data types.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .version import os
-""")
-except Exception:
-    from defines import *
-    from version import os
 
 #--- PEB and TEB structures, constants and data types -------------------------
 

@@ -58,18 +58,12 @@ __all__ = [
 
     ]
 
-try:
-    exec("""
+import sys
+
 from .system import Process, System, MemoryAddresses
 from .util import DebugRegister
 from .textio import HexDump
 from . import win32
-""")
-except Exception:
-    from system import Process, System, MemoryAddresses
-    from util import DebugRegister
-    from textio import HexDump
-    import win32
 
 # Python 3.x compatibility
 try:

@@ -31,10 +31,7 @@ Wrapper for shlwapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("from .defines import *")
-except Exception:
-    from defines import *
+from .defines import *
 
 OS_WINDOWS                  = 0
 OS_NT                       = 1

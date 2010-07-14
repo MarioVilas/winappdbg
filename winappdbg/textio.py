@@ -59,11 +59,7 @@ import time
 import struct
 import traceback
 
-# Python 2/3 compatible package imports
-try:
-    exec('from . import win32')
-except Exception:
-    import win32
+from . import win32
 
 # Python 2.x/3.x compatibility hack
 try:

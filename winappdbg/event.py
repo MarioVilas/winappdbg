@@ -81,23 +81,15 @@ __all__ = [
             'ExceptionEvent'
           ]
 
-try:
-    exec('''
+import sys
+import ctypes
+##import weakref
+
 from . import win32
 from .win32 import FileHandle, ProcessHandle, ThreadHandle
 from .breakpoint import ApiHook
 from .system import Module, Thread, Process, PathOperations
 from .textio import HexDump
-''')
-except Exception:
-    import win32
-    from win32 import FileHandle, ProcessHandle, ThreadHandle
-    from breakpoint import ApiHook
-    from system import Module, Thread, Process, PathOperations
-    from textio import HexDump
-
-import ctypes
-##import weakref
 
 # Python 3.x compatibility
 try:

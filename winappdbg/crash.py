@@ -57,22 +57,16 @@ __all__ = [
 
 ]
 
-try:
-    exec('''
-from .system import MemoryAddresses, PathOperations
-from .textio import HexDump, CrashDump
-from . import win32
-''')
-except Exception:
-    from system import MemoryAddresses, PathOperations
-    from textio import HexDump, CrashDump
-    import win32
-
 import os
+import sys
 import time
 import zlib
 import pprint
 import traceback
+
+from .system import MemoryAddresses, PathOperations
+from .textio import HexDump, CrashDump
+from . import win32
 
 # lazy imports
 anydbm = None

@@ -31,16 +31,9 @@ Wrapper for user32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .kernel32 import GetLastError, SetLastError
 from .gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
-""")
-except Exception:
-    from defines import *
-    from kernel32 import GetLastError, SetLastError
-    from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
 #--- Helpers ------------------------------------------------------------------
 

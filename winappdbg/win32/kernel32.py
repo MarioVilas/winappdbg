@@ -31,14 +31,8 @@ Wrapper for kernel32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-try:
-    exec("""
 from .defines import *
 from .version import os
-""")
-except SyntaxError:
-    from defines import *
-    from version import os
 
 # Python 3.x compatibility
 try:
