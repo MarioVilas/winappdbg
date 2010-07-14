@@ -64,7 +64,7 @@ If you're still using Python 2.4 you'll need to install some additional modules:
 
 * The `SQLite python bindings <http://sourceforge.net/projects/pysqlite/>`_ can be used with the crash logger tool to store the crash information in an SQLite database file.
 
-The `diStorm <http://code.google.com/p/distorm/>` disassembler is also required. You can download our prebuilt binaries from `here <http://winappdbg.sourceforge.net/distorm3/>`_.
+The `diStorm <http://code.google.com/p/distorm/>` disassembler is also required. You can download the `official <http://code.google.com/p/distorm/downloads/detail?name=distorm.zip&can=2&q=>`_ Python wrappers (32 bits only, manual install) or our own `installers <http://winappdbg.sourceforge.net/distorm3/>`_. Bear in mind that the official build is more likely to stay up to date.
 
 .. note::
 
