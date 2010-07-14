@@ -56,6 +56,10 @@ class Tracer( EventHandler ):
     # Branch mode
     def __branch(self, event):
         if self.options.mode == "branch":
+            
+            # XXX TODO
+            # There's a better but architecture dependent way to do this.
+            # Also this may not work at all under VirtualBox. :(
             event.debug.system.enable_step_on_branch_mode()
 
     # Syscall mode
@@ -63,6 +67,14 @@ class Tracer( EventHandler ):
         if self.options.mode == "syscall":
             pid    = event.get_pid()
             module = event.get_module()
+
+            # Unlike Linux, in Windows we don't have an API to let the system
+            # know we want to be notified of syscalls. What we're actually
+            # doing is placing a code breakpoint at the exported symbol in
+            # ntdll.dll for the usermode syscalls entry point. The downside of
+            # this method is if there are hardcoded INT 2E or SYSCALL opcodes
+            # anywhere else we won't be able to detect them. Compilers don't
+            # normally generate such code, but it may be found in malware.
             if module.match_name("ntdll"):
                 event.debug.break_at( pid, module.resolve("KiIntSystemCall"),
                                                       self.KiIntSystemCall )
