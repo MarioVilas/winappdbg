@@ -591,6 +591,14 @@ class CrashContainer (ContainerBase):
             self.__db = dict()
             ContainerBase.__init__(self)
 
+    def __enter__(self):
+        'Compatibility with the "C{with}" Python statement.'
+        return self
+
+    def __exit__(self, type, value, traceback):
+        'Compatibility with the "C{with}" Python statement.'
+        self.close()
+
     def close(self):
         "Close the database."
         if self.__filename:

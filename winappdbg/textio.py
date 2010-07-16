@@ -54,6 +54,8 @@ __all__ =   [
                 'Logger',
             ]
 
+from __future__ import with_statement
+
 import sys
 import time
 import struct
@@ -360,12 +362,9 @@ class HexOutput (object):
         @type  values: list( int )
         @param values: List of integers to write to the file.
         """
-        fd = open(filename, 'w')
-        try:
+        with open(filename, 'w') as fd:
             for integer in values:
                 fd.write('%s\n' % cls.integer(integer))
-        finally:
-            fd.close()
 
     @classmethod
     def string_list_file(cls, filename, values):
@@ -381,12 +380,9 @@ class HexOutput (object):
         @type  values: list( int )
         @param values: List of strings to write to the file.
         """
-        fd = open(filename, 'w')
-        try:
+        with open(filename, 'w') as fd:
             for string in values:
                 fd.write('%s\n' % string)
-        finally:
-            fd.close()
 
     @classmethod
     def mixed_list_file(cls, filename, values):
@@ -402,16 +398,13 @@ class HexOutput (object):
         @type  values: list( int )
         @param values: List of mixed values to write to the file.
         """
-        fd = open(filename, 'w')
-        try:
+        with open(filename, 'w') as fd:
             for original in values:
                 try:
                     parsed = cls.integer(original)
                 except TypeError:
                     parsed = repr(original)
             fd.write('%s\n' % parsed)
-        finally:
-            fd.close()
 
 #------------------------------------------------------------------------------
 
