@@ -101,7 +101,7 @@ __all__ =   [
                 'Crash',
                 'CrashContainer',
                 'CrashTable',
-                'CrashTableODBC',
+                'CrashTableMSSQL',
                 'VolatileCrashContainer',
                 'DummyCrashContainer',
 
