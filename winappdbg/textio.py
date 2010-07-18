@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 # Copyright (c) 2009-2010, Mario Vilas
 # All rights reserved.
 #
@@ -53,8 +55,6 @@ __all__ =   [
                 'DebugLog',
                 'Logger',
             ]
-
-from __future__ import with_statement
 
 import sys
 import time
