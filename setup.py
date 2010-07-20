@@ -114,6 +114,8 @@ http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win3
 
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.6.msi/download
 
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.7.msi/download
+
 Windows installer (64 bits)
 
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download
@@ -123,6 +125,8 @@ http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.5.msi/download
 
 http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.6.msi/download
+
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.7.msi/download
 
 Source code
 
@@ -200,6 +204,7 @@ params = {
                         'Programming Language :: Python :: 2.4',
                         'Programming Language :: Python :: 2.5',
                         'Programming Language :: Python :: 2.6',
+                        'Programming Language :: Python :: 2.7',
                         'Topic :: Software Development :: Debuggers',
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],
