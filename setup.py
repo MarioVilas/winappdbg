@@ -145,13 +145,13 @@ http://winappdbg.sourceforge.net/doc/v1.4/reference
 
 For download:
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/WinAppDbg.chm/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-tutorial-1.4.chm/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.chm/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.chm/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.pdf/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.pdf/download
 
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.ps/download
+http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.ps/download
 """
 
 # Get the list of scripts in the "tools" folder
