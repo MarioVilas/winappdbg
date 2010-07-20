@@ -386,8 +386,8 @@ class ModuleContainer (object):
         """
         Private method to remove a module object from the snapshot.
 
-        @type  aModule: L{Module}
-        @param aModule: Module object.
+        @type  lpBaseOfDll: int
+        @param lpBaseOfDll: Module base address.
         """
 ##        if lpBaseOfDll not in self.__moduleDict:
 ##            msg = "Unknown base address %d" % lpBaseOfDll
@@ -793,8 +793,8 @@ class ThreadContainer (object):
         """
         Private method to remove a thread object from the snapshot.
 
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        @type  dwThreadId: int
+        @param dwThreadId: Global thread ID.
         """
 ##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
@@ -1610,8 +1610,8 @@ class ProcessContainer (object):
         """
         Private method to remove a process object from the snapshot.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
+        @type  dwProcessId: int
+        @param dwProcessId: Global process ID.
         """
 ##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
@@ -4764,12 +4764,11 @@ class ProcessDebugOperations (object):
         """
         Private method used when disassembling from process memory.
 
+        It has no return value because the list is modified in place. On return
+        all raw memory addresses are replaced by labels when possible.
+
         @type  disasm: list of tuple(int, int, str, str)
         @param disasm: Output of one of the dissassembly functions.
-
-        @rtype  disasm: list of tuple(int, int, str, str)
-        @return disasm: Same disassembly output, but all raw memory addresses
-            are replaced by labels when possible.
         """
         for index in xrange(len(disasm)):
             (address, size, text, dump) = disasm[index]
