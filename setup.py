@@ -139,9 +139,9 @@ Documentation:
 
 Online
 
-http://winappdbg.sourceforge.net/doc/v1.4/
+http://winappdbg.sourceforge.net/doc/v1.4/tutorial
 
-http://sourceforge.net/apps/trac/winappdbg/wiki/ProgrammingGuide
+http://winappdbg.sourceforge.net/doc/v1.4/reference
 
 For download:
 
