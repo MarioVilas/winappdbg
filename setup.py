@@ -170,7 +170,6 @@ params = {
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
-    'options'           : options,
 
     # Metadata
     'name'              : 'winappdbg',
@@ -199,6 +198,7 @@ params = {
     }
 if py2exe is not None:
     params['console'] = scripts
+    params['options'] = options
 
 # Execute the setup script
 setup(**params)
