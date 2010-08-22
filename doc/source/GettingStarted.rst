@@ -13,18 +13,14 @@ The current version is **1.4**. You can choose **any** of the following files (i
 Windows (32 bits)
 +++++++++++++++++
 
-* `winappdbg-1.4.win32.exe       <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download>`_
-* `winappdbg-1.4.win32-py2.4.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.4.msi/download>`_
-* `winappdbg-1.4.win32-py2.5.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.5.msi/download>`_
-* `winappdbg-1.4.win32-py2.6.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32-py2.6.msi/download>`_
+* `winappdbg-1.4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download>`_
+* `winappdbg-1.4.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.msi/download>`_
 
 Windows (64 bits)
 +++++++++++++++++
 
-* `winappdbg-1.4.win-amd64.exe       <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download>`_
-* `winappdbg-1.4.win-amd64-py2.4.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.4.msi/download>`_
-* `winappdbg-1.4.win-amd64-py2.5.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.5.msi/download>`_
-* `winappdbg-1.4.win-amd64-py2.6.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64-py2.6.msi/download>`_
+* `winappdbg-1.4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download>`_
+* `winappdbg-1.4.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.msi/download>`_
 
 Source code
 +++++++++++
@@ -75,6 +71,8 @@ Optional packages
 
 The following packages provide extra features and performance improvements, but they're not required to use *WinAppDbg*:
 
+* The `PyODBC <http://code.google.com/p/pyodbc/>`_ module gives the crach logger tool the ability to connect to MSSQL databases.
+
 * The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
 
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
@@ -92,17 +90,17 @@ The following tables show which Python interpreters, operating systems and proce
 
 * Python interpreters
 
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
-    | Python 2.3 | *partial*      | (see `ticket #7 <https://sourceforge.net/apps/trac/winappdbg/ticket/7>`_)                     |
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
-    | Python 2.4 | **full**       |                                                                                               |
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
-    | Python 2.5 | **full**       |                                                                                               |
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
-    | Python 2.6 | **full**       |                                                                                               |
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
-    | Python 3.x | *experimental* | (see `this branch <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/branches/python3>`_) |
-    +------------+----------------+-----------------------------------------------------------------------------------------------+
+    +------------+----------------+----------------------------------------------------------------------------------------------+
+    | Python 2.4 | **full**       |                                                                                              |
+    +------------+----------------+----------------------------------------------------------------------------------------------+
+    | Python 2.5 | **full**       |                                                                                              |
+    +------------+----------------+----------------------------------------------------------------------------------------------+
+    | Python 2.6 | **full**       |                                                                                              |
+    +------------+----------------+----------------------------------------------------------------------------------------------+
+    | Python 2.7 | **full**       |                                                                                              |
+    +------------+----------------+----------------------------------------------------------------------------------------------+
+    | Python 3.x | *experimental* | (see `this branch <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/branches/compat>`_) |
+    +------------+----------------+----------------------------------------------------------------------------------------------+
 
 * Operating systems
 
@@ -125,7 +123,7 @@ The following tables show which Python interpreters, operating systems and proce
     +------------------------+------------+------------------------------------+
     | ReactOS                | *untested* | (probably similar to Windows 2000) |
     +------------------------+------------+------------------------------------+
-    | Linux (using Wine)     | *untested* | (reported to work on Ubuntu 9.10)  |
+    | Linux (using Wine)     | *untested* | (reported to work on Ubuntu)       |
     +------------------------+------------+------------------------------------+
 
 * Architectures
