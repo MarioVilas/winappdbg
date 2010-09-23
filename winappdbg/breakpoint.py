@@ -64,28 +64,7 @@ from .system import Process, System, MemoryAddresses
 from .util import DebugRegister
 from .textio import HexDump
 from . import win32
-
-# Python 3.x compatibility
-try:
-    callable
-except NameError:
-    import collections
-    def callable(obj):
-        return isinstance(obj, collections.Callable)
-
-# Python 3.x compatibility
-try:
-    long
-except NameError:
-    long = int
-
-# Python 2.x/3.x compatibility
-if sys.version_info[0] == 2:
-    def items(x):
-        return x.iteritems()
-else:
-    def items(x):
-        return x.items()
+from .win32.compat import *
 
 #==============================================================================
 

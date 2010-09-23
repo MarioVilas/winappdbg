@@ -34,18 +34,6 @@ __revision__ = "$Id$"
 from .defines import *
 from .version import arch, os
 
-# Python 3.x compatibility
-try:
-    long
-except NameError:
-    long = int
-if long == int:
-    def isnumtype(x):
-        return isinstance(x, int)
-else:
-    def isnumtype(x):
-        return isinstance(x, int) or isinstance(x, long)
-
 #--- CONTEXT structure and constants ------------------------------------------
 
 try:

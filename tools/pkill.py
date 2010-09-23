@@ -143,7 +143,7 @@ def main(argv):
         except WindowsError:
             e = sys.exc_info()[1]
             print("Warning: scanning for loaded modules failed %d: %s" % (pid, str(e)))
-    targets = next_targets    
+    targets = next_targets
 
     # Attach to every process.
     # Print a message on error, but don't stop.
@@ -169,13 +169,14 @@ def main(argv):
     # This must be done after attaching to at least one process.
     #
     # http://msdn.microsoft.com/en-us/library/ms679307(VS.85).aspx
-    try:
-        win32.DebugSetProcessKillOnExit(True)
-    except AttributeError:
-        pass
-    except WindowsError:
-        e = sys.exc_info()[1]
-        print("Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e))
+    if targets:
+        try:
+            win32.DebugSetProcessKillOnExit(True)
+        except AttributeError:
+            pass
+        except WindowsError:
+            e = sys.exc_info()[1]
+            print("Warning: call to DebugSetProcessKillOnExit() failed: %s" % str(e))
 
     if count == 0:
         print("Failed! No process was killed.")

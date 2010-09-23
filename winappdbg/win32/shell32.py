@@ -34,12 +34,6 @@ __revision__ = "$Id$"
 from .defines import *
 from .kernel32 import LocalFree
 
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
-
 #--- shell32.dll --------------------------------------------------------------
 
 # LPWSTR *CommandLineToArgvW(

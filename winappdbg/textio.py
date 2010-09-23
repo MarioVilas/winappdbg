@@ -62,12 +62,7 @@ import struct
 import traceback
 
 from . import win32
-
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
+from .win32.compat import *
 
 #------------------------------------------------------------------------------
 

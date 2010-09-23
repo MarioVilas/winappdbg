@@ -45,6 +45,7 @@ from cmd import Cmd
 import winappdbg
 from winappdbg import System, EventHandler, win32
 from winappdbg.event import NoEvent
+from winappdbg.win32.compat import *
 
 try:
     import readline
@@ -822,7 +823,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Prompt the user for a YES/NO kind of question.
     def ask_user(self, msg, prompt = "Are you sure? (y/N): "):
         print(msg)
-        answer = input(prompt)
+        answer = raw_input(prompt)
         answer = answer.strip()[:1].lower()
         return answer == 'y'
 

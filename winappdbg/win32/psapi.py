@@ -33,12 +33,6 @@ __revision__ = "$Id$"
 
 from .defines import *
 
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
-
 #--- PSAPI structures and constants -------------------------------------------
 
 LIST_MODULES_DEFAULT    = 0x00

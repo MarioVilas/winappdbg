@@ -39,11 +39,13 @@ __all__ =   [
                 'Debug',
             ]
 
+import os
 import sys
 import ctypes
 ##import traceback
 
 from . import win32
+from .win32.compat import *
 from .system import System, Process, Thread, Module
 from .breakpoint import BreakpointContainer, CodeBreakpoint
 from .event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
@@ -177,7 +179,11 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
+
+        # Attach to the process.
         win32.DebugActiveProcess(dwProcessId)
+
+        # Remember the PID of the debugee.
         self.__attachedDebugees.add(dwProcessId)
 
         # We can only set the kill on exit mode after having
@@ -409,6 +415,11 @@ class Debug (EventDispatcher, BreakpointContainer):
             parent process (default), or a process ID to forcefully set as the
             debugee's parent (only available for Windows Vista and above).
 
+            I{New in WinAppDbg 1.5}: If the feature is available and the
+            C{bHostileCode} flag was set, the default behavior when
+            C{dwParentProcessId} is C{None} is to make C{"explorer.exe"}
+            the parent of the new process.
+
         @rtype:  L{Process}
         @return: A new Process object.
 
@@ -462,11 +473,39 @@ class Debug (EventDispatcher, BreakpointContainer):
             parent process (default), or a process ID to forcefully set as the
             debugee's parent (only available for Windows Vista and above).
 
+            I{New in WinAppDbg 1.5}: If the feature is available and the
+            C{bHostileCode} flag was set, the default behavior when
+            C{dwParentProcessId} is C{None} is to make C{"explorer.exe"}
+            the parent of the new process.
+
         @rtype:  L{Process}
         @return: A new Process object.
 
         @raise WindowsError: Raises an exception on error.
         """
+
+        # If we're in hostile mode, the default parent is "explorer.exe".
+        # This feature is only available on Vista and above for now.
+        # XXX TODO maybe implement it using code injection on earlier versions?
+        if dwParentProcessId is None and self.__bHostileCode:
+            try:
+                win32.windll.kernel32.InitializeProcThreadAttributeList
+                bIsVista = True
+            except AttributeError:
+                bIsVista = False
+            if bIsVista:
+                # XXX TODO
+                # use SHGetKnownFolderPath here, also replaces
+                # the OS check since it's a Vista-and-newer API
+                explorer = os.path.join(os.getenv("SystemRoot"),
+                                        "system32", "explorer.exe")
+                explorer = self.system.find_processes_by_filename(explorer)
+                if explorer:
+                    explorer = [x[0].get_pid() for x in explorer]
+                    explorer.sort()
+                    dwParentProcessId = explorer[0]
+
+        # Spawn the new process.
         aProcess = self.system.start_process(lpCmdLine,
             bConsole          = bConsole,
             bDebug            = True,
@@ -476,12 +515,14 @@ class Debug (EventDispatcher, BreakpointContainer):
             dwParentProcessId = dwParentProcessId,
         )
 
+        # Process creation was successful, store the process ID.
         self.__startedDebugees.add( aProcess.get_pid() )
 
         # We can only set the kill on exit mode after having
         # established at least one debugging connection.
         self.system.set_kill_on_exit_mode(self.__bKillOnExit)
 
+        # Return the newly created process to the caller.
         return aProcess
 
 #------------------------------------------------------------------------------
@@ -849,19 +890,6 @@ class Debug (EventDispatcher, BreakpointContainer):
             aModule = event.get_module()
             if aModule.match_name('ntdll.dll'):
 
-##                # Check the int3 instruction where
-##                # the system breakpoint should be.
-##                # If missing, restore it. This defeats
-##                # a simple anti-debugging trick.
-####                address = aModule.resolve('DbgBreakPoint')
-####                address = aModule.resolve('DbgUserBreakPoint')
-##                address = aProcess.get_system_breakpoint()
-##                if address is not None:
-##                    aProcess.poke(address, CodeBreakpoint.int3)
-##                address = aProcess.get_user_breakpoint()
-##                if address is not None:
-##                    aProcess.poke(address, CodeBreakpoint.int3)
-
                 # Since we've overwritten the PEB to hide
                 # ourselves, we no longer have the system
                 # breakpoint when attaching to the process.
@@ -873,7 +901,12 @@ class Debug (EventDispatcher, BreakpointContainer):
                 # instruction at the system breakpoint.
                 DbgUiRemoteBreakin = 'ntdll!DbgUiRemoteBreakin'
                 DbgUiRemoteBreakin = aProcess.resolve_label(DbgUiRemoteBreakin)
-                self.break_at(aProcess.get_pid(), DbgUiRemoteBreakin)
+                if DbgUiRemoteBreakin:
+                    self.break_at(aProcess.get_pid(), DbgUiRemoteBreakin)
+                    #aProcess.debug_break()     # crashes for some reason!
+                    aProcess.start_thread(DbgUiRemoteBreakin, 0, False)
+
+                # XXX TODO what happens on error?
 
         return retval
 

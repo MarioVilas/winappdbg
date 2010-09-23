@@ -33,12 +33,6 @@ __revision__ = "$Id$"
 
 from .defines import *
 
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
-
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access
 # violation.

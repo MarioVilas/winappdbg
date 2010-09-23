@@ -34,11 +34,7 @@ __revision__ = "$Id$"
 import sys
 import ctypes
 
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
+from .compat import *
 
 #------------------------------------------------------------------------------
 
@@ -169,6 +165,12 @@ class AnsiWide(object):
         @rtype:  str (Python 3.x) or unicode (Python 2.x)
         @return: Converted string.
         """
+        if b is None:
+            return b
+        if not codec:
+            codec = sys.getdefaultencoding()
+        if not error:
+            error = 'strict'
         if hasattr(b, 'encode'):
             return b.encode(codec, error)
         if codec or error:
@@ -176,12 +178,12 @@ class AnsiWide(object):
         return str(b)
 
     @staticmethod
-    def wide(b, codec=None, error=None):
+    def wide(s, codec=None, error=None):
         """
         Converts ANSI strings to Unicode (wide) format.
 
-        @type  b: str (Python 3.x) or unicode (Python 2.x)
-        @param b: string to convert
+        @type  s: str (Python 3.x) or unicode (Python 2.x)
+        @param s: string to convert
 
         @type  codec: str or None
         @param codec: (Optional) Codec to use.
@@ -192,9 +194,15 @@ class AnsiWide(object):
         @rtype:  bytes (Python 3.x) or str (Python 2.x)
         @return: Converted string.
         """
-        if hasattr(b, 'decode'):
-            return b.decode(codec, error)
-        return unicode(b, codec, error)
+        if s is None:
+            return s
+        if not codec:
+            codec = sys.getdefaultencoding()
+        if not error:
+            error = 'strict'
+        if hasattr(s, 'decode'):
+            return s.decode(codec, error)
+        return unicode(s, codec, error)
 
     @classmethod
     def wide_args(cls, argv, argd):
@@ -216,10 +224,10 @@ class AnsiWide(object):
             x = argv[index]
             if isinstance(x, t_ansi):
                 argv[index] = cls.wide(x)
-        for key in argv.keys():
-            x = argv[key]
+        for key in keys(argd):
+            x = argd[key]
             if isinstance(x, t_ansi):
-                argv[key] = cls.wide(x)
+                argd[key] = cls.wide(x)
 
     @classmethod
     def has_ansi(cls, argv, argd):
@@ -239,6 +247,9 @@ class AnsiWide(object):
         """
         t_ansi = cls.t_ansi
         for x in argv:
+            if isinstance(x, t_ansi):
+                return True
+        for x in values(argd):
             if isinstance(x, t_ansi):
                 return True
         return False
@@ -261,6 +272,9 @@ class AnsiWide(object):
         """
         t_wide = cls.t_wide
         for x in argv:
+            if isinstance(x, t_wide):
+                return True
+        for x in values(argd):
             if isinstance(x, t_wide):
                 return True
         return False
@@ -315,6 +329,7 @@ class GuessStringType(object):
 
             # If al least one argument is an ANSI string,
             # convert all ANSI strings to Unicode
+            argv = list(argv)
             AnsiWide.wide_args(argv, argd)
 
             # Use the W version
@@ -346,6 +361,7 @@ class MakeANSIVersion(object):
         self.fn = fn
 
     def __call__(self, *argv, **argd):
+        argv = list(argv)
         AnsiWide.wide_args(argv, argd)
         return self.fn(*argv, **argd)
 

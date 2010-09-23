@@ -87,31 +87,10 @@ import ctypes
 
 from . import win32
 from .win32 import FileHandle, ProcessHandle, ThreadHandle
+from .win32.compat import *
 from .breakpoint import ApiHook
 from .system import Module, Thread, Process, PathOperations
 from .textio import HexDump
-
-# Python 3.x compatibility
-try:
-    callable
-except NameError:
-    import collections
-    def callable(obj):
-        return isinstance(obj, collections.Callable)
-
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
-
-# Python 2.x/3.x compatibility
-if sys.version_info[0] == 2:
-    def items(x):
-        return x.iteritems()
-else:
-    def items(x):
-        return x.items()
 
 #==============================================================================
 

@@ -63,6 +63,7 @@ import struct
 
 from . import win32
 from .win32 import version, AnsiWide
+from .win32.compat import *
 from .textio import HexInput, HexDump
 from .util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 
@@ -80,31 +81,6 @@ except ImportError:
             msg = ("diStorm is not installed or can't be found. Download it from: "
             "http://code.google.com/p/distorm3")
             raise NotImplementedError(msg)
-
-# Python 2.x compatibility
-try:
-    next
-except NameError:
-    def next(e):
-        return e.next()
-
-# Python 2.x/3.x compatibility hack
-try:
-    range = xrange
-except NameError:
-    xrange = range
-
-# Python 3.x compatibility
-try:
-    long
-except NameError:
-    long = int
-if long == int:
-    def isnumtype(x):
-        return isinstance(x, int)
-else:
-    def isnumtype(x):
-        return isinstance(x, int) or isinstance(x, long)
 
 #==============================================================================
 
@@ -1709,7 +1685,7 @@ class ProcessContainer (object):
                         self.__add_process(aProcess)
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
-                    if not aProcess.__ThreadContainer__has_thread(dwThreadId):
+                    if not aProcess._ThreadContainer__has_thread(dwThreadId):
                         aThread = Thread(dwThreadId, process = aProcess)
                         aProcess._ThreadContainer__add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
@@ -3567,6 +3543,24 @@ class SymbolContainer (object):
         load_symbols, unload_symbols, get_symbols, iter_symbols,
         resolve_symbol, get_symbol_at_address
     """
+
+    # XXX FIXME
+    #
+    # When the Microsoft Debugging Tools are installed (i.e. dbghelp.dll
+    # version 5 or above is installed) and the symbol store path isn't
+    # properly configured, symbol loading fails entirely. On older versions
+    # the behavior on error was to fall back to exported symbols only.
+    #
+    # This is very annoying, because I was using dbghelp.dll to avoid having
+    # to code my own PE file parser. :(
+    #
+    # A possible workaround is to support using the old version of the library,
+    # but first I have to figure out a way to detect this particular error (for
+    # example checking if the library has no symbols).
+    #
+    # Another workaround is to support an existing PE parsing library. So far
+    # my favorite is pefile.py by Ero Carrera: http://dkbza.org/pefile.html
+    # This may be the perfect excuse to add support for it :)
 
     def __init__(self):
         self.__symbols = list()

@@ -67,24 +67,12 @@ import traceback
 from .system import MemoryAddresses, PathOperations
 from .textio import HexDump, CrashDump
 from . import win32
+from .win32.compat import *
 
 # lazy imports
 anydbm = None
 sqlite = None
 pyodbc = None
-
-# Python 2.x compatibility
-try:
-    next
-except NameError:
-    def next(e):
-        return e.next()
-
-# Python 2.x compatibility
-try:
-    long
-except NameError:
-    long = int
 
 #==============================================================================
 
