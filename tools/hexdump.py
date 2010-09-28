@@ -39,7 +39,7 @@ def main(argv):
     if len(argv) != 2:
         import os
         script = os.path.basename(argv[0])
-        print("  %s <filename>")
+        print("  %s <filename>" % script)
         return
     data = open(argv[1], 'rb').read()
     print(HexDump.hexblock(data, 0))
