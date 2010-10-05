@@ -249,6 +249,34 @@ class WAITCHAIN_NODE_INFO(Structure):
 
 PWAITCHAIN_NODE_INFO = POINTER(WAITCHAIN_NODE_INFO)
 
+#--- Privilege dropping -------------------------------------------------------
+
+SAFER_LEVEL_HANDLE = HANDLE
+
+SAFER_SCOPEID_MACHINE = 1
+SAFER_SCOPEID_USER    = 2
+
+SAFER_LEVEL_OPEN = 1
+
+SAFER_LEVELID_DISALLOWED   = 0x00000
+SAFER_LEVELID_UNTRUSTED    = 0x01000
+SAFER_LEVELID_CONSTRAINED  = 0x10000
+SAFER_LEVELID_NORMALUSER   = 0x20000
+SAFER_LEVELID_FULLYTRUSTED = 0x40000
+
+SAFER_POLICY_INFO_CLASS = DWORD
+SaferPolicyLevelList = 1
+SaferPolicyEnableTransparentEnforcement = 2
+SaferPolicyDefaultLevel = 3
+SaferPolicyEvaluateUserScope = 4
+SaferPolicyScopeFlags = 5
+
+SAFER_TOKEN_NULL_IF_EQUAL = 1
+SAFER_TOKEN_COMPARE_ONLY  = 2
+SAFER_TOKEN_MAKE_INERT    = 4
+SAFER_TOKEN_WANT_FLAGS    = 8
+SAFER_TOKEN_MASK          = 15
+
 #--- Handle wrappers ----------------------------------------------------------
 
 # XXX maybe add functions related to the tokens here?
@@ -259,6 +287,36 @@ class TokenHandle (Handle):
     @see: L{Handle}
     """
     pass
+
+class SaferLevelHandle (Handle):
+    """
+    Safer level handle.
+    
+    @see: U{http://msdn.microsoft.com/en-us/library/ms722425(VS.85).aspx}
+    """
+
+    @property
+    def _as_parameter_(self):
+        return SAFER_LEVEL_HANDLE(self.value)
+
+    @staticmethod
+    def from_param(value):
+        return SAFER_LEVEL_HANDLE(self.value)
+
+    def close(self):
+        if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
+            if Handle.__bLeakDetection:     # XXX DEBUG
+                print "CLOSE HANDLE (%d) %r" % (self.value, self)
+            try:
+                SaferCloseLevel(self.value)
+            finally:
+                self.value = None
+
+    def dup(self):
+        raise NotImplementedError
+
+    def wait(self, dwMilliseconds = None):
+        raise NotImplementedError
 
 #--- advapi32.dll -------------------------------------------------------------
 
@@ -524,4 +582,105 @@ def CloseThreadWaitChainSession(WctHandle):
     _CloseThreadWaitChainSession = windll.advapi32.CloseThreadWaitChainSession
     _CloseThreadWaitChainSession.argtypes = [HWCT]
     _CloseThreadWaitChainSession(WctHandle)
+
+# BOOL WINAPI SaferCreateLevel(
+#   __in        DWORD dwScopeId,
+#   __in        DWORD dwLevelId,
+#   __in        DWORD OpenFlags,
+#   __out       SAFER_LEVEL_HANDLE *pLevelHandle,
+#   __reserved  LPVOID lpReserved
+# );
+def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMALUSER, OpenFlags=SAFER_LEVEL_OPEN):
+    _SaferCreateLevel = windll.advapi32.SaferCreateLevel
+    _SaferCreateLevel.argtypes = [DWORD, DWORD, DWORD, POINTER(SAFER_LEVEL_HANDLE), LPVOID]
+    _SaferCreateLevel.restype  = BOOL
+    _SaferCreateLevel.errcheck = RaiseIfZero
+
+    hLevelHandle = SAFER_LEVEL_HANDLE(INVALID_HANDLE_VALUE)
+    _SaferCreateLevel(dwScopeId, dwLevelId, OpenFlags, ctypes.byref(hLevelHandle), None)
+    return SaferLevelHandle(hLevelHandle.value)
+
+# BOOL WINAPI SaferIdentifyLevel(
+#   __in        DWORD dwNumProperties,
+#   __in_opt    PSAFER_CODE_PROPERTIES pCodeProperties,
+#   __out       SAFER_LEVEL_HANDLE *pLevelHandle,
+#   __reserved  LPVOID lpReserved
+# );
+
+# XXX TODO
+
+# BOOL WINAPI SaferComputeTokenFromLevel(
+#   __in         SAFER_LEVEL_HANDLE LevelHandle,
+#   __in_opt     HANDLE InAccessToken,
+#   __out        PHANDLE OutAccessToken,
+#   __in         DWORD dwFlags,
+#   __inout_opt  LPVOID lpReserved
+# );
+def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpReserved=None):
+    _SaferComputeTokenFromLevel = windll.advapi32.SaferCreateLevel
+    _SaferComputeTokenFromLevel.argtypes = [SAFER_LEVEL_HANDLE, HANDLE, PHANDLE, DWORD, LPVOID]
+    _SaferComputeTokenFromLevel.restype  = BOOL
+    _SaferComputeTokenFromLevel.errcheck = RaiseIfZero
+
+    # This is probably one of the ugliest Win32 API interfaces ever! :(
+    # That's why, depending on the dwFlags argument, we may have to use a
+    # pointer for the lpReserved argument.
+    #
+    # The most usual case, however, is to pass only the LevelHandle and the
+    # InAccessToken parameters, leaving all the rest with default values.
+    # Then the return value is the new token (a TokenHandle instance).
+    #
+    # For example, if hToken is a token to be restricted...
+    #
+    #   with SaferCreateLevel( dwLevelId = SAFER_LEVELID_UNTRUSTED ) as LevelHandle:
+    #       hRestrictedToken = SaferComputeTokenFromLevel(LevelHandle, hToken)
+    #
+    # would produce the restricted token as hRestrictedToken.
+
+    OutAccessToken = HANDLE(INVALID_HANDLE_VALUE)
+
+    # Low-level access, for unknown flags.
+    # Returns a ctypes object. No handle wrapping is done.
+    # The lpReserved argument should be a ctypes object too, or None.
+    if (dwFlags & SAFER_TOKEN_MASK) != dwFlags:
+        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, lpReserved)
+        return TokenHandle(OutAccessToken.value)
+
+    # Extra flags.
+    if dwFlags | SAFER_TOKEN_WANT_FLAGS:
+        if lpReserved is not None:
+            raise ValueError, "SaferComputeTokenFromLevel: lpReserved shouldn't be NULL for SAFER_TOKEN_WANT_FLAGS"
+        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, lpReserved)
+        return TokenHandle(OutAccessToken.value)
+
+    # Only compare the token.
+    if dwFlags | SAFER_TOKEN_COMPARE_ONLY:
+        if lpReserved is None:
+            lpReserved = LPVOID(None)
+            _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, ctypes.byref(lpReserved))
+            return lpReserved.value
+        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, lpReserved)
+        return None
+
+    # Every other known flag.
+    if lpReserved is not None:
+        raise ValueError, "SaferComputeTokenFromLevel: lpReserved must be NULL for these flags"
+    _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, None)
+    return TokenHandle(OutAccessToken.value)
+
+# BOOL WINAPI SaferCloseLevel(
+#   __in  SAFER_LEVEL_HANDLE hLevelHandle
+# );
+def SaferCloseLevel(hLevelHandle):
+    _SaferCloseLevel = windll.advapi32.SaferCloseLevel
+    _SaferCloseLevel.argtypes = [SAFER_LEVEL_HANDLE]
+    _SaferCloseLevel.restype  = BOOL
+    _SaferCloseLevel.errcheck = RaiseIfZero
+
+    if hasattr(hLevelHandle, 'close'):
+        hLevelHandle.close()
+    elif hasattr(hLevelHandle, 'value'):
+        _SaferCloseLevel(hLevelHandle.value)
+    else:
+        _SaferCloseLevel(hLevelHandle)
 
