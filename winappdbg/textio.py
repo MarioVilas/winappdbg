@@ -1007,7 +1007,7 @@ class CrashDump (object):
         if pointers:
             if win32.CONTEXT.arch == 'i386':
                 spreg = 'esp'
-            elif win32.CONTEXT.arch == 'i386':
+            elif win32.CONTEXT.arch == 'amd64':
                 spreg = 'rsp'
             else:
                 spreg = 'STACK' # just a generic tag
