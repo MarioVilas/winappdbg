@@ -4743,7 +4743,7 @@ class ProcessDebugOperations (object):
     Encapsulates several useful debugging routines for processes.
 
     @group Properties:
-        is_wow64, get_peb, get_peb_address,
+        is_wow64, get_dep_status, get_peb, get_peb_address,
         get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
@@ -4979,6 +4979,35 @@ class ProcessDebugOperations (object):
             return win32.IsWow64Process(hProcess)
         except AttributeError:
             return False
+
+    def get_dep_policy(self):
+        """
+        Retrieves the DEP (Data Execution Prevention) policy for this process.
+        
+        @note: This method is only available in Windows XP SP3 and above.
+            When run on previous versions of Windows a C{WindowsError}
+            exception is raised with code C{ERROR_NOT_SUPPORTED}.
+        
+        @see: L{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
+        
+        @rtype:  tuple(int, int)
+        @return:
+            The first member of the tuple is the DEP flags. It can be a
+            combination of the following values:
+             - 0: DEP is disabled for this process.
+             - 1: DEP is enabled for this process. (C{PROCESS_DEP_ENABLE})
+             - 2: DEP-ATL thunk emulation is disabled for this process.
+                  (C{PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION})
+            
+            The second member of the tuple is the permanent flag. If C{TRUE}
+            the DEP settings cannot be changed in runtime for this process.
+        
+        @raise WindowsError: On error an exception is raised.
+        """
+        try:
+            return win32.kernel32.GetProcessDEPPolicy( self.get_handle() )
+        except AttributeError:
+            raise ctypes.WinError(win32.ERROR_NOT_SUPPORTED)
 
 #------------------------------------------------------------------------------
 

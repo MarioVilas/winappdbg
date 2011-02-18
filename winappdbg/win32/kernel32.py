@@ -475,6 +475,10 @@ PRODUCT_ULTIMATE_N = 0x0000001C
 PRODUCT_WEB_SERVER = 0x00000011
 PRODUCT_WEB_SERVER_CORE = 0x0000001D
 
+# DEP policy flags
+PROCESS_DEP_ENABLE = 1
+PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION = 2
+
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
@@ -3712,6 +3716,24 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
 
 #------------------------------------------------------------------------------
 # Miscellaneous system information
+
+# Contribution by ivanlef0u (http://ivanlef0u.fr/)
+# XP SP3 and > only
+# BOOL WINAPI GetProcessDEPPolicy(
+#  __in   HANDLE hProcess,
+#  __out  LPDWORD lpFlags,
+#  __out  PBOOL lpPermanent
+# );
+def GetProcessDEPPolicy(hProcess):
+    _GetProcessDEPPolicy = windll.kernel32.GetProcessDEPPolicy
+    _GetProcessDEPPolicy.argtypes = [HANDLE, LPDWORD, PBOOL]
+    _GetProcessDEPPolicy.restype  = bool
+    _GetProcessDEPPolicy.errcheck = RaiseIfZero
+
+    lpFlags = DWORD(0)
+    lpPermanent = BOOL(0)
+    _GetProcessDEPPolicy(hProcess, ctypes.byref(lpFlags), ctypes.byref(lpPermanent))
+    return (lpFlags.value, lpPermanent.value)
 
 # DWORD WINAPI GetCurrentProcessorNumber(void);
 def GetCurrentProcessorNumber():
