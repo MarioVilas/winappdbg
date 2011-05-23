@@ -22,3 +22,7 @@ Table of Contents
    ProgrammingGuide
    Redistribution
 
+Reference documentation
+-----------------------
+
+`Click here <http://winappdbg.sourceforge.net/doc/v1.4/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.

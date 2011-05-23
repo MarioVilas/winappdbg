@@ -13,20 +13,27 @@ The current version is **1.4**. You can choose **any** of the following files (i
 Windows (32 bits)
 +++++++++++++++++
 
-* `winappdbg-1.4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download>`_
-* `winappdbg-1.4.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.msi/download>`_
+* `winappdbg-1.4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download>`_ - Standard installer
+* `winappdbg-1.4.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.msi/download>`_ - MSI installer
 
 Windows (64 bits)
 +++++++++++++++++
 
-* `winappdbg-1.4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download>`_
-* `winappdbg-1.4.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.msi/download>`_
+* `winappdbg-1.4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download>`_ - Standard installer
+* `winappdbg-1.4.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.msi/download>`_ - MSI installer
 
 Source code
 +++++++++++
 
-* `winappdbg-1.4.zip     <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download>`_
-* `winappdbg-1.4.tar.bz2 <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.tar.bz2/download>`_
+* `winappdbg-1.4.zip     <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download>`_ - Manual install
+
+Manuals
++++++++
+
+The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.4/reference/>`_, but they're also provided as CHM help files for download:
+
+* `winappdbg-tutorial-1.4.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-tutorial-1.4.chm/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.4.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.chm/download>`_ - Complete reference material
 
 The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version as a source code tarball from the `subversion repository <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/trunk.tar.gz?view=tar>`_.
 
@@ -71,7 +78,7 @@ Optional packages
 
 The following packages provide extra features and performance improvements, but they're not required to use *WinAppDbg*:
 
-* The `PyODBC <http://code.google.com/p/pyodbc/>`_ module gives the crach logger tool the ability to connect to MSSQL databases.
+* The `PyODBC <http://code.google.com/p/pyodbc/>`_ module gives the crash logger tool the ability to connect to MSSQL databases.
 
 * The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
 
@@ -123,7 +130,9 @@ The following tables show which Python interpreters, operating systems and proce
     +------------------------+------------+------------------------------------+
     | ReactOS                | *untested* | (probably similar to Windows 2000) |
     +------------------------+------------+------------------------------------+
-    | Linux (using Wine)     | *untested* | (reported to work on Ubuntu)       |
+    | Linux (using Wine 1.2) | *untested* | (reported to work on Ubuntu)       |
+    +------------------------+------------+------------------------------------+
+    | Linux (using Wine 1.3) | *untested* | (reported to work on Ubuntu)       |
     +------------------------+------------+------------------------------------+
 
 * Architectures
@@ -131,7 +140,7 @@ The following tables show which Python interpreters, operating systems and proce
     +----------------------------------------+----------------+-----------------------------------------------------------+
     | Intel x86 (32 bits) and compatible     | **full**       |                                                           |
     +----------------------------------------+----------------+-----------------------------------------------------------+
-    | Intel x86_x64 (64 bits) and compatible | *partial*      | (function hooks are not implemented)                      |
+    | Intel x86_x64 (64 bits) and compatible | *partial*      | (function hooks are not yet implemented)                      |
     +----------------------------------------+----------------+-----------------------------------------------------------+
     | Intel IA64 (Itanium)                   | *experimental* | (no actual Itanium system to test it on, help is needed!) |
     +----------------------------------------+----------------+-----------------------------------------------------------+
