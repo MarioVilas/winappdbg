@@ -68,7 +68,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     The main debugger class.
 
     @group Debugging:
-        attach, detach, detach_from_all, execv, execl, clear,
+        attach, detach, detach_from_all, execv, execl, kill, clear,
         get_debugee_count, get_debugee_pids,
         is_debugee, is_debugee_attached, is_debugee_started
 

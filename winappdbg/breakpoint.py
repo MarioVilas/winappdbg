@@ -1578,6 +1578,7 @@ class BreakpointContainer (object):
         notify_guard_page,
         notify_breakpoint,
         notify_single_step,
+        notify_unload_dll,
         notify_exit_thread,
         notify_exit_process
 
