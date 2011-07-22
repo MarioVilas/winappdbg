@@ -72,6 +72,11 @@ anydbm = None
 sqlite = None
 pyodbc = None
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #==============================================================================
 
 # Secure alternative to pickle, use it if present.

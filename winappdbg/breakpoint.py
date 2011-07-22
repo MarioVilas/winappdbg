@@ -63,6 +63,11 @@ from util import DebugRegister
 from textio import HexDump
 import win32
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #==============================================================================
 
 class Breakpoint (object):

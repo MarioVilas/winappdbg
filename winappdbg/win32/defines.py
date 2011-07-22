@@ -33,6 +33,11 @@ __revision__ = "$Id$"
 
 import ctypes
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.

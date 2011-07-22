@@ -44,6 +44,12 @@ import optparse
 import traceback
 import ConfigParser
 
+try:
+    import psyco
+    from psyco.classes import *
+except ImportError:
+    pass
+
 # XXX TODO
 # Use the "signal" module to avoid having to deal with unexpected
 # KeyboardInterrupt exceptions everywhere. Ideally there should be a way to
@@ -1086,8 +1092,7 @@ def main(argv):
 
 if __name__ == '__main__':
     try:
-        import psyco
         psyco.bind(main)
-    except ImportError:
+    except NameError:
         pass
     main(sys.argv)

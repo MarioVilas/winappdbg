@@ -60,6 +60,11 @@ import time
 import struct
 import traceback
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #------------------------------------------------------------------------------
 
 class HexInput (object):

@@ -72,6 +72,11 @@ __all__ = [
 import os
 import win32
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #==============================================================================
 
 # See Process.generate_memory_snapshot()

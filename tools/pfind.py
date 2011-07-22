@@ -34,12 +34,18 @@
 
 __revision__ = "$Id$"
 
+from winappdbg import Process, System, HexDump, HexInput, win32
+
 import re
 import os
 import sys
 import optparse
 
-from winappdbg import Process, System, HexDump, HexInput, win32
+try:
+    import psyco
+    from psyco.classes import *
+except ImportError:
+    pass
 
 #==============================================================================
 
@@ -426,8 +432,8 @@ def main(argv):
 
 if __name__ == '__main__':
     try:
-        import psyco
+        psyco.cannotcompile(re.compile)
         psyco.bind(main)
-    except ImportError:
+    except NameError:
         pass
     main(sys.argv)

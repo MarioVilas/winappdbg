@@ -90,6 +90,11 @@ from textio import HexDump
 import ctypes
 ##import weakref
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #==============================================================================
 
 class Event (object):

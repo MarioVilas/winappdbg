@@ -81,6 +81,11 @@ except ImportError:
             "http://code.google.com/p/distorm3")
             raise NotImplementedError, msg
 
+try:
+    from psyco.classes import *
+except ImportError:
+    pass
+
 #==============================================================================
 
 class ModuleContainer (object):
