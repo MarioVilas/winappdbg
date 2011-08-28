@@ -77,8 +77,8 @@ except ImportError:
         Decode64Bits = None
         def Decode(*argv, **argd):
             "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
-            msg = ("diStorm is not installed or can't be found. Download it from: "
-            "http://code.google.com/p/distorm3")
+            msg = ("diStorm is not installed or can't be found. "
+            "Download it from: http://code.google.com/p/distorm3")
             raise NotImplementedError, msg
 
 try:
@@ -3836,9 +3836,6 @@ When called as an instance method, the fuzzy syntax mode is used::
             label = self.parse_label(None, None, address)
         return label
 
-    # XXX TODO
-    # DbgBreakPointWithStatus: http://msdn.microsoft.com/en-us/library/ms792807.aspx
-
     def is_system_defined_breakpoint(self, address):
         """
         @type  address: int
@@ -5538,7 +5535,7 @@ class Window (object):
 ##            else:
                 return self.__thread
         # can't use weakrefs here, it's our only reference
-        self.__thread = Thread(self.get_pid())
+        self.__thread = Thread(self.get_tid())
         return self.__thread
 
     def set_thread(self, thread = None):
@@ -7764,6 +7761,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
                 raise
 
         # Wait for the thread to finish.
+        # XXX TODO free the injected memory here too
         if bWait:
             aThread.wait(dwTimeout)
 

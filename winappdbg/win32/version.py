@@ -501,7 +501,6 @@ def get_arch():
         return 'ia64'
     return 'unknown'
 
-# XXX TODO
 def get_os():
     """
     Determines the current operating system.
