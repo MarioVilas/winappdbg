@@ -30,137 +30,29 @@
 __revision__ = "$Id$"
 
 from distutils.core import setup
+from warnings import warn
 
-from glob import glob
-from os.path import join
-from sys import version_info
+import os
+import sys
+import glob
 
-# Use py2exe if installed
-try:
-    import py2exe
-except ImportError:
-    py2exe = None
-
-# Get the list of supported database modules
-# to be added to the py2exe generated package
-if py2exe is not None:
-    try:
-        import sqlite3
-    except ImportError:
-        print "Warning: sqlite3 not found!"
-        try:
-            from pysqlite2 import dbapi2
-        except ImportError:
-            print "Warning: pysqlite2 not found!"
-    try:
-        import pyodbc
-    except ImportError:
-        print "Warning: pyodbc not found!"
-    import anydbm
-    try:
-        _names = anydbm._names
-    except NameError:
-        _names = ['dbhash', 'gdbm', 'dbm', 'dumbdbm']
-    dbnames = ['anydbm', 'whichdb']
-    for name in _names:
-        try:
-            __import__(name)
-            dbnames.append(name)
-        except ImportError:
-            pass
+# Get the base directory
+here = os.path.dirname(__file__)
+if not here:
+    here = os.path.curdir
 
 # Text describing the module (reStructured text)
-long_description = \
-"""What is WinAppDbg?
-==================
-
-The WinAppDbg python module allows developers to quickly code instrumentation
-scripts in Python under a Windows environment.
-
-It uses ctypes to wrap many Win32 API calls related to debugging, and provides
-an object-oriented abstraction layer to manipulate threads, libraries and
-processes, attach your script as a debugger, trace execution, hook API calls,
-handle events in your debugee and set breakpoints of different kinds (code,
-hardware and memory). Additionally it has no native code at all, making it
-easier to maintain or modify than other debuggers on Windows.
-
-The intended audience are QA engineers and software security auditors wishing to
-test / fuzz Windows applications with quickly coded Python scripts. Several
-ready to use utilities are shipped and can be used for this purposes.
-
-Current features also include disassembling x86 native code (using the open
-source diStorm project, see http://ragestorm.net/distorm/), debugging multiple
-processes simultaneously and produce a detailed log of application crashes,
-useful for fuzzing and automated testing.
-
-Where can I find WinAppDbg?
-===========================
-
-Project homepage:
------------------
-
-http://tinyurl.com/winappdbg
-
-Download links:
----------------
-
-Windows installer (32 bits)
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.exe/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win32.msi/download
-
-Windows installer (64 bits)
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.exe/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.win-amd64.msi/download
-
-Source code
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.zip/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-1.4.tar.bz2/download
-
-Documentation:
---------------
-
-Online
-
-http://winappdbg.sourceforge.net/doc/v1.4/tutorial
-
-http://winappdbg.sourceforge.net/doc/v1.4/reference
-
-For download:
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-tutorial-1.4.chm/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.chm/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-tutorial-1.4.pdf/download
-
-http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/winappdbg-reference-1.4.pdf/download
-"""
+try:
+    readme = os.path.join(here, 'README')
+    long_description = open(readme, 'r').read()
+except Exception:
+    warn("README file not found or unreadable!")
+    long_description = """The WinAppDbg python module
+allows developers to quickly code instrumentation scripts
+in Python under a Windows environment."""
 
 # Get the list of scripts in the "tools" folder
-scripts = glob(join('tools', '*.py'))
-
-# Set the options for py2exe
-if py2exe is None:
-    options = {}
-else:
-    options = {
-        'py2exe': {
-            'dist_dir'      :   'dist/py2exe',
-            'optimize'      :   2,
-            'compressed'    :   1,
-            'packages'      :   ['encodings'] + dbnames,
-            'excludes'      :   [
-                                'doctest', 'pdb', 'unittest', 'difflib', 'inspect',
-                                'calendar', 'socket', 'pyreadline'
-                                ],
-        }
-    }
+scripts = glob.glob(os.path.join(here, 'tools', '*.py'))
 
 # Set the parameters for the setup script
 params = {
@@ -173,14 +65,14 @@ params = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.4',
+    'version'           : '1.5',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
     'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
     'url'               : 'http://winappdbg.sourceforge.net/',
     'download_url'      : 'http://sourceforge.net/projects/winappdbg/',
-    'platforms'         : ['win32', 'win64', 'cygwin'],
+    'platforms'         : ['win32', 'win64'],
     'classifiers'       : [
                         'License :: OSI Approved :: BSD License',
                         'Development Status :: 5 - Production/Stable',
@@ -196,9 +88,6 @@ params = {
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         ],
     }
-if py2exe is not None:
-    params['console'] = scripts
-    params['options'] = options
 
 # Execute the setup script
 setup(**params)

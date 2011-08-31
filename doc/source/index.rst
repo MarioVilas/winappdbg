@@ -25,4 +25,4 @@ Table of Contents
 Reference documentation
 -----------------------
 
-`Click here <http://winappdbg.sourceforge.net/doc/v1.4/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
+`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.

@@ -105,6 +105,8 @@ Recommended platform:
 
 It was loosely tested under *Windows 2000*, *Wine* and *ReactOS*, and some bugs and missing features are to be expected in these platforms (mainly due to missing APIs).
 
+Python 3.x support is experimental up to WinAppDbg 1.4, and was dropped with WinAppDbg 1.5. There are currently no plans to support Python 3.x in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
+
 If you find a bug or have a feature suggestion, don't hesitate to send an email to the [https://lists.sourceforge.net/lists/listinfo/winappdbg-users winappdbg-users] mailing list. Both comments and complaints are welcome! :)
 
 The following tables show which Python interpreters, operating systems and processor architectures are currently supported. **Full** means all features are fully functional. **Partial** means some features may be broken and/or untested. **Experimental** means there is a subversion branch with at least partial support, but hasn't been merged to trunk yet. **Untested** means that though no testing was performed it should probably work.
@@ -119,8 +121,6 @@ The following tables show which Python interpreters, operating systems and proce
     | Python 2.6 | **full**       |                                                                                              |
     +------------+----------------+----------------------------------------------------------------------------------------------+
     | Python 2.7 | **full**       |                                                                                              |
-    +------------+----------------+----------------------------------------------------------------------------------------------+
-    | Python 3.x | *experimental* | (see `this branch <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/branches/compat>`_) |
     +------------+----------------+----------------------------------------------------------------------------------------------+
 
 * Operating systems
