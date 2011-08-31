@@ -40,17 +40,23 @@ The Sourceforge project's `download page <http://sourceforge.net/projects/winapp
 Install
 -------
 
-Simply run the Windows installer package and follow the wizard.
+Simply run the **Windows installer** package and follow the wizard.
 
-Alternatively, if you prefer using EasyInstall (`setuptools <http://pypi.python.org/pypi/setuptools>`_), type the following at the command prompt ::
+If you prefer to install directly from the **sources** package, extract it to any temporary folder and run the following command ::
+
+    setup.py install
+
+You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/1.3>`_ using any of the compatible **package managers**:
+
+* Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
 
     easy_install winappdbg
 
-And *WinAppDbg* will be automatically downloaded and installed from the `PyPI repository <http://pypi.python.org/pypi/winappdbg/1.3>`_.
+* `PIP Installs Python <http://www.pip-installer.org/>`_ ::
 
-If you prefer to install directly from the sources package, extract it to any temporary folder and run the following command ::
+    pip install winappdbg
 
-    setup.py install
+* `Python Package Manager <http://sourceforge.net/projects/pythonpkgmgr/>`_
 
 Dependencies
 ------------
@@ -89,7 +95,15 @@ The following packages provide extra features and performance improvements, but 
 Support
 -------
 
-This package has been tested under **Windows XP** and above (both 32 and 64 bits) using **Python 2.6**. It was loosely tested under *Windows 2000*, *Wine* and *ReactOS*, and some bugs are to be expected in these platforms (mainly due to missing APIs).
+Minimim requirements:
+* **Windows XP** and above (32 or 64 bits)
+* **Python 2.4** and above
+
+Recommended platform:
+* **Windows XP** (32 bits)
+* **Python 2.6**
+
+It was loosely tested under *Windows 2000*, *Wine* and *ReactOS*, and some bugs and missing features are to be expected in these platforms (mainly due to missing APIs).
 
 If you find a bug or have a feature suggestion, don't hesitate to send an email to the [https://lists.sourceforge.net/lists/listinfo/winappdbg-users winappdbg-users] mailing list. Both comments and complaints are welcome! :)
 
@@ -140,7 +154,7 @@ The following tables show which Python interpreters, operating systems and proce
     +----------------------------------------+----------------+-----------------------------------------------------------+
     | Intel x86 (32 bits) and compatible     | **full**       |                                                           |
     +----------------------------------------+----------------+-----------------------------------------------------------+
-    | Intel x86_x64 (64 bits) and compatible | *partial*      | (function hooks are not yet implemented)                      |
+    | Intel x86_x64 (64 bits) and compatible | *partial*      | (function hooks are not yet implemented)                  |
     +----------------------------------------+----------------+-----------------------------------------------------------+
     | Intel IA64 (Itanium)                   | *experimental* | (no actual Itanium system to test it on, help is needed!) |
     +----------------------------------------+----------------+-----------------------------------------------------------+
