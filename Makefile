@@ -20,10 +20,10 @@
 
 
 # Location of the Python interpreter
-PYTHON_CMD=C:\Python27\python.exe
+PYTHON_CMD=c:/python27/python.exe
 
 # Epydoc command line options
-EPYDOC_CMD=$(PYTHON_CMD) c:\python27\scripts\epydoc.py
+EPYDOC_CMD=$(PYTHON_CMD) c:/python27/scripts/epydoc.py
 EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epytext --name "WinAppDbg - Programming Reference" --url "http://sourceforge.net/projects/winappdbg/" winappdbg
 EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 EPYDOC_PDF_OPT=--pdf --separate-classes
@@ -70,10 +70,10 @@ py2exe:
 
 # Compress with UPX
 upx: py2exe
-	if exist dist\\*.exe upx $(UPX_OPT) dist\\*.exe
-	if exist dist\\pyexe\\*.exe upx $(UPX_OPT) dist\\py2exe\\*.exe
-	if exist dist\\pyexe\\*.dll upx $(UPX_OPT) dist\\py2exe\\*.dll
-	if exist dist\\pyexe\\*.pyd upx $(UPX_OPT) dist\\py2exe\\*.pyd
+	if exist dist/*.exe upx $(UPX_OPT) dist/*.exe
+	if exist dist/pyexe/*.exe upx $(UPX_OPT) dist/py2exe/*.exe
+	if exist dist/pyexe/*.dll upx $(UPX_OPT) dist/py2exe/*.dll
+	if exist dist/pyexe/*.pyd upx $(UPX_OPT) dist/py2exe/*.pyd
 
 
 # Generate the HTML documentation only
@@ -102,7 +102,11 @@ wininst:
 
 # Build the Windows MSI installer package
 msi:
-	$(PYTHON_CMD) setup.py bdist_msi
+	$(PYTHON_CMD) setup.py bdist_msi --target-version=2.3
+	$(PYTHON_CMD) setup.py bdist_msi --target-version=2.4
+	$(PYTHON_CMD) setup.py bdist_msi --target-version=2.5
+	$(PYTHON_CMD) setup.py bdist_msi --target-version=2.6
+	$(PYTHON_CMD) setup.py bdist_msi --target-version=2.7
 
 
 # Clean up
