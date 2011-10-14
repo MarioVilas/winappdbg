@@ -1253,9 +1253,9 @@ class EventHandler (object):
 
 
 
-    @type apiHooks: dict( str S{->} tuple( str, int ) )
+    @type apiHooks: dict( str S{->} list( tuple( str, int ) ) )
     @cvar apiHooks:
-        Dictionary that maps module names to
+        Dictionary that maps module names to lists of
         tuples of ( procedure name, parameter count ).
 
         All procedures listed here will be hooked for calls from the debugee.
