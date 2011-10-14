@@ -153,6 +153,8 @@ __all__ =   [
                 'ExecutableAndWriteableAddressIterator',
                 'DebugRegister',
 ##                'Regenerator',
+##                'BannerHelpFormatter',
+##                'kill_python_thread',
 
                 # import win32
                 'win32',
