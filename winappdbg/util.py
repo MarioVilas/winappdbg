@@ -40,7 +40,8 @@ Miscellaneous utility classes and functions.
     WriteableAddressIterator,
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
-    Regenerator
+    Regenerator,
+    kill_python_thread
 """
 
 __revision__ = "$Id$"
@@ -66,10 +67,15 @@ __all__ = [
 
     # Miscellaneous
     'Regenerator',
+    'BannerHelpFormatter',
+    'kill_python_thread',
 
     ]
 
 import os
+import ctypes
+import optparse
+
 import win32
 
 try:
@@ -78,6 +84,44 @@ except ImportError:
     pass
 
 #==============================================================================
+
+def kill_python_thread(tid):
+    """
+    Kills a Python thread given it's thread ID
+    by injecting a C{KeyboardInterrupt} exception.
+    
+    @warn:
+        This function MUST ONLY be used in Python threads belonging to the same
+        process as the caller. It cannot be used on threads belonging to other
+        processes, nor on native threads created by the L{CreateThread} API.
+    
+    @see:
+        U{http://stackoverflow.com/questions/323972}
+    
+    @type  tid: int
+    @param tid:
+        The thread ID is either the {ident} property in a C{threading.Thread}
+        object, or the return value of the C{thread.start_new_thread} function.
+    
+    @raise ValueError: The thread ID is invalid.
+    @raise SystemError: The call has failed for another reason.
+    """
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid,
+                                        ctypes.py_object(KeyboardInterrupt))
+    if res == 0:
+        raise ValueError("Invalid thread ID: %r" % tid)
+    if res != 1:
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, 0)
+        raise SystemError("PyThreadState_SetAsyncExc failed, reason: %d" % res)
+
+class BannerHelpFormatter(optparse.IndentedHelpFormatter):
+    "Just a small tweak to optparse to be able to print a banner."
+    def __init__(self, banner, *argv, **argd):
+        self.banner = banner
+        optparse.IndentedHelpFormatter.__init__(self, *argv, **argd)
+    def format_usage(self, usage):
+        msg = optparse.IndentedHelpFormatter.format_usage(self, usage)
+        return '%s\n%s' % (self.banner, msg)
 
 # See Process.generate_memory_snapshot()
 class Regenerator(object):
@@ -571,6 +615,7 @@ class DebugRegister (object):
 
     @type BREAK_ON_IO_ACCESS: int
     @cvar BREAK_ON_IO_ACCESS: Break on I/O port access.
+        Not supported by any hardware.
 
     @type WATCH_BYTE: int
     @cvar WATCH_BYTE: Watch a byte.
@@ -648,7 +693,7 @@ class DebugRegister (object):
     """
     @classmethod
     def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
+        "Don't try to instance this class, it's just a namespace!"
         raise NotImplementedError
 
     BREAK_ON_EXECUTION  = 0
@@ -665,8 +710,9 @@ class DebugRegister (object):
 
 #------------------------------------------------------------------------------
 
+    ###########################################################################
     # http://en.wikipedia.org/wiki/Debug_register
-
+    #
     # DR7 - Debug control
     #
     # The low-order eight bits of DR7 (0,2,4,6 and 1,3,5,7) selectively enable
@@ -685,9 +731,7 @@ class DebugRegister (object):
     # (DR3), define how large area of memory is watched by breakpoints. Again
     # each breakpoint has a two-bit entry that specifies whether they watch
     # one (00b), two (01b), eight (10b) or four (11b) bytes.
-
-    # This could easily be calculated on runtime in only one method,
-    # but it's faster to have it precalculated like this.
+    ###########################################################################
 
     # Dr7 |= enableMask[register]
     enableMask = (
@@ -780,6 +824,9 @@ class DebugRegister (object):
     # Dr7 = Dr7 | generalDetectMask
     generalDetectMask = (1 << 13)
 
+    ###########################################################################
+    # http://en.wikipedia.org/wiki/Debug_register
+    #
     # DR6 - Debug status
     #
     # The debug status register permits the debugger to determine which debug
@@ -790,6 +837,7 @@ class DebugRegister (object):
     # Note that the bits of DR6 are never cleared by the processor. To avoid
     # any confusion in identifying the next debug exception, the debug handler
     # should move zeros to DR6 immediately before returning.
+    ###########################################################################
 
     # bool(Dr6 & hitMask[register])
     hitMask = (
@@ -820,8 +868,10 @@ class DebugRegister (object):
 
 #------------------------------------------------------------------------------
 
+###############################################################################
+#
 #    (from the AMD64 manuals)
-
+#
 #    The fields within the DebugCtlMSR register are:
 #
 #    Last-Branch Record (LBR) - Bit 0, read/write. Software sets this bit to 1
@@ -845,7 +895,7 @@ class DebugRegister (object):
 #    corresponding external pin (BPi) reports breakpoint information.
 #
 #    All remaining bits in the DebugCtlMSR register are reserved.
-
+#
 #    Software can enable control-transfer single stepping by setting
 #    DebugCtlMSR.BTF to 1 and rFLAGS.TF to 1. The processor automatically
 #    disables control-transfer single stepping when a debug exception (#DB)
@@ -853,6 +903,8 @@ class DebugRegister (object):
 #    #DB exception occurs. Before exiting the debug-exception handler, software
 #    must set both DebugCtlMSR.BTF and rFLAGS.TF to 1 to restart single
 #    stepping.
+#
+###############################################################################
 
     DebugCtlMSR      = 0x1D9
     LastBranchRecord = (1 << 0)
@@ -864,16 +916,22 @@ class DebugRegister (object):
                         (1 << 5),   # PB4
                        )
 
+###############################################################################
+#
+#    (from the AMD64 manuals)
+#
 #    Control-transfer recording MSRs: LastBranchToIP, LastBranchFromIP,
 #    LastExceptionToIP, and LastExceptionFromIP. These registers are loaded
 #    automatically by the processor when the DebugCtlMSR.LBR bit is set to 1.
 #    These MSRs are read-only.
-
+#
 #    The processor automatically disables control-transfer recording when a
 #    debug exception (#DB) occurs by clearing DebugCtlMSR.LBR to 0. The
 #    contents of the control-transfer recording MSRs are not altered by the
 #    processor when the #DB occurs. Before exiting the debug-exception handler,
 #    software can set DebugCtlMSR.LBR to 1 to re-enable the recording mechanism.
+#
+###############################################################################
 
     LastBranchToIP      = 0x1DC
     LastBranchFromIP    = 0x1DB
