@@ -703,7 +703,7 @@ class HardwareBreakpoint (Breakpoint):
 
     @see: L{Debug.watch_variable}
     @group Trigger flags:
-        BREAK_ON_EXECUTION, BREAK_ON_WRITE, BREAK_ON_ACCESS, BREAK_ON_IO_ACCESS
+        BREAK_ON_EXECUTION, BREAK_ON_WRITE, BREAK_ON_ACCESS
     @group Watch size flags:
         WATCH_BYTE, WATCH_WORD, WATCH_DWORD, WATCH_QWORD
 
@@ -716,20 +716,17 @@ class HardwareBreakpoint (Breakpoint):
     @type BREAK_ON_ACCESS: int
     @cvar BREAK_ON_ACCESS: Break on read or write.
 
-    @type BREAK_ON_IO_ACCESS: int
-    @cvar BREAK_ON_IO_ACCESS: Break on I/O port access.
-
     @type WATCH_BYTE: int
     @cvar WATCH_BYTE: Watch a byte.
 
     @type WATCH_WORD: int
-    @cvar WATCH_WORD: Watch a word.
+    @cvar WATCH_WORD: Watch a word (2 bytes).
 
     @type WATCH_DWORD: int
-    @cvar WATCH_DWORD: Watch a double word.
+    @cvar WATCH_DWORD: Watch a double word (4 bytes).
 
     @type WATCH_QWORD: int
-    @cvar WATCH_QWORD: Watch one quad word.
+    @cvar WATCH_QWORD: Watch one quad word (8 bytes).
 
     @type validTriggers: tuple
     @cvar validTriggers: Valid trigger flag values.
@@ -743,7 +740,6 @@ class HardwareBreakpoint (Breakpoint):
     BREAK_ON_EXECUTION  = DebugRegister.BREAK_ON_EXECUTION
     BREAK_ON_WRITE      = DebugRegister.BREAK_ON_WRITE
     BREAK_ON_ACCESS     = DebugRegister.BREAK_ON_ACCESS
-    BREAK_ON_IO_ACCESS  = DebugRegister.BREAK_ON_IO_ACCESS
 
     WATCH_BYTE  = DebugRegister.WATCH_BYTE
     WATCH_WORD  = DebugRegister.WATCH_WORD
@@ -754,7 +750,6 @@ class HardwareBreakpoint (Breakpoint):
         BREAK_ON_EXECUTION,
         BREAK_ON_WRITE,
         BREAK_ON_ACCESS,
-        BREAK_ON_IO_ACCESS,     # not supported by hardware
     )
 
     validWatchSizes = (
@@ -1238,7 +1233,7 @@ class Hook (object):
     def get_params_stack(self, tid):
         """
         Returns the parameters found in the stack each time the hooked function
-        was called by this thread and haven't returned yet.
+        was called by this thread and hasn't returned yet.
 
         @type  tid: int
         @param tid: Thread global ID.
@@ -1637,7 +1632,6 @@ class BreakpointContainer (object):
     # Memory breakpoint trigger flags
     BP_BREAK_ON_EXECUTION   = HardwareBreakpoint.BREAK_ON_EXECUTION
     BP_BREAK_ON_WRITE       = HardwareBreakpoint.BREAK_ON_WRITE
-    BP_BREAK_ON_IO_ACCESS   = HardwareBreakpoint.BREAK_ON_IO_ACCESS
     BP_BREAK_ON_ACCESS      = HardwareBreakpoint.BREAK_ON_ACCESS
 
     # Memory breakpoint size flags
