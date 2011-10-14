@@ -35,8 +35,8 @@ from defines import *
 from kernel32 import *
 
 # XXX TODO
-# + add registry APIs
 # + add service control manager APIs
+# + add transacted registry operations
 
 #--- Constants ----------------------------------------------------------------
 
@@ -82,12 +82,43 @@ TOKEN_ADJUST_PRIVILEGES         = 0x00000020
 LOGON_WITH_PROFILE              = 0x00000001
 LOGON_NETCREDENTIALS_ONLY       = 0x00000002
 
+# Predefined HKEY values
 HKEY_CLASSES_ROOT       = 0x80000000
 HKEY_CURRENT_USER       = 0x80000001
 HKEY_LOCAL_MACHINE      = 0x80000002
 HKEY_USERS              = 0x80000003
 HKEY_PERFORMANCE_DATA   = 0x80000004
 HKEY_CURRENT_CONFIG     = 0x80000005
+
+# Registry access rights
+KEY_ALL_ACCESS          = 0xF003F
+KEY_CREATE_LINK         = 0x0020
+KEY_CREATE_SUB_KEY      = 0x0004
+KEY_ENUMERATE_SUB_KEYS  = 0x0008
+KEY_EXECUTE             = 0x20019
+KEY_NOTIFY              = 0x0010
+KEY_QUERY_VALUE         = 0x0001
+KEY_READ                = 0x20019
+KEY_SET_VALUE           = 0x0002
+KEY_WOW64_32KEY         = 0x0200
+KEY_WOW64_64KEY         = 0x0100
+KEY_WRITE               = 0x20006
+
+# Registry value types
+REG_NONE                        = 0
+REG_SZ                          = 1
+REG_EXPAND_SZ                   = 2
+REG_BINARY                      = 3
+REG_DWORD                       = 4
+REG_DWORD_LITTLE_ENDIAN         = REG_DWORD
+REG_DWORD_BIG_ENDIAN            = 5
+REG_LINK                        = 6
+REG_MULTI_SZ                    = 7
+REG_RESOURCE_LIST               = 8
+REG_FULL_RESOURCE_DESCRIPTOR    = 9
+REG_RESOURCE_REQUIREMENTS_LIST  = 10
+REG_QWORD                       = 11
+REG_QWORD_LITTLE_ENDIAN         = REG_QWORD
 
 #--- TOKEN_PRIVILEGE structure ------------------------------------------------
 
@@ -288,6 +319,30 @@ class TokenHandle (Handle):
     """
     pass
 
+class RegistryKeyHandle (Handle):
+    """
+    Registry key handle.
+
+    @see: L{Handle}
+    """
+
+    @property
+    def _as_parameter_(self):
+        return HKEY(self.value)
+
+    @staticmethod
+    def from_param(value):
+        return HKEY(self.value)
+
+    def _close(self):
+        RegCloseKey(self.value)
+
+    def dup(self):
+        raise NotImplementedError
+
+    def wait(self, dwMilliseconds = None):
+        raise NotImplementedError
+
 class SaferLevelHandle (Handle):
     """
     Safer level handle.
@@ -303,14 +358,8 @@ class SaferLevelHandle (Handle):
     def from_param(value):
         return SAFER_LEVEL_HANDLE(self.value)
 
-    def close(self):
-        if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
-            if Handle.__bLeakDetection:     # XXX DEBUG
-                print "CLOSE HANDLE (%d) %r" % (self.value, self)
-            try:
-                SaferCloseLevel(self.value)
-            finally:
-                self.value = None
+    def _close(self):
+        SaferCloseLevel(self.value)
 
     def dup(self):
         raise NotImplementedError
@@ -677,10 +726,714 @@ def SaferCloseLevel(hLevelHandle):
     _SaferCloseLevel.restype  = BOOL
     _SaferCloseLevel.errcheck = RaiseIfZero
 
-    if hasattr(hLevelHandle, 'close'):
-        hLevelHandle.close()
-    elif hasattr(hLevelHandle, 'value'):
+    if hasattr(hLevelHandle, 'value'):
         _SaferCloseLevel(hLevelHandle.value)
     else:
         _SaferCloseLevel(hLevelHandle)
 
+# BOOL SaferiIsExecutableFileType(
+#   __in  LPCWSTR szFullPath,
+#   __in  BOOLEAN bFromShellExecute
+# );
+def SaferiIsExecutableFileType(szFullPath, bFromShellExecute = False):
+    _SaferiIsExecutableFileType = windll.advapi32.SaferiIsExecutableFileType
+    _SaferiIsExecutableFileType.argtypes = [LPWSTR, BOOLEAN]
+    _SaferiIsExecutableFileType.restype  = BOOL
+    _SaferiIsExecutableFileType.errcheck = RaiseIfLastError
+    
+    SetLastError(ERROR_SUCCESS)
+    return bool(_SaferiIsExecutableFileType(unicode(szFullPath), bFromShellExecute))
+
+# useful alias since I'm likely to misspell it :P
+SaferIsExecutableFileType = SaferiIsExecutableFileType
+
+#------------------------------------------------------------------------------
+
+# LONG WINAPI RegCloseKey(
+#   __in  HKEY hKey
+# );
+def RegCloseKey(hKey):
+    if hasattr(hKey, 'value'):
+        value = hKey.value
+    else:
+        value = hKey
+    
+    if value in (
+            HKEY_CLASSES_ROOT,
+            HKEY_CURRENT_USER,
+            HKEY_LOCAL_MACHINE,
+            HKEY_USERS,
+            HKEY_PERFORMANCE_DATA,
+            HKEY_CURRENT_CONFIG
+        ):
+        return
+    
+    _RegCloseKey = windll.advapi32.RegCloseKey
+    _RegCloseKey.argtypes = [HKEY]
+    _RegCloseKey.restype  = LONG
+    _RegCloseKey.errcheck = RaiseIfNotErrorSuccess
+    _RegCloseKey(hKey)
+
+# LONG WINAPI RegConnectRegistry(
+#   __in_opt  LPCTSTR lpMachineName,
+#   __in      HKEY hKey,
+#   __out     PHKEY phkResult
+# );
+def RegConnectRegistryA(lpMachineName = None, hKey = HKEY_LOCAL_MACHINE):
+    _RegConnectRegistryA = windll.advapi32.RegConnectRegistryA
+    _RegConnectRegistryA.argtypes = [LPSTR, HKEY, PHKEY]
+    _RegConnectRegistryA.restype  = LONG
+    _RegConnectRegistryA.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegConnectRegistryA(lpMachineName, hKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+def RegConnectRegistryW(lpMachineName = None, hKey = HKEY_LOCAL_MACHINE):
+    _RegConnectRegistryW = windll.advapi32.RegConnectRegistryW
+    _RegConnectRegistryW.argtypes = [LPWSTR, HKEY, PHKEY]
+    _RegConnectRegistryW.restype  = LONG
+    _RegConnectRegistryW.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegConnectRegistryW(lpMachineName, hKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+RegConnectRegistry = GuessStringType(RegConnectRegistryA, RegConnectRegistryW)
+
+# LONG WINAPI RegCreateKey(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpSubKey,
+#   __out     PHKEY phkResult
+# );
+def RegCreateKeyA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
+    _RegCreateKeyA = windll.advapi32.RegCreateKeyA
+    _RegCreateKeyA.argtypes = [HKEY, LPSTR, PHKEY]
+    _RegCreateKeyA.restype  = LONG
+    _RegCreateKeyA.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegCreateKeyA(hKey, lpSubKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+def RegCreateKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
+    _RegCreateKeyW = windll.advapi32.RegCreateKeyW
+    _RegCreateKeyW.argtypes = [HKEY, LPWSTR, PHKEY]
+    _RegCreateKeyW.restype  = LONG
+    _RegCreateKeyW.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegCreateKeyW(hKey, lpSubKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+RegCreateKey = GuessStringType(RegCreateKeyA, RegCreateKeyW)
+
+# LONG WINAPI RegCreateKeyEx(
+#   __in        HKEY hKey,
+#   __in        LPCTSTR lpSubKey,
+#   __reserved  DWORD Reserved,
+#   __in_opt    LPTSTR lpClass,
+#   __in        DWORD dwOptions,
+#   __in        REGSAM samDesired,
+#   __in_opt    LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+#   __out       PHKEY phkResult,
+#   __out_opt   LPDWORD lpdwDisposition
+# );
+
+# XXX TODO
+
+# LONG WINAPI RegOpenKey(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpSubKey,
+#   __out     PHKEY phkResult
+# );
+def RegOpenKeyA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
+    _RegOpenKeyA = windll.advapi32.RegOpenKeyA
+    _RegOpenKeyA.argtypes = [HKEY, LPSTR, PHKEY]
+    _RegOpenKeyA.restype  = LONG
+    _RegOpenKeyA.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenKeyA(hKey, lpSubKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+def RegOpenKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
+    _RegOpenKeyW = windll.advapi32.RegOpenKeyW
+    _RegOpenKeyW.argtypes = [HKEY, LPWSTR, PHKEY]
+    _RegOpenKeyW.restype  = LONG
+    _RegOpenKeyW.errcheck = RaiseIfNotErrorSuccess
+
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenKeyW(hKey, lpSubKey, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+RegOpenKey = GuessStringType(RegOpenKeyA, RegOpenKeyW)
+
+# LONG WINAPI RegOpenKeyEx(
+#   __in        HKEY hKey,
+#   __in_opt    LPCTSTR lpSubKey,
+#   __reserved  DWORD ulOptions,
+#   __in        REGSAM samDesired,
+#   __out       PHKEY phkResult
+# );
+def RegOpenKeyExA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_ALL_ACCESS):
+    _RegOpenKeyExA = windll.advapi32.RegOpenKeyExA
+    _RegOpenKeyExA.argtypes = [HKEY, LPSTR, DWORD, REGSAM, PHKEY]
+    _RegOpenKeyExA.restype  = LONG
+    _RegOpenKeyExA.errcheck = RaiseIfNotErrorSuccess
+    
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenKeyExA(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+def RegOpenKeyExW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_ALL_ACCESS):
+    _RegOpenKeyExW = windll.advapi32.RegOpenKeyExW
+    _RegOpenKeyExW.argtypes = [HKEY, LPWSTR, DWORD, REGSAM, PHKEY]
+    _RegOpenKeyExW.restype  = LONG
+    _RegOpenKeyExW.errcheck = RaiseIfNotErrorSuccess
+    
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenKeyExW(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+RegOpenKeyEx = GuessStringType(RegOpenKeyExA, RegOpenKeyExW)
+
+# LONG WINAPI RegOpenCurrentUser(
+#   __in   REGSAM samDesired,
+#   __out  PHKEY phkResult
+# );
+def RegOpenCurrentUser(samDesired = KEY_ALL_ACCESS):
+    _RegOpenCurrentUser = windll.advapi32.RegOpenCurrentUser
+    _RegOpenCurrentUser.argtypes = [REGSAM, PHKEY]
+    _RegOpenCurrentUser.restype  = LONG
+    _RegOpenCurrentUser.errcheck = RaiseIfNotErrorSuccess
+    
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenCurrentUser(samDesired, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+# LONG WINAPI RegOpenUserClassesRoot(
+#   __in        HANDLE hToken,
+#   __reserved  DWORD dwOptions,
+#   __in        REGSAM samDesired,
+#   __out       PHKEY phkResult
+# );
+def RegOpenUserClassesRoot(hToken, samDesired = KEY_ALL_ACCESS):
+    _RegOpenUserClassesRoot = windll.advapi32.RegOpenUserClassesRoot
+    _RegOpenUserClassesRoot.argtypes = [HANDLE, DWORD, REGSAM, PHKEY]
+    _RegOpenUserClassesRoot.restype  = LONG
+    _RegOpenUserClassesRoot.errcheck = RaiseIfNotErrorSuccess
+    
+    hkResult = HKEY(INVALID_HANDLE_VALUE)
+    _RegOpenUserClassesRoot(hToken, 0, samDesired, ctypes.byref(hkResult))
+    return RegistryKeyHandle(hkResult.value)
+
+# LONG WINAPI RegQueryValue(
+#   __in         HKEY hKey,
+#   __in_opt     LPCTSTR lpSubKey,
+#   __out_opt    LPTSTR lpValue,
+#   __inout_opt  PLONG lpcbValue
+# );
+def RegQueryValueA(hKey, lpSubKey = None):
+    _RegQueryValueA = windll.advapi32.RegQueryValueA
+    _RegQueryValueA.argtypes = [HKEY, LPSTR, LPVOID, PLONG]
+    _RegQueryValueA.restype  = LONG
+    _RegQueryValueA.errcheck = RaiseIfNotErrorSuccess
+
+    cbValue = LONG(0)
+    _RegQueryValueA(hKey, lpSubKey, None, ctypes.byref(cbValue))
+    lpValue = ctypes.create_string_buffer(cbValue.value)
+    _RegQueryValueA(hKey, lpSubKey, lpValue, ctypes.byref(cbValue))
+    return lpValue.value
+
+def RegQueryValueW(hKey, lpSubKey = None):
+    _RegQueryValueW = windll.advapi32.RegQueryValueW
+    _RegQueryValueW.argtypes = [HKEY, LPWSTR, LPVOID, PLONG]
+    _RegQueryValueW.restype  = LONG
+    _RegQueryValueW.errcheck = RaiseIfNotErrorSuccess
+
+    cbValue = LONG(0)
+    _RegQueryValueW(hKey, lpSubKey, None, ctypes.byref(cbValue))
+    lpValue = ctypes.create_unicode_buffer(cbValue.value * sizeof(WCHAR))
+    _RegQueryValueW(hKey, lpSubKey, lpValue, ctypes.byref(cbValue))
+    return lpValue.value
+
+RegQueryValue = GuessStringType(RegQueryValueA, RegQueryValueW)
+
+# LONG WINAPI RegQueryValueEx(
+#   __in         HKEY hKey,
+#   __in_opt     LPCTSTR lpValueName,
+#   __reserved   LPDWORD lpReserved,
+#   __out_opt    LPDWORD lpType,
+#   __out_opt    LPBYTE lpData,
+#   __inout_opt  LPDWORD lpcbData
+# );
+def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None):
+    _RegQueryValueEx = _caller_RegQueryValueEx(ansi)
+    
+    cbData = DWORD(0)
+    dwType = DWORD(0)
+    _RegQueryValueEx(hKey, lpValueName, None, ctypes.byref(dwType), None, ctypes.byref(cbData))
+    Type = dwType.value
+    
+    if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
+        if cbData.value != 4:
+            raise ValueError("REG_DWORD value of size %d" % cbData.value)
+        dwData = DWORD(0)
+        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(dwData), ctypes.byref(cbData))
+        return dwData.value, Type
+    
+    if Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
+        if cbData.value != 8:
+            raise ValueError("REG_QWORD value of size %d" % cbData.value)
+        qwData = QWORD(0L)
+        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(qwData), ctypes.byref(cbData))
+        return qwData.value, Type
+    
+    if Type in (REG_SZ, REG_EXPAND_SZ):
+        if ansi:
+            szData = ctypes.create_string_buffer(cbData.value)
+        else:
+            szData = ctypes.create_unicode_buffer(cbData.value)
+        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        return szData.value, Type
+    
+    if Type == REG_MULTI_SZ:
+        if ansi:
+            szData = ctypes.create_string_buffer(cbData.value)
+        else:
+            szData = ctypes.create_unicode_buffer(cbData.value)
+        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        Data = szData[:]
+        if ansi:
+            aData = Data.split('\0')
+        else:
+            aData = Data.split(u'\0')
+        aData = [token for token in aData if token]
+        return aData, Type
+    
+    if Type == REG_LINK:
+        szData = ctypes.create_unicode_buffer(cbData.value)
+        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        return szData.value, Type
+    
+    # REG_BINARY, REG_NONE, and any future types
+    szData = ctypes.create_string_buffer(cbData.value)
+    _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+    return szData.raw, Type
+
+def _caller_RegQueryValueEx(ansi):
+    if ansi:
+        _RegQueryValueEx = windll.advapi32.RegQueryValueExA
+        _RegQueryValueEx.argtypes = [HKEY, LPSTR, LPVOID, PDWORD, LPVOID, PDWORD]
+    else:
+        _RegQueryValueEx = windll.advapi32.RegQueryValueExW
+        _RegQueryValueEx.argtypes = [HKEY, LPWSTR, LPVOID, PDWORD, LPVOID, PDWORD]
+    _RegQueryValueEx.restype  = LONG
+    _RegQueryValueEx.errcheck = RaiseIfNotErrorSuccess
+    return _RegQueryValueEx
+
+# see _internal_RegQueryValueEx
+def RegQueryValueExA(hKey, lpValueName = None):
+    return _internal_RegQueryValueEx(True, hKey, lpValueName)
+
+# see _internal_RegQueryValueEx
+def RegQueryValueExW(hKey, lpValueName = None):
+    return _internal_RegQueryValueEx(False, hKey, lpValueName)
+
+RegQueryValueEx = GuessStringType(RegQueryValueExA, RegQueryValueExW)
+
+# LONG WINAPI RegSetValueEx(
+#   __in        HKEY hKey,
+#   __in_opt    LPCTSTR lpValueName,
+#   __reserved  DWORD Reserved,
+#   __in        DWORD dwType,
+#   __in_opt    const BYTE *lpData,
+#   __in        DWORD cbData
+# );
+def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
+    
+    # Determine which version of the API to use, ANSI or Widechar.
+    if lpValueName is None:
+        if isinstance(lpData, GuessStringType.t_ansi):
+            ansi = True
+            if dwType is None:
+                dwType = REG_SZ
+        elif isinstance(lpData, GuessStringType.t_unicode):
+            ansi = False
+            if dwType is None:
+                dwType = REG_SZ
+        else:
+            ansi = (GuessStringType.t_ansi == GuessStringType.t_default)
+    elif isinstance(lpValueName, GuessStringType.t_ansi):
+        ansi = True
+    elif isinstance(lpValueName, GuessStringType.t_unicode):
+        ansi = False
+    else:
+        raise TypeError("String expected, got %s instead" % type(lpValueName))
+    
+    # Autodetect the type when not given.
+    if dwType is None:
+        if lpValueName is None:
+            dwType = REG_SZ
+        elif lpData is None:
+            dwType = REG_NONE
+        elif isinstance(lpData, int):
+            dwType = REG_DWORD
+        elif isinstance(lpData, long):
+            dwType = REG_QWORD
+        else:
+            dwType = REG_BINARY
+    
+    # Load the ctypes caller.
+    if ansi:
+        _RegSetValueEx = windll.advapi32.RegSetValueExA
+        _RegSetValueEx.argtypes = [HKEY, LPSTR, DWORD, DWORD, LPVOID, DWORD]
+    else:
+        _RegSetValueEx = windll.advapi32.RegSetValueExW
+        _RegSetValueEx.argtypes = [HKEY, LPWSTR, DWORD, DWORD, LPVOID, DWORD]
+    _RegSetValueEx.restype  = LONG
+    _RegSetValueEx.errcheck = RaiseIfNotErrorSuccess
+    
+    # Convert the arguments so ctypes can understand them.
+    if lpData is None:
+        DataRef  = None
+        DataSize = 0
+    else:
+        if dwType in (REG_DWORD, REG_DWORD_BIG_ENDIAN):  # REG_DWORD_LITTLE_ENDIAN
+            Data = DWORD(lpData)
+        elif dwType == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
+            Data = QWORD(lpData)
+        elif dwType in (REG_SZ, REG_EXPAND_SZ):
+            if ansi:
+                Data = ctypes.create_string_buffer(lpData)
+            else:
+                Data = ctypes.create_unicode_buffer(lpData)
+        elif dwType == REG_MULTI_SZ:
+            if ansi:
+                Data = ctypes.create_string_buffer('\0'.join(lpData) + '\0\0')
+            else:
+                Data = ctypes.create_unicode_buffer(u'\0'.join(lpData) + u'\0\0')
+        elif dwType == REG_LINK:
+            Data = ctypes.create_unicode_buffer(lpData)
+        else:
+            Data = ctypes.create_string_buffer(lpData)
+        DataRef  = ctypes.byref(Data)
+        DataSize = ctypes.sizeof(Data)
+    
+    # Call the API with the converted arguments.
+    _RegSetValueEx(hKey, lpValueName, 0, dwType, DataRef, DataSize)
+
+# No "GuessStringType" here since detection is done inside.
+RegSetValueExA = RegSetValueExW = RegSetValueEx
+
+# LONG WINAPI RegEnumKey(
+#   __in   HKEY hKey,
+#   __in   DWORD dwIndex,
+#   __out  LPTSTR lpName,
+#   __in   DWORD cchName
+# );
+def RegEnumKeyA(hKey, dwIndex):
+    _RegEnumKeyA = windll.advapi32.RegEnumKeyA
+    _RegEnumKeyA.argtypes = [HKEY, DWORD, LPSTR, DWORD]
+    _RegEnumKeyA.restype  = LONG
+    
+    cchName = 1024
+    while True:
+        lpName = ctypes.create_string_buffer(cchName)
+        errcode = _RegEnumKeyA(hKey, dwIndex, lpName, cchName)
+        if errcode != ERROR_MORE_DATA:
+            break
+        cchName = cchName + 1024
+        if cchName > 65536:
+            raise ctypes.WinError(errcode)
+    if errcode == ERROR_NO_MORE_ITEMS:
+        return None
+    if errcode != ERROR_SUCCESS:
+        raise ctypes.WinError(errcode)
+    return lpName.value
+
+def RegEnumKeyW(hKey, dwIndex):
+    _RegEnumKeyW = windll.advapi32.RegEnumKeyW
+    _RegEnumKeyW.argtypes = [HKEY, DWORD, LPWSTR, DWORD]
+    _RegEnumKeyW.restype  = LONG
+    
+    cchName = 512
+    while True:
+        lpName = ctypes.create_unicode_buffer(cchName)
+        errcode = _RegEnumKeyW(hKey, dwIndex, lpName, cchName * 2)
+        if errcode != ERROR_MORE_DATA:
+            break
+        cchName = cchName + 512
+        if cchName > 32768:
+            raise ctypes.WinError(errcode)
+    if errcode == ERROR_NO_MORE_ITEMS:
+        return None
+    if errcode != ERROR_SUCCESS:
+        raise ctypes.WinError(errcode)
+    return lpName.value
+
+RegEnumKey = DefaultStringType(RegEnumKeyA, RegEnumKeyW)
+
+# LONG WINAPI RegEnumKeyEx(
+#   __in         HKEY hKey,
+#   __in         DWORD dwIndex,
+#   __out        LPTSTR lpName,
+#   __inout      LPDWORD lpcName,
+#   __reserved   LPDWORD lpReserved,
+#   __inout      LPTSTR lpClass,
+#   __inout_opt  LPDWORD lpcClass,
+#   __out_opt    PFILETIME lpftLastWriteTime
+# );
+
+# XXX TODO
+
+# LONG WINAPI RegEnumValue(
+#   __in         HKEY hKey,
+#   __in         DWORD dwIndex,
+#   __out        LPTSTR lpValueName,
+#   __inout      LPDWORD lpcchValueName,
+#   __reserved   LPDWORD lpReserved,
+#   __out_opt    LPDWORD lpType,
+#   __out_opt    LPBYTE lpData,
+#   __inout_opt  LPDWORD lpcbData
+# );
+def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
+    if ansi:
+        _RegEnumValue = windll.advapi32.RegEnumValueA
+        _RegEnumValue.argtypes = [HKEY, DWORD, LPSTR, LPDWORD, LPVOID, LPDWORD, LPVOID, LPDWORD]
+    else:
+        _RegEnumValue = windll.advapi32.RegEnumValueW
+        _RegEnumValue.argtypes = [HKEY, DWORD, LPWSTR, LPDWORD, LPVOID, LPDWORD, LPVOID, LPDWORD]
+    _RegEnumValue.restype  = LONG
+    
+    cchValueName = DWORD(1024)
+    dwType = DWORD(-1)
+    lpcchValueName = ctypes.byref(cchValueName)
+    lpType = ctypes.byref(dwType)
+    if ansi:
+        lpValueName = ctypes.create_string_buffer(cchValueName.value)
+    else:
+        lpValueName = ctypes.create_unicode_buffer(cchValueName.value)
+    if bGetData:
+        cbData = DWORD(0)
+        lpcbData = ctypes.byref(cbData)
+    else:
+        lpcbData = None
+    lpData = None
+    errcode = _RegEnumValue(hKey, dwIndex, lpValueName, lpcchValueName, None, lpType, lpData, lpcbData)
+    
+    if errcode == ERROR_MORE_DATA or (bGetData and errcode == ERROR_SUCCESS):
+        if ansi:
+            cchValueName.value = cchValueName.value + ctypes.sizeof(CHAR)
+            lpValueName = ctypes.create_string_buffer(cchValueName.value)
+        else:
+            cchValueName.value = cchValueName.value + ctypes.sizeof(WCHAR)
+            lpValueName = ctypes.create_unicode_buffer(cchValueName.value)
+        
+        if bGetData:
+            Type = dwType.value
+            
+            if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
+                if cbData.value != ctypes.sizeof(DWORD):
+                    raise ValueError("REG_DWORD value of size %d" % cbData.value)
+                Data = DWORD(0)
+            
+            elif Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
+                if cbData.value != ctypes.sizeof(QWORD):
+                    raise ValueError("REG_QWORD value of size %d" % cbData.value)
+                Data = QWORD(0L)
+            
+            elif Type in (REG_SZ, REG_EXPAND_SZ, REG_MULTI_SZ):
+                if ansi:
+                    Data = ctypes.create_string_buffer(cbData.value)
+                else:
+                    Data = ctypes.create_unicode_buffer(cbData.value)
+            
+            elif Type == REG_LINK:
+                Data = ctypes.create_unicode_buffer(cbData.value)
+            
+            else:       # REG_BINARY, REG_NONE, and any future types
+                Data = ctypes.create_string_buffer(cbData.value)
+            
+            lpData = ctypes.byref(Data)
+
+        errcode = _RegEnumValue(hKey, dwIndex, lpValueName, lpcchValueName, None, lpType, lpData, lpcbData)
+    
+    if errcode == ERROR_NO_MORE_ITEMS:
+        return None
+    #if errcode  != ERROR_SUCCESS:
+    #    raise ctypes.WinError(errcode)
+    
+    if not bGetData:
+        return lpValueName.value, dwType.value
+    
+    if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN, REG_QWORD, REG_SZ, REG_EXPAND_SZ, REG_LINK): # REG_DWORD_LITTLE_ENDIAN, REG_QWORD_LITTLE_ENDIAN
+        return lpValueName.value, dwType.value, Data.value
+    
+    if Type == REG_MULTI_SZ:
+        sData = Data[:]
+        del Data
+        if ansi:
+            aData = sData.split('\0')
+        else:
+            aData = sData.split(u'\0')
+        aData = [token for token in aData if token]
+        return lpValueName.value, dwType.value, aData
+    
+    # REG_BINARY, REG_NONE, and any future types
+    return lpValueName.value, dwType.value, Data.raw
+
+def RegEnumValueA(hKey, dwIndex, bGetData = True):
+    return _internal_RegEnumValue(True, hKey, dwIndex, bGetData)
+
+def RegEnumValueW(hKey, dwIndex, bGetData = True):
+    return _internal_RegEnumValue(False, hKey, dwIndex, bGetData)
+
+RegEnumValue = DefaultStringType(RegEnumValueA, RegEnumValueW)
+
+# XXX TODO
+
+# LONG WINAPI RegSetKeyValue(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpSubKey,
+#   __in_opt  LPCTSTR lpValueName,
+#   __in      DWORD dwType,
+#   __in_opt  LPCVOID lpData,
+#   __in      DWORD cbData
+# );
+
+# XXX TODO
+
+# LONG WINAPI RegQueryMultipleValues(
+#   __in         HKEY hKey,
+#   __out        PVALENT val_list,
+#   __in         DWORD num_vals,
+#   __out_opt    LPTSTR lpValueBuf,
+#   __inout_opt  LPDWORD ldwTotsize
+# );
+
+# XXX TODO
+
+# LONG WINAPI RegDeleteValue(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpValueName
+# );
+def RegDeleteValueA(hKeySrc, lpValueName = None):
+    _RegDeleteValueA = windll.advapi32.RegDeleteValueA
+    _RegDeleteValueA.argtypes = [HKEY, LPSTR]
+    _RegDeleteValueA.restype  = LONG
+    _RegDeleteValueA.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteValueA(hKeySrc, lpValueName)
+def RegDeleteValueW(hKeySrc, lpValueName = None):
+    _RegDeleteValueW = windll.advapi32.RegDeleteValueW
+    _RegDeleteValueW.argtypes = [HKEY, LPWSTR]
+    _RegDeleteValueW.restype  = LONG
+    _RegDeleteValueW.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteValueW(hKeySrc, lpValueName)
+RegDeleteValue = GuessStringType(RegDeleteValueA, RegDeleteValueW)
+
+# LONG WINAPI RegDeleteKeyValue(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpSubKey,
+#   __in_opt  LPCTSTR lpValueName
+# );
+def RegDeleteKeyValueA(hKeySrc, lpSubKey = None, lpValueName = None):
+    _RegDeleteKeyValueA = windll.advapi32.RegDeleteKeyValueA
+    _RegDeleteKeyValueA.argtypes = [HKEY, LPSTR, LPSTR]
+    _RegDeleteKeyValueA.restype  = LONG
+    _RegDeleteKeyValueA.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyValueA(hKeySrc, lpSubKey, lpValueName)
+def RegDeleteKeyValueW(hKeySrc, lpSubKey = None, lpValueName = None):
+    _RegDeleteKeyValueW = windll.advapi32.RegDeleteKeyValueW
+    _RegDeleteKeyValueW.argtypes = [HKEY, LPWSTR, LPWSTR]
+    _RegDeleteKeyValueW.restype  = LONG
+    _RegDeleteKeyValueW.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyValueW(hKeySrc, lpSubKey, lpValueName)
+RegDeleteKeyValue = GuessStringType(RegDeleteKeyValueA, RegDeleteKeyValueW)
+
+# LONG WINAPI RegDeleteKey(
+#   __in  HKEY hKey,
+#   __in  LPCTSTR lpSubKey
+# );
+def RegDeleteKeyA(hKeySrc, lpSubKey = None):
+    _RegDeleteKeyA = windll.advapi32.RegDeleteKeyA
+    _RegDeleteKeyA.argtypes = [HKEY, LPSTR]
+    _RegDeleteKeyA.restype  = LONG
+    _RegDeleteKeyA.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyA(hKeySrc, lpSubKey)
+def RegDeleteKeyW(hKeySrc, lpSubKey = None):
+    _RegDeleteKeyW = windll.advapi32.RegDeleteKeyW
+    _RegDeleteKeyW.argtypes = [HKEY, LPWSTR]
+    _RegDeleteKeyW.restype  = LONG
+    _RegDeleteKeyW.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyW(hKeySrc, lpSubKey)
+RegDeleteKey = GuessStringType(RegDeleteKeyA, RegDeleteKeyW)
+
+# LONG WINAPI RegDeleteKeyEx(
+#   __in        HKEY hKey,
+#   __in        LPCTSTR lpSubKey,
+#   __in        REGSAM samDesired,
+#   __reserved  DWORD Reserved
+# );
+
+def RegDeleteKeyExA(hKeySrc, lpSubKey = None, samDesired = KEY_WOW64_32KEY):
+    _RegDeleteKeyExA = windll.advapi32.RegDeleteKeyExA
+    _RegDeleteKeyExA.argtypes = [HKEY, LPSTR, REGSAM, DWORD]
+    _RegDeleteKeyExA.restype  = LONG
+    _RegDeleteKeyExA.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyExA(hKeySrc, lpSubKey, samDesired, 0)
+def RegDeleteKeyExW(hKeySrc, lpSubKey = None, samDesired = KEY_WOW64_32KEY):
+    _RegDeleteKeyExW = windll.advapi32.RegDeleteKeyExW
+    _RegDeleteKeyExW.argtypes = [HKEY, LPWSTR, REGSAM, DWORD]
+    _RegDeleteKeyExW.restype  = LONG
+    _RegDeleteKeyExW.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteKeyExW(hKeySrc, lpSubKey, samDesired, 0)
+RegDeleteKeyEx = GuessStringType(RegDeleteKeyExA, RegDeleteKeyExW)
+
+# LONG WINAPI RegCopyTree(
+#   __in      HKEY hKeySrc,
+#   __in_opt  LPCTSTR lpSubKey,
+#   __in      HKEY hKeyDest
+# );
+def RegCopyTreeA(hKeySrc, lpSubKey, hKeyDest):
+    _RegCopyTreeA = windll.advapi32.RegCopyTreeA
+    _RegCopyTreeA.argtypes = [HKEY, LPSTR, HKEY]
+    _RegCopyTreeA.restype  = LONG
+    _RegCopyTreeA.errcheck = RaiseIfNotErrorSuccess
+    _RegCopyTreeA(hKeySrc, lpSubKey, hKeyDest)
+def RegCopyTreeW(hKeySrc, lpSubKey, hKeyDest):
+    _RegCopyTreeW = windll.advapi32.RegCopyTreeW
+    _RegCopyTreeW.argtypes = [HKEY, LPWSTR, HKEY]
+    _RegCopyTreeW.restype  = LONG
+    _RegCopyTreeW.errcheck = RaiseIfNotErrorSuccess
+    _RegCopyTreeW(hKeySrc, lpSubKey, hKeyDest)
+RegCopyTree = GuessStringType(RegCopyTreeA, RegCopyTreeW)
+
+# LONG WINAPI RegDeleteTree(
+#   __in      HKEY hKey,
+#   __in_opt  LPCTSTR lpSubKey
+# );
+def RegDeleteTreeA(hKeySrc, lpSubKey = None):
+    _RegDeleteTreeA = windll.advapi32.RegDeleteTreeA
+    _RegDeleteTreeA.argtypes = [HKEY, LPWSTR]
+    _RegDeleteTreeA.restype  = LONG
+    _RegDeleteTreeA.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteTreeA(hKeySrc, lpSubKey)
+def RegDeleteTreeW(hKeySrc, lpSubKey = None):
+    _RegDeleteTreeW = windll.advapi32.RegDeleteTreeW
+    _RegDeleteTreeW.argtypes = [HKEY, LPWSTR]
+    _RegDeleteTreeW.restype  = LONG
+    _RegDeleteTreeW.errcheck = RaiseIfNotErrorSuccess
+    _RegDeleteTreeW(hKeySrc, lpSubKey)
+RegDeleteTree = GuessStringType(RegDeleteTreeA, RegDeleteTreeW)
+
+# LONG WINAPI RegFlushKey(
+#   __in  HKEY hKey
+# );
+def RegFlushKey(hKey):
+    _RegFlushKey = windll.advapi32.RegFlushKey
+    _RegFlushKey.argtypes = [HKEY]
+    _RegFlushKey.restype  = LONG
+    _RegFlushKey.errcheck = RaiseIfNotErrorSuccess
+    _RegFlushKey(hKey)

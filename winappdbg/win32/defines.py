@@ -77,10 +77,6 @@ if WIN32_VERBOSE_MODE:
             return WinCallHook(self.__name, name)
 
     class WinCallHook(object):
-##        def __new__(typ, dllname, funcname):
-##            print dllname, funcname
-##            return getattr(getattr(ctypes.windll, dllname), funcname)
-
         def __init__(self, dllname, funcname):
             self.__dllname = dllname
             self.__funcname = funcname
@@ -154,6 +150,33 @@ def RaiseIfZero(result, func = None, arguments = ()):
         raise ctypes.WinError()
     return result
 
+def RaiseIfNotErrorSuccess(result, func = None, arguments = ()):
+    """
+    Error checking for Win32 Registry API calls.
+
+    The function is assumed to return a Win32 error code. If the code is not
+    C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
+    """
+    if result != ERROR_SUCCESS:
+        raise ctypes.WinError(result)
+    return result
+
+def RaiseIfLastError(result, func = None, arguments = ()):
+    """
+    Error checking for Win32 API calls with no error-specific return value.
+
+    Regardless of the return value, the function calls GetLastError(). If the
+    code is not C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
+    
+    For this to work, the user MUST call SetLastError(ERROR_SUCCESS) prior to
+    calling the API. Otherwise an exception may be raised even on success,
+    since most API calls don't clear the error status code.
+    """
+    code = GetLastError()
+    if code != ERROR_SUCCESS:
+        raise ctypes.WinError(code)
+    return result
+
 class GuessStringType(object):
     """
     Decorator that guesses the correct version (A or W) to call
@@ -177,12 +200,6 @@ class GuessStringType(object):
          - type('') for ANSI
          - type(u'') for Unicode
     """
-
-    # XXX TO DO
-    # Functions that do not take string parameters but return string values
-    # could use another decorator that simply chooses based on the default
-    # string type. This should still be done on runtime, NOT when importing
-    # the module, so the user can change the default string type at any time.
 
     # ANSI and Unicode types
     t_ansi    = type('')
@@ -239,6 +256,40 @@ class GuessStringType(object):
 
             # Use the A version
             fn = self.fn_ansi
+
+        # Call the function and return the result
+        return fn(*argv, **argd)
+
+class DefaultStringType(object):
+    """
+    Decorator that uses the default version (A or W) to call
+    based on the configuration of the L{GuessStringType} decorator.
+
+    @see: L{GuessStringType.t_default}
+
+    @type fn_ansi: function
+    @ivar fn_ansi: ANSI version of the API function to call.
+    @type fn_unicode: function
+    @ivar fn_unicode: Unicode (wide) version of the API function to call.
+    """
+
+    def __init__(self, fn_ansi, fn_unicode):
+        """
+        @type  fn_ansi: function
+        @param fn_ansi: ANSI version of the API function to call.
+        @type  fn_unicode: function
+        @param fn_unicode: Unicode (wide) version of the API function to call.
+        """
+        self.fn_ansi    = fn_ansi
+        self.fn_unicode = fn_unicode
+
+    def __call__(self, *argv, **argd):
+
+        # Get the appropriate function based on the default.
+        if GuessStringType.t_default == GuessStringType.t_ansi:
+            fn = self.fn_ansi
+        else:
+            fn = self.fn_unicode
 
         # Call the function and return the result
         return fn(*argv, **argd)
@@ -356,6 +407,7 @@ HMODULE     = HANDLE
 HINSTANCE   = HANDLE
 HTASK       = HANDLE
 HKEY        = HANDLE
+PHKEY       = POINTER(HKEY)
 HDESK       = HANDLE
 HRSRC       = HANDLE
 HSTR        = HANDLE
@@ -387,6 +439,10 @@ RVA64       = QWORD
 WPARAM      = DWORD
 LPARAM      = LPVOID
 LRESULT     = LPVOID
+ACCESS_MASK = DWORD
+REGSAM      = ACCESS_MASK
+PACCESS_MASK = POINTER(ACCESS_MASK)
+PREGSAM     = POINTER(REGSAM)
 
 # typedef union _LARGE_INTEGER {
 #   struct {
@@ -474,6 +530,7 @@ ERROR_BAD_PATHNAME                  = 161
 ERROR_ALREADY_EXISTS                = 183
 ERROR_INVALID_FLAG_NUMBER           = 186
 ERROR_FILENAME_EXCED_RANGE          = 206
+ERROR_MORE_DATA                     = 234
 WAIT_TIMEOUT                        = 258
 ERROR_NO_MORE_ITEMS                 = 259
 ERROR_PARTIAL_COPY                  = 299
@@ -500,6 +557,19 @@ ERROR_DBG_CONTINUE                  = 767
 ERROR_NOACCESS                      = 998
 
 ERROR_DEBUGGER_INACTIVE             = 1284
+
+# Standard access rights
+DELETE                           = 0x00010000L
+READ_CONTROL                     = 0x00020000L
+WRITE_DAC                        = 0x00040000L
+WRITE_OWNER                      = 0x00080000L
+SYNCHRONIZE                      = 0x00100000L
+STANDARD_RIGHTS_REQUIRED         = 0x000F0000L
+STANDARD_RIGHTS_READ             = READ_CONTROL
+STANDARD_RIGHTS_WRITE            = READ_CONTROL
+STANDARD_RIGHTS_EXECUTE          = READ_CONTROL
+STANDARD_RIGHTS_ALL              = 0x001F0000L
+SPECIFIC_RIGHTS_ALL              = 0x0000FFFFL
 
 #--- Structures ---------------------------------------------------------------
 

@@ -586,9 +586,16 @@ class Handle (object):
             if Handle.__bLeakDetection:     # XXX DEBUG
                 print "CLOSE HANDLE (%d) %r" % (self.value, self)
             try:
-                CloseHandle(self.value)
+                self._close()
             finally:
                 self.value = None
+
+    def _close(self):
+        """
+        Low-level close method.
+        This is a private method, do not call it.
+        """
+        CloseHandle(self.value)
 
     def dup(self):
         """
@@ -2753,6 +2760,7 @@ def WaitForDebugEvent(dwMilliseconds = INFINITE):
         if success == 0:
             raise ctypes.WinError()
     else:
+        # this avoids locking the Python GIL for too long
         while 1:
             success = _WaitForDebugEvent(ctypes.byref(lpDebugEvent), 100)
             if success != 0:

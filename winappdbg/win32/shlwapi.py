@@ -80,7 +80,7 @@ def IsOS(dwOS):
         _IsOS = windll.shlwapi.IsOS
         _IsOS.argtypes = [DWORD]
         _IsOS.restype  = bool
-    except:
+    except AttributeError:
         # According to MSDN, on Windows versions prior to Vista
         # this function is exported only by ordinal number 437.
         # http://msdn.microsoft.com/en-us/library/bb773795%28VS.85%29.aspx
