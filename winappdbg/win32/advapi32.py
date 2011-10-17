@@ -968,13 +968,16 @@ RegQueryValue = GuessStringType(RegQueryValueA, RegQueryValueW)
 #   __out_opt    LPBYTE lpData,
 #   __inout_opt  LPDWORD lpcbData
 # );
-def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None):
+def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
     _RegQueryValueEx = _caller_RegQueryValueEx(ansi)
     
     cbData = DWORD(0)
-    dwType = DWORD(0)
+    dwType = DWORD(-1)
     _RegQueryValueEx(hKey, lpValueName, None, ctypes.byref(dwType), None, ctypes.byref(cbData))
     Type = dwType.value
+    
+    if not bGetData:
+        return cbData.value, Type
     
     if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
         if cbData.value != 4:
@@ -1034,12 +1037,12 @@ def _caller_RegQueryValueEx(ansi):
     return _RegQueryValueEx
 
 # see _internal_RegQueryValueEx
-def RegQueryValueExA(hKey, lpValueName = None):
-    return _internal_RegQueryValueEx(True, hKey, lpValueName)
+def RegQueryValueExA(hKey, lpValueName = None, bGetData = True):
+    return _internal_RegQueryValueEx(True, hKey, lpValueName, bGetData)
 
 # see _internal_RegQueryValueEx
-def RegQueryValueExW(hKey, lpValueName = None):
-    return _internal_RegQueryValueEx(False, hKey, lpValueName)
+def RegQueryValueExW(hKey, lpValueName = None, bGetData = True):
+    return _internal_RegQueryValueEx(False, hKey, lpValueName, bGetData)
 
 RegQueryValueEx = GuessStringType(RegQueryValueExA, RegQueryValueExW)
 
@@ -1057,12 +1060,8 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
     if lpValueName is None:
         if isinstance(lpData, GuessStringType.t_ansi):
             ansi = True
-            if dwType is None:
-                dwType = REG_SZ
         elif isinstance(lpData, GuessStringType.t_unicode):
             ansi = False
-            if dwType is None:
-                dwType = REG_SZ
         else:
             ansi = (GuessStringType.t_ansi == GuessStringType.t_default)
     elif isinstance(lpValueName, GuessStringType.t_ansi):
@@ -1073,11 +1072,16 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
         raise TypeError("String expected, got %s instead" % type(lpValueName))
     
     # Autodetect the type when not given.
+    # TODO: improve detection of DWORD and QWORD by seeing if the value "fits".
     if dwType is None:
         if lpValueName is None:
             dwType = REG_SZ
         elif lpData is None:
             dwType = REG_NONE
+        elif isinstance(lpData, GuessStringType.t_ansi):
+            dwType = REG_SZ
+        elif isinstance(lpData, GuessStringType.t_unicode):
+            dwType = REG_SZ
         elif isinstance(lpData, int):
             dwType = REG_DWORD
         elif isinstance(lpData, long):
@@ -1414,18 +1418,18 @@ RegCopyTree = GuessStringType(RegCopyTreeA, RegCopyTreeW)
 #   __in      HKEY hKey,
 #   __in_opt  LPCTSTR lpSubKey
 # );
-def RegDeleteTreeA(hKeySrc, lpSubKey = None):
+def RegDeleteTreeA(hKey, lpSubKey = None):
     _RegDeleteTreeA = windll.advapi32.RegDeleteTreeA
     _RegDeleteTreeA.argtypes = [HKEY, LPWSTR]
     _RegDeleteTreeA.restype  = LONG
     _RegDeleteTreeA.errcheck = RaiseIfNotErrorSuccess
-    _RegDeleteTreeA(hKeySrc, lpSubKey)
-def RegDeleteTreeW(hKeySrc, lpSubKey = None):
+    _RegDeleteTreeA(hKey, lpSubKey)
+def RegDeleteTreeW(hKey, lpSubKey = None):
     _RegDeleteTreeW = windll.advapi32.RegDeleteTreeW
     _RegDeleteTreeW.argtypes = [HKEY, LPWSTR]
     _RegDeleteTreeW.restype  = LONG
     _RegDeleteTreeW.errcheck = RaiseIfNotErrorSuccess
-    _RegDeleteTreeW(hKeySrc, lpSubKey)
+    _RegDeleteTreeW(hKey, lpSubKey)
 RegDeleteTree = GuessStringType(RegDeleteTreeA, RegDeleteTreeW)
 
 # LONG WINAPI RegFlushKey(

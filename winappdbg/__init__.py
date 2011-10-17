@@ -115,6 +115,9 @@ __all__ =   [
                 'Process',
                 'System',
 
+                # from registry import *
+                'Registry',
+
                 # from event import *
                 'EventHandler',
 ##                'EventFactory',
@@ -172,10 +175,11 @@ from crash import *
 from debug import *
 from event import *
 from system import *
+from registry import *
 from textio import *
 from util import *
 import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 # Library version
-version = "Version 1.4"
+version = "Version 1.5"

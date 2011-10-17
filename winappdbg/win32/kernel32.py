@@ -634,6 +634,9 @@ class Handle (object):
         if r != WAIT_OBJECT_0:
             raise ctypes.WinError(r)
 
+    def __repr__(self):
+        return '<%s: %d>' % (self.__class__.__name__, self.value)
+
 class ProcessHandle (Handle):
     """
     Win32 process handle.
