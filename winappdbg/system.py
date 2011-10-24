@@ -79,7 +79,7 @@ except ImportError:
             "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
             msg = ("diStorm is not installed or can't be found. "
             "Download it from: http://code.google.com/p/distorm3")
-            raise NotImplementedError, msg
+            raise NotImplementedError(msg)
 
 try:
     from psyco.classes import *
@@ -87,6 +87,11 @@ except ImportError:
     pass
 
 #==============================================================================
+
+# TODO
+# An alternative approach to the toolhelp32 snapshots: parsing the PEB and
+# fetching the list of loaded modules from there. That would solve the problem
+# of toolhelp32 not working when the process hasn't finished initializing.
 
 class ModuleContainer (object):
     """
@@ -172,7 +177,7 @@ class ModuleContainer (object):
         if lpBaseOfDll not in self.__moduleDict:
             msg = "Unknown DLL base address %s"
             msg = msg % HexDump.address(lpBaseOfDll)
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__moduleDict[lpBaseOfDll]
 
     def iter_module_addresses(self):
@@ -340,7 +345,7 @@ class ModuleContainer (object):
                     aModule = Module(lpBaseAddress, fileName = fileName,
                                            SizeOfImage = me.modBaseSize,
                                            process = self)
-                    self.__add_module(aModule)
+                    self._add_module(aModule)
                 else:
                     aModule = self.get_module(lpBaseAddress)
                     if not aModule.fileName:
@@ -355,7 +360,7 @@ class ModuleContainer (object):
 ##        for base in self.get_module_bases(): # XXX triggers a scan
         for base in self.__moduleDict.keys():
             if base not in found_bases:
-                self.__del_module(base)
+                self._del_module(base)
 
     def clear_modules(self):
         """
@@ -367,7 +372,7 @@ class ModuleContainer (object):
 
     # XXX notify_* methods should not trigger a scan
 
-    def __add_module(self, aModule):
+    def _add_module(self, aModule):
         """
         Private method to add a module object to the snapshot.
 
@@ -380,14 +385,14 @@ class ModuleContainer (object):
 ##            else:
 ##                typename = str(type(aModule))
 ##            msg = "Expected Module, got %s instead" % typename
-##            raise TypeError, msg
+##            raise TypeError(msg)
         lpBaseOfDll = aModule.get_base()
 ##        if lpBaseOfDll in self.__moduleDict:
 ##            msg = "Module already exists: %d" % lpBaseOfDll
-##            raise KeyError, msg
+##            raise KeyError(msg)
         self.__moduleDict[lpBaseOfDll] = aModule
 
-    def __del_module(self, lpBaseOfDll):
+    def _del_module(self, lpBaseOfDll):
         """
         Private method to remove a module object from the snapshot.
 
@@ -396,7 +401,7 @@ class ModuleContainer (object):
         """
 ##        if lpBaseOfDll not in self.__moduleDict:
 ##            msg = "Unknown base address %d" % lpBaseOfDll
-##            raise KeyError, msg
+##            raise KeyError(msg)
         self.__moduleDict[lpBaseOfDll].hFile   = None    # handle
         self.__moduleDict[lpBaseOfDll].process = None    # circular reference
         del self.__moduleDict[lpBaseOfDll]
@@ -422,7 +427,7 @@ class ModuleContainer (object):
             aModule  = Module(lpBaseOfDll, hFile, fileName = fileName,
                                                 EntryPoint = EntryPoint,
                                                    process = self)
-            self.__add_module(aModule)
+            self._add_module(aModule)
         else:
             aModule = self.get_module(lpBaseOfDll)
             if hFile != win32.INVALID_HANDLE_VALUE:
@@ -485,7 +490,7 @@ class ModuleContainer (object):
         lpBaseOfDll = event.get_module_base()
 ##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
         if self.__moduleDict.has_key(lpBaseOfDll):
-            self.__del_module(lpBaseOfDll)
+            self._del_module(lpBaseOfDll)
         return True
 
 #==============================================================================
@@ -577,7 +582,7 @@ class ThreadContainer (object):
         self.__initialize_snapshot()
         if dwThreadId not in self.__threadDict:
             msg = "Unknown thread ID: %d" % dwThreadId
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__threadDict[dwThreadId]
 
     def iter_thread_ids(self):
@@ -694,7 +699,7 @@ class ThreadContainer (object):
         hThread, dwThreadId = win32.CreateRemoteThread(self.get_handle(), 0, 0,
                                 lpStartAddress, lpParameter, dwCreationFlags)
         aThread = Thread(dwThreadId, hThread, self)
-        self.__add_thread(aThread)
+        self._add_thread(aThread)
         return aThread
 
 #------------------------------------------------------------------------------
@@ -722,7 +727,7 @@ class ThreadContainer (object):
             return
 
 ##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
-        dead_tids   = self.__threadDict.keys()
+        dead_tids   = self._get_thread_ids()
         dwProcessId = self.get_pid()
         hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD,
                                                                  dwProcessId)
@@ -734,14 +739,14 @@ class ThreadContainer (object):
                     if dwThreadId in dead_tids:
                         dead_tids.remove(dwThreadId)
 ##                    if not self.has_thread(dwThreadId): # XXX triggers a scan
-                    if not self.__threadDict.has_key(dwThreadId):
+                    if not self._has_thread_id(dwThreadId):
                         aThread = Thread(dwThreadId, process = self)
-                        self.__add_thread(aThread)
+                        self._add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
         for tid in dead_tids:
-            self.__del_thread(tid)
+            self._del_thread(tid)
 
     def clear_dead_threads(self):
         """
@@ -751,7 +756,7 @@ class ThreadContainer (object):
         for tid in self.get_thread_ids():
             aThread = self.get_thread(tid)
             if not aThread.is_alive():
-                self.__del_thread(aThread)
+                self._del_thread(aThread)
 
     def clear_threads(self):
         """
@@ -773,7 +778,7 @@ class ThreadContainer (object):
 
     # XXX notify_* methods should not trigger a scan
 
-    def __add_thread(self, aThread):
+    def _add_thread(self, aThread):
         """
         Private method to add a thread object to the snapshot.
 
@@ -786,15 +791,15 @@ class ThreadContainer (object):
 ##            else:
 ##                typename = str(type(aThread))
 ##            msg = "Expected Thread, got %s instead" % typename
-##            raise TypeError, msg
+##            raise TypeError(msg)
         dwThreadId = aThread.dwThreadId
 ##        if dwThreadId in self.__threadDict:
 ##            msg = "Already have a Thread object with ID %d" % dwThreadId
-##            raise KeyError, msg
+##            raise KeyError(msg)
         aThread.dwProcessId = self.get_pid()
         self.__threadDict[dwThreadId] = aThread
 
-    def __del_thread(self, dwThreadId):
+    def _del_thread(self, dwThreadId):
         """
         Private method to remove a thread object from the snapshot.
 
@@ -803,10 +808,24 @@ class ThreadContainer (object):
         """
 ##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
-##            raise KeyError, msg
+##            raise KeyError(msg)
         self.__threadDict[dwThreadId].hThread = None    # handle
         self.__threadDict[dwThreadId].process = None    # circular reference
         del self.__threadDict[dwThreadId]
+
+    def _has_thread_id(self, dwThreadId):
+        """
+        Private method to test for a thread in the snapshot without triggering
+        an automatic scan.
+        """
+        return self.__threadDict.has_key(dwThreadId)
+
+    def _get_thread_ids(self):
+        """
+        Private method to get the list of thread IDs currently in the snapshot
+        without triggering an automatic scan.
+        """
+        return self.__threadDict.keys()
 
     def __add_created_thread(self, event):
         """
@@ -818,9 +837,9 @@ class ThreadContainer (object):
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
 ##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
-        if not self.__threadDict.has_key(dwThreadId):
+        if not self._has_thread_id(dwThreadId):
             aThread = Thread(dwThreadId, hThread, self)
-            self.__add_thread(aThread)
+            self._add_thread(aThread)
         else:
             aThread = self.get_thread(dwThreadId)
             if hThread != win32.INVALID_HANDLE_VALUE:
@@ -873,8 +892,8 @@ class ThreadContainer (object):
         """
         dwThreadId = event.get_tid()
 ##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
-        if self.__threadDict.has_key(dwThreadId):
-            self.__del_thread(dwThreadId)
+        if self._has_thread_id(dwThreadId):
+            self._del_thread(dwThreadId)
         return True
 
 #==============================================================================
@@ -990,7 +1009,7 @@ class ProcessContainer (object):
         self.__initialize_snapshot()
         if dwProcessId not in self.__processDict:
             msg = "Unknown process ID %d" % dwProcessId
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.__processDict[dwProcessId]
 
     def iter_process_ids(self):
@@ -1087,7 +1106,7 @@ class ProcessContainer (object):
 
         # No luck! It appears to be the thread doesn't exist after all.
         msg = "Unknown thread ID %d" % dwThreadId
-        raise KeyError, msg
+        raise KeyError(msg)
 
 #------------------------------------------------------------------------------
 
@@ -1134,52 +1153,55 @@ class ProcessContainer (object):
             return []
         return win32.CommandLineToArgv(lpCmdLine)
 
-    def start_process(self, lpCmdLine,
-            bConsole            = False,
-            bDebug              = False,
-            bFollow             = False,
-            bSuspended          = False,
-            bInheritHandles     = False,
-            dwParentProcessId   = None
-        ):
+    def start_process(self, lpCmdLine, **kwargs):
         """
         Starts a new process for instrumenting (or debugging).
 
         @type  lpCmdLine: str
         @param lpCmdLine: Command line to execute. Can't be an empty string.
 
-        @type  bConsole: bool
-        @param bConsole: C{True} if the new process should inherit the console.
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
             Defaults to C{False}.
 
-        @type  bDebug: bool
-        @param bDebug: C{True} to attach to the new process.
+        @type    bDebug: bool
+        @keyword bDebug: C{True} to attach to the new process.
             To debug a process it's best to use the L{Debug} class instead.
             Defaults to C{False}.
 
-        @type  bFollow: bool
-        @param bFollow: C{True} to automatically attach to the child processes
-            of the newly created process. Ignored unless C{bDebug} is C{True}.
-            Defaults to C{False}.
+        @type    bFollow: bool
+        @keyword bFollow: C{True} to automatically attach to the child
+            processes of the newly created process. Ignored unless C{bDebug} is
+            C{True}. Defaults to C{False}.
 
-        @type  bSuspended: bool
-        @param bSuspended: C{True} if the new process should be suspended.
-            Defaults to C{False}.
+        @type    bInheritHandles: bool
+        @keyword bInheritHandles: C{True} if the new process should inherit
+            it's parent process' handles. Defaults to C{False}.
 
-        @type  bInheritHandles: bool
-        @param bInheritHandles: C{True} if the new process should inherit it's
-            parent process' handles. Defaults to C{False}.
+        @type    bSuspended: bool
+        @keyword bSuspended: C{True} to suspend the main thread before any code
+            is executed in the debugee. Defaults to C{False}.
 
-        @type  dwParentProcessId: int or None
-        @param dwParentProcessId: C{None} if the debugger process should be the
-            parent process (default), or a process ID to forcefully set as the
-            debugee's parent (only available for Windows Vista and above).
+        @type    dwParentProcessId: int or None
+        @keyword dwParentProcessId: C{None} if the debugger process should be
+            the parent process (default), or a process ID to forcefully set as
+            the debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: Process object.
         """
+        
+        bConsole            = kwargs.pop('bConsole', False)
+        bDebug              = kwargs.pop('bDebug', False)
+        bFollow             = kwargs.pop('bFollow', False)
+        bSuspended          = kwargs.pop('bSuspended', False)
+        bInheritHandles     = kwargs.pop('bInheritHandles', False)
+        dwParentProcessId   = kwargs.pop('dwParentProcessId', None)
+        if kwargs:
+            raise TypeError("Unknown keyword arguments: %s" % kwargs.keys())
         if not lpCmdLine:
-            raise ValueError, "Missing command line to execute!"
+            raise ValueError("Missing command line to execute!")
+        
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
@@ -1189,9 +1211,10 @@ class ProcessContainer (object):
             dwCreationFlags |= win32.CREATE_SUSPENDED
         if bDebug:
             dwCreationFlags |= win32.DEBUG_PROCESS
-        if bDebug and not bFollow:
-            dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
+            if not bFollow:
+                dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
         lpStartupInfo = None
+        
         if dwParentProcessId is not None:
             myPID = win32.GetCurrentProcessId()
             if dwParentProcessId != myPID:
@@ -1219,14 +1242,27 @@ class ProcessContainer (object):
                 StartupInfoEx.lpAttributeList = AttributeList.value
                 lpStartupInfo = StartupInfoEx
                 dwCreationFlags |= win32.EXTENDED_STARTUPINFO_PRESENT
-        pi = win32.CreateProcess(win32.NULL, lpCmdLine,
-                                 bInheritHandles = bInheritHandles,
-                                 dwCreationFlags = dwCreationFlags,
-                                 lpStartupInfo   = lpStartupInfo)
-        aProcess = Process(pi.dwProcessId, pi.hProcess)
-        aThread  = Thread (pi.dwThreadId,  pi.hThread)
-        aProcess._ThreadContainer__add_thread(aThread)
-        self.__add_process(aProcess)
+        
+        pi = None
+        try:
+            pi = win32.CreateProcess(win32.NULL, lpCmdLine,
+                                        bInheritHandles = bInheritHandles,
+                                        dwCreationFlags = dwCreationFlags,
+                                        lpStartupInfo   = lpStartupInfo)            
+            aProcess = Process(pi.dwProcessId, pi.hProcess)
+            aThread  = Thread (pi.dwThreadId,  pi.hThread)
+            aProcess._add_thread(aThread)
+            self._add_process(aProcess)
+        except:
+            if pi is not None:
+                try:
+                    win32.TerminateProcess(pi.hProcess)
+                except WindowsError:
+                    pass
+                pi.hThread.close()
+                pi.hProcess.close()
+            raise
+        
         return aProcess
 
 #------------------------------------------------------------------------------
@@ -1279,7 +1315,7 @@ class ProcessContainer (object):
 ##                    if not self.has_process(dwProcessId): # XXX triggers a scan
                     if not self.__processDict.has_key(dwProcessId):
                         aProcess = Process(dwProcessId)
-                        self.__add_process(aProcess)
+                        self._add_process(aProcess)
                     elif pe.szExeFile:
                         aProcess = self.get_process(dwProcessId)
                         if not aProcess.fileName:
@@ -1298,13 +1334,13 @@ class ProcessContainer (object):
                         aProcess = self.get_process(dwProcessId)
                     else:
                         aProcess = Process(dwProcessId)
-                        self.__add_process(aProcess)
+                        self._add_process(aProcess)
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
 ##                    if not aProcess.has_thread(dwThreadId): # XXX triggers a scan
-                    if not aProcess._ThreadContainer__threadDict.has_key(dwThreadId):
+                    if not aProcess._has_thread_id(dwThreadId):
                         aThread = Thread(dwThreadId, process = aProcess)
-                        aProcess._ThreadContainer__add_thread(aThread)
+                        aProcess._add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
 
         # Always close the snapshot handle before returning
@@ -1313,16 +1349,16 @@ class ProcessContainer (object):
 
         # Remove dead processes
         for pid in dead_pids:
-            self.__del_process(pid)
+            self._del_process(pid)
 
         # Remove dead threads
 ##        for aProcess in self.iter_processes(): # XXX triggers a scan
         for aProcess in self.__processDict.itervalues():
 ##            dead_tids = set( aProcess.get_thread_ids() ) # XXX triggers a scan
-            dead_tids = set( aProcess._ThreadContainer__threadDict.keys() )
+            dead_tids = set( aProcess._get_thread_ids() )
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
-                aProcess._ThreadContainer__del_thread(tid)
+                aProcess._del_thread(tid)
 
 
     def scan_modules(self):
@@ -1358,7 +1394,7 @@ class ProcessContainer (object):
 ##                    if not self.has_process(dwProcessId): # XXX triggers a scan
                     if not self.__processDict.has_key(dwProcessId):
                         aProcess = Process(dwProcessId)
-                        self.__add_process(aProcess)
+                        self._add_process(aProcess)
                     elif pe.szExeFile:
                         aProcess = self.get_process(dwProcessId)
                         if not aProcess.fileName:
@@ -1367,7 +1403,7 @@ class ProcessContainer (object):
         finally:
             win32.CloseHandle(hSnapshot)
         for pid in dead_pids:
-            self.__del_process(pid)
+            self._del_process(pid)
 
     def scan_processes_fast(self):
         """
@@ -1396,11 +1432,11 @@ class ProcessContainer (object):
 
         # Add newly found pids
         for pid in new_pids.difference(old_pids):
-            self.__add_process( Process(pid) )
+            self._add_process( Process(pid) )
 
         # Remove missing pids
         for pid in old_pids.difference(new_pids):
-            self.__del_process(pid)
+            self._del_process(pid)
 
     def clear_dead_processes(self):
         """
@@ -1410,7 +1446,7 @@ class ProcessContainer (object):
         for pid in self.get_process_ids():
             aProcess = self.get_process(pid)
             if not aProcess.is_alive():
-                self.__del_process(aProcess)
+                self._del_process(aProcess)
 
     def clear_unattached_processes(self):
         """
@@ -1420,7 +1456,7 @@ class ProcessContainer (object):
         for pid in self.get_process_ids():
             aProcess = self.get_process(pid)
             if not aProcess.is_being_debugged():
-                self.__del_process(aProcess)
+                self._del_process(aProcess)
 
     def close_process_handles(self):
         """
@@ -1473,7 +1509,7 @@ class ProcessContainer (object):
         dwProcessId = self.get_pid_from_tid(dwThreadId)
         if dwProcessId is None:
             msg = "Unknown thread ID %d" % dwThreadId
-            raise KeyError, msg
+            raise KeyError(msg)
         return self.get_process(dwProcessId).get_thread(dwThreadId)
 
     def get_thread_ids(self):
@@ -1591,7 +1627,7 @@ class ProcessContainer (object):
 
     # XXX notify_* methods should not trigger a scan
 
-    def __add_process(self, aProcess):
+    def _add_process(self, aProcess):
         """
         Private method to add a process object to the snapshot.
 
@@ -1604,14 +1640,14 @@ class ProcessContainer (object):
 ##            else:
 ##                typename = str(type(aProcess))
 ##            msg = "Expected Process, got %s instead" % typename
-##            raise TypeError, msg
+##            raise TypeError(msg)
         dwProcessId = aProcess.dwProcessId
 ##        if dwProcessId in self.__processDict:
 ##            msg = "Process already exists: %d" % dwProcessId
-##            raise KeyError, msg
+##            raise KeyError(msg)
         self.__processDict[dwProcessId] = aProcess
 
-    def __del_process(self, dwProcessId):
+    def _del_process(self, dwProcessId):
         """
         Private method to remove a process object from the snapshot.
 
@@ -1620,7 +1656,7 @@ class ProcessContainer (object):
         """
 ##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
-##            raise KeyError, msg
+##            raise KeyError(msg)
         self.__processDict[dwProcessId].hProcess = None # handle
         self.__processDict[dwProcessId].clear()         # circular reference
         del self.__processDict[dwProcessId]
@@ -1645,7 +1681,7 @@ class ProcessContainer (object):
 ##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
         if not self.__processDict.has_key(dwProcessId):
             aProcess = Process(dwProcessId, hProcess)
-            self.__add_process(aProcess)
+            self._add_process(aProcess)
             aProcess.fileName = event.get_filename()
         else:
             aProcess = self.get_process(dwProcessId)
@@ -1673,7 +1709,7 @@ class ProcessContainer (object):
         dwProcessId = event.get_pid()
 ##        if self.has_process(dwProcessId): # XXX this would trigger a scan
         if self.__processDict.has_key(dwProcessId):
-            self.__del_process(dwProcessId)
+            self._del_process(dwProcessId)
         return True
 
 #==============================================================================
@@ -2581,7 +2617,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2615,7 +2651,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2649,7 +2685,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2684,7 +2720,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2718,7 +2754,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2756,7 +2792,7 @@ class MemoryOperations (object):
         @raise WindowsError: On error an exception is raised.
         """
         if size <= 0:
-            raise ValueError, "the size argument must be greater than zero"
+            raise ValueError("The size argument must be greater than zero")
         while size > 0:
             try:
                 mbi = self.mquery(address)
@@ -2991,8 +3027,8 @@ class MemoryOperations (object):
         @raise TypeError: A snapshot of the wrong type was passed.
         """
         if not isinstance(snapshot, list):
-            raise TypeError, "Only snapshots returned by " \
-                             "take_memory_snapshots() can be used here."
+            raise TypeError( "Only snapshots returned by " \
+                             "take_memory_snapshots() can be used here." )
 
         # Get the process handle.
         hProcess = self.get_handle()
@@ -3061,7 +3097,7 @@ class MemoryOperations (object):
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
-                        raise RuntimeError, msg
+                        raise RuntimeError(msg)
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
 
                 else:   # elif old_mbi.is_commited():
@@ -3072,7 +3108,7 @@ class MemoryOperations (object):
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
-                        raise RuntimeError, msg
+                        raise RuntimeError(msg)
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
 
             elif new_mbi.is_reserved():
@@ -3084,7 +3120,7 @@ class MemoryOperations (object):
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
-                        raise RuntimeError, msg
+                        raise RuntimeError(msg)
                     new_mbi.Protect = old_mbi.Protect   # permissions already restored
 
                 else:   # elif old_mbi.is_free():
@@ -3365,9 +3401,9 @@ class SymbolOperations (object):
 
         # Validate the parameters.
         if module is not None and ('!' in module or '+' in module):
-            raise ValueError, "Invalid module name: %s" % module
+            raise ValueError("Invalid module name: %s" % module)
         if function is not None and ('!' in function or '+' in function):
-            raise ValueError, "Invalid function name: %s" % function
+            raise ValueError("Invalid function name: %s" % function)
 
         # Parse the label.
         if module:
@@ -3448,23 +3484,23 @@ class SymbolOperations (object):
             try:
                 module, function = label.split('!')
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
 
             # module ! function
             if function:
                 if '+' in module:
-                    raise ValueError, "Malformed label: %s" % label
+                    raise ValueError("Malformed label: %s" % label)
 
                 # module ! function + offset
                 if '+' in function:
                     try:
                         function, offset = function.split('+')
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                 else:
 
                     # module ! offset
@@ -3480,11 +3516,11 @@ class SymbolOperations (object):
                     try:
                         module, offset = module.split('+')
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
                     try:
                         offset = HexInput.integer(offset)
                     except ValueError:
-                        raise ValueError, "Malformed label: %s" % label
+                        raise ValueError("Malformed label: %s" % label)
 
                 else:
 
@@ -3519,12 +3555,12 @@ class SymbolOperations (object):
                     # module?
                     # function?
                     except ValueError:
-                        raise ValueError, "Ambiguous label: %s" % label
+                        raise ValueError("Ambiguous label: %s" % label)
 
                 # module?
                 # function?
                 else:
-                    raise ValueError, "Ambiguous label: %s" % label
+                    raise ValueError("Ambiguous label: %s" % label)
 
         # Convert function ordinal strings into integers.
         if function and function.startswith('#'):
@@ -3603,11 +3639,11 @@ class SymbolOperations (object):
             try:
                 prefix, offset = label.split('+')
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
             try:
                 offset = HexInput.integer(offset)
             except ValueError:
-                raise ValueError, "Malformed label: %s" % label
+                raise ValueError("Malformed label: %s" % label)
             label = prefix
 
         # This parses both filenames and base addresses.
@@ -3771,11 +3807,14 @@ When called as an instance method, the fuzzy syntax mode is used::
         module, function, offset = self.split_label_fuzzy(label)
 
         # Resolve the module.
+        # If the module is not found, check for the special symbol "main".
         if module:
             modobj = self.get_module_by_name(module)
             if not modobj:
-                msg = "Module %r not found" % module
-                raise RuntimeError, msg
+                if method == "main":
+                    modobj = self.get_main_module()
+                else:
+                    raise RuntimeError("Module %r not found" % module)
 
             # Resolve the exported function or debugging symbol.
             # If all else fails, check for the special symbol "start".
@@ -3788,8 +3827,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                             address = modobj.get_entry_point()
                         if address is None:
                             msg = "Symbol %r not found in module %s"
-                            msg = msg % (function, module)
-                            raise RuntimeError, msg
+                            raise RuntimeError(msg % (function, module))
 
             # No function, use the base address.
             else:
@@ -3803,7 +3841,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                     break
             if address is None:
                 msg = "Function %r not found in any module" % function
-                raise RuntimeError, msg
+                raise RuntimeError(msg)
 
         # Return the address plus the offset.
         if offset:
@@ -3850,8 +3888,19 @@ When called as an instance method, the fuzzy syntax mode is used::
             address == self.get_system_breakpoint()         or \
             address == self.get_wow64_system_breakpoint()   or \
             address == self.get_user_breakpoint()           or \
-            address == self.get_breakin_breakpoint()
+            address == self.get_wow64_user_breakpoint()     or \
+            address == self.get_breakin_breakpoint()        or \
+            address == self.get_wow64_breakin_breakpoint()
         )
+
+    # TODO
+    # The memory addresses of system breakpoints could be cached.
+    # Since they're all in system libraries it's not likely they'll ever
+    # change their address during the lifetime of the process... I don't
+    # suppose a program could happily unload ntdll.dll and survive.
+    # The difficulty is knowing when resolution fails because the breakpoint
+    # does not exist in the current version of Windows, and when it's simply
+    # the process module snapshot not having been yet initialized.
 
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
@@ -4151,7 +4200,7 @@ class ThreadDebugOperations (object):
         if address > Limit:
             msg = "Address %s too large for segment %s (selector %d)"
             msg = msg % (HexDump.address(address), segment, selector)
-            raise ValueError, msg
+            raise ValueError(msg)
         return Base + address
 
     def get_label_at_pc(self):
@@ -4174,8 +4223,8 @@ class ThreadDebugOperations (object):
             This method is only supported in 32 bits versions of Windows.
         """
         if System.arch != 'i386':
-            raise NotImplementedError, \
-                "SEH chain parsing is only supported in 32-bit Windows."
+            raise NotImplementedError(
+                "SEH chain parsing is only supported in 32-bit Windows.")
 
         process = self.get_process()
         address = self.get_linear_address( 'SegFs', 0 )
@@ -4194,8 +4243,8 @@ class ThreadDebugOperations (object):
             This method is only supported in 32 bits versions of Windows.
         """
         if System.arch != 'i386':
-            raise NotImplementedError, \
-                "SEH chain parsing is only supported in 32-bit Windows."
+            raise NotImplementedError(
+                "SEH chain parsing is only supported in 32-bit Windows.")
 
         process = self.get_process()
         address = self.get_linear_address( 'SegFs', 0 )
@@ -4372,11 +4421,11 @@ class ThreadDebugOperations (object):
         fp       = self.get_fp()
         size     = fp - sp
         if not st <= sp < sb:
-            raise RuntimeError, 'Stack pointer lies outside the stack'
+            raise RuntimeError('Stack pointer lies outside the stack')
         if not st <= fp < sb:
-            raise RuntimeError, 'Frame pointer lies outside the stack'
+            raise RuntimeError('Frame pointer lies outside the stack')
         if sp > fp:
-            raise RuntimeError, 'No valid stack frame found'
+            raise RuntimeError('No valid stack frame found')
         return (sp, fp)
 
     def get_stack_frame(self, max_size = None):
@@ -4746,7 +4795,7 @@ class ProcessDebugOperations (object):
 
     @group Properties:
         is_wow64, get_dep_status, get_peb, get_peb_address,
-        get_main_module, get_image_base, get_image_name,
+        get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
         get_environment_block, get_environment_data, parse_environment_data
@@ -5035,6 +5084,15 @@ class ProcessDebugOperations (object):
         pbi = win32.NtQueryInformationProcess(self.get_handle(),
                                                  win32.ProcessBasicInformation)
         return pbi.PebBaseAddress
+
+    def get_entry_point(self):
+        """
+        Alias to C{process.get_main_module().get_entry_point()}.
+        
+        @rtype:  int
+        @return: Address of the entry point of the main module.
+        """
+        return self.get_main_module().get_entry_point()
 
     def get_main_module(self):
         """
@@ -5445,7 +5503,7 @@ class Window (object):
         @raise ValueError: No window handle set.
         """
         if self.hWnd is None:
-            raise ValueError, "No window handle set!"
+            raise ValueError("No window handle set!")
         return self.hWnd
 
     def get_pid(self):
@@ -5505,7 +5563,7 @@ class Window (object):
             if not isinstance(process, Process):
                 msg  = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
-                raise TypeError, msg
+                raise TypeError(msg)
             self.dwProcessId = process.get_pid()
 ##            self.__process = weakref.ref(process)
             self.__process = process
@@ -5551,7 +5609,7 @@ class Window (object):
             if not isinstance(thread, Thread):
                 msg  = "Parent thread must be a Thread instance, "
                 msg += "got %s instead" % type(thread)
-                raise TypeError, msg
+                raise TypeError(msg)
             self.dwThreadId = thread.get_tid()
 ##            self.__thread = weakref.ref(thread)
             self.__thread = thread
@@ -5741,7 +5799,7 @@ class Window (object):
             hWnd     = win32.GetParent(hWnd)
         if hWnd in history:
             # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
-            raise RuntimeError, "Can't find the root window for this tree"
+            raise RuntimeError("Can't find the root window for this tree")
         if hPrevWnd != self.hWnd:
             return self.__get_window(hPrevWnd)
         return self
@@ -6121,7 +6179,7 @@ class Module (SymbolContainer):
             if not isinstance(process, Process):
                 msg  = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
-                raise TypeError, msg
+                raise TypeError(msg)
 ##            self.__process = weakref.ref(process)
             self.__process = process
 
@@ -6282,7 +6340,7 @@ class Module (SymbolContainer):
         if not self.get_filename():
             msg = "Cannot retrieve filename for module at %s"
             msg = msg % HexDump.address( self.get_base() )
-            raise Exception, msg
+            raise Exception(msg)
 
         hFile = win32.CreateFile(self.get_filename(),
                                            dwShareMode = win32.FILE_SHARE_READ,
@@ -6475,7 +6533,7 @@ class Module (SymbolContainer):
         # If a module name is given that doesn't match ours,
         # raise an exception.
         if module and not self.match_name(module):
-            raise RuntimeError, "Label does not belong to this module"
+            raise RuntimeError("Label does not belong to this module")
 
         # Resolve the procedure if given.
         if procedure:
@@ -6494,8 +6552,7 @@ class Module (SymbolContainer):
                     if not module:
                         module = self.get_name()
                     msg = "Can't find procedure %s in module %s"
-                    msg = msg % (procedure, module)
-                    raise RuntimeError, msg
+                    raise RuntimeError(msg % (procedure, module))
 
         # If no procedure is given use the base address of the module.
         else:
@@ -6623,7 +6680,7 @@ class Thread (ThreadDebugOperations):
             if not isinstance(process, Process):
                 msg  = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
-                raise TypeError, msg
+                raise TypeError(msg)
             self.dwProcessId = process.get_pid()
 ##            self.__process = weakref.ref(process)
             self.__process = process
@@ -6676,7 +6733,7 @@ class Thread (ThreadDebugOperations):
             win32.CloseHandle(hSnapshot)
         if dwProcessId is None:
             msg = "Cannot find thread ID %d in any process" % dwThreadId
-            raise RuntimeError, msg
+            raise RuntimeError(msg)
         return dwProcessId
 
     def get_tid(self):
@@ -7627,8 +7684,8 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             self.scan_modules()
             aModule = self.get_module_by_name('kernel32.dll')
         if aModule is None:
-            raise RuntimeError, \
-                            "Cannot resolve kernel32.dll in the remote process"
+            raise RuntimeError(
+                "Cannot resolve kernel32.dll in the remote process")
 
         # Old method, using shellcode.
         if procname:
@@ -7639,20 +7696,23 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             # Resolve kernel32.dll!LoadLibraryA
             pllib = aModule.resolve('LoadLibraryA')
             if not pllib:
-                raise RuntimeError, \
-                    "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
+                raise RuntimeError(
+                    "Cannot resolve kernel32.dll!LoadLibraryA"
+                    " in the remote process")
 
             # Resolve kernel32.dll!GetProcAddress
             pgpad = aModule.resolve('GetProcAddress')
             if not pgpad:
-                raise RuntimeError, \
-                 "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
+                raise RuntimeError(
+                    "Cannot resolve kernel32.dll!GetProcAddress"
+                    " in the remote process")
 
             # Resolve kernel32.dll!VirtualFree
             pvf = aModule.resolve('VirtualFree')
             if not pvf:
-                raise RuntimeError, \
-                 "Cannot resolve kernel32.dll!VirtualFree in the remote process"
+                raise RuntimeError(
+                    "Cannot resolve kernel32.dll!VirtualFree"
+                    " in the remote process")
 
             # Shellcode follows...
             code  = ''.encode('utf8')
@@ -7739,7 +7799,7 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
             pllib = aModule.resolve(pllibname)
             if not pllib:
                 msg = "Cannot resolve kernel32.dll!%s in the remote process"
-                raise RuntimeError, msg % pllibname
+                raise RuntimeError(msg % pllibname)
 
             # Copy the library name into the process memory space.
             pbuffer = self.malloc(bufferlen)
@@ -7821,13 +7881,22 @@ class System (ProcessContainer):
     Interface to a batch of processes, plus some system wide settings.
     Contains a snapshot of processes.
 
+    @group Platform settings:
+        arch, bits, os, wow64, pageSize
+
     @group Instrumentation:
         find_window, get_window_at, get_desktop_window, get_foreground_window
 
-    @group Global settings:
-        arch, bits, os, wow64, pageSize,
-        set_kill_on_exit_mode, request_debug_privileges, load_dbghelp,
-        read_msr, write_msr, enable_step_on_branch_mode,
+    @group Debugging:
+        load_dbghelp, request_debug_privileges
+
+    @group Postmortem debugging:
+        get_postmortem_debugger, set_postmortem_debugger,
+        get_postmortem_exclusion_list, add_to_postmortem_exclusion_list,
+        remove_from_postmortem_exclusion_list
+
+    @group Miscellaneous global settings:
+        set_kill_on_exit_mode, read_msr, write_msr, enable_step_on_branch_mode,
         get_last_branch_location
 
     @type arch: str
@@ -7857,10 +7926,13 @@ class System (ProcessContainer):
 
     # Try to determine if the debugger itself is running on WOW64.
     # On error assume False.
-    try:
-        wow64 = win32.IsWow64Process( win32.GetCurrentProcess() )
-    except Exception:
+    if bits == 64:
         wow64 = False
+    else:
+        try:
+            wow64 = win32.IsWow64Process( win32.GetCurrentProcess() )
+        except Exception:
+            wow64 = False
 
     pageSize = MemoryAddresses.pageSize
 
@@ -7964,7 +8036,8 @@ class System (ProcessContainer):
     @staticmethod
     def set_kill_on_exit_mode(bKillOnExit = False):
         """
-        Automatically detach from processes when the current thread dies.
+        Defines the behavior of the debugged processes when the debugging
+        thread dies. This method only affects the calling thread.
 
         Works on the following platforms:
 
@@ -7991,12 +8064,10 @@ class System (ProcessContainer):
         """
         try:
             # won't work before calling CreateProcess or DebugActiveProcess
-            # http://msdn.microsoft.com/en-us/library/ms679307.aspx
             win32.DebugSetProcessKillOnExit(bKillOnExit)
-            return True
         except (AttributeError, WindowsError):
-            pass
-        return False
+            return False
+        return True
 
     @classmethod
     def load_dbghelp(cls, pathname = None):
@@ -8068,7 +8139,7 @@ class System (ProcessContainer):
                                     "dbghelp.dll")
             else:
                 msg = "Architecture %s is not currently supported."
-                raise NotImplementedError, msg  % cls.arch
+                raise NotImplementedError(msg  % cls.arch)
         return ctypes.windll.LoadLibrary(pathname)
 
     @classmethod
@@ -8093,8 +8164,8 @@ class System (ProcessContainer):
             It works on my machine, but your mileage may vary.
         """
         if cls.arch not in ('i386', 'amd64'):
-            raise NotImplementedError, \
-                "MSR reading is only supported on i386 or amd64 processors."
+            raise NotImplementedError(
+                "MSR reading is only supported on i386 or amd64 processors.")
         msr         = win32.SYSDBG_MSR()
         msr.Address = address
         msr.Data    = 0
@@ -8125,8 +8196,8 @@ class System (ProcessContainer):
             It works on my machine, but your mileage may vary.
         """
         if cls.arch not in ('i386', 'amd64'):
-            raise NotImplementedError, \
-                "MSR reading is only supported on i386 or amd64 processors."
+            raise NotImplementedError(
+                "MSR writing is only supported on i386 or amd64 processors.")
         msr         = win32.SYSDBG_MSR()
         msr.Address = address
         msr.Data    = value
@@ -8185,3 +8256,100 @@ class System (ProcessContainer):
         LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
         LastBranchToIP   = cls.read_msr(DebugRegister.LastBranchToIP)
         return ( LastBranchFromIP, LastBranchToIP )
+
+    @staticmethod
+    def get_postmortem_debugger():
+        """
+        Returns the postmortem debugging settings from the Registry.
+
+        @see: L{set_postmortem_debugger}
+
+        @rtype:  tuple( str, bool )
+        @return: A tuple containing the command line string to the postmortem
+            debugger, and a boolean specifying if user interaction is allowed
+            before attaching. See L{set_postmortem_debugger} for more details.
+
+        @raise WindowsError:
+            Raises an exception on error.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_postmortem_exclusion_list():
+        """
+        Returns the exclusion list for the postmortem debugger.
+
+        @see: L{get_postmortem_debugger}
+
+        @rtype:  list( str )
+        @return: List of excluded application pathnames from the Registry.
+
+        @raise WindowsError:
+            Raises an exception on error.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def set_postmortem_debugger(cmdline, auto = None):
+        """
+        Sets the postmortem debugging settings in the Registry.
+
+        @type  cmdline: str
+        @param cmdline: Command line to the new postmortem debugger.
+            When the debugger is invoked, the first "%ld" is replaced with the
+            process ID and the second "%ld" is replaced with the event handle.
+            Don't forget to enclose the program filename in double quotes if
+            the path contains spaces.
+
+        @type  auto: bool
+        @param auto: Set to C{True} if no user interaction is allowed, C{False}
+            to prompt a confirmation dialog before attaching. Use C{None} to
+            leave this value unchanged.
+
+        @rtype:  tuple( str, bool )
+        @return: Previously defined command line and auto flag.
+
+        @raise WindowsError:
+            Raises an exception on error.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def add_to_postmortem_exclusion_list(pathname):
+        """
+        Adds the given pathname to the exclusion list for postmortem debugging.
+
+        @see: L{get_postmortem_exclusion_list}
+
+        @type  pathname: str
+        @param pathname:
+            Application pathname to exclude from postmortem debugging.
+
+        @raise WindowsError:
+            Raises an exception on error.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def remove_from_postmortem_exclusion_list(pathname):
+        """
+        Removes the given pathname to the exclusion list for postmortem
+        debugging from the Registry.
+
+        @warning: Don't ever delete entries you haven't created yourself!
+            Some entries are set by default for your version of Windows.
+            Deleting them might deadlock your system under some circumstances.
+            
+            For more details see:
+            U{http://msdn.microsoft.com/en-us/library/bb204634(v=vs.85).aspx}
+
+        @see: L{get_postmortem_exclusion_list}
+
+        @type  pathname: str
+        @param pathname: Application pathname to remove from the postmortem
+            debugging exclusion list.
+
+        @raise WindowsError:
+            Raises an exception on error.
+        """
+        raise NotImplementedError()

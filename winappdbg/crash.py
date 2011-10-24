@@ -90,7 +90,7 @@ try:
     # Note: it's important NOT to provide backwards compatibility, otherwise
     # it'd be just the same as not having this! To disable this security
     # upgrade simply uncomment the following line:
-    # raise ImportError, "Fallback to pickle for backwards compatibility"
+    # raise ImportError("Fallback to pickle for backwards compatibility")
 
 # If cerealizer is not present fallback to the insecure pickle module.
 except ImportError:

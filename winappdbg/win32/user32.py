@@ -397,7 +397,7 @@ class Point(object):
         elif index == 1:
             self.y = value
         else:
-            raise IndexError, "index out of range"
+            raise IndexError("index out of range")
 
     @property
     def _as_parameter_(self):

@@ -406,7 +406,7 @@ def main( argv ):
     eventHandler = EventForwarder(Bruteforcer, options)
 
     # Create the debug object
-    debug = Debug(eventHandler, bKillOnExit = True)
+    debug = Debug(eventHandler)
     try:
 
         # Attach to the targets
@@ -417,11 +417,15 @@ def main( argv ):
         for argv in options.windowed:
             debug.execv(argv, bConsole = False, bFollow = options.follow)
 
+        # Make sure the debugees die if the debugger dies unexpectedly
+        debug.system.set_kill_on_exit_mode(True)
+
         # Run the debug loop
         debug.loop()
 
     # Stop the debugger
     finally:
+        debug.kill_all(bIgnoreExceptions = True)
         debug.stop()
 
 #------------------------------------------------------------------------------

@@ -663,10 +663,10 @@ class CrashLogger (object):
 
                 # Unknown option
                 else:
-                    raise optparse.OptionValueError, "unknown option"
+                    raise optparse.OptionValueError("unknown option")
 
             except Exception, e:
-                raise optparse.OptionValueError, "error in option %s: %s" % (key, str(e))
+                raise optparse.OptionValueError("error in option %s: %s" % (key, str(e)))
 
     def _warn_inconsistent_options(self, options):
 
@@ -691,11 +691,11 @@ class CrashLogger (object):
                 else:
                     msg  = "inconsistent use of --allow-duplicates: "
                     msg += "DBM databases do not allow duplicate entries with the same key"
-                    raise optparse.OptionValueError, msg
+                    raise optparse.OptionValueError(msg)
             elif options.sqlite or options.odbc:
-               raise optparse.OptionValueError, "cannot generate more than one database per session"
+               raise optparse.OptionValueError("cannot generate more than one database per session")
         elif options.sqlite and options.odbc:
-            raise optparse.OptionValueError, "cannot generate more than one database per session"
+            raise optparse.OptionValueError("cannot generate more than one database per session")
 
         # Warn about inconsistent use of --time-limit
         if options.time_limit and options.autodetach \
@@ -725,18 +725,18 @@ class CrashLogger (object):
                 dwProcessId = None
             if dwProcessId is not None:
                 if not system.has_process(dwProcessId):
-                    raise optparse.OptionValueError, "can't find process %d" % dwProcessId
+                    raise optparse.OptionValueError("can't find process %d" % dwProcessId)
                 try:
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
                 except WindowsError, e:
-                    raise optparse.OptionValueError, "can't open process %d: %s" % (dwProcessId, e)
+                    raise optparse.OptionValueError("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append(dwProcessId)
             else:
                 matched = system.find_processes_by_filename(token)
                 if not matched:
-                    raise optparse.OptionValueError, "can't find process %s" % token
+                    raise optparse.OptionValueError("can't find process %s" % token)
                 for process, name in matched:
                     dwProcessId = process.get_pid()
                     try:
@@ -744,7 +744,7 @@ class CrashLogger (object):
                         process.open_handle()
                         process.close_handle()
                     except WindowsError, e:
-                        raise optparse.OptionValueError, "can't open process %d: %s" % (dwProcessId, e)
+                        raise optparse.OptionValueError("can't open process %d: %s" % (dwProcessId, e))
                     attach_targets.append(dwProcessId)
         options.attach = attach_targets
 
@@ -752,13 +752,13 @@ class CrashLogger (object):
         console_targets = list()
         for vector in options.console:
             if not vector:
-                raise optparse.OptionValueError, "bad use of --console"
+                raise optparse.OptionValueError("bad use of --console")
             filename = vector[0]
             if not os.path.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
-                    raise optparse.OptionValueError, "error searching for %s: %s" % (filename, str(e))
+                    raise optparse.OptionValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
             console_targets.append(vector)
         options.console = console_targets
@@ -767,25 +767,25 @@ class CrashLogger (object):
         windowed_targets = list()
         for vector in options.windowed:
             if not vector:
-                raise optparse.OptionValueError, "bad use of --windowed"
+                raise optparse.OptionValueError("bad use of --windowed")
             filename = vector[0]
             if not os.path.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
-                    raise optparse.OptionValueError, "error searching for %s: %s" % (filename, str(e))
+                    raise optparse.OptionValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
             windowed_targets.append(vector)
         options.windowed = windowed_targets
 
         # If no targets were set at all, show an error message
         if not options.attach and not options.console and not options.windowed:
-           raise optparse.OptionValueError, "no targets found!"
+           raise optparse.OptionValueError("no targets found!")
 
         # Get the list of breakpoints to set
         if options.break_at:
             if not os.path.exists(options.break_at):
-                raise optparse.OptionValueError, "breakpoint list file not found: %s" % options.break_at
+                raise optparse.OptionValueError("breakpoint list file not found: %s" % options.break_at)
             try:
                 options.break_at = HexInput.string_list_file(options.break_at)
             except ValueError, e:
@@ -796,7 +796,7 @@ class CrashLogger (object):
         # Get the list of one-shot breakpoints to set
         if options.stalk_at:
             if not os.path.exists(options.stalk_at):
-                raise optparse.OptionValueError, "one-shot breakpoint list file not found: %s" % options.stalk_at
+                raise optparse.OptionValueError("one-shot breakpoint list file not found: %s" % options.stalk_at)
             options.stalk_at = HexInput.string_list_file(options.stalk_at)
         else:
             options.stalk_at = list()
@@ -1035,9 +1035,7 @@ class CrashLogger (object):
         eventHandler.logger.log_text("Configuration: %s" % config)
 
         # Create the debug object
-        debug = Debug(eventHandler,
-                        bKillOnExit  = not options.autodetach,
-                        bHostileCode = options.hostile)
+        debug = Debug(eventHandler, bHostileCode = options.hostile)
         try:
 
             # Attach to the targets
@@ -1047,6 +1045,11 @@ class CrashLogger (object):
                 debug.execv(argv, bConsole = True,  bFollow = options.follow)
             for argv in options.windowed:
                 debug.execv(argv, bConsole = False, bFollow = options.follow)
+
+            # If the --dont-autodetach switch was used,
+            # make sure the debugees die if the debugger dies unexpectedly
+            if not options.autodetach:
+                debug.system.set_kill_on_exit_mode(True)
 
             # Main debugging loop
             timedOut = False
@@ -1081,6 +1084,9 @@ class CrashLogger (object):
                     if not options.ignore_errors:
                         raise
         finally:
+            if not options.autodetach:
+                debug.kill_all(bIgnoreExceptions = True)
+            debug.stop()
             if options.verbose:
                 eventHandler.logger.log_text("Crash logger stopped, %s" % time.ctime())
 

@@ -371,8 +371,9 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
         if InputBufferLength is None:
             InputBufferLength = 0
         else:
-            raise ValueError, "Invalid call to NtSystemDebugControl:" \
-                "input buffer length given but no input buffer!"
+            raise ValueError(
+                "Invalid call to NtSystemDebugControl: "
+                "input buffer length given but no input buffer!")
     else:
         if InputBufferLength is None:
             InputBufferLength = sizeof(InputBuffer)
@@ -430,7 +431,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
             ProcessInformation = DWORD()
             ProcessInformationLength = sizeof(DWORD)
         else:
-            raise Exception, "Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead"
+            raise Exception("Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead")
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:
@@ -473,7 +474,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
             ThreadInformation = LONGLONG()  # LARGE_INTEGER
             ThreadInformationLength = sizeof(LONGLONG)
         else:
-            raise Exception, "Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead"
+            raise Exception("Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead")
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
     if ntstatus != 0:

@@ -128,7 +128,7 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         data = ''
         for i in xrange(0, len(token), 2):
             x = token[i:i+2]
@@ -158,7 +158,7 @@ class HexInput (object):
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
-            raise ValueError, "Missing characters in hex data"
+            raise ValueError("Missing characters in hex data")
         regexp = ''
         for i in xrange(0, len(token), 2):
             x = token[i:i+2]
@@ -212,7 +212,7 @@ class HexInput (object):
                 except ValueError, e:
                     msg = "Error in line %d of %s: %s"
                     msg = msg % (count, filename, str(e))
-                    raise ValueError, msg
+                    raise ValueError(msg)
                 result.append(value)
         return result
 
@@ -796,7 +796,7 @@ class Table (object):
         elif direction == 1:
             self.__width[column] = - abs(self.__width[column])
         else:
-            raise ValueError, "Bad direction value."
+            raise ValueError("Bad direction value.")
 
     def getOutput(self):
         """
@@ -837,7 +837,7 @@ class CrashDump (object):
     @classmethod
     def __new__(cls, *argv, **argd):
         'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
+        raise NotImplementedError()
 
     # Templates for the dump_registers method.
     reg_template = {
@@ -1262,7 +1262,7 @@ class DebugLog (object):
     @classmethod
     def __new__(cls, *argv, **argd):
         'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @staticmethod
     def log_text(text):

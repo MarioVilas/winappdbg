@@ -698,7 +698,7 @@ def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpRes
     # Extra flags.
     if dwFlags | SAFER_TOKEN_WANT_FLAGS:
         if lpReserved is not None:
-            raise ValueError, "SaferComputeTokenFromLevel: lpReserved shouldn't be NULL for SAFER_TOKEN_WANT_FLAGS"
+            raise ValueError("SaferComputeTokenFromLevel: lpReserved shouldn't be NULL for SAFER_TOKEN_WANT_FLAGS")
         _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, lpReserved)
         return TokenHandle(OutAccessToken.value)
 
@@ -713,7 +713,7 @@ def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpRes
 
     # Every other known flag.
     if lpReserved is not None:
-        raise ValueError, "SaferComputeTokenFromLevel: lpReserved must be NULL for these flags"
+        raise ValueError("SaferComputeTokenFromLevel: lpReserved must be NULL for these flags")
     _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, None)
     return TokenHandle(OutAccessToken.value)
 

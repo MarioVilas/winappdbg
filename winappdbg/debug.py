@@ -46,6 +46,7 @@ from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 
 import sys
 import ctypes
+import warnings
 ##import traceback
 
 #==============================================================================
@@ -90,8 +91,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         may be outdated.
     """
 
-    def __init__(self, eventHandler = None,              bKillOnExit = False,
-                                                        bHostileCode = False):
+    def __init__(self, eventHandler = None, **flags):
         """
         Debugger object.
 
@@ -99,13 +99,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param eventHandler:
             (Optional, recommended) Custom event handler object.
 
-        @type  bKillOnExit: bool
-        @param bKillOnExit: (Optional) Global kill on exit mode.
-            C{True} to kill the process on exit, C{False} to detach.
-            Ignored under Windows 2000 and below.
-
-        @type  bHostileCode: bool
-        @param bHostileCode: (Optional) Hostile code mode.
+        @type    bHostileCode: bool
+        @keyword bHostileCode: (Optional) Hostile code mode.
             Set to C{True} to take some basic precautions against anti-debug
             tricks. Disabled by default.
 
@@ -119,8 +114,17 @@ class Debug (EventDispatcher, BreakpointContainer):
         EventDispatcher.__init__(self, eventHandler)
         BreakpointContainer.__init__(self)
 
+        bHostileCode = flags.pop('bHostileCode', False)
+
+        if flags.has_key('bKillOnExit'):
+            del flags['bKillOnExit']
+            warnings.warn("The kill on exit mode is no longer supported"
+                          " since WinAppDbg 1.5", DeprecationWarning)
+
+        if flags:
+            raise TypeError("Unknown keyword arguments: %s" % flags.keys())
+
         self.system                         = System()
-        self.__bKillOnExit                  = bKillOnExit
         self.__bHostileCode                 = bHostileCode
         self.__attachedDebugees             = set()     # set of pids
         self.__startedDebugees              = set()     # set of pids
@@ -180,17 +184,13 @@ class Debug (EventDispatcher, BreakpointContainer):
         win32.DebugActiveProcess(dwProcessId)
         self.__attachedDebugees.add(dwProcessId)
 
-        # We can only set the kill on exit mode after having
-        # established at least one debugging connection.
-        self.system.set_kill_on_exit_mode(self.__bKillOnExit)
-
         # The process has to be registered with the debugger,
         # otherwise the list of processes may be empty, and the
         # debugger loop will quit too soon. When the create process
         # event arrives, the process handle is replaced.
         if not self.system.has_process(dwProcessId):
             aProcess = Process(dwProcessId)
-            self.system._ProcessContainer__add_process(aProcess)
+            self.system._add_process(aProcess)
         else:
             aProcess = self.system.get_process(dwProcessId)
 
@@ -260,8 +260,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             if not bIgnoreExceptions:
                 raise
         try:
-            # XXX HACK
-            self.system._ProcessContainer__del_process(dwProcessId)
+            self.system._del_process(dwProcessId)
         except Exception:
             if not bIgnoreExceptions:
                 raise
@@ -299,11 +298,24 @@ class Debug (EventDispatcher, BreakpointContainer):
         except Exception:
              if not bIgnoreExceptions:
                 raise
-##            traceback.print_exc()
-##            print
 
         # Cleanup what remains of the process data.
         aProcess.clear()
+
+    def kill_all(self, bIgnoreExceptions = False):
+        """
+        Kills from all processes currently being debugged.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when killing each process. C{False} to stop and raise an
+            exception when encountering an error.
+
+        @raise WindowsError: Raises an exception on error, unless
+            C{bIgnoreExceptions} is C{True}.
+        """
+        for pid in self.get_debugee_pids():
+            self.kill(pid, bIgnoreExceptions = bIgnoreExceptions)
 
     def detach(self, dwProcessId, bIgnoreExceptions = False):
         """
@@ -318,7 +330,8 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
-            raised when detaching.
+            raised when detaching. C{False} to stop and raise an exception when
+            encountering an error.
 
         @raise WindowsError: Raises an exception on error, unless
             C{bIgnoreExceptions} is C{True}.
@@ -334,26 +347,25 @@ class Debug (EventDispatcher, BreakpointContainer):
         # Cleanup all data referring to the process.
         self.__cleanup_process(dwProcessId)
 
-        # Detach from the process.
-        # On Windows 2000 and before, kill the process.
         try:
-            win32.DebugActiveProcessStop(dwProcessId)
-        except AttributeError:
+            # Detach from the process.
+            # On Windows 2000 and before, kill the process.
             try:
-                aProcess.kill()
+                win32.DebugActiveProcessStop(dwProcessId)
+            except AttributeError:
+                try:
+                    aProcess.kill()
+                except Exception:
+                     if not bIgnoreExceptions:
+                        raise
             except Exception:
                  if not bIgnoreExceptions:
                     raise
-    ##            traceback.print_exc()
-    ##            print
-        except Exception:
-             if not bIgnoreExceptions:
-                raise
-##            traceback.print_exc()
-##            print
 
-        # Cleanup what remains of the process data.
-        aProcess.clear()
+        finally:
+
+            # Cleanup what remains of the process data.
+            aProcess.clear()
 
     def detach_from_all(self, bIgnoreExceptions = False):
         """
@@ -371,11 +383,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         for pid in self.get_debugee_pids():
             self.detach(pid, bIgnoreExceptions = bIgnoreExceptions)
 
-    def execv(self, argv,                                    bConsole = False,
-                                                              bFollow = False,
-                                                           bSuspended = False,
-                                                      bInheritHandles = False,
-                                                    dwParentProcessId = None):
+    def execv(self, argv, **kwargs):
         """
         Starts a new process for debugging.
 
@@ -388,26 +396,30 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param argv: List of command line arguments to pass to the debugee.
             The first element must be the debugee executable filename.
 
-        @type  bConsole: bool
-        @param bConsole: True to inherit the console of the debugger.
+        @type    bBreakOnEntryPoint: bool
+        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
+            at the program entry point.
+
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
             Defaults to C{False}.
 
-        @type  bFollow: bool
-        @param bFollow: C{True} to automatically attach to child processes.
+        @type    bFollow: bool
+        @keyword bFollow: C{True} to automatically attach to child processes.
             Defaults to C{False}.
 
-        @type  bSuspended: bool
-        @param bSuspended: C{True} to suspend the main thread before any code
+        @type    bInheritHandles: bool
+        @keyword bInheritHandles: C{True} if the new process should inherit
+            it's parent process' handles. Defaults to C{False}.
+
+        @type    bSuspended: bool
+        @keyword bSuspended: C{True} to suspend the main thread before any code
             is executed in the debugee. Defaults to C{False}.
 
-        @type  bInheritHandles: bool
-        @param bInheritHandles: C{True} if the new process should inherit it's
-            parent process' handles. Defaults to C{False}.
-
-        @type  dwParentProcessId: int or None
-        @param dwParentProcessId: C{None} if the debugger process should be the
-            parent process (default), or a process ID to forcefully set as the
-            debugee's parent (only available for Windows Vista and above).
+        @type    dwParentProcessId: int or None
+        @keyword dwParentProcessId: C{None} if the debugger process should be
+            the parent process (default), or a process ID to forcefully set as
+            the debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
@@ -415,17 +427,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         lpCmdLine = self.system.argv_to_cmdline(argv)
-        return self.execl(lpCmdLine,   bConsole = bConsole,
-                                        bFollow = bFollow,
-                                     bSuspended = bSuspended,
-                                bInheritHandles = bInheritHandles,
-                              dwParentProcessId = dwParentProcessId)
+        return self.execl(lpCmdLine, **kwargs)
 
-    def execl(self, lpCmdLine,                               bConsole = False,
-                                                              bFollow = False,
-                                                           bSuspended = False,
-                                                      bInheritHandles = False,
-                                                    dwParentProcessId = None):
+    def execl(self, lpCmdLine, **kwargs):
         """
         Starts a new process for debugging.
 
@@ -441,47 +445,45 @@ class Debug (EventDispatcher, BreakpointContainer):
             Tokens including double quote characters must be escaped with a
             backslash.
 
-        @type  bConsole: bool
-        @param bConsole: C{True} to inherit the console of the debugger.
+        @type    bBreakOnEntryPoint: bool
+        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
+            at the program entry point. Defaults to C{False}.
+
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
             Defaults to C{False}.
 
-        @type  bFollow: bool
-        @param bFollow: C{True} to automatically attach to child processes.
+        @type    bFollow: bool
+        @keyword bFollow: C{True} to automatically attach to child processes.
             Defaults to C{False}.
 
-        @type  bSuspended: bool
-        @param bSuspended: C{True} to suspend the main thread before any code
+        @type    bInheritHandles: bool
+        @keyword bInheritHandles: C{True} if the new process should inherit
+            it's parent process' handles. Defaults to C{False}.
+
+        @type    bSuspended: bool
+        @keyword bSuspended: C{True} to suspend the main thread before any code
             is executed in the debugee. Defaults to C{False}.
 
-        @type  bInheritHandles: bool
-        @param bInheritHandles: C{True} if the new process should inherit it's
-            parent process' handles. Defaults to C{False}.
-
-        @type  dwParentProcessId: int or None
-        @param dwParentProcessId: C{None} if the debugger process should be the
-            parent process (default), or a process ID to forcefully set as the
-            debugee's parent (only available for Windows Vista and above).
+        @type    dwParentProcessId: int or None
+        @keyword dwParentProcessId: C{None} if the debugger process should be
+            the parent process (default), or a process ID to forcefully set as
+            the debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
         @return: A new Process object.
 
         @raise WindowsError: Raises an exception on error.
         """
-        aProcess = self.system.start_process(lpCmdLine,
-            bConsole          = bConsole,
-            bDebug            = True,
-            bFollow           = bFollow,
-            bSuspended        = bSuspended,
-            bInheritHandles   = bInheritHandles,
-            dwParentProcessId = dwParentProcessId,
-        )
-
+        kwargs['bDebug'] = True
+        bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
+        if bBreakOnEntryPoint:
+            raise NotImplementedError()                             # XXX TODO
+        aProcess = self.system.start_process(lpCmdLine, **kwargs)
         self.__startedDebugees.add( aProcess.get_pid() )
-
-        # We can only set the kill on exit mode after having
-        # established at least one debugging connection.
-        self.system.set_kill_on_exit_mode(self.__bKillOnExit)
-
+        
+        # TO DO
+        
         return aProcess
 
 #------------------------------------------------------------------------------
@@ -593,10 +595,6 @@ class Debug (EventDispatcher, BreakpointContainer):
     def stop(self, event = None, bIgnoreExceptions = True):
         """
         Stops debugging all processes.
-
-        If C{bKillOnExit} was set to C{True} when instancing the C{Debug}
-        object, all debugees are terminated. Otherwise, the debugger detaches
-        from all debugees.
 
         @note: This method is better than L{detach_from_all} because it can
             gracefully handle the last debugging event before detaching.
@@ -1025,7 +1023,7 @@ class Debug (EventDispatcher, BreakpointContainer):
                     aThread = aProcess.get_thread(dwThreadId)
                 else:
                     aThread = Thread(dwThreadId)
-                    aProcess._ThreadContainer__add_thread(aThread)
+                    aProcess._add_thread(aThread)
 
 ##                if aThread.get_name() is None:
 ##                    aThread.set_name(szName)

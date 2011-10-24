@@ -337,7 +337,7 @@ class MemoryAddresses (object):
     @classmethod
     def __new__(cls, *argv, **argd):
         'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
+        raise NotImplementedError()
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.

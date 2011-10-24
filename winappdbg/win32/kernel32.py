@@ -732,13 +732,13 @@ class SnapshotHandle (Handle):
 
     def dup(self):
         "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError, \
-            "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError(
+            "This method is meaningless for Toolhelp32 snaphots.")
 
     def wait(self, dwMilliseconds = None):
         "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError, \
-            "This method is meaningless for Toolhelp32 snaphots."
+        raise NotImplementedError(
+            "This method is meaningless for Toolhelp32 snaphots.")
 
 #--- Structure wrappers -------------------------------------------------------
 
@@ -984,7 +984,7 @@ class ProcThreadAttributeList (object):
     # XXX TODO
     @staticmethod
     def from_param(value):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 #--- OVERLAPPED structure -----------------------------------------------------
 
@@ -1946,11 +1946,11 @@ def GetProcAddress(hModule, lpProcName):
     if type(lpProcName) in (type(0), type(0L)):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
-            raise ValueError, 'Ordinal number too large: %d' % lpProcName.value
+            raise ValueError('Ordinal number too large: %d' % lpProcName.value)
     elif type(lpProcName) == type(""):
         lpProcName = ctypes.c_char_p(lpProcName)
     else:
-        raise TypeError, str(type(lpProcName))
+        raise TypeError(str(type(lpProcName)))
     return _GetProcAddress(hModule, lpProcName)
 
 # BOOL WINAPI FreeLibrary(

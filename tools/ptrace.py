@@ -141,9 +141,7 @@ def main( argv ):
     eventHandler.options = options
 
     # Create the debug object
-    debug = Debug(eventHandler,
-                                bKillOnExit  = not options.autodetach,
-                                bHostileCode = options.hostile)
+    debug = Debug(eventHandler, bHostileCode = options.hostile)
     try:
 
         # Attach to the targets
@@ -154,11 +152,16 @@ def main( argv ):
         for argv in options.windowed:
             debug.execv(argv, bConsole = False, bFollow = options.follow)
 
+        # Make sure the debugees die if the debugger dies unexpectedly
+        debug.system.set_kill_on_exit_mode(True)
+
         # Run the debug loop
         debug.loop()
 
     # Stop the debugger
     finally:
+        if not options.autodetach:
+            debug.kill_all(bIgnoreExceptions = True)
         debug.stop()
 
 #------------------------------------------------------------------------------

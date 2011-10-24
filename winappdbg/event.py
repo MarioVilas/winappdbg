@@ -220,7 +220,7 @@ class Event (object):
             # XXX HACK
             # The process object was missing for some reason, so make a new one.
             process = Process(pid)
-            system._ProcessContainer__add_process(process)
+            system._add_process(process)
 ##            process.scan_threads()    # not needed
             process.scan_modules()
         return process
@@ -240,7 +240,7 @@ class Event (object):
             # XXX HACK
             # The thread object was missing for some reason, so make a new one.
             thread = Thread(tid)
-            process._ThreadContainer__add_thread(thread)
+            process._add_thread(thread)
         return thread
 
 #==============================================================================
@@ -488,7 +488,7 @@ class ExceptionEvent (Event):
         @return: Exception information DWORD.
         """
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
-            raise IndexError, "Array index out of range: %s" % repr(index)
+            raise IndexError("Array index out of range: %s" % repr(index))
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         value = info[index]
         if value is None:
@@ -527,7 +527,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
             msg = "This method is not meaningful for %s."
-            raise NotImplementedError, msg % self.get_exception_name()
+            raise NotImplementedError(msg % self.get_exception_name())
         return self.get_exception_information(0)
 
     def get_fault_address(self):
@@ -543,7 +543,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
             msg = "This method is not meaningful for %s."
-            raise NotImplementedError, msg % self.get_exception_name()
+            raise NotImplementedError(msg % self.get_exception_name())
         return self.get_exception_information(1)
 
     def get_ntstatus_code(self):
@@ -559,7 +559,7 @@ class ExceptionEvent (Event):
         if self.get_exception_code() != win32.EXCEPTION_IN_PAGE_ERROR:
             msg = "This method is only meaningful "\
                   "for in-page memory error exceptions."
-            raise NotImplementedError, msg
+            raise NotImplementedError(msg)
         return self.get_exception_information(2)
 
     def is_nested(self):
@@ -933,7 +933,7 @@ class LoadDLLEvent (Event):
                              hFile    = self.get_file_handle(),
                              fileName = get_filename(),
                              process  = aProcess)
-            aProcess.__ModuleContainer_add_module(aModule)
+            aProcess._add_module(aModule)
         return aModule
 
     def get_file_handle(self):
@@ -1015,7 +1015,7 @@ class UnloadDLLEvent (Event):
             aModule = aProcess.get_module(lpBaseOfDll)
         else:
             aModule = Module(lpBaseOfDll, process = aProcess)
-            aProcess._ModuleContainer__add_module(aModule)
+            aProcess._add_module(aModule)
         return aModule
 
     def get_file_handle(self):
@@ -1316,7 +1316,8 @@ class EventHandler (object):
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
         if self.apiHooks and win32.CONTEXT.arch != 'i386':
-            raise NotImplementedError, "Hooks are not yet implemented in 64 bits"
+            raise NotImplementedError(
+                "Hooks are not yet implemented in 64 bits")
 
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
@@ -1426,14 +1427,14 @@ class EventDispatcher (object):
             of a subclass of L{EventHandler} here.
         """
         if eventHandler is not None and not callable(eventHandler):
-            raise TypeError, "Event handler must be a callable object"
+            raise TypeError("Event handler must be a callable object")
         try:
             if issubclass(eventHandler):
                 classname = str(eventHandler)
                 msg  = "Event handler must be an instance of class %s"
                 msg += "rather than the %s class itself. Missing brackets?"
                 msg  = msg % (classname, classname)
-                raise TypeError, msg
+                raise TypeError(msg)
         except TypeError:
             pass
         self.__eventHandler = eventHandler
