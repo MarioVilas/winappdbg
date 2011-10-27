@@ -92,6 +92,7 @@ except ImportError:
 # An alternative approach to the toolhelp32 snapshots: parsing the PEB and
 # fetching the list of loaded modules from there. That would solve the problem
 # of toolhelp32 not working when the process hasn't finished initializing.
+# See: http://pferrie.host22.com/misc/lowlevel3.htm
 
 class ModuleContainer (object):
     """
