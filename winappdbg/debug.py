@@ -91,6 +91,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         may be outdated.
     """
 
+    # Automatically set to True the first time a Debug object is instanced.
+    _debug_privileges_requested = False
+
     def __init__(self, eventHandler = None, **flags):
         """
         Debugger object.
@@ -103,6 +106,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         @keyword bHostileCode: (Optional) Hostile code mode.
             Set to C{True} to take some basic precautions against anti-debug
             tricks. Disabled by default.
+
+        @warn: When hostile mode is enabled, some things may not work as
+            expected! This is because the anti-anti debug tricks may disrupt
+            the behavior of the Win32 debugging APIs or even WinAppDbg itself.
 
         @note: The L{eventHandler} parameter may be any callable Python object
             (for example a function, or an instance method).
@@ -126,10 +133,16 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         self.system                         = System()
         self.__bHostileCode                 = bHostileCode
+        self.__breakOnEP                    = set()     # set of pids
         self.__attachedDebugees             = set()     # set of pids
         self.__startedDebugees              = set()     # set of pids
 
-        self.system.request_debug_privileges(bIgnoreExceptions = False)
+        # Request debug privileges for the current process.
+        # Only do this once, and only after instancing a Debug object,
+        # so passive debuggers don't get detected because of this.
+        if not self._debug_privileges_requested:
+            self.system.request_debug_privileges(bIgnoreExceptions = False)
+            self._debug_privileges_requested = True
 
 ##    # It's hard not to create circular references,
 ##    # and if we have a destructor, we can end up leaking everything.
@@ -477,14 +490,21 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         kwargs['bDebug'] = True
         bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
-        if bBreakOnEntryPoint:
-            raise NotImplementedError()                             # XXX TODO
-        aProcess = self.system.start_process(lpCmdLine, **kwargs)
-        self.__startedDebugees.add( aProcess.get_pid() )
-        
-        # TO DO
-        
-        return aProcess
+        aProcess = None
+        try:
+            aProcess = self.system.start_process(lpCmdLine, **kwargs)
+            dwProcessId = aProcess.get_pid()
+            self.__startedDebugees.add(dwProcessId)
+            if bBreakOnEntryPoint:
+                self.__breakOnEP.add(dwProcessId)
+            return aProcess
+        except:
+            try:
+                if aProcess is not None:
+                    aProcess.kill()
+            except Exception:
+                pass
+            raise
 
 #------------------------------------------------------------------------------
 
@@ -777,8 +797,8 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @warning: This method is meant to be used internally by the debugger.
 
-        @type  event: L{ExitProcessEvent}
-        @param event: Exit process event.
+        @type  event: L{CreateProcessEvent}
+        @param event: Create process event.
 
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
@@ -790,6 +810,20 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         retval = self.system.notify_create_process(event)
 
+        # Set a breakpoint on the program's entry point if requested.
+        # Try not to use the Event object's entry point value, as in some cases
+        # it may be wrong. See: http://pferrie.host22.com/misc/lowlevel3.htm
+        if dwProcessId in self.__breakOnEP:
+            try:
+                lpEntryPoint = event.get_process().get_entry_point()
+            except Exception:
+                lpEntryPoint = event.get_start_address()
+            
+            # It'd be best to use a hardware breakpoint instead, at least in
+            # hostile mode. But since the main thread's context gets smashed
+            # by the loader, I haven't found a way to make it work yet.
+            self.break_at(dwProcessId, lpEntryPoint)
+
         # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
         # When we do this, some debugging APIs cease to work as expected.
         # For example, the system breakpoint isn't hit when we attach.
@@ -797,7 +831,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         # code location where a new thread is spawned by the debugging
         # APIs, ntdll!DbgUiRemoteBreakin.
         if self.__bHostileCode:
-            aProcess = self.system.get_process(dwProcessId)
+            aProcess = self.event.get_process()
             try:
                 pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
                                                  win32.ProcessBasicInformation)
@@ -847,19 +881,6 @@ class Debug (EventDispatcher, BreakpointContainer):
             aModule = event.get_module()
             if aModule.match_name('ntdll.dll'):
 
-##                # Check the int3 instruction where
-##                # the system breakpoint should be.
-##                # If missing, restore it. This defeats
-##                # a simple anti-debugging trick.
-####                address = aModule.resolve('DbgBreakPoint')
-####                address = aModule.resolve('DbgUserBreakPoint')
-##                address = aProcess.get_system_breakpoint()
-##                if address is not None:
-##                    aProcess.poke(address, CodeBreakpoint.int3)
-##                address = aProcess.get_user_breakpoint()
-##                if address is not None:
-##                    aProcess.poke(address, CodeBreakpoint.int3)
-
                 # Since we've overwritten the PEB to hide
                 # ourselves, we no longer have the system
                 # breakpoint when attaching to the process.
@@ -869,9 +890,8 @@ class Debug (EventDispatcher, BreakpointContainer):
                 # a simple anti-debugging trick: the hostile
                 # process could have overwritten the int3
                 # instruction at the system breakpoint.
-                DbgUiRemoteBreakin = 'ntdll!DbgUiRemoteBreakin'
-                DbgUiRemoteBreakin = aProcess.resolve_label(DbgUiRemoteBreakin)
-                self.break_at(aProcess.get_pid(), DbgUiRemoteBreakin)
+                self.break_at(aProcess.get_pid(),
+                        aProcess.resolve_label('ntdll!DbgUiRemoteBreakin'))
 
         return retval
 
@@ -888,10 +908,18 @@ class Debug (EventDispatcher, BreakpointContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
-        if dwProcessId in self.__attachedDebugees:
+        try:
             self.__attachedDebugees.remove(dwProcessId)
-        if dwProcessId in self.__startedDebugees:
+        except KeyError:
+            pass
+        try:
             self.__startedDebugees.remove(dwProcessId)
+        except KeyError:
+            pass
+        try:
+            self.__breakOnEP.remove(dwProcessId)
+        except KeyError:
+            pass
 
         bCallHandler = BreakpointContainer.notify_exit_process(self, event)
         bCallHandler = bCallHandler and self.system.notify_exit_process(event)
@@ -944,28 +972,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         event.debug.detach( event.get_pid() )
         return True
-
-##    def notify_breakpoint(self, event):
-##        """
-##        Notify the debugger of a breakpoint exception event.
-##
-##        @type  event: L{ExceptionEvent}
-##        @param event: Breakpoint exception event.
-##        """
-##        # Defeat isDebuggerPresent by patching PEB->BeingDebugged.
-##        if self.__bHostileCode:
-##            address = event.get_exception_address()
-##            if event.get_process().get_system_breakpoint() == address:
-##                aProcess = self.system.get_process(dwProcessId)
-##                try:
-##                    pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
-##                                                     win32.ProcessBasicInformation)
-##                    ptr = pbi.PebBaseAddress + 2
-##                    if aProcess.peek(ptr, 1) == '\x01':
-##                        aProcess.poke(ptr, '\x00')
-##                except WindowsError:
-##                    pass
-##        return BreakpointContainer.notify_breakpoint(self, event)
 
     def notify_debug_control_c(self, event):
         """
