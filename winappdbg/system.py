@@ -8258,12 +8258,16 @@ class System (ProcessContainer):
         LastBranchToIP   = cls.read_msr(DebugRegister.LastBranchToIP)
         return ( LastBranchFromIP, LastBranchToIP )
 
-    @staticmethod
-    def get_postmortem_debugger():
+    @classmethod
+    def get_postmortem_debugger(cls, bits = None):
         """
         Returns the postmortem debugging settings from the Registry.
 
         @see: L{set_postmortem_debugger}
+
+        @type  bits: int
+        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
+            64 bits debugger. Set to {None} for the default (L{System.bits}.
 
         @rtype:  tuple( str, bool )
         @return: A tuple containing the command line string to the postmortem
@@ -8273,14 +8277,25 @@ class System (ProcessContainer):
         @raise WindowsError:
             Raises an exception on error.
         """
+        if bits is None:
+            bits = cls.bits
+        elif bits not in (32, 64):
+            raise NotImplementedError("Unknown architecture (%r bits)" % bits)
+
+        # XXX TODO
+
         raise NotImplementedError()
 
-    @staticmethod
-    def get_postmortem_exclusion_list():
+    @classmethod
+    def get_postmortem_exclusion_list(cls, wow64 = False):
         """
         Returns the exclusion list for the postmortem debugger.
 
         @see: L{get_postmortem_debugger}
+
+        @type  bits: int
+        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
+            64 bits debugger. Set to {None} for the default (L{System.bits}.
 
         @rtype:  list( str )
         @return: List of excluded application pathnames from the Registry.
@@ -8288,10 +8303,17 @@ class System (ProcessContainer):
         @raise WindowsError:
             Raises an exception on error.
         """
+        if bits is None:
+            bits = cls.bits
+        elif bits not in (32, 64):
+            raise NotImplementedError("Unknown architecture (%r bits)" % bits)
+
+        # XXX TODO
+
         raise NotImplementedError()
 
-    @staticmethod
-    def set_postmortem_debugger(cmdline, auto = None):
+    @classmethod
+    def set_postmortem_debugger(cls, cmdline, auto = None, bits = None):
         """
         Sets the postmortem debugging settings in the Registry.
 
@@ -8307,16 +8329,27 @@ class System (ProcessContainer):
             to prompt a confirmation dialog before attaching. Use C{None} to
             leave this value unchanged.
 
+        @type  bits: int
+        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
+            64 bits debugger. Set to {None} for the default (L{System.bits}.
+
         @rtype:  tuple( str, bool )
         @return: Previously defined command line and auto flag.
 
         @raise WindowsError:
             Raises an exception on error.
         """
+        if bits is None:
+            bits = cls.bits
+        elif bits not in (32, 64):
+            raise NotImplementedError("Unknown architecture (%r bits)" % bits)
+
+        # XXX TODO
+
         raise NotImplementedError()
 
-    @staticmethod
-    def add_to_postmortem_exclusion_list(pathname):
+    @classmethod
+    def add_to_postmortem_exclusion_list(cls, pathname, bits = None):
         """
         Adds the given pathname to the exclusion list for postmortem debugging.
 
@@ -8326,13 +8359,24 @@ class System (ProcessContainer):
         @param pathname:
             Application pathname to exclude from postmortem debugging.
 
+        @type  bits: int
+        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
+            64 bits debugger. Set to {None} for the default (L{System.bits}.
+
         @raise WindowsError:
             Raises an exception on error.
         """
+        if bits is None:
+            bits = cls.bits
+        elif bits not in (32, 64):
+            raise NotImplementedError("Unknown architecture (%r bits)" % bits)
+
+        # XXX TODO
+
         raise NotImplementedError()
 
-    @staticmethod
-    def remove_from_postmortem_exclusion_list(pathname):
+    @classmethod
+    def remove_from_postmortem_exclusion_list(cls, pathname, bits = None):
         """
         Removes the given pathname to the exclusion list for postmortem
         debugging from the Registry.
@@ -8350,7 +8394,18 @@ class System (ProcessContainer):
         @param pathname: Application pathname to remove from the postmortem
             debugging exclusion list.
 
+        @type  bits: int
+        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
+            64 bits debugger. Set to {None} for the default (L{System.bits}.
+
         @raise WindowsError:
             Raises an exception on error.
         """
+        if bits is None:
+            bits = cls.bits
+        elif bits not in (32, 64):
+            raise NotImplementedError("Unknown architecture (%r bits)" % bits)
+
+        # XXX TODO
+
         raise NotImplementedError()
