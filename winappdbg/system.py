@@ -4223,7 +4223,7 @@ class ThreadDebugOperations (object):
         @raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
         """
-        if System.arch != 'i386':
+        if System.arch != win32.ARCH_I386:
             raise NotImplementedError(
                 "SEH chain parsing is only supported in 32-bit Windows.")
 
@@ -4243,7 +4243,7 @@ class ThreadDebugOperations (object):
         @raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
         """
-        if System.arch != 'i386':
+        if System.arch != win32.ARCH_I386:
             raise NotImplementedError(
                 "SEH chain parsing is only supported in 32-bit Windows.")
 
@@ -4859,8 +4859,9 @@ class ProcessDebugOperations (object):
         @raise NotImplementedError:
             No compatible disassembler was found for the current platform.
         """
-        if System.arch not in ('i386', 'amd64'):
-            raise NotImplementedError
+        if System.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+            msg = "No disassembler found for architecture: %s" % System.arch
+            raise NotImplementedError(msg)
         if (not System.wow64 and System.bits == 32) or self.is_wow64():
             return Decode(lpAddress, code, Decode32Bits)
         return Decode(lpAddress, code, Decode64Bits)
@@ -5026,11 +5027,19 @@ class ProcessDebugOperations (object):
 
         @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
         """
-        hProcess = self.get_handle()
         try:
-            return win32.IsWow64Process(hProcess)
+            wow64 = self.__wow64
         except AttributeError:
-            return False
+            if (System.bits == 32 and not System.wow64):
+                wow64 = False
+            else:
+                hProcess = self.get_handle()
+                try:
+                    wow64 = win32.IsWow64Process(hProcess)
+                except AttributeError:
+                    wow64 = False
+            self.__wow64 = wow64
+        return wow64
 
     def get_dep_policy(self):
         """
@@ -6947,8 +6956,8 @@ class Thread (ThreadDebugOperations):
                                                  ContextFlags = ContextFlags)
                 else:
                     # XXX only i386/AMD64 is supported in this particular case
-                    if System.arch != 'i386':
-                        raise NotImplementedError
+                    if System.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+                        raise NotImplementedError()
                     if ContextFlags is not None:
                         ContextFlags = ContextFlags & (~win32.ContextArchMask)
                         ContextFlags = ContextFlags | win32.context_amd64.CONTEXT_AMD64
@@ -7007,7 +7016,7 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    if win32.CONTEXT.arch in ('i386', 'amd64'):
+    if win32.CONTEXT.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
         def get_pc(self):
             """
@@ -7066,7 +7075,7 @@ class Thread (ThreadDebugOperations):
             context.fp = fp
             self.set_context(context)
 
-    elif win32.CONTEXT.arch == 'ia64':
+    elif win32.CONTEXT.arch == win32.ARCH_IA64:
 
         def get_gp(self):
             """
@@ -7127,7 +7136,7 @@ class Thread (ThreadDebugOperations):
 
 #------------------------------------------------------------------------------
 
-    if win32.CONTEXT.arch in ('i386', 'amd64'):
+    if win32.CONTEXT.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
         class Flags (object):
             'Commonly used processor flags'
@@ -7690,8 +7699,8 @@ class Process (MemoryOperations, ProcessDebugOperations, SymbolOperations, \
 
         # Old method, using shellcode.
         if procname:
-            if System.arch != 'i386':
-                raise NotImplementedError
+            if System.arch != win32.ARCH_I386:
+                raise NotImplementedError()
             dllname = str(dllname)
 
             # Resolve kernel32.dll!LoadLibraryA
@@ -7921,19 +7930,10 @@ class System (ProcessContainer):
         automatically updated on runtime when importing the module.
     """
 
-    arch = win32.version.arch
-    bits = win32.version.bits
-    os   = win32.version.os
-
-    # Try to determine if the debugger itself is running on WOW64.
-    # On error assume False.
-    if bits == 64:
-        wow64 = False
-    else:
-        try:
-            wow64 = win32.IsWow64Process( win32.GetCurrentProcess() )
-        except Exception:
-            wow64 = False
+    arch  = win32.arch
+    bits  = win32.bits
+    os    = win32.os
+    wow64 = win32.wow64
 
     pageSize = MemoryAddresses.pageSize
 
@@ -8121,7 +8121,7 @@ class System (ProcessContainer):
         @raise WindowsError: An error occured while processing this request.
         """
         if not pathname:
-            if cls.arch == 'amd64':
+            if cls.arch == win32.ARCH_AMD64:
                 if cls.wow64:
                     pathname = os.path.join(
                                         os.getenv("ProgramFiles(x86)",
@@ -8133,7 +8133,7 @@ class System (ProcessContainer):
                                         os.getenv("ProgramFiles"),
                                         "Debugging Tools for Windows (x64)",
                                         "dbghelp.dll")
-            elif cls.arch == 'i386':
+            elif cls.arch == win32.ARCH_I386:
                 pathname = os.path.join(
                                     os.getenv("ProgramFiles"),
                                     "Debugging Tools for Windows (x86)",
@@ -8164,7 +8164,7 @@ class System (ProcessContainer):
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
-        if cls.arch not in ('i386', 'amd64'):
+        if cls.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             raise NotImplementedError(
                 "MSR reading is only supported on i386 or amd64 processors.")
         msr         = win32.SYSDBG_MSR()
@@ -8196,7 +8196,7 @@ class System (ProcessContainer):
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
-        if cls.arch not in ('i386', 'amd64'):
+        if cls.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             raise NotImplementedError(
                 "MSR writing is only supported on i386 or amd64 processors.")
         msr         = win32.SYSDBG_MSR()

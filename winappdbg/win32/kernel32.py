@@ -49,15 +49,15 @@ ContextArchMask = context_i386.CONTEXT_i386
 ContextArchMask = ContextArchMask | context_amd64.CONTEXT_AMD64
 ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
 
-if   arch == 'i386':
+if   arch == ARCH_I386:
     from context_i386 import *
-elif arch == 'amd64':
-    if sizeof(SIZE_T) == sizeof(DWORD64):
+elif arch == ARCH_AMD64:
+    if bits == 64:
         from context_amd64 import *
     else:
         from context_i386 import *
-elif arch == 'ia64':
-    if sizeof(SIZE_T) == sizeof(DWORD64):
+elif arch == ARCH_IA64:
+    if bits == 64:
         from context_ia64 import *
     else:
         from context_i386 import *
@@ -3325,20 +3325,6 @@ def TerminateProcess(hProcess, dwExitCode = 0):
     _TerminateProcess.errcheck = RaiseIfZero
     _TerminateProcess(hProcess, dwExitCode)
 
-# HANDLE WINAPI GetCurrentProcess(void);
-def GetCurrentProcess():
-    _GetCurrentProcess = windll.kernel32.GetCurrentProcess
-    _GetCurrentProcess.argtypes = []
-    _GetCurrentProcess.restype  = HANDLE
-    return _GetCurrentProcess()
-
-# HANDLE WINAPI GetCurrentThread(void);
-def GetCurrentThread():
-    _GetCurrentThread = windll.kernel32.GetCurrentThread
-    _GetCurrentThread.argtypes = []
-    _GetCurrentThread.restype  = HANDLE
-    return _GetCurrentThread()
-
 # DWORD WINAPI GetCurrentProcessId(void);
 def GetCurrentProcessId():
     _GetCurrentProcessId = windll.kernel32.GetCurrentProcessId
@@ -3959,26 +3945,19 @@ def GlobalDeleteAtom(nAtom):
         raise ctypes.WinError(error)
 
 #------------------------------------------------------------------------------
-# Wow64 API
-
-# BOOL WINAPI IsWow64Process(
-#   __in   HANDLE hProcess,
-#   __out  PBOOL Wow64Process
-# );
-def IsWow64Process(hProcess):
-    _IsWow64Process = windll.kernel32.IsWow64Process
-    _IsWow64Process.argtypes = [HANDLE, PBOOL]
-    _IsWow64Process.restype  = bool
-    _IsWow64Process.errcheck = RaiseIfZero
-
-    Wow64Process = BOOL(FALSE)
-    _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
-    return bool(Wow64Process)
+# Wow64 file system redirection
 
 # BOOLEAN WINAPI Wow64EnableWow64FsRedirection(
 #   __in  BOOLEAN Wow64FsEnableRedirection
 # );
 def Wow64EnableWow64FsRedirection(Wow64FsEnableRedirection):
+    """
+    This function may not work reliably when there are nested calls. Therefore,
+    this function has been replaced by the L{Wow64DisableWow64FsRedirection}
+    and L{Wow64RevertWow64FsRedirection} functions.
+    
+    @see: U{http://msdn.microsoft.com/en-us/library/windows/desktop/aa365744(v=vs.85).aspx}
+    """
     _Wow64EnableWow64FsRedirection = windll.kernel32.Wow64EnableWow64FsRedirection
     _Wow64EnableWow64FsRedirection.argtypes = [BOOLEAN]
     _Wow64EnableWow64FsRedirection.restype  = BOOLEAN

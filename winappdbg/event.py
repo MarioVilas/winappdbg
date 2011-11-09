@@ -1315,7 +1315,7 @@ class EventHandler (object):
     def __init__(self):
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
-        if self.apiHooks and win32.CONTEXT.arch != 'i386':
+        if self.apiHooks and win32.CONTEXT.arch != win32.ARCH_I386:
             raise NotImplementedError(
                 "Hooks are not yet implemented in 64 bits")
 

@@ -338,10 +338,10 @@ class RegistryKeyHandle (Handle):
         RegCloseKey(self.value)
 
     def dup(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def wait(self, dwMilliseconds = None):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 class SaferLevelHandle (Handle):
     """
@@ -362,10 +362,10 @@ class SaferLevelHandle (Handle):
         SaferCloseLevel(self.value)
 
     def dup(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def wait(self, dwMilliseconds = None):
-        raise NotImplementedError
+        raise NotImplementedError()
 
 #--- advapi32.dll -------------------------------------------------------------
 

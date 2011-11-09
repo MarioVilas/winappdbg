@@ -41,6 +41,7 @@ Miscellaneous utility classes and functions.
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
     Regenerator,
+    StaticClass,
     kill_python_thread
 """
 
@@ -161,16 +162,19 @@ class Regenerator(object):
             self.__g_object = None
             raise
 
+class StaticClass (object):
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        "Don't try to instance this class, just use the static methods."
+        raise NotImplementedError(
+                "Cannot instance static class %s" % cls.__name__)
+
 #==============================================================================
 
-class PathOperations (object):
+class PathOperations (StaticClass):
     """
     Static methods for filename and pathname manipulation.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
 
     @staticmethod
     def pathname_to_filename(pathname):
@@ -326,7 +330,7 @@ class PathOperations (object):
 
 #==============================================================================
 
-class MemoryAddresses (object):
+class MemoryAddresses (StaticClass):
     """
     Class to manipulate memory addresses.
 
@@ -334,10 +338,6 @@ class MemoryAddresses (object):
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError()
 
     # Try to get the pageSize value on runtime,
     # ignoring exceptions on failure.
@@ -584,7 +584,7 @@ def ExecutableAndWriteableAddressIterator(memory_map):
 
 #==============================================================================
 
-class DebugRegister (object):
+class DebugRegister (StaticClass):
     """
     Class to manipulate debug registers.
     Used by L{HardwareBreakpoint}.
@@ -691,10 +691,6 @@ class DebugRegister (object):
     @cvar clearDr6Mask:
         Bitmask to clear all meaningful bits in C{Dr6}.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        "Don't try to instance this class, it's just a namespace!"
-        raise NotImplementedError
 
     BREAK_ON_EXECUTION  = 0
     BREAK_ON_WRITE      = 1

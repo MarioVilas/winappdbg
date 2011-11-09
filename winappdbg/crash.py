@@ -405,7 +405,7 @@ class CrashContainer (ContainerBase):
             Currently not supported, always use C{False}.
         """
         if allowRepeatedKeys:
-            raise NotImplementedError
+            raise NotImplementedError()
         self.__filename = filename
         if filename:
             global anydbm

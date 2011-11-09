@@ -71,7 +71,7 @@ class Debug (EventDispatcher, BreakpointContainer):
     @group Debugging:
         attach, detach, detach_from_all, execv, execl, kill, clear,
         get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started
+        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode
 
     @group Debugging loop:
         loop, next, wait, dispatch, cont, stop
@@ -546,7 +546,10 @@ class Debug (EventDispatcher, BreakpointContainer):
             return
 
         # By default, exceptions are handled by the debugee.
-        if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
+        # However the "invalid handle" exception is only sent when a debugger
+        # is attached, so by default we don't pass it to the debugee.
+        if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT and \
+                event.get_exception_code() != win32.EXCEPTION_INVALID_HANDLE:
             event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
         else:
             # Other events need this continue code.
@@ -774,6 +777,16 @@ class Debug (EventDispatcher, BreakpointContainer):
             L{Debug} instance.
         """
         return dwProcessId in self.__attachedDebugees
+
+    def in_hostile_mode(self):
+        """
+        Determine if we're in hostile mode (anti-anti-debug).
+
+        @rtype:  bool
+        @return: C{True} if this C{Debug} instance was started in hostile mode,
+            C{False} otherwise.
+        """
+        return self.__bHostileCode
 
 #------------------------------------------------------------------------------
 

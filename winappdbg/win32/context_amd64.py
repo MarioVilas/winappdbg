@@ -32,6 +32,7 @@ CONTEXT structure for amd64.
 __revision__ = "$Id$"
 
 from defines import *
+from version import ARCH_AMD64
 import context_i386
 
 # The following values specify the type of access in the first parameter
@@ -288,7 +289,7 @@ class _CONTEXT_FLTSAVE_UNION(Union):
     ]
 
 class CONTEXT(Structure):
-    arch = 'amd64'
+    arch = ARCH_AMD64
 
     _pack_ = 16
     _fields_ = [

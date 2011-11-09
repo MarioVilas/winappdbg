@@ -355,6 +355,36 @@ def GetSystemMetrics(nIndex):
     _GetSystemMetrics.restype  = ctypes.c_int
     return _GetSystemMetrics(nIndex)
 
+# HANDLE WINAPI GetCurrentProcess(void);
+def GetCurrentProcess():
+##    return 0xFFFFFFFFFFFFFFFFL
+    _GetCurrentProcess = windll.kernel32.GetCurrentProcess
+    _GetCurrentProcess.argtypes = []
+    _GetCurrentProcess.restype  = HANDLE
+    return _GetCurrentProcess()
+
+# HANDLE WINAPI GetCurrentThread(void);
+def GetCurrentThread():
+##    return 0xFFFFFFFFFFFFFFFEL
+    _GetCurrentThread = windll.kernel32.GetCurrentThread
+    _GetCurrentThread.argtypes = []
+    _GetCurrentThread.restype  = HANDLE
+    return _GetCurrentThread()
+
+# BOOL WINAPI IsWow64Process(
+#   __in   HANDLE hProcess,
+#   __out  PBOOL Wow64Process
+# );
+def IsWow64Process(hProcess):
+    _IsWow64Process = windll.kernel32.IsWow64Process
+    _IsWow64Process.argtypes = [HANDLE, PBOOL]
+    _IsWow64Process.restype  = bool
+    _IsWow64Process.errcheck = RaiseIfZero
+
+    Wow64Process = BOOL(FALSE)
+    _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
+    return bool(Wow64Process)
+
 # DWORD WINAPI GetVersion(void);
 def GetVersion():
     _GetVersion = windll.kernel32.GetVersion
@@ -465,7 +495,54 @@ def VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask):
 
 #--- get_bits, get_arch and get_os --------------------------------------------
 
-def get_bits():
+ARCH_UNKNOWN = "unknown"
+ARCH_I386    = "i386"
+ARCH_AMD64   = "amd64"
+ARCH_IA64    = "ia64"
+
+ARCH_IA32 = ARCH_I386
+ARCH_X86  = ARCH_I386
+ARCH_X64  = ARCH_AMD64
+
+OS_UNKNOWN   = "Unknown"
+OS_NT        = "Windows NT"
+OS_W2K       = "Windows 2000"
+OS_XP        = "Windows XP"
+OS_XP_64     = "Windows XP (64 bits)"
+OS_W2K3      = "Windows 2003"
+OS_W2K3_64   = "Windows 2003 (64 bits)"
+OS_W2K3R2    = "Windows 2003 R2"
+OS_W2K3R2_64 = "Windows 2003 R2 (64 bits)"
+OS_W2K8      = "Windows 2008"
+OS_W2K8_64   = "Windows 2008 (64 bits)"
+OS_W2K8R2    = "Windows 2008 R2"
+OS_W2K8R2_64 = "Windows 2008 R2 (64 bits)"
+OS_VISTA     = "Windows Vista"
+OS_VISTA_64  = "Windows Vista (64 bits)"
+OS_W7        = "Windows 7"
+OS_W7_64     = "Windows 7 (64 bits)"
+
+OS_SEVEN    = OS_W7
+OS_SEVEN_64 = OS_W7_64
+
+OS_WINDOWS_NT         = OS_NT
+OS_WINDOWS_2000       = OS_W2K
+OS_WINDOWS_XP         = OS_XP
+OS_WINDOWS_XP_64      = OS_XP_64
+OS_WINDOWS_2003       = OS_W2K3
+OS_WINDOWS_2003_64    = OS_W2K3_64
+OS_WINDOWS_2003_R2    = OS_W2K3R2
+OS_WINDOWS_2003_R2_64 = OS_W2K3R2_64
+OS_WINDOWS_2008       = OS_W2K8
+OS_WINDOWS_2008_64    = OS_W2K8_64
+OS_WINDOWS_2008_R2    = OS_W2K8R2
+OS_WINDOWS_2008_R2_64 = OS_W2K8R2_64
+OS_WINDOWS_VISTA      = OS_VISTA
+OS_WINDOWS_VISTA_64   = OS_VISTA_64
+OS_WINDOWS_SEVEN      = OS_W7
+OS_WINDOWS_SEVEN_64   = OS_W7_64
+
+def _get_bits():
     """
     Determines the current integer size in bits.
 
@@ -476,17 +553,20 @@ def get_bits():
     """
     return sizeof(SIZE_T) * 8
 
-def get_arch():
+# Current integer size in bits. See L{_get_bits} for more details.
+bits = _get_bits()
+
+def _get_arch():
     """
     Determines the current processor architecture.
 
     @rtype: str
     @return:
         One of the following values:
-         - C{"unknown"}
-         - C{"i386"} for Intel 32-bit x86 processor or compatible.
-         - C{"amd64"} for Intel 64-bit x86_64 processor or compatible.
-         - C{"ia64"} for Intel Itanium processor or compatible.
+         - L{ARCH_UNKNOWN} (C{"unknown"})
+         - L{ARCH_I386} (C{"i386"}) for Intel 32-bit x86 processor or compatible.
+         - L{ARCH_AMD64} (C{"amd64"}) for Intel 64-bit x86_64 processor or compatible.
+         - L{ARCH_IA64} (C{"ia64"}) for Intel Itanium processor or compatible.
     """
     try:
         si = GetNativeSystemInfo()
@@ -494,14 +574,40 @@ def get_arch():
         si = GetSystemInfo()
     wProcessorArchitecture = si.id.w.wProcessorArchitecture
     if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL:
-        return 'i386'
+        return ARCH_I386
     if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
-        return 'amd64'
+        return ARCH_AMD64
     if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64:
-        return 'ia64'
-    return 'unknown'
+        return ARCH_IA64
+    return ARCH_UNKNOWN
 
-def get_os():
+# Current processor architecture. See L{_get_arch} for more details.
+arch = _get_arch()
+
+def _get_wow64():
+    """
+    Determines if the current process is running in Windows-On-Windows 64 bits.
+    
+    @rtype:  bool
+    @return: C{True} of the current process is a 32 bit program running in a
+        64 bit version of Windows, C{False} if it's either a 32 bit program
+        in a 32 bit Windows or a 64 bit program in a 64 bit Windows.
+    """
+    # Try to determine if the debugger itself is running on WOW64.
+    # On error assume False.
+    if bits == 64:
+        wow64 = False
+    else:
+        try:
+            wow64 = IsWow64Process( GetCurrentProcess() )
+        except Exception:
+            wow64 = False
+    return wow64
+
+# Set to C{True} if the current process is running in WOW64. See L{_get_wow64} for more details.
+wow64 = _get_wow64()
+
+def _get_os():
     """
     Determines the current operating system.
 
@@ -515,23 +621,23 @@ def get_os():
     @rtype: str
     @return:
         One of the following values:
-         - C{"Unknown"}
-         - C{"Windows NT"}
-         - C{"Windows 2000"}
-         - C{"Windows XP"}
-         - C{"Windows XP (64 bits)"}
-         - C{"Windows 2003"}
-         - C{"Windows 2003 (64 bits)"}
-         - C{"Windows 2003 R2"}
-         - C{"Windows 2003 R2 (64 bits)"}
-         - C{"Windows 2008"}
-         - C{"Windows 2008 (64 bits)"}
-         - C{"Windows 2008 R2"}
-         - C{"Windows 2008 R2 (64 bits)"}
-         - C{"Windows Vista"}
-         - C{"Windows Vista (64 bits)"}
-         - C{"Windows 7"}
-         - C{"Windows 7 (64 bits)"}
+         - L{OS_UNKNOWN} (C{"Unknown"})
+         - L{OS_NT} (C{"Windows NT"})
+         - L{OS_W2K} (C{"Windows 2000"})
+         - L{OS_XP} (C{"Windows XP"})
+         - L{OS_XP_64} (C{"Windows XP (64 bits)"})
+         - L{OS_W2K3} (C{"Windows 2003"})
+         - L{OS_W2K3_64} (C{"Windows 2003 (64 bits)"})
+         - L{OS_W2K3R2} (C{"Windows 2003 R2"})
+         - L{OS_W2K3R2_64} (C{"Windows 2003 R2 (64 bits)"})
+         - L{OS_W2K8} (C{"Windows 2008"})
+         - L{OS_W2K8_64} (C{"Windows 2008 (64 bits)"})
+         - L{OS_W2K8R2} (C{"Windows 2008 R2"})
+         - L{OS_W2K8R2_64} (C{"Windows 2008 R2 (64 bits)"})
+         - L{OS_VISTA} (C{"Windows Vista"})
+         - L{OS_VISTA_64} (C{"Windows Vista (64 bits)"})
+         - L{OS_W7} (C{"Windows 7"})
+         - L{OS_W7_64} (C{"Windows 7 (64 bits)"})
     """
     # rough port of http://msdn.microsoft.com/en-us/library/ms724429%28VS.85%29.aspx
     osvi = GetVersionEx()
@@ -539,30 +645,30 @@ def get_os():
         if osvi.dwMajorVersion == 6:
             if osvi.dwMinorVersion == 0:
                 if osvi.wProductType == VER_NT_WORKSTATION:
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows Vista (64 bits)'
                     return 'Windows Vista'
                 else:
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 2008 (64 bits)'
                     return 'Windows 2008'
             if osvi.dwMinorVersion == 1:
                 if osvi.wProductType == VER_NT_WORKSTATION:
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 7 (64 bits)'
                     return 'Windows 7'
                 else:
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 2008 R2 (64 bits)'
                     return 'Windows 2008 R2'
         if osvi.dwMajorVersion == 5:
             if osvi.dwMinorVersion == 2:
                 if GetSystemMetrics(SM_SERVERR2):
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 2003 R2 (64 bits)'
                     return 'Windows 2003 R2'
                 if osvi.wSuiteMask in (VER_SUITE_STORAGE_SERVER, VER_SUITE_WH_SERVER):
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 2003 (64 bits)'
                     return 'Windows 2003'
                 try:
@@ -572,7 +678,7 @@ def get_os():
                 if osvi.wProductType == VER_NT_WORKSTATION and si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
                     return 'Windows XP (64 bits)'
                 else:
-                    if sizeof(SIZE_T) == 8:
+                    if bits == 64 or wow64:
                         return 'Windows 2003 (64 bits)'
                     return 'Windows 2003'
             if osvi.dwMinorVersion == 1:
@@ -583,11 +689,5 @@ def get_os():
             return 'Windows NT'
     return 'Unknown'
 
-# Current processor architecture. See L{get_arch} for more details.
-arch = get_arch()
-
-# Current integer size in bits. See L{get_bits} for more details.
-bits = get_bits()
-
-# Current operating system. See L{get_os} for more details.
-os = get_os()
+# Current operating system. See L{_get_os} for more details.
+os = _get_os()

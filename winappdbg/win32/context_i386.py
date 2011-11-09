@@ -32,6 +32,7 @@ CONTEXT structure for i386.
 __revision__ = "$Id$"
 
 from defines import *
+from version import ARCH_I386
 
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access
@@ -140,7 +141,7 @@ LPFLOATING_SAVE_AREA = PFLOATING_SAVE_AREA
 #     BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
 # } CONTEXT;
 class CONTEXT(Structure):
-    arch = 'i386'
+    arch = ARCH_I386
 
     _pack_ = 1
 

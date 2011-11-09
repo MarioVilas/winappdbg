@@ -32,6 +32,7 @@ CONTEXT structure for ia64.
 __revision__ = "$Id$"
 
 from defines import *
+from version import ARCH_IA64
 
 ###############################################################################
 ##                                                                           ##
@@ -378,7 +379,7 @@ CONTEXT_EXCEPTION_REPORTING     = 0x80000000
 # } CONTEXT, *PCONTEXT;
 
 class CONTEXT(Structure):
-    arch = 'ia64'
+    arch = ARCH_IA64
 
     _pack_ = 16
     _fields_ = [

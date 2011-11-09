@@ -55,6 +55,7 @@ __all__ =   [
             ]
 
 import win32
+from util import StaticClass
 
 import time
 import struct
@@ -67,15 +68,11 @@ except ImportError:
 
 #------------------------------------------------------------------------------
 
-class HexInput (object):
+class HexInput (StaticClass):
     """
     Static functions for user input parsing.
     The counterparts for each method are in the L{HexOutput} class.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
 
     @staticmethod
     def integer(token):
@@ -287,7 +284,7 @@ class HexInput (object):
 
 #------------------------------------------------------------------------------
 
-class HexOutput (object):
+class HexOutput (StaticClass):
     """
     Static functions for user output parsing.
     The counterparts for each method are in the L{HexInput} class.
@@ -300,10 +297,6 @@ class HexOutput (object):
     @cvar address_size: Size in characters of an outputted address.
         This value is platform dependent.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
 
     integer_size = len('%x' % (win32.DWORD(-1).value))+2
     address_size = len('%x' % (win32.SIZE_T(-1).value))+2
@@ -406,7 +399,7 @@ class HexOutput (object):
 
 #------------------------------------------------------------------------------
 
-class HexDump (object):
+class HexDump (StaticClass):
     """
     Static functions for hexadecimal dumps.
 
@@ -418,10 +411,6 @@ class HexDump (object):
     @cvar address_size: Size in characters of an outputted address.
         This value is platform dependent.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError
 
     integer_size = len('%x' % (win32.DWORD(-1).value))
     address_size = len('%x' % (win32.SIZE_T(-1).value))
@@ -827,35 +816,31 @@ class Table (object):
 
 #------------------------------------------------------------------------------
 
-class CrashDump (object):
+class CrashDump (StaticClass):
     """
     Static functions for crash dumps.
 
     @type reg_template: str
     @cvar reg_template: Template for the L{dump_registers} method.
     """
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError()
 
     # Templates for the dump_registers method.
     reg_template = {
-        'i386'  :   (
-                    'eax=%(Eax).8x ebx=%(Ebx).8x ecx=%(Ecx).8x edx=%(Edx).8x esi=%(Esi).8x edi=%(Edi).8x\n'
-                    'eip=%(Eip).8x esp=%(Esp).8x ebp=%(Ebp).8x %(efl_dump)s\n'
-                    'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
-                    ),
-        'amd64' :   (
-                    'rax=%(Rax).16x rbx=%(Rbx).16x rcx=%(Rcx).16x\n'
-                    'rdx=%(Rdx).16x rsi=%(Rsi).16x rdi=%(Rdi).16x\n'
-                    'rip=%(Rip).16x rsp=%(Rsp).16x rbp=%(Rbp).16x\n'
-                    ' r8=%(R8).16x  r9=%(R9).16x r10=%(R10).16x\n'
-                    'r11=%(R11).16x r12=%(R12).16x r13=%(R13).16x\n'
-                    'r14=%(R14).16x r15=%(R15).16x\n'
-                    '%(efl_dump)s\n'
-                    'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
-                    ),
+        win32.ARCH_I386 : (
+            'eax=%(Eax).8x ebx=%(Ebx).8x ecx=%(Ecx).8x edx=%(Edx).8x esi=%(Esi).8x edi=%(Edi).8x\n'
+            'eip=%(Eip).8x esp=%(Esp).8x ebp=%(Ebp).8x %(efl_dump)s\n'
+            'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
+            ),
+        win32.ARCH_AMD64 : (
+            'rax=%(Rax).16x rbx=%(Rbx).16x rcx=%(Rcx).16x\n'
+            'rdx=%(Rdx).16x rsi=%(Rsi).16x rdi=%(Rdi).16x\n'
+            'rip=%(Rip).16x rsp=%(Rsp).16x rbp=%(Rbp).16x\n'
+            ' r8=%(R8).16x  r9=%(R9).16x r10=%(R10).16x\n'
+            'r11=%(R11).16x r12=%(R12).16x r13=%(R13).16x\n'
+            'r14=%(R14).16x r15=%(R15).16x\n'
+            '%(efl_dump)s\n'
+            'cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n'
+            ),
     }
 
     @staticmethod
@@ -872,8 +857,9 @@ class CrashDump (object):
         """
         if efl is None:
             return ''
-        if win32.CONTEXT.arch not in ('i386', 'amd64'):
-            raise NotImplementedError
+        if win32.CONTEXT.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+            msg = "Don't know how to dump processor flags for architecture: %s"
+            raise NotImplementedError(msg % win32.CONTEXT.arch)
         efl_dump = 'iopl=%1d' % ((efl & 0x3000) >> 12)
         if efl & 0x100000:
             efl_dump += ' vip'
@@ -935,9 +921,9 @@ class CrashDump (object):
         """
         if registers is None:
             return ''
-        arch = win32.CONTEXT.arch
-        if arch not in ('i386', 'amd64'):
-            raise NotImplementedError
+        if win32.CONTEXT.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+            msg = "Don't know how to dump the registers for architecture: %s"
+            raise NotImplementedError(msg % win32.CONTEXT.arch)
         registers = registers.copy()
         registers['efl_dump'] = cls.dump_flags( registers['EFlags'] )
         return cls.reg_template[arch] % registers
@@ -1010,9 +996,9 @@ class CrashDump (object):
         pointers.sort()
         result = ''
         if pointers:
-            if win32.CONTEXT.arch == 'i386':
+            if win32.CONTEXT.arch == win32.ARCH_I386:
                 spreg = 'esp'
-            elif win32.CONTEXT.arch == 'amd64':
+            elif win32.CONTEXT.arch == win32.ARCH_AMD64:
                 spreg = 'rsp'
             else:
                 spreg = 'STACK' # just a generic tag
@@ -1257,12 +1243,8 @@ class CrashDump (object):
 
 #------------------------------------------------------------------------------
 
-class DebugLog (object):
+class DebugLog (StaticClass):
     'Static functions for debug logging.'
-    @classmethod
-    def __new__(cls, *argv, **argd):
-        'Don\'t try to instance this class, it\'s just a namespace!'
-        raise NotImplementedError()
 
     @staticmethod
     def log_text(text):
