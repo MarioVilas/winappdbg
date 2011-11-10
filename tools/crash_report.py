@@ -1,4 +1,5 @@
 #!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
 
 # Crash logger report (see crash_logger.py)
 # Copyright (c) 2009-2011, Mario Vilas
@@ -36,6 +37,12 @@ import time
 import optparse
 
 from winappdbg import CrashContainer, CrashTable
+
+try:
+    import cerealizer
+    cerealizer.freeze_configuration()
+except ImportError:
+    pass
 
 def parse_cmdline(argv):
     'Parse the command line options.'

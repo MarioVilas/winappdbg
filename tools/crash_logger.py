@@ -1,4 +1,5 @@
 #!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
 
 # Crash logger
 # Copyright (c) 2009-2011, Mario Vilas
@@ -43,6 +44,12 @@ import time
 import optparse
 import traceback
 import ConfigParser
+
+try:
+    import cerealizer
+    cerealizer.freeze_configuration()
+except ImportError:
+    pass
 
 try:
     import psyco
@@ -92,8 +99,8 @@ class LoggingEventHandler(EventHandler):
             elif options.sqlite:
                 self.knownCrashes = CrashTable( options.sqlite,
                                     allowRepeatedKeys = options.duplicates )
-            elif options.odbc:
-                self.knownCrashes = CrashTableODBC( options.odbc,
+            elif options.mssql:
+                self.knownCrashes = CrashTableMSSQL( options.mssql,
                                     allowRepeatedKeys = options.duplicates )
             else:
                 self.knownCrashes = DummyCrashContainer( \
@@ -568,7 +575,7 @@ class CrashLogger (object):
             'nodb'        : False,
             'dbm'         : None,
             'sqlite'      : None,
-            'odbc'        : None,
+            'mssql'       : None,
     }
 
     # Parse the configuration file.
@@ -658,8 +665,8 @@ class CrashLogger (object):
                     options.dbm = value
                 elif key == 'sqlite':
                     options.sqlite = value
-                elif key == 'odbc':
-                    options.odbc = value
+                elif key == 'mssql':
+                    options.mssql = value
 
                 # Unknown option
                 else:
@@ -672,7 +679,7 @@ class CrashLogger (object):
 
         # Warn or fail about inconsistent use of output switches
         if options.nodb:
-            if options.dbm or options.sqlite or options.odbc:
+            if options.dbm or options.sqlite or options.mssql:
                 print "Warning: strange use of output switches"
                 print "  No database will be generated. Are you sure this is what you wanted?"
                 print
@@ -692,9 +699,9 @@ class CrashLogger (object):
                     msg  = "inconsistent use of --allow-duplicates: "
                     msg += "DBM databases do not allow duplicate entries with the same key"
                     raise optparse.OptionValueError(msg)
-            elif options.sqlite or options.odbc:
+            elif options.sqlite or options.mssql:
                raise optparse.OptionValueError("cannot generate more than one database per session")
-        elif options.sqlite and options.odbc:
+        elif options.sqlite and options.mssql:
             raise optparse.OptionValueError("cannot generate more than one database per session")
 
         # Warn about inconsistent use of --time-limit
@@ -924,8 +931,8 @@ class CrashLogger (object):
                           help="Save crash dumps to this DBM database")
         output.add_option("--sqlite", metavar="FILE",
                           help="Save crash dumps to this SQLite database")
-        output.add_option("--odbc", metavar="CONNSTR",
-                          help="Save crash dumps to an SQL database using this connection string")
+        output.add_option("--mssql", metavar="CONNSTR",
+                          help="Save crash dumps to a Microsoft SQL Server database using this ODBC connection string")
         output.add_option("-f", "--file", metavar="FILE", dest="dbm",
                           help="Same as --dbm, deprecated")
         parser.add_option_group(output)

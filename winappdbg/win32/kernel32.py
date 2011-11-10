@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2009-2011, Mario Vilas
 # All rights reserved.
 #
@@ -31,6 +34,8 @@ Wrapper for kernel32.dll in ctypes.
 
 __revision__ = "$Id$"
 
+import warnings
+
 from defines import *
 from version import *
 
@@ -38,16 +43,8 @@ from version import *
 
 import context_i386
 import context_amd64
-import context_ia64
 
-from context_i386  import CONTEXT_i386, CONTEXT_i486
-from context_amd64 import CONTEXT_AMD64
-from context_ia64  import CONTEXT_IA64
-
-ContextArchMask = context_i386.CONTEXT_i386
-##ContextArchMask = ContextArchMask | context_amd64.CONTEXT_i486
-ContextArchMask = ContextArchMask | context_amd64.CONTEXT_AMD64
-ContextArchMask = ContextArchMask | context_ia64.CONTEXT_IA64
+ContextArchMask = 0x0FFF0000    # just guessing here! seems to work, though
 
 if   arch == ARCH_I386:
     from context_i386 import *
@@ -56,13 +53,8 @@ elif arch == ARCH_AMD64:
         from context_amd64 import *
     else:
         from context_i386 import *
-elif arch == ARCH_IA64:
-    if bits == 64:
-        from context_ia64 import *
-    else:
-        from context_i386 import *
 else:
-    print "Warning, unknown or unsupported architecture"
+    warnings.warn("Unknown or unsupported architecture: %s" % arch)
 
 #--- Constants ----------------------------------------------------------------
 

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2009-2011, Mario Vilas
 # All rights reserved.
 #
@@ -103,6 +106,20 @@ class XMM_SAVE_AREA32(Structure):
         ('XmmRegisters',    M128A * 16),
         ('Reserved4',       BYTE * 96),
     ]
+
+    def from_dict(self):
+        raise NotImplementedError()
+
+    def to_dict(self):
+        d = dict()
+        for name, type in self._fields_:
+            if name in ('FloatRegisters', 'XmmRegisters'):
+                d[name] = tuple([ (x.LowPart + (x.HighPart << 64)) for x in getattr(self, name) ])
+            elif name == 'Reserved4':
+                d[name] = tuple([ chr(x) for x in getattr(self, name) ])
+            else:
+                d[name] = getattr(self, name)
+        return d
 
 LEGACY_SAVE_AREA_LENGTH = sizeof(XMM_SAVE_AREA32)
 
@@ -282,11 +299,34 @@ class _CONTEXT_FLTSAVE_STRUCT(Structure):
         ('Xmm14',                   M128A),
         ('Xmm15',                   M128A),
     ]
+
+    def from_dict(self):
+        raise NotImplementedError()
+
+    def to_dict(self):
+        d = dict()
+        for name, type in self._fields_:
+            if name in ('Header', 'Legacy'):
+                d[name] = tuple([ (x.Low + (x.High << 64)) for x in getattr(self, name) ])
+            else:
+                x = getattr(self, name)
+                d[name] = x.Low + (x.High << 64)
+        return d
+
 class _CONTEXT_FLTSAVE_UNION(Union):
     _fields_ = [
         ('flt',                     XMM_SAVE_AREA32),
         ('xmm',                     _CONTEXT_FLTSAVE_STRUCT),
     ]
+
+    def from_dict(self):
+        raise NotImplementedError()
+
+    def to_dict(self):
+        d = dict()
+        d['flt'] = self.flt.to_dict()
+        d['xmm'] = self.xmm.to_dict()
+        return d
 
 class CONTEXT(Structure):
     arch = ARCH_AMD64
@@ -382,7 +422,19 @@ class CONTEXT(Structure):
         ContextFlags = ctx['ContextFlags']
         s.ContextFlags = ContextFlags
         for key in cls._others:
-            setattr(s, key, ctx[key])
+            if key != 'VectorRegister':
+                setattr(s, key, ctx[key])
+            else:
+                w = ctx[key]
+                v = (M128A * len(w))()
+                i = 0
+                for x in w:
+                    y = M128A()
+                    y.High = x >> 64
+                    y.Low = x - (x >> 64)
+                    v[i] = y
+                    i += 1
+                setattr(s, key, v)
         if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
             for key in cls._control:
                 setattr(s, key, ctx[key])
@@ -398,7 +450,10 @@ class CONTEXT(Structure):
         if (ContextFlags & CONTEXT_MMX_REGISTERS) == CONTEXT_MMX_REGISTERS:
             xmm = s.FltSave.xmm
             for key in cls._mmx:
-                setattr(xmm, key, ctx[key])
+                y = M128A()
+                y.High = x >> 64
+                y.Low = x - (x >> 64)
+                setattr(xmm, key, y)
         return s
 
     def to_dict(self):
@@ -407,7 +462,10 @@ class CONTEXT(Structure):
         ContextFlags = self.ContextFlags
         ctx['ContextFlags'] = ContextFlags
         for key in self._others:
-            ctx[key] = getattr(self, key)
+            if key != 'VectorRegister':
+                ctx[key] = getattr(self, key)
+            else:
+                ctx[key] = tuple([ (x.Low + (x.High << 64)) for x in getattr(self, key) ])
         if (ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL:
             for key in self._control:
                 ctx[key] = getattr(self, key)
@@ -421,9 +479,9 @@ class CONTEXT(Structure):
             for key in self._debug:
                 ctx[key] = getattr(self, key)
         if (ContextFlags & CONTEXT_MMX_REGISTERS) == CONTEXT_MMX_REGISTERS:
-            xmm = self.FltSave.xmm
+            xmm = self.FltSave.xmm.to_dict()
             for key in self._mmx:
-                ctx[key] = getattr(xmm, key)
+                ctx[key] = xmm.get(key)
         return ctx
 
 PCONTEXT = ctypes.POINTER(CONTEXT)

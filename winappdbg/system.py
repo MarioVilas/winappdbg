@@ -1,3 +1,6 @@
+#!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2009-2011, Mario Vilas
 # All rights reserved.
 #
@@ -58,6 +61,7 @@ import win32
 import win32.version
 from textio import HexInput, HexDump
 from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
+from registry import Registry
 
 import re
 import os
@@ -5316,8 +5320,8 @@ class ProcessDebugOperations (object):
             while 1:
                 chunk = self.peek_string(address,  dwMaxSize = System.pageSize,
                                                     fUnicode = True)
-                print "Chunk: ",
-                print chunk
+##                print "Chunk: ",
+##                print chunk
                 if not chunk:
                     break
                 block.append(chunk)
@@ -7928,6 +7932,9 @@ class System (ProcessContainer):
     @type pageSize: int
     @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
+
+    @type registry: L{Registry}
+    @cvar registry: Windows Registry for this machine.
     """
 
     arch  = win32.arch
@@ -7936,6 +7943,8 @@ class System (ProcessContainer):
     wow64 = win32.wow64
 
     pageSize = MemoryAddresses.pageSize
+
+    registry = Registry()
 
 #------------------------------------------------------------------------------
 
@@ -8269,10 +8278,12 @@ class System (ProcessContainer):
         @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
             64 bits debugger. Set to {None} for the default (L{System.bits}.
 
-        @rtype:  tuple( str, bool )
+        @rtype:  tuple( str, bool, int )
         @return: A tuple containing the command line string to the postmortem
-            debugger, and a boolean specifying if user interaction is allowed
-            before attaching. See L{set_postmortem_debugger} for more details.
+            debugger, a boolean specifying if user interaction is allowed
+            before attaching, and an integer specifying a user defined hotkey.
+            Any member of the tuple may be C{None}.
+            See L{set_postmortem_debugger} for more details.
 
         @raise WindowsError:
             Raises an exception on error.
@@ -8282,9 +8293,21 @@ class System (ProcessContainer):
         elif bits not in (32, 64):
             raise NotImplementedError("Unknown architecture (%r bits)" % bits)
 
-        # XXX TODO
+        if bits == 32 and cls.bits == 64:
+            keyname = 'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug'
+        else:
+            keyname = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug'
 
-        raise NotImplementedError()
+        key = cls.registry[keyname]
+
+        debugger = key.get('Debugger')
+        auto     = key.get('Auto')
+        hotkey   = key.get('UserDebuggerHotkey')
+
+        if auto is not None:
+            auto = bool(auto)
+
+        return (debugger, auto, hotkey)
 
     @classmethod
     def get_postmortem_exclusion_list(cls, wow64 = False):
@@ -8295,7 +8318,7 @@ class System (ProcessContainer):
 
         @type  bits: int
         @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}.
+            64 bits debugger. Set to {None} for the default (L{System.bits}).
 
         @rtype:  list( str )
         @return: List of excluded application pathnames from the Registry.
@@ -8308,14 +8331,27 @@ class System (ProcessContainer):
         elif bits not in (32, 64):
             raise NotImplementedError("Unknown architecture (%r bits)" % bits)
 
-        # XXX TODO
+        if bits == 32 and cls.bits == 64:
+            keyname = 'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
+        else:
+            keyname = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
 
-        raise NotImplementedError()
+        try:
+            key = cls.registry[keyname]
+        except KeyError:
+            return []
+
+        return [name for (name, enabled) in key.values() if enabled]
 
     @classmethod
-    def set_postmortem_debugger(cls, cmdline, auto = None, bits = None):
+    def set_postmortem_debugger(cls, cmdline,
+                                auto = None, hotkey = None, bits = None):
         """
         Sets the postmortem debugging settings in the Registry.
+
+        @warning: This method requires administrative rights.
+
+        @see: L{get_postmortem_debugger}
 
         @type  cmdline: str
         @param cmdline: Command line to the new postmortem debugger.
@@ -8326,14 +8362,19 @@ class System (ProcessContainer):
 
         @type  auto: bool
         @param auto: Set to C{True} if no user interaction is allowed, C{False}
-            to prompt a confirmation dialog before attaching. Use C{None} to
-            leave this value unchanged.
+            to prompt a confirmation dialog before attaching.
+            Use C{None} to leave this value unchanged.
+
+        @type  hotkey: int
+        @param hoykey: Virtual key scan code for the user defined hotkey.
+            Use C{0} to disable the hotkey.
+            Use C{None} to leave this value unchanged.
 
         @type  bits: int
         @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}.
+            64 bits debugger. Set to {None} for the default (L{System.bits}).
 
-        @rtype:  tuple( str, bool )
+        @rtype:  tuple( str, bool, int )
         @return: Previously defined command line and auto flag.
 
         @raise WindowsError:
@@ -8344,14 +8385,26 @@ class System (ProcessContainer):
         elif bits not in (32, 64):
             raise NotImplementedError("Unknown architecture (%r bits)" % bits)
 
-        # XXX TODO
+        if bits == 32 and cls.bits == 64:
+            keyname = 'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug'
+        else:
+            keyname = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug'
 
-        raise NotImplementedError()
+        key = cls.registry[keyname]
+
+        if cmdline is not None:
+            key['Debugger'] = cmdline
+        if auto is not None:
+            key['Auto'] = int(bool(auto))
+        if hotkey is not None:
+            key['UserDebuggerHotkey'] = int(hotkey)
 
     @classmethod
     def add_to_postmortem_exclusion_list(cls, pathname, bits = None):
         """
         Adds the given pathname to the exclusion list for postmortem debugging.
+
+        @warning: This method requires administrative rights.
 
         @see: L{get_postmortem_exclusion_list}
 
@@ -8361,7 +8414,7 @@ class System (ProcessContainer):
 
         @type  bits: int
         @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}.
+            64 bits debugger. Set to {None} for the default (L{System.bits}).
 
         @raise WindowsError:
             Raises an exception on error.
@@ -8371,15 +8424,25 @@ class System (ProcessContainer):
         elif bits not in (32, 64):
             raise NotImplementedError("Unknown architecture (%r bits)" % bits)
 
-        # XXX TODO
+        if bits == 32 and cls.bits == 64:
+            keyname = 'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
+        else:
+            keyname = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
 
-        raise NotImplementedError()
+        try:
+            key = cls.registry[keyname]
+        except KeyError:
+            key = cls.registry.create(keyname)
+
+        key[pathname] = 1
 
     @classmethod
     def remove_from_postmortem_exclusion_list(cls, pathname, bits = None):
         """
         Removes the given pathname to the exclusion list for postmortem
         debugging from the Registry.
+
+        @warning: This method requires administrative rights.
 
         @warning: Don't ever delete entries you haven't created yourself!
             Some entries are set by default for your version of Windows.
@@ -8396,7 +8459,7 @@ class System (ProcessContainer):
 
         @type  bits: int
         @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}.
+            64 bits debugger. Set to {None} for the default (L{System.bits}).
 
         @raise WindowsError:
             Raises an exception on error.
@@ -8406,6 +8469,17 @@ class System (ProcessContainer):
         elif bits not in (32, 64):
             raise NotImplementedError("Unknown architecture (%r bits)" % bits)
 
-        # XXX TODO
+        if bits == 32 and cls.bits == 64:
+            keyname = 'HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
+        else:
+            keyname = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\\AutoExclusionList'
 
-        raise NotImplementedError()
+        try:
+            key = cls.registry[keyname]
+        except KeyError:
+            return
+
+        try:
+            del key[pathname]
+        except KeyError:
+            return

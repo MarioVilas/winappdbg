@@ -1,4 +1,5 @@
 #!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
 
 # Acknowledgements:
 #  Didier Stevens, for his SelectMyParent tool on which this one is inspired.

@@ -1,4 +1,5 @@
 #!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
 
 # Acknowledgements:
 #  Nicolas Economou, for his ptool suite on which this tool is inspired.

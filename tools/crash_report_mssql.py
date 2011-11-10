@@ -1,4 +1,5 @@
 #!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
 
 # Crash logger report, MS SQL version (see crash_logger.py)
 # Copyright (c) 2009-2011, Mario Vilas
@@ -36,6 +37,12 @@ import time
 
 from winappdbg import CrashTableMSSQL
 from crash_report import print_report_for_database
+
+try:
+    import cerealizer
+    cerealizer.freeze_configuration()
+except ImportError:
+    pass
 
 def connect_to_database(connection_string):
     print "Connecting to database..."

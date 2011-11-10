@@ -1,3 +1,6 @@
+#!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2009-2011, Mario Vilas
 # All rights reserved.
 #

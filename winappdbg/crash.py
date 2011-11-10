@@ -1,3 +1,6 @@
+#!~/.wine/drive_c/Python25/python.exe
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2009-2011, Mario Vilas
 # All rights reserved.
 #
@@ -81,11 +84,15 @@ except ImportError:
 
 # Secure alternative to pickle, use it if present.
 try:
-    import cerealizer as pickle
+    import cerealizer
+    pickle = cerealizer
 
     # There is no optimization function for cerealized objects.
     def optimize(picklestring):
         return picklestring
+
+    # There is no HIGHEST_PROTOCOL in cerealizer.
+    HIGHEST_PROTOCOL = 0
 
     # Note: it's important NOT to provide backwards compatibility, otherwise
     # it'd be just the same as not having this! To disable this security
@@ -102,6 +109,9 @@ except ImportError:
     # If all fails fallback to the classic pickle module.
     except ImportError:
         import pickle
+
+    # Fetch the highest protocol version.
+    HIGHEST_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
     # Try to use the pickle optimizer if found.
     try:
@@ -244,7 +254,7 @@ class ContainerBase(object):
             return self.__keys[key]
         if self.optimizeKeys:
             # May return different marshalled versions for the same key.
-            skey = pickle.dumps(key, protocol = pickle.HIGHEST_PROTOCOL)
+            skey = pickle.dumps(key, protocol = HIGHEST_PROTOCOL)
             skey = optimize(skey)
         else:
             # Always returns the same marshalled version for each key.
@@ -303,7 +313,7 @@ class ContainerBase(object):
                     # convert the generator to a list
                     crash.memoryMap = list(memoryMap)
                 if self.optimizeValues:
-                    value = pickle.dumps(crash, protocol = pickle.HIGHEST_PROTOCOL)
+                    value = pickle.dumps(crash, protocol = HIGHEST_PROTOCOL)
                     value = optimize(value)
                 else:
                     value = pickle.dumps(crash, protocol = 0)
@@ -2140,3 +2150,10 @@ class Crash (object):
         """
         return bool( self.notes )
 
+#==============================================================================
+
+# Register the serializable classes with Cerealizer.
+try:
+    cerealizer.register(Crash)
+except NameError:
+    pass
