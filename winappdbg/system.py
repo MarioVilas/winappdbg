@@ -8310,7 +8310,7 @@ class System (ProcessContainer):
         return (debugger, auto, hotkey)
 
     @classmethod
-    def get_postmortem_exclusion_list(cls, wow64 = False):
+    def get_postmortem_exclusion_list(cls, bits = None):
         """
         Returns the exclusion list for the postmortem debugger.
 
@@ -8321,7 +8321,7 @@ class System (ProcessContainer):
             64 bits debugger. Set to {None} for the default (L{System.bits}).
 
         @rtype:  list( str )
-        @return: List of excluded application pathnames from the Registry.
+        @return: List of excluded application filenames.
 
         @raise WindowsError:
             Raises an exception on error.
@@ -8341,7 +8341,7 @@ class System (ProcessContainer):
         except KeyError:
             return []
 
-        return [name for (name, enabled) in key.values() if enabled]
+        return [name for (name, enabled) in key.items() if enabled]
 
     @classmethod
     def set_postmortem_debugger(cls, cmdline,
@@ -8402,7 +8402,7 @@ class System (ProcessContainer):
     @classmethod
     def add_to_postmortem_exclusion_list(cls, pathname, bits = None):
         """
-        Adds the given pathname to the exclusion list for postmortem debugging.
+        Adds the given filename to the exclusion list for postmortem debugging.
 
         @warning: This method requires administrative rights.
 
@@ -8439,7 +8439,7 @@ class System (ProcessContainer):
     @classmethod
     def remove_from_postmortem_exclusion_list(cls, pathname, bits = None):
         """
-        Removes the given pathname to the exclusion list for postmortem
+        Removes the given filename to the exclusion list for postmortem
         debugging from the Registry.
 
         @warning: This method requires administrative rights.
