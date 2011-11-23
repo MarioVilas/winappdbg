@@ -4509,8 +4509,10 @@ class ThreadDebugOperations (object):
 
         @raise WindowsError: Could not read the requested data.
         """
-        stackData = self.read_stack_data(count * 4, offset)
-        return struct.unpack('<'+('L'*count), stackData)
+        if count > 0:
+            stackData = self.read_stack_data(count * 4, offset)
+            return struct.unpack('<'+('L'*count), stackData)
+        return ()
 
     def peek_stack_dwords(self, count, offset = 0):
         """
