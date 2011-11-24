@@ -844,6 +844,9 @@ class ThreadContainer (object):
 ##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
         if not self._has_thread_id(dwThreadId):
             aThread = Thread(dwThreadId, hThread, self)
+            teb_ptr = event.get_teb()   # remember the TEB pointer
+            if teb_ptr:
+                aThread._teb_ptr = teb_ptr
             self._add_thread(aThread)
         else:
             aThread = self.get_thread(dwThreadId)
@@ -4135,11 +4138,15 @@ class ThreadDebugOperations (object):
 
         @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
         """
-        return self.get_process().is_wow64()
-
-    # TODO
-    # Maybe it'd be a good idea to cache the TEB, or at least it's pointer.
-    # The pointers may be obtained when debugging at create_thread_event.
+        try:
+            wow64 = self.__wow64
+        except AttributeError:
+            if (System.bits == 32 and not System.wow64):
+                wow64 = False
+            else:
+                wow64 = self.get_process().is_wow64()
+            self.__wow64 = wow64
+        return wow64
 
     def get_teb(self):
         """
@@ -4162,14 +4169,18 @@ class ThreadDebugOperations (object):
         @raise WindowsError: An exception is raised on error.
         """
         try:
-            tbi = win32.NtQueryInformationThread( self.get_handle(),
-                                                  win32.ThreadBasicInformation)
-            address = tbi.TebBaseAddress
-        except WindowsError:
-            address = self.get_linear_address('SegFs', 0)   # fs:[0]
-            if not address:
-                raise
-        return address
+            return self._teb_ptr
+        except AttributeError:
+            try:
+                tbi = win32.NtQueryInformationThread( self.get_handle(),
+                                                      win32.ThreadBasicInformation)
+                address = tbi.TebBaseAddress
+            except WindowsError:
+                address = self.get_linear_address('SegFs', 0)   # fs:[0]
+                if not address:
+                    raise
+            self._teb_ptr = address
+            return address
 
     def get_linear_address(self, segment, address):
         """
@@ -5097,9 +5108,14 @@ class ProcessDebugOperations (object):
         @return: Remote pointer to the L{win32.PEB} structure.
             Returns C{None} on error.
         """
-        pbi = win32.NtQueryInformationProcess(self.get_handle(),
-                                                 win32.ProcessBasicInformation)
-        return pbi.PebBaseAddress
+        try:
+            return self._peb_ptr
+        except AttributeError:
+            pbi = win32.NtQueryInformationProcess(self.get_handle(),
+                                                     win32.ProcessBasicInformation)
+            address = pbi.PebBaseAddress
+            self._peb_ptr = address
+            return address
 
     def get_entry_point(self):
         """
