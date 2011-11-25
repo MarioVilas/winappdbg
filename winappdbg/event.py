@@ -764,7 +764,10 @@ class CreateProcessEvent (Event):
         """
         @rtype:  int
         @return: Base address of the main module.
+        @warn: This value is taken from the PE file
+            and may be incorrect because of ASLR!
         """
+        # TODO try to calculate the real value when ASLR is active.
         return self.raw.u.CreateProcessInfo.lpBaseOfImage
 
     def get_teb(self):
