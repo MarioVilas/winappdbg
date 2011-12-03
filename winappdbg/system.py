@@ -5396,7 +5396,7 @@ class ProcessDebugOperations (object):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return self.parse_environment_block( self.get_environment_data() )
+        return self.parse_environment_data( self.get_environment_data() )
 
 #------------------------------------------------------------------------------
 
