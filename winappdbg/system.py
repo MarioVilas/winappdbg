@@ -1281,6 +1281,8 @@ class ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads,
         and loaded modules.
+        
+        @raise WindowsError: An error occurred, and the scan may be incomplete.
         """
         try:
             self.scan_processes_and_threads()
@@ -1372,10 +1374,23 @@ class ProcessContainer (object):
     def scan_modules(self):
         """
         Populates the snapshot with loaded modules.
+        
+        @rtype: bool
+        @return: C{True} if the snapshot is complete, C{False} if the debugger
+            doesn't have permission to scan some processes. In either case, the
+            snapshot is complete for all processes the debugger has access to.
         """
+        complete = True
 ##        for aProcess in self.iter_processes(): # XXX triggers a scan
         for aProcess in self.__processDict.itervalues():
-            aProcess.scan_modules()
+            try:
+                aProcess.scan_modules()
+            except WindowsError, e:
+                if win32.winerror(e) == win32.ERROR_ACCESS_DENIED:
+                    complete = False
+                else:
+                    raise
+        return complete
 
     def scan_processes(self):
         """
