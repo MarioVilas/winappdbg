@@ -270,7 +270,7 @@ ExceptionCollidedUnwind     = 3
 # My own definition follows:
 class PROCESS_BASIC_INFORMATION(Structure):
     _fields_ = [
-        ("ExitStatus",                      NTSTATUS),
+        ("ExitStatus",                      SIZE_T),
         ("PebBaseAddress",                  PVOID),     # PPEB
         ("AffinityMask",                    KAFFINITY),
         ("BasePriority",                    SDWORD),
