@@ -3790,11 +3790,14 @@ def GetProcessHandleCount(hProcess):
 #   __out  LPFILETIME lpKernelTime,
 #   __out  LPFILETIME lpUserTime
 # );
-def GetProcessTimes(hProcess):
+def GetProcessTimes(hProcess = None):
     _GetProcessTimes = windll.kernel32.GetProcessTimes
-    _GetProcessTimes.argtypes = [HANDLE, LPFILETIME, LPFILETIME, LPFILETIME]
+    _GetProcessTimes.argtypes = [HANDLE, LPFILETIME, LPFILETIME, LPFILETIME, LPFILETIME]
     _GetProcessTimes.restype  = bool
     _GetProcessTimes.errcheck = RaiseIfZero
+
+    if hProcess is None:
+        hProcess = GetCurrentProcess()
 
     CreationTime = FILETIME()
     ExitTime     = FILETIME()
