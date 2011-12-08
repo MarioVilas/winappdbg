@@ -97,7 +97,7 @@ def kill_python_thread(tid):
     @warn:
         This function MUST ONLY be used in Python threads belonging to the same
         process as the caller. It cannot be used on threads belonging to other
-        processes, nor on native threads created by the L{CreateThread} API.
+        processes, nor on native threads created by the C{CreateThread} API.
     
     @see:
         U{http://stackoverflow.com/questions/323972}

@@ -89,6 +89,12 @@ class RegistryKey (_RegistryContainer):
     Exposes a single Windows Registry key as a dictionary-like object.
     
     @see: L{Registry}
+    
+    @type path: str
+    @ivar path: Registry key path.
+    
+    @type handle: L{win32.RegistryKeyHandle}
+    @ivar handle: Registry key handle.
     """
 
     def __init__(self, path, handle):
@@ -107,18 +113,10 @@ class RegistryKey (_RegistryContainer):
 
     @property
     def path(self):
-        """
-        @rtype:  str
-        @return: Registry key path.
-        """
         return self._path
 
     @property
     def handle(self):
-        """
-        @rtype:  L{win32.RegistryKeyHandle}
-        @return: Registry key handle.
-        """
         return self._handle
 
     def __contains__(self, name):
@@ -274,6 +272,10 @@ class RegistryKey (_RegistryContainer):
 class Registry (_RegistryContainer):
     """
     Exposes the Windows Registry as a Python container.
+
+    @type machine: str or None
+    @ivar machine: For a remote Registry, the machine name.
+        For a local Registry, the value is C{None}.
     """
 
     _hives_by_name = {
@@ -319,11 +321,6 @@ class Registry (_RegistryContainer):
 
     @property
     def machine(self):
-        """
-        @rtype  machine: str or None
-        @return machine: For a remote Registry, the machine name.
-            For a local Registry, returns C{None}.
-        """
         return self._machine
 
     def _parse_path(self, path):

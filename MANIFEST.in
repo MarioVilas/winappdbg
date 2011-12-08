@@ -1,7 +1,6 @@
 include README
 include Makefile
 include MANIFEST.in
-include setup.cfg
 include setup.py
 include winappdbg.hhp
 include doc/Makefile

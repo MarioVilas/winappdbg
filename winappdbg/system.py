@@ -4827,7 +4827,7 @@ class ProcessDebugOperations (object):
     Encapsulates several useful debugging routines for processes.
 
     @group Properties:
-        is_wow64, get_dep_status, get_peb, get_peb_address,
+        is_wow64, get_dep_policy, get_peb, get_peb_address,
         get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
@@ -5081,7 +5081,7 @@ class ProcessDebugOperations (object):
             When run on previous versions of Windows a C{WindowsError}
             exception is raised with code C{ERROR_NOT_SUPPORTED}.
         
-        @see: L{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
+        @see: U{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
         
         @rtype:  tuple(int, int)
         @return:
@@ -7948,15 +7948,15 @@ class System (ProcessContainer):
 
     @type arch: str
     @cvar arch: Name of the processor architecture we're running on.
-        For more details see L{win32.version.get_arch}.
+        For more details see L{win32.version._get_arch}.
 
     @type bits: int
     @cvar bits: Size of the machine word in bits for the current architecture.
-        For more details see L{win32.version.get_bits}.
+        For more details see L{win32.version._get_bits}.
 
     @type os: str
     @cvar os: Name of the Windows version we're runing on.
-        For more details see L{win32.version.get_os}.
+        For more details see L{win32.version._get_os}.
 
     @type wow64: bool
     @cvar wow64: C{True} if the debugger is a 32 bits process running in a 64
@@ -8399,7 +8399,7 @@ class System (ProcessContainer):
             Use C{None} to leave this value unchanged.
 
         @type  hotkey: int
-        @param hoykey: Virtual key scan code for the user defined hotkey.
+        @param hotkey: Virtual key scan code for the user defined hotkey.
             Use C{0} to disable the hotkey.
             Use C{None} to leave this value unchanged.
 

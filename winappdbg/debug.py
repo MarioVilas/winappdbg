@@ -83,7 +83,6 @@ class Debug (EventDispatcher, BreakpointContainer):
         notify_create_process,
         notify_create_thread,
         notify_load_dll,
-        notify_unload_dll,
         notify_rip,
         notify_debug_control_c,
         notify_ms_vc_exception
