@@ -1,4 +1,4 @@
-.. _tools:
+﻿.. _tools:
 
 Tools
 *****
@@ -21,7 +21,7 @@ Crash logger
 
    Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database and/or log it through standard output.
 
-   Some simple :ref:`heuristics <crash-key>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://www.codeplex.com/msecdbg>`_.
+   Some simple :ref:`heuristics <crash-key>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
 
    Additional features allow setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
 

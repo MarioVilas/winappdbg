@@ -46,7 +46,7 @@ If you prefer to install directly from the **sources** package, extract it to an
 
     setup.py install
 
-You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/1.3>`_ using any of the compatible **package managers**:
+You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
 
 * Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
 
@@ -65,7 +65,7 @@ Naturally you need the Python interpreter. There are two basic flavors, just pic
 
 * The **official** `Python <http://www.python.org/download/>`_ interpreter (free, open source). This is the preferred choice.
 
-* ActiveState `ActivePython <http://www.activestate.com/store/activepython/download/>`_ (free, closed source). It should work but in 64 bit Windows the *ctypes* module is missing and you'll have to install it manually.
+* ActiveState `ActivePython <http://www.activestate.com/activepython/downloads/>`_ (free, closed source). It should work but in 64 bit Windows the *ctypes* module is missing and you'll have to install it manually.
 
 If you're still using Python 2.4 you'll need to install some additional modules:
 
