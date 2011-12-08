@@ -24,39 +24,41 @@ The `py2exe <http://www.py2exe.org/>`_ package is used to generate standalone bi
 
 All of these tools should be present in the **PATH** environment variable.
 
-    +----------------------------------------------------------------------------------------------+
-    | `Download Make for Windows   <http://gnuwin32.sourceforge.net/packages/make.htm>`_           |
-    +----------------------------------------------------------------------------------------------+
-    | `Download Tar for Windows    <http://gnuwin32.sourceforge.net/packages/gtar.htm>`_           |
-    +----------------------------------------------------------------------------------------------+
-    | `Download BZip2 for Windows  <http://gnuwin32.sourceforge.net/packages/bzip2.htm>`_          |
-    +----------------------------------------------------------------------------------------------+
-    | `Download Epydoc             <http://sourceforge.net/project/showfiles.php?group_id=32455>`_ |
-    +----------------------------------------------------------------------------------------------+
-    | `Download Sphinx             <http://pypi.python.org/pypi/Sphinx>`_                          |
-    +----------------------------------------------------------------------------------------------+
-    | `Download GraphViz           <http://www.graphviz.org/Download.php>`_                        |
-    +----------------------------------------------------------------------------------------------+
-    | `Download MikTex 2.7         <http://miktex.org/2.7/setup>`_                                 |
-    +----------------------------------------------------------------------------------------------+
-    | `Download HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_               |
-    +----------------------------------------------------------------------------------------------+
-    | `Download py2exe             <http://sourceforge.net/project/showfiles.php?group_id=15583>`_ |
-    +----------------------------------------------------------------------------------------------+
-    | `Download UPX                <http://upx.sourceforge.net/#download>`_                        |
-    +----------------------------------------------------------------------------------------------+
+    +-------------------------------------------------------------------------------------+
+    | `Download Make for Windows   <http://gnuwin32.sourceforge.net/packages/make.htm>`_  |
+    +-------------------------------------------------------------------------------------+
+    | `Download Tar for Windows    <http://gnuwin32.sourceforge.net/packages/gtar.htm>`_  |
+    +-------------------------------------------------------------------------------------+
+    | `Download BZip2 for Windows  <http://gnuwin32.sourceforge.net/packages/bzip2.htm>`_ |
+    +-------------------------------------------------------------------------------------+
+    | `Download Epydoc             <http://sourceforge.net/projects/epydoc/files/>`_      |
+    +-------------------------------------------------------------------------------------+
+    | `Download Sphinx             <http://pypi.python.org/pypi/Sphinx>`_                 |
+    +-------------------------------------------------------------------------------------+
+    | `Download GraphViz           <http://www.graphviz.org/Download.php>`_               |
+    +-------------------------------------------------------------------------------------+
+    | `Download MikTex 2.7         <http://miktex.org/2.7/setup>`_                        |
+    +-------------------------------------------------------------------------------------+
+    | `Download HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_      |
+    +-------------------------------------------------------------------------------------+
+    | `Download py2exe             <http://sourceforge.net/projects/py2exe/files/>`_      |
+    +-------------------------------------------------------------------------------------+
+    | `Download UPX                <http://upx.sourceforge.net/#download>`_               |
+    +-------------------------------------------------------------------------------------+
 
-Installer script
-----------------
+Installation
+------------
 
 Both the source code and Windows installer packages are generated with the Distutils standard package, which is already shipped with your Python distribution. The :download:`setup.py <../../setup.py>` file is the installer script that contains the package metadata and the list of files to include.
 
 You can find more information on Distutils installer scripts `here <http://docs.python.org/distutils/setupscript.html>`_.
 
-Makefile usage
---------------
+An :download:`install batch file <../../install.bat>` is provided for convenience when installing WinAppDbg in multiple versions of Python coexisting in the same machine.
 
-The :download:`Makefile <../../Makefile>` is run using the "make" command. These are the commands supported by our makefile:
+Building the packages
+---------------------
+
+A :download:`batch file <../../make>` is provided to build the packages. These are the commands it supports:
 
 Building the project
 ++++++++++++++++++++
@@ -72,41 +74,25 @@ Building the project
 Building each component
 +++++++++++++++++++++++
 
-* **make doc**
+* **make source**
 
-  Generates only the documentation, in all supported formats but CHM (the HTML Help Workshop returns an error condition because of warnings, which would stop the make process).
+  Builds only the source code packages in *zip* and *tar.bz2* format.
 
-* **make html**
+.. * **make portable**
+..
+..   Builds only the portable packages in *zip* and *tar.bz2* format.
 
-  Generates only the documentation in HTML format.
+* **make wininst**
 
-* **make pdf**
+  Builds only the Windows installer packages (that is, the *exe* and *msi* files) for all supported platforms and architectures.
 
-  Generates only the documentation in PDF format.
+* **make autodoc**
 
-* **make chm**
+  Generates only the reference documentation using Epydoc.
 
-  Generates only the documentation in CHM format. Depends on the HTML documentation.
+* **make manuals**
 
-* **make dist**
-
-  Builds only the distribution packages, in all supported formats, for the current platform and architecture.
-
-* **make sdist**
-
-  Builds only the source distribution package (that is, the *zip* file). This package contains the documentation and can later be used to install the module by uncompressing it and running *setup.py*.
-
-* **make bdist**
-
-  Builds only the Windows installer package (that is, the *exe* file) for the current platform and architecture. This package does not contain the documentation and cannot be manually extracted to search for individual files.
-
-* **make py2exe**
-
-  Builds standalone binaries for the tools, using `py2exe <http://www.py2exe.org/>`_. This step is optional.
-
-* **make upx**
-
-  Compresses the executables generated wth **py2exe**, using `UPX <http://upx.sourceforge.net/>`_. This step is optional.
+  Generates only the manuals using Sphinx.
 
 Directory structure
 -------------------
