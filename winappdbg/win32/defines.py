@@ -326,6 +326,35 @@ class MakeANSIVersion(object):
                     argd[key] = unicode(value)
         return self.fn(*argv, **argd)
 
+class MakeWideVersion(object):
+    """
+    Decorator that generates a Unicode (wide) version of an ANSI only API call.
+
+    @type fn: function
+    @ivar fn: ANSI version of the API function to call.
+    """
+
+    def __init__(self, fn):
+        """
+        @type  fn: function
+        @param fn: ANSI version of the API function to call.
+        """
+        self.fn = fn
+
+    def __call__(self, *argv, **argd):
+        t_unicode = type(u'')
+        v_types   = [ type(item) for item in argv ]
+        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
+        if t_unicode in v_types:
+            argv = list(argv)
+            for index in xrange(len(argv)):
+                if v_types[index] == t_unicode:
+                    argv[index] = str(argv[index])
+            for key, value in argd.items():
+                if type(value) == t_unicode:
+                    argd[key] = str(value)
+        return self.fn(*argv, **argd)
+
 #--- Types --------------------------------------------------------------------
 
 # Map of basic C types to Win32 types

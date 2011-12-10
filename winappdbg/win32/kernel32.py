@@ -1930,7 +1930,7 @@ GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
 #   __in  HMODULE hModule,
 #   __in  LPCSTR lpProcName
 # );
-def GetProcAddress(hModule, lpProcName):
+def GetProcAddressA(hModule, lpProcName):
     _GetProcAddress = windll.kernel32.GetProcAddress
     _GetProcAddress.argtypes = [HMODULE, LPVOID]
     _GetProcAddress.restype  = LPVOID
@@ -1944,6 +1944,9 @@ def GetProcAddress(hModule, lpProcName):
     else:
         raise TypeError(str(type(lpProcName)))
     return _GetProcAddress(hModule, lpProcName)
+
+GetProcAddressW = MakeWideVersion(GetProcAddressA)
+GetProcAddress = GuessStringType(GetProcAddressA, GetProcAddressW)
 
 # BOOL WINAPI FreeLibrary(
 #   __in  HMODULE hModule

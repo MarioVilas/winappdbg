@@ -1027,7 +1027,6 @@ class ConsoleDebugger (Cmd, EventHandler):
         plugins_path = os.path.join(plugins_path, 'plugins')
         old_path = sys.path
         sys.path = [ plugins_path ]
-        print sys.path
         try:
             try:
                 plugin = __import__(name)

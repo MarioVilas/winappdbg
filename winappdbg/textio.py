@@ -58,6 +58,7 @@ __all__ =   [
             ]
 
 import win32
+from win32.version import arch, os, bits
 from util import StaticClass
 
 import time
