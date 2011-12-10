@@ -666,7 +666,7 @@ class CreateThreadEvent (Event):
         if hThread in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
             hThread = None
         else:
-            hThread = ThreadHandle(hThread, False)
+            hThread = ThreadHandle(hThread, False, win32.THREAD_ALL_ACCESS)
         return hThread
 
     def get_teb(self):
@@ -731,7 +731,7 @@ class CreateProcessEvent (Event):
         if hProcess in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
             hProcess = None
         else:
-            hProcess = ProcessHandle(hProcess, False)
+            hProcess = ProcessHandle(hProcess, False, win32.PROCESS_ALL_ACCESS)
         return hProcess
 
     def get_thread_handle(self):
@@ -746,7 +746,7 @@ class CreateProcessEvent (Event):
         if hThread in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
             hThread = None
         else:
-            hThread = ThreadHandle(hThread, False)
+            hThread = ThreadHandle(hThread, False, win32.THREAD_ALL_ACCESS)
         return hThread
 
     def get_start_address(self):

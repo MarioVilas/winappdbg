@@ -1448,8 +1448,13 @@ class _ThreadContainer (object):
             dwCreationFlags = win32.CREATE_SUSPENDED
         else:
             dwCreationFlags = 0
-        hThread, dwThreadId = win32.CreateRemoteThread(self.get_handle(), 0, 0,
-                                lpStartAddress, lpParameter, dwCreationFlags)
+        hProcess = self.get_handle( PROCESS_CREATE_THREAD     |
+                                    PROCESS_QUERY_INFORMATION |
+                                    PROCESS_VM_OPERATION      |
+                                    PROCESS_VM_WRITE          |
+                                    PROCESS_VM_READ           )
+        hThread, dwThreadId = win32.CreateRemoteThread(
+                hProcess, 0, 0, lpStartAddress, lpParameter, dwCreationFlags)
         aThread = Thread(dwThreadId, hThread, self)
         self._add_thread(aThread)
         return aThread
@@ -1836,9 +1841,19 @@ class _ProcessContainer (object):
             # to scan for threads over and over for each call.
 ##            dwProcessId = Thread(dwThreadId).get_pid()
 
-            # This API only exists in Vista and above.
-            hThread     = Thread(dwThreadId).get_handle()
-            dwProcessId = win32.GetProcessIdOfThread(hThread)
+            # This API only exists in Windows 2003, Vista and above.
+            try:
+                hThread = win32.OpenThread(THREAD_QUERY_LIMITED_INFORMATION,
+                                           False, dwThreadId)
+            except WindowsError, e:
+                if win32.winerror(e) != win32.ERROR_ACCESS_DENIED:
+                    raise
+                hThread = win32.OpenThread(THREAD_QUERY_INFORMATION,
+                                           False, dwThreadId)
+            try:
+                dwProcessId = win32.GetProcessIdOfThread(hThread)
+            finally:
+                hThread.close()
 
         # If all else fails, go through all processes in the snapshot
         # looking for the one that owns the thread we're looking for.
@@ -1976,14 +1991,15 @@ class _ProcessContainer (object):
                     ParentProcess = self.get_process(dwParentProcessId)
                 else:
                     ParentProcess = Process(dwParentProcessId)
-                ParentProcessHandle = ParentProcess.get_handle()._as_parameter_
-                AttributeList = (
+                ParentProcessHandle = ParentProcess.get_handle(
+                                        win32.PROCESS_CREATE_PROCESS)
+                AttributeListData = (
                     (
                         win32.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-                        ParentProcessHandle
+                        ParentProcessHandle._as_parameter_
                     ),
                 )
-                AttributeList = win32.ProcThreadAttributeList(AttributeList)
+                AttributeList = win32.ProcThreadAttributeList(AttributeListData)
                 StartupInfoEx           = win32.STARTUPINFOEX()
                 StartupInfo             = StartupInfoEx.StartupInfo
                 StartupInfo.cb          = win32.sizeof(win32.STARTUPINFOEX)
@@ -3332,7 +3348,8 @@ class Module (object):
         process = self.get_process()
         if process:
             try:
-                handle = process.get_handle()
+                handle = process.get_handle( win32.PROCESS_VM_READ |
+                                             win32.PROCESS_QUERY_INFORMATION )
                 base   = self.get_base()
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
@@ -3487,11 +3504,15 @@ class Module (object):
         Loads the debugging symbols for a module.
         Automatically called by L{get_symbols}.
         """
-        hProcess    = self.get_process().get_handle()
-        hFile       = self.hFile
-        BaseOfDll   = self.get_base()
-        SizeOfDll   = self.get_size()
-        Enumerator  = self._SymbolEnumerator()
+        if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+            dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+        else:
+            dwAccess = win32.PROCESS_QUERY_INFORMATION
+        hProcess     = self.get_process().get_handle(dwAccess)
+        hFile        = self.hFile
+        BaseOfDll    = self.get_base()
+        SizeOfDll    = self.get_size()
+        Enumerator   = self._SymbolEnumerator()
         try:
             win32.SymInitialize(hProcess)
             SymOptions = win32.SymGetOptions()
@@ -3959,10 +3980,11 @@ class Thread (object):
                 # Infinite loop if self.__process is None
                 self.dwProcessId = self.get_process().get_pid()
             else:
-                hThread = self.get_handle()
                 try:
                     # I wish this had been implemented before Vista...
                     # XXX TODO find the real ntdll call under this api
+                    hThread = self.get_handle(
+                                        win32.THREAD_QUERY_LIMITED_INFORMATION)
                     self.dwProcessId = win32.GetProcessIdOfThread(hThread)
                 except AttributeError:
                     # This method really sucks :P
@@ -4013,16 +4035,29 @@ class Thread (object):
 
 #------------------------------------------------------------------------------
 
-    def open_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
+    def open_handle(self, dwDesiredAccess = win32.THREAD_ALL_ACCESS):
         """
-        Opens a new handle to the thread.
+        Opens a new handle to the thread, closing the previous one.
 
         The new handle is stored in the L{hThread} property.
+
+        @warn: Normally you should call L{get_handle} instead, since it's much
+            "smarter" and tries to reuse handles and merge access rights.
+
+        @type  dwDesiredAccess: int
+        @param dwDesiredAccess: Desired access rights.
+            Defaults to L{win32.THREAD_ALL_ACCESS}.
+            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx}
+
+        @raise WindowsError: It's not possible to open a handle to the thread
+            with the requested access rights. This tipically happens because
+            the target thread belongs to system process and the debugger is not
+            runnning with administrative rights.
         """
         hThread = win32.OpenThread(dwDesiredAccess, win32.FALSE, self.dwThreadId)
 
         # In case hThread was set to an actual handle value instead of a Handle
-        # object. This shouldn't happen unless the user tinkered with hFile.
+        # object. This shouldn't happen unless the user tinkered with it.
         if not hasattr(self.hThread, '__del__'):
             self.close_handle()
 
@@ -4045,13 +4080,34 @@ class Thread (object):
         finally:
             self.hThread = None
 
-    def get_handle(self):
+    def get_handle(self, dwDesiredAccess = win32.THREAD_ALL_ACCESS):
         """
+        Returns a handle to the thread with I{at least} the access rights
+        requested.
+
+        @note:
+            If a handle was previously opened and has the required access
+            rights, it's reused. If not, a new handle is opened with the
+            combination of the old and new access rights.
+
+        @type  dwDesiredAccess: int
+        @param dwDesiredAccess: Desired access rights.
+            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx}
+
         @rtype:  ThreadHandle
         @return: Handle to the thread.
+
+        @raise WindowsError: It's not possible to open a handle to the thread
+            with the requested access rights. This tipically happens because
+            the target thread belongs to system process and the debugger is not
+            runnning with administrative rights.
         """
         if self.hThread in (None, win32.INVALID_HANDLE_VALUE):
-            self.open_handle()
+            self.open_handle(dwDesiredAccess)
+        else:
+            dwAccess = self.hThread.dwAccess
+            if (dwAccess & dwDesiredAccess) != dwAccess:
+                self.open_handle(dwAccess | dwDesiredAccess)
         return self.hThread
 
 #------------------------------------------------------------------------------
@@ -4064,7 +4120,7 @@ class Thread (object):
         @param dwTimeout: (Optional) Timeout value in milliseconds.
             Use C{INFINITE} or C{None} for no timeout.
         """
-        self.get_handle().wait(dwTimeout)
+        self.get_handle(win32.SYNCHRONIZE).wait(dwTimeout)
 
     def kill(self, dwExitCode = 0):
         """
@@ -4076,7 +4132,8 @@ class Thread (object):
         @type  dwExitCode: int
         @param dwExitCode: (Optional) Thread exit code.
         """
-        win32.TerminateThread(self.get_handle(), dwExitCode)
+        hThread = self.get_handle(win32.THREAD_TERMINATE)
+        win32.TerminateThread(hThread, dwExitCode)
         if self.pInjectedMemory is not None:
             try:
                 self.get_process().free(self.pInjectedMemory)
@@ -4096,7 +4153,7 @@ class Thread (object):
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
-        return win32.SuspendThread(self.get_handle())
+        return win32.SuspendThread(self.get_handle(win32.THREAD_SUSPEND_RESUME))
 
     def resume(self):
         """
@@ -4105,7 +4162,7 @@ class Thread (object):
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
-        return win32.ResumeThread(self.get_handle())
+        return win32.ResumeThread(self.get_handle(win32.THREAD_SUSPEND_RESUME))
 
     def is_alive(self):
         """
@@ -4113,13 +4170,9 @@ class Thread (object):
         @return: C{True} if the thread if currently running.
         """
         try:
-            hProcess = self.get_handle()
+            self.wait(0)
         except WindowsError:
-            return False
-        try:
-            hProcess.wait(0)
-        except WindowsError:
-            return False
+            return win32.winerror(e) == win32.WAIT_TIMEOUT
         return True
 
     def get_exit_code(self):
@@ -4127,7 +4180,11 @@ class Thread (object):
         @rtype:  int
         @return: Thread exit code, or C{STILL_ACTIVE} if it's still alive.
         """
-        return win32.GetExitCodeThread(self.get_handle())
+        if win32.THREAD_ALL_ACCESS == win32.THREAD_ALL_ACCESS_VISTA:
+            dwAccess = win32.THREAD_QUERY_LIMITED_INFORMATION
+        else:
+            dwAccess = win32.THREAD_QUERY_INFORMATION
+        return win32.GetExitCodeThread( self.get_handle(dwAccess) )
 
 #------------------------------------------------------------------------------
 
@@ -4166,7 +4223,9 @@ class Thread (object):
         """
 
         # Get the thread handle.
-        hThread = self.get_handle()
+##        hThread = self.get_handle(win32.THREAD_GET_CONTEXT |
+##                                  win32.THREAD_SUSPEND_RESUME)
+        hThread = self.get_handle(win32.THREAD_GET_CONTEXT)
 
         # Threads can't be suspended when the exit process event arrives.
         # Funny thing is, you can still get the context. (?)
@@ -4221,12 +4280,14 @@ class Thread (object):
         """
         # No fix for the exit process event bug.
         # Setting the context of a dead thread is pointless anyway.
+        hThread = self.get_handle(win32.THREAD_SET_CONTEXT |
+                                  win32.THREAD_SUSPEND_RESUME)
         self.suspend()
         try:
             if System.bits == 64 and self.is_wow64():
-                win32.Wow64SetThreadContext(self.get_handle(), context)
+                win32.Wow64SetThreadContext(hThread, context)
             else:
-                win32.SetThreadContext(self.get_handle(), context)
+                win32.SetThreadContext(hThread, context)
         finally:
             self.resume()
 
@@ -4575,8 +4636,9 @@ class Thread (object):
             return self._teb_ptr
         except AttributeError:
             try:
-                tbi = win32.NtQueryInformationThread( self.get_handle(),
-                                                      win32.ThreadBasicInformation)
+                hThread = self.get_handle(win32.THREAD_QUERY_INFORMATION)
+                tbi = win32.NtQueryInformationThread( hThread,
+                                                win32.ThreadBasicInformation)
                 address = tbi.TebBaseAddress
             except WindowsError:
                 address = self.get_linear_address('SegFs', 0)   # fs:[0]
@@ -4607,8 +4669,9 @@ class Thread (object):
             The current architecture does not support selectors.
             Selectors only exist in x86-based systems.
         """
+        hThread  = self.get_handle(win32.THREAD_QUERY_INFORMATION)
         selector = self.get_register(segment)
-        ldt      = win32.GetThreadSelectorEntry(self.get_handle(), selector)
+        ldt      = win32.GetThreadSelectorEntry(hThread, selector)
         BaseLow  = ldt.BaseLow
         BaseMid  = ldt.HighWord.Bytes.BaseMid << 16
         BaseHi   = ldt.HighWord.Bytes.BaseHi  << 24
@@ -5307,14 +5370,26 @@ class Process (_ThreadContainer, _ModuleContainer):
             self.fileName = self.get_image_name()
         return self.fileName
 
-    def open_handle(self):
+    def open_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
         """
         Opens a new handle to the process.
 
         The new handle is stored in the L{hProcess} property.
+
+        @warn: Normally you should call L{get_handle} instead, since it's much
+            "smarter" and tries to reuse handles and merge access rights.
+
+        @type  dwDesiredAccess: int
+        @param dwDesiredAccess: Desired access rights.
+            Defaults to L{win32.PROCESS_ALL_ACCESS}.
+            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms684880(v=vs.85).aspx}
+
+        @raise WindowsError: It's not possible to open a handle to the process
+            with the requested access rights. This tipically happens because
+            the target process is a system process and the debugger is not
+            runnning with administrative rights.
         """
-        hProcess = win32.OpenProcess(win32.PROCESS_ALL_ACCESS, win32.FALSE,
-                                                              self.dwProcessId)
+        hProcess = win32.OpenProcess(dwDesiredAccess, win32.FALSE, self.dwProcessId)
 
         # In case hProcess was set to an actual handle value instead of a Handle
         # object. This shouldn't happen unless the user tinkered with hFile.
@@ -5340,13 +5415,35 @@ class Process (_ThreadContainer, _ModuleContainer):
         finally:
             self.hProcess = None
 
-    def get_handle(self):
+    def get_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
         """
+        Returns a handle to the process with I{at least} the access rights
+        requested.
+
+        @note:
+            If a handle was previously opened and has the required access
+            rights, it's reused. If not, a new handle is opened with the
+            combination of the old and new access rights.
+
+        @type  dwDesiredAccess: int
+        @param dwDesiredAccess: Desired access rights.
+            Defaults to L{win32.PROCESS_ALL_ACCESS}.
+            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms684880(v=vs.85).aspx}
+
         @rtype:  L{ProcessHandle}
         @return: Handle to the process.
+
+        @raise WindowsError: It's not possible to open a handle to the process
+            with the requested access rights. This tipically happens because
+            the target process is a system process and the debugger is not
+            runnning with administrative rights.
         """
         if self.hProcess in (None, win32.INVALID_HANDLE_VALUE):
-            self.open_handle()
+            self.open_handle(dwDesiredAccess)
+        else:
+            dwAccess = self.hProcess.dwAccess
+            if (dwAccess & dwDesiredAccess) != dwAccess:
+                self.open_handle(dwAccess | dwDesiredAccess)
         return self.hProcess
 
 #------------------------------------------------------------------------------
@@ -5448,7 +5545,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        self.get_handle().wait(dwTimeout)
+        self.get_handle(win32.SYNCHRONIZE).wait(dwTimeout)
 
     def kill(self, dwExitCode = 0):
         """
@@ -5456,7 +5553,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        win32.TerminateProcess(self.get_handle(), dwExitCode)
+        hProcess = self.get_handle(win32.PROCESS_TERMINATE)
+        win32.TerminateProcess(hProcess, dwExitCode)
 
     def suspend(self):
         """
@@ -5515,7 +5613,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         @note: To know if a process currently being debugged by a L{Debug}
             object, call L{Debug.is_debugee} instead.
         """
-        return win32.CheckRemoteDebuggerPresent(self.get_handle())
+        # FIXME the MSDN docs don't say what access rights are needed here!
+        hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        return win32.CheckRemoteDebuggerPresent(hProcess)
 
     def is_alive(self):
         """
@@ -5540,7 +5640,11 @@ class Process (_ThreadContainer, _ModuleContainer):
             and then L{ProcessHandle.wait} on it to wait until the process
             finishes running.
         """
-        return win32.GetExitCodeProcess(self.get_handle())
+        if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+            dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+        else:
+            dwAccess = win32.PROCESS_QUERY_INFORMATION
+        return win32.GetExitCodeProcess( self.get_handle(dwAccess) )
 
 #------------------------------------------------------------------------------
 
@@ -5748,6 +5852,11 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: Raises exception on error.
         """
+        # FIXME
+        # No idea what access rights are required here!
+        # Maybe PROCESS_VM_OPERATION ???
+        # In any case we're only calling this from the debugger,
+        # so it should be fine (we already have PROCESS_ALL_ACCESS).
         win32.FlushInstructionCache( self.get_handle() )
 
     def debug_break(self):
@@ -5784,7 +5893,11 @@ class Process (_ThreadContainer, _ModuleContainer):
             if (System.bits == 32 and not System.wow64):
                 wow64 = False
             else:
-                hProcess = self.get_handle()
+                if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+                    dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+                else:
+                    dwAccess = win32.PROCESS_QUERY_INFORMATION
+                hProcess = self.get_handle(dwAccess)
                 try:
                     wow64 = win32.IsWow64Process(hProcess)
                 except AttributeError:
@@ -5797,8 +5910,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         Retrieves the DEP (Data Execution Prevention) policy for this process.
         
         @note: This method is only available in Windows XP SP3 and above.
-            When run on previous versions of Windows a C{WindowsError}
-            exception is raised with code C{ERROR_NOT_SUPPORTED}.
+            When run on previous versions of Windows a C{NotImplementedError}
+            exception is raised.
         
         @see: U{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
         
@@ -5816,10 +5929,12 @@ class Process (_ThreadContainer, _ModuleContainer):
         
         @raise WindowsError: On error an exception is raised.
         """
+        hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
         try:
-            return win32.kernel32.GetProcessDEPPolicy( self.get_handle() )
+            return win32.kernel32.GetProcessDEPPolicy(hProcess)
         except AttributeError:
-            raise ctypes.WinError(win32.ERROR_NOT_SUPPORTED)
+            msg = "This method is only available in Windows XP SP3 and above."
+            raise NotImplementedError(msg)
 
 #------------------------------------------------------------------------------
 
@@ -5832,6 +5947,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: PEB structure.
         @raise WindowsError: An exception is raised on error.
         """
+        self.get_handle( win32.PROCESS_VM_READ |
+                         win32.PROCESS_QUERY_INFORMATION )
         return self.read_structure(self.get_peb_address(), win32.PEB)
 
     def get_peb_address(self):
@@ -5845,8 +5962,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             return self._peb_ptr
         except AttributeError:
-            pbi = win32.NtQueryInformationProcess(self.get_handle(),
-                                                     win32.ProcessBasicInformation)
+            hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+            pbi = win32.NtQueryInformationProcess(hProcess,
+                                                win32.ProcessBasicInformation)
             address = pbi.PebBaseAddress
             self._peb_ptr = address
             return address
@@ -5888,6 +6006,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # It's cached if the filename was already found by the other methods,
         # if it came with the corresponding debug event, or it was found by the
         # toolhelp API.
+        mainModule = None
         try:
             mainModule = self.get_main_module()
             name = mainModule.fileName
@@ -5901,7 +6020,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Not implemented until Windows Vista.
         if not name:
             try:
-                name = win32.QueryFullProcessImageName(self.get_handle())
+                hProcess = self.get_handle(
+                                    win32.PROCESS_QUERY_LIMITED_INFORMATION)
+                name = win32.QueryFullProcessImageName(hProcess)
             except (AttributeError, WindowsError):
 ##                traceback.print_exc()                           # XXX DEBUG
                 name = None
@@ -5912,7 +6033,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         # For more info see http://blog.voidnish.com/?p=72
         if not name:
             try:
-                name = win32.GetProcessImageFileName(self.get_handle())
+                hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+                name = win32.GetProcessImageFileName(hProcess)
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
                 else:
@@ -5929,12 +6051,14 @@ class Process (_ThreadContainer, _ModuleContainer):
         # in usermode space (see http://www.ragestorm.net/blogs/?p=163).
         if not name:
             try:
+                hProcess = self.get_handle( win32.PROCESS_VM_READ |
+                                            win32.PROCESS_QUERY_INFORMATION )
                 try:
-                    name = win32.GetModuleFileNameEx(self.get_handle())
+                    name = win32.GetModuleFileNameEx(hProcess)
                 except WindowsError:
 ##                    traceback.print_exc()                       # XXX DEBUG
-                    name = win32.GetModuleFileNameEx(self.get_handle(),
-                                                     self.get_image_base())
+                    name = win32.GetModuleFileNameEx(
+                                            hProcess, self.get_image_base())
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
                 else:
@@ -5972,23 +6096,18 @@ class Process (_ThreadContainer, _ModuleContainer):
         # There are currently some problems due to the strange way the API
         # works - it returns the pathname without the drive letter, and I
         # couldn't figure out a way to fix it.
-        if not name:
-            if vars().has_key('mainModule'):
-                try:
-                    name = mainModule.get_filename()
-                    if not name:
-                        name = None
-                except (AttributeError, WindowsError):
- ##                   traceback.print_exc()                       # XXX DEBUG
+        if not name and mainModule is not None:
+            try:
+                name = mainModule.get_filename()
+                if not name:
                     name = None
+            except (AttributeError, WindowsError):
+##                traceback.print_exc()                           # XXX DEBUG
+                name = None
 
         # Remember the filename.
-        if name:
-            try:
-                mainModule.fileName = name
-            except UnboundLocalError:
-##                traceback.print_exc()                           # XXX DEBUG
-                pass
+        if name and mainModule is not None:
+            mainModule.fileName = name
 
         # Return the image filename, or None on error.
         return name
@@ -6142,6 +6261,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
 #------------------------------------------------------------------------------
 
+    # XXX TODO
+    # + Maybe change page permissions before trying to read?
     def read(self, lpBaseAddress, nSize):
         """
         Reads from the memory of the process.
@@ -6159,11 +6280,11 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        # XXX TODO
-        # + Maybe change page permissions before trying to read?
+        hProcess = self.get_handle( win32.PROCESS_VM_READ |
+                                    win32.PROCESS_QUERY_INFORMATION )
         if not self.is_buffer(lpBaseAddress, nSize):
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
-        data = win32.ReadProcessMemory(self.get_handle(), lpBaseAddress, nSize)
+        data = win32.ReadProcessMemory(hProcess, lpBaseAddress, nSize)
         if len(data) != nSize:
             raise ctypes.WinError()
         return data
@@ -6414,14 +6535,16 @@ class Process (_ThreadContainer, _ModuleContainer):
         data = ''
         if nSize > 0:
             try:
+                hProcess = self.get_handle( win32.PROCESS_VM_READ |
+                                            win32.PROCESS_QUERY_INFORMATION )
                 for mbi in self.get_memory_map(lpBaseAddress,
                                                lpBaseAddress + nSize):
                     if not mbi.is_readable():
                         nSize = mbi.BaseAddress - lpBaseAddress
                         break
                 if nSize > 0:
-                    data = win32.ReadProcessMemory(self.get_handle(),
-                                                          lpBaseAddress, nSize)
+                    data = win32.ReadProcessMemory(
+                                    hProcess, lpBaseAddress, nSize)
             except WindowsError:
                 pass
         return data
@@ -6444,7 +6567,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        hProcess = self.get_handle()
+        hProcess = self.get_handle( win32.PROCESS_VM_WRITE |
+                                    win32.PROCESS_QUERY_INFORMATION )
         mbi = self.mquery(lpBaseAddress)
         if not mbi.has_content():
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
@@ -6719,7 +6843,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return win32.VirtualAllocEx(self.get_handle(), lpAddress, dwSize)
+        hProcess = self.get_handle(win32.PROCESS_VM_OPERATION)
+        return win32.VirtualAllocEx(hProcess, lpAddress, dwSize)
 
     def mprotect(self, lpAddress, dwSize, flNewProtect):
         """
@@ -6741,8 +6866,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return win32.VirtualProtectEx(self.get_handle(), lpAddress, dwSize,
-                                                                  flNewProtect)
+        hProcess = self.get_handle(win32.PROCESS_VM_OPERATION)
+        return win32.VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect)
 
     def mquery(self, lpAddress):
         """
@@ -6759,7 +6884,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return win32.VirtualQueryEx(self.get_handle(), lpAddress)
+        hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        return win32.VirtualQueryEx(hProcess, lpAddress)
 
     def free(self, lpAddress, dwSize = 0):
         """
@@ -6775,7 +6901,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        win32.VirtualFreeEx(self.get_handle(), lpAddress, dwSize)
+        hProcess = self.get_handle(win32.PROCESS_VM_OPERATION)
+        win32.VirtualFreeEx(hProcess, lpAddress, dwSize)
 
 #------------------------------------------------------------------------------
 
@@ -7296,7 +7423,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: Dictionary mapping memory addresses to file names.
             Native filenames are converted to Win32 filenames when possible.
         """
-        hProcess = self.get_handle()
+        hProcess = self.get_handle( win32.PROCESS_VM_READ |
+                                    win32.PROCESS_QUERY_INFORMATION )
         if not memoryMap:
             memoryMap = self.get_memory_map()
         mappedFilenames = dict()
@@ -7382,7 +7510,13 @@ class Process (_ThreadContainer, _ModuleContainer):
             return
 
         # Get the mapped filenames.
-        filenames = self.get_mapped_filenames(memory)
+        # Don't fail on access denied errors.
+        try:
+            filenames = self.get_mapped_filenames(memory)
+        except WindowsError, e:
+            if win32.winerror(e) != win32.ERROR_ACCESS_DENIED:
+                raise
+            filenames = dict()
 
         # Trim the first memory information block if needed.
         if minAddr is not None:
@@ -7470,7 +7604,10 @@ class Process (_ThreadContainer, _ModuleContainer):
                              "take_memory_snapshots() can be used here." )
 
         # Get the process handle.
-        hProcess = self.get_handle()
+        hProcess = self.get_handle( win32.PROCESS_VM_WRITE          |
+                                    win32.PROCESS_VM_OPERATION      |
+                                    win32.PROCESS_SUSPEND_RESUME    |
+                                    win32.PROCESS_QUERY_INFORMATION )
 
         # Freeze the process.
         self.suspend()
@@ -7486,6 +7623,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
                 # If the region doesn't match, restore it page by page.
                 else:
+
                     # We need a copy so we don't corrupt the snapshot.
                     old_mbi = win32.MemoryBasicInformation(old_mbi)
 

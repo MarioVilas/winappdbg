@@ -120,19 +120,45 @@ STANDARD_RIGHTS_ALL         = (0x001F0000L)
 SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
 
 # Process access rights for OpenProcess
-PROCESS_TERMINATE         = (0x0001)
-PROCESS_CREATE_THREAD     = (0x0002)
-PROCESS_SET_SESSIONID     = (0x0004)
-PROCESS_VM_OPERATION      = (0x0008)
-PROCESS_VM_READ           = (0x0010)
-PROCESS_VM_WRITE          = (0x0020)
-PROCESS_DUP_HANDLE        = (0x0040)
-PROCESS_CREATE_PROCESS    = (0x0080)
-PROCESS_SET_QUOTA         = (0x0100)
-PROCESS_SET_INFORMATION   = (0x0200)
-PROCESS_QUERY_INFORMATION = (0x0400)
-PROCESS_SUSPEND_RESUME    = (0x0800)
-PROCESS_ALL_ACCESS        = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
+PROCESS_TERMINATE                 = 0x0001
+PROCESS_CREATE_THREAD             = 0x0002
+PROCESS_SET_SESSIONID             = 0x0004
+PROCESS_VM_OPERATION              = 0x0008
+PROCESS_VM_READ                   = 0x0010
+PROCESS_VM_WRITE                  = 0x0020
+PROCESS_DUP_HANDLE                = 0x0040
+PROCESS_CREATE_PROCESS            = 0x0080
+PROCESS_SET_QUOTA                 = 0x0100
+PROCESS_SET_INFORMATION           = 0x0200
+PROCESS_QUERY_INFORMATION         = 0x0400
+PROCESS_SUSPEND_RESUME            = 0x0800
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+
+# Thread access rights for OpenThread
+THREAD_TERMINATE                 = 0x0001
+THREAD_SUSPEND_RESUME            = 0x0002
+THREAD_ALERT                     = 0x0004
+THREAD_GET_CONTEXT               = 0x0008
+THREAD_SET_CONTEXT               = 0x0010
+THREAD_SET_INFORMATION           = 0x0020
+THREAD_QUERY_INFORMATION         = 0x0040
+THREAD_SET_THREAD_TOKEN          = 0x0080
+THREAD_IMPERSONATE               = 0x0100
+THREAD_DIRECT_IMPERSONATION      = 0x0200
+THREAD_SET_LIMITED_INFORMATION   = 0x0400
+THREAD_QUERY_LIMITED_INFORMATION = 0x0800
+
+# The values of PROCESS_ALL_ACCESS and THREAD_ALL_ACCESS were changed in Vista/2008
+PROCESS_ALL_ACCESS_NT = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
+PROCESS_ALL_ACCESS_VISTA = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF)
+THREAD_ALL_ACCESS_NT = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3FF)
+THREAD_ALL_ACCESS_VISTA = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF)
+if os in (OS_UNKNOWN, OS_NT, OS_W2K, OS_XP, OS_XP_64, OS_W2K3, OS_W2K3_64, OS_W2K3R2, OS_W2K3R2_64):
+    PROCESS_ALL_ACCESS = PROCESS_ALL_ACCESS_NT
+    THREAD_ALL_ACCESS = THREAD_ALL_ACCESS_NT
+else:
+    PROCESS_ALL_ACCESS = PROCESS_ALL_ACCESS_VISTA
+    THREAD_ALL_ACCESS = THREAD_ALL_ACCESS_VISTA
 
 # Process priority classes
 
@@ -633,8 +659,37 @@ class ProcessHandle (Handle):
     """
     Win32 process handle.
 
+    @type dwAccess: int
+    @ivar dwAccess: Current access flags to this handle.
+            This is the same value passed to L{OpenProcess}.
+            Can only be C{None} if C{aHandle} is also C{None}.
+            Defaults to L{PROCESS_ALL_ACCESS}.
+
     @see: L{Handle}
     """
+
+    def __init__(self, aHandle = None, bOwnership = True,
+                       dwAccess = PROCESS_ALL_ACCESS):
+        """
+        @type  aHandle: int
+        @param aHandle: Win32 handle value.
+
+        @type  bOwnership: bool
+        @param bOwnership:
+           C{True} if we own the handle and we need to close it.
+           C{False} if someone else will be calling L{CloseHandle}.
+
+        @type  dwAccess: int
+        @param dwAccess: Current access flags to this handle.
+            This is the same value passed to L{OpenProcess}.
+            Can only be C{None} if C{aHandle} is also C{None}.
+            Defaults to L{PROCESS_ALL_ACCESS}.
+        """
+        super(ProcessHandle, self).__init__(aHandle, bOwnership)
+        self.dwAccess = dwAccess
+        if aHandle is not None and dwAccess is None:
+            msg = "Missing access flags for process handle: %x" % aHandle
+            raise TypeError(msg)
 
     def get_pid(self):
         """
@@ -647,8 +702,37 @@ class ThreadHandle (Handle):
     """
     Win32 thread handle.
 
+    @type dwAccess: int
+    @ivar dwAccess: Current access flags to this handle.
+            This is the same value passed to L{OpenThread}.
+            Can only be C{None} if C{aHandle} is also C{None}.
+            Defaults to L{THREAD_ALL_ACCESS}.
+
     @see: L{Handle}
     """
+
+    def __init__(self, aHandle = None, bOwnership = True,
+                       dwAccess = THREAD_ALL_ACCESS):
+        """
+        @type  aHandle: int
+        @param aHandle: Win32 handle value.
+
+        @type  bOwnership: bool
+        @param bOwnership:
+           C{True} if we own the handle and we need to close it.
+           C{False} if someone else will be calling L{CloseHandle}.
+
+        @type  dwAccess: int
+        @param dwAccess: Current access flags to this handle.
+            This is the same value passed to L{OpenThread}.
+            Can only be C{None} if C{aHandle} is also C{None}.
+            Defaults to L{THREAD_ALL_ACCESS}.
+        """
+        super(ThreadHandle).__init__(self, aHandle, bOwnership)
+        self.dwAccess = dwAccess
+        if aHandle is not None and dwAccess is None:
+            msg = "Missing access flags for thread handle: %x" % aHandle
+            raise TypeError(msg)
 
     def get_tid(self):
         """
@@ -1789,7 +1873,10 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
         HandleClass = hSourceHandle.__class__
     else:
         HandleClass = Handle
-    return HandleClass(lpTargetHandle.value)
+    if hasattr(hSourceHandle, 'dwAccess'):
+        return HandleClass(lpTargetHandle.value, dwAccess = hSourceHandle.dwAccess)
+    else:
+        return HandleClass(lpTargetHandle.value)
 
 # HLOCAL WINAPI LocalFree(
 #   __in  HLOCAL hMem
@@ -3255,7 +3342,7 @@ def OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId):
     hProcess = _OpenProcess(dwDesiredAccess, bool(bInheritHandle), dwProcessId)
     if hProcess == NULL:
         raise ctypes.WinError()
-    return ProcessHandle(hProcess)
+    return ProcessHandle(hProcess, dwAccess = dwDesiredAccess)
 
 # HANDLE WINAPI OpenThread(
 #   __in  DWORD dwDesiredAccess,
@@ -3270,7 +3357,7 @@ def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
     hProcess = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId)
     if hProcess == NULL:
         raise ctypes.WinError()
-    return ThreadHandle(hProcess)
+    return ThreadHandle(hProcess, dwAccess = dwDesiredAccess)
 
 # DWORD WINAPI SuspendThread(
 #   __in  HANDLE hThread

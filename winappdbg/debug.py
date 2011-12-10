@@ -848,8 +848,9 @@ class Debug (EventDispatcher, BreakpointContainer):
         if self.__bHostileCode:
             aProcess = self.event.get_process()
             try:
-                pbi = win32.NtQueryInformationProcess(aProcess.get_handle(),
-                                                 win32.ProcessBasicInformation)
+                hProcess = aProcess.get_handle(win32.PROCESS_QUERY_INFORMATION)
+                pbi = win32.NtQueryInformationProcess(
+                                       hProcess, win32.ProcessBasicInformation)
                 ptr = pbi.PebBaseAddress + 2
                 if aProcess.peek(ptr, 1) == '\x01':
                     aProcess.poke(ptr, '\x00')
