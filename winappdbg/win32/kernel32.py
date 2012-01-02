@@ -728,7 +728,7 @@ class ThreadHandle (Handle):
             Can only be C{None} if C{aHandle} is also C{None}.
             Defaults to L{THREAD_ALL_ACCESS}.
         """
-        super(ThreadHandle).__init__(self, aHandle, bOwnership)
+        super(ThreadHandle, self).__init__(aHandle, bOwnership)
         self.dwAccess = dwAccess
         if aHandle is not None and dwAccess is None:
             msg = "Missing access flags for thread handle: %x" % aHandle
