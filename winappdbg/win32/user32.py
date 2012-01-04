@@ -955,9 +955,7 @@ def ScreenToClient(hWnd, lpPoint):
     if isinstance(lpPoint, tuple):
         lpPoint = POINT(*lpPoint)
     else:
-        lpPoint = POINT()
-        lpPoint.x = x
-        lpPoint.y = y
+        lpPoint = POINT(lpPoint.x, lpPoint.y)
     _ScreenToClient(hWnd, ctypes.byref(lpPoint))
     return Point(lpPoint.x, lpPoint.y)
 
@@ -965,7 +963,7 @@ def ScreenToClient(hWnd, lpPoint):
 #   HWND hWnd,
 #   LPPOINT lpPoint
 # );
-def ClientToScreen(hWnd, x, y):
+def ClientToScreen(hWnd, lpPoint):
     _ClientToScreen = windll.user32.ClientToScreen
     _ClientToScreen.argtypes = [HWND, LPPOINT]
     _ClientToScreen.restype  = bool
@@ -974,9 +972,7 @@ def ClientToScreen(hWnd, x, y):
     if isinstance(lpPoint, tuple):
         lpPoint = POINT(*lpPoint)
     else:
-        lpPoint = POINT()
-        lpPoint.x = x
-        lpPoint.y = y
+        lpPoint = POINT(lpPoint.x, lpPoint.y)
     _ClientToScreen(hWnd, ctypes.byref(lpPoint))
     return Point(lpPoint.x, lpPoint.y)
 

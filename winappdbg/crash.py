@@ -1959,13 +1959,13 @@ class Crash (object):
         @rtype:  str
         @return: Short description of the event.
         """
+        if self.arch == win32.ARCH_I386:
+            integer_size = 8   # len('FFFFFFFF')
+            address_size = 8   # len('FFFFFFFF')
+        else:
+            integer_size = None
+            address_size = None
         if self.exceptionCode is not None:
-            if self.arch == win32.ARCH_I386:
-                integer_size = 8   # len('FFFFFFFF')
-                address_size = 8   # len('FFFFFFFF')
-            else:
-                integer_size = None
-                address_size = None
             if self.exceptionCode == win32.EXCEPTION_BREAKPOINT:
                 if self.isOurBreakpoint:
                     what = "Breakpoint hit"
