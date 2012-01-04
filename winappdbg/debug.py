@@ -54,6 +54,17 @@ import warnings
 
 #==============================================================================
 
+# If you set this warning to be considered as an error,
+# you can stop the debugger from attaching to WOW64 processes.
+class MixedBitsWarning (Warning):
+    """
+    Mixture of 32 and 64 bits is considered experimental.
+    Use at your own risk!
+    """
+    pass
+
+#==============================================================================
+
 # TODO
 # * Add memory read and write operations, similar to those in the Process
 #   class, but hiding the presence of the code breakpoints.
@@ -196,8 +207,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        win32.DebugActiveProcess(dwProcessId)
-        self.__attachedDebugees.add(dwProcessId)
 
         # The process has to be registered with the debugger,
         # otherwise the list of processes may be empty, and the
@@ -208,6 +217,19 @@ class Debug (EventDispatcher, BreakpointContainer):
             self.system._add_process(aProcess)
         else:
             aProcess = self.system.get_process(dwProcessId)
+
+        # Warn when mixing 32 and 64 bits.
+        # This also allows the user to stop attaching altogether,
+        # depending on how the warnings are configured.
+        if (System.wow64 and not aProcess.is_wow64()) or \
+                                (System.bits == 64 and aProcess.is_wow64()):
+            msg = "Mixture of 32 and 64 bits is considered experimental." \
+                  " Use at your own risk!"
+            warnings.warn(msg, MixedBitsWarning)
+
+        # Attach to the process.
+        win32.DebugActiveProcess(dwProcessId)
+        self.__attachedDebugees.add(dwProcessId)
 
         # XXX HACK
         # Scan the process threads and loaded modules.
@@ -692,6 +714,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             event = self.wait()
         except Exception:
             self.stop()
+            raise
         try:
             self.dispatch(event)
         finally:
@@ -833,7 +856,7 @@ class Debug (EventDispatcher, BreakpointContainer):
                 lpEntryPoint = event.get_process().get_entry_point()
             except Exception:
                 lpEntryPoint = event.get_start_address()
-            
+
             # It'd be best to use a hardware breakpoint instead, at least in
             # hostile mode. But since the main thread's context gets smashed
             # by the loader, I haven't found a way to make it work yet.

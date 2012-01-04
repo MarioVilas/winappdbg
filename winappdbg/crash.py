@@ -75,10 +75,12 @@ anydbm = None
 sqlite = None
 pyodbc = None
 
-try:
-    from psyco.classes import *
-except ImportError:
-    pass
+# Don't psyco-optimize this class because it needs to be serialized.
+##try:
+##    from psyco.classes import *
+##    object = psyobj
+##except ImportError:
+##    pass
 
 #==============================================================================
 
@@ -1501,8 +1503,14 @@ class Crash (object):
         self.notes              = list()
 
         # Get the process and thread, but dont't store them in the DB.
-        process                 = event.get_process()
-        thread                  = event.get_thread()
+        process = event.get_process()
+        thread  = event.get_thread()
+
+        # Determine the architecture.
+        if process.is_wow64():
+            self.arch           = win32.ARCH_I386
+        else:
+            self.arch           = System.arch
 
         # The following properties are always retrieved for all events.
         self.eventCode          = event.get_event_code()
@@ -1628,8 +1636,8 @@ class Crash (object):
         """
 
         # Get the process and thread, but dont't store them in the DB.
-        process                 = event.get_process()
-        thread                  = event.get_thread()
+        process = event.get_process()
+        thread  = event.get_thread()
 
         # Get the command line for the target process.
         try:
@@ -1755,7 +1763,7 @@ class Crash (object):
         caused by the same software error. Ideally it should be treated as an
         opaque object.
 
-        @rtype:  (opaque)
+        @rtype:  object
         @return: Crash unique key.
         """
         if self.labelPC:
@@ -1953,6 +1961,12 @@ class Crash (object):
         @return: Short description of the event.
         """
         if self.exceptionCode is not None:
+            if self.arch == win32.ARCH_I386:
+                integer_size = 8   # len('FFFFFFFF')
+                address_size = 8   # len('FFFFFFFF')
+            else:
+                integer_size = None
+                address_size = None
             if self.exceptionCode == win32.EXCEPTION_BREAKPOINT:
                 if self.isOurBreakpoint:
                     what = "Breakpoint hit"
@@ -1965,7 +1979,8 @@ class Crash (object):
             elif self.exceptionName:
                 what = self.exceptionName
             else:
-                what = "Exception %s" % HexDump.integer(self.exceptionCode)
+                what = "Exception %s" % \
+                            HexDump.integer(self.exceptionCode, integer_size)
             if self.firstChance:
                 chance = 'first'
             else:
@@ -1973,28 +1988,28 @@ class Crash (object):
             if self.exceptionLabel:
                 where = self.exceptionLabel
             elif self.exceptionAddress:
-                where = HexDump.address(self.exceptionAddress)
+                where = HexDump.address(self.exceptionAddress, address_size)
             elif self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc)
+                where = HexDump.address(self.pc, address_size)
             msg = "%s (%s chance) at %s" % (what, chance, where)
         elif self.debugString is not None:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc)
+                where = HexDump.address(self.pc, address_size)
             msg = "Debug string from %s: %r" % (where, self.debugString)
         else:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc)
+                where = HexDump.address(self.pc, address_size)
             msg = "%s (%s) at %s" % (
-                                             self.eventName,
-                                             HexDump.integer(self.eventCode),
-                                             where
-                                            )
+                        self.eventName,
+                        HexDump.integer(self.eventCode, integer_size),
+                        where
+                       )
         return msg
 
     def fullReport(self, bShowNotes = True):
@@ -2008,10 +2023,14 @@ class Crash (object):
         msg  = self.briefReport()
         msg += '\n'
 
-        if win32.sizeof(win32.LPVOID) == 4:
-            width = 16
+        if self.arch == win32.ARCH_I386:
+            width        = 16
+            integer_size = 8   # len('FFFFFFFF')
+            address_size = 8   # len('FFFFFFFF')
         else:
-            width = 8
+            width        = 8
+            integer_size = None
+            address_size = None
 
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             (exploitability, expcode, expdescription) = self.isExploitable()
@@ -2029,7 +2048,7 @@ class Crash (object):
             msg += '\nEnvironment: %s\n' % pprint.pformat(self.environment)
 
         if not self.labelPC:
-            base = HexDump.address(self.lpBaseOfDll)
+            base = HexDump.address(self.lpBaseOfDll, address_size)
             if self.modFileName:
                 fn   = PathOperations.pathname_to_filename(self.modFileName)
                 msg += '\nRunning in %s (%s)\n' % (fn, base)
@@ -2038,7 +2057,7 @@ class Crash (object):
 
         if self.registers:
             msg += '\nRegisters:\n'
-            msg += CrashDump.dump_registers(self.registers)
+            msg += CrashDump.dump_registers(self.registers, self.arch)
             if self.registersPeek:
                 msg += '\n'
                 msg += CrashDump.dump_registers_peek(self.registers,
@@ -2047,15 +2066,16 @@ class Crash (object):
 
         if self.faultDisasm:
             msg += '\nCode disassembly:\n'
-            msg += CrashDump.dump_code(self.faultDisasm, self.pc)
+            msg += CrashDump.dump_code(self.faultDisasm, self.pc,
+                                                address_size = address_size)
 
         if self.stackTrace:
             msg += '\nStack trace:\n'
             if self.stackTracePretty:
                 msg += CrashDump.dump_stack_trace_with_labels(
-                                                         self.stackTracePretty)
+                                        self.stackTracePretty, address_size)
             else:
-                msg += CrashDump.dump_stack_trace(self.stackTrace)
+                msg += CrashDump.dump_stack_trace(self.stackTrace, address_size)
 
         if self.stackFrame:
             if self.stackPeek:
@@ -2066,16 +2086,19 @@ class Crash (object):
 
         if self.faultCode and not self.modFileName:
             msg += '\nCode dump:\n'
-            msg += HexDump.hexblock(self.faultCode, self.pc, width = width)
+            msg += HexDump.hexblock(self.faultCode, self.pc,
+                                    address_size = address_size, width = width)
 
         if self.faultMem:
             if self.faultPeek:
                 msg += '\nException address pointers:\n'
                 msg += CrashDump.dump_data_peek(self.faultPeek,
                                                 self.exceptionAddress,
+                                                address_size = address_size,
                                                 width = width)
             msg += '\nException address dump:\n'
             msg += HexDump.hexblock(self.faultMem, self.exceptionAddress,
+                                    address_size = address_size,
                                     width = width)
 
         if self.memoryMap:
@@ -2084,7 +2107,8 @@ class Crash (object):
             for mbi in self.memoryMap:
                 if hasattr(mbi, 'filename') and mbi.filename:
                     mappedFileNames[mbi.BaseAddress] = mbi.filename
-            msg += CrashDump.dump_memory_map(self.memoryMap, mappedFileNames)
+            msg += CrashDump.dump_memory_map(self.memoryMap, mappedFileNames,
+                                             address_size = address_size)
 
         if not msg.endswith('\n\n'):
             if not msg.endswith('\n'):
@@ -2155,5 +2179,6 @@ class Crash (object):
 # Register the serializable classes with Cerealizer.
 try:
     cerealizer.register(Crash)
+    cerealizer.register(win32.MemoryBasicInformation)
 except NameError:
     pass

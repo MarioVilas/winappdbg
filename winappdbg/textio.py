@@ -306,25 +306,39 @@ class HexOutput (StaticClass):
     address_size = len('%x' % (win32.SIZE_T(-1).value))+2
 
     @classmethod
-    def integer(cls, integer):
+    def integer(cls, integer, integer_size = None):
         """
         @type  integer: int
         @param integer: Integer.
 
+        @type  integer_size: int
+        @param integer_size:
+            (Optional) size in characters of an outputted integer.
+            The default is platform dependent. See: L{HexOutput.integer_size}
+
         @rtype:  str
         @return: Text output.
         """
-        return ('0x%%.%dx' % (cls.integer_size - 2)) % integer
+        if integer_size is None:
+            integer_size = cls.integer_size
+        return ('0x%%.%dx' % (integer_size - 2)) % integer
 
     @classmethod
-    def address(cls, address):
+    def address(cls, address, address_size = None):
         """
         @type  address: int
         @param address: Memory address.
 
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexOutput.address_size}
+
         @rtype:  str
         @return: Text output.
         """
+        if address_size is None:
+            address_size = cls.address_size
         return ('0x%%.%dx' % (cls.address_size - 2)) % address
 
     @staticmethod
@@ -341,7 +355,7 @@ class HexOutput (StaticClass):
         return HexDump.hexadecimal(data, separator = '')
 
     @classmethod
-    def integer_list_file(cls, filename, values):
+    def integer_list_file(cls, filename, values, integer_size = None):
         """
         Write a list of integers to a file.
         If a file of the same name exists, it's contents are replaced.
@@ -353,10 +367,15 @@ class HexOutput (StaticClass):
 
         @type  values: list( int )
         @param values: List of integers to write to the file.
+
+        @type  integer_size: int
+        @param integer_size:
+            (Optional) size in characters of an outputted integer.
+            The default is platform dependent. See: L{HexOutput.integer_size}
         """
         fd = open(filename, 'w')
         for integer in values:
-            print >> fd, cls.integer(integer)
+            print >> fd, cls.integer(integer, integer_size)
         fd.close()
 
     @classmethod
@@ -379,7 +398,7 @@ class HexOutput (StaticClass):
         fd.close()
 
     @classmethod
-    def mixed_list_file(cls, filename, values):
+    def mixed_list_file(cls, filename, values, integer_size):
         """
         Write a list of mixed values to a file.
         If a file of the same name exists, it's contents are replaced.
@@ -391,11 +410,16 @@ class HexOutput (StaticClass):
 
         @type  values: list( int )
         @param values: List of mixed values to write to the file.
+
+        @type  integer_size: int
+        @param integer_size:
+            (Optional) size in characters of an outputted integer.
+            The default is platform dependent. See: L{HexOutput.integer_size}
         """
         fd = open(filename, 'w')
         for original in values:
             try:
-                parsed = cls.integer(original)
+                parsed = cls.integer(original, integer_size)
             except TypeError:
                 parsed = repr(original)
             print >> fd, parsed
@@ -420,26 +444,40 @@ class HexDump (StaticClass):
     address_size = len('%x' % (win32.SIZE_T(-1).value))
 
     @classmethod
-    def integer(cls, integer):
+    def integer(cls, integer, integer_size = None):
         """
         @type  integer: int
         @param integer: Integer.
 
+        @type  integer_size: int
+        @param integer_size:
+            (Optional) size in characters of an outputted integer.
+            The default is platform dependent. See: L{HexDump.integer_size}
+
         @rtype:  str
         @return: Text output.
         """
-        return ('%%.%dX' % cls.integer_size) % integer
+        if integer_size is None:
+            integer_size = cls.integer_size
+        return ('%%.%dX' % integer_size) % integer
 
     @classmethod
-    def address(cls, address):
+    def address(cls, address, address_size = None):
         """
         @type  address: int
         @param address: Memory address.
 
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
+
         @rtype:  str
         @return: Text output.
         """
-        return ('%%.%dX' % cls.address_size) % address
+        if address_size is None:
+            address_size = cls.address_size
+        return ('%%.%dX' % address_size) % address
 
     @staticmethod
     def printable(data):
@@ -564,7 +602,10 @@ class HexDump (StaticClass):
         return fmt % (cls.hexadecimal(data, separator), cls.printable(data))
 
     @classmethod
-    def hexblock(cls, data, address = None, separator = ' ', width = 8):
+    def hexblock(cls, data,                                    address = None,
+                                                          address_size = None,
+                                                             separator = ' ',
+                                                                 width = 8):
         """
         Dump a block of hexadecimal numbers from binary data.
         Also show a printable text version of the data.
@@ -574,6 +615,11 @@ class HexDump (StaticClass):
 
         @type  address: str
         @param address: Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  separator: str
         @param separator:
@@ -586,12 +632,15 @@ class HexDump (StaticClass):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexline, data, address, width,
+        return cls.hexblock_cb(cls.hexline, data, address, address_size, width,
                  cb_kwargs = {'width' : width, 'separator' : separator})
 
     @classmethod
-    def hexblock_cb(cls, callback, data, address = None, width = 16,
-                                                cb_args = (), cb_kwargs = {}):
+    def hexblock_cb(cls, callback, data,                        address = None,
+                                                           address_size = None,
+                                                                  width = 16,
+                                                                cb_args = (),
+                                                              cb_kwargs = {}):
         """
         Dump a block of binary data using a callback function to convert each
         line of text.
@@ -605,6 +654,11 @@ class HexDump (StaticClass):
         @type  address: str
         @param address:
             (Optional) Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  cb_args: str
         @param cb_args:
@@ -628,13 +682,19 @@ class HexDump (StaticClass):
                              callback(data[i:i+width], *cb_args, **cb_kwargs) )
         else:
             for i in xrange(0, len(data), width):
-                result = '%s%s: %s\n' % ( result, cls.address(address), \
-                             callback(data[i:i+width], *cb_args, **cb_kwargs) )
+                result = '%s%s: %s\n' % (
+                             result,
+                             cls.address(address, address_size),
+                             callback(data[i:i+width], *cb_args, **cb_kwargs)
+                             )
                 address += width
         return result
 
     @classmethod
-    def hexblock_byte(cls, data, address = None, separator = ' ', width = 16):
+    def hexblock_byte(cls, data,                                address = None,
+                                                           address_size = None,
+                                                              separator = ' ',
+                                                                  width = 16):
         """
         Dump a block of hexadecimal BYTEs from binary data.
 
@@ -643,6 +703,11 @@ class HexDump (StaticClass):
 
         @type  address: str
         @param address: Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  separator: str
         @param separator:
@@ -655,11 +720,15 @@ class HexDump (StaticClass):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexadecimal, data, address, width,
-                                          cb_kwargs = {'separator': separator})
+        return cls.hexblock_cb(cls.hexadecimal, data,
+                               address, address_size, width,
+                               cb_kwargs = {'separator': separator})
 
     @classmethod
-    def hexblock_word(cls, data, address = None, separator = ' ', width = 8):
+    def hexblock_word(cls, data,                                address = None,
+                                                           address_size = None,
+                                                              separator = ' ',
+                                                                  width = 8):
         """
         Dump a block of hexadecimal WORDs from binary data.
 
@@ -668,6 +737,11 @@ class HexDump (StaticClass):
 
         @type  address: str
         @param address: Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  separator: str
         @param separator:
@@ -680,11 +754,15 @@ class HexDump (StaticClass):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexa_word, data, address, width * 2,
-                                          cb_kwargs = {'separator': separator})
+        return cls.hexblock_cb(cls.hexa_word, data,
+                               address, address_size, width * 2,
+                               cb_kwargs = {'separator': separator})
 
     @classmethod
-    def hexblock_dword(cls, data, address = None, separator = ' ', width = 4):
+    def hexblock_dword(cls, data,                               address = None,
+                                                           address_size = None,
+                                                              separator = ' ',
+                                                                  width = 4):
         """
         Dump a block of hexadecimal DWORDs from binary data.
 
@@ -693,6 +771,11 @@ class HexDump (StaticClass):
 
         @type  address: str
         @param address: Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  separator: str
         @param separator:
@@ -705,11 +788,15 @@ class HexDump (StaticClass):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexa_dword, data, address, width * 4,
-                                          cb_kwargs = {'separator': separator})
+        return cls.hexblock_cb(cls.hexa_dword, data,
+                               address, address_size, width * 4,
+                               cb_kwargs = {'separator': separator})
 
     @classmethod
-    def hexblock_qword(cls, data, address = None, separator = ' ', width = 2):
+    def hexblock_qword(cls, data,                               address = None,
+                                                           address_size = None,
+                                                              separator = ' ',
+                                                                  width = 2):
         """
         Dump a block of hexadecimal QWORDs from binary data.
 
@@ -718,6 +805,11 @@ class HexDump (StaticClass):
 
         @type  address: str
         @param address: Memory address where the data was read from.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @type  separator: str
         @param separator:
@@ -730,8 +822,9 @@ class HexDump (StaticClass):
         @rtype:  str
         @return: Multiline output text.
         """
-        return cls.hexblock_cb(cls.hexa_qword, data, address, width * 8,
-                                          cb_kwargs = {'separator': separator})
+        return cls.hexblock_cb(cls.hexa_qword, data,
+                               address, address_size, width * 8,
+                               cb_kwargs = {'separator': separator})
 
 #------------------------------------------------------------------------------
 
@@ -912,7 +1005,7 @@ class CrashDump (StaticClass):
         return efl_dump
 
     @classmethod
-    def dump_registers(cls, registers):
+    def dump_registers(cls, registers, arch = None):
         """
         Dump the x86 processor register values.
         The output mimics that of the WinDBG debugger.
@@ -920,14 +1013,23 @@ class CrashDump (StaticClass):
         @type  registers: dict( str S{->} int )
         @param registers: Dictionary mapping register names to their values.
 
+        @type  arch: str
+        @param arch: Architecture of the machine whose registers were dumped.
+            Defaults to the current architecture.
+            Currently only the following architectures are supported:
+             - L{win32.ARCH_I386}
+             - L{win32.ARCH_AMD64}
+
         @rtype:  str
         @return: Text suitable for logging.
         """
         if registers is None:
             return ''
-        if win32.CONTEXT.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+        if arch is None:
+            arch = win32.CONTEXT.arch
+        if not cls.reg_template.has_key(arch):
             msg = "Don't know how to dump the registers for architecture: %s"
-            raise NotImplementedError(msg % win32.CONTEXT.arch)
+            raise NotImplementedError(msg % arch)
         registers = registers.copy()
         registers['efl_dump'] = cls.dump_flags( registers['EFlags'] )
         return cls.reg_template[arch] % registers
@@ -960,7 +1062,10 @@ class CrashDump (StaticClass):
         return result
 
     @staticmethod
-    def dump_data_peek(data, base = 0, separator = ' ', width = 16):
+    def dump_data_peek(data,                                      base = 0,
+                                                             separator = ' ',
+                                                                 width = 16,
+                                                          address_size = None):
         """
         Dump data from pointers guessed within the given binary data.
 
@@ -969,6 +1074,11 @@ class CrashDump (StaticClass):
 
         @type  base: int
         @param base: Base offset.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @rtype:  str
         @return: Text suitable for logging.
@@ -980,7 +1090,8 @@ class CrashDump (StaticClass):
         result = ''
         for offset in pointers:
             dumped  = HexDump.hexline(data[offset], separator, width)
-            result += '%s -> %s' % (HexDump.address(base + offset), dumped)
+            address = HexDump.address(base + offset, address_size)
+            result += '%s -> %s' % (address, dumped)
         return result
 
     @staticmethod
@@ -1014,7 +1125,7 @@ class CrashDump (StaticClass):
         return result
 
     @staticmethod
-    def dump_stack_trace(stack_trace):
+    def dump_stack_trace(stack_trace, address_size = None):
         """
         Dump a stack trace, as returned by L{Thread.get_stack_trace} with the
         C{bUseLabels} parameter set to C{False}.
@@ -1022,6 +1133,11 @@ class CrashDump (StaticClass):
         @type  stack_trace: list( int, int, str )
         @param stack_trace: Stack trace as a list of tuples of
             ( return address, frame pointer, module filename )
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @rtype:  str
         @return: Text suitable for logging.
@@ -1031,11 +1147,13 @@ class CrashDump (StaticClass):
         table = Table()
         table.addRow('Frame', 'Origin', 'Module')
         for (fp, ra, mod) in stack_trace:
-            table.addRow( HexDump.address(fp), HexDump.address(ra), mod )
+            fp_d = HexDump.address(fp, address_size)
+            ra_d = HexDump.address(ra, address_size)
+            table.addRow(fp_d, ra_d, mod)
         return table.getOutput()
 
     @staticmethod
-    def dump_stack_trace_with_labels(stack_trace):
+    def dump_stack_trace_with_labels(stack_trace, address_size = None):
         """
         Dump a stack trace,
         as returned by L{Thread.get_stack_trace_with_labels}.
@@ -1043,6 +1161,11 @@ class CrashDump (StaticClass):
         @type  stack_trace: list( int, int, str )
         @param stack_trace: Stack trace as a list of tuples of
             ( return address, frame pointer, module filename )
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @rtype:  str
         @return: Text suitable for logging.
@@ -1052,7 +1175,7 @@ class CrashDump (StaticClass):
         table = Table()
         table.addRow('Frame', 'Origin')
         for (fp, label) in stack_trace:
-            table.addRow( HexDump.address(fp), label )
+            table.addRow( HexDump.address(fp, address_size), label )
         return table.getOutput()
 
     # TODO
@@ -1062,7 +1185,9 @@ class CrashDump (StaticClass):
     # + It'd be very useful to show some labels here.
     # + It'd be very useful to show register contents for code at EIP
     @staticmethod
-    def dump_code(disassembly, pc = None, bLowercase = True):
+    def dump_code(disassembly,                                      pc = None,
+                                                            bLowercase = True,
+                                                          address_size = None):
         """
         Dump a disassembly. Optionally mark where the program counter is.
 
@@ -1076,6 +1201,11 @@ class CrashDump (StaticClass):
         @type  bLowercase: bool
         @param bLowercase: (Optional) If C{True} convert the code to lowercase.
 
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -1086,9 +1216,9 @@ class CrashDump (StaticClass):
             if bLowercase:
                 code = code.lower()
             if addr == pc:
-                addr = ' * %s' % HexDump.address(addr)
+                addr = ' * %s' % HexDump.address(addr, address_size)
             else:
-                addr = '   %s' % HexDump.address(addr)
+                addr = '   %s' % HexDump.address(addr, address_size)
             table.addRow(addr, dump, code)
         table.justify(1, 1)
         return table.getOutput()
@@ -1098,7 +1228,8 @@ class CrashDump (StaticClass):
                                                              bShowDump = True,
                                                             bLowercase = True,
                                                            dwDumpWidth = None,
-                                                           dwCodeWidth = None):
+                                                           dwCodeWidth = None,
+                                                          address_size = None):
         """
         Dump a single line of code. To dump a block of code use L{dump_code}.
 
@@ -1121,6 +1252,11 @@ class CrashDump (StaticClass):
         @type  dwCodeWidth: int or None
         @param dwCodeWidth: (Optional) Width in characters of the code.
 
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
+
         @rtype:  str
         @return: Text suitable for logging.
         """
@@ -1129,8 +1265,8 @@ class CrashDump (StaticClass):
         result = list()
         fmt = ''
         if bShowAddress:
-            result.append( HexDump.address(addr) )
-            fmt += '%%%ds:' % HexDump.address_size
+            result.append( HexDump.address(addr, address_size) )
+            fmt += '%%%ds:' % address_size
         if bShowDump:
             result.append(dump)
             if dwDumpWidth:
@@ -1147,7 +1283,7 @@ class CrashDump (StaticClass):
         return fmt % tuple(result)
 
     @staticmethod
-    def dump_memory_map(memoryMap, mappedFilenames = None):
+    def dump_memory_map(memoryMap, mappedFilenames = None, address_size = None):
         """
         Dump the memory map of a process. Optionally show the filenames for
         memory mapped files as well.
@@ -1158,6 +1294,11 @@ class CrashDump (StaticClass):
         @type  mappedFilenames: dict( int S{->} str )
         @param mappedFilenames: (Optional) Memory mapped filenames
             returned by L{Process.get_mapped_filenames}.
+
+        @type  address_size: int
+        @param address_size:
+            (Optional) size in characters of an outputted address.
+            The default is platform dependent. See: L{HexDump.address_size}
 
         @rtype:  str
         @return: Text suitable for logging.
@@ -1172,8 +1313,8 @@ class CrashDump (StaticClass):
         for mbi in memoryMap:
 
             # Address and size of memory block.
-            BaseAddress = HexDump.address(mbi.BaseAddress)
-            RegionSize  = HexDump.address(mbi.RegionSize)
+            BaseAddress = HexDump.address(mbi.BaseAddress, address_size)
+            RegionSize  = HexDump.address(mbi.RegionSize,  address_size)
 
             # State (free or allocated).
             mbiState = mbi.State
@@ -1298,11 +1439,17 @@ class DebugLog (StaticClass):
             else:
                 what    = event.get_event_name()
                 address = event.get_thread().get_pc()
-            label = event.get_process().get_label_at_address(address)
-            if label:
-                where = '%s (%s)' % (HexDump.address(address), label)
+            process = event.get_process()
+            label = process.get_label_at_address(address)
+            if process.is_wow64():
+                address_size = 10   # len('0xFFFFFFFF')
             else:
-                where = HexDump.address(address)
+                address_size = HexDump.address_size
+            address = HexDump.address(address, address_size)
+            if label:
+                where = '%s (%s)' % (address, label)
+            else:
+                where = address
             text = '%s at %s' % (what, where)
         text = 'pid %d tid %d: %s' % (event.get_pid(), event.get_tid(), text)
         #text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV

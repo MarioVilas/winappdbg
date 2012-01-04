@@ -151,7 +151,10 @@ class _ModuleContainer (object):
         methods first. You don't need to call this yourself.
         """
         if not self.__moduleDict:
-            self.scan_modules()
+            try:
+                self.scan_modules()
+            except WindowsError:
+                pass
 
     def __contains__(self, anObject):
         """
@@ -2148,10 +2151,7 @@ class _ProcessContainer (object):
             try:
                 aProcess.scan_modules()
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_ACCESS_DENIED:
-                    complete = False
-                else:
-                    raise
+                complete = False
         return complete
 
     def scan_processes(self):
