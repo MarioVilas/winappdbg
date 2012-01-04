@@ -661,7 +661,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             try:
                 thread = self.lastEvent.debug.system.get_thread(tid)
             except KeyError:
-                raise CmdError("thread not found (%d)" % pid)
+                raise CmdError("thread not found (%d)" % tid)
         return thread
 
     # Read the process memory.
@@ -670,9 +670,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             data = process.peek(address, size)
         except WindowsError, e:
-            address = winappdbg.HexOutput.integer(address + size)
+            orig_address = winappdbg.HexOutput.integer(address)
+            next_address = winappdbg.HexOutput.integer(address + size)
             msg = "error reading process %d, from %s to %s (%d bytes)"
-            msg = msg % (pid, address, next_address, size)
+            msg = msg % (pid, orig_address, next_address, size)
             raise CmdError(msg)
         return data
 
@@ -682,9 +683,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             process.write(address, data)
         except WindowsError, e:
-            address = winappdbg.HexOutput.integer(address + size)
-            msg = "error writing process %d, from %s to %s (%d bytes)"
-            msg = msg % (pid, address, next_address, size)
+            size = len(data)
+            orig_address = winappdbg.HexOutput.integer(address)
+            next_address = winappdbg.HexOutput.integer(address + size)
+            msg = "error reading process %d, from %s to %s (%d bytes)"
+            msg = msg % (pid, orig_address, next_address, size)
             raise CmdError(msg)
 
     # Change a register value.
@@ -725,24 +728,24 @@ class ConsoleDebugger (Cmd, EventHandler):
 
             # Segment (16 bit) registers.
             if register in self.segment_names:
-                register = 'Seg%s' % token.title()          # cs -> SegCs
+                register = 'Seg%s' % register.title()       # cs -> SegCs
                 value    = value & 0x0000FFFF
 
             # Integer 16 bits registers.
             if register in self.register_alias_16.keys():
-                register = self.register_alias_16[token]
+                register = self.register_alias_16[register]
                 previous = ctx.get(register) & 0xFFFF0000
                 value    = (value & 0x0000FFFF) | previous
 
             # Integer 8 bits registers (low part).
             if register in self.register_alias_8_low.keys():
-                register = self.register_alias_8_low[token]
+                register = self.register_alias_8_low[register]
                 previous = ctx.get(register) % 0xFFFFFF00
                 value    = (value & 0x000000FF) | previous
 
             # Integer 8 bits registers (high part).
             if register in self.register_alias_8_high.keys():
-                register = self.register_alias_8_high[token]
+                register = self.register_alias_8_high[register]
                 previous = ctx.get(register) % 0xFFFF00FF
                 value    = ((value & 0x000000FF) << 8) | previous
 

@@ -39,7 +39,7 @@ import os
 import sys
 import struct
 
-from winappdbg import Process, System, HexInput
+from winappdbg import Process, System, HexInput, HexDump
 
 def main():
     print "Process memory writer"
