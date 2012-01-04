@@ -349,7 +349,7 @@ class RegistryKeyHandle (Handle):
 class SaferLevelHandle (Handle):
     """
     Safer level handle.
-    
+
     @see: U{http://msdn.microsoft.com/en-us/library/ms722425(VS.85).aspx}
     """
 
@@ -743,7 +743,7 @@ def SaferiIsExecutableFileType(szFullPath, bFromShellExecute = False):
     _SaferiIsExecutableFileType.argtypes = [LPWSTR, BOOLEAN]
     _SaferiIsExecutableFileType.restype  = BOOL
     _SaferiIsExecutableFileType.errcheck = RaiseIfLastError
-    
+
     SetLastError(ERROR_SUCCESS)
     return bool(_SaferiIsExecutableFileType(unicode(szFullPath), bFromShellExecute))
 
@@ -760,7 +760,7 @@ def RegCloseKey(hKey):
         value = hKey.value
     else:
         value = hKey
-    
+
     if value in (
             HKEY_CLASSES_ROOT,
             HKEY_CURRENT_USER,
@@ -770,7 +770,7 @@ def RegCloseKey(hKey):
             HKEY_CURRENT_CONFIG
         ):
         return
-    
+
     _RegCloseKey = windll.advapi32.RegCloseKey
     _RegCloseKey.argtypes = [HKEY]
     _RegCloseKey.restype  = LONG
@@ -884,7 +884,7 @@ def RegOpenKeyExA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_A
     _RegOpenKeyExA.argtypes = [HKEY, LPSTR, DWORD, REGSAM, PHKEY]
     _RegOpenKeyExA.restype  = LONG
     _RegOpenKeyExA.errcheck = RaiseIfNotErrorSuccess
-    
+
     hkResult = HKEY(INVALID_HANDLE_VALUE)
     _RegOpenKeyExA(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
@@ -894,7 +894,7 @@ def RegOpenKeyExW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_A
     _RegOpenKeyExW.argtypes = [HKEY, LPWSTR, DWORD, REGSAM, PHKEY]
     _RegOpenKeyExW.restype  = LONG
     _RegOpenKeyExW.errcheck = RaiseIfNotErrorSuccess
-    
+
     hkResult = HKEY(INVALID_HANDLE_VALUE)
     _RegOpenKeyExW(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
@@ -910,7 +910,7 @@ def RegOpenCurrentUser(samDesired = KEY_ALL_ACCESS):
     _RegOpenCurrentUser.argtypes = [REGSAM, PHKEY]
     _RegOpenCurrentUser.restype  = LONG
     _RegOpenCurrentUser.errcheck = RaiseIfNotErrorSuccess
-    
+
     hkResult = HKEY(INVALID_HANDLE_VALUE)
     _RegOpenCurrentUser(samDesired, ctypes.byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
@@ -926,7 +926,7 @@ def RegOpenUserClassesRoot(hToken, samDesired = KEY_ALL_ACCESS):
     _RegOpenUserClassesRoot.argtypes = [HANDLE, DWORD, REGSAM, PHKEY]
     _RegOpenUserClassesRoot.restype  = LONG
     _RegOpenUserClassesRoot.errcheck = RaiseIfNotErrorSuccess
-    
+
     hkResult = HKEY(INVALID_HANDLE_VALUE)
     _RegOpenUserClassesRoot(hToken, 0, samDesired, ctypes.byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
@@ -973,29 +973,29 @@ RegQueryValue = GuessStringType(RegQueryValueA, RegQueryValueW)
 # );
 def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
     _RegQueryValueEx = _caller_RegQueryValueEx(ansi)
-    
+
     cbData = DWORD(0)
     dwType = DWORD(-1)
     _RegQueryValueEx(hKey, lpValueName, None, ctypes.byref(dwType), None, ctypes.byref(cbData))
     Type = dwType.value
-    
+
     if not bGetData:
         return cbData.value, Type
-    
+
     if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
         if cbData.value != 4:
             raise ValueError("REG_DWORD value of size %d" % cbData.value)
         dwData = DWORD(0)
         _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(dwData), ctypes.byref(cbData))
         return dwData.value, Type
-    
+
     if Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
         if cbData.value != 8:
             raise ValueError("REG_QWORD value of size %d" % cbData.value)
         qwData = QWORD(0L)
         _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(qwData), ctypes.byref(cbData))
         return qwData.value, Type
-    
+
     if Type in (REG_SZ, REG_EXPAND_SZ):
         if ansi:
             szData = ctypes.create_string_buffer(cbData.value)
@@ -1003,7 +1003,7 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
             szData = ctypes.create_unicode_buffer(cbData.value)
         _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
         return szData.value, Type
-    
+
     if Type == REG_MULTI_SZ:
         if ansi:
             szData = ctypes.create_string_buffer(cbData.value)
@@ -1017,12 +1017,12 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
             aData = Data.split(u'\0')
         aData = [token for token in aData if token]
         return aData, Type
-    
+
     if Type == REG_LINK:
         szData = ctypes.create_unicode_buffer(cbData.value)
         _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
         return szData.value, Type
-    
+
     # REG_BINARY, REG_NONE, and any future types
     szData = ctypes.create_string_buffer(cbData.value)
     _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
@@ -1058,7 +1058,7 @@ RegQueryValueEx = GuessStringType(RegQueryValueExA, RegQueryValueExW)
 #   __in        DWORD cbData
 # );
 def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
-    
+
     # Determine which version of the API to use, ANSI or Widechar.
     if lpValueName is None:
         if isinstance(lpData, GuessStringType.t_ansi):
@@ -1073,7 +1073,7 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
         ansi = False
     else:
         raise TypeError("String expected, got %s instead" % type(lpValueName))
-    
+
     # Autodetect the type when not given.
     # TODO: improve detection of DWORD and QWORD by seeing if the value "fits".
     if dwType is None:
@@ -1091,7 +1091,7 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
             dwType = REG_QWORD
         else:
             dwType = REG_BINARY
-    
+
     # Load the ctypes caller.
     if ansi:
         _RegSetValueEx = windll.advapi32.RegSetValueExA
@@ -1101,7 +1101,7 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
         _RegSetValueEx.argtypes = [HKEY, LPWSTR, DWORD, DWORD, LPVOID, DWORD]
     _RegSetValueEx.restype  = LONG
     _RegSetValueEx.errcheck = RaiseIfNotErrorSuccess
-    
+
     # Convert the arguments so ctypes can understand them.
     if lpData is None:
         DataRef  = None
@@ -1127,7 +1127,7 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
             Data = ctypes.create_string_buffer(lpData)
         DataRef  = ctypes.byref(Data)
         DataSize = ctypes.sizeof(Data)
-    
+
     # Call the API with the converted arguments.
     _RegSetValueEx(hKey, lpValueName, 0, dwType, DataRef, DataSize)
 
@@ -1144,7 +1144,7 @@ def RegEnumKeyA(hKey, dwIndex):
     _RegEnumKeyA = windll.advapi32.RegEnumKeyA
     _RegEnumKeyA.argtypes = [HKEY, DWORD, LPSTR, DWORD]
     _RegEnumKeyA.restype  = LONG
-    
+
     cchName = 1024
     while True:
         lpName = ctypes.create_string_buffer(cchName)
@@ -1164,7 +1164,7 @@ def RegEnumKeyW(hKey, dwIndex):
     _RegEnumKeyW = windll.advapi32.RegEnumKeyW
     _RegEnumKeyW.argtypes = [HKEY, DWORD, LPWSTR, DWORD]
     _RegEnumKeyW.restype  = LONG
-    
+
     cchName = 512
     while True:
         lpName = ctypes.create_unicode_buffer(cchName)
@@ -1213,7 +1213,7 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
         _RegEnumValue = windll.advapi32.RegEnumValueW
         _RegEnumValue.argtypes = [HKEY, DWORD, LPWSTR, LPDWORD, LPVOID, LPDWORD, LPVOID, LPDWORD]
     _RegEnumValue.restype  = LONG
-    
+
     cchValueName = DWORD(1024)
     dwType = DWORD(-1)
     lpcchValueName = ctypes.byref(cchValueName)
@@ -1229,7 +1229,7 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
         lpcbData = None
     lpData = None
     errcode = _RegEnumValue(hKey, dwIndex, lpValueName, lpcchValueName, None, lpType, lpData, lpcbData)
-    
+
     if errcode == ERROR_MORE_DATA or (bGetData and errcode == ERROR_SUCCESS):
         if ansi:
             cchValueName.value = cchValueName.value + ctypes.sizeof(CHAR)
@@ -1237,47 +1237,47 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
         else:
             cchValueName.value = cchValueName.value + ctypes.sizeof(WCHAR)
             lpValueName = ctypes.create_unicode_buffer(cchValueName.value)
-        
+
         if bGetData:
             Type = dwType.value
-            
+
             if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
                 if cbData.value != ctypes.sizeof(DWORD):
                     raise ValueError("REG_DWORD value of size %d" % cbData.value)
                 Data = DWORD(0)
-            
+
             elif Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
                 if cbData.value != ctypes.sizeof(QWORD):
                     raise ValueError("REG_QWORD value of size %d" % cbData.value)
                 Data = QWORD(0L)
-            
+
             elif Type in (REG_SZ, REG_EXPAND_SZ, REG_MULTI_SZ):
                 if ansi:
                     Data = ctypes.create_string_buffer(cbData.value)
                 else:
                     Data = ctypes.create_unicode_buffer(cbData.value)
-            
+
             elif Type == REG_LINK:
                 Data = ctypes.create_unicode_buffer(cbData.value)
-            
+
             else:       # REG_BINARY, REG_NONE, and any future types
                 Data = ctypes.create_string_buffer(cbData.value)
-            
+
             lpData = ctypes.byref(Data)
 
         errcode = _RegEnumValue(hKey, dwIndex, lpValueName, lpcchValueName, None, lpType, lpData, lpcbData)
-    
+
     if errcode == ERROR_NO_MORE_ITEMS:
         return None
     #if errcode  != ERROR_SUCCESS:
     #    raise ctypes.WinError(errcode)
-    
+
     if not bGetData:
         return lpValueName.value, dwType.value
-    
+
     if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN, REG_QWORD, REG_SZ, REG_EXPAND_SZ, REG_LINK): # REG_DWORD_LITTLE_ENDIAN, REG_QWORD_LITTLE_ENDIAN
         return lpValueName.value, dwType.value, Data.value
-    
+
     if Type == REG_MULTI_SZ:
         sData = Data[:]
         del Data
@@ -1287,7 +1287,7 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
             aData = sData.split(u'\0')
         aData = [token for token in aData if token]
         return lpValueName.value, dwType.value, aData
-    
+
     # REG_BINARY, REG_NONE, and any future types
     return lpValueName.value, dwType.value, Data.raw
 

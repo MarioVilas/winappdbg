@@ -628,7 +628,7 @@ arch = _get_arch()
 def _get_wow64():
     """
     Determines if the current process is running in Windows-On-Windows 64 bits.
-    
+
     @rtype:  bool
     @return: C{True} of the current process is a 32 bit program running in a
         64 bit version of Windows, C{False} if it's either a 32 bit program

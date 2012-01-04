@@ -47,4 +47,3 @@ def do(self, arg):
             seh_func = HexDump.address(seh_func)
         table.addRow( (seh, seh_func) )
     print table.getOutput()
-

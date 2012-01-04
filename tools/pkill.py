@@ -134,7 +134,7 @@ def main(argv):
                 print "Warning: resolving address of ExitProcess() failed %d: %s" % (pid, str(e))
         except WindowsError, e:
             print "Warning: scanning for loaded modules failed %d: %s" % (pid, str(e))
-    targets = next_targets    
+    targets = next_targets
 
     # Attach to every process.
     # Print a message on error, but don't stop.
