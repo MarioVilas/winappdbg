@@ -55,7 +55,7 @@ try:
     import psyco
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 # XXX TODO
 # Use the "signal" module to avoid having to deal with unexpected
@@ -542,7 +542,7 @@ class LoggingEventHandler(EventHandler):
 
 #==============================================================================
 
-class CrashLogger (object):
+class CrashLogger (psyobj):
 
     defaults = {
 

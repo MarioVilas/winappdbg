@@ -96,11 +96,11 @@ import ctypes
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #==============================================================================
 
-class Event (object):
+class Event (psyobj):
     """
     Event object.
 
@@ -1150,7 +1150,7 @@ class EventFactory (object):
 
 #==============================================================================
 
-class EventHandler (object):
+class EventHandler (psyobj):
     """
     Base class for debug event handlers.
 

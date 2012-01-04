@@ -39,7 +39,7 @@ import ctypes
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #------------------------------------------------------------------------------
 
@@ -170,7 +170,7 @@ def RaiseIfLastError(result, func = None, arguments = ()):
 
     Regardless of the return value, the function calls GetLastError(). If the
     code is not C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
-    
+
     For this to work, the user MUST call SetLastError(ERROR_SUCCESS) prior to
     calling the API. Otherwise an exception may be raised even on success,
     since most API calls don't clear the error status code.
@@ -180,7 +180,7 @@ def RaiseIfLastError(result, func = None, arguments = ()):
         raise ctypes.WinError(code)
     return result
 
-class GuessStringType(object):
+class GuessStringType(psyobj):
     """
     Decorator that guesses the correct version (A or W) to call
     based on the types of the strings passed as parameters.
@@ -263,7 +263,7 @@ class GuessStringType(object):
         # Call the function and return the result
         return fn(*argv, **argd)
 
-class DefaultStringType(object):
+class DefaultStringType(psyobj):
     """
     Decorator that uses the default version (A or W) to call
     based on the configuration of the L{GuessStringType} decorator.
@@ -297,7 +297,7 @@ class DefaultStringType(object):
         # Call the function and return the result
         return fn(*argv, **argd)
 
-class MakeANSIVersion(object):
+class MakeANSIVersion(psyobj):
     """
     Decorator that generates an ANSI version of a Unicode (wide) only API call.
 
@@ -326,7 +326,7 @@ class MakeANSIVersion(object):
                     argd[key] = unicode(value)
         return self.fn(*argv, **argd)
 
-class MakeWideVersion(object):
+class MakeWideVersion(psyobj):
     """
     Decorator that generates a Unicode (wide) version of an ANSI only API call.
 

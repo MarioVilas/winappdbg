@@ -87,7 +87,7 @@ except ImportError:
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #==============================================================================
 
@@ -97,7 +97,7 @@ except ImportError:
 # of toolhelp32 not working when the process hasn't finished initializing.
 # See: http://pferrie.host22.com/misc/lowlevel3.htm
 
-class _ModuleContainer (object):
+class _ModuleContainer (psyobj):
     """
     Encapsulates the capability to contain Module objects.
 
@@ -1251,7 +1251,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 
 #==============================================================================
 
-class _ThreadContainer (object):
+class _ThreadContainer (psyobj):
     """
     Encapsulates the capability to contain Thread objects.
 
@@ -1661,7 +1661,7 @@ class _ThreadContainer (object):
 
 #==============================================================================
 
-class _ProcessContainer (object):
+class _ProcessContainer (psyobj):
     """
     Encapsulates the capability to contain Process objects.
 
@@ -1962,7 +1962,7 @@ class _ProcessContainer (object):
         @rtype:  L{Process}
         @return: Process object.
         """
-        
+
         bConsole            = kwargs.pop('bConsole', False)
         bDebug              = kwargs.pop('bDebug', False)
         bFollow             = kwargs.pop('bFollow', False)
@@ -1973,7 +1973,7 @@ class _ProcessContainer (object):
             raise TypeError("Unknown keyword arguments: %s" % kwargs.keys())
         if not lpCmdLine:
             raise ValueError("Missing command line to execute!")
-        
+
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
@@ -1986,7 +1986,7 @@ class _ProcessContainer (object):
             if not bFollow:
                 dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
         lpStartupInfo = None
-        
+
         if dwParentProcessId is not None:
             myPID = win32.GetCurrentProcessId()
             if dwParentProcessId != myPID:
@@ -2015,13 +2015,13 @@ class _ProcessContainer (object):
                 StartupInfoEx.lpAttributeList = AttributeList.value
                 lpStartupInfo = StartupInfoEx
                 dwCreationFlags |= win32.EXTENDED_STARTUPINFO_PRESENT
-        
+
         pi = None
         try:
             pi = win32.CreateProcess(win32.NULL, lpCmdLine,
                                         bInheritHandles = bInheritHandles,
                                         dwCreationFlags = dwCreationFlags,
-                                        lpStartupInfo   = lpStartupInfo)            
+                                        lpStartupInfo   = lpStartupInfo)
             aProcess = Process(pi.dwProcessId, pi.hProcess)
             aThread  = Thread (pi.dwThreadId,  pi.hThread)
             aProcess._add_thread(aThread)
@@ -2035,7 +2035,7 @@ class _ProcessContainer (object):
                 pi.hThread.close()
                 pi.hProcess.close()
             raise
-        
+
         return aProcess
 
 #------------------------------------------------------------------------------
@@ -2046,7 +2046,7 @@ class _ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads,
         and loaded modules.
-        
+
         @raise WindowsError: An error occurred, and the scan may be incomplete.
         """
         try:
@@ -2139,7 +2139,7 @@ class _ProcessContainer (object):
     def scan_modules(self):
         """
         Populates the snapshot with loaded modules.
-        
+
         @rtype: bool
         @return: C{True} if the snapshot is complete, C{False} if the debugger
             doesn't have permission to scan some processes. In either case, the
@@ -2517,7 +2517,7 @@ class _ProcessContainer (object):
 # point the hook callback to it. We'd need to have the remote procedure call
 # feature first as (I believe) the hook can't be set remotely in this case.
 
-class Window (object):
+class Window (psyobj):
     """
     Interface to an open window in the current desktop.
 
@@ -3145,7 +3145,7 @@ class Window (object):
 
 #==============================================================================
 
-class Module (object):
+class Module (psyobj):
     """
     Interface to a DLL library loaded in the context of another process.
 
@@ -3191,15 +3191,15 @@ class Module (object):
     """
 
     unknown = '<unknown>'
-    
+
     class _SymbolEnumerator (object):
         """
         Internally used by L{Module} to enumerate symbols in a module.
         """
-    
+
         def __init__(self):
             self.symbols = list()
-    
+
         def __call__(self, SymbolName, SymbolAddress, SymbolSize, UserContext):
             """
             Callback that receives symbols and stores them in a Python list.
@@ -3239,9 +3239,9 @@ class Module (object):
         self.fileName       = fileName
         self.SizeOfImage    = SizeOfImage
         self.EntryPoint     = EntryPoint
-        
+
         self.__symbols = list()
-        
+
         self.set_process(process)
 
     # Not really sure if it's a good idea...
@@ -3819,7 +3819,7 @@ class Module (object):
 # TODO
 # + fetch special registers (MMX, XMM, 3DNow!, etc)
 
-class Thread (object):
+class Thread (psyobj):
     """
     Interface to a thread in another process.
 
@@ -5908,13 +5908,13 @@ class Process (_ThreadContainer, _ModuleContainer):
     def get_dep_policy(self):
         """
         Retrieves the DEP (Data Execution Prevention) policy for this process.
-        
+
         @note: This method is only available in Windows XP SP3 and above.
             When run on previous versions of Windows a C{NotImplementedError}
             exception is raised.
-        
+
         @see: U{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
-        
+
         @rtype:  tuple(int, int)
         @return:
             The first member of the tuple is the DEP flags. It can be a
@@ -5923,10 +5923,10 @@ class Process (_ThreadContainer, _ModuleContainer):
              - 1: DEP is enabled for this process. (C{PROCESS_DEP_ENABLE})
              - 2: DEP-ATL thunk emulation is disabled for this process.
                   (C{PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION})
-            
+
             The second member of the tuple is the permanent flag. If C{TRUE}
             the DEP settings cannot be changed in runtime for this process.
-        
+
         @raise WindowsError: On error an exception is raised.
         """
         hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
@@ -5972,7 +5972,7 @@ class Process (_ThreadContainer, _ModuleContainer):
     def get_entry_point(self):
         """
         Alias to C{process.get_main_module().get_entry_point()}.
-        
+
         @rtype:  int
         @return: Address of the entry point of the main module.
         """
@@ -8579,7 +8579,7 @@ class System (_ProcessContainer):
         @warning: Don't ever delete entries you haven't created yourself!
             Some entries are set by default for your version of Windows.
             Deleting them might deadlock your system under some circumstances.
-            
+
             For more details see:
             U{http://msdn.microsoft.com/en-us/library/bb204634(v=vs.85).aspx}
 

@@ -38,6 +38,11 @@ from defines import *
 from kernel32 import GetLastError, SetLastError
 from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
+try:
+    from psyco.classes import *
+except ImportError:
+    psyobj = object
+
 #--- Helpers ------------------------------------------------------------------
 
 def MAKE_WPARAM(wParam):
@@ -59,7 +64,7 @@ def MAKE_LPARAM(lParam):
     """
     return ctypes.cast(lParam, LPARAM)
 
-class WindowEnumerator (object):
+class WindowEnumerator (psyobj):
     """
     Window enumerator class.  You can pass it's instances
     as callback functions in window enumeration APIs.
@@ -364,7 +369,10 @@ LPGUITHREADINFO = PGUITHREADINFO
 # Point() and Rect() are here instead of gdi32.py because they were mainly
 # created to handle window coordinates rather than drawing on the screen.
 
-class Point(object):
+# XXX not sure if these classes should be psyco-optimized,
+# it may not work if the user wants to serialize them for some reason
+
+class Point(psyobj):
     """
     Python wrapper over the L{POINT} class.
 
@@ -460,7 +468,7 @@ class Point(object):
         """
         return MapWindowPoints(hWndFrom, hWndTo, [self])
 
-class Rect(object):
+class Rect(psyobj):
     """
     Python wrapper over the L{RECT} class.
 
@@ -592,7 +600,7 @@ class Rect(object):
         points = [ (self.left, self.top), (self.right, self.bottom) ]
         return MapWindowPoints(hWndFrom, hWndTo, points)
 
-class WindowPlacement(object):
+class WindowPlacement(psyobj):
     """
     Python wrapper over the L{WINDOWPLACEMENT} class.
     """
@@ -1403,4 +1411,3 @@ def RemovePropW(hWnd, lpString):
     return _RemovePropW(hWnd, lpString)
 
 RemoveProp = GuessStringType(RemovePropA, RemovePropW)
-

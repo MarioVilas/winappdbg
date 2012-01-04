@@ -48,11 +48,11 @@ import warnings
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #==============================================================================
 
-class _RegistryContainer (object):
+class _RegistryContainer (psyobj):
     """
     Base class for L{Registry} and L{RegistryKey}.
     """
@@ -87,12 +87,12 @@ class _RegistryContainer (object):
 class RegistryKey (_RegistryContainer):
     """
     Exposes a single Windows Registry key as a dictionary-like object.
-    
+
     @see: L{Registry}
-    
+
     @type path: str
     @ivar path: Registry key path.
-    
+
     @type handle: L{win32.RegistryKeyHandle}
     @ivar handle: Registry key handle.
     """
@@ -101,7 +101,7 @@ class RegistryKey (_RegistryContainer):
         """
         @type  path: str
         @param path: Registry key path.
-        
+
         @type  handle: L{win32.RegistryKeyHandle}
         @param handle: Registry key handle.
         """
@@ -224,10 +224,10 @@ class RegistryKey (_RegistryContainer):
     def child(self, subkey):
         """
         Retrieves a subkey for this Registry key, given its name.
-        
+
         @type  subkey: str
         @param subkey: Name of the subkey.
-        
+
         @rtype:  L{RegistryKey}
         @return: Subkey.
         """
@@ -240,11 +240,11 @@ class RegistryKey (_RegistryContainer):
     def flush(self):
         """
         Flushes changes immediately to disk.
-        
+
         This method is normally not needed, as the Registry writes changes
         to disk by itself. This mechanism is provided to ensure the write
         happens immediately, as opposed to whenever the OS wants to.
-        
+
         @warn: Calling this method too often may degrade performance.
         """
         win32.RegFlushKey(self._handle)
@@ -279,7 +279,7 @@ class Registry (_RegistryContainer):
     """
 
     _hives_by_name = {
-        
+
         # Short names
         'HKCR' : win32.HKEY_CLASSES_ROOT,
         'HKCU' : win32.HKEY_CURRENT_USER,
@@ -287,7 +287,7 @@ class Registry (_RegistryContainer):
         'HKU'  : win32.HKEY_USERS,
         'HKPD' : win32.HKEY_PERFORMANCE_DATA,
         'HKCC' : win32.HKEY_CURRENT_CONFIG,
-        
+
         # Long names
         'HKEY_CLASSES_ROOT'     : win32.HKEY_CLASSES_ROOT,
         'HKEY_CURRENT_USER'     : win32.HKEY_CURRENT_USER,
@@ -311,7 +311,7 @@ class Registry (_RegistryContainer):
     def __init__(self, machine = None):
         """
         Opens a local or remote registry.
-        
+
         @type  machine: str
         @param machine: Optional machine name. If C{None} it opens the local
             registry.
@@ -326,7 +326,7 @@ class Registry (_RegistryContainer):
     def _parse_path(self, path):
         """
         Parses a Registry path and returns the hive and key.
-        
+
         @rtype:  tuple( int, str )
         @return: Tuple containing the hive handle and the subkey path.
             For a local Registry, the hive handle is an integer.
@@ -347,13 +347,13 @@ class Registry (_RegistryContainer):
     def _connect_hive(self, hive):
         """
         Connect to the specified hive of a remote Registry.
-        
+
         @note: The connection will be cached, to close all connections and
             erase this cache call the L{close} method.
-        
+
         @type  hive: int
         @param hive: Hive to connect to.
-        
+
         @rtype:  L{win32.RegistryKeyHandle}
         @return: Open handle to the remote Registry hive.
         """
@@ -367,11 +367,11 @@ class Registry (_RegistryContainer):
     def close(self):
         """
         Closes all open connections to the remote Registry.
-        
+
         No exceptions are raised, even if an error occurs.
-        
+
         This method has no effect when opening the local Registry.
-        
+
         The remote Registry will still be accessible after calling this method
         (new connections will be opened automatically on access).
         """
@@ -447,10 +447,10 @@ class Registry (_RegistryContainer):
     def create(self, path):
         """
         Creates a new Registry key.
-        
+
         @type  path: str
         @param path: Registry key path.
-        
+
         @rtype:  L{RegistryKey}
         @return: The newly created Registry key.
         """
@@ -461,10 +461,10 @@ class Registry (_RegistryContainer):
     def subkeys(self, path):
         """
         Returns a list of subkeys for the given Registry key.
-        
+
         @type  path: str
         @param path: Registry key path.
-        
+
         @rtype:  list(str)
         @return: List of subkey names.
         """
@@ -483,13 +483,13 @@ class Registry (_RegistryContainer):
     def iterate(self, path):
         """
         Returns a recursive iterator on the specified key and its subkeys.
-        
+
         @type  path: str
         @param path: Registry key path.
-        
+
         @rtype:  iterator
         @return: Recursive iterator that returns Registry key paths.
-        
+
         @raise KeyError: The specified path does not exist.
         """
         if path.endswith('\\'):

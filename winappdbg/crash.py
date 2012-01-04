@@ -75,12 +75,10 @@ anydbm = None
 sqlite = None
 pyodbc = None
 
-# Don't psyco-optimize this class because it needs to be serialized.
-##try:
-##    from psyco.classes import *
-##    object = psyobj
-##except ImportError:
-##    pass
+try:
+    from psyco.classes import *
+except ImportError:
+    psyobj = object
 
 #==============================================================================
 
@@ -124,7 +122,7 @@ except ImportError:
 
 #==============================================================================
 
-class ContainerBase(object):
+class ContainerBase(psyobj):
     """
     Base class for Container types. The code implemented here deals with
     marshalling and unmarshalling of Crash objects and keys, and it's
@@ -1241,6 +1239,7 @@ class DummyCrashContainer(CrashContainer):
 
 #==============================================================================
 
+# Don't psyco-optimize this class because it needs to be serialized.
 class Crash (object):
     """
     Represents a crash, bug, or another interesting event in the debugee.

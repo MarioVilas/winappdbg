@@ -68,7 +68,7 @@ import traceback
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #------------------------------------------------------------------------------
 
@@ -828,7 +828,7 @@ class HexDump (StaticClass):
 
 #------------------------------------------------------------------------------
 
-class Table (object):
+class Table (psyobj):
     """
     Text based table. The number of columns and the width of each column
     is automatically calculated.
@@ -1457,7 +1457,7 @@ class DebugLog (StaticClass):
 
 #------------------------------------------------------------------------------
 
-class Logger(object):
+class Logger(psyobj):
     """
     Logs text to standard output and/or a text file.
 

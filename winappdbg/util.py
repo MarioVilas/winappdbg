@@ -85,7 +85,7 @@ import win32
 try:
     from psyco.classes import *
 except ImportError:
-    pass
+    psyobj = object
 
 #==============================================================================
 
@@ -93,20 +93,20 @@ def kill_python_thread(tid):
     """
     Kills a Python thread given it's thread ID
     by injecting a C{KeyboardInterrupt} exception.
-    
+
     @warn:
         This function MUST ONLY be used in Python threads belonging to the same
         process as the caller. It cannot be used on threads belonging to other
         processes, nor on native threads created by the C{CreateThread} API.
-    
+
     @see:
         U{http://stackoverflow.com/questions/323972}
-    
+
     @type  tid: int
     @param tid:
         The thread ID is either the {ident} property in a C{threading.Thread}
         object, or the return value of the C{thread.start_new_thread} function.
-    
+
     @raise ValueError: The thread ID is invalid.
     @raise SystemError: The call has failed for another reason.
     """
@@ -128,7 +128,7 @@ class BannerHelpFormatter(optparse.IndentedHelpFormatter):
         return '%s\n%s' % (self.banner, msg)
 
 # See Process.generate_memory_snapshot()
-class Regenerator(object):
+class Regenerator(psyobj):
     """
     Calls a generator and iterates it. When it's finished iterating, the
     generator is called again. This allows you to iterate a generator more
