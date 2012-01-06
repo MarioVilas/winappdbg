@@ -1026,7 +1026,12 @@ class CrashDump (StaticClass):
         if registers is None:
             return ''
         if arch is None:
-            arch = win32.CONTEXT.arch
+            if registers.has_key('Eax'):
+                arch = win32.ARCH_I386
+            elif registers.has_key('Rax'):
+                arch = win32.ARCH_AMD64
+            else:
+                arch = 'Unknown'
         if not cls.reg_template.has_key(arch):
             msg = "Don't know how to dump the registers for architecture: %s"
             raise NotImplementedError(msg % arch)

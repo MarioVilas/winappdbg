@@ -2056,7 +2056,7 @@ class Crash (object):
 
         if self.registers:
             msg += '\nRegisters:\n'
-            msg += CrashDump.dump_registers(self.registers, self.arch)
+            msg += CrashDump.dump_registers(self.registers)
             if self.registersPeek:
                 msg += '\n'
                 msg += CrashDump.dump_registers_peek(self.registers,
@@ -2081,7 +2081,8 @@ class Crash (object):
                 msg += '\nStack pointers:\n'
                 msg += CrashDump.dump_stack_peek(self.stackPeek, width = width)
             msg += '\nStack dump:\n'
-            msg += HexDump.hexblock(self.stackFrame, self.sp, width = width)
+            msg += HexDump.hexblock(self.stackFrame, self.sp,
+                                    address_size = address_size, width = width)
 
         if self.faultCode and not self.modFileName:
             msg += '\nCode dump:\n'
