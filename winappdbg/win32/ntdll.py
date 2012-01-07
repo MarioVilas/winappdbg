@@ -380,7 +380,7 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
     else:
         if InputBufferLength is None:
             InputBufferLength = sizeof(InputBuffer)
-        InputBuffer = ctypes.byref(InputBuffer)
+        InputBuffer = byref(InputBuffer)
 
     # Validate the output buffer
     if OutputBuffer is None:
@@ -394,7 +394,7 @@ def NtSystemDebugControl(Command, InputBuffer = None, InputBufferLength = None, 
     # Make the call (with an output buffer)
     if OutputBuffer is not None:
         ReturnLength = ULONG(0)
-        ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, ctypes.byref(OutputBuffer), OutputBufferLength, ctypes.byref(ReturnLength))
+        ntstatus = _NtSystemDebugControl(Command, InputBuffer, InputBufferLength, byref(OutputBuffer), OutputBufferLength, byref(ReturnLength))
         if ntstatus != 0:
             raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
         ReturnLength = ReturnLength.value
@@ -428,7 +428,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
             ProcessInformationLength = sizeof(PROCESS_BASIC_INFORMATION)
         elif ProcessInformationClass == ProcessImageFileName:
             unicode_buffer = ctypes.create_unicode_buffer(u"", 0x1000)
-            ProcessInformation = UNICODE_STRING(0, 0x1000, ctypes.addressof(unicode_buffer))
+            ProcessInformation = UNICODE_STRING(0, 0x1000, addressof(unicode_buffer))
             ProcessInformationLength = sizeof(UNICODE_STRING)
         elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
             ProcessInformation = DWORD()
@@ -436,7 +436,7 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
         else:
             raise Exception("Unknown ProcessInformationClass, use an explicit ProcessInformationLength value instead")
     ReturnLength = ULONG(0)
-    ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ctypes.byref(ProcessInformation), ProcessInformationLength, ctypes.byref(ReturnLength))
+    ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, byref(ProcessInformation), ProcessInformationLength, byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     if   ProcessInformationClass == ProcessBasicInformation:
@@ -479,7 +479,7 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
         else:
             raise Exception("Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead")
     ReturnLength = ULONG(0)
-    ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ctypes.byref(ThreadInformation), ThreadInformationLength, ctypes.byref(ReturnLength))
+    ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, byref(ThreadInformation), ThreadInformationLength, byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     if   ThreadInformationClass == ThreadBasicInformation:
@@ -507,7 +507,7 @@ def NtQueryInformationFile(FileHandle, FileInformationClass, FileInformation, Le
     _NtQueryInformationFile.argtypes = [HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, DWORD]
     _NtQueryInformationFile.restype = NTSTATUS
     IoStatusBlock = IO_STATUS_BLOCK()
-    ntstatus = _NtQueryInformationFile(FileHandle, ctypes.byref(IoStatusBlock), ctypes.byref(FileInformation), Length, FileInformationClass)
+    ntstatus = _NtQueryInformationFile(FileHandle, byref(IoStatusBlock), byref(FileInformation), Length, FileInformationClass)
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     return IoStatusBlock

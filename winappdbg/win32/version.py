@@ -372,7 +372,7 @@ def GetSystemInfo():
     _GetSystemInfo.restype  = None
 
     sysinfo = SYSTEM_INFO()
-    _GetSystemInfo(ctypes.byref(sysinfo))
+    _GetSystemInfo(byref(sysinfo))
     return sysinfo
 
 # void WINAPI GetNativeSystemInfo(
@@ -384,7 +384,7 @@ def GetNativeSystemInfo():
     _GetNativeSystemInfo.restype  = None
 
     sysinfo = SYSTEM_INFO()
-    _GetNativeSystemInfo(ctypes.byref(sysinfo))
+    _GetNativeSystemInfo(byref(sysinfo))
     return sysinfo
 
 # int WINAPI GetSystemMetrics(
@@ -423,7 +423,7 @@ def IsWow64Process(hProcess):
     _IsWow64Process.errcheck = RaiseIfZero
 
     Wow64Process = BOOL(FALSE)
-    _IsWow64Process(hProcess, ctypes.byref(Wow64Process))
+    _IsWow64Process(hProcess, byref(Wow64Process))
     return bool(Wow64Process)
 
 # DWORD WINAPI GetVersion(void);
@@ -450,34 +450,36 @@ def GetVersion():
 # );
 def GetVersionExA():
     _GetVersionExA = windll.kernel32.GetVersionExA
-    _GetVersionExA.argtypes = [LPVOID]
+    _GetVersionExA.argtypes = [POINTER(OSVERSIONINFOEXA)]
     _GetVersionExA.restype  = bool
     _GetVersionExA.errcheck = RaiseIfZero
 
     osi = OSVERSIONINFOEXA()
     osi.dwOSVersionInfoSize = sizeof(osi)
     try:
-        _GetVersionExA(ctypes.byref(osi))
+        _GetVersionExA(byref(osi))
     except WindowsError:
         osi = OSVERSIONINFOA()
         osi.dwOSVersionInfoSize = sizeof(osi)
-        _GetVersionExA(ctypes.byref(osi))
+        _GetVersionExA.argtypes = [POINTER(OSVERSIONINFOA)]
+        _GetVersionExA(byref(osi))
     return osi
 
 def GetVersionExW():
     _GetVersionExW = windll.kernel32.GetVersionExW
-    _GetVersionExW.argtypes = [LPVOID]
+    _GetVersionExW.argtypes = [POINTER(OSVERSIONINFOEXW)]
     _GetVersionExW.restype  = bool
     _GetVersionExW.errcheck = RaiseIfZero
 
     osi = OSVERSIONINFOEXW()
     osi.dwOSVersionInfoSize = sizeof(osi)
     try:
-        _GetVersionExW(ctypes.byref(osi))
+        _GetVersionExW(byref(osi))
     except WindowsError:
         osi = OSVERSIONINFOW()
         osi.dwOSVersionInfoSize = sizeof(osi)
-        _GetVersionExW(ctypes.byref(osi))
+        _GetVersionExW.argtypes = [POINTER(OSVERSIONINFOW)]
+        _GetVersionExW(byref(osi))
     return osi
 
 GetVersionEx = GuessStringType(GetVersionExA, GetVersionExW)
@@ -515,13 +517,13 @@ def VerifyVersionInfoA(lpVersionInfo, dwTypeMask, dwlConditionMask):
     _VerifyVersionInfoA = windll.kernel32.VerifyVersionInfoA
     _VerifyVersionInfoA.argtypes = [LPOSVERSIONINFOEXA, DWORD, DWORDLONG]
     _VerifyVersionInfoA.restype  = bool
-    return _VerifyVersionInfoA(ctypes.byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
+    return _VerifyVersionInfoA(byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
 
 def VerifyVersionInfoW(lpVersionInfo, dwTypeMask, dwlConditionMask):
     _VerifyVersionInfoW = windll.kernel32.VerifyVersionInfoW
     _VerifyVersionInfoW.argtypes = [LPOSVERSIONINFOEXW, DWORD, DWORDLONG]
     _VerifyVersionInfoW.restype  = bool
-    return _VerifyVersionInfoW(ctypes.byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
+    return _VerifyVersionInfoW(byref(lpVersionInfo), dwTypeMask, dwlConditionMask)
 
 # ULONGLONG WINAPI VerSetConditionMask(
 #   __in  ULONGLONG dwlConditionMask,
@@ -681,7 +683,7 @@ def _get_os():
          - L{OS_W7_64} (C{"Windows 7 (64 bits)"})
     """
     # rough port of http://msdn.microsoft.com/en-us/library/ms724429%28VS.85%29.aspx
-    osvi = GetVersionEx()
+    osvi = GetVersionExA()
     if osvi.dwPlatformId == VER_PLATFORM_WIN32_NT and osvi.dwMajorVersion > 4:
         if osvi.dwMajorVersion == 6:
             if osvi.dwMinorVersion == 0:

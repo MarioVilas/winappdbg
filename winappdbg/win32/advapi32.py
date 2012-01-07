@@ -384,7 +384,7 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
     _OpenProcessToken.errcheck = RaiseIfZero
 
     tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenProcessToken(ProcessHandle, DesiredAccess, ctypes.byref(tokenHandle))
+    _OpenProcessToken(ProcessHandle, DesiredAccess, byref(tokenHandle))
     return TokenHandle(tokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
@@ -400,7 +400,7 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken.errcheck = RaiseIfZero
 
     tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, ctypes.byref(tokenHandle))
+    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, byref(tokenHandle))
     return TokenHandle(tokenHandle.value)
 
 # BOOL WINAPI LookupPrivilegeValue(
@@ -417,7 +417,7 @@ def LookupPrivilegeValueA(lpSystemName, lpName):
     lpLuid = LUID()
     if not lpSystemName:
         lpSystemName = None
-    _LookupPrivilegeValueA(lpSystemName, lpName, ctypes.byref(lpLuid))
+    _LookupPrivilegeValueA(lpSystemName, lpName, byref(lpLuid))
     return lpLuid
 
 def LookupPrivilegeValueW(lpSystemName, lpName):
@@ -429,7 +429,7 @@ def LookupPrivilegeValueW(lpSystemName, lpName):
     lpLuid = LUID()
     if not lpSystemName:
         lpSystemName = None
-    _LookupPrivilegeValueW(lpSystemName, lpName, ctypes.byref(lpLuid))
+    _LookupPrivilegeValueW(lpSystemName, lpName, byref(lpLuid))
     return lpLuid
 
 LookupPrivilegeValue = GuessStringType(LookupPrivilegeValueA, LookupPrivilegeValueW)
@@ -448,9 +448,9 @@ def LookupPrivilegeNameA(lpSystemName, lpLuid):
     _LookupPrivilegeNameA.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
-    _LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
+    _LookupPrivilegeNameA(lpSystemName, byref(lpLuid), NULL, byref(cchName))
     lpName = ctypes.create_string_buffer("", cchName.value)
-    _LookupPrivilegeNameA(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
+    _LookupPrivilegeNameA(lpSystemName, byref(lpLuid), byref(lpName), byref(cchName))
     return lpName.value
 
 def LookupPrivilegeNameW(lpSystemName, lpLuid):
@@ -460,9 +460,9 @@ def LookupPrivilegeNameW(lpSystemName, lpLuid):
     _LookupPrivilegeNameW.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
-    _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), NULL, ctypes.byref(cchName))
+    _LookupPrivilegeNameW(lpSystemName, byref(lpLuid), NULL, byref(cchName))
     lpName = ctypes.create_unicode_buffer(u"", cchName.value)
-    _LookupPrivilegeNameW(lpSystemName, ctypes.byref(lpLuid), ctypes.byref(lpName), ctypes.byref(cchName))
+    _LookupPrivilegeNameW(lpSystemName, byref(lpLuid), byref(lpName), byref(cchName))
     return lpName.value
 
 LookupPrivilegeName = GuessStringType(LookupPrivilegeNameA, LookupPrivilegeNameW)
@@ -504,7 +504,7 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
                 flags = enabled
             laa = LUID_AND_ATTRIBUTES(privilege, flags)
             tp  = TOKEN_PRIVILEGES(1, laa)
-            _AdjustTokenPrivileges(TokenHandle, FALSE, ctypes.byref(tp), sizeof(tp), NULL, NULL)
+            _AdjustTokenPrivileges(TokenHandle, FALSE, byref(tp), sizeof(tp), NULL, NULL)
 
 # BOOL WINAPI CreateProcessWithLogonW(
 #   __in         LPCWSTR lpUsername,
@@ -539,7 +539,7 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessWithLogonW(lpUsername, lpDomain, lpPassword, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessWithLogonW(lpUsername, lpDomain, lpPassword, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 CreateProcessWithLogonA = MakeANSIVersion(CreateProcessWithLogonW)
@@ -576,7 +576,7 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessWithTokenW(hToken, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessWithTokenW(hToken, dwLogonFlags, lpApplicationName, lpCommandLine, dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 CreateProcessWithTokenA = MakeANSIVersion(CreateProcessWithTokenW)
@@ -622,7 +622,7 @@ def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
     NodeCount     = DWORD(WCT_MAX_NODE_COUNT)
     NodeInfoArray = (WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT)()
     IsCycle       = BOOL(FALSE)
-    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, ctypes.byref(NodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), ctypes.byref(IsCycle))
+    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, byref(NodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), byref(IsCycle))
     NodeInfoArray = [ NodeInfoArray[index] for index in xrange(0, NodeCount.value) ]
     IsCycle       = bool(IsCycle)
     return NodeInfoArray, IsCycle
@@ -649,7 +649,7 @@ def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMA
     _SaferCreateLevel.errcheck = RaiseIfZero
 
     hLevelHandle = SAFER_LEVEL_HANDLE(INVALID_HANDLE_VALUE)
-    _SaferCreateLevel(dwScopeId, dwLevelId, OpenFlags, ctypes.byref(hLevelHandle), None)
+    _SaferCreateLevel(dwScopeId, dwLevelId, OpenFlags, byref(hLevelHandle), None)
     return SaferLevelHandle(hLevelHandle.value)
 
 # BOOL WINAPI SaferIdentifyLevel(
@@ -695,21 +695,21 @@ def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpRes
     # Returns a ctypes object. No handle wrapping is done.
     # The lpReserved argument should be a ctypes object too, or None.
     if (dwFlags & SAFER_TOKEN_MASK) != dwFlags:
-        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, lpReserved)
+        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, lpReserved)
         return TokenHandle(OutAccessToken.value)
 
     # Extra flags.
     if dwFlags | SAFER_TOKEN_WANT_FLAGS:
         if lpReserved is not None:
             raise ValueError("SaferComputeTokenFromLevel: lpReserved shouldn't be NULL for SAFER_TOKEN_WANT_FLAGS")
-        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, lpReserved)
+        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, lpReserved)
         return TokenHandle(OutAccessToken.value)
 
     # Only compare the token.
     if dwFlags | SAFER_TOKEN_COMPARE_ONLY:
         if lpReserved is None:
             lpReserved = LPVOID(None)
-            _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, ctypes.byref(lpReserved))
+            _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, byref(lpReserved))
             return lpReserved.value
         _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, lpReserved)
         return None
@@ -717,7 +717,7 @@ def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpRes
     # Every other known flag.
     if lpReserved is not None:
         raise ValueError("SaferComputeTokenFromLevel: lpReserved must be NULL for these flags")
-    _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, ctypes.byref(OutAccessToken), dwFlags, None)
+    _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, None)
     return TokenHandle(OutAccessToken.value)
 
 # BOOL WINAPI SaferCloseLevel(
@@ -789,7 +789,7 @@ def RegConnectRegistryA(lpMachineName = None, hKey = HKEY_LOCAL_MACHINE):
     _RegConnectRegistryA.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegConnectRegistryA(lpMachineName, hKey, ctypes.byref(hkResult))
+    _RegConnectRegistryA(lpMachineName, hKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 def RegConnectRegistryW(lpMachineName = None, hKey = HKEY_LOCAL_MACHINE):
@@ -799,7 +799,7 @@ def RegConnectRegistryW(lpMachineName = None, hKey = HKEY_LOCAL_MACHINE):
     _RegConnectRegistryW.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegConnectRegistryW(lpMachineName, hKey, ctypes.byref(hkResult))
+    _RegConnectRegistryW(lpMachineName, hKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 RegConnectRegistry = GuessStringType(RegConnectRegistryA, RegConnectRegistryW)
@@ -816,7 +816,7 @@ def RegCreateKeyA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
     _RegCreateKeyA.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegCreateKeyA(hKey, lpSubKey, ctypes.byref(hkResult))
+    _RegCreateKeyA(hKey, lpSubKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 def RegCreateKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
@@ -826,7 +826,7 @@ def RegCreateKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
     _RegCreateKeyW.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegCreateKeyW(hKey, lpSubKey, ctypes.byref(hkResult))
+    _RegCreateKeyW(hKey, lpSubKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 RegCreateKey = GuessStringType(RegCreateKeyA, RegCreateKeyW)
@@ -857,7 +857,7 @@ def RegOpenKeyA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
     _RegOpenKeyA.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenKeyA(hKey, lpSubKey, ctypes.byref(hkResult))
+    _RegOpenKeyA(hKey, lpSubKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 def RegOpenKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
@@ -867,7 +867,7 @@ def RegOpenKeyW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None):
     _RegOpenKeyW.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenKeyW(hKey, lpSubKey, ctypes.byref(hkResult))
+    _RegOpenKeyW(hKey, lpSubKey, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 RegOpenKey = GuessStringType(RegOpenKeyA, RegOpenKeyW)
@@ -886,7 +886,7 @@ def RegOpenKeyExA(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_A
     _RegOpenKeyExA.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenKeyExA(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
+    _RegOpenKeyExA(hKey, lpSubKey, 0, samDesired, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 def RegOpenKeyExW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_ALL_ACCESS):
@@ -896,7 +896,7 @@ def RegOpenKeyExW(hKey = HKEY_LOCAL_MACHINE, lpSubKey = None, samDesired = KEY_A
     _RegOpenKeyExW.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenKeyExW(hKey, lpSubKey, 0, samDesired, ctypes.byref(hkResult))
+    _RegOpenKeyExW(hKey, lpSubKey, 0, samDesired, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 RegOpenKeyEx = GuessStringType(RegOpenKeyExA, RegOpenKeyExW)
@@ -912,7 +912,7 @@ def RegOpenCurrentUser(samDesired = KEY_ALL_ACCESS):
     _RegOpenCurrentUser.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenCurrentUser(samDesired, ctypes.byref(hkResult))
+    _RegOpenCurrentUser(samDesired, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 # LONG WINAPI RegOpenUserClassesRoot(
@@ -928,7 +928,7 @@ def RegOpenUserClassesRoot(hToken, samDesired = KEY_ALL_ACCESS):
     _RegOpenUserClassesRoot.errcheck = RaiseIfNotErrorSuccess
 
     hkResult = HKEY(INVALID_HANDLE_VALUE)
-    _RegOpenUserClassesRoot(hToken, 0, samDesired, ctypes.byref(hkResult))
+    _RegOpenUserClassesRoot(hToken, 0, samDesired, byref(hkResult))
     return RegistryKeyHandle(hkResult.value)
 
 # LONG WINAPI RegQueryValue(
@@ -944,9 +944,9 @@ def RegQueryValueA(hKey, lpSubKey = None):
     _RegQueryValueA.errcheck = RaiseIfNotErrorSuccess
 
     cbValue = LONG(0)
-    _RegQueryValueA(hKey, lpSubKey, None, ctypes.byref(cbValue))
+    _RegQueryValueA(hKey, lpSubKey, None, byref(cbValue))
     lpValue = ctypes.create_string_buffer(cbValue.value)
-    _RegQueryValueA(hKey, lpSubKey, lpValue, ctypes.byref(cbValue))
+    _RegQueryValueA(hKey, lpSubKey, lpValue, byref(cbValue))
     return lpValue.value
 
 def RegQueryValueW(hKey, lpSubKey = None):
@@ -956,9 +956,9 @@ def RegQueryValueW(hKey, lpSubKey = None):
     _RegQueryValueW.errcheck = RaiseIfNotErrorSuccess
 
     cbValue = LONG(0)
-    _RegQueryValueW(hKey, lpSubKey, None, ctypes.byref(cbValue))
+    _RegQueryValueW(hKey, lpSubKey, None, byref(cbValue))
     lpValue = ctypes.create_unicode_buffer(cbValue.value * sizeof(WCHAR))
-    _RegQueryValueW(hKey, lpSubKey, lpValue, ctypes.byref(cbValue))
+    _RegQueryValueW(hKey, lpSubKey, lpValue, byref(cbValue))
     return lpValue.value
 
 RegQueryValue = GuessStringType(RegQueryValueA, RegQueryValueW)
@@ -976,7 +976,7 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
 
     cbData = DWORD(0)
     dwType = DWORD(-1)
-    _RegQueryValueEx(hKey, lpValueName, None, ctypes.byref(dwType), None, ctypes.byref(cbData))
+    _RegQueryValueEx(hKey, lpValueName, None, byref(dwType), None, byref(cbData))
     Type = dwType.value
 
     if not bGetData:
@@ -986,14 +986,14 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
         if cbData.value != 4:
             raise ValueError("REG_DWORD value of size %d" % cbData.value)
         dwData = DWORD(0)
-        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(dwData), ctypes.byref(cbData))
+        _RegQueryValueEx(hKey, lpValueName, None, None, byref(dwData), byref(cbData))
         return dwData.value, Type
 
     if Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
         if cbData.value != 8:
             raise ValueError("REG_QWORD value of size %d" % cbData.value)
         qwData = QWORD(0L)
-        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(qwData), ctypes.byref(cbData))
+        _RegQueryValueEx(hKey, lpValueName, None, None, byref(qwData), byref(cbData))
         return qwData.value, Type
 
     if Type in (REG_SZ, REG_EXPAND_SZ):
@@ -1001,7 +1001,7 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
             szData = ctypes.create_string_buffer(cbData.value)
         else:
             szData = ctypes.create_unicode_buffer(cbData.value)
-        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        _RegQueryValueEx(hKey, lpValueName, None, None, byref(szData), byref(cbData))
         return szData.value, Type
 
     if Type == REG_MULTI_SZ:
@@ -1009,7 +1009,7 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
             szData = ctypes.create_string_buffer(cbData.value)
         else:
             szData = ctypes.create_unicode_buffer(cbData.value)
-        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        _RegQueryValueEx(hKey, lpValueName, None, None, byref(szData), byref(cbData))
         Data = szData[:]
         if ansi:
             aData = Data.split('\0')
@@ -1020,12 +1020,12 @@ def _internal_RegQueryValueEx(ansi, hKey, lpValueName = None, bGetData = True):
 
     if Type == REG_LINK:
         szData = ctypes.create_unicode_buffer(cbData.value)
-        _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+        _RegQueryValueEx(hKey, lpValueName, None, None, byref(szData), byref(cbData))
         return szData.value, Type
 
     # REG_BINARY, REG_NONE, and any future types
     szData = ctypes.create_string_buffer(cbData.value)
-    _RegQueryValueEx(hKey, lpValueName, None, None, ctypes.byref(szData), ctypes.byref(cbData))
+    _RegQueryValueEx(hKey, lpValueName, None, None, byref(szData), byref(cbData))
     return szData.raw, Type
 
 def _caller_RegQueryValueEx(ansi):
@@ -1125,8 +1125,8 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
             Data = ctypes.create_unicode_buffer(lpData)
         else:
             Data = ctypes.create_string_buffer(lpData)
-        DataRef  = ctypes.byref(Data)
-        DataSize = ctypes.sizeof(Data)
+        DataRef  = byref(Data)
+        DataSize = sizeof(Data)
 
     # Call the API with the converted arguments.
     _RegSetValueEx(hKey, lpValueName, 0, dwType, DataRef, DataSize)
@@ -1216,15 +1216,15 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
 
     cchValueName = DWORD(1024)
     dwType = DWORD(-1)
-    lpcchValueName = ctypes.byref(cchValueName)
-    lpType = ctypes.byref(dwType)
+    lpcchValueName = byref(cchValueName)
+    lpType = byref(dwType)
     if ansi:
         lpValueName = ctypes.create_string_buffer(cchValueName.value)
     else:
         lpValueName = ctypes.create_unicode_buffer(cchValueName.value)
     if bGetData:
         cbData = DWORD(0)
-        lpcbData = ctypes.byref(cbData)
+        lpcbData = byref(cbData)
     else:
         lpcbData = None
     lpData = None
@@ -1232,22 +1232,22 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
 
     if errcode == ERROR_MORE_DATA or (bGetData and errcode == ERROR_SUCCESS):
         if ansi:
-            cchValueName.value = cchValueName.value + ctypes.sizeof(CHAR)
+            cchValueName.value = cchValueName.value + sizeof(CHAR)
             lpValueName = ctypes.create_string_buffer(cchValueName.value)
         else:
-            cchValueName.value = cchValueName.value + ctypes.sizeof(WCHAR)
+            cchValueName.value = cchValueName.value + sizeof(WCHAR)
             lpValueName = ctypes.create_unicode_buffer(cchValueName.value)
 
         if bGetData:
             Type = dwType.value
 
             if Type in (REG_DWORD, REG_DWORD_BIG_ENDIAN):   # REG_DWORD_LITTLE_ENDIAN
-                if cbData.value != ctypes.sizeof(DWORD):
+                if cbData.value != sizeof(DWORD):
                     raise ValueError("REG_DWORD value of size %d" % cbData.value)
                 Data = DWORD(0)
 
             elif Type == REG_QWORD:   # REG_QWORD_LITTLE_ENDIAN
-                if cbData.value != ctypes.sizeof(QWORD):
+                if cbData.value != sizeof(QWORD):
                     raise ValueError("REG_QWORD value of size %d" % cbData.value)
                 Data = QWORD(0L)
 
@@ -1263,7 +1263,7 @@ def _internal_RegEnumValue(ansi, hKey, dwIndex, bGetData = True):
             else:       # REG_BINARY, REG_NONE, and any future types
                 Data = ctypes.create_string_buffer(cbData.value)
 
-            lpData = ctypes.byref(Data)
+            lpData = byref(Data)
 
         errcode = _RegEnumValue(hKey, dwIndex, lpValueName, lpcchValueName, None, lpType, lpData, lpcbData)
 

@@ -302,8 +302,8 @@ class HexOutput (StaticClass):
         This value is platform dependent.
     """
 
-    integer_size = len('%x' % (win32.DWORD(-1).value))+2
-    address_size = len('%x' % (win32.SIZE_T(-1).value))+2
+    integer_size = (win32.SIZEOF(win32.DWORD)  * 2) + 2
+    address_size = (win32.SIZEOF(win32.SIZE_T) * 2) + 2
 
     @classmethod
     def integer(cls, integer, integer_size = None):
@@ -440,8 +440,8 @@ class HexDump (StaticClass):
         This value is platform dependent.
     """
 
-    integer_size = len('%x' % (win32.DWORD(-1).value))
-    address_size = len('%x' % (win32.SIZE_T(-1).value))
+    integer_size = (win32.SIZEOF(win32.DWORD)  * 2)
+    address_size = (win32.SIZEOF(win32.SIZE_T) * 2)
 
     @classmethod
     def integer(cls, integer, integer_size = None):

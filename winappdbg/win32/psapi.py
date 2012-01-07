@@ -74,7 +74,7 @@ def EnumDeviceDrivers():
     unit       = sizeof(LPVOID)
     while 1:
         lpImageBase = (LPVOID * (size // unit))()
-        _EnumDeviceDrivers(ctypes.byref(lpImageBase), lpcbNeeded, ctypes.byref(lpcbNeeded))
+        _EnumDeviceDrivers(byref(lpImageBase), lpcbNeeded, byref(lpcbNeeded))
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -98,7 +98,7 @@ def EnumProcesses():
     while 1:
         ProcessIds = (DWORD * (size // unit))()
         cbBytesReturned.value = size
-        _EnumProcesses(ctypes.byref(ProcessIds), cbBytesReturned, ctypes.byref(cbBytesReturned))
+        _EnumProcesses(byref(ProcessIds), cbBytesReturned, byref(cbBytesReturned))
         returned = cbBytesReturned.value
         if returned < size:
             break
@@ -127,7 +127,7 @@ def EnumProcessModules(hProcess):
     unit = sizeof(HMODULE)
     while 1:
         lphModule = (HMODULE * (size // unit))()
-        _EnumProcessModules(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded))
+        _EnumProcessModules(hProcess, byref(lphModule), lpcbNeeded, byref(lpcbNeeded))
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -152,7 +152,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
     unit = sizeof(HMODULE)
     while 1:
         lphModule = (HMODULE * (size // unit))()
-        _EnumProcessModulesEx(hProcess, ctypes.byref(lphModule), lpcbNeeded, ctypes.byref(lpcbNeeded), dwFilterFlag)
+        _EnumProcessModulesEx(hProcess, byref(lphModule), lpcbNeeded, byref(lpcbNeeded), dwFilterFlag)
         needed = lpcbNeeded.value
         if needed <= size:
             break
@@ -331,7 +331,7 @@ def GetModuleInformation(hProcess, hModule, lpmodinfo = None):
 
     if lpmodinfo is None:
         lpmodinfo = MODULEINFO()
-    _GetModuleInformation(hProcess, hModule, ctypes.byref(lpmodinfo), sizeof(lpmodinfo))
+    _GetModuleInformation(hProcess, hModule, byref(lpmodinfo), sizeof(lpmodinfo))
     return lpmodinfo
 
 # DWORD WINAPI GetProcessImageFileName(

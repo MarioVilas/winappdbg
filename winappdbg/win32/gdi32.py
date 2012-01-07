@@ -433,37 +433,37 @@ def GetObject(hgdiobj, cbBuffer = None, lpvObject = None):
         if lpvObject is None:
             lpvObject = ctypes.create_string_buffer("", cbBuffer)
     elif lpvObject is not None:
-        cbBuffer = ctypes.sizeof(lpvObject)
+        cbBuffer = sizeof(lpvObject)
     else: # most likely case, both are None
         t = GetObjectType(hgdiobj)
         if   t == OBJ_PEN:
-            cbBuffer  = ctypes.sizeof(LOGPEN)
+            cbBuffer  = sizeof(LOGPEN)
             lpvObject = LOGPEN()
         elif t == OBJ_BRUSH:
-            cbBuffer  = ctypes.sizeof(LOGBRUSH)
+            cbBuffer  = sizeof(LOGBRUSH)
             lpvObject = LOGBRUSH()
         elif t == OBJ_PAL:
             cbBuffer  = _GetObject(hgdiobj, 0, None)
-            lpvObject = (WORD * (cbBuffer // ctypes.sizeof(WORD)))()
+            lpvObject = (WORD * (cbBuffer // sizeof(WORD)))()
         elif t == OBJ_FONT:
-            cbBuffer  = ctypes.sizeof(LOGFONT)
+            cbBuffer  = sizeof(LOGFONT)
             lpvObject = LOGFONT()
         elif t == OBJ_BITMAP:  # try the two possible types of bitmap
-            cbBuffer  = ctypes.sizeof(DIBSECTION)
+            cbBuffer  = sizeof(DIBSECTION)
             lpvObject = DIBSECTION()
             try:
-                _GetObject(hgdiobj, cbBuffer, ctypes.byref(lpvObject))
+                _GetObject(hgdiobj, cbBuffer, byref(lpvObject))
                 return lpvObject
             except WindowsError:
-                cbBuffer  = ctypes.sizeof(BITMAP)
+                cbBuffer  = sizeof(BITMAP)
                 lpvObject = BITMAP()
         elif t == OBJ_EXTPEN:
-            cbBuffer  = ctypes.sizeof(LOGEXTPEN)
+            cbBuffer  = sizeof(LOGEXTPEN)
             lpvObject = LOGEXTPEN()
         else:
             cbBuffer  = _GetObject(hgdiobj, 0, None)
             lpvObject = ctypes.create_string_buffer("", cbBuffer)
-    _GetObject(hgdiobj, cbBuffer, ctypes.byref(lpvObject))
+    _GetObject(hgdiobj, cbBuffer, byref(lpvObject))
     return lpvObject
 
 # LONG GetBitmapBits(
@@ -480,7 +480,7 @@ def GetBitmapBits(hbmp):
     bitmap   = GetObject(hbmp, lpvObject = BITMAP())
     cbBuffer = bitmap.bmWidthBytes * bitmap.bmHeight
     lpvBits  = ctypes.create_string_buffer("", cbBuffer)
-    _GetBitmapBits(hbmp, cbBuffer, ctypes.byref(lpvBits))
+    _GetBitmapBits(hbmp, cbBuffer, byref(lpvBits))
     return lpvBits.raw
 
 # HBITMAP CreateBitmapIndirect(

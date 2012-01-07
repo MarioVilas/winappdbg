@@ -396,7 +396,7 @@ def GetThreadSelectorEntry(hThread, dwSelector):
     _GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     ldt = LDT_ENTRY()
-    _GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
+    _GetThreadSelectorEntry(hThread, dwSelector, byref(ldt))
     return ldt
 
 # BOOL WINAPI GetThreadContext(
@@ -413,7 +413,7 @@ def GetThreadContext(hThread, ContextFlags = None):
         ContextFlags = CONTEXT_ALL
     lpContext = CONTEXT()
     lpContext.ContextFlags = ContextFlags
-    _GetThreadContext(hThread, ctypes.byref(lpContext))
+    _GetThreadContext(hThread, byref(lpContext))
     return lpContext.to_dict()
 
 # BOOL WINAPI SetThreadContext(
@@ -428,4 +428,4 @@ def SetThreadContext(hThread, lpContext):
 
     if isinstance(lpContext, dict):
         lpContext = CONTEXT.from_dict(lpContext)
-    _SetThreadContext(hThread, ctypes.byref(lpContext))
+    _SetThreadContext(hThread, byref(lpContext))

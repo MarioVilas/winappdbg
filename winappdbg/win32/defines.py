@@ -44,6 +44,7 @@ except ImportError:
 #------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.
+addressof   = ctypes.addressof
 sizeof      = ctypes.sizeof
 SIZEOF      = ctypes.sizeof
 POINTER     = ctypes.POINTER
@@ -51,6 +52,14 @@ Structure   = ctypes.Structure
 Union       = ctypes.Union
 WINFUNCTYPE = ctypes.WINFUNCTYPE
 windll      = ctypes.windll
+
+# The IronPython implementation of byref() was giving me problems,
+# so I'm replacing it with the slower pointer() function.
+try:
+    ctypes.c_void_p(ctypes.byref(ctypes.c_char()))  # this fails in IronPython
+    byref = ctypes.byref
+except TypeError:
+    byref = ctypes.pointer
 
 #------------------------------------------------------------------------------
 
@@ -523,7 +532,16 @@ FALSE       = 0
 # http://blogs.msdn.com/oldnewthing/archive/2004/08/26/220873.aspx
 ANYSIZE_ARRAY = 1
 
-INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value #-1 #0xFFFFFFFF
+# Invalid handle value is -1 casted to void pointer.
+try:
+    INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value #-1 #0xFFFFFFFF
+except TypeError:
+    if sizeof(ctypes.c_void_p) == 4:
+        INVALID_HANDLE_VALUE = 0xFFFFFFFF
+    elif sizeof(ctypes.c_void_p) == 8:
+        INVALID_HANDLE_VALUE = 0xFFFFFFFFFFFFFFFF
+    else:
+        raise
 
 MAX_MODULE_NAME32   = 255
 MAX_PATH            = 260

@@ -400,7 +400,7 @@ def SymGetModuleInfoA(hProcess, dwAddr):
 
     ModuleInfo = IMAGEHLP_MODULE()
     ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfo(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    _SymGetModuleInfo(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
 def SymGetModuleInfoW(hProcess, dwAddr):
@@ -411,7 +411,7 @@ def SymGetModuleInfoW(hProcess, dwAddr):
 
     ModuleInfo = IMAGEHLP_MODULEW()
     ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfoW(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    _SymGetModuleInfoW(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
 SymGetModuleInfo = GuessStringType(SymGetModuleInfoA, SymGetModuleInfoW)
@@ -429,7 +429,7 @@ def SymGetModuleInfo64A(hProcess, dwAddr):
 
     ModuleInfo = IMAGEHLP_MODULE64()
     ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfo64(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    _SymGetModuleInfo64(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
 def SymGetModuleInfo64W(hProcess, dwAddr):
@@ -440,7 +440,7 @@ def SymGetModuleInfo64W(hProcess, dwAddr):
 
     ModuleInfo = IMAGEHLP_MODULE64W()
     ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfo64W(hProcess, dwAddr, ctypes.byref(ModuleInfo))
+    _SymGetModuleInfo64W(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
 SymGetModuleInfo64 = GuessStringType(SymGetModuleInfo64A, SymGetModuleInfo64W)
@@ -821,7 +821,7 @@ def SymFromName(hProcess, Name):
     SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFO) in C.
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
-    _SymFromNameA(hProcess, Name, ctypes.byref(SymInfo))
+    _SymFromNameA(hProcess, Name, byref(SymInfo))
 
     return SymInfo
 
@@ -835,7 +835,7 @@ def SymFromNameW(hProcess, Name):
     SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFOW) in C.
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
-    _SymFromNameW(hProcess, Name, ctypes.byref(SymInfo))
+    _SymFromNameW(hProcess, Name, byref(SymInfo))
 
     return SymInfo
 
@@ -858,7 +858,7 @@ def SymFromAddr(hProcess, Address):
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
-    _SymFromAddr(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(SymInfo))
+    _SymFromAddr(hProcess, Address, byref(Displacement), byref(SymInfo))
 
     return (Displacement.value, SymInfo)
 
@@ -873,7 +873,7 @@ def SymFromAddrW(hProcess, Address):
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
-    _SymFromAddr(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(SymInfo))
+    _SymFromAddr(hProcess, Address, byref(Displacement), byref(SymInfo))
 
     return (Displacement.value, SymInfo)
 
@@ -938,7 +938,7 @@ def SymGetSymFromAddr64(hProcess, Address):
     imagehlp_symbol64.MaxNameLen = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
-    _SymGetSymFromAddr64(hProcess, Address, ctypes.byref(Displacement), ctypes.byref(imagehlp_symbol64))
+    _SymGetSymFromAddr64(hProcess, Address, byref(Displacement), byref(imagehlp_symbol64))
 
     return (Displacement.value, imagehlp_symbol64)
 
@@ -986,7 +986,7 @@ def ImagehlpApiVersionEx(MajorVersion, MinorVersion, Revision):
 
     api_version = API_VERSION(MajorVersion, MinorVersion, Revision, 0)
 
-    ret_api_version = _ImagehlpApiVersionEx(ctypes.byref(api_version))
+    ret_api_version = _ImagehlpApiVersionEx(byref(api_version))
 
     return ret_api_version.contents
 

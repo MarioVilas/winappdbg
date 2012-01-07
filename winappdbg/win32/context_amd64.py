@@ -629,7 +629,7 @@ def GetThreadSelectorEntry(hThread, dwSelector):
     _GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     ldt = LDT_ENTRY()
-    _GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(ldt))
+    _GetThreadSelectorEntry(hThread, dwSelector, byref(ldt))
     return ldt
 
 # BOOL WINAPI GetThreadContext(
@@ -646,7 +646,7 @@ def GetThreadContext(hThread, ContextFlags = None):
         ContextFlags = CONTEXT_ALL
     lpContext = CONTEXT()
     lpContext.ContextFlags = ContextFlags
-    _GetThreadContext(hThread, ctypes.byref(lpContext))
+    _GetThreadContext(hThread, byref(lpContext))
     return lpContext.to_dict()
 
 # BOOL WINAPI SetThreadContext(
@@ -661,7 +661,7 @@ def SetThreadContext(hThread, lpContext):
 
     if isinstance(lpContext, dict):
         lpContext = CONTEXT.from_dict(lpContext)
-    _SetThreadContext(hThread, ctypes.byref(lpContext))
+    _SetThreadContext(hThread, byref(lpContext))
 
 # BOOL Wow64GetThreadSelectorEntry(
 #   __in   HANDLE hThread,
@@ -675,7 +675,7 @@ def Wow64GetThreadSelectorEntry(hThread, dwSelector):
     _Wow64GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     lpSelectorEntry = WOW64_LDT_ENTRY()
-    _Wow64GetThreadSelectorEntry(hThread, dwSelector, ctypes.byref(lpSelectorEntry))
+    _Wow64GetThreadSelectorEntry(hThread, dwSelector, byref(lpSelectorEntry))
     return lpSelectorEntry
 
 # DWORD WINAPI Wow64ResumeThread(
@@ -727,7 +727,7 @@ def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
             lpContext.ContextFlags = ContextFlags
     elif ContextFlags is not None:
         lpContext.ContextFlags = ContextFlags
-    _Wow64GetThreadContext(hThread, ctypes.byref(lpContext))
+    _Wow64GetThreadContext(hThread, byref(lpContext))
     return lpContext.to_dict()
 
 # BOOL WINAPI Wow64SetThreadContext(
@@ -744,4 +744,4 @@ def Wow64SetThreadContext(hThread, lpContext):
 
     if isinstance(lpContext, dict):
         lpContext = WOW64_CONTEXT.from_dict(lpContext)
-    _Wow64SetThreadContext(hThread, ctypes.byref(lpContext))
+    _Wow64SetThreadContext(hThread, byref(lpContext))

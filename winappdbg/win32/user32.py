@@ -638,7 +638,7 @@ class WindowPlacement(psyobj):
         Allows passing transparently a Point object to an API call.
         """
         wp                          = WINDOWPLACEMENT()
-        wp.length                   = ctypes.sizeof(wp)
+        wp.length                   = sizeof(wp)
         wp.flags                    = self.flags
         wp.showCmd                  = self.showCmd
         wp.ptMinPosition.x          = self.ptMinPosition.x
@@ -772,7 +772,7 @@ def GetWindowThreadProcessId(hWnd):
     _GetWindowThreadProcessId.errcheck = RaiseIfZero
 
     dwProcessId = DWORD(0)
-    dwThreadId  = _GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
+    dwThreadId  = _GetWindowThreadProcessId(hWnd, byref(dwProcessId))
     return dwThreadId, dwProcessId.value
 
 # HWND GetParent(
@@ -901,7 +901,7 @@ def GetWindowThreadProcessId(hWnd):
     _GetWindowThreadProcessId.errcheck = RaiseIfZero
 
     dwProcessId = DWORD(0)
-    dwThreadId = _GetWindowThreadProcessId(hWnd, ctypes.byref(dwProcessId))
+    dwThreadId = _GetWindowThreadProcessId(hWnd, byref(dwProcessId))
     return (dwThreadId, dwProcessId)
 
 # HWND WindowFromPoint(
@@ -956,7 +956,7 @@ def ScreenToClient(hWnd, lpPoint):
         lpPoint = POINT(*lpPoint)
     else:
         lpPoint = POINT(lpPoint.x, lpPoint.y)
-    _ScreenToClient(hWnd, ctypes.byref(lpPoint))
+    _ScreenToClient(hWnd, byref(lpPoint))
     return Point(lpPoint.x, lpPoint.y)
 
 # BOOL ClientToScreen(
@@ -973,7 +973,7 @@ def ClientToScreen(hWnd, lpPoint):
         lpPoint = POINT(*lpPoint)
     else:
         lpPoint = POINT(lpPoint.x, lpPoint.y)
-    _ClientToScreen(hWnd, ctypes.byref(lpPoint))
+    _ClientToScreen(hWnd, byref(lpPoint))
     return Point(lpPoint.x, lpPoint.y)
 
 # int MapWindowPoints(
@@ -990,7 +990,7 @@ def MapWindowPoints(hWndFrom, hWndTo, lpPoints):
     cPoints  = len(lpPoints)
     lpPoints = (POINT * cPoints)(* lpPoints)
     SetLastError(ERROR_SUCCESS)
-    number   = _MapWindowPoints(hWndFrom, hWndTo, ctypes.byref(lpPoints), cPoints)
+    number   = _MapWindowPoints(hWndFrom, hWndTo, byref(lpPoints), cPoints)
     if number == 0:
         errcode = GetLastError()
         if errcode != ERROR_SUCCESS:
@@ -1020,8 +1020,8 @@ def GetWindowPlacement(hWnd):
     _GetWindowPlacement.errcheck = RaiseIfZero
 
     lpwndpl = WINDOWPLACEMENT()
-    lpwndpl.length = ctypes.sizeof(lpwndpl)
-    _GetWindowPlacement(hWnd, ctypes.byref(lpwndpl))
+    lpwndpl.length = sizeof(lpwndpl)
+    _GetWindowPlacement(hWnd, byref(lpwndpl))
     return WindowPlacement(lpwndpl)
 
 # BOOL SetWindowPlacement(
@@ -1035,8 +1035,8 @@ def SetWindowPlacement(hWnd, lpwndpl):
     _SetWindowPlacement.errcheck = RaiseIfZero
 
     if isinstance(lpwndpl, WINDOWPLACEMENT):
-        lpwndpl.length = ctypes.sizeof(lpwndpl)
-    _SetWindowPlacement(hWnd, ctypes.byref(lpwndpl))
+        lpwndpl.length = sizeof(lpwndpl)
+    _SetWindowPlacement(hWnd, byref(lpwndpl))
 
 #BOOL MoveWindow(
 #    HWND hWnd,
@@ -1064,7 +1064,7 @@ def GetGUIThreadInfo(idThread):
     _GetGUIThreadInfo.errcheck = RaiseIfZero
 
     gui = GUITHREADINFO()
-    _GetGUIThreadInfo(idThread, ctypes.byref(gui))
+    _GetGUIThreadInfo(idThread, byref(gui))
     return gui
 
 # BOOL CALLBACK EnumWndProc(
@@ -1241,7 +1241,7 @@ def SendMessageTimeoutA(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout
     wParam = MAKE_WPARAM(wParam)
     lParam = MAKE_LPARAM(lParam)
     dwResult = DWORD(0)
-    _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, byref(dwResult))
     return dwResult.value
 
 def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
@@ -1253,7 +1253,7 @@ def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
     wParam = MAKE_WPARAM(wParam)
     lParam = MAKE_LPARAM(lParam)
     dwResult = DWORD(0)
-    _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, ctypes.byref(dwResult))
+    _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, byref(dwResult))
     return dwResult.value
 
 SendMessageTimeout = GuessStringType(SendMessageTimeoutA, SendMessageTimeoutW)

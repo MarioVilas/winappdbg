@@ -1874,7 +1874,7 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
     if hTargetProcessHandle is None:
         hTargetProcessHandle = hSourceProcessHandle
     lpTargetHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, ctypes.byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
+    _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
     if isinstance(hSourceHandle, Handle):
         HandleClass = hSourceHandle.__class__
     else:
@@ -1912,7 +1912,7 @@ def GetDllDirectoryA():
     if nBufferLength == 0:
         return None
     lpBuffer = ctypes.create_string_buffer("", nBufferLength)
-    _GetDllDirectoryA(nBufferLength, ctypes.byref(lpBuffer))
+    _GetDllDirectoryA(nBufferLength, byref(lpBuffer))
     return lpBuffer.value
 
 def GetDllDirectoryW():
@@ -1924,7 +1924,7 @@ def GetDllDirectoryW():
     if nBufferLength == 0:
         return None
     lpBuffer = ctypes.create_unicode_buffer(u"", nBufferLength)
-    _GetDllDirectoryW(nBufferLength, ctypes.byref(lpBuffer))
+    _GetDllDirectoryW(nBufferLength, byref(lpBuffer))
     return lpBuffer.value
 
 GetDllDirectory = GuessStringType(GetDllDirectoryA, GetDllDirectoryW)
@@ -2069,7 +2069,7 @@ def QueryFullProcessImageNameA(hProcess, dwFlags = 0):
     while 1:
         lpdwSize = DWORD(dwSize)
         lpExeName = ctypes.create_string_buffer('', lpdwSize.value + 1)
-        success = _QueryFullProcessImageNameA(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
+        success = _QueryFullProcessImageNameA(hProcess, dwFlags, lpExeName, byref(lpdwSize))
         if success and 0 < lpdwSize.value < dwSize:
             break
         error = GetLastError()
@@ -2091,7 +2091,7 @@ def QueryFullProcessImageNameW(hProcess, dwFlags = 0):
     while 1:
         lpdwSize = DWORD(dwSize)
         lpExeName = ctypes.create_unicode_buffer('', lpdwSize.value + 1)
-        success = _QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, ctypes.byref(lpdwSize))
+        success = _QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, byref(lpdwSize))
         if success and 0 < lpdwSize.value < dwSize:
             break
         error = GetLastError()
@@ -2120,8 +2120,8 @@ def GetLogicalDriveStringsA():
     lpBuffer = ctypes.create_string_buffer('', nBufferLength)
     _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
     drive_strings = list()
-    string_p = ctypes.addressof(lpBuffer)
-    sizeof_char = ctypes.sizeof(ctypes.c_char)
+    string_p = addressof(lpBuffer)
+    sizeof_char = sizeof(ctypes.c_char)
     while True:
         string_v = ctypes.string_at(string_p)
         if string_v == '':
@@ -2140,8 +2140,8 @@ def GetLogicalDriveStringsW():
     lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
     _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
     drive_strings = list()
-    string_p = ctypes.addressof(lpBuffer)
-    sizeof_wchar = ctypes.sizeof(ctypes.c_wchar)
+    string_p = addressof(lpBuffer)
+    sizeof_wchar = sizeof(ctypes.c_wchar)
     while True:
         string_v = ctypes.wstring_at(string_p)
         if string_v == u'':
@@ -2399,7 +2399,7 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
     nBufferLength = _SearchPathA(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_string_buffer('', nBufferLength + 1)
     lpFilePart = LPSTR()
-    _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
     if lpBuffer == '':
@@ -2421,7 +2421,7 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
     nBufferLength = _SearchPathW(lpPath, lpFileName, lpExtension, 0, None, None)
     lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
     lpFilePart = LPWSTR()
-    _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
     if lpBuffer == u'':
@@ -2465,7 +2465,7 @@ def DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBu
     if lpOverlapped:
         lpOverlapped = ctypes.pointer(lpOverlapped)
     lpBytesReturned = DWORD(0)
-    _DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, ctypes.byref(lpBytesReturned), lpOverlapped)
+    _DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, byref(lpBytesReturned), lpOverlapped)
     return lpBytesReturned.value
 
 # BOOL GetFileInformationByHandle(
@@ -2479,7 +2479,7 @@ def GetFileInformationByHandle(hFile):
     _GetFileInformationByHandle.errcheck = RaiseIfZero
 
     lpFileInformation = BY_HANDLE_FILE_INFORMATION()
-    _GetFileInformationByHandle(hFile, ctypes.byref(lpFileInformation))
+    _GetFileInformationByHandle(hFile, byref(lpFileInformation))
     return lpFileInformation
 
 # BOOL WINAPI GetFileInformationByHandleEx(
@@ -2496,7 +2496,7 @@ def GetFileInformationByHandleEx(hFile, FileInformationClass, lpFileInformation,
     # XXX TODO
     # support each FileInformationClass so the function can allocate the
     # corresponding structure for the lpFileInformation parameter
-    _GetFileInformationByHandleEx(hFile, FileInformationClass, ctypes.byref(lpFileInformation), dwBufferSize)
+    _GetFileInformationByHandleEx(hFile, FileInformationClass, byref(lpFileInformation), dwBufferSize)
 
 # DWORD WINAPI GetFinalPathNameByHandle(
 #   __in   HANDLE hFile,
@@ -2550,7 +2550,7 @@ def GetFullPathNameA(lpFileName):
         raise ctypes.WinError()
     lpBuffer   = ctypes.create_string_buffer('', nBufferLength + 1)
     lpFilePart = LPSTR
-    nCopied = _GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    nCopied = _GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
     return lpBuffer.value, lpFilePart.value
@@ -2565,7 +2565,7 @@ def GetFullPathNameW(lpFileName):
         raise ctypes.WinError()
     lpBuffer   = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
     lpFilePart = LPSTR
-    nCopied = _GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, ctypes.byref(lpFilePart))
+    nCopied = _GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
     return lpBuffer.value, lpFilePart.value
@@ -2786,12 +2786,12 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
     lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if dwMilliseconds != INFINITE:
-        r = _WaitForMultipleObjects(ctypes.byref(lpHandles), bool(bWaitAll), dwMilliseconds)
+        r = _WaitForMultipleObjects(byref(lpHandles), bool(bWaitAll), dwMilliseconds)
         if r == WAIT_FAILED:
             raise ctypes.WinError()
     else:
         while 1:
-            r = _WaitForMultipleObjects(ctypes.byref(lpHandles), bool(bWaitAll), 100)
+            r = _WaitForMultipleObjects(byref(lpHandles), bool(bWaitAll), 100)
             if r == WAIT_FAILED:
                 raise ctypes.WinError()
             if r != WAIT_TIMEOUT:
@@ -2816,12 +2816,12 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
     lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if dwMilliseconds != INFINITE:
-        r = _WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bool(bWaitAll), dwMilliseconds, bool(bAlertable))
+        r = _WaitForMultipleObjectsEx(byref(lpHandles), bool(bWaitAll), dwMilliseconds, bool(bAlertable))
         if r == WAIT_FAILED:
             raise ctypes.WinError()
     else:
         while 1:
-            r = _WaitForMultipleObjectsEx(ctypes.byref(lpHandles), bool(bWaitAll), 100, bool(bAlertable))
+            r = _WaitForMultipleObjectsEx(byref(lpHandles), bool(bWaitAll), 100, bool(bAlertable))
             if r == WAIT_FAILED:
                 raise ctypes.WinError()
             if r != WAIT_TIMEOUT:
@@ -2847,13 +2847,13 @@ def WaitForDebugEvent(dwMilliseconds = INFINITE):
     lpDebugEvent.dwProcessId      = 0
     lpDebugEvent.dwThreadId       = 0
     if dwMilliseconds != INFINITE:
-        success = _WaitForDebugEvent(ctypes.byref(lpDebugEvent), dwMilliseconds)
+        success = _WaitForDebugEvent(byref(lpDebugEvent), dwMilliseconds)
         if success == 0:
             raise ctypes.WinError()
     else:
         # this avoids locking the Python GIL for too long
         while 1:
-            success = _WaitForDebugEvent(ctypes.byref(lpDebugEvent), 100)
+            success = _WaitForDebugEvent(byref(lpDebugEvent), 100)
             if success != 0:
                 break
             code = GetLastError()
@@ -2917,7 +2917,7 @@ def CheckRemoteDebuggerPresent(hProcess):
     _CheckRemoteDebuggerPresent.errcheck = RaiseIfZero
 
     pbDebuggerPresent = BOOL(0)
-    _CheckRemoteDebuggerPresent(hProcess, ctypes.byref(pbDebuggerPresent))
+    _CheckRemoteDebuggerPresent(hProcess, byref(pbDebuggerPresent))
     return bool(pbDebuggerPresent.value)
 
 # BOOL DebugSetProcessKillOnExit(
@@ -2971,7 +2971,7 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
 
     lpBuffer            = ctypes.create_string_buffer('', nSize)
     lpNumberOfBytesRead = SIZE_T(0)
-    success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesRead))
+    success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, byref(lpNumberOfBytesRead))
     if not success and GetLastError() != ERROR_PARTIAL_COPY:
         raise ctypes.WinError()
     return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
@@ -2991,7 +2991,7 @@ def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
     nSize                   = len(lpBuffer)
     lpBuffer                = ctypes.create_string_buffer(lpBuffer)
     lpNumberOfBytesWritten  = SIZE_T(0)
-    success = _WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, ctypes.byref(lpNumberOfBytesWritten))
+    success = _WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, byref(lpNumberOfBytesWritten))
     if not success and GetLastError() != ERROR_PARTIAL_COPY:
         raise ctypes.WinError()
     return lpNumberOfBytesWritten.value
@@ -3026,7 +3026,7 @@ def VirtualQueryEx(hProcess, lpAddress):
 
     lpBuffer  = MEMORY_BASIC_INFORMATION()
     dwLength  = sizeof(MEMORY_BASIC_INFORMATION)
-    success   = _VirtualQueryEx(hProcess, lpAddress, ctypes.byref(lpBuffer), dwLength)
+    success   = _VirtualQueryEx(hProcess, lpAddress, byref(lpBuffer), dwLength)
     if success == 0:
         raise ctypes.WinError()
     return MemoryBasicInformation(lpBuffer)
@@ -3045,7 +3045,7 @@ def VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect = PAGE_EXECUTE_RE
     _VirtualProtectEx.errcheck = RaiseIfZero
 
     flOldProtect = DWORD(0)
-    _VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, ctypes.byref(flOldProtect))
+    _VirtualProtectEx(hProcess, lpAddress, dwSize, flNewProtect, byref(flOldProtect))
     return flOldProtect.value
 
 # BOOL WINAPI VirtualFreeEx(
@@ -3078,9 +3078,9 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
     if not lpThreadAttributes:
         lpThreadAttributes = None
     else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+        lpThreadAttributes = byref(lpThreadAttributes)
     dwThreadId = DWORD(0)
-    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, ctypes.byref(dwThreadId))
+    hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, byref(dwThreadId))
     if hThread == INVALID_HANDLE_VALUE:
         raise ctypes.WinError()
     return ThreadHandle(hThread), dwThreadId.value
@@ -3121,11 +3121,11 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpProcessAttributes:
         lpProcessAttributes = None
     else:
-        lpProcessAttributes = ctypes.byref(lpProcessAttributes)
+        lpProcessAttributes = byref(lpProcessAttributes)
     if not lpThreadAttributes:
         lpThreadAttributes = None
     else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -3140,7 +3140,7 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
@@ -3164,11 +3164,11 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpProcessAttributes:
         lpProcessAttributes = None
     else:
-        lpProcessAttributes = ctypes.byref(lpProcessAttributes)
+        lpProcessAttributes = byref(lpProcessAttributes)
     if not lpThreadAttributes:
         lpThreadAttributes = None
     else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -3183,7 +3183,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 CreateProcess = GuessStringType(CreateProcessA, CreateProcessW)
@@ -3222,11 +3222,11 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpProcessAttributes:
         lpProcessAttributes = None
     else:
-        lpProcessAttributes = ctypes.byref(lpProcessAttributes)
+        lpProcessAttributes = byref(lpProcessAttributes)
     if not lpThreadAttributes:
         lpThreadAttributes = None
     else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -3241,7 +3241,7 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
@@ -3265,11 +3265,11 @@ def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpProcessAttributes:
         lpProcessAttributes = None
     else:
-        lpProcessAttributes = ctypes.byref(lpProcessAttributes)
+        lpProcessAttributes = byref(lpProcessAttributes)
     if not lpThreadAttributes:
         lpThreadAttributes = None
     else:
-        lpThreadAttributes = ctypes.byref(lpThreadAttributes)
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -3284,7 +3284,7 @@ def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProces
     lpProcessInformation.hThread      = INVALID_HANDLE_VALUE
     lpProcessInformation.dwProcessId  = 0
     lpProcessInformation.dwThreadId   = 0
-    _CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, ctypes.byref(lpStartupInfo), ctypes.byref(lpProcessInformation))
+    _CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
 CreateProcessAsUser = GuessStringType(CreateProcessAsUserA, CreateProcessAsUserW)
@@ -3301,10 +3301,10 @@ def InitializeProcThreadAttributeList(dwAttributeCount):
     _InitializeProcThreadAttributeList.restype  = bool
 
     Size = SIZE_T(0)
-    _InitializeProcThreadAttributeList(None, dwAttributeCount, 0, ctypes.byref(Size))
+    _InitializeProcThreadAttributeList(None, dwAttributeCount, 0, byref(Size))
     RaiseIfZero(Size.value)
     AttributeList = (BYTE * Size.value)()
-    success = _InitializeProcThreadAttributeList(ctypes.byref(AttributeList), dwAttributeCount, 0, ctypes.byref(Size))
+    success = _InitializeProcThreadAttributeList(byref(AttributeList), dwAttributeCount, 0, byref(Size))
     RaiseIfZero(success)
     return AttributeList
 
@@ -3324,8 +3324,8 @@ def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
     _UpdateProcThreadAttribute.errcheck = RaiseIfZero
 
     if cbSize is None:
-        cbSize = ctypes.sizeof(Value)
-    _UpdateProcThreadAttribute(ctypes.byref(lpAttributeList), 0, Attribute, ctypes.byref(Value), cbSize, None, None)
+        cbSize = sizeof(Value)
+    _UpdateProcThreadAttribute(byref(lpAttributeList), 0, Attribute, byref(Value), cbSize, None, None)
 
 # VOID WINAPI DeleteProcThreadAttributeList(
 #   __inout  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList
@@ -3333,7 +3333,7 @@ def UpdateProcThreadAttribute(lpAttributeList, Attribute, Value, cbSize = None):
 def DeleteProcThreadAttributeList(lpAttributeList):
     _DeleteProcThreadAttributeList = windll.kernel32.DeleteProcThreadAttributeList
     _DeleteProcThreadAttributeList.restype = None
-    _DeleteProcThreadAttributeList(ctypes.byref(lpAttributeList))
+    _DeleteProcThreadAttributeList(byref(lpAttributeList))
 
 # HANDLE WINAPI OpenProcess(
 #   __in  DWORD dwDesiredAccess,
@@ -3474,7 +3474,7 @@ def GetExitCodeProcess(hProcess):
     _GetExitCodeProcess.errcheck = RaiseIfZero
 
     lpExitCode = DWORD(0)
-    _GetExitCodeProcess(hProcess, ctypes.byref(lpExitCode))
+    _GetExitCodeProcess(hProcess, byref(lpExitCode))
     return lpExitCode.value
 
 # BOOL WINAPI GetExitCodeThread(
@@ -3488,7 +3488,7 @@ def GetExitCodeThread(hThread):
     _GetExitCodeThread.errcheck = RaiseIfZero
 
     lpExitCode = DWORD(0)
-    _GetExitCodeThread(hThread, ctypes.byref(lpExitCode))
+    _GetExitCodeThread(hThread, byref(lpExitCode))
     return lpExitCode.value
 
 # DWORD WINAPI GetProcessVersion(
@@ -3539,7 +3539,7 @@ def GetProcessPriorityBoost(hProcess):
     _GetProcessPriorityBoost.errcheck = RaiseIfZero
 
     pDisablePriorityBoost = BOOL(False)
-    _GetProcessPriorityBoost(hProcess, ctypes.byref(pDisablePriorityBoost))
+    _GetProcessPriorityBoost(hProcess, byref(pDisablePriorityBoost))
     return bool(pDisablePriorityBoost.value)
 
 # BOOL WINAPI SetProcessPriorityBoost(
@@ -3566,7 +3566,7 @@ def GetProcessAffinityMask(hProcess):
 
     lpProcessAffinityMask = DWORD_PTR(0)
     lpSystemAffinityMask  = DWORD_PTR(0)
-    _GetProcessAffinityMask(hProcess, ctypes.byref(lpProcessAffinityMask), ctypes.byref(lpSystemAffinityMask))
+    _GetProcessAffinityMask(hProcess, byref(lpProcessAffinityMask), byref(lpSystemAffinityMask))
     return lpProcessAffinityMask.value, lpSystemAffinityMask.value
 
 # BOOL WINAPI SetProcessAffinityMask(
@@ -3608,7 +3608,7 @@ def Process32First(hSnapshot):
 
     pe        = PROCESSENTRY32()
     pe.dwSize = sizeof(PROCESSENTRY32)
-    success = _Process32First(hSnapshot, ctypes.byref(pe))
+    success = _Process32First(hSnapshot, byref(pe))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3627,7 +3627,7 @@ def Process32Next(hSnapshot, pe = None):
     if pe is None:
         pe = PROCESSENTRY32()
     pe.dwSize = sizeof(PROCESSENTRY32)
-    success = _Process32Next(hSnapshot, ctypes.byref(pe))
+    success = _Process32Next(hSnapshot, byref(pe))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3645,7 +3645,7 @@ def Thread32First(hSnapshot):
 
     te = THREADENTRY32()
     te.dwSize = sizeof(THREADENTRY32)
-    success = _Thread32First(hSnapshot, ctypes.byref(te))
+    success = _Thread32First(hSnapshot, byref(te))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3664,7 +3664,7 @@ def Thread32Next(hSnapshot, te = None):
     if te is None:
         te = THREADENTRY32()
     te.dwSize = sizeof(THREADENTRY32)
-    success = _Thread32Next(hSnapshot, ctypes.byref(te))
+    success = _Thread32Next(hSnapshot, byref(te))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3682,7 +3682,7 @@ def Module32First(hSnapshot):
 
     me = MODULEENTRY32()
     me.dwSize = sizeof(MODULEENTRY32)
-    success = _Module32First(hSnapshot, ctypes.byref(me))
+    success = _Module32First(hSnapshot, byref(me))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3701,7 +3701,7 @@ def Module32Next(hSnapshot, me = None):
     if me is None:
         me = MODULEENTRY32()
     me.dwSize = sizeof(MODULEENTRY32)
-    success = _Module32Next(hSnapshot, ctypes.byref(me))
+    success = _Module32Next(hSnapshot, byref(me))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3720,7 +3720,7 @@ def Heap32First(th32ProcessID, th32HeapID):
 
     he = HEAPENTRY32()
     he.dwSize = sizeof(HEAPENTRY32)
-    success = _Heap32First(ctypes.byref(he), th32ProcessID, th32HeapID)
+    success = _Heap32First(byref(he), th32ProcessID, th32HeapID)
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3736,7 +3736,7 @@ def Heap32Next(he):
     _Heap32Next.restype  = bool
 
     he.dwSize = sizeof(HEAPENTRY32)
-    success = _Heap32Next(ctypes.byref(he))
+    success = _Heap32Next(byref(he))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3754,7 +3754,7 @@ def Heap32ListFirst(hSnapshot):
 
     hl = HEAPLIST32()
     hl.dwSize = sizeof(HEAPLIST32)
-    success = _Heap32ListFirst(hSnapshot, ctypes.byref(hl))
+    success = _Heap32ListFirst(hSnapshot, byref(hl))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3773,7 +3773,7 @@ def Heap32ListNext(hSnapshot, hl = None):
     if hl is None:
         hl = HEAPLIST32()
     hl.dwSize = sizeof(HEAPLIST32)
-    success = _Heap32ListNext(hSnapshot, ctypes.byref(hl))
+    success = _Heap32ListNext(hSnapshot, byref(hl))
     if not success:
         if GetLastError() == ERROR_NO_MORE_FILES:
             return None
@@ -3794,7 +3794,7 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
 
     lpBuffer            = ctypes.create_string_buffer('', cbRead)
     lpNumberOfBytesRead = SIZE_T(0)
-    success = _Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, lpBuffer, cbRead, ctypes.byref(lpNumberOfBytesRead))
+    success = _Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, lpBuffer, cbRead, byref(lpNumberOfBytesRead))
     if not success and GetLastError() != ERROR_PARTIAL_COPY:
         raise ctypes.WinError()
     return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
@@ -3817,7 +3817,7 @@ def GetProcessDEPPolicy(hProcess):
 
     lpFlags = DWORD(0)
     lpPermanent = BOOL(0)
-    _GetProcessDEPPolicy(hProcess, ctypes.byref(lpFlags), ctypes.byref(lpPermanent))
+    _GetProcessDEPPolicy(hProcess, byref(lpFlags), byref(lpPermanent))
     return (lpFlags.value, lpPermanent.value)
 
 # DWORD WINAPI GetCurrentProcessorNumber(void);
@@ -3876,7 +3876,7 @@ def GetProcessHandleCount(hProcess):
     _GetProcessHandleCount.errcheck = RaiseIfZero
 
     pdwHandleCount = DWORD(0)
-    _GetProcessHandleCount(hProcess, ctypes.byref(pdwHandleCount))
+    _GetProcessHandleCount(hProcess, byref(pdwHandleCount))
     return pdwHandleCount.value
 
 # BOOL WINAPI GetProcessTimes(
@@ -3900,7 +3900,7 @@ def GetProcessTimes(hProcess = None):
     KernelTime   = FILETIME()
     UserTime     = FILETIME()
 
-    _GetProcessTimes(hProcess, ctypes.byref(CreationTime), ctypes.byref(ExitTime), ctypes.byref(KernelTime), ctypes.byref(UserTime))
+    _GetProcessTimes(hProcess, byref(CreationTime), byref(ExitTime), byref(KernelTime), byref(UserTime))
 
 ##    CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
 ##    ExitTime     = ExitTime.dwLowDateTime     + (ExitTime.dwHighDateTime     << 32)
@@ -3929,7 +3929,7 @@ def FileTimeToSystemTime(lpFileTime):
         FileTime.dwLowDateTime  = lpFileTime & 0xFFFFFFFF
         FileTime.dwHighDateTime = lpFileTime >> 32
     SystemTime = SYSTEMTIME()
-    _FileTimeToSystemTime(ctypes.byref(FileTime), ctypes.byref(SystemTime))
+    _FileTimeToSystemTime(byref(FileTime), byref(SystemTime))
     return SystemTime
 
 # void WINAPI GetSystemTimeAsFileTime(
@@ -3941,7 +3941,7 @@ def GetSystemTimeAsFileTime():
     _GetSystemTimeAsFileTime.restype  = None
 
     FileTime = FILETIME()
-    _GetSystemTimeAsFileTime(ctypes.byref(FileTime))
+    _GetSystemTimeAsFileTime(byref(FileTime))
     return FileTime
 
 #------------------------------------------------------------------------------
@@ -4064,7 +4064,7 @@ def Wow64DisableWow64FsRedirection():
     _Wow64DisableWow64FsRedirection.errcheck = RaiseIfZero
 
     OldValue = PVOID(None)
-    _Wow64DisableWow64FsRedirection(ctypes.byref(OldValue))
+    _Wow64DisableWow64FsRedirection(byref(OldValue))
     return OldValue
 
 # BOOL WINAPI Wow64RevertWow64FsRedirection(

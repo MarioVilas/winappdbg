@@ -51,7 +51,7 @@ def CommandLineToArgvW(lpCmdLine):
     if not lpCmdLine:
         lpCmdLine = None
     argc = ctypes.c_int(0)
-    vptr = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, ctypes.byref(argc))
+    vptr = ctypes.windll.shell32.CommandLineToArgvW(lpCmdLine, byref(argc))
     if vptr == NULL:
         raise ctypes.WinError()
     argv = vptr
