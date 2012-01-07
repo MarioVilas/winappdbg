@@ -41,9 +41,9 @@ from winappdbg import *
 import os
 import sys
 import time
-import optparse
 import traceback
-import ConfigParser
+import xml.dom
+import xml.dom.minidom
 
 try:
     import cerealizer
@@ -408,132 +408,115 @@ class LoggingEventHandler(EventHandler):
     # Kill the process if it's a second chance exception.
     def _post_exception(self, event):
         if event.is_last_chance():
-            try:
-                event.get_thread().set_pc(
-                    event.get_process().resolve_symbol('kernel32!ExitProcess')
-                )
-            except Exception:
+            ##try:
+            ##    event.get_thread().set_pc(
+            ##        event.get_process().resolve_symbol('kernel32!ExitProcess')
+            ##    )
+            ##except Exception:
                 event.get_process().kill()
 
     # Handle all exceptions not handled by the following methods.
     def exception(self, event):
-        if event.is_last_chance() or self.options.firstchance:
-            self.__add_crash(event, bFullReport = True)
-        elif self.options.verbose:
-            self.__log_exception(event)
-        self._post_exception(event)
+        try:
+            if event.is_last_chance() or self.options.firstchance:
+                self.__add_crash(event, bFullReport = True)
+            elif self.options.verbose:
+                self.__log_exception(event)
+        finally:
+            self._post_exception(event)
 
     # Unknown (most likely C++) exceptions are not crashes.
     # Comment out this code if needed...
     def unknown_exception(self, event):
+        try:
 
-        # Log the event to standard output.
-        if self.options.verbose:
-            self.__log_exception(event)
+            # Log the event to standard output.
+            if self.options.verbose:
+                self.__log_exception(event)
 
-        # Take action if requested.
-        if self.__action_requested(event):
-            self.__action(event)
+            # Take action if requested.
+            if self.__action_requested(event):
+                self.__action(event)
 
-        self._post_exception(event)
+        finally:
+            self._post_exception(event)
 
     # Microsoft Visual C exceptions are not crashes.
     # Comment out this code if needed...
     def ms_vc_exception(self, event):
+        try:
 
-        # Log the event to standard output.
-        if self.options.verbose:
-            self.__log_exception(event)
+            # Log the event to standard output.
+            if self.options.verbose:
+                self.__log_exception(event)
 
-        # Take action if requested.
-        if self.__action_requested(event):
-            self.__action(event)
+            # Take action if requested.
+            if self.__action_requested(event):
+                self.__action(event)
 
-        self._post_exception(event)
-
-##    # First chance single step events are not crashes.
-##    # Comment out this code if needed...
-##    def single_step(self, event):
-##
-##        # If it's a last chance exception, it's a crash.
-##        if event.is_last_chance():
-##            self.__add_crash(event, bFullReport = True)
-##        else:
-##
-##            # Continue without setting the trap flag.
-##            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-##
-##            # Log the event to standard output.
-##            if self.options.verbose:
-##                address = event.get_exception_address()
-##                where   = self.__get_location(event, address)
-##                msg     = "Single step event at %s" % where
-##                self.logger.log_event(event, msg)
-##
-##            # Take action if requested.
-##            if self.__action_requested(event):
-##                self.__action(event)
-##
-##        self._post_exception(event)
+        finally:
+            self._post_exception(event)
 
     # Breakpoint events are not crashes when they're ours,
     # or when they were triggered by known system-defined breakpoints.
     # Comment out this code if needed...
     def breakpoint(self, event):
+        try:
 
-        # Determine if it's the first chance exception event.
-        bFirstChance = event.is_first_chance()
+            # Determine if it's the first chance exception event.
+            bFirstChance = event.is_first_chance()
 
-        # Step over breakpoints.
-        # This includes both user-defined and hardcoded in the binary.
-        if bFirstChance:
-            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            # Step over breakpoints.
+            # This includes both user-defined and hardcoded in the binary.
+            if bFirstChance:
+                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
-        # Get the address where the exception occured.
-        address = event.get_exception_address()
+            # Get the address where the exception occured.
+            address = event.get_exception_address()
 
-        # Determine if the breakpoint is ours.
-        bOurs = hasattr(event, 'breakpoint') and event.breakpoint
+            # Determine if the breakpoint is ours.
+            bOurs = hasattr(event, 'breakpoint') and event.breakpoint
 
-        # Determine if the breakpoint is WOW64 breakpoint.
-        bWow64 = event.get_exception_code() == win32.EXCEPTION_WX86_BREAKPOINT
+            # Determine if the breakpoint is WOW64 breakpoint.
+            bWow64 = event.get_exception_code() == win32.EXCEPTION_WX86_BREAKPOINT
 
-        # Determine if the breakpoint is a system defined breakpoint.
-        bSystem = bWow64 or (not bOurs and \
-                  event.get_process().is_system_defined_breakpoint(address))
+            # Determine if the breakpoint is a system defined breakpoint.
+            bSystem = bWow64 or (not bOurs and \
+                      event.get_process().is_system_defined_breakpoint(address))
 
-        # Add the crash if this is an unexpected breakpoint event.
-        # It may be signaling a C/C++ assert() failure.
-        if (not bOurs and not bSystem) or not bFirstChance:
-            self.__add_crash(event, bFullReport = False)
+            # Add the crash if this is an unexpected breakpoint event.
+            # It may be signaling a C/C++ assert() failure.
+            if (not bOurs and not bSystem) or not bFirstChance:
+                self.__add_crash(event, bFullReport = False)
 
-        # If it's not a crash, log and take action as appropriate.
-        else:
-            try:
+            # If it's not a crash, log and take action as appropriate.
+            else:
+                try:
 
-                # Log the event to standard output.
-                if self.options.verbose:
-                    where   = self.__get_location(event, address)
-                    if bOurs:
-                        msg = "Breakpoint hit (%s)" % where
-                    elif bWow64:
-                        msg = "WOW64 breakpoint hit (%s)" % where
-                    elif bSystem:
-                        msg = "System breakpoint hit (%s)" % where
-                    else:
-                        msg = "Assertion failed (%s)" % where
-                    self.logger.log_event(event, msg)
+                    # Log the event to standard output.
+                    if self.options.verbose:
+                        where   = self.__get_location(event, address)
+                        if bOurs:
+                            msg = "Breakpoint hit (%s)" % where
+                        elif bWow64:
+                            msg = "WOW64 breakpoint hit (%s)" % where
+                        elif bSystem:
+                            msg = "System breakpoint hit (%s)" % where
+                        else:
+                            msg = "Assertion failed (%s)" % where
+                        self.logger.log_event(event, msg)
 
-            finally:
+                finally:
 
-                # Take action if requested or the breakpoint is ours.
-                # Always ignore system defined breakpoints.
-                # To force the action on system defined breakpoints,
-                # redefine them with the --break command line option.
-                if bOurs or (not bSystem and self.__action_requested(event)):
-                    self.__action(event)
+                    # Take action if requested or the breakpoint is ours.
+                    # Always ignore system defined breakpoints.
+                    # To force the action on system defined breakpoints,
+                    # redefine them with the 'break_at' option.
+                    if bOurs or (not bSystem and self.__action_requested(event)):
+                        self.__action(event)
 
-        self._post_exception(event)
+        finally:
+            self._post_exception(event)
 
     # WOW64 breakpoints are treated the same way as normal breakpoints.
     # Change this code if needed...
@@ -544,181 +527,182 @@ class LoggingEventHandler(EventHandler):
 
 class CrashLogger (psyobj):
 
-    defaults = {
+    # Options object with its default settings.
+    class Options (psyobj):
+        def __init__(self):
 
-            # Commands
-            'attach'      : list(),
-            'console'     : list(),
-            'windowed'    : list(),
+            # Targets
+            self.attach      = list()
+            self.console     = list()
+            self.windowed    = list()
 
             # Tracing options
-            'break_at'    : None,
-            'stalk_at'    : None,
-            'pause'       : False,
-            'restart'     : False,
-            'time_limit'  : 0,
-            'echo'        : False,
-            'events'      : 'exception',
-            'action'      : None,
+            self.break_at    = None
+            self.stalk_at    = None
+            self.pause       = False
+            self.restart     = False
+            self.time_limit  = 0
+            self.echo        = False
+            self.events      = 'exception'
+            self.action      = None
 
             # Debugging options
-            'autodetach'  : True,
-            'hostile'     : False,
-            'follow'      : True,
+            self.autodetach  = True
+            self.hostile     = False
+            self.follow      = True
 
             # Output options
-            'verbose'     : True,
-            'logfile'     : None,
-            'duplicates'  : True,
-            'firstchance' : False,
-            'memory'      : 0,
-            'nodb'        : False,
-            'dbm'         : None,
-            'sqlite'      : None,
-            'mssql'       : None,
-    }
+            self.verbose     = True
+            self.logfile     = None
+            self.duplicates  = True
+            self.firstchance = False
+            self.memory      = 0
+            self.nodb        = False
+            self.dbm         = None
+            self.sqlite      = None
+            self.mssql       = None
 
-    # Parse the configuration file.
-    def parse_config_file(self, config_file, section = None):
-        parser = ConfigParser.SafeConfigParser(self.defaults)
-        parser.read(config_file)
-        options = object()
-        for key, value in self.defaults:
-            setattr(options, key, value)
-        self._parse_config_file_section(options, parser)
-        if section:
-            self._parse_config_file_section(options, parser, section)
-        self._warn_inconsistent_options(options)
-        self._validate_options(options)
-        return (parser, options)
+    # Read the configuration file
+    def read_config_file(self, config, ignoreTargets = False):
 
-    def _parse_boolean(self, value):
-        value = value.strip().lower()
-        if value == 'true':
-            return True
-        if value == 'false':
-            return False
-        return bool(int(value))
+        # Initial options object with default values
+        options = self.Options()
 
-    def _parse_events(self, value):
-        events = set()
-        for event_name in value.lower().split(','):
-            event_name = event_name.strip()
-            events.add(event_name)
-        return events
+        # Keep track of duplicated tags
+        tags = set()
 
-    # Parse a section of the configuration file.
-    def _parse_config_file_section(self, options, parser, section = None):
-        if not section:
-            section = 'DEFAULT'
-        for key, value in parser.items(section):
-            try:
+        # Read the config file into a DOM object
+        dom = None
+        try:
+            dom = xml.dom.minidom.parse(config)
+            configuration = dom.getElementsByTagName('configuration')
+            if configuration.length != 1:
+                raise xml.dom.SyntaxErr()
 
-                # Commands
+            # Parse each node and read the settings
+            for node in configuration.item(0).childNodes:
+
+                print 'NODE', node, node.nodeType
+                if node.nodeType != xml.dom.Node.ELEMENT_NODE:
+                    continue
+
+                key = node.nodeName
+                value = node.nodeValue
+                print 'KEY', key
+
+                if key is None:
+                    raise xml.dom.SyntaxErr()
+
+                if value is None:
+                    print 'CHILD VALUE', node.childNodes
+                    if len(node.childNodes) == 0:
+                        try:
+                            value = node.attributes['value'].value
+                        except AttributeError:
+                            value = None
+                        except KeyError:
+                            value = None
+                    else:
+                        if len(node.childNodes) > 1:
+                            raise xml.dom.HierarchyRequestErr()
+                        text = node.childNodes[0]
+                        if text.nodeType != xml.dom.Node.TEXT_NODE:
+                            raise xml.dom.SyntaxErr()
+                        value = text.nodeValue
+                        if value is None:
+                            raise xml.dom.SyntaxErr()
+                elif  node.hasChildNodes():
+                    raise xml.dom.HierarchyRequestErr()
+                print 'VALUE', value
+
+                # Targets
                 if   key == 'attach':
-                    options.attach.append(value)
+                    if value and not ignoreTargets:
+                        options.attach.append(value)
                 elif key == 'console':
-                    options.attach.console(value)
+                    if value and not ignoreTargets:
+                        options.console.append(value)
                 elif key == 'windowed':
-                    options.attach.windowed(value)
+                    if value and not ignoreTargets:
+                        options.windowed.append(value)
 
-                # Tracing options
-                elif key == 'break_at':
-                    options.break_at = value
-                elif key == 'stalk_at':
-                    options.stalk_at = value
-                elif key == 'pause':
-                    options.pause = self.__parse_boolean(value)
-                elif key == 'restart':
-                    options.restart = self.__parse_boolean(value)
-                elif key == 'time_limit':
-                    options.time_limit = int(value)
-                elif key == 'echo':
-                    options.echo = self.__parse_boolean(value)
-                elif key == 'events':
-                    options.events = value
-                elif key == 'action':
-                    options.action = value
-
-                # Debugging options
-                elif key == 'autodetach':
-                    options.autodetach = self.__parse_boolean(value)
-                elif key == 'hostile':
-                    options.hostile = self.__parse_boolean(value)
-                elif key == 'follow':
-                    options.follow = self.__parse_boolean(value)
-
-                # Output options
-                elif key == 'verbose':
-                    options.verbose = self.__parse_boolean(value)
-                elif key == 'logfile':
-                    options.logfile = value
-                elif key == 'duplicates':
-                    options.duplicates = self.__parse_boolean(value)
-                elif key == 'firstchance':
-                    options.firstchance = self.__parse_boolean(value)
-                elif key == 'memory':
-                    options.memory = int(value)
-                elif key == 'nodb':
-                    options.nodb = self.__parse_boolean(value)
-                elif key == 'dbm':
-                    options.dbm = value
-                elif key == 'sqlite':
-                    options.sqlite = value
-                elif key == 'mssql':
-                    options.mssql = value
-
-                # Unknown option
+                # Options
                 else:
-                    raise optparse.OptionValueError("unknown option")
 
-            except Exception, e:
-                raise optparse.OptionValueError("error in option %s: %s" % (key, str(e)))
+                    # Warn about duplicated options
+                    if key in tags:
+                        print "Warning: " \
+                              "duplicated option tag in config file: %s" % key
+                    else:
+                        tags.add(key)
 
-    def _warn_inconsistent_options(self, options):
+                    # Tracing options
+                    if   key == 'break_at':
+                        options.break_at = value
+                    elif key == 'stalk_at':
+                        options.stalk_at = value
+                    elif key == 'pause':
+                        options.pause = self._parse_boolean(value)
+                    elif key == 'restart':
+                        options.restart = self._parse_boolean(value)
+                    elif key == 'time_limit':
+                        options.time_limit = int(value)
+                    elif key == 'echo':
+                        options.echo = self._parse_boolean(value)
+                    elif key == 'events':
+                        options.events = value
+                    elif key == 'action':
+                        options.action = value
 
-        # Warn or fail about inconsistent use of output switches
-        if options.nodb:
-            if options.dbm or options.sqlite or options.mssql:
-                print "Warning: strange use of output switches"
-                print "  No database will be generated. Are you sure this is what you wanted?"
-                print
-        elif options.dbm:
-            if options.memory > 1:
-                print "Warning: using --dbm and --memory-snapshot in combination can have a severe"
-                print "  performance penalty."
-                print
-            if options.duplicates:
-                if options.verbose:
-                    print "Warning: inconsistent use of --allow-duplicates"
-                    print "  DBM databases do not allow duplicate entries with the same key."
-                    print "  This means that when the same crash is found more than once it will be logged"
-                    print "  to standard output each time, but will only be saved once into the database."
-                    print
-                else:
-                    msg  = "inconsistent use of --allow-duplicates: "
-                    msg += "DBM databases do not allow duplicate entries with the same key"
-                    raise optparse.OptionValueError(msg)
-            elif options.sqlite or options.mssql:
-               raise optparse.OptionValueError("cannot generate more than one database per session")
-        elif options.sqlite and options.mssql:
-            raise optparse.OptionValueError("cannot generate more than one database per session")
+                    # Debugging options
+                    elif key == 'autodetach':
+                        options.autodetach = self._parse_boolean(value)
+                    elif key == 'hostile':
+                        options.hostile = self._parse_boolean(value)
+                    elif key == 'follow':
+                        options.follow = self._parse_boolean(value)
 
-        # Warn about inconsistent use of --time-limit
-        if options.time_limit and options.autodetach \
-                                    and (options.windowed or options.console):
-            count = len(options.windowed) + len(options.console)
-            print
-            print "Warning: inconsistent use of --time-limit"
-            if count == 1:
-                print "  An execution time limit was set, but the launched process won't be killed."
-            else:
-                print "  An execution time limit was set, but %d launched processes won't be killed." % count
-            print "  Use the --kill option to make sure debugees are killed on exit."
-            print "  Alternatively use --attach instead of launching new processes."
-            print
+                    # Output options
+                    elif key == 'verbose':
+                        options.verbose = self._parse_boolean(value)
+                    elif key == 'logfile':
+                        options.logfile = value
+                    elif key == 'duplicates':
+                        options.duplicates = self._parse_boolean(value)
+                    elif key == 'firstchance':
+                        options.firstchance = self._parse_boolean(value)
+                    elif key == 'memory':
+                        options.memory = int(value)
+                    elif key == 'nodb':
+                        options.nodb = self._parse_boolean(value)
+                    elif key == 'dbm':
+                        options.dbm = value
+                    elif key == 'sqlite':
+                        options.sqlite = value
+                    elif key == 'odbc':
+                        options.odbc = value
 
-    def _validate_options(self, options):
+                    # Unknown tag
+                    else:
+                        raise xml.dom.NotSupportedErr(key)
+
+        # Destroy the DOM object
+        finally:
+            if dom is not None:
+                dom.unlink()
+
+        # Validate the settings
+        if not ignoreTargets:
+            self.validate_targets(options)
+        self.validate_options(options)
+
+        # Return the options object
+        print 'OPTIONS', options
+        import pprint
+        pprint.pprint(options.__dict__)
+        return options
+
+    def validate_targets(self, options):
 
         # Get the list of attach targets
         system = System()
@@ -726,24 +710,26 @@ class CrashLogger (psyobj):
         system.scan_processes()
         attach_targets = list()
         for token in options.attach:
+            if not token:
+                continue
             try:
                 dwProcessId = HexInput.integer(token)
             except ValueError:
                 dwProcessId = None
             if dwProcessId is not None:
                 if not system.has_process(dwProcessId):
-                    raise optparse.OptionValueError("can't find process %d" % dwProcessId)
+                    raise ValueError("can't find process %d" % dwProcessId)
                 try:
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
                 except WindowsError, e:
-                    raise optparse.OptionValueError("can't open process %d: %s" % (dwProcessId, e))
+                    raise ValueError("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append(dwProcessId)
             else:
                 matched = system.find_processes_by_filename(token)
                 if not matched:
-                    raise optparse.OptionValueError("can't find process %s" % token)
+                    raise ValueError("can't find process %s" % token)
                 for process, name in matched:
                     dwProcessId = process.get_pid()
                     try:
@@ -751,48 +737,54 @@ class CrashLogger (psyobj):
                         process.open_handle()
                         process.close_handle()
                     except WindowsError, e:
-                        raise optparse.OptionValueError("can't open process %d: %s" % (dwProcessId, e))
+                        raise ValueError("can't open process %d: %s" % (dwProcessId, e))
                     attach_targets.append(dwProcessId)
         options.attach = attach_targets
 
         # Get the list of console programs to execute
         console_targets = list()
-        for vector in options.console:
-            if not vector:
-                raise optparse.OptionValueError("bad use of --console")
+        for token in options.console:
+            if not token:
+                continue
+            vector = System.cmdline_to_argv(token)
             filename = vector[0]
             if not os.path.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
-                    raise optparse.OptionValueError("error searching for %s: %s" % (filename, str(e)))
+                    raise ValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
-            console_targets.append(vector)
+            token = System.argv_to_cmdline(vector)
+            console_targets.append(token)
         options.console = console_targets
 
         # Get the list of windowed programs to execute
         windowed_targets = list()
-        for vector in options.windowed:
-            if not vector:
-                raise optparse.OptionValueError("bad use of --windowed")
+        for token in options.windowed:
+            if not token:
+                continue
+            vector = System.cmdline_to_argv(token)
             filename = vector[0]
             if not os.path.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
-                    raise optparse.OptionValueError("error searching for %s: %s" % (filename, str(e)))
+                    raise ValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
-            windowed_targets.append(vector)
+            token = System.argv_to_cmdline(vector)
+            windowed_targets.append(token)
         options.windowed = windowed_targets
 
         # If no targets were set at all, show an error message
         if not options.attach and not options.console and not options.windowed:
-           raise optparse.OptionValueError("no targets found!")
+           raise ValueError("no targets found!")
+
+    def validate_options(self, options):
 
         # Get the list of breakpoints to set
         if options.break_at:
             if not os.path.exists(options.break_at):
-                raise optparse.OptionValueError("breakpoint list file not found: %s" % options.break_at)
+                raise ValueError("breakpoint list file not found: %s" % options.break_at)
             try:
                 options.break_at = HexInput.string_list_file(options.break_at)
             except ValueError, e:
@@ -803,7 +795,7 @@ class CrashLogger (psyobj):
         # Get the list of one-shot breakpoints to set
         if options.stalk_at:
             if not os.path.exists(options.stalk_at):
-                raise optparse.OptionValueError("one-shot breakpoint list file not found: %s" % options.stalk_at)
+                raise ValueError("one-shot breakpoint list file not found: %s" % options.stalk_at)
             options.stalk_at = HexInput.string_list_file(options.stalk_at)
         else:
             options.stalk_at = list()
@@ -811,229 +803,148 @@ class CrashLogger (psyobj):
         # Parse the list of events to monitor
         options.events = self._parse_events(options.events)
 
-    # Parse the command line
-    def parse_cmdline(self, argv):
+        # Warn or fail about inconsistent use of output switches
+        if options.nodb:
+            if options.dbm or options.sqlite or options.mssql:
+                print "Warning: strange use of output options"
+                print "  No database will be generated. Are you sure this is what you wanted?"
+                print
+        elif options.dbm:
+            if options.memory > 1:
+                print "Warning: using options 'dbm' and 'memory' in combination can have a severe"
+                print "  performance penalty."
+                print
+            if options.duplicates:
+                if options.verbose:
+                    print "Warning: inconsistent use of 'duplicates'"
+                    print "  DBM databases do not allow duplicate entries with the same key."
+                    print "  This means that when the same crash is found more than once it will be logged"
+                    print "  to standard output each time, but will only be saved once into the database."
+                    print
+                else:
+                    msg  = "inconsistent use of 'duplicates': "
+                    msg += "DBM databases do not allow duplicate entries with the same key"
+                    raise ValueError(msg)
+            elif options.sqlite or options.mssql:
+               raise ValueError("cannot generate more than one database per session")
+        elif options.sqlite and options.mssql:
+            raise ValueError("cannot generate more than one database per session")
 
-        # Help message and version string
-        version = (
-                  "WinAppDbg crash logger\n"
-                  "by Mario Vilas (mvilas at gmail.com)\n"
-                  "%s\n"
-                  ) % winappdbg.version
-        usage = (
-                "\n"
-                "\n"
-                "  Create a new process (parameters for the target must be escaped):\n"
-                "    %prog [options] -c <executable> [parameters for the target]\n"
-                "    %prog [options] -w <executable> [parameters for the target]\n"
-                "\n"
-                "  Attach to a running process (by filename):\n"
-                "    %prog [options] -a <executable>\n"
-                "\n"
-                "  Attach to a running process (by ID):\n"
-                "    %prog [options] -a <process id>"
-                )
-    ##    formatter = optparse.IndentedHelpFormatter()
-    ##    formatter = optparse.TitledHelpFormatter()
-        parser = optparse.OptionParser(
-                                        usage=usage,
-                                        version=version,
-    ##                                    formatter=formatter,
-                                      )
-        parser.add_option("-i", "--ignore-errors", action="store_true", default=False,
-                          help="Ignore Python exceptions")
+        # Warn about inconsistent use of time_limit
+        if options.time_limit and options.autodetach \
+                                    and (options.windowed or options.console):
+            count = len(options.windowed) + len(options.console)
+            print
+            print "Warning: inconsistent use of 'time_limit'"
+            if count == 1:
+                print "  An execution time limit was set, but the launched process won't be killed."
+            else:
+                print "  An execution time limit was set, but %d launched processes won't be killed." % count
+            print "  Set 'autodetach' to false to make sure debugees are killed on exit."
+            print "  Alternatively use 'attach' instead of launching new processes."
+            print
 
-        # Commands
-        commands = optparse.OptionGroup(parser, "Commands")
-        commands.add_option("-a", "--attach", action="callback", type="string",
-                            metavar="PROCESS", callback=self.callback_execute_target,
-                            help="Attach to a running process")
-        commands.add_option("-c", "--console", action="callback", type="string",
-                            metavar="CMDLINE", callback=self.callback_execute_target,
-                            help="Create a new console process [default]")
-        commands.add_option("-w", "--windowed", action="callback", type="string",
-                            metavar="CMDLINE", callback=self.callback_execute_target,
-                            help="Create a new windowed process")
-        parser.add_option_group(commands)
+    def _parse_events(self, value):
+        events = set()
+        for event_name in value.lower().split(','):
+            event_name = event_name.strip()
+            events.add(event_name)
+        return events
 
-        # Tracing options
-        tracing = optparse.OptionGroup(parser, "Tracing options")
-        tracing.add_option("-b", "--break-at", metavar="FILE",
-                           help="Set code breakpoints from list file")
-        tracing.add_option("-s", "--stalk-at", metavar="FILE",
-                           help="Set one-shot code breakpoints from list file")
-        tracing.add_option("-p", "--pause", action="store_true",
-                           help="Pause on each new crash found")
-        tracing.add_option("-r", "--restart", action="store_true",
-                           help="Restart debugees when they finish executing (be careful when using --follow)")
-        tracing.add_option("-k", "--kill", action="store_false", dest="autodetach",
-                           help="Same as --dont-autodetach")
-        tracing.add_option("-t", "--time-limit", action="store", type="int", metavar="SECONDS",
-                          help="Limit the execution time of the debugees, use 0 for no limit")
-        tracing.add_option("--echo", action="store_true",
-                           help="Repeat debug strings")
-        tracing.add_option("--events", metavar="LIST",
-                           help="Comma separated list of events to monitor")
-        tracing.add_option("--action", metavar="COMMAND", action="append",
-                           help="Run the given command on each new crash found")
-        parser.add_option_group(tracing)
-
-        # Debugging options
-        debugging = optparse.OptionGroup(parser, "Debugging options")
-        debugging.add_option("--autodetach", action="store_true",
-                      help="automatically detach from debugees on exit [default]")
-        debugging.add_option("--follow", action="store_true",
-                      help="automatically attach to child processes [default]")
-        debugging.add_option("--trusted", action="store_false",
-                                                                dest="hostile",
-                      help="treat debugees as trusted code [default]")
-        debugging.add_option("--dont-autodetach", action="store_false",
-                                                             dest="autodetach",
-                      help="don't automatically detach from debugees on exit")
-        debugging.add_option("--dont-follow", action="store_false",
-                                                                 dest="follow",
-                      help="don't automatically attach to child processes")
-        debugging.add_option("--hostile", action="store_true",
-                      help="treat debugees as hostile code")
-        parser.add_option_group(debugging)
-
-        # Output options
-        # TODO
-        # * autogenerate a default crash dump filename from the executable file
-        output = optparse.OptionGroup(parser, "Output options")
-        output.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                          help="Log events to standard output [default]")
-        output.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                          help="Do not log events to standard output")
-        output.add_option("--log", metavar="FILE", dest="logfile",
-                          help="Log events to text file")
-        output.add_option("--allow-duplicates", action="store_true",
-                          dest="duplicates",
-                          help="Stop on all crashes [default]")
-        output.add_option("--ignore-duplicates", action="store_false",
-                          dest="duplicates",
-                          help="Stop only on newly found crashes")
-        output.add_option("--allow-first-chance", action="store_true",
-                          dest="firstchance",
-                          help="Stop on first and second chance exceptions")
-        output.add_option("--ignore-first-chance", action="store_false",
-                          dest="firstchance",
-                          help="Stop only on second chance exceptions [default]")
-        output.add_option("--no-memory", action="store_const", const=0, dest="memory",
-                          help="Don't save the memory state for each crash [default]")
-        output.add_option("--memory-map", action="store_const", const=1, dest="memory",
-                          help="Save the memory map for each crash")
-        output.add_option("--memory-snapshot", action="store_const", const=3, dest="memory",
-                          help="Save the entire memory contents for each crash")
-        output.add_option("--nodb", action="store_true",
-                          help="Do not save a crash dump file [default]")
-        output.add_option("--dbm", metavar="FILE",
-                          help="Save crash dumps to this DBM database")
-        output.add_option("--sqlite", metavar="FILE",
-                          help="Save crash dumps to this SQLite database")
-        output.add_option("--mssql", metavar="CONNSTR",
-                          help="Save crash dumps to a Microsoft SQL Server database using this ODBC connection string")
-        output.add_option("-f", "--file", metavar="FILE", dest="dbm",
-                          help="Same as --dbm, deprecated")
-        parser.add_option_group(output)
-
-        # Defaults
-        parser.set_defaults(**self.defaults)
-
-        # Parse and validate the command line options
-        if len(argv) == 1:
-            argv = argv + [ '--help' ]
-        (options, args) = parser.parse_args(argv)
-        args = args[1:]
-        if not options.windowed and not options.console and not options.attach:
-            if not args:
-                parser.error("missing target application(s)")
-            options.console = [ args ]
-        elif args:
-            # this should no longer happen, see callback_execute_target()
-            parser.error("don't know what to do with extra parameters: %s" % args)
-        try:
-            self._warn_inconsistent_options(options)
-            self._validate_options(options)
-        except optparse.OptParseError, e:
-            parser.error(str(e))
-
-        # Return the parsed command line options and arguments
-        return (parser, options, args)
-
-    # Callback to parse -a, -c and -w command line switches
-    @staticmethod
-    def callback_execute_target(option, opt_str, value, parser):
-
-        # Get the destination variable name.
-        dest_name = option.dest
-        if dest_name is None:
-            dest_name = option.get_opt_string().replace('-', '')
-
-        # Get the destination list to append.
-        # Create a new list if needed.
-        destination = getattr(parser.values, dest_name, None)
-        if destination is None:
-            destination = list()
-            setattr(parser.values, dest_name, destination)
-
-        # If a value is received from optparse, put it back in the list of
-        # arguments to be consumed.
-        #
-        # From what I gather by examining the examples in the documentation
-        # this wasn't even supposed to happen. (!)
-        #
-        # I suspect is happening because I had to force the argument type for
-        # the command line switch definition as a workaround for another bug
-        # (the metavariable wasn't being shown in the help message).
-        #
-        if value is not None:
-            parser.rargs.insert(0, value)
-
-        # Get the value from the command line arguments.
-        value = []
-        for arg in parser.rargs:
-
-            # Stop on --foo like options but not on -- alone.
-            if arg[:2] == "--" and len(arg) > 2:
-                break
-
-            # Stop on -a like options but not on - alone.
-            if arg[:1] == "-" and len(arg) > 1:
-                break
-
-            value.append(arg)
-
-        # Delete the command line arguments we consumed
-        # so they're not parsed again.
-        del parser.rargs[:len(value)]
-
-        # Append the value to the destination list.
-        destination.append(value)
+    def _parse_boolean(self, value):
+        value = value.strip().lower()
+        if value == 'true':
+            return True
+        if value == 'false':
+            return False
+        return bool(int(value))
 
     # Run from the command line
     def run_from_cmdline(self, args):
+
+        # Show the banner
+        print "WinAppDbg crash logger"
+        print "by Mario Vilas (mvilas at gmail.com)"
+        print winappdbg.version
+        print
+
         try:
-            config = System.argv_to_cmdline(args)
-            (_, options, args) = self.parse_cmdline(args)
-            self.run(config, options, args)
+
+            # Help message
+            if len(args) >= 2 and args[1].strip().lower() in ('-h', '--help', '/?'):
+                self.show_help_banner()
+
+            # Normal mode
+            elif len(args) == 2:
+                config = args[1]
+                options = self.read_config_file(config)
+                self.run(config, options)
+
+            # JIT debugger mode
+            elif len(args) == 4 and args[1].strip().lower() == '--jit':
+                config = args[2]
+                options = self.read_config_file(config, ignoreTargets=True)
+                options.attach.append(args[3])
+                self.validate_targets(options)
+                self.run(config, options)
+
+            # Install as JIT debugger
+            elif len(args) == 3 and args[1].strip().lower() == '--install':
+                self.install_as_jit(args[2])
+
+            # Uninstall as JIT debugger
+            elif len(args) == 2 and args[1].strip().lower() == '--uninstall':
+                self.uninstall_as_jit()
+
+            # On error show the help message
+            else:
+                self.show_help_banner()
+
+        # Catch errors and show them on screen
         except Exception, e:
             print "Runtime error: %s" % str(e)
             traceback.print_exc()
             return
 
-    # Run from a config file
-    def run_from_config_file(self, config):
-        try:
-            (_, options) = self.parse_config_file(config)
-            self.run(config, options, args)
-        except Exception, e:
-            print "Runtime error: %s" % str(e)
-            traceback.print_exc()
-            return
+    def install_as_jit(self, config):
+
+        # Calculate the command line to run in JIT mode
+        # TODO fix this so it works with py2exe
+        interpreter = os.path.abspath(sys.executable)
+        script = os.path.abspath(__file__)
+        config = os.path.abspath(config)
+        argv = [interpreter, script, '--jit', config, '%ld']
+        cmdline = System.argv_to_cmdline(argv)
+
+        # Test the config file
+        self.read_config_file(config, ignoreTargets=True)
+
+        # Show the previous JIT debugger
+        # TODO check if it's us already
+        # TODO maybe keep a backup?
+        previous = System.get_postmortem_debugger()
+        print "Previous JIT debugger was: %s" % previous
+
+        # Install as JIT debugger
+        System.set_postmortem_debugger(cmdline)
+
+    def uninstall_as_jit(self):
+
+        # Remove the current JIT debugger
+        # TODO check if it's us or some other debugger
+        # TODO maybe restore the previous one?
+        System.remove_postmortem_debugger()
+
+    def show_help_banner(self):
+        script = os.path.split(__file__)[1]
+        print "Usage:"
+        print "\t%s <configuration file>" % script
+        print
+        print "See the online help to learn about the configuration file format:"
+        print "\thttp://winappdbg.sourceforge.net/Tools.html#crash-logger"
 
     # Run the crash logger
-    def run(self, config, options, args):
+    def run(self, config, options):
 
         # Create the event handler
         oldCrashCount = 0
@@ -1046,17 +957,21 @@ class CrashLogger (psyobj):
         try:
 
             # Attach to the targets
-            for pid in options.attach:
-                debug.attach(pid)
-            for argv in options.console:
-                debug.execv(argv, bConsole = True,  bFollow = options.follow)
-            for argv in options.windowed:
-                debug.execv(argv, bConsole = False, bFollow = options.follow)
+            try:
+                for pid in options.attach:
+                    debug.attach(pid)
+                for cmdline in options.console:
+                    debug.execl(cmdline, bConsole = True,
+                                         bFollow  = options.follow)
+                for cmdline in options.windowed:
+                    debug.execl(cmdline, bConsole = False,
+                                         bFollow  = options.follow)
 
-            # If the --dont-autodetach switch was used,
+            # If the 'autodetach' was set to False,
             # make sure the debugees die if the debugger dies unexpectedly
-            if not options.autodetach:
-                debug.system.set_kill_on_exit_mode(True)
+            finally:
+                if not options.autodetach and debug.get_debugee_count() > 0:
+                    debug.system.set_kill_on_exit_mode(True)
 
             # Main debugging loop
             timedOut = False
