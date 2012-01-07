@@ -581,39 +581,9 @@ class CrashLogger (psyobj):
 
             # Parse each node and read the settings
             for node in configuration.item(0).childNodes:
-
-                print 'NODE', node, node.nodeType
                 if node.nodeType != xml.dom.Node.ELEMENT_NODE:
                     continue
-
-                key = node.nodeName
-                value = node.nodeValue
-                print 'KEY', key
-
-                if key is None:
-                    raise xml.dom.SyntaxErr()
-
-                if value is None:
-                    print 'CHILD VALUE', node.childNodes
-                    if len(node.childNodes) == 0:
-                        try:
-                            value = node.attributes['value'].value
-                        except AttributeError:
-                            value = None
-                        except KeyError:
-                            value = None
-                    else:
-                        if len(node.childNodes) > 1:
-                            raise xml.dom.HierarchyRequestErr()
-                        text = node.childNodes[0]
-                        if text.nodeType != xml.dom.Node.TEXT_NODE:
-                            raise xml.dom.SyntaxErr()
-                        value = text.nodeValue
-                        if value is None:
-                            raise xml.dom.SyntaxErr()
-                elif  node.hasChildNodes():
-                    raise xml.dom.HierarchyRequestErr()
-                print 'VALUE', value
+                key, value = self._parse_xml_tag(node)
 
                 # Targets
                 if   key == 'attach':
@@ -697,10 +667,33 @@ class CrashLogger (psyobj):
         self.validate_options(options)
 
         # Return the options object
-        print 'OPTIONS', options
-        import pprint
-        pprint.pprint(options.__dict__)
         return options
+
+    def _parse_xml_tag(self, node):
+        key = node.nodeName
+        value = node.nodeValue
+        if key is None:
+            raise xml.dom.SyntaxErr()
+        if value is None:
+            if len(node.childNodes) == 0:
+                try:
+                    value = node.attributes['value'].value
+                except AttributeError:
+                    value = None
+                except KeyError:
+                    value = None
+            else:
+                if len(node.childNodes) > 1:
+                    raise xml.dom.HierarchyRequestErr()
+                text = node.childNodes[0]
+                if text.nodeType != xml.dom.Node.TEXT_NODE:
+                    raise xml.dom.SyntaxErr()
+                value = text.nodeValue
+                if value is None:
+                    raise xml.dom.SyntaxErr()
+        elif node.hasChildNodes():
+            raise xml.dom.HierarchyRequestErr()
+        return key, value
 
     def validate_targets(self, options):
 
@@ -874,7 +867,12 @@ class CrashLogger (psyobj):
             if len(args) >= 2 and args[1].strip().lower() in ('-h', '--help', '/?'):
                 self.show_help_banner()
 
-            # Normal mode
+            # GUI mode
+            elif len(args) == 0:
+                # XXX TODO
+                self.show_help_banner()
+
+            # Debugger mode
             elif len(args) == 2:
                 config = args[1]
                 options = self.read_config_file(config)
