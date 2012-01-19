@@ -154,14 +154,19 @@ class LoggingEventHandler(EventHandler):
 
     # Actions to take for "interesting" events.
     def __action(self, event, crash = None):
-
-        # Run the given command if any.
         try:
+
+            # Run the given command if any.
             if self.options.action:
                 self.__run_command(event, crash)
 
-        # Pause if requested.
         finally:
+
+            # Enter interactive mode if requested.
+            if self.options.interactive:
+                event.debug.interactive(bConfirmQuit = False)
+
+            # Pause if requested.
             if self.options.pause:
                 raw_input("Press enter to continue...")
 
@@ -407,12 +412,12 @@ class LoggingEventHandler(EventHandler):
 
     # Kill the process if it's a second chance exception.
     def _post_exception(self, event):
-        if event.is_last_chance():
-            ##try:
-            ##    event.get_thread().set_pc(
-            ##        event.get_process().resolve_symbol('kernel32!ExitProcess')
-            ##    )
-            ##except Exception:
+        if hasattr(event, 'is_last_chance') and event.is_last_chance():
+##            try:
+##                event.get_thread().set_pc(
+##                  event.get_process().resolve_symbol('kernel32!ExitProcess')
+##                )
+##            except Exception:
                 event.get_process().kill()
 
     # Handle all exceptions not handled by the following methods.
@@ -423,7 +428,7 @@ class LoggingEventHandler(EventHandler):
             elif self.options.verbose:
                 self.__log_exception(event)
         finally:
-            self._post_exception(event)
+            self._post_exception(event.debug.lastEvent)
 
     # Unknown (most likely C++) exceptions are not crashes.
     # Comment out this code if needed...
@@ -439,7 +444,7 @@ class LoggingEventHandler(EventHandler):
                 self.__action(event)
 
         finally:
-            self._post_exception(event)
+            self._post_exception(event.debug.lastEvent)
 
     # Microsoft Visual C exceptions are not crashes.
     # Comment out this code if needed...
@@ -455,7 +460,7 @@ class LoggingEventHandler(EventHandler):
                 self.__action(event)
 
         finally:
-            self._post_exception(event)
+            self._post_exception(event.debug.lastEvent)
 
     # Breakpoint events are not crashes when they're ours,
     # or when they were triggered by known system-defined breakpoints.
@@ -516,7 +521,7 @@ class LoggingEventHandler(EventHandler):
                         self.__action(event)
 
         finally:
-            self._post_exception(event)
+            self._post_exception(event.debug.lastEvent)
 
     # WOW64 breakpoints are treated the same way as normal breakpoints.
     # Change this code if needed...
@@ -532,35 +537,37 @@ class CrashLogger (psyobj):
         def __init__(self):
 
             # Targets
-            self.attach      = list()
-            self.console     = list()
-            self.windowed    = list()
+            self.attach         = list()
+            self.console        = list()
+            self.windowed       = list()
 
             # Tracing options
-            self.break_at    = None
-            self.stalk_at    = None
-            self.pause       = False
-            self.restart     = False
-            self.time_limit  = 0
-            self.echo        = False
-            self.events      = 'exception'
-            self.action      = None
+            self.break_at       = None
+            self.stalk_at       = None
+            self.pause          = False
+            self.restart        = False
+            self.time_limit     = 0
+            self.echo           = False
+            self.events         = 'exception'
+            self.action         = None
+            self.interactive    = False
 
             # Debugging options
-            self.autodetach  = True
-            self.hostile     = False
-            self.follow      = True
+            self.autodetach     = True
+            self.hostile        = False
+            self.follow         = True
 
             # Output options
-            self.verbose     = True
-            self.logfile     = None
-            self.duplicates  = True
-            self.firstchance = False
-            self.memory      = 0
-            self.nodb        = False
-            self.dbm         = None
-            self.sqlite      = None
-            self.mssql       = None
+            self.verbose        = True
+            self.ignore_errors  = False
+            self.logfile        = None
+            self.duplicates     = True
+            self.firstchance    = False
+            self.memory         = 0
+            self.nodb           = False
+            self.dbm            = None
+            self.sqlite         = None
+            self.mssql          = None
 
     # Read the configuration file
     def read_config_file(self, config, ignoreTargets = False):
@@ -623,6 +630,8 @@ class CrashLogger (psyobj):
                         options.events = value
                     elif key == 'action':
                         options.action = value
+                    elif key == 'interactive':
+                        options.interactive = self._parse_boolean(value)
 
                     # Debugging options
                     elif key == 'autodetach':
@@ -635,6 +644,8 @@ class CrashLogger (psyobj):
                     # Output options
                     elif key == 'verbose':
                         options.verbose = self._parse_boolean(value)
+                    elif key == 'ignore_python_errors':
+                        options.ignore_errors = self._parse_boolean(value)
                     elif key == 'logfile':
                         options.logfile = value
                     elif key == 'duplicates':
@@ -837,6 +848,11 @@ class CrashLogger (psyobj):
             print "  Alternatively use 'attach' instead of launching new processes."
             print
 
+        # Warn about inconsistent use of pause and interactive
+        if options.pause and options.interactive:
+            print "Warning: the 'pause' option is ignored when 'interactive' is set."
+            print
+
     def _parse_events(self, value):
         events = set()
         for event_name in value.lower().split(','):
@@ -982,7 +998,7 @@ class CrashLogger (psyobj):
                         if timedOut:
                             break
                     try:
-                        event = debug.wait(100)
+                        debug.wait(100)
                         break
                     except WindowsError, e:
                         if win32.winerror(e) not in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
@@ -996,9 +1012,9 @@ class CrashLogger (psyobj):
                     break
                 try:
                     try:
-                        debug.dispatch(event)
+                        debug.dispatch()
                     finally:
-                        debug.cont(event)
+                        debug.cont()
                 except Exception:
                     eventHandler.logger.log_exc()
                     if not options.ignore_errors:

@@ -40,7 +40,7 @@ Web:     U{http://winappdbg.sourceforge.net/}
 Blog:    U{http://breakingcode.wordpress.com}
 
 @group Debugging:
-    Debug, EventHandler, DebugLog
+    Debug, EventHandler, DebugLog, ConsoleDebugger
 
 @group Instrumentation:
     System, Process, Thread, Module, Window
@@ -107,6 +107,9 @@ __all__ =   [
                 'CrashTableMSSQL',
                 'VolatileCrashContainer',
                 'DummyCrashContainer',
+
+                # from interactive import *
+                'ConsoleDebugger',
 
                 # from debug import *
                 'Debug',
@@ -175,6 +178,7 @@ __all__ =   [
 # Import all public symbols
 from breakpoint import *
 from crash import *
+from interactive import *
 from debug import *
 from event import *
 from system import *

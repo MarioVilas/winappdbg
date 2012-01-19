@@ -37,20 +37,18 @@ Debugging module.
 
 __revision__ = "$Id$"
 
-__all__ =   [
-                # the main debugger class
-                'Debug',
-            ]
+__all__ = [ 'Debug' ]
 
 import win32
 from system import System, Process, Thread, Module
 from breakpoint import BreakpointContainer, CodeBreakpoint
 from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
+from interactive import ConsoleDebugger
 
 import sys
 import ctypes
 import warnings
-##import traceback
+import traceback
 
 try:
     from psyco.classes import *
@@ -90,7 +88,8 @@ class Debug (EventDispatcher, BreakpointContainer):
     @group Debugging:
         attach, detach, detach_from_all, execv, execl, kill, clear,
         get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode
+        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode,
+        interactive
 
     @group Debugging loop:
         loop, next, wait, dispatch, cont, stop
@@ -150,6 +149,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             raise TypeError("Unknown keyword arguments: %s" % flags.keys())
 
         self.system                         = System()
+        self.lastEvent                      = None
         self.__bHostileCode                 = bHostileCode
         self.__breakOnEP                    = set()     # set of pids
         self.__attachedDebugees             = set()     # set of pids
@@ -307,6 +307,14 @@ class Debug (EventDispatcher, BreakpointContainer):
             if not bIgnoreExceptions:
                 raise
 
+        # If the last debugging event is related to this process, forget it.
+        try:
+            if self.lastEvent and self.lastEvent.get_pid() == dwProcessId:
+                self.lastEvent = None
+        except Exception:
+            if not bIgnoreExceptions:
+                raise
+
     def kill(self, dwProcessId, bIgnoreExceptions = False):
         """
         Kills a process currently being debugged.
@@ -324,15 +332,15 @@ class Debug (EventDispatcher, BreakpointContainer):
             C{bIgnoreExceptions} is C{True}.
         """
 
-        # XXX FIXME
-        # what happens if we didn't know the process ???
-        # more validation is needed here!
-
         # Keep a reference to the process. We'll need it later.
-        aProcess = self.system.get_process(dwProcessId)
+        try:
+            aProcess = self.system.get_process(dwProcessId)
+        except KeyError:
+            aProcess = Process(dwProcessId)
 
         # Cleanup all data referring to the process.
-        self.__cleanup_process(dwProcessId)
+        self.__cleanup_process(dwProcessId,
+                               bIgnoreExceptions = bIgnoreExceptions)
 
         # Kill the process.
         try:
@@ -379,30 +387,49 @@ class Debug (EventDispatcher, BreakpointContainer):
             C{bIgnoreExceptions} is C{True}.
         """
 
-        # XXX FIXME
-        # what happens if we didn't know the process ???
-        # more validation is needed here!
-
         # Keep a reference to the process. We'll need it later.
-        aProcess = self.system.get_process(dwProcessId)
+        try:
+            aProcess = self.system.get_process(dwProcessId)
+        except KeyError:
+            aProcess = Process(dwProcessId)
+
+        # Determine if there is support for detaching.
+        # This check should only fail on Windows 2000 and older.
+        try:
+            win32.DebugActiveProcessStop
+            can_detach = True
+        except AttributeError:
+            can_detach = False
+
+        # Continue the last event before detaching.
+        # XXX not sure about this...
+        try:
+            if can_detach and self.lastEvent and \
+                                    self.lastEvent.get_pid() == dwProcessId:
+                self.cont(self.lastEvent)
+        except Exception:
+             if not bIgnoreExceptions:
+                raise
 
         # Cleanup all data referring to the process.
-        self.__cleanup_process(dwProcessId)
+        self.__cleanup_process(dwProcessId,
+                               bIgnoreExceptions = bIgnoreExceptions)
 
         try:
             # Detach from the process.
             # On Windows 2000 and before, kill the process.
-            try:
-                win32.DebugActiveProcessStop(dwProcessId)
-            except AttributeError:
+            if can_detach:
+                try:
+                    win32.DebugActiveProcessStop(dwProcessId)
+                except Exception:
+                     if not bIgnoreExceptions:
+                        raise
+            else:
                 try:
                     aProcess.kill()
                 except Exception:
                      if not bIgnoreExceptions:
                         raise
-            except Exception:
-                 if not bIgnoreExceptions:
-                    raise
 
         finally:
 
@@ -539,7 +566,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
     def wait(self, dwMilliseconds = None):
         """
-        Waits for the next debug event and returns an L{Event} object.
+        Waits for the next debug event.
 
         @see: L{cont}, L{dispatch}, L{loop}
 
@@ -553,22 +580,31 @@ class Debug (EventDispatcher, BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
 
-        # Return the next debug event.
-        raw     = win32.WaitForDebugEvent(dwMilliseconds)
-        event   = EventFactory.get(self, raw)
+        # Wait for the next debug event.
+        raw   = win32.WaitForDebugEvent(dwMilliseconds)
+        event = EventFactory.get(self, raw)
+
+        # Remember it.
+        self.lastEvent = event
+
+        # Return it.
         return event
 
-    def dispatch(self, event):
+    def dispatch(self, event = None):
         """
         Calls the debug event notify callbacks.
 
         @see: L{cont}, L{loop}, L{wait}
 
         @type  event: L{Event}
-        @param event: Event object returned by L{wait}.
+        @param event: (Optional) Event object returned by L{wait}.
 
         @raise WindowsError: Raises an exception on error.
         """
+
+        # If no event object was given, use the last event.
+        if event is None:
+            event = self.lastEvent
 
         # Ignore dummy events.
         if not event:
@@ -590,17 +626,21 @@ class Debug (EventDispatcher, BreakpointContainer):
         # Dispatch the debug event.
         return EventDispatcher.dispatch(self, event)
 
-    def cont(self, event):
+    def cont(self, event = None):
         """
         Resumes execution after processing a debug event.
 
         @see: dispatch(), loop(), wait()
 
         @type  event: L{Event}
-        @param event: Event object returned by L{wait}.
+        @param event: (Optional) Event object returned by L{wait}.
 
         @raise WindowsError: Raises an exception on error.
         """
+
+        # If no event object was given, use the last event.
+        if event is None:
+            event = self.lastEvent
 
         # Ignore dummy events.
         if not event:
@@ -611,50 +651,43 @@ class Debug (EventDispatcher, BreakpointContainer):
         dwThreadId       = event.get_tid()
         dwContinueStatus = event.continueStatus
 
-        # Try to flush the instruction cache.
-        try:
-            if self.system.has_process(dwProcessId):
-                aProcess = self.system.get_process(dwProcessId)
-            else:
-                aProcess = Process(dwProcessId)
-            aProcess.flush_instruction_cache()
-        except WindowsError:
-            pass
+        # Check if the process is still being debugged.
+        if self.is_debugee(dwProcessId):
 
-##        # XXX Just for testing, ignore this...
-##        print "ContinueDebugEvent(%d, %d, %s)" % (dwProcessId, dwThreadId, {
-##            win32.DBG_CONTINUE                    : "DBG_CONTINUE",
-##            win32.DBG_EXCEPTION_HANDLED           : "DBG_EXCEPTION_HANDLED",
-##            win32.DBG_EXCEPTION_NOT_HANDLED       : "DBG_EXCEPTION_NOT_HANDLED",
-##            win32.DBG_TERMINATE_THREAD            : "DBG_TERMINATE_THREAD",
-##            win32.DBG_TERMINATE_PROCESS           : "DBG_TERMINATE_PROCESS",
-##        }.get(dwContinueStatus, hex(dwContinueStatus)))
+            # Try to flush the instruction cache.
+            try:
+                if self.system.has_process(dwProcessId):
+                    aProcess = self.system.get_process(dwProcessId)
+                else:
+                    aProcess = Process(dwProcessId)
+                aProcess.flush_instruction_cache()
+            except WindowsError:
+                pass
 
-##        # XXX Just for testing, ignore this...
-##        if hasattr(event, 'is_noncontinuable') and event.is_noncontinuable():
-##            from textio import DebugLog
-##            print DebugLog.log_event(event, "Warning: noncontinuable event!")
+            # XXX TODO
+            #
+            # Try to execute the UnhandledExceptionFilter for second chance
+            # exceptions, at least when in hostile mode (in normal mode it
+            # would be breaking compatibility, as users may actually expect
+            # second chance exceptions to be raised again).
+            #
+            # Reportedly in Windows 7 (maybe in Vista too) this seems to be
+            # happening already. In XP and below the UnhandledExceptionFilter
+            # was never called for processes being debugged.
 
-        # XXX TODO
-        # * try to execute the UnhandledExceptionFilter for second chance
-        # exceptions, at least when in hostile mode (in normal mode it would be
-        # breaking compatibility, as users may actually expect second chance
-        # exceptions to be raised again).
+            # Continue execution of the debugee.
+            win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
-        # Continue execution of the debugee.
-        win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
+        # If the event is the last event, forget it.
+        if event is self.lastEvent:
+            self.lastEvent = None
 
-    def stop(self, event = None, bIgnoreExceptions = True):
+    def stop(self, bIgnoreExceptions = True):
         """
         Stops debugging all processes.
 
         @note: This method is better than L{detach_from_all} because it can
             gracefully handle the last debugging event before detaching.
-
-        @type  event: L{Event}
-        @param event: (Optional) Event object returned by L{wait}.
-            By passing this parameter, the last debugging event may be
-            continued gracefully.
 
         @type  bIgnoreExceptions: bool
         @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
@@ -663,6 +696,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         # I wish I knew a more pythonic way of doing this :(
         has_event = False
         try:
+            event = self.lastEvent
+            self.lastEvent = None
             has_event = bool(event)
         except Exception:
             if not bIgnoreExceptions:
@@ -703,9 +738,6 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @see: L{cont}, L{dispatch}, L{wait}, L{stop}
 
-        @rtype:  L{Event}
-        @return: Handled debug event.
-
         @raise WindowsError: Raises an exception on error.
 
             If the wait operation causes an error, debugging is stopped
@@ -721,10 +753,9 @@ class Debug (EventDispatcher, BreakpointContainer):
             self.stop()
             raise
         try:
-            self.dispatch(event)
+            self.dispatch()
         finally:
-            self.cont(event)
-        return event
+            self.cont()
 
     def loop(self):
         """
@@ -831,6 +862,35 @@ class Debug (EventDispatcher, BreakpointContainer):
         self.erase_all_breakpoints()
         self.detach_from_all()
         self.system.clear()
+
+#------------------------------------------------------------------------------
+
+    def interactive(self, bConfirmQuit = True):
+        """
+        Start an interactive debugging session.
+
+        @type  bConfirmQuit: bool
+        @param bConfirmQuit: Set to C{True} to ask the user for confirmation
+            before closing the session, C{False} otherwise.
+
+        @warn: This will temporarily disable the user-defined event handler!
+
+        This method returns when the user closes the session.
+        """
+        print "Interactive debugging session started."
+        print "Use the \"help\" command to list all available commands."
+        print
+        console = ConsoleDebugger()
+        console.confirm_quit = bConfirmQuit
+        console.load_history()
+        try:
+            console.start_using_debugger(self)
+            console.loop()
+        finally:
+            console.stop_using_debugger()
+            console.save_history()
+        print
+        print "Interactive debugging session closed."
 
 #------------------------------------------------------------------------------
 

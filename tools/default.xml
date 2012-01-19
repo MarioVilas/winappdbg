@@ -12,6 +12,7 @@
 <windowed></windowed>
 
 <!-- Tracing options -->
+<interactive value="false" />
 <pause       value="false" />
 <restart     value="false" />
 <time_limit  value="0"     />
@@ -22,16 +23,17 @@
 <action></action>
 
 <!-- Debugging options -->
-<autodetach  value="true"  />
-<hostile     value="false" />
-<follow      value="true"  />
+<autodetach value="true"  />
+<hostile    value="false" />
+<follow     value="true"  />
 
 <!-- Output options -->
-<verbose     value="true"  />
-<duplicates  value="true"  />
-<firstchance value="false" />
-<memory      value="0"     />
-<nodb        value="false" />
+<verbose              value="true"  />
+<ignore_python_errors value="false"  />
+<duplicates           value="true"  />
+<firstchance          value="false" />
+<memory               value="0"     />
+<nodb                 value="false" />
 <dbm></dbm>
 <sqlite></sqlite>
 <mssql></mssql>
