@@ -50,10 +50,8 @@ import winappdbg
 from winappdbg import System, EventHandler, win32
 from winappdbg.event import NoEvent
 
-try:
-    import readline
-except ImportError:
-    pass
+# lazy imports
+readline = None
 
 #==============================================================================
 
@@ -129,7 +127,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         Cmd.__init__(self)
         EventHandler.__init__(self)
 
-        self.debuggerExit = False       # Quit the debugger when True
+        # Quit the debugger when True
+        self.debuggerExit = False
+
+        # Full path to the history file.
+        self.history_file_full_path = None
 
 #------------------------------------------------------------------------------
 # Input
@@ -1859,32 +1861,39 @@ class ConsoleDebugger (Cmd, EventHandler):
 # History file
 
     def load_history(self):
+        global readline
+        if readline is None:
+            try:
+                import readline
+            except ImportError:
+                return
+        if self.history_file_full_path is None:
+            folder = os.environ.get('USERPROFILE', '')
+            if not folder:
+                folder = os.environ.get('HOME', '')
+            if not folder:
+                folder = os.path.split(sys.argv[0])[1]
+            if not folder:
+                folder = os.path.curdir
+            self.history_file_full_path = os.path.join(folder,
+                                                       self.history_file)
         try:
-            readline
-        except NameError:
-            return
-        folder = os.environ.get('USERPROFILE', '')
-        if not folder:
-            folder = os.environ.get('HOME', '')
-        if not folder:
-            folder = os.path.split(sys.argv[0])[1]
-        if not folder:
-            folder = os.path.curdir
-        self.history_file = os.path.join(folder, self.history_file)
-        try:
-            readline.read_history_file(self.history_file)
+            readline.read_history_file(self.history_file_full_path)
         except IOError:
             pass
 
     def save_history(self):
-        try:
-            readline
-        except NameError:
-            return
-        try:
-            readline.write_history_file(self.history_file)
-        except IOError:
-            pass
+        if self.history_file_full_path is not None:
+            global readline
+            if readline is None:
+                try:
+                    import readline
+                except ImportError:
+                    return
+            try:
+                readline.write_history_file(self.history_file_full_path)
+            except IOError:
+                pass
 
 #------------------------------------------------------------------------------
 # Debugger create and destroy
