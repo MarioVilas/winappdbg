@@ -45,6 +45,16 @@ class PDebug (ConsoleDebugger):
     history_file = '.pdebug'    # backwards compatibility with WinAppDbg 1.4
     confirm_quit = True         # confirm before quitting
 
+    # Override the help message.
+    def do_quit(self, arg):
+        """
+        quit - detach from all processes and shut down the debugger
+        q - detach from all processes and shut down the debugger
+        """
+        ConsoleDebugger.do_quit(self, arg)
+
+    do_q = do_quit
+
 #------------------------------------------------------------------------------
 # Run from the command line
 
