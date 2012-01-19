@@ -35,12 +35,15 @@
 
 __revision__ = "$Id$"
 
+__all__ = [ 'ConsoleDebugger', 'CmdError' ]
+
 import os
 import sys
 import time
 import optparse
 import traceback
 
+# too many variables named "cmd" to have a module by the same name :P
 from cmd import Cmd
 
 import winappdbg
@@ -49,7 +52,6 @@ from winappdbg.event import NoEvent
 
 try:
     import readline
-    import atexit
 except ImportError:
     pass
 
@@ -73,7 +75,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     dwMilliseconds = 100
 
     # History file name.
-    history_file = '.pdebug'
+    history_file = '.winappdbg_history'
 
     # Valid plugin name characters.
     valid_plugin_name_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXY' \
@@ -130,38 +132,6 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.debuggerExit = False       # Quit the debugger when True
 
 #------------------------------------------------------------------------------
-# History file
-
-    def load_history(self):
-        try:
-            readline
-        except NameError:
-            return
-        folder = os.environ.get('USERPROFILE', '')
-        if not folder:
-            folder = os.environ.get('HOME', '')
-        if not folder:
-            folder = os.path.split(sys.argv[0])[1]
-        if not folder:
-            folder = os.path.curdir
-        self.history_file = os.path.join(folder, self.history_file)
-        try:
-            readline.read_history_file(self.history_file)
-        except IOError:
-            pass
-        atexit.register(self.save_history)
-
-    def save_history(self):
-        try:
-            readline
-        except NameError:
-            return
-        try:
-            readline.write_history_file(self.history_file)
-        except IOError:
-            pass
-
-#------------------------------------------------------------------------------
 # Input
 
 # TODO
@@ -170,7 +140,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 #   when assembling or editing memory - it may also be a good idea to think
 #   if it's possible to make the main Cmd instance also a child, instead of
 #   the debugger itself - probably the same goes for the EventHandler, maybe
-#   it can be used as an object rather than a parent class.
+#   it can be used as a contained object rather than a parent class.
 
     # Join a token list into an argument string.
     def join_tokens(self, token_list):
@@ -1012,6 +982,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if c not in self.valid_plugin_name_chars:
                 raise CmdError("invalid plugin name: %r" % name)
         name = 'do_%s' % name
+##        name = 'winappdbg.plugins.do_%s' % name
 
         # The plugins interface is quite simple.
         #
@@ -1029,8 +1000,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         plugins_path = plugins_path[:-len(os.path.basename(plugins_path))]
         plugins_path = os.path.join(plugins_path, 'plugins')
         old_path = sys.path
-        sys.path = [ plugins_path ]
         try:
+            sys.path = [ plugins_path ]
             try:
                 plugin = __import__(name)
                 reload(plugin)
@@ -1885,6 +1856,94 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.print_debug_string(event)
 
 #------------------------------------------------------------------------------
+# History file
+
+    def load_history(self):
+        try:
+            readline
+        except NameError:
+            return
+        folder = os.environ.get('USERPROFILE', '')
+        if not folder:
+            folder = os.environ.get('HOME', '')
+        if not folder:
+            folder = os.path.split(sys.argv[0])[1]
+        if not folder:
+            folder = os.path.curdir
+        self.history_file = os.path.join(folder, self.history_file)
+        try:
+            readline.read_history_file(self.history_file)
+        except IOError:
+            pass
+
+    def save_history(self):
+        try:
+            readline
+        except NameError:
+            return
+        try:
+            readline.write_history_file(self.history_file)
+        except IOError:
+            pass
+
+#------------------------------------------------------------------------------
+# Debugger create and destroy
+
+    # Instance a Debug object and put it inside a NoEvent object.
+    # Then queue some commands, if requested in the command line options.
+    def create_debugger(self):
+
+        # Instance a debugger
+        debug = winappdbg.Debug(self, bHostileCode = self.options.hostile)
+
+        # Populate the snapshot of processes
+        debug.system.scan()
+
+        # Instance a dummy event, just to contain the debugger object.
+        self.lastEvent = NoEvent(debug)
+
+    # Destroy the Debug object.
+    # Circular references must be removed, or the destructors never get called.
+    def destroy_debugger(self):
+        if hasattr(self, 'lastEvent'):
+            event = self.lastEvent
+            del self.lastEvent
+            debug = event.debug
+            if not self.options.autodetach:
+                debug.kill_all(bIgnoreExceptions=True)
+            debug.stop(event)
+            debug.system.clear()
+            del event.debug
+
+#------------------------------------------------------------------------------
+# Run from the command line
+
+    # Run the debugger.
+    # This is the first method called.
+    def run(self, argv):
+        self.argv = list(argv)
+        try:
+            self.initialize()
+            self.main_loop()
+        finally:
+            self.finalize()
+
+    # Initialize the debugger.
+    def initialize(self):
+        self.print_banner()
+        self.parse_cmdline()
+        self.create_debugger()
+        self.queue_initial_commands()
+        self.load_history()
+##        self.set_control_c_handler()
+
+    # Clean up when closing the debugger.
+    def finalize(self):
+##        self.remove_control_c_handler()
+        self.destroy_debugger()
+        self.save_history()
+
+#------------------------------------------------------------------------------
 # Command line parsing
 
 # TODO
@@ -1954,14 +2013,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         )
 
         # Parse the command line
-        if len(self.argv) == 1:
-            self.argv = self.argv + [ '--help' ]
         (self.options, args) = self.parser.parse_args(self.argv)
         args = args[1:]
         if not self.options.windowed and not self.options.console and not self.options.attach:
-            if not args:
-                self.parser.error("missing target application(s)")
-            self.options.console = [ args ]
+            if args:
+                self.options.console = [ args ]
         else:
             if args:
                 self.parser.error("don't know what to do with extra parameters: %s" % args)
@@ -2015,21 +2071,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         # Append the value to the destination list.
         destination.append(value)
 
-#------------------------------------------------------------------------------
-# Debugger create and destroy
-
-    # Instance a Debug object and put it inside a NoEvent object.
-    # Then queue some commands, if requested in the command line options.
-    def create_debugger(self):
-
-        # Instance a debugger
-        debug = winappdbg.Debug(self, bHostileCode = self.options.hostile)
-
-        # Populate the snapshot of processes
-        debug.system.scan()
-
-        # Instance a dummy event, just to contain the debugger object.
-        self.lastEvent = NoEvent(debug)
+    # Queue the startup commands when running from command line.
+    def queue_initial_commands(self):
 
         # Queue the attach command, if needed
         if self.options.attach:
@@ -2038,56 +2081,20 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         # Queue the start commands, if needed
         for argv in self.options.windowed:
-            cmdline = debug.system.argv_to_cmdline(argv)
+            cmdline = System.argv_to_cmdline(argv)
             self.cmdqueue.append( 'windowed %s' % cmdline )
 
         # Queue the startc commands, if needed
         for argv in self.options.console:
-            cmdline = debug.system.argv_to_cmdline(argv)
+            cmdline = System.argv_to_cmdline(argv)
             self.cmdqueue.append( 'console %s' % cmdline )
 
         # Queue the go command, if other commands were queued before
         if len(self.cmdqueue) > 0:
             self.cmdqueue.append('continue')
 
-    # Destroy the Debug object.
-    # Circular references must be removed, or the destructors never get called.
-    def destroy_debugger(self):
-        if hasattr(self, 'lastEvent'):
-            event = self.lastEvent
-            del self.lastEvent
-            debug = event.debug
-            if not self.options.autodetach:
-                debug.kill_all(bIgnoreExceptions=True)
-            debug.stop(event)
-            debug.system.clear()
-            del event.debug
-
 #------------------------------------------------------------------------------
 # Main loop
-
-    # Run the debugger.
-    # This is the first method called.
-    def run(self, argv):
-        self.argv = list(argv)
-        try:
-            self.initialize()
-            self.main_loop()
-        finally:
-            self.finalize()
-
-    # Initialize the debugger.
-    def initialize(self):
-        self.print_banner()
-        self.parse_cmdline()
-        self.create_debugger()
-        self.load_history()
-##        self.set_control_c_handler()
-
-    # Clean up when closing the debugger.
-    def finalize(self):
-##        self.remove_control_c_handler()
-        self.destroy_debugger()
 
     # Debugger's main loop.
     def main_loop(self):
@@ -2103,8 +2110,6 @@ class ConsoleDebugger (Cmd, EventHandler):
                 # continue it here. This won't be done more than once
                 # for a given Event instance, though.
                 if self.lastEvent:
-                    print "*** Warning: " \
-                          "last debug event wasn't properly handled."
                     lastEvent      = self.lastEvent
                     self.lastEvent = NoEvent(debug)
                     try:
