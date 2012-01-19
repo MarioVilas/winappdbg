@@ -52,6 +52,7 @@ from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
 
 import os
 import sys
+import code
 import time
 import traceback
 
@@ -923,11 +924,15 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Automatically autocomplete commands, even if Tab wasn't pressed.
     # The prefix is removed from the line and stored in self.cmdprefix.
+    # Also implement the commands that consist of a symbol character.
     def parseline(self, line):
         self.cmdprefix, line = self.split_prefix(line)
         line = line.strip()
-        if line and line[0] == '.':
-            line = 'plugin ' + line[1:]
+        if line:
+            if line[0] == '.':
+                line = 'plugin ' + line[1:]
+            elif line[0] == '#':
+                line = 'python ' + line[1:]
         cmd, arg, line = Cmd.parseline(self, line)
         if cmd:
             cmd = self.autocomplete(cmd)
@@ -1002,8 +1007,10 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     def do_shell(self, arg):
         """
-        ! <command> [arguments...] - execute a shell command
-        shell <command> [arguments...] - execute a shell command
+        ! - spawn a system shell
+        shell - spawn a system shell
+        ! <command> [arguments...] - execute a single shell command
+        shell <command> [arguments...] - execute a single shell command
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
@@ -1012,9 +1019,74 @@ class ConsoleDebugger (Cmd, EventHandler):
         # If not found, it's usually OK to just use the filename,
         # since cmd.exe is one of those "magic" programs that
         # can be automatically found by CreateProcess.
-        arg = '%s /c %s' % (os.getenv('ComSpec', 'cmd.exe'), arg)
+        shell = os.getenv('ComSpec', 'cmd.exe')
+
+        # When given a command, run it and return.
+        # When no command is given, spawn a shell.
+        if arg:
+            arg = '%s /c %s' % (shell, arg)
+        else:
+            arg = shell
         process = self.debug.system.start_process(arg, bConsole = True)
         process.wait()
+
+    # This hack fixes a bug in Python, the interpreter console is closing the
+    # stdin pipe when calling the exit() function (Ctrl+Z seems to work fine).
+    class _PythonExit(object):
+        def __repr__(self):
+            return "Use exit() or Ctrl-Z plus Return to exit"
+        def __call__(self):
+            raise SystemExit()
+    _python_exit = _PythonExit()
+
+    # Spawns a Python shell with some handy local variables and the winappdbg
+    # module already imported. Also the console banner is improved.
+    def _spawn_python_shell(self, arg):
+        import winappdbg
+        banner = ('Python %s on %s\nType "help", "copyright", '
+                 '"credits" or "license" for more information.\n')
+        platform = winappdbg.version.lower()
+        platform = 'WinAppDbg %s' % platform
+        banner = banner % (sys.version, platform)
+        local = {}
+        local.update(__builtins__)
+        local.update({
+            '__name__'  : '__console__',
+            '__doc__'   : None,
+            'exit'      : self._python_exit,
+            'self'      : self,
+            'arg'       : arg,
+            'winappdbg' : winappdbg,
+        })
+        try:
+            code.interact(banner=banner, local=local)
+        except SystemExit:
+            pass
+
+    def do_python(self, arg):
+        """
+        # - spawn a python interpreter
+        python - spawn a python interpreter
+        # <statement> - execute a single python statement
+        python <statement> - execute a single python statement
+        """
+        if self.cmdprefix:
+            raise CmdError("prefix not allowed")
+
+        # When given a Python statement, execute it directly.
+        if arg:
+            try:
+                exec arg
+            except Exception, e:
+                traceback.print_exc(e)
+
+        # When no statement is given, spawn a Python interpreter.
+        else:
+            try:
+                self._spawn_python_shell(arg)
+            except Exception, e:
+                raise CmdError(
+                    "unhandled exception when running Python console: %s" % e)
 
     # The plugins interface is quite simple.
     #
