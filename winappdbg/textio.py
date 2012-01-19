@@ -954,9 +954,6 @@ class CrashDump (StaticClass):
         """
         if efl is None:
             return ''
-        if win32.CONTEXT.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
-            msg = "Don't know how to dump processor flags for architecture: %s"
-            raise NotImplementedError(msg % win32.CONTEXT.arch)
         efl_dump = 'iopl=%1d' % ((efl & 0x3000) >> 12)
         if efl & 0x100000:
             efl_dump += ' vip'
@@ -1265,6 +1262,8 @@ class CrashDump (StaticClass):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if address_size is None:
+            address_size = HexDump.address_size
         (addr, size, code, dump) = disassembly_line
         dump = dump.replace(' ', '')
         result = list()
