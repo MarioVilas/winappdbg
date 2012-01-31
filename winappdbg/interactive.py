@@ -1,6 +1,10 @@
 #!~/.wine/drive_c/Python25/python.exe
 # -*- coding: utf-8 -*-
 
+# Acknowledgements:
+#  Nicolas Economou, for his command line debugger on which this is inspired.
+#  http://tinyurl.com/nicolaseconomou
+
 # Copyright (c) 2009-2012, Mario Vilas
 # All rights reserved.
 #
@@ -27,10 +31,6 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-# Acknowledgements:
-#  Nicolas Economou, for his command line debugger on which this is inspired.
-#  http://tinyurl.com/nicolaseconomou
 
 """
 Interactive debugging console.
