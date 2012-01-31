@@ -78,17 +78,15 @@ goto Next
 echo WinAppDbg distribution builder
 echo.
 echo Available commands:
-echo    make all                Build all the packages
-echo    make clean              Clean up temporary files
+echo    distro all              Build all the packages
+echo    distro clean            Clean up temporary files
 echo.
 echo Subcommands:
-echo    make source             Build the source distribution packages
-echo    make wininst            Build the Windows installer packages
-:: echo    make portable           Build the portable packages
-echo    make autodoc            Build the reference docs
-echo    make manuals            Build the manuals
-echo.
-echo NOTE: If you're trying to install WinAppDbg, run install.bat instead!
+echo    distro source           Build the source distribution packages
+echo    distro wininst          Build the Windows installer packages
+:: echo    distro portable         Build the portable packages
+echo    distro autodoc          Build the reference docs
+echo    distro manuals          Build the manuals
 goto Exit
 
 :All
