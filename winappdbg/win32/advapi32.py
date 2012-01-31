@@ -873,6 +873,18 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, byref(tokenHandle))
     return TokenHandle(tokenHandle.value)
 
+# BOOL WINAPI IsTokenRestricted(
+#   __in  HANDLE TokenHandle
+# );
+def IsTokenRestricted(hTokenHandle):
+    _IsTokenRestricted = windll.advapi32.IsTokenRestricted
+    _IsTokenRestricted.argtypes = [HANDLE]
+    _IsTokenRestricted.restype  = bool
+    _IsTokenRestricted.errcheck = RaiseIfNotErrorSuccess
+
+    SetLastError(ERROR_SUCCESS)
+    return _IsTokenRestricted(hTokenHandle)
+
 # BOOL WINAPI LookupPrivilegeValue(
 #   __in_opt  LPCTSTR lpSystemName,
 #   __in      LPCTSTR lpName,
@@ -1081,6 +1093,15 @@ def _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInfo
     if ReturnLength.value != TokenInformationLength:
         raise ctypes.WinError(ERROR_INSUFFICIENT_BUFFER)
     return TokenInformation
+
+# BOOL WINAPI SetTokenInformation(
+#   __in  HANDLE TokenHandle,
+#   __in  TOKEN_INFORMATION_CLASS TokenInformationClass,
+#   __in  LPVOID TokenInformation,
+#   __in  DWORD TokenInformationLength
+# );
+
+# XXX TODO
 
 # BOOL WINAPI CreateProcessWithLogonW(
 #   __in         LPCWSTR lpUsername,

@@ -601,7 +601,9 @@ ERROR_ALREADY_EXISTS                = 183
 ERROR_INVALID_FLAG_NUMBER           = 186
 ERROR_FILENAME_EXCED_RANGE          = 206
 ERROR_MORE_DATA                     = 234
+
 WAIT_TIMEOUT                        = 258
+
 ERROR_NO_MORE_ITEMS                 = 259
 ERROR_PARTIAL_COPY                  = 299
 ERROR_INVALID_ADDRESS               = 487
@@ -624,10 +626,9 @@ ERROR_DBG_COMMAND_EXCEPTION         = 697
 ERROR_DBG_EXCEPTION_HANDLED         = 766
 ERROR_DBG_CONTINUE                  = 767
 
+ERROR_ELEVATION_REQUIRED            = 740
 ERROR_NOACCESS                      = 998
-
 ERROR_DEBUGGER_INACTIVE             = 1284
-
 ERROR_NONE_MAPPED                   = 1332
 
 # Standard access rights
