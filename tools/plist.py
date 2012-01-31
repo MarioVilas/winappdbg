@@ -46,9 +46,14 @@ __revision__ = "$Id$"
 # Get the names of the services running in each process.
 
 # TODO
+# Option to show the process tree instead of a list. (Maybe this should go to
+# another tool instead, called "ptree.py").
+
+# TODO
 # How about showing some colors?
 # It'd be useful when using a search string, to highlight the matching parts.
 # Also to show processes run by SYSTEM or other users with different colors.
+# Can be done with colorama/termcolor or raw win32 api if it's easy enough.
 
 from winappdbg import System, PathOperations, Table
 
@@ -59,6 +64,8 @@ def parse_cmdline(argv):
     parser = optparse.OptionParser()
     parser.add_option("-f", "--full-path", action="store_true", default=False,
                       help="show full pathnames")
+    parser.add_option("-w", "--windows", action="store_true", default=False,
+                      help="show window captions for each process")
     parser.add_option("-s", "--search", metavar="STRING",
                       help="optional search string")
     (options, argv) = parser.parse_args(argv)
@@ -86,18 +93,23 @@ def main(argv):
     # Take a snapshot of the running processes.
     s = System()
     s.request_debug_privileges()
-    s.scan_processes()
-##    s.scan_processes_fast()
+    try:
+        s.scan_processes()
+        if not showFilenameOnly:
+            s.scan_process_filenames()
+    except WindowsError:
+        s.scan_processes_fast()
     pid_list = s.get_process_ids()
     pid_list.sort()
+    if not pid_list:
+        print "Unknown error enumerating processes!"
+        return
 
-    # Prepare the output table.
-    table = Table()
-    table.addRow(" PID", "Filename")
-
-    # Enumerate the processes in the snapshot.
+    # Get the filename of each process.
+    filenames = dict()
     for pid in pid_list:
         p = s.get_process(pid)
+        fileName = p.get_filename()
 
         # Special process IDs.
         # PID 0: System Idle Process. Also has a special meaning to the
@@ -115,26 +127,85 @@ def main(argv):
         elif pid == 8:
             fileName = "[System]"
 
-        # Get the process filename (or pathname).
-        else:
-            fileName = p.get_filename()
-            if not fileName:
-##                fileName = "<unknown>"
-                fileName = ""
-            elif showFilenameOnly:
-                fileName = PathOperations.pathname_to_filename(fileName)
+        # Filename not available.
+        elif not fileName:
+            fileName = ""
+
+        # Get the process pathname instead, if requested.
+        elif showFilenameOnly:
+            fileName = PathOperations.pathname_to_filename(fileName)
 
         # Filter the output with the search string.
         if searchString and searchString not in fileName.lower():
             continue
 
-        # Add the process PID and filename (or pathname).
-        table.addRow(' %d' % pid, fileName)
+        # Remember the filename.
+        filenames[pid] = fileName
 
-    # Print the output table.
+    # Get the window captions if requested.
+    captions = dict()
+    if options.windows:
+        for w in s.get_windows():
+            try:
+                pid = w.get_pid()
+                text = w.get_text()
+            except WindowsError:
+                continue
+            try:
+                captions[pid].add(text)
+            except KeyError:
+                capset = set()
+                capset.add(text)
+                captions[pid] = capset
+
+    # Try to print the data as a wide table, as long as it fits on screen.
+    if options.windows:
+        headers = (" PID", "Filename", "Windows")
+    else:
+        headers = (" PID", "Filename")
+    table = Table()
+    table.addRow(*headers)
+    for pid in pid_list:
+        if filenames.has_key(pid):
+            fileName = filenames[pid]
+            if not options.windows:
+                table.addRow(' %d' % pid, fileName)
+            else:
+                caplist = sorted( captions.get(pid, set()) )
+                if not caplist:
+                    table.addRow(' %d' % pid, fileName, '')
+                else:
+                    table.addRow(' %d' % pid, fileName, caplist[0])
+                    for caption in caplist[1:]:
+                        table.addRow('', '', caption)
     table.justify(0, 1)
-    for row in table.yieldOutput():
-        print row
+    if table.getWidth() < 79:
+        table.show()
+    else:
+
+        # If it doesn't fit, build a new table of only two rows. The first row
+        # contains the headers and the second row the data. Insert an empty row
+        # between each process.
+        need_empty_row = False
+        table = Table()
+        for pid in pid_list:
+            if filenames.has_key(pid):
+                if need_empty_row:
+                    table.addRow()
+                else:
+                    need_empty_row = True
+                table.addRow("PID:", pid)
+                fileName = filenames[pid]
+                if fileName:
+                    table.addRow("Filename:", fileName)
+                caplist = sorted( captions.get(pid, set()) )
+                if caplist:
+                    caption = caplist.pop(0)
+                    table.addRow("Windows:", caption)
+                    for caption in caplist:
+                        table.addRow('', caption)
+        table.justify(0, 1)
+        table.show()
 
 if __name__ == '__main__':
     import sys

@@ -164,6 +164,262 @@ class TOKEN_PRIVILEGES(Structure):
 
 PTOKEN_PRIVILEGES = POINTER(TOKEN_PRIVILEGES)
 
+#--- GetTokenInformation enums and structures ---------------------------------
+
+# typedef enum _TOKEN_INFORMATION_CLASS {
+#   TokenUser                              = 1,
+#   TokenGroups,
+#   TokenPrivileges,
+#   TokenOwner,
+#   TokenPrimaryGroup,
+#   TokenDefaultDacl,
+#   TokenSource,
+#   TokenType,
+#   TokenImpersonationLevel,
+#   TokenStatistics,
+#   TokenRestrictedSids,
+#   TokenSessionId,
+#   TokenGroupsAndPrivileges,
+#   TokenSessionReference,
+#   TokenSandBoxInert,
+#   TokenAuditPolicy,
+#   TokenOrigin,
+#   TokenElevationType,
+#   TokenLinkedToken,
+#   TokenElevation,
+#   TokenHasRestrictions,
+#   TokenAccessInformation,
+#   TokenVirtualizationAllowed,
+#   TokenVirtualizationEnabled,
+#   TokenIntegrityLevel,
+#   TokenUIAccess,
+#   TokenMandatoryPolicy,
+#   TokenLogonSid,
+#   TokenIsAppContainer,
+#   TokenCapabilities,
+#   TokenAppContainerSid,
+#   TokenAppContainerNumber,
+#   TokenUserClaimAttributes,
+#   TokenDeviceClaimAttributes,
+#   TokenRestrictedUserClaimAttributes,
+#   TokenRestrictedDeviceClaimAttributes,
+#   TokenDeviceGroups,
+#   TokenRestrictedDeviceGroups,
+#   TokenSecurityAttributes,
+#   TokenIsRestricted,
+#   MaxTokenInfoClass
+# } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
+
+TOKEN_INFORMATION_CLASS = ctypes.c_int
+
+TokenUser                               = 1
+TokenGroups                             = 2
+TokenPrivileges                         = 3
+TokenOwner                              = 4
+TokenPrimaryGroup                       = 5
+TokenDefaultDacl                        = 6
+TokenSource                             = 7
+TokenType                               = 8
+TokenImpersonationLevel                 = 9
+TokenStatistics                         = 10
+TokenRestrictedSids                     = 11
+TokenSessionId                          = 12
+TokenGroupsAndPrivileges                = 13
+TokenSessionReference                   = 14
+TokenSandBoxInert                       = 15
+TokenAuditPolicy                        = 16
+TokenOrigin                             = 17
+TokenElevationType                      = 18
+TokenLinkedToken                        = 19
+TokenElevation                          = 20
+TokenHasRestrictions                    = 21
+TokenAccessInformation                  = 22
+TokenVirtualizationAllowed              = 23
+TokenVirtualizationEnabled              = 24
+TokenIntegrityLevel                     = 25
+TokenUIAccess                           = 26
+TokenMandatoryPolicy                    = 27
+TokenLogonSid                           = 28
+TokenIsAppContainer                     = 29
+TokenCapabilities                       = 30
+TokenAppContainerSid                    = 31
+TokenAppContainerNumber                 = 32
+TokenUserClaimAttributes                = 33
+TokenDeviceClaimAttributes              = 34
+TokenRestrictedUserClaimAttributes      = 35
+TokenRestrictedDeviceClaimAttributes    = 36
+TokenDeviceGroups                       = 37
+TokenRestrictedDeviceGroups             = 38
+TokenSecurityAttributes                 = 39
+TokenIsRestricted                       = 40
+MaxTokenInfoClass                       = 41
+
+# typedef enum tagTOKEN_TYPE {
+#   TokenPrimary         = 1,
+#   TokenImpersonation
+# } TOKEN_TYPE, *PTOKEN_TYPE;
+
+TOKEN_TYPE = ctypes.c_int
+PTOKEN_TYPE = POINTER(TOKEN_TYPE)
+
+TokenPrimary        = 1
+TokenImpersonation  = 2
+
+# typedef enum  {
+#   TokenElevationTypeDefault   = 1,
+#   TokenElevationTypeFull,
+#   TokenElevationTypeLimited
+# } TOKEN_ELEVATION_TYPE , *PTOKEN_ELEVATION_TYPE;
+
+TokenElevationTypeDefault   = 1
+TokenElevationTypeFull      = 2
+TokenElevationTypeLimited   = 3
+
+TOKEN_ELEVATION_TYPE = ctypes.c_int
+PTOKEN_ELEVATION_TYPE = POINTER(TOKEN_ELEVATION_TYPE)
+
+# typedef enum _SECURITY_IMPERSONATION_LEVEL {
+#   SecurityAnonymous,
+#   SecurityIdentification,
+#   SecurityImpersonation,
+#   SecurityDelegation
+# } SECURITY_IMPERSONATION_LEVEL, *PSECURITY_IMPERSONATION_LEVEL;
+
+SecurityAnonymous       = 0
+SecurityIdentification  = 1
+SecurityImpersonation   = 2
+SecurityDelegation      = 3
+
+SECURITY_IMPERSONATION_LEVEL = ctypes.c_int
+PSECURITY_IMPERSONATION_LEVEL = POINTER(SECURITY_IMPERSONATION_LEVEL)
+
+# typedef struct _SID_AND_ATTRIBUTES {
+#   PSID  Sid;
+#   DWORD Attributes;
+# } SID_AND_ATTRIBUTES, *PSID_AND_ATTRIBUTES;
+class SID_AND_ATTRIBUTES(Structure):
+    _fields_ = [
+        ("Sid",         PSID),
+        ("Attributes",  DWORD),
+    ]
+PSID_AND_ATTRIBUTES = POINTER(SID_AND_ATTRIBUTES)
+
+# typedef struct _TOKEN_USER {
+#   SID_AND_ATTRIBUTES User;
+# } TOKEN_USER, *PTOKEN_USER;
+class TOKEN_USER(Structure):
+    _fields_ = [
+        ("User", SID_AND_ATTRIBUTES),
+    ]
+PTOKEN_USER = POINTER(TOKEN_USER)
+
+# typedef struct _TOKEN_MANDATORY_LABEL {
+#   SID_AND_ATTRIBUTES Label;
+# } TOKEN_MANDATORY_LABEL, *PTOKEN_MANDATORY_LABEL;
+class TOKEN_MANDATORY_LABEL(Structure):
+    _fields_ = [
+        ("Label", SID_AND_ATTRIBUTES),
+    ]
+PTOKEN_MANDATORY_LABEL = POINTER(TOKEN_MANDATORY_LABEL)
+
+# typedef struct _TOKEN_OWNER {
+#   PSID Owner;
+# } TOKEN_OWNER, *PTOKEN_OWNER;
+class TOKEN_OWNER(Structure):
+    _fields_ = [
+        ("Owner", PSID),
+    ]
+PTOKEN_OWNER = POINTER(TOKEN_OWNER)
+
+# typedef struct _TOKEN_PRIMARY_GROUP {
+#   PSID PrimaryGroup;
+# } TOKEN_PRIMARY_GROUP, *PTOKEN_PRIMARY_GROUP;
+class TOKEN_PRIMARY_GROUP(Structure):
+    _fields_ = [
+        ("PrimaryGroup", PSID),
+    ]
+PTOKEN_PRIMARY_GROUP = POINTER(TOKEN_PRIMARY_GROUP)
+
+# typedef struct _TOKEN_APPCONTAINER_INFORMATION {
+#   	PSID TokenAppContainer;
+# } TOKEN_APPCONTAINER_INFORMATION, *PTOKEN_APPCONTAINER_INFORMATION;
+class TOKEN_APPCONTAINER_INFORMATION(Structure):
+    _fields_ = [
+        ("TokenAppContainer", PSID),
+    ]
+PTOKEN_APPCONTAINER_INFORMATION = POINTER(TOKEN_APPCONTAINER_INFORMATION)
+
+# typedef struct _TOKEN_ORIGIN {
+#   LUID OriginatingLogonSession;
+# } TOKEN_ORIGIN, *PTOKEN_ORIGIN;
+class TOKEN_ORIGIN(Structure):
+    _fields_ = [
+        ("OriginatingLogonSession", LUID),
+    ]
+PTOKEN_ORIGIN = POINTER(TOKEN_ORIGIN)
+
+# typedef struct _TOKEN_LINKED_TOKEN {
+#   HANDLE LinkedToken;
+# } TOKEN_LINKED_TOKEN, *PTOKEN_LINKED_TOKEN;
+class TOKEN_LINKED_TOKEN(Structure):
+    _fields_ = [
+        ("LinkedToken", HANDLE),
+    ]
+PTOKEN_LINKED_TOKEN = POINTER(TOKEN_LINKED_TOKEN)
+
+# typedef struct _TOKEN_STATISTICS {
+#   LUID                         TokenId;
+#   LUID                         AuthenticationId;
+#   LARGE_INTEGER                ExpirationTime;
+#   TOKEN_TYPE                   TokenType;
+#   SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+#   DWORD                        DynamicCharged;
+#   DWORD                        DynamicAvailable;
+#   DWORD                        GroupCount;
+#   DWORD                        PrivilegeCount;
+#   LUID                         ModifiedId;
+# } TOKEN_STATISTICS, *PTOKEN_STATISTICS;
+class TOKEN_STATISTICS(Structure):
+    _fields_ = [
+        ("TokenId",             LUID),
+        ("AuthenticationId",    LUID),
+        ("ExpirationTime",      LONGLONG),  # LARGE_INTEGER
+        ("TokenType",           TOKEN_TYPE),
+        ("ImpersonationLevel",  SECURITY_IMPERSONATION_LEVEL),
+        ("DynamicCharged",      DWORD),
+        ("DynamicAvailable",    DWORD),
+        ("GroupCount",          DWORD),
+        ("PrivilegeCount",      DWORD),
+        ("ModifiedId",          LUID),
+    ]
+PTOKEN_STATISTICS = POINTER(TOKEN_STATISTICS)
+
+#--- SID_NAME_USE enum --------------------------------------------------------
+
+# typedef enum _SID_NAME_USE {
+#   SidTypeUser             = 1,
+#   SidTypeGroup,
+#   SidTypeDomain,
+#   SidTypeAlias,
+#   SidTypeWellKnownGroup,
+#   SidTypeDeletedAccount,
+#   SidTypeInvalid,
+#   SidTypeUnknown,
+#   SidTypeComputer,
+#   SidTypeLabel
+# } SID_NAME_USE, *PSID_NAME_USE;
+
+SidTypeUser             = 1
+SidTypeGroup            = 2
+SidTypeDomain           = 3
+SidTypeAlias            = 4
+SidTypeWellKnownGroup   = 5
+SidTypeDeletedAccount   = 6
+SidTypeInvalid          = 7
+SidTypeUnknown          = 8
+SidTypeComputer         = 9
+SidTypeLabel            = 10
+
 #--- WAITCHAIN_NODE_INFO structure and types ----------------------------------
 
 WCT_MAX_NODE_COUNT       = 16
@@ -372,6 +628,220 @@ class SaferLevelHandle (Handle):
 
 #--- advapi32.dll -------------------------------------------------------------
 
+# BOOL WINAPI GetUserName(
+#   __out    LPTSTR lpBuffer,
+#   __inout  LPDWORD lpnSize
+# );
+def GetUserNameA():
+    _GetUserNameA = windll.advapi32.GetUserNameA
+    _GetUserNameA.argtypes = [LPSTR, LPDWORD]
+    _GetUserNameA.restype  = bool
+
+    nSize = DWORD(0)
+    _GetUserNameA(None, byref(nSize))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise ctypes.WinError(error)
+    lpBuffer = ctypes.create_string_buffer('', nSize.value + 1)
+    success = _GetUserNameA(lpBuffer, byref(nSize))
+    if not success:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+def GetUserNameW():
+    _GetUserNameW = windll.advapi32.GetUserNameW
+    _GetUserNameW.argtypes = [LPWSTR, LPDWORD]
+    _GetUserNameW.restype  = bool
+
+    nSize = DWORD(0)
+    _GetUserNameW(None, byref(nSize))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise ctypes.WinError(error)
+    lpBuffer = ctypes.create_unicode_buffer(u'', nSize.value + 1)
+    success = _GetUserNameW(lpBuffer, byref(nSize))
+    if not success:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+GetUserName = DefaultStringType(GetUserNameA, GetUserNameW)
+
+# BOOL WINAPI LookupAccountName(
+#   __in_opt   LPCTSTR lpSystemName,
+#   __in       LPCTSTR lpAccountName,
+#   __out_opt  PSID Sid,
+#   __inout    LPDWORD cbSid,
+#   __out_opt  LPTSTR ReferencedDomainName,
+#   __inout    LPDWORD cchReferencedDomainName,
+#   __out      PSID_NAME_USE peUse
+# );
+
+# XXX TO DO
+
+# BOOL WINAPI LookupAccountSid(
+#   __in_opt   LPCTSTR lpSystemName,
+#   __in       PSID lpSid,
+#   __out_opt  LPTSTR lpName,
+#   __inout    LPDWORD cchName,
+#   __out_opt  LPTSTR lpReferencedDomainName,
+#   __inout    LPDWORD cchReferencedDomainName,
+#   __out      PSID_NAME_USE peUse
+# );
+def LookupAccountSidA(lpSystemName, lpSid):
+    _LookupAccountSidA = windll.advapi32.LookupAccountSidA
+    _LookupAccountSidA.argtypes = [LPSTR, PSID, LPSTR, LPDWORD, LPSTR, LPDWORD, LPDWORD]
+    _LookupAccountSidA.restype  = bool
+
+    cchName = DWORD(0)
+    cchReferencedDomainName = DWORD(0)
+    peUse = DWORD(0)
+    _LookupAccountSidA(lpSystemName, lpSid, None, byref(cchName), None, byref(cchReferencedDomainName), byref(peUse))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise ctypes.WinError(error)
+    lpName = ctypes.create_string_buffer('', cchName + 1)
+    lpReferencedDomainName = ctypes.create_string_buffer('', cchReferencedDomainName + 1)
+    success = _LookupAccountSidA(lpSystemName, lpSid, lpName, byref(cchName), lpReferencedDomainName, byref(cchReferencedDomainName), byref(peUse))
+    if not success:
+        raise ctypes.WinError()
+    return lpName.value, lpReferencedDomainName.value, peUse.value
+
+def LookupAccountSidW(lpSystemName, lpSid):
+    _LookupAccountSidW = windll.advapi32.LookupAccountSidA
+    _LookupAccountSidW.argtypes = [LPSTR, PSID, LPWSTR, LPDWORD, LPWSTR, LPDWORD, LPDWORD]
+    _LookupAccountSidW.restype  = bool
+
+    cchName = DWORD(0)
+    cchReferencedDomainName = DWORD(0)
+    peUse = DWORD(0)
+    _LookupAccountSidW(lpSystemName, lpSid, None, byref(cchName), None, byref(cchReferencedDomainName), byref(peUse))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise ctypes.WinError(error)
+    lpName = ctypes.create_unicode_buffer(u'', cchName + 1)
+    lpReferencedDomainName = ctypes.create_unicode_buffer(u'', cchReferencedDomainName + 1)
+    success = _LookupAccountSidW(lpSystemName, lpSid, lpName, byref(cchName), lpReferencedDomainName, byref(cchReferencedDomainName), byref(peUse))
+    if not success:
+        raise ctypes.WinError()
+    return lpName.value, lpReferencedDomainName.value, peUse.value
+
+LookupAccountSid = GuessStringType(LookupAccountSidA, LookupAccountSidW)
+
+# BOOL ConvertSidToStringSid(
+#   __in   PSID Sid,
+#   __out  LPTSTR *StringSid
+# );
+def ConvertSidToStringSidA(Sid):
+    _ConvertSidToStringSidA = windll.advapi32.ConvertSidToStringSidA
+    _ConvertSidToStringSidA.argtypes = [PSID, LPSTR]
+    _ConvertSidToStringSidA.restype  = bool
+    _ConvertSidToStringSidA.errcheck = RaiseIfZero
+
+    pStringSid = LPSTR()
+    _ConvertSidToStringSidA(Sid, byref(pStringSid))
+    try:
+        StringSid = pStringSid.value
+    finally:
+        LocalFree(pStringSid)
+    return StringSid
+
+def ConvertSidToStringSidW(Sid):
+    _ConvertSidToStringSidW = windll.advapi32.ConvertSidToStringSidW
+    _ConvertSidToStringSidW.argtypes = [PSID, LPWSTR]
+    _ConvertSidToStringSidW.restype  = bool
+    _ConvertSidToStringSidW.errcheck = RaiseIfZero
+
+    pStringSid = LPWSTR()
+    _ConvertSidToStringSidW(Sid, byref(pStringSid))
+    try:
+        StringSid = pStringSid.value
+    finally:
+        LocalFree(pStringSid)
+    return StringSid
+
+ConvertSidToStringSid = DefaultStringType(ConvertSidToStringSidA, ConvertSidToStringSidW)
+
+# BOOL WINAPI ConvertStringSidToSid(
+#   __in   LPCTSTR StringSid,
+#   __out  PSID *Sid
+# );
+def ConvertStringSidToSidA(StringSid):
+    _ConvertStringSidToSidA = windll.advapi32.ConvertStringSidToSidA
+    _ConvertStringSidToSidA.argtypes = [LPSTR, PVOID]
+    _ConvertStringSidToSidA.restype  = bool
+    _ConvertStringSidToSidA.errcheck = RaiseIfZero
+
+    Sid = PVOID()
+    _ConvertStringSidToSidA(StringSid, ctypes.pointer(Sid))
+    return Sid.value
+
+def ConvertStringSidToSidW(StringSid):
+    _ConvertStringSidToSidW = windll.advapi32.ConvertStringSidToSidW
+    _ConvertStringSidToSidW.argtypes = [LPWSTR, PVOID]
+    _ConvertStringSidToSidW.restype  = bool
+    _ConvertStringSidToSidW.errcheck = RaiseIfZero
+
+    Sid = PVOID()
+    _ConvertStringSidToSidW(StringSid, ctypes.pointer(Sid))
+    return Sid.value
+
+ConvertStringSidToSid = GuessStringType(ConvertStringSidToSidA, ConvertStringSidToSidW)
+
+# BOOL WINAPI IsValidSid(
+#   __in  PSID pSid
+# );
+def IsValidSid(pSid):
+    _IsValidSid = windll.advapi32.IsValidSid
+    _IsValidSid.argtypes = [PSID]
+    _IsValidSid.restype  = bool
+    return _IsValidSid(pSid)
+
+# BOOL WINAPI EqualSid(
+#   __in  PSID pSid1,
+#   __in  PSID pSid2
+# );
+def EqualSid(pSid1, pSid2):
+    _EqualSid = windll.advapi32.EqualSid
+    _EqualSid.argtypes = [PSID, PSID]
+    _EqualSid.restype  = bool
+    return _EqualSid(pSid1, pSid2)
+
+# DWORD WINAPI GetLengthSid(
+#   __in  PSID pSid
+# );
+def GetLengthSid(pSid):
+    _GetLengthSid = windll.advapi32.GetLengthSid
+    _GetLengthSid.argtypes = [PSID]
+    _GetLengthSid.restype  = DWORD
+    return _GetLengthSid(pSid)
+
+# BOOL WINAPI CopySid(
+#   __in   DWORD nDestinationSidLength,
+#   __out  PSID pDestinationSid,
+#   __in   PSID pSourceSid
+# );
+def CopySid(pSourceSid):
+    _CopySid = windll.advapi32.CopySid
+    _CopySid.argtypes = [DWORD, PVOID, PSID]
+    _CopySid.restype  = bool
+    _CopySid.errcheck = RaiseIfZero
+
+    nDestinationSidLength = GetLengthSid(pSourceSid)
+    DestinationSid = ctypes.create_string_buffer('', nDestinationSidLength)
+    pDestinationSid = ctypes.cast(ctypes.pointer(DestinationSid), PVOID)
+    _CopySid(nDestinationSidLength, pDestinationSid, pSourceSid)
+    return ctypes.cast(pDestinationSid, PSID)
+
+# PVOID WINAPI FreeSid(
+#   __in  PSID pSid
+# );
+def FreeSid(pSid):
+    _FreeSid = windll.advapi32.FreeSid
+    _FreeSid.argtypes = [PSID]
+    _FreeSid.restype  = PSID
+    _FreeSid.errcheck = RaiseIfNotZero
+    _FreeSid(pSid)
+
 # BOOL WINAPI OpenProcessToken(
 #   __in   HANDLE ProcessHandle,
 #   __in   DWORD DesiredAccess,
@@ -380,7 +850,7 @@ class SaferLevelHandle (Handle):
 def OpenProcessToken(ProcessHandle, DesiredAccess):
     _OpenProcessToken = windll.advapi32.OpenProcessToken
     _OpenProcessToken.argtypes = [HANDLE, DWORD, PHANDLE]
-    _OpenProcessToken.restype = bool
+    _OpenProcessToken.restype  = bool
     _OpenProcessToken.errcheck = RaiseIfZero
 
     tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
@@ -396,7 +866,7 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
 def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken = windll.advapi32.OpenThreadToken
     _OpenThreadToken.argtypes = [HANDLE, DWORD, BOOL, PHANDLE]
-    _OpenThreadToken.restype = bool
+    _OpenThreadToken.restype  = bool
     _OpenThreadToken.errcheck = RaiseIfZero
 
     tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
@@ -411,7 +881,7 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
 def LookupPrivilegeValueA(lpSystemName, lpName):
     _LookupPrivilegeValueA = windll.advapi32.LookupPrivilegeValueA
     _LookupPrivilegeValueA.argtypes = [LPSTR, LPSTR, PLUID]
-    _LookupPrivilegeValueA.restype = bool
+    _LookupPrivilegeValueA.restype  = bool
     _LookupPrivilegeValueA.errcheck = RaiseIfZero
 
     lpLuid = LUID()
@@ -423,7 +893,7 @@ def LookupPrivilegeValueA(lpSystemName, lpName):
 def LookupPrivilegeValueW(lpSystemName, lpName):
     _LookupPrivilegeValueW = windll.advapi32.LookupPrivilegeValueW
     _LookupPrivilegeValueW.argtypes = [LPWSTR, LPWSTR, PLUID]
-    _LookupPrivilegeValueW.restype = bool
+    _LookupPrivilegeValueW.restype  = bool
     _LookupPrivilegeValueW.errcheck = RaiseIfZero
 
     lpLuid = LUID()
@@ -444,7 +914,7 @@ LookupPrivilegeValue = GuessStringType(LookupPrivilegeValueA, LookupPrivilegeVal
 def LookupPrivilegeNameA(lpSystemName, lpLuid):
     _LookupPrivilegeNameA = windll.advapi32.LookupPrivilegeNameA
     _LookupPrivilegeNameA.argtypes = [LPSTR, PLUID, LPSTR, LPDWORD]
-    _LookupPrivilegeNameA.restype = bool
+    _LookupPrivilegeNameA.restype  = bool
     _LookupPrivilegeNameA.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
@@ -456,7 +926,7 @@ def LookupPrivilegeNameA(lpSystemName, lpLuid):
 def LookupPrivilegeNameW(lpSystemName, lpLuid):
     _LookupPrivilegeNameW = windll.advapi32.LookupPrivilegeNameW
     _LookupPrivilegeNameW.argtypes = [LPWSTR, PLUID, LPWSTR, LPDWORD]
-    _LookupPrivilegeNameW.restype = bool
+    _LookupPrivilegeNameW.restype  = bool
     _LookupPrivilegeNameW.errcheck = RaiseIfZero
 
     cchName = DWORD(0)
@@ -478,7 +948,7 @@ LookupPrivilegeName = GuessStringType(LookupPrivilegeNameA, LookupPrivilegeNameW
 def AdjustTokenPrivileges(TokenHandle, NewState = ()):
     _AdjustTokenPrivileges = windll.advapi32.AdjustTokenPrivileges
     _AdjustTokenPrivileges.argtypes = [HANDLE, BOOL, LPVOID, DWORD, LPVOID, LPVOID]
-    _AdjustTokenPrivileges.restype = bool
+    _AdjustTokenPrivileges.restype  = bool
     _AdjustTokenPrivileges.errcheck = RaiseIfZero
     #
     # I don't know how to allocate variable sized structures in ctypes :(
@@ -505,6 +975,112 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
             laa = LUID_AND_ATTRIBUTES(privilege, flags)
             tp  = TOKEN_PRIVILEGES(1, laa)
             _AdjustTokenPrivileges(TokenHandle, FALSE, byref(tp), sizeof(tp), NULL, NULL)
+
+# BOOL WINAPI GetTokenInformation(
+#   __in       HANDLE TokenHandle,
+#   __in       TOKEN_INFORMATION_CLASS TokenInformationClass,
+#   __out_opt  LPVOID TokenInformation,
+#   __in       DWORD TokenInformationLength,
+#   __out      PDWORD ReturnLength
+# );
+def GetTokenInformation(hTokenHandle, TokenInformationClass):
+    if TokenInformationClass <= 0 or TokenInformationClass > MaxTokenInfoClass:
+        raise ValueError("Invalid value for TokenInformationClass (%i)" % TokenInformationClass)
+
+    # User SID.
+    if TokenInformationClass == TokenUser:
+        TokenInformation = TOKEN_USER()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.User.Sid.value
+
+    # Owner SID.
+    if TokenInformationClass == TokenOwner:
+        TokenInformation = TOKEN_OWNER()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.Owner.value
+
+    # Primary group SID.
+    if TokenInformationClass == TokenOwner:
+        TokenInformation = TOKEN_PRIMARY_GROUP()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.PrimaryGroup.value
+
+    # App container SID.
+    if TokenInformationClass == TokenAppContainerSid:
+        TokenInformation = TOKEN_APPCONTAINER_INFORMATION()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.TokenAppContainer.value
+
+    # Integrity level SID.
+    if TokenInformationClass == TokenIntegrityLevel:
+        TokenInformation = TOKEN_MANDATORY_LABEL()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.Label.Sid.value, TokenInformation.Label.Attributes
+
+    # Logon session LUID.
+    if TokenInformationClass == TokenOrigin:
+        TokenInformation = TOKEN_ORIGIN()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.OriginatingLogonSession
+
+    # Primary or impersonation token.
+    if TokenInformationClass == TokenType:
+        TokenInformation = TOKEN_TYPE(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.value
+
+    # Elevated token.
+    if TokenInformationClass == TokenElevation:
+        TokenInformation = TOKEN_ELEVATION(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.value
+
+    # Security impersonation level.
+    if TokenInformationClass == TokenElevation:
+        TokenInformation = SECURITY_IMPERSONATION_LEVEL(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.value
+
+    # Session ID and other DWORD values.
+    if TokenInformationClass in (TokenSessionId, TokenAppContainerNumber):
+        TokenInformation = DWORD(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation.value
+
+    # Various boolean flags.
+    if TokenInformationClass in (TokenSandBoxInert, TokenHasRestrictions, TokenUIAccess,
+                                 TokenVirtualizationAllowed, TokenVirtualizationEnabled):
+        TokenInformation = DWORD(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return bool(TokenInformation.value)
+
+    # Linked token.
+    if TokenInformationClass == TokenLinkedToken:
+        TokenInformation = TOKEN_LINKED_TOKEN(0)
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenHandle(TokenInformation.LinkedToken.value, bOwnership = True)
+
+    # Token statistics.
+    if TokenInformationClass == TokenStatistics:
+        TokenInformation = TOKEN_STATISTICS()
+        _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation)
+        return TokenInformation # TODO add a class wrapper?
+
+    # Currently unsupported flags.
+    raise NotImplementedError("TokenInformationClass(%i) not yet supported!" % TokenInformationClass)
+
+def _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInformation):
+    _GetTokenInformation = windll.advapi32.GetTokenInformation
+    _GetTokenInformation.argtypes = [HANDLE, TOKEN_INFORMATION_CLASS, LPVOID, DWORD, PDWORD]
+    _GetTokenInformation.restype  = bool
+    _GetTokenInformation.errcheck = RaiseIfZero
+
+    ReturnLength = DWORD(0)
+    TokenInformationLength = SIZEOF(TokenInformation)
+    _GetTokenInformation(hTokenHandle, TokenInformationClass, byref(TokenInformation), TokenInformationLength, byref(ReturnLength))
+    if ReturnLength.value != TokenInformationLength:
+        raise ctypes.WinError(ERROR_INSUFFICIENT_BUFFER)
+    return TokenInformation
 
 # BOOL WINAPI CreateProcessWithLogonW(
 #   __in         LPCWSTR lpUsername,

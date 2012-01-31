@@ -32,6 +32,9 @@
 Common definitions.
 """
 
+# TODO
+# + add TCHAR and related types?
+
 __revision__ = "$Id$"
 
 import ctypes
@@ -159,6 +162,20 @@ def RaiseIfZero(result, func = None, arguments = ()):
     In that case the C{WindowsError} exception is raised.
     """
     if not result:
+        raise ctypes.WinError()
+    return result
+
+def RaiseIfNotZero(result, func = None, arguments = ()):
+    """
+    Error checking for some odd Win32 API calls.
+
+    The function is assumed to return an integer, which is zero on success.
+    If the return value is nonzero the C{WindowsError} exception is raised.
+
+    This is mostly useful for free() like functions, where the return value is
+    the pointer to the memory block on failure or a C{NULL} pointer on success.
+    """
+    if result:
         raise ctypes.WinError()
     return result
 
@@ -485,6 +502,9 @@ REGSAM      = ACCESS_MASK
 PACCESS_MASK = POINTER(ACCESS_MASK)
 PREGSAM     = POINTER(REGSAM)
 
+# Since the SID is an opaque structure, let's treat its pointers as void*
+PSID = PVOID
+
 # typedef union _LARGE_INTEGER {
 #   struct {
 #     DWORD LowPart;
@@ -607,6 +627,8 @@ ERROR_DBG_CONTINUE                  = 767
 ERROR_NOACCESS                      = 998
 
 ERROR_DEBUGGER_INACTIVE             = 1284
+
+ERROR_NONE_MAPPED                   = 1332
 
 # Standard access rights
 DELETE                           = 0x00010000L

@@ -126,6 +126,20 @@ WPF_SETMINPOSITION                  = 1
 WPF_RESTORETOMAXIMIZED              = 2
 WPF_ASYNCWINDOWPLACEMENT            = 4
 
+# GetAncestor flags
+GA_PARENT                           = 1
+GA_ROOT                             = 2
+GA_ROOTOWNER                        = 3
+
+# GetWindow flags
+GW_HWNDFIRST                        = 0
+GW_HWNDLAST                         = 1
+GW_HWNDNEXT                         = 2
+GW_HWNDPREV                         = 3
+GW_OWNER                            = 4
+GW_CHILD                            = 5
+GW_ENABLEDPOPUP                     = 6
+
 #--- Window messages ----------------------------------------------------------
 
 WM_USER                              = 0x400
@@ -734,6 +748,67 @@ def GetClassNameW(hWnd):
 
 GetClassName = GuessStringType(GetClassNameA, GetClassNameW)
 
+# int WINAPI GetWindowText(
+#   __in   HWND hWnd,
+#   __out  LPTSTR lpString,
+#   __in   int nMaxCount
+# );
+def GetWindowTextA(hWnd):
+    _GetWindowTextA = windll.user32.GetWindowTextA
+    _GetWindowTextA.argtypes = [HWND, LPSTR, ctypes.c_int]
+    _GetWindowTextA.restype = ctypes.c_int
+
+    nMaxCount = 0x1000
+    dwCharSize = sizeof(CHAR)
+    while 1:
+        lpString = ctypes.create_string_buffer("", nMaxCount)
+        nCount = _GetWindowTextA(hWnd, lpString, nMaxCount)
+        if nCount == 0:
+            raise ctypes.WinError()
+        if nCount < nMaxCount - dwCharSize:
+            break
+        nMaxCount += 0x1000
+    return lpString.value
+
+def GetWindowTextW(hWnd):
+    _GetWindowTextW = windll.user32.GetWindowTextW
+    _GetWindowTextW.argtypes = [HWND, LPWSTR, ctypes.c_int]
+    _GetWindowTextW.restype = ctypes.c_int
+
+    nMaxCount = 0x1000
+    dwCharSize = sizeof(CHAR)
+    while 1:
+        lpString = ctypes.create_string_buffer("", nMaxCount)
+        nCount = _GetWindowTextW(hWnd, lpString, nMaxCount)
+        if nCount == 0:
+            raise ctypes.WinError()
+        if nCount < nMaxCount - dwCharSize:
+            break
+        nMaxCount += 0x1000
+    return lpString.value
+
+GetWindowText = GuessStringType(GetWindowTextA, GetWindowTextW)
+
+# BOOL WINAPI SetWindowText(
+#   __in      HWND hWnd,
+#   __in_opt  LPCTSTR lpString
+# );
+def SetWindowTextA(hWnd, lpString = None):
+    _SetWindowTextA = windll.user32.SetWindowTextA
+    _SetWindowTextA.argtypes = [HWND, LPSTR]
+    _SetWindowTextA.restype  = bool
+    _SetWindowTextA.errcheck = RaiseIfZero
+    _SetWindowTextA(hWnd, lpString)
+
+def SetWindowTextW(hWnd, lpString = None):
+    _SetWindowTextW = windll.user32.SetWindowTextW
+    _SetWindowTextW.argtypes = [HWND, LPWSTR]
+    _SetWindowTextW.restype  = bool
+    _SetWindowTextW.errcheck = RaiseIfZero
+    _SetWindowTextW(hWnd, lpString)
+
+SetWindowText = GuessStringType(SetWindowTextA, SetWindowTextW)
+
 # LONG GetWindowLong(
 #     HWND hWnd,
 #     int nIndex
@@ -772,8 +847,24 @@ def GetWindowThreadProcessId(hWnd):
     _GetWindowThreadProcessId.errcheck = RaiseIfZero
 
     dwProcessId = DWORD(0)
-    dwThreadId  = _GetWindowThreadProcessId(hWnd, byref(dwProcessId))
-    return dwThreadId, dwProcessId.value
+    dwThreadId = _GetWindowThreadProcessId(hWnd, byref(dwProcessId))
+    return (dwThreadId, dwProcessId.value)
+
+# HWND WINAPI GetWindow(
+#   __in  HWND hwnd,
+#   __in  UINT uCmd
+# );
+def GetWindow(hWnd, uCmd):
+    _GetWindow = windll.user32.GetWindow
+    _GetWindow.argtypes = [HWND, UINT]
+    _GetWindow.restype  = HWND
+
+    hWndTarget = _GetWindow(hWnd, uCmd)
+    if not hWndTarget:
+        winerr = GetLastError()
+        if winerr != ERROR_SUCCESS:
+            raise ctypes.WinError(winerr)
+    return hWndTarget
 
 # HWND GetParent(
 #       HWND hWnd
@@ -784,6 +875,22 @@ def GetParent(hWnd):
     _GetParent.restype  = HWND
 
     hWndParent = _GetParent(hWnd)
+    if not hWndParent:
+        winerr = GetLastError()
+        if winerr != ERROR_SUCCESS:
+            raise ctypes.WinError(winerr)
+    return hWndParent
+
+# HWND WINAPI GetAncestor(
+#   __in  HWND hwnd,
+#   __in  UINT gaFlags
+# );
+def GetAncestor(hWnd, gaFlags = GA_PARENT):
+    _GetAncestor = windll.user32.GetAncestor
+    _GetAncestor.argtypes = [HWND, UINT]
+    _GetAncestor.restype  = HWND
+
+    hWndParent = _GetAncestor(hWnd, gaFlags)
     if not hWndParent:
         winerr = GetLastError()
         if winerr != ERROR_SUCCESS:
@@ -889,20 +996,6 @@ def IsChild(hWnd):
     _IsChild.argtypes = [HWND]
     _IsChild.restype  = bool
     return _IsChild(hWnd)
-
-# DWORD GetWindowThreadProcessId(
-#     HWND hWnd,
-#     LPDWORD lpdwProcessId
-# );
-def GetWindowThreadProcessId(hWnd):
-    _GetWindowThreadProcessId = windll.user32.GetWindowThreadProcessId
-    _GetWindowThreadProcessId.argtypes = [HWND, LPDWORD]
-    _GetWindowThreadProcessId.restype  = DWORD
-    _GetWindowThreadProcessId.errcheck = RaiseIfZero
-
-    dwProcessId = DWORD(0)
-    dwThreadId = _GetWindowThreadProcessId(hWnd, byref(dwProcessId))
-    return (dwThreadId, dwProcessId)
 
 # HWND WindowFromPoint(
 #     POINT Point
@@ -1037,6 +1130,34 @@ def SetWindowPlacement(hWnd, lpwndpl):
     if isinstance(lpwndpl, WINDOWPLACEMENT):
         lpwndpl.length = sizeof(lpwndpl)
     _SetWindowPlacement(hWnd, byref(lpwndpl))
+
+# BOOL WINAPI GetWindowRect(
+#   __in   HWND hWnd,
+#   __out  LPRECT lpRect
+# );
+def GetWindowRect(hWnd):
+    _GetWindowRect = windll.user32.GetWindowRect
+    _GetWindowRect.argtypes = [HWND, LPRECT]
+    _GetWindowRect.restype  = bool
+    _GetWindowRect.errcheck = RaiseIfZero
+    
+    lpRect = RECT()
+    _GetWindowRect(hWnd, ctypes.byref(lpRect))
+    return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)
+
+# BOOL WINAPI GetClientRect(
+#   __in   HWND hWnd,
+#   __out  LPRECT lpRect
+# );
+def GetClientRect(hWnd):
+    _GetClientRect = windll.user32.GetClientRect
+    _GetClientRect.argtypes = [HWND, LPRECT]
+    _GetClientRect.restype  = bool
+    _GetClientRect.errcheck = RaiseIfZero
+    
+    lpRect = RECT()
+    _GetClientRect(hWnd, ctypes.byref(lpRect))
+    return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)
 
 #BOOL MoveWindow(
 #    HWND hWnd,

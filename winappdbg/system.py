@@ -1674,6 +1674,7 @@ class _ProcessContainer (psyobj):
         has_process, iter_processes, iter_process_ids,
         find_processes_by_filename, get_pid_from_tid,
         get_windows,
+        scan_process_filenames,
         clear, clear_processes, clear_dead_processes,
         clear_unattached_processes,
         close_process_handles,
@@ -2047,18 +2048,65 @@ class _ProcessContainer (psyobj):
         Populates the snapshot with running processes and threads,
         and loaded modules.
 
-        @raise WindowsError: An error occurred, and the scan may be incomplete.
+        Tipically this is the first method called after instantiating a
+        L{System} object, as it makes a best effort approach to gathering
+        information on running processes.
+
+        @rtype: bool
+        @return: C{True} if the snapshot is complete, C{False} if the debugger
+            doesn't have permission to scan some processes. In either case, the
+            snapshot is complete for all processes the debugger has access to.
         """
+        has_threads = True
         try:
-            self.scan_processes_and_threads()
-        except Exception:
-            self.scan_processes_fast()
-            raise
-        self.scan_modules()
+            try:
+
+                # Try using the Toolhelp API
+                # to scan for processes and threads.
+                self.scan_processes_and_threads()
+
+            except Exception:
+
+                # On error, try using the PSAPI to scan for process IDs only.
+                self.scan_processes_fast()
+
+                # Now try using the Toolhelp again to get the threads.
+                for aProcess in self.__processDict.values():
+                    if aProcess._get_thread_ids():
+                        try:
+                            aProcess.scan_threads()
+                        except WindowsError:
+                            has_threads = False
+
+        finally:
+
+            # Try using the Remote Desktop API to scan for processes only.
+            # This will update the filenames when it's not possible
+            # to obtain them from the Toolhelp API.
+            self.scan_processes()
+
+        # When finished scanning for processes, try modules too.
+        has_modules = self.scan_modules()
+
+        # Try updating the process filenames when possible.
+        has_full_names = self.scan_process_filenames()
+
+        # Return the completion status.
+        return has_threads and has_modules and has_full_names
 
     def scan_processes_and_threads(self):
         """
         Populates the snapshot with running processes and threads.
+
+        Tipically you don't need to call this method directly, if unsure use
+        L{scan} instead.
+
+        @note: This method uses the Toolhelp API.
+
+        @see: L{scan_modules}
+
+        @raise WindowsError: An error occured while updating the snapshot.
+            The snapshot was not modified.
         """
 
         # The main module filename may be spoofed by malware,
@@ -2066,7 +2114,6 @@ class _ProcessContainer (psyobj):
         # See: http://www.ragestorm.net/blogs/?p=163
 
         our_pid    = win32.GetCurrentProcessId()
-##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
         found_tids = set()
 
@@ -2075,26 +2122,25 @@ class _ProcessContainer (psyobj):
             dead_pids.remove(our_pid)
 
         # Take a snapshot of all processes and threads
-        # (excluding our own)
         dwFlags   = win32.TH32CS_SNAPPROCESS | win32.TH32CS_SNAPTHREAD
         hSnapshot = win32.CreateToolhelp32Snapshot(dwFlags)
         try:
 
-            # Add all the processes
+            # Add all the processes (excluding our own)
             pe = win32.Process32First(hSnapshot)
             while pe is not None:
                 dwProcessId = pe.th32ProcessID
-                if dwProcessId != our_pid:
-                    if dwProcessId in dead_pids:
-                        dead_pids.remove(dwProcessId)
-##                    if not self.has_process(dwProcessId): # XXX triggers a scan
-                    if not self.__processDict.has_key(dwProcessId):
-                        aProcess = Process(dwProcessId)
-                        self._add_process(aProcess)
-                    elif pe.szExeFile:
-                        aProcess = self.get_process(dwProcessId)
-                        if not aProcess.fileName:
-                            aProcess.fileName = pe.szExeFile
+                if dwProcessId == our_pid:
+                    continue
+                if dwProcessId in dead_pids:
+                    dead_pids.remove(dwProcessId)
+                if not self.__processDict.has_key(dwProcessId):
+                    aProcess = Process(dwProcessId, fileName = pe.szExeFile)
+                    self._add_process(aProcess)
+                elif pe.szExeFile:
+                    aProcess = self.get_process(dwProcessId)
+                    if not aProcess.fileName:
+                        aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
 
             # Add all the threads
@@ -2104,7 +2150,6 @@ class _ProcessContainer (psyobj):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-##                    if self.has_process(dwProcessId): # XXX triggers a scan
                     if self.__processDict.has_key(dwProcessId):
                         aProcess = self.get_process(dwProcessId)
                     else:
@@ -2112,7 +2157,6 @@ class _ProcessContainer (psyobj):
                         self._add_process(aProcess)
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
-##                    if not aProcess.has_thread(dwThreadId): # XXX triggers a scan
                     if not aProcess._has_thread_id(dwThreadId):
                         aThread = Thread(dwThreadId, process = aProcess)
                         aProcess._add_thread(aThread)
@@ -2127,18 +2171,22 @@ class _ProcessContainer (psyobj):
             self._del_process(pid)
 
         # Remove dead threads
-##        for aProcess in self.iter_processes(): # XXX triggers a scan
         for aProcess in self.__processDict.itervalues():
-##            dead_tids = set( aProcess.get_thread_ids() ) # XXX triggers a scan
             dead_tids = set( aProcess._get_thread_ids() )
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
                 aProcess._del_thread(tid)
 
-
     def scan_modules(self):
         """
         Populates the snapshot with loaded modules.
+
+        Tipically you don't need to call this method directly, if unsure use
+        L{scan} instead.
+
+        @note: This method uses the Toolhelp API.
+
+        @see: L{scan_processes_and_threads}
 
         @rtype: bool
         @return: C{True} if the snapshot is complete, C{False} if the debugger
@@ -2146,7 +2194,6 @@ class _ProcessContainer (psyobj):
             snapshot is complete for all processes the debugger has access to.
         """
         complete = True
-##        for aProcess in self.iter_processes(): # XXX triggers a scan
         for aProcess in self.__processDict.itervalues():
             try:
                 aProcess.scan_modules()
@@ -2157,36 +2204,81 @@ class _ProcessContainer (psyobj):
     def scan_processes(self):
         """
         Populates the snapshot with running processes.
+
+        Tipically you don't need to call this method directly, if unsure use
+        L{scan} instead.
+
+        @note: This method uses the Remote Desktop API instead of the Toolhelp
+            API. It might give slightly different results, especially if the
+            current process does not have full privileges.
+
+        @note: This method will only retrieve process filenames. To get the
+            process pathnames instead, B{after} this method call
+            L{scan_process_filenames}.
+
+        @raise WindowsError: An error occured while updating the snapshot.
+            The snapshot was not modified.
         """
 
-        # The module filenames may be spoofed by malware,
-        # since this information resides in usermode space.
-        # See: http://www.ragestorm.net/blogs/?p=163
-
+        # Get the previous list of PIDs.
+        # We'll be removing live PIDs from it as we find them.
         our_pid   = win32.GetCurrentProcessId()
-##        dead_pids  = set( self.get_process_ids() ) # XXX triggers a scan
         dead_pids  = set( self.__processDict.keys() )
+
+        # Ignore our own PID.
         if our_pid in dead_pids:
             dead_pids.remove(our_pid)
-        hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPPROCESS)
+
+        # Get the list of processes from the Remote Desktop API.
+        pProcessInfo = None
         try:
-            pe = win32.Process32First(hSnapshot)
-            while pe is not None:
-                dwProcessId = pe.th32ProcessID
-                if dwProcessId != our_pid:
-                    if dwProcessId in dead_pids:
-                        dead_pids.remove(dwProcessId)
-##                    if not self.has_process(dwProcessId): # XXX triggers a scan
-                    if not self.__processDict.has_key(dwProcessId):
-                        aProcess = Process(dwProcessId)
-                        self._add_process(aProcess)
-                    elif pe.szExeFile:
-                        aProcess = self.get_process(dwProcessId)
-                        if not aProcess.fileName:
-                            aProcess.fileName = pe.szExeFile
-                pe = win32.Process32Next(hSnapshot)
+            pProcessInfo, dwCount = win32.WTSEnumerateProcesses(
+                                            win32.WTS_CURRENT_SERVER_HANDLE)
+
+            # For each process found...
+            for index in xrange(dwCount):
+                sProcessInfo = pProcessInfo[index]
+
+##                # Ignore processes belonging to other sessions.
+##                if sProcessInfo.SessionId != win32.WTS_CURRENT_SESSION:
+##                    continue
+
+                # Ignore our own PID.
+                pid = sProcessInfo.ProcessId
+                if pid == our_pid:
+                    continue
+
+                # Remove the PID from the dead PIDs list.
+                if pid in dead_pids:
+                    dead_pids.remove(pid)
+
+                # Get the "process name".
+                # Empirically, this seems to be the filename without the path.
+                # (The MSDN docs aren't very clear about this API call).
+                fileName = sProcessInfo.pProcessName
+
+                # If the process is new, add a new Process object.
+                if not self.__processDict.has_key(pid):
+                    aProcess = Process(pid, fileName = fileName)
+                    self._add_process(aProcess)
+
+                # If the process was already in the snapshot, and the
+                # filename is missing, update the Process object.
+                elif fileName:
+                    aProcess = self.__processDict.get(pid)
+                    if not aProcess.fileName:
+                        aProcess.fileName = fileName
+
+        # Free the memory allocated by the Remote Desktop API.
         finally:
-            win32.CloseHandle(hSnapshot)
+            if pProcessInfo is not None:
+                try:
+                    win32.WTSFreeMemory(pProcessInfo)
+                except WindowsError:
+                    pass
+
+        # At this point the only remaining PIDs from the old list are dead.
+        # Remove them from the snapshot.
         for pid in dead_pids:
             self._del_process(pid)
 
@@ -2198,14 +2290,16 @@ class _ProcessContainer (psyobj):
         Dead processes are removed.
         Threads and modules of living processes are ignored.
 
-        @note: This method may be faster for scanning, but some information
-            may be missing, outdated or slower to obtain. This could be a good
-            tradeoff under some circumstances.
+        Tipically you don't need to call this method directly, if unsure use
+        L{scan} instead.
+
+        @note: This method uses the PSAPI. It may be faster for scanning,
+            but some information may be missing, outdated or slower to obtain.
+            This could be a good tradeoff under some circumstances.
         """
 
         # Get the new and old list of pids
         new_pids = set( win32.EnumProcesses() )
-##        old_pids = set( self.get_process_ids() ) # XXX triggers a scan
         old_pids = set( self.__processDict.keys() )
 
         # Ignore our own pid
@@ -2222,6 +2316,43 @@ class _ProcessContainer (psyobj):
         # Remove missing pids
         for pid in old_pids.difference(new_pids):
             self._del_process(pid)
+
+    def scan_process_filenames(self):
+        """
+        Update the filename for each process in the snapshot when possible.
+
+        @note: Tipically you don't need to call this method. It's called
+            automatically by L{scan} to get the full pathname for each process
+            when possible, since some scan methods only get filenames without
+            the path component.
+
+            If unsure, use L{scan} instead.
+
+        @see: L{scan}, L{Process.get_filename}
+
+        @rtype: bool
+        @return: C{True} if all the pathnames were retrieved, C{False} if the
+            debugger doesn't have permission to scan some processes. In either
+            case, all processes the debugger has access to have a full pathname
+            instead of just a filename.
+        """
+        complete = True
+        for aProcess in self.__processDict.values():
+            try:
+                new_name = None
+                old_name = aProcess.fileName
+                try:
+                    aProcess.fileName = None
+                    new_name = aProcess.get_filename()
+                finally:
+                    if not new_name:
+                        aProcess.fileName = old_name
+                        complete = False
+            except Exception:
+                complete = False
+        return complete
+
+#------------------------------------------------------------------------------
 
     def clear_dead_processes(self):
         """
@@ -2619,7 +2750,7 @@ class Window (psyobj):
     def __get_pid_and_tid(self):
         "Internally used by get_pid() and get_tid()."
         self.dwThreadId, self.dwProcessId = \
-                                      win32.GetWindowThreadProcessId(self.hWnd)
+                            win32.GetWindowThreadProcessId(self.get_handle())
 
     def get_process(self):
         """
@@ -2628,15 +2759,7 @@ class Window (psyobj):
             Returns C{None} if unknown.
         """
         if self.__process is not None:
-##            if isinstance(self.__process, weakref.ref):
-##                process = self.__process()
-##                if process is not None:
-##                    return process
-####                else:   # XXX DEBUG
-####                    print "Lost reference to parent process at %r" % self
-##            else:
-                return self.__process
-        # can't use weakrefs here, it's our only reference
+            return self.__process
         self.__process = Process(self.get_pid())
         return self.__process
 
@@ -2655,7 +2778,6 @@ class Window (psyobj):
                 msg += "got %s instead" % type(process)
                 raise TypeError(msg)
             self.dwProcessId = process.get_pid()
-##            self.__process = weakref.ref(process)
             self.__process = process
 
     # This horrible kludge is needed to keep Epydoc from complaining...
@@ -2674,15 +2796,7 @@ class Window (psyobj):
             Returns C{None} if unknown.
         """
         if self.__thread is not None:
-##            if isinstance(self.__thread, weakref.ref):
-##                thread = self.__thread()
-##                if thread is not None:
-##                    return thread
-####                else:   # XXX DEBUG
-####                    print "Lost reference to parent thread at %r" % self
-##            else:
-                return self.__thread
-        # can't use weakrefs here, it's our only reference
+            return self.__thread
         self.__thread = Thread(self.get_tid())
         return self.__thread
 
@@ -2701,7 +2815,6 @@ class Window (psyobj):
                 msg += "got %s instead" % type(thread)
                 raise TypeError(msg)
             self.dwThreadId = thread.get_tid()
-##            self.__thread = weakref.ref(thread)
             self.__thread = thread
 
     # This horrible kludge is needed to keep Epydoc from complaining...
@@ -2741,15 +2854,7 @@ class Window (psyobj):
         @rtype:  str
         @return: Window text (caption).
         """
-        length = self.send(win32.WM_GETTEXTLENGTH)
-        if not length:
-            raise ctypes.WinError()
-        length = length + 1
-        c_buffer = ctypes.create_string_buffer("", length)
-        success = self.send(win32.WM_GETTEXT, length, c_buffer)
-        if success == 0:
-            return ""
-        return c_buffer.value
+        return win32.GetWindowText( self.get_handle() )
 
     def set_text(self, text):
         """
@@ -2760,7 +2865,7 @@ class Window (psyobj):
         @type  text: str
         @param text: New window text.
         """
-        return self.send(win32.WM_SETTEXT, len(text), text)
+        win32.SetWindowText( self.get_handle(), text )
 
     def get_placement(self):
         """
@@ -2786,10 +2891,38 @@ class Window (psyobj):
         """
         win32.SetWindowPlacement( self.get_handle(), placement )
 
+    def get_screen_rect(self):
+        """
+        Get the window coordinates in the desktop.
+
+        @rtype:  L{win32.Rect}
+        @return: Rectangle occupied by the window in the desktop.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return win32.GetWindowRect( self.get_handle() )
+
+    def get_client_rect(self):
+        """
+        Get the window's client area coordinates in the desktop.
+
+        @rtype:  L{win32.Rect}
+        @return: Rectangle occupied by the window's client area in the desktop.
+
+        @raise WindowsError: An error occured while processing this request.
+        """
+        cr = win32.GetClientRect( self.get_handle() )
+        cr.left, cr.top     = self.client_to_screen(cr.left, cr.top)
+        cr.right, cr.bottom = self.client_to_screen(cr.right, cr.bottom)
+        return cr
+
     # XXX TODO
-    # * get_screen_rect, get_client_rect
     # * properties x, y, width, height
     # * properties left, top, right, bottom
+
+    classname = property(get_classname)
+    text = property(get_text, set_text)
+    placement = property(get_placement, set_placement)
 
 #------------------------------------------------------------------------------
 
@@ -2880,19 +3013,23 @@ class Window (psyobj):
         @raise RuntimeError: Can't find the root window for this tree.
         @raise WindowsError: An error occured while processing this request.
         """
-        hWnd     = self.get_handle()
-        history  = set()
-        hPrevWnd = hWnd
-        while hWnd and hWnd not in history:
-            history.add(hWnd)
-            hPrevWnd = hWnd
-            hWnd     = win32.GetParent(hWnd)
-        if hWnd in history:
-            # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
-            raise RuntimeError("Can't find the root window for this tree")
-        if hPrevWnd != self.hWnd:
-            return self.__get_window(hPrevWnd)
-        return self
+        return win32.GetAncestor( self.get_handle(), win32.GA_ROOTOWNER )
+
+        # The above code works around a bug in the Win32 API
+        # in some versions of Windows.
+##        hWnd     = self.get_handle()
+##        history  = set()
+##        hPrevWnd = hWnd
+##        while hWnd and hWnd not in history:
+##            history.add(hWnd)
+##            hPrevWnd = hWnd
+##            hWnd     = win32.GetParent(hWnd)
+##        if hWnd in history:
+##            # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
+##            raise RuntimeError("Can't find the root window for this tree")
+##        if hPrevWnd != self.hWnd:
+##            return self.__get_window(hPrevWnd)
+##        return self
 
     def get_child_at(self, x, y):
         """
@@ -3069,31 +3206,41 @@ class Window (psyobj):
         else:
             win32.ShowWindow( self.get_handle(), win32.SW_RESTORE )
 
-    def move(self, x, y, width, height, bRepaint = True):
+    def move(self, x = None, y = None, width = None, height = None,
+                                                            bRepaint = True):
         """
         Moves and/or resizes the window.
 
         @note: This is request is performed syncronously.
 
         @type  x: int
-        @param x: New horizontal coordinate.
+        @param x: (Optional) New horizontal coordinate.
 
         @type  y: int
-        @param y: New vertical coordinate.
+        @param y: (Optional) New vertical coordinate.
 
         @type  width: int
-        @param width: Desired window width.
+        @param width: (Optional) Desired window width.
 
         @type  height: int
-        @param height: Desired window height.
+        @param height: (Optional) Desired window height.
 
         @type  bRepaint: bool
-        @param bRepaint: C{True} if the window should be redrawn afterwards.
+        @param bRepaint:
+            (Optional) C{True} if the window should be redrawn afterwards.
 
         @raise WindowsError: An error occured while processing this request.
         """
-        # XXX TODO
-        # Make the parameters optional by querying the current position first.
+        if None in (x, y, width, height):
+            rect = self.get_screen_rect()
+            if x is None:
+                x = rect.left
+            if y is None:
+                y = rect.top
+            if width is None:
+                width = rect.right - rect.left
+            if height is None:
+                height = rect.bottom - rect.top
         win32.MoveWindow(self.get_handle(), x, y, width, height, bRepaint)
 
     def kill(self):
@@ -3106,7 +3253,7 @@ class Window (psyobj):
         """
         self.post(win32.WM_QUIT)
 
-    def send(self, uMsg, wParam = None, lParam = None):
+    def send(self, uMsg, wParam = None, lParam = None, dwTimeout = None):
         """
         Send a low-level window message syncronically.
 
@@ -3119,12 +3266,19 @@ class Window (psyobj):
         @param lParam:
             The type and meaning of this parameter depends on the message.
 
+        @param dwTimeout: Optional timeout for the operation.
+            Use C{None} to wait indefinitely.
+
         @rtype:  int
         @return: The meaning of the return value depends on the window message.
             Typically a value of C{0} means an error occured. You can get the
             error code by calling L{win32.GetLastError}.
         """
-        return win32.SendMessage(self.get_handle(), uMsg, wParam, lParam)
+        if dwTimeout is None:
+            return win32.SendMessage(self.get_handle(), uMsg, wParam, lParam)
+        return win32.SendMessageTimeout(
+            self.get_handle(), uMsg, wParam, lParam,
+            win32.SMTO_ABORTIFHUNG | win32.SMTO_ERRORONEXIT, dwTimeout)
 
     def post(self, uMsg, wParam = None, lParam = None):
         """

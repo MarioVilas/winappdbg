@@ -2054,6 +2054,14 @@ def FreeLibrary(hModule):
 #------------------------------------------------------------------------------
 # File API and related
 
+# UINT WINAPI GetWindowModuleFileName(
+#   __in   HWND hwnd,
+#   __out  LPTSTR lpszFileName,
+#   __in   UINT cchFileNameMax
+# );
+# Not included because it doesn't work in other processes.
+# See: http://support.microsoft.com/?id=228469
+
 # BOOL WINAPI QueryFullProcessImageName(
 #   __in     HANDLE hProcess,
 #   __in     DWORD dwFlags,
