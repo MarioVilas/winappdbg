@@ -63,34 +63,34 @@ A :download:`batch file <../../make>` is provided to build the packages. These a
 Building the project
 ++++++++++++++++++++
 
-* **make all**
+* **distro all**
 
   Generates the all documentation and builds all the packages.
 
-* **make clean**
+* **distro clean**
 
   Removes all files and directories created by the other make commands.
 
 Building each component
 +++++++++++++++++++++++
 
-* **make source**
+* **distro source**
 
   Builds only the source code packages in *zip* and *tar.bz2* format.
 
-.. * **make portable**
+.. * **distro portable**
 ..
 ..   Builds only the portable packages in *zip* and *tar.bz2* format.
 
-* **make wininst**
+* **distro wininst**
 
   Builds only the Windows installer packages (that is, the *exe* and *msi* files) for all supported platforms and architectures.
 
-* **make autodoc**
+* **distro autodoc**
 
   Generates only the reference documentation using Epydoc.
 
-* **make manuals**
+* **distro manuals**
 
   Generates only the manuals using Sphinx.
 
@@ -124,10 +124,6 @@ Output directories
 * **/dist**
 
   This is where the source distribution and the Windows installer files are stored.
-
-* **/dist/py2exe**
-
-  This is where the standalone binary files are stored. It's only created when the **make py2exe** command is run.
 
 * **/html**
 
