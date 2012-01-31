@@ -87,6 +87,8 @@ echo    make wininst            Build the Windows installer packages
 :: echo    make portable           Build the portable packages
 echo    make autodoc            Build the reference docs
 echo    make manuals            Build the manuals
+echo.
+echo NOTE: If you're trying to install WinAppDbg, run install.bat instead!
 goto Exit
 
 :All
