@@ -469,24 +469,26 @@ def NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInforma
     else:
         if   ThreadInformationClass == ThreadBasicInformation:
             ThreadInformation = THREAD_BASIC_INFORMATION()
-            ThreadInformationLength = sizeof(THREAD_BASIC_INFORMATION)
-        elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
+        elif ThreadInformationClass == ThreadHideFromDebugger:
+            ThreadInformation = BOOLEAN()
+        elif ThreadInformationClass == ThreadQuerySetWin32StartAddress:
+            ThreadInformation = PVOID()
+        elif ThreadInformationClass in (ThreadAmILastThread, ThreadPriorityBoost):
             ThreadInformation = DWORD()
-            ThreadInformationLength = sizeof(DWORD)
         elif ThreadInformationClass == ThreadPerformanceCount:
             ThreadInformation = LONGLONG()  # LARGE_INTEGER
-            ThreadInformationLength = sizeof(LONGLONG)
         else:
             raise Exception("Unknown ThreadInformationClass, use an explicit ThreadInformationLength value instead")
+        ThreadInformationLength = sizeof(ThreadInformation)
     ReturnLength = ULONG(0)
     ntstatus = _NtQueryInformationThread(ThreadHandle, ThreadInformationClass, byref(ThreadInformation), ThreadInformationLength, byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
     if   ThreadInformationClass == ThreadBasicInformation:
         retval = ThreadInformation
-    elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadHideFromDebugger):
-        retval = ThreadInformation.value
-    elif ThreadInformationClass == ThreadPerformanceCount:
+    elif ThreadInformationClass == ThreadHideFromDebugger:
+        retval = bool(ThreadInformation.value)
+    elif ThreadInformationClass in (ThreadQuerySetWin32StartAddress, ThreadAmILastThread, ThreadPriorityBoost, ThreadPerformanceCount):
         retval = ThreadInformation.value
     else:
         retval = ThreadInformation.raw[:ReturnLength.value]

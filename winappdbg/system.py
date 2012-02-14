@@ -2130,17 +2130,16 @@ class _ProcessContainer (psyobj):
             pe = win32.Process32First(hSnapshot)
             while pe is not None:
                 dwProcessId = pe.th32ProcessID
-                if dwProcessId == our_pid:
-                    continue
-                if dwProcessId in dead_pids:
-                    dead_pids.remove(dwProcessId)
-                if not self.__processDict.has_key(dwProcessId):
-                    aProcess = Process(dwProcessId, fileName = pe.szExeFile)
-                    self._add_process(aProcess)
-                elif pe.szExeFile:
-                    aProcess = self.get_process(dwProcessId)
-                    if not aProcess.fileName:
-                        aProcess.fileName = pe.szExeFile
+                if dwProcessId != our_pid:
+                    if dwProcessId in dead_pids:
+                        dead_pids.remove(dwProcessId)
+                    if not self.__processDict.has_key(dwProcessId):
+                        aProcess = Process(dwProcessId, fileName=pe.szExeFile)
+                        self._add_process(aProcess)
+                    elif pe.szExeFile:
+                        aProcess = self.get_process(dwProcessId)
+                        if not aProcess.fileName:
+                            aProcess.fileName = pe.szExeFile
                 pe = win32.Process32Next(hSnapshot)
 
             # Add all the threads
@@ -3987,7 +3986,7 @@ class Thread (psyobj):
 
     @group Debugging:
         get_seh_chain_pointer, set_seh_chain_pointer,
-        get_seh_chain, get_wait_chain
+        get_seh_chain, get_wait_chain, is_hidden
 
     @group Disassembly:
         disassemble, disassemble_around, disassemble_around_pc,
@@ -4765,6 +4764,21 @@ class Thread (psyobj):
                 wow64 = self.get_process().is_wow64()
             self.__wow64 = wow64
         return wow64
+
+    def is_hidden(self):
+        """
+        Determines if the thread has been hidden from debuggers.
+
+        Some binary packers hide their own threads to thwart debugging.
+
+        @rtype:  bool
+        @return: C{True} if the thread is hidden from debuggers.
+            This means the thread's execution won't be stopped for debug
+            events, and thus said events won't be sent to the debugger.
+        """
+        return win32.NtQueryInformationThread(
+                    self.get_handle(),      # XXX what permissions do I need?
+                    win32.ThreadHideFromDebugger)
 
     def get_teb(self):
         """
