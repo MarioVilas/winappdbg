@@ -45,6 +45,7 @@ Miscellaneous utility classes and functions.
     DebugRegister,
     Regenerator,
     StaticClass,
+    DeprecatedClass,
     kill_python_thread
 """
 
@@ -72,6 +73,8 @@ __all__ = [
     # Miscellaneous
     'Regenerator',
     'BannerHelpFormatter',
+    'StaticClass',
+    'DeprecatedClass',
     'kill_python_thread',
 
     ]
@@ -171,6 +174,13 @@ class StaticClass (object):
         "Don't try to instance this class, just use the static methods."
         raise NotImplementedError(
                 "Cannot instance static class %s" % cls.__name__)
+
+class DeprecatedClass (object):
+    @classmethod
+    def __new__(cls, *argv, **argd):
+        "Don't use this class!"
+        raise NotImplementedError(
+                "Cannot instance deprecated class %s" % cls.__name__)
 
 #==============================================================================
 

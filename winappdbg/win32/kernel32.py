@@ -873,27 +873,35 @@ class MemoryBasicInformation (object):
                 PAGE_EXECUTE_WRITECOPY
     )
 
-    def __init__(self, mbi):
+    def __init__(self, mbi=None):
         """
         @type  mbi: L{MEMORY_BASIC_INFORMATION} or L{MemoryBasicInformation}
         @param mbi: Either a L{MEMORY_BASIC_INFORMATION} structure or another
             L{MemoryBasicInformation} instance.
         """
+        if mbi is None:
+            self.BaseAddress        = None
+            self.AllocationBase     = None
+            self.AllocationProtect  = None
+            self.RegionSize         = None
+            self.State              = None
+            self.Protect            = None
+            self.Type               = None
+        else:
+            self.BaseAddress        = mbi.BaseAddress
+            self.AllocationBase     = mbi.AllocationBase
+            self.AllocationProtect  = mbi.AllocationProtect
+            self.RegionSize         = mbi.RegionSize
+            self.State              = mbi.State
+            self.Protect            = mbi.Protect
+            self.Type               = mbi.Type
 
-        self.BaseAddress        = mbi.BaseAddress
-        self.AllocationBase     = mbi.AllocationBase
-        self.AllocationProtect  = mbi.AllocationProtect
-        self.RegionSize         = mbi.RegionSize
-        self.State              = mbi.State
-        self.Protect            = mbi.Protect
-        self.Type               = mbi.Type
-
-        # Only used when copying MemoryBasicInformation objects, instead of
-        # instancing them from a MEMORY_BASIC_INFORMATION structure.
-        if hasattr(mbi, 'content'):
-            self.content = mbi.content
-        if hasattr(mbi, 'filename'):
-            self.content = mbi.filename
+            # Only used when copying MemoryBasicInformation objects, instead of
+            # instancing them from a MEMORY_BASIC_INFORMATION structure.
+            if hasattr(mbi, 'content'):
+                self.content = mbi.content
+            if hasattr(mbi, 'filename'):
+                self.content = mbi.filename
 
     def __contains__(self, address):
         """
@@ -1256,23 +1264,16 @@ class MEMORY_BASIC_INFORMATION64(Structure):
 #     DWORD Protect;
 #     DWORD Type;
 # } MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
-if sizeof(SIZE_T) == sizeof(DWORD):
-    class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION32):
-        pass
-elif sizeof(SIZE_T) == sizeof(DWORD64):
-    class MEMORY_BASIC_INFORMATION(MEMORY_BASIC_INFORMATION64):
-        pass
-else:
-    class MEMORY_BASIC_INFORMATION(Structure):
-        _fields_ = [
-            ('BaseAddress',         SIZE_T),    # remote pointer
-            ('AllocationBase',      SIZE_T),    # remote pointer
-            ('AllocationProtect',   DWORD),
-            ('RegionSize',          SIZE_T),
-            ('State',               DWORD),
-            ('Protect',             DWORD),
-            ('Type',                DWORD),
-        ]
+class MEMORY_BASIC_INFORMATION(Structure):
+    _fields_ = [
+        ('BaseAddress',         SIZE_T),    # remote pointer
+        ('AllocationBase',      SIZE_T),    # remote pointer
+        ('AllocationProtect',   DWORD),
+        ('RegionSize',          SIZE_T),
+        ('State',               DWORD),
+        ('Protect',             DWORD),
+        ('Type',                DWORD),
+    ]
 PMEMORY_BASIC_INFORMATION = POINTER(MEMORY_BASIC_INFORMATION)
 
 #--- BY_HANDLE_FILE_INFORMATION structure -------------------------------------
