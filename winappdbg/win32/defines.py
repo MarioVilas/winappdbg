@@ -38,6 +38,7 @@ Common definitions.
 __revision__ = "$Id$"
 
 import ctypes
+import functools
 
 try:
     from psyco.classes import *
@@ -247,6 +248,20 @@ class GuessStringType(psyobj):
         self.fn_ansi    = fn_ansi
         self.fn_unicode = fn_unicode
 
+        # Copy the wrapped function attributes.
+        try:
+            self.__name__ = self.fn_ansi.__name__[:-1]  # remove the A or W
+        except AttributeError:
+            pass
+        try:
+            self.__module__ = self.fn_ansi.__module__
+        except AttributeError:
+            pass
+        try:
+            self.__doc__ = self.fn_ansi.__doc__
+        except AttributeError:
+            pass
+
     def __call__(self, *argv, **argd):
 
         # Shortcut to self.t_ansi
@@ -312,6 +327,20 @@ class DefaultStringType(psyobj):
         self.fn_ansi    = fn_ansi
         self.fn_unicode = fn_unicode
 
+        # Copy the wrapped function attributes.
+        try:
+            self.__name__ = self.fn_ansi.__name__[:-1]  # remove the A or W
+        except AttributeError:
+            pass
+        try:
+            self.__module__ = self.fn_ansi.__module__
+        except AttributeError:
+            pass
+        try:
+            self.__doc__ = self.fn_ansi.__doc__
+        except AttributeError:
+            pass
+
     def __call__(self, *argv, **argd):
 
         # Get the appropriate function based on the default.
@@ -323,63 +352,53 @@ class DefaultStringType(psyobj):
         # Call the function and return the result
         return fn(*argv, **argd)
 
-class MakeANSIVersion(psyobj):
+def MakeANSIVersion(fn):
     """
     Decorator that generates an ANSI version of a Unicode (wide) only API call.
 
-    @type fn: function
-    @ivar fn: Unicode (wide) version of the API function to call.
+    @type  fn: callable
+    @param fn: Unicode (wide) version of the API function to call.
     """
-
-    def __init__(self, fn):
-        """
-        @type  fn: function
-        @param fn: Unicode (wide) version of the API function to call.
-        """
-        self.fn = fn
-
-    def __call__(self, *argv, **argd):
-        t_ansi    = type('')
+    @functools.wraps(fn)
+    def wrapper(*argv, **argd):
+        t_ansi    = GuessStringType.t_ansi
+        t_unicode = GuessStringType.t_unicode
         v_types   = [ type(item) for item in argv ]
         v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
         if t_ansi in v_types:
             argv = list(argv)
             for index in xrange(len(argv)):
                 if v_types[index] == t_ansi:
-                    argv[index] = unicode(argv[index])
+                    argv[index] = t_unicode(argv[index])
             for key, value in argd.items():
                 if type(value) == t_ansi:
-                    argd[key] = unicode(value)
-        return self.fn(*argv, **argd)
+                    argd[key] = t_unicode(value)
+        return fn(*argv, **argd)
+    return wrapper
 
-class MakeWideVersion(psyobj):
+def MakeWideVersion(fn):
     """
     Decorator that generates a Unicode (wide) version of an ANSI only API call.
 
-    @type fn: function
-    @ivar fn: ANSI version of the API function to call.
+    @type  fn: callable
+    @param fn: ANSI version of the API function to call.
     """
-
-    def __init__(self, fn):
-        """
-        @type  fn: function
-        @param fn: ANSI version of the API function to call.
-        """
-        self.fn = fn
-
-    def __call__(self, *argv, **argd):
-        t_unicode = type(u'')
+    @functools.wraps(fn)
+    def wrapper(*argv, **argd):
+        t_ansi    = GuessStringType.t_ansi
+        t_unicode = GuessStringType.t_unicode
         v_types   = [ type(item) for item in argv ]
         v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
         if t_unicode in v_types:
             argv = list(argv)
             for index in xrange(len(argv)):
                 if v_types[index] == t_unicode:
-                    argv[index] = str(argv[index])
+                    argv[index] = t_ansi(argv[index])
             for key, value in argd.items():
                 if type(value) == t_unicode:
-                    argd[key] = str(value)
+                    argd[key] = t_ansi(value)
         return self.fn(*argv, **argd)
+    return wrapper
 
 #--- Types --------------------------------------------------------------------
 
