@@ -1076,7 +1076,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         # When given a Python statement, execute it directly.
         if arg:
             try:
-                exec arg
+                exec arg in globals(), locals()
             except Exception, e:
                 traceback.print_exc(e)
 
