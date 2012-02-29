@@ -154,8 +154,16 @@ def CommandLineToArgvW(lpCmdLine):
             LocalFree(vptr)
     return argv
 
-CommandLineToArgvA = MakeANSIVersion(CommandLineToArgvW)
-CommandLineToArgv = CommandLineToArgvA
+def CommandLineToArgvA(lpCmdLine):
+    t_ansi = GuessStringType.t_ansi
+    t_unicode = GuessStringType.t_unicode
+    if isinstance(lpCmdLine, t_ansi):
+        cmdline = t_unicode(lpCmdLine)
+    else:
+        cmdline = lpCmdLine
+    return [t_ansi(x) for x in CommandLineToArgvW(cmdline)]
+
+CommandLineToArgv = GuessStringType(CommandLineToArgvA, CommandLineToArgvW)
 
 # HINSTANCE ShellExecute(
 #     HWND hwnd,
