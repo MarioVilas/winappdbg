@@ -686,16 +686,6 @@ class Crash (object):
 
     @property
     def signature(self):
-        """
-        Generates an approximately unique signature for the Crash object.
-
-        This signature can be used as an heuristic to determine if two crashes
-        were caused by the same software error. Ideally it should be treated as
-        as opaque serializable object that can be tested for equality.
-
-        @rtype:  object
-        @return: Crash signature.
-        """
         if self.labelPC:
             eip = self.labelPC
         else:
@@ -1524,6 +1514,31 @@ class CrashDictionary(psyobj):
         """
         self._dao.add(crash, self._allowRepeatedKeys)
 
+    def get(self, key):
+        """
+        Retrieves a crash from the container.
+
+        @type  key: L{Crash} signature.
+        @param key: Heuristic signature of the crash to get.
+
+        @rtype:  L{Crash} object.
+        @return: Crash matching the given signature. If more than one is found,
+            retrieve the newest one.
+
+        @see:     L{iterkeys}
+        @warning: A B{copy} of each object is returned,
+            so any changes made to them will be lost.
+
+            To preserve changes do the following:
+                1. Keep a reference to the object.
+                2. Delete the object from the set.
+                3. Modify the object and add it again.
+        """
+        found = self._dao.find(signature=key, limit=1, order=-1)
+        if not found:
+            raise KeyError(key)
+        return found[0]
+
     def __iter__(self):
         """
         @rtype:  iterator
@@ -1735,6 +1750,12 @@ class DummyCrashContainer(psyobj):
         """
         self.__keys.add( crash.signature )
         self.__count += 1
+
+    def get(self, key):
+        """
+        This method is not supported.
+        """
+        raise NotImplementedError()
 
     def has_key(self, key):
         """

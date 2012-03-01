@@ -43,8 +43,6 @@ import sqlite3
 import datetime
 import warnings
 
-from functools import wraps
-
 from sqlalchemy import create_engine, Column, ForeignKey, Sequence
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
@@ -58,6 +56,22 @@ from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, \
 from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
 from textio import CrashDump
 import win32
+
+try:
+    from decorator import decorator
+except ImportError:
+    import functools
+    def decorator(w):
+        """
+        The C{decorator} module was not found. You can install it from:
+        U{http://pypi.python.org/pypi/decorator/}
+        """
+        def d(fn):
+            @functools.wraps(fn)
+            def x(*argv, **argd):
+                return w(fn, *argv, **argd)
+            return x
+        return d
 
 try:
     from psyco.classes import *
@@ -558,12 +572,12 @@ class BaseDAO (psyobj):
             URL that specifies the database to connect to.
 
             Examples:
-             * Opening an SQLite file:
+             - Opening an SQLite file:
                C{dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")}
-             * Connecting to a previously configured MS-SQL database using the
+             - Connecting to a previously configured MS-SQL database using the
                C{PyODBC} library:
                C{dao = CrashDAO("mssql+pyodbc://MyDSN")}
-             * Connecting to a MySQL database called "crashes" running locally
+             - Connecting to a MySQL database called "crashes" running locally
                using the C{oursql} library, authenticating as the "winappdbg"
                user with no password:
                C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/crashes")}
@@ -603,7 +617,7 @@ class BaseDAO (psyobj):
 
     def _transactional(self, method, *argv, **argd):
         """
-        Begins a transaction and calls the given method.
+        Begins a transaction and calls the given DAO method.
 
         If the method executes successfully the transaction is commited.
 
@@ -626,16 +640,14 @@ class BaseDAO (psyobj):
             self._session.rollback()
             raise
 
-def Transactional(fn):
+@decorator
+def Transactional(fn, self, *argv, **argd):
     """
     Decorator that wraps DAO methods to handle transactions automatically.
 
     It may only work with subclasses of L{BaseDAO}.
     """
-    @wraps(fn)
-    def wrapper(self, *argv, **argd):
-        self._transactional(fn, *argv, **argd)
-    return wrapper
+    self._transactional(fn, *argv, **argd)
 
 #==============================================================================
 
@@ -735,12 +747,12 @@ class CrashDAO (BaseDAO):
 
     @Transactional
     def find(self,
-             signature=None,
+             signature=None, order=0,
              since=None,  until=None,
              offset=None, limit=None):
         """
         Retrieve all L{Crash} objects in the database, optionally filtering
-        them by signature and timestamp.
+        them by signature and timestamp, and/or sorting them by timestamp.
 
         Results can be paged to avoid consuming too much memory if the database
         is large.
@@ -750,6 +762,12 @@ class CrashDAO (BaseDAO):
         @type  signature: object
         @param signature: (Optional) Return only through crashes matching
             this signature. See L{Crash.signature} for more details.
+
+        @type  order: int
+        @param order: Sort by timestamp.
+            If C{== 0}, results are not sorted.
+            If C{> 0}, results are sorted from older to newer.
+            If C{< 0}, results are sorted from newer to older.
 
         @type  since: datetime
         @param since: (Optional) Return only the crashes after and
@@ -791,9 +809,17 @@ class CrashDAO (BaseDAO):
             query = query.offset(offset)
         if limit:
             query = query.limit(limit)
+        if sort:
+            if sort > 0:
+                query = query.asc(CrashDTO.timestamp)
+            else:
+                query = query.desc(CrashDTO.timestamp)
 
         # Execute the SQL query and convert the results.
-        return [dto.toCrash() for dto in query.all()]
+        try:
+            return [dto.toCrash() for dto in query.all()]
+        except NoResultFound:
+            return []
 
     @Transactional
     def find_by_example(self, crash, offset=None, limit=None):
@@ -848,7 +874,10 @@ class CrashDAO (BaseDAO):
             query = query.limit(limit)
 
         # Execute the SQL query and convert the results.
-        return [dto.toCrash() for dto in query.all()]
+        try:
+            return [dto.toCrash() for dto in query.all()]
+        except NoResultFound:
+            return []
 
     @Transactional
     def count(self, signature=None):
