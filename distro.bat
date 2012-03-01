@@ -26,10 +26,15 @@ set BatchFile=%0
 set PYTHON_x86=%SystemDrive%\Python27\python.exe
 set PYTHON_x64=%SystemDrive%\Python27-x64\python.exe
 
+:: Source package options
+set SDIST_OPT=--formats=zip,bztar
+
+
+:: Windows installer package options
+set BDIST_UAC=--user-access-control auto
+
 
 :: Epydoc command line switches
-set EPYDOC_SCRIPT=%SystemDrive%\Python27\Scripts\epydoc.py
-set EPYDOC_CMD=%PYTHON_x86% %EPYDOC_SCRIPT%
 set EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epytext --name "WinAppDbg - Programming Reference" --url "http://sourceforge.net/projects/winappdbg/" winappdbg
 set EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
 set EPYDOC_PDF_OPT=--pdf --separate-classes
@@ -37,13 +42,19 @@ set EPYDOC_TEST_OPT=--check
 set EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included
 set EPYDOC_GRAPH_OPT=--graph all
 
+if exist %PYTHON_x64% goto Epydoc64
+if exist %PYTHON_x86% goto Epydoc32
+echo Error: Cannot find a suitable Python interpreter.
+goto Exit
 
-:: Source package options
-set SDIST_OPT=--formats=zip,bztar
+:Epydoc64
+set EPYDOC_SCRIPT=%SystemDrive%\Python27-x64\Scripts\epydoc
+set EPYDOC_CMD=%PYTHON_x64% %EPYDOC_SCRIPT%
+if exist %EPYDOC_SCRIPT% goto Start
 
-
-:: Windows installer package options
-set BDIST_UAC=--user-access-control auto
+:Epydoc32
+set EPYDOC_SCRIPT=%SystemDrive%\Python27\Scripts\epydoc.py
+set EPYDOC_CMD=%PYTHON_x86% %EPYDOC_SCRIPT%
 
 
 :Start
@@ -54,8 +65,8 @@ if "%1"=="/H" goto Help
 if "%1"=="-h" goto Help
 if "%1"=="--help" goto Help
 
-if exist %PYTHON_x86% goto Command
 if exist %PYTHON_x64% goto Command
+if exist %PYTHON_x86% goto Command
 echo Error: Cannot find a suitable Python interpreter.
 goto Exit
 
