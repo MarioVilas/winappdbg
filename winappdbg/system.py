@@ -2689,6 +2689,15 @@ class Window (psyobj):
     @type thread: L{Thread}
     @ivar thread: Thread that owns this window.
         Use the L{get_thread} method instead.
+
+    @type classname: str
+    @ivar classname: Window class name.
+
+    @type text: str
+    @ivar text: Window text (caption).
+
+    @type placement: L{win32.WindowPlacement}
+    @ivar placement: Window placement in the desktop.
     """
 
     def __init__(self, hWnd = None, process = None, thread = None):
@@ -2919,6 +2928,10 @@ class Window (psyobj):
     # * properties x, y, width, height
     # * properties left, top, right, bottom
 
+    # Unfortunately Epydoc has a bug that causes it to complain when you create
+    # a property from getters and/or setters that contain docstrings. I hope
+    # they finally get around to fixing it one day, because this has been a
+    # standard Python feature for quite some time now.
     classname = property(get_classname)
     text = property(get_text, set_text)
     placement = property(get_placement, set_placement)
