@@ -94,10 +94,10 @@ class MyEventHandler( EventHandler ):
         self.__print_success( event, retval )
 
     def post_RegCreateKeyExA( self, event, retval ):
-        self.__print_success( event, retval )
+        self.__print_reg_success( event, retval )
 
     def post_RegCreateKeyExW( self, event, retval ):
-        self.__print_success( event, retval )
+        self.__print_reg_success( event, retval )
 
 
     # Some helper private methods...
@@ -118,6 +118,13 @@ class MyEventHandler( EventHandler ):
             print "%d: Success: %x" % (tid, retval)
         else:
             print "%d: Failed!" % tid
+
+    def __print_reg_success( self, event, retval ):
+        tid = event.get_tid()
+        if retval:
+            print "%d: Failed! Error code: %x" % (tid, retval)
+        else:
+            print "%d: Success!" % tid
 
 
 def simple_debugger( argv ):
