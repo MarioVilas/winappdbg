@@ -126,7 +126,7 @@ class Debug (EventDispatcher, BreakpointContainer):
 
         @warn: When hostile mode is enabled, some things may not work as
             expected! This is because the anti-anti debug tricks may disrupt
-            the behavior of the Win32 debugging APIs or even WinAppDbg itself.
+            the behavior of the Win32 debugging APIs or WinAppDbg itself.
 
         @note: The L{eventHandler} parameter may be any callable Python object
             (for example a function, or an instance method).
@@ -141,9 +141,14 @@ class Debug (EventDispatcher, BreakpointContainer):
         bHostileCode = flags.pop('bHostileCode', False)
 
         if flags.has_key('bKillOnExit'):
+            if flags['bKillOnExit']:
+                raise NotImplementedError(
+                    "The kill on exit mode is no longer supported"
+                    " since WinAppDbg 1.5")
+            warnings.warn(
+                "The kill on exit mode is no longer supported"
+                " since WinAppDbg 1.5", DeprecationWarning)
             del flags['bKillOnExit']
-            warnings.warn("The kill on exit mode is no longer supported"
-                          " since WinAppDbg 1.5", DeprecationWarning)
 
         if flags:
             raise TypeError("Unknown keyword arguments: %s" % flags.keys())
@@ -208,7 +213,8 @@ class Debug (EventDispatcher, BreakpointContainer):
         @param dwProcessId: Global ID of a process to attach to.
 
         @rtype:  L{Process}
-        @return: A new Process object.
+        @return: A new Process object. Normally you don't need to use it now,
+            it's best to interact with the process from the event handler.
 
         @raise WindowsError: Raises an exception on error.
         """
@@ -491,7 +497,8 @@ class Debug (EventDispatcher, BreakpointContainer):
             the debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
-        @return: A new Process object.
+        @return: A new Process object. Normally you don't need to use it now,
+            it's best to interact with the process from the event handler.
 
         @raise WindowsError: Raises an exception on error.
         """
@@ -540,7 +547,8 @@ class Debug (EventDispatcher, BreakpointContainer):
             the debugee's parent (only available for Windows Vista and above).
 
         @rtype:  L{Process}
-        @return: A new Process object.
+        @return: A new Process object. Normally you don't need to use it now,
+            it's best to interact with the process from the event handler.
 
         @raise WindowsError: Raises an exception on error.
         """

@@ -50,7 +50,7 @@ def freeze_threads( pid ):
     process.scan_threads()
 
     # For each thread in the process...
-    for thread in process:
+    for thread in process.iter_threads():
 
         # Suspend the thread execution
         thread.suspend()
@@ -73,7 +73,7 @@ def unfreeze_threads( pid ):
     process.scan_threads()
 
     # For each thread in the process...
-    for thread in process:
+    for thread in process.iter_threads():
 
         # Resume the thread execution
         thread.resume()

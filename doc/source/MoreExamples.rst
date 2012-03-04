@@ -36,6 +36,8 @@ Find alphanumeric addresses to jump to
 
 This example will find all memory addresses in a target process that are executable and whose address consists of alphanumeric characters only. This is useful when exploiting a stack buffer overflow and the input string is limited to alphanumeric characters only.
 
+Note that in 64 bit processors most memory addresses are not alphanumeric, so this example is meaningful for 32 bits only.
+
 :download:`Download <../../examples/miscellaneous/find_alnum.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/find_alnum.py
@@ -60,11 +62,10 @@ This example hooks all text drawing functions in GDI and prints the text. It can
 Enumerate all named global atoms
 ++++++++++++++++++++++++++++++++
 
-Global atoms are WORD numeric values that can be associated to arbitrary strings. They are used primarily for IPC purposes on Windows. This example shows how to retrieve the string from any atom value.
+Global atoms are WORD numeric values that can be associated to arbitrary strings. They are used primarily for IPC purposes on Windows XP (Vista and 7 don't seem to be using them anymore). This example shows how to retrieve the string from any atom value.
 
 :download:`Download <../../examples/miscellaneous/atoms.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/atoms.py
    :start-after: # $Id
    :end-before: # When invoked from the command line,
-

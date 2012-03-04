@@ -57,7 +57,7 @@ def print_thread_context( tid ):
 
 # When invoked from the command line,
 # the first argument is a thread ID
-# (use example3.py to enumerate threads)
+# (use example number 3 to enumerate threads)
 if __name__ == "__main__":
     import sys
     tid = int( sys.argv[1] )

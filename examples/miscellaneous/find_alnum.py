@@ -40,21 +40,22 @@
 from struct import pack
 from winappdbg import System, Process, HexDump
 
-# Iterator of alphanumeric executable addresses
+# Iterator of alphanumeric executable addresses.
 def iterate_alnum_jump_addresses(memory_snapshot):
 
-    # Determine the size of a pointer in the current architecture
+    # Determine the size of a pointer in the current architecture.
     if System.bits == 32:
         fmt = 'L'
     elif System.bits == 64:
         fmt = 'Q'
+        print "Warning! 64 bit addresses are not likely to be alphanumeric!"
     else:
         raise NotImplementedError
 
-    # Iterate the memory regions of the target process
+    # Iterate the memory regions of the target process.
     for mbi in memory_snapshot:
 
-        # Discard non executable memory
+        # Discard non executable memory.
         if not mbi.is_executable():
             continue
 

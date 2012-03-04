@@ -48,6 +48,7 @@ system.scan_processes()
 
 # Get all processes that match the requested filenames
 for filename in sys.argv[1:]:
+    print "Looking for: %s" % filename
     for process, pathname in system.find_processes_by_filename(filename):
         pid = process.get_pid()
         print "Dumping memory for process ID %d" % pid
@@ -175,4 +176,3 @@ for filename in sys.argv[1:]:
         database.close()
         print "Ok."
 print "Done."
-

@@ -317,14 +317,13 @@ class _ModuleContainer (psyobj):
         """
         bases = self.get_module_bases()
         bases.sort()
-##        bases.append(0x100000000)   # invalid, > 4 gb. address space
-        bases.append(0x1000000000000000)    # invalid, > 64 bit address
+        bases.append(0x1000000000000000)    # max. 64 bit address + 1
         if address >= bases[0]:
             i = 0
-            max_i = len(bases) - 1  # -1 because last base is fake
+            max_i = len(bases)
             while i < max_i:
                 begin, end = bases[i:i+2]
-                if begin <= address <= end:
+                if begin <= address < end:
                     module = self.get_module(begin)
                     here   = module.is_address_here(address)
                     if here is False:
@@ -409,7 +408,7 @@ class _ModuleContainer (psyobj):
         """
         Creates a label from a module and a function name, plus an offset.
 
-        @warning: This method only parses the label, it doesn't make sure the
+        @warning: This method only creates the label, it doesn't make sure the
             label actually points to a valid memory location.
 
         @type  module: None or str
@@ -877,14 +876,22 @@ When called as an instance method, the fuzzy syntax mode is used::
                 address = modobj.get_base()
 
         # Resolve the function in any module.
+        # If all else fails, check for the special symbols "main" and "start".
         elif function:
             for modobj in self.iter_modules():
                 address = modobj.resolve(function)
                 if address is not None:
                     break
             if address is None:
-                msg = "Function %r not found in any module" % function
-                raise RuntimeError(msg)
+                if function == "start":
+                    modobj = self.get_main_module()
+                    address = modobj.get_entry_point()
+                elif function == "main":
+                    modobj = self.get_main_module()
+                    address = modobj.get_base()
+                else:
+                    msg = "Function %r not found in any module" % function
+                    raise RuntimeError(msg)
 
         # Return the address plus the offset.
         if offset:
@@ -4334,11 +4341,16 @@ class Thread (psyobj):
         """
         @rtype:  bool
         @return: C{True} if the thread if currently running.
+        @raise WindowsError:
+            The debugger doesn't have enough privileges to perform this action.
         """
         try:
             self.wait(0)
-        except WindowsError:
-            return win32.winerror(e) == win32.WAIT_TIMEOUT
+        except WindowsError, e:
+            error = win32.winerror(e)
+            if error == win32.ERROR_ACCESS_DENIED:
+                raise
+            return error == win32.WAIT_TIMEOUT
         return True
 
     def get_exit_code(self):
@@ -4377,6 +4389,9 @@ class Thread (psyobj):
     # A registers cache could be implemented here.
     def get_context(self, ContextFlags = None):
         """
+        Retrieves the execution context (i.e. the registers values) for this
+        thread.
+
         @type  ContextFlags: int
         @param ContextFlags: Optional, specify which registers to retrieve.
             Defaults to C{win32.CONTEXT_ALL} which retrieves all registes
@@ -4394,7 +4409,7 @@ class Thread (psyobj):
         hThread = self.get_handle(win32.THREAD_GET_CONTEXT)
 
         # Threads can't be suspended when the exit process event arrives.
-        # Funny thing is, you can still get the context. (?)
+        # But you can still get the context.
         try:
             self.suspend()
             bSuspended = True
@@ -5743,8 +5758,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if self.get_thread_count() == 0:
-            self.scan_threads()
+        self.scan_threads() # force refresh the snapshot
         suspended = list()
         try:
             for aThread in self.iter_threads():
@@ -5765,7 +5779,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: On error an exception is raised.
         """
         if self.get_thread_count() == 0:
-            self.scan_threads()
+            self.scan_threads() # only refresh the snapshot if empty
         resumed = list()
         try:
             for aThread in self.iter_threads():

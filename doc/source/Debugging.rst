@@ -14,6 +14,8 @@ The Debug class
 
 A *Debug* object provides methods to launch new processes, attach to and detach from existing processes, and manage breakpoints. It also contains a *System* snapshot to instrument debugged processes - this snapshot is updated automatically for processes being debugged.
 
+When you're finished using the *Debug* object, you must either call its *stop()* method from a *finally* block, or put the *Debug* object inside a *with* statement.
+
 Example #1: starting a new process and waiting for it to finish
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -41,12 +43,12 @@ Example #3: attaching to a process by filename
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #4: killing a process by attaching to it
-+++++++++++++++++++++++++++++++++++++++++++++++++
+Example #4: killing the debugged process when the debugger is closed
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/04_kill.py>`
+:download:`Download <../../examples/debugging/04_kill_on_exit.py>`
 
-.. literalinclude:: ../../examples/debugging/04_kill.py
+.. literalinclude:: ../../examples/debugging/04_kill_on_exit.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
@@ -226,4 +228,3 @@ Example #13: resolving a label back into a memory address
 .. literalinclude:: ../../examples/debugging/13_resolve_label.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
-

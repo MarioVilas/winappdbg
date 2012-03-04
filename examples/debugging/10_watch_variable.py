@@ -32,7 +32,7 @@
 
 import traceback
 
-from winappdbg import Debug, EventHandler, win32
+from winappdbg import Debug, EventHandler, System, win32
 
 
 # This function will be called when the breakpoint is hit
@@ -129,12 +129,12 @@ class MyEventHandler( EventHandler ):
 
 def simple_debugger( argv ):
 
+    # Check we're running in a 32 bits machine
+    if System.bits != 32:
+        raise NotImplementedError( "This example only runs in 32 bits" )
+
     # Instance a Debug object, passing it the MyEventHandler instance
     debug = Debug( MyEventHandler() )
-
-    # Check we're running in a 32 bits machine
-    if debug.system.arch != 'i386':
-        raise NotImplementedError, "This example only runs in 32 bits"
 
     # Start a new process for debugging
     try:

@@ -28,21 +28,31 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# This line is needed in Python 2.5 to use the "with" statement.
+from __future__ import with_statement
+
 # $Id$
 
 from winappdbg import Debug
 
 import sys
-import thread
 
-# Get the process ID from the command line
-pid = int( sys.argv[1] )
+# Using the Debug object in a "with" context ensures proper cleanup
+with Debug() as debug:
 
-# Instance a Debug object, set the kill on exit property to True
-debug = Debug( bKillOnExit = True )
+    # The user can stop debugging with Control-C
+    try:
+        print "Hit Control-C to stop debugging..."
 
-# Attach to a running process
-debug.attach( pid )
+        # Start a new process for debugging
+        debug.execv( sys.argv[ 1 : ] )
 
-# Exit the current thread, killing the attached process
-thread.exit()
+        # Wait for the debugee to finish
+        debug.loop()
+
+    # If the user presses Control-C...
+    except KeyboardInterrupt:
+        print "Interrupted by user."
+
+        # Kill all debugged processes
+        debug.kill_all()
