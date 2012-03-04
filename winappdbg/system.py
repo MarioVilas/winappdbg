@@ -1451,11 +1451,11 @@ class _ThreadContainer (psyobj):
             dwCreationFlags = win32.CREATE_SUSPENDED
         else:
             dwCreationFlags = 0
-        hProcess = self.get_handle( PROCESS_CREATE_THREAD     |
-                                    PROCESS_QUERY_INFORMATION |
-                                    PROCESS_VM_OPERATION      |
-                                    PROCESS_VM_WRITE          |
-                                    PROCESS_VM_READ           )
+        hProcess = self.get_handle( win32.PROCESS_CREATE_THREAD     |
+                                    win32.PROCESS_QUERY_INFORMATION |
+                                    win32.PROCESS_VM_OPERATION      |
+                                    win32.PROCESS_VM_WRITE          |
+                                    win32.PROCESS_VM_READ           )
         hThread, dwThreadId = win32.CreateRemoteThread(
                 hProcess, 0, 0, lpStartAddress, lpParameter, dwCreationFlags)
         aThread = Thread(dwThreadId, hThread, self)
@@ -7068,22 +7068,20 @@ class Process (_ThreadContainer, _ModuleContainer):
         hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
         return win32.VirtualQueryEx(hProcess, lpAddress)
 
-    def free(self, lpAddress, dwSize = 0):
+    def free(self, lpAddress):
         """
         Frees memory from the address space of the process.
 
-        @see: L{malloc}
+        @see: U{http://msdn.microsoft.com/en-us/library/aa366894(v=vs.85).aspx}
 
         @type  lpAddress: int
         @param lpAddress: Address of memory to free.
-
-        @type  dwSize: int
-        @param dwSize: (Optional) Number of bytes to free.
+            Must be the base address returned by L{malloc}.
 
         @raise WindowsError: On error an exception is raised.
         """
         hProcess = self.get_handle(win32.PROCESS_VM_OPERATION)
-        win32.VirtualFreeEx(hProcess, lpAddress, dwSize)
+        win32.VirtualFreeEx(hProcess, lpAddress)
 
 #------------------------------------------------------------------------------
 
@@ -7921,6 +7919,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Injects relocatable code into the process memory and executes it.
 
+        @warning: Don't forget to free the memory when you're done with it!
+            Otherwise you'll be leaking memory in the target process.
+
         @see: L{inject_dll}
 
         @type  payload: str
@@ -7979,6 +7980,25 @@ class Process (_ThreadContainer, _ModuleContainer):
         @warning: Setting C{bWait} to C{True} when the process is frozen by a
             debug event will cause a deadlock in your debugger.
 
+        @warning: This involves allocating memory in the target process.
+            This is how the freeing of this memory is handled:
+
+             - If the C{bWait} flag is set to C{True} the memory will be freed
+               automatically before returning from this method.
+             - If the C{bWait} flag is set to C{False}, the memory address is
+               set as the L{Thread.pInjectedMemory} property of the returned
+               thread object.
+             - L{Debug} objects free L{Thread.pInjectedMemory} automatically
+               both when it detaches from a process and when the injected
+               thread finishes its execution.
+             - The {Thread.kill} method also frees L{Thread.pInjectedMemory}
+               automatically, even if you're not attached to the process.
+
+            You could still be leaking memory if not careful. For example, if
+            you inject a dll into a process you're not attached to, you don't
+            wait for the thread's completion and you don't kill it either, the
+            memory would be leaked.
+
         @see: L{inject_code}
 
         @type  dllname: str
@@ -7997,6 +8017,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  dwTimeout: int
         @param dwTimeout: (Optional) Timeout value in milliseconds.
             Ignored if C{bWait} is C{False}.
+
+        @rtype: L{Thread}
+        @return: Newly created thread object. If C{bWait} is set to C{True} the
+            thread will be dead, otherwise it will be alive.
 
         @raise NotImplementedError: The target platform is not supported.
             Currently calling a procedure in the library is only supported in
@@ -8105,11 +8129,9 @@ class Process (_ThreadContainer, _ModuleContainer):
             code += '\xff\xe0'
 
             # Inject the shellcode.
-            aThread, lpStartAddress = self.inject_code(code, lpParameter)
-
             # There's no need to free the memory,
             # because the shellcode will free it itself.
-            aThread.pInjectedMemory = None
+            aThread, lpStartAddress = self.inject_code(code, lpParameter)
 
         # New method, not using shellcode.
         else:
@@ -8144,13 +8166,17 @@ class Process (_ThreadContainer, _ModuleContainer):
 
             # Free the memory on error.
             except Exception:
-                self.free(pbuffer, bufferlen)
+                self.free(pbuffer)
                 raise
 
         # Wait for the thread to finish.
-        # XXX TODO free the injected memory here too
         if bWait:
             aThread.wait(dwTimeout)
+            self.free(aThread.pInjectedMemory)
+            del aThread.pInjectedMemory
+
+        # Return the thread object.
+        return aThread
 
     def clean_exit(self, dwExitCode = 0, bWait = False, dwTimeout = None):
         """
