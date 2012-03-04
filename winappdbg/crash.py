@@ -1102,7 +1102,7 @@ class CrashContainer (psyobj):
     Manages a database of persistent Crash objects, trying to avoid duplicates.
     Uses a DBM database file for persistency.
 
-    @warn:
+    @warning:
         DBM database support is provided for backwards compatibility with older
         versions of WinAppDbg. New applications should not use this class.
         Also, DBM databases in Python suffer from multiple problems that can
@@ -1627,7 +1627,7 @@ class CrashTable(CrashDictionary):
     """
     Old crash dump persistencer using a SQLite database.
 
-    @warn:
+    @warning:
         Superceded by L{CrashDictionary} since WinAppDbg 1.5.
         New applications should not use this class.
     """
@@ -1662,7 +1662,7 @@ class CrashTableMSSQL (CrashDictionary):
     """
     Old crash dump persistencer using a Microsoft SQL Server database.
 
-    @warn:
+    @warning:
         Superceded by L{CrashDictionary} since WinAppDbg 1.5.
         New applications should not use this class.
     """
@@ -1691,7 +1691,7 @@ class VolatileCrashContainer (CrashTable):
     """
     Old in-memory crash dump storage.
 
-    @warn:
+    @warning:
         Superceded by L{CrashDictionary} since WinAppDbg 1.5.
         New applications should not use this class.
     """

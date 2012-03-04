@@ -4272,7 +4272,7 @@ class Thread (psyobj):
             self.open_handle(dwDesiredAccess)
         else:
             dwAccess = self.hThread.dwAccess
-            if (dwAccess & dwDesiredAccess) != dwAccess:
+            if (dwAccess | dwDesiredAccess) != dwAccess:
                 self.open_handle(dwAccess | dwDesiredAccess)
         return self.hThread
 
@@ -5623,7 +5623,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             self.open_handle(dwDesiredAccess)
         else:
             dwAccess = self.hProcess.dwAccess
-            if (dwAccess & dwDesiredAccess) != dwAccess:
+            if (dwAccess | dwDesiredAccess) != dwAccess:
                 self.open_handle(dwAccess | dwDesiredAccess)
         return self.hProcess
 
