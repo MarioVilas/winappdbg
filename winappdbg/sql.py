@@ -363,7 +363,7 @@ class CrashDTO (BaseDTO):
     data = deferred(data)
 
     # Exploitability test.
-    exploitable = Column(Integer(1), nullable=False)
+    exploitable = Column(Integer, nullable=False)
     exploitability_rule = Column(TEXT, nullable=False)
     exploitability_rating = Column(TEXT, nullable=False)
     exploitability_desc = Column(TEXT, nullable=False)
@@ -371,7 +371,7 @@ class CrashDTO (BaseDTO):
     # Platform description.
     os = Column(TEXT, nullable=False)
     arch = Column(TEXT, nullable=False)
-    bits = Column(Integer(2), nullable=False)
+    bits = Column(Integer, nullable=False)
 
     # Event description.
     event = Column(Integer, nullable=False)
