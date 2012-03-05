@@ -49,26 +49,24 @@ If you prefer to install directly from the **sources** package, extract it to an
 
 You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
 
-* Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
-
-    easy_install winappdbg
-
 * `PIP Installs Python <http://www.pip-installer.org/>`_ ::
 
     pip install winappdbg
+
+* `PyPM <http://code.activestate.com/pypm/search:winappdbg/>`_ (only when using `ActivePython <http://www.activestate.com/activepython>`_)
+
+* Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
+
+    easy_install winappdbg
 
 * `Python Package Manager <http://sourceforge.net/projects/pythonpkgmgr/>`_ (it's a GUI installer)
 
 Dependencies
 ------------
 
-Naturally you need the Python interpreter. It's recommended to use Python 2.7. There are two basic flavors, just pick your favorite:
+Naturally you need the `Python interpreter <http://www.python.org/download/>`_. It's recommended to use Python 2.7.
 
-* The **official** `Python <http://www.python.org/download/>`_ interpreter (free, open source). This is the preferred choice.
-
-* ActiveState `ActivePython <http://www.activestate.com/activepython/downloads/>`_ (free, closed source). It should work but in 64 bit Windows the *ctypes* module is missing and you'll have to install it manually (see below).
-
-If you're still using Python 2.4, or you have the ActivePython 64-bit interpreter, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it.
+If you're still using Python 2.4 or Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it.
 
 The following packages provide extra features and performance improvements, they are very recommended but not mandatory:
 
@@ -99,61 +97,63 @@ It might work, but was not tested, under *Windows 2000*, *Wine* and *ReactOS*, a
 
 Python 3.x support was experimental up to *WinAppDbg 1.4*, and was dropped with *WinAppDbg 1.5*. There are currently no plans to support Python 3.x in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
 
+While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <http://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
+
 If you find a bug or have a feature suggestion, don't hesitate to send an email to the [https://lists.sourceforge.net/lists/listinfo/winappdbg-users winappdbg-users] mailing list. Both comments and complaints are welcome! :)
 
 The following tables show which Python interpreters, operating systems and processor architectures are currently supported. **Full** means all features are fully functional. **Partial** means some features may be broken and/or untested. **Experimental** means there is a subversion branch with at least partial support, but hasn't been merged to trunk yet. **Untested** means that though no testing was performed it should probably work.
 
 * Python interpreters
 
-    +------------------------+-------------------+
-    | Python 2.3 and earlier | **not supported** |
-    +------------------------+-------------------+
-    | Python 2.4             |   **untested**    |
-    +------------------------+-------------------+
-    | Python 2.5             |     **full**      |
-    +------------------------+-------------------+
-    | Python 2.6             |     **full**      |
-    +------------------------+-------------------+
-    | Python 2.7             |     **full**      |
-    +------------------------+-------------------+
-    | Python 3.0 and newer   | **not supported** |
-    +------------------------+-------------------+
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | Python 2.4 and earlier   |  *not supported*  | Use an `older version <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ of WinAppDbg in this case. |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | Python 2.5 through 2.7   |     **full**      |                                                                                                                 |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | Python 3.0 and newer     |  *not supported*  |                                                                                                                 |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | PyPy 1.4 and earlier     |    *untested*     | It doesn't seem to be available for download any more...                                                        |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | PyPy 1.5 and newer       |  *experimental*   | Some compatibility issues need fixing.                                                                          |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | IronPython 2.0 and newer |  *experimental*   | Some compatibility issues need fixing.                                                                          |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
 
 * Operating systems
 
-    +------------------------+------------+------------------------------------+
-    | Windows 2000 and older | *partial*  | (some Win32 APIs didn't exist yet) |
-    +------------------------+------------+------------------------------------+
-    | Windows XP             | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows Vista          | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows 7              | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows Server 2003    | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows Server 2003 R2 | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows Server 2008    | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | Windows Server 2008 R2 | **full**   |                                    |
-    +------------------------+------------+------------------------------------+
-    | ReactOS                | *untested* | (probably similar to Windows 2000) |
-    +------------------------+------------+------------------------------------+
-    | Linux (using Wine 1.2) | *untested* | (reported to work on Ubuntu)       |
-    +------------------------+------------+------------------------------------+
-    | Linux (using Wine 1.3) | *untested* | (reported to work on Ubuntu)       |
-    +------------------------+------------+------------------------------------+
+    +------------------------+------------+-----------------------------------+
+    | Windows 2000 and older | *partial*  | Some Win32 APIs didn't exist yet. |
+    +------------------------+------------+-----------------------------------+
+    | Windows XP             | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows Vista          | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows 7              | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows Server 2003    | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows Server 2003 R2 | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows Server 2008    | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | Windows Server 2008 R2 | **full**   |                                   |
+    +------------------------+------------+-----------------------------------+
+    | ReactOS                | *untested* | Probably similar to Windows 2000. |
+    +------------------------+------------+-----------------------------------+
+    | Linux (using Wine 1.2) | *untested* | Reported to work on Ubuntu.       |
+    +------------------------+------------+-----------------------------------+
+    | Linux (using Wine 1.3) | *untested* | Reported to work on Ubuntu.       |
+    +------------------------+------------+-----------------------------------+
 
 * Architectures
 
-    +----------------------------------------+------------+-----------------------------------------------------------+
-    | Intel x86 (32 bits) and compatible     | **full**   |                                                           |
-    +----------------------------------------+------------+-----------------------------------------------------------+
-    | Intel x86_x64 (64 bits) and compatible | *partial*  | (function hooks are not yet implemented)                  |
-    +----------------------------------------+------------+-----------------------------------------------------------+
-    | Intel IA64 (Itanium)                   | *untested* | (no actual Itanium system to test it on, help is needed!) |
-    +----------------------------------------+------------+-----------------------------------------------------------+
+    +----------------------------------------+------------+--------------------------------------------------------------------+
+    | Intel x86 (32 bits) and compatible     | **full**   |                                                                    |
+    +----------------------------------------+------------+--------------------------------------------------------------------+
+    | Intel x86_x64 (64 bits) and compatible | *partial*  | Function hooks are not yet implemented, but everything else works. |
+    +----------------------------------------+------------+--------------------------------------------------------------------+
+    | Intel IA64 (Itanium)                   | *untested* | No actual Itanium system to test it on, help is needed!            |
+    +----------------------------------------+------------+--------------------------------------------------------------------+
 
 License
 -------

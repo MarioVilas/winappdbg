@@ -35,6 +35,10 @@ if exist %SystemDrive%\Python27\python.exe %SystemDrive%\Python27\python.exe set
 if exist %SystemDrive%\Python25-x64\python.exe %SystemDrive%\Python25-x64\python.exe setup.py install
 if exist %SystemDrive%\Python26-x64\python.exe %SystemDrive%\Python26-x64\python.exe setup.py install
 if exist %SystemDrive%\Python27-x64\python.exe %SystemDrive%\Python27-x64\python.exe setup.py install
+if exist %SystemDrive%\pypy-1.5\pypy.exe %SystemDrive%\pypy-1.5\pypy.exe setup.py install
+if exist %SystemDrive%\pypy-1.6\pypy-c.exe %SystemDrive%\pypy-1.6\pypy-c.exe setup.py install
+if exist %SystemDrive%\pypy-1.7\pypy.exe %SystemDrive%\pypy-1.7\pypy.exe setup.py install
+if exist %SystemDrive%\pypy-1.8\pypy.exe %SystemDrive%\pypy-1.8\pypy.exe setup.py install
 goto Exit
 
 :Exit
