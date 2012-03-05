@@ -1,26 +1,22 @@
 @echo off
+setlocal enableextensions
 
 if "%1"=="" goto Default
 if "%1"=="all" goto All
 if "%1"=="All" goto All
-if "%1"=="/?" goto Help
-
-:Unknown
-echo Unsupported version of Python: %1
-goto Exit
+goto Help
 
 :Help
 echo Installer script for WinAppDbg
-echo
+echo.
 echo To install on your default Python version, run:
 echo     %0
-echo
+echo.
 echo To Install on every available Python version, run:
 echo     %0 all
-echo
-echo Python is assumed to be installed in:
-echo     %SystemDrive%\Python2*\       (for 32 bits)
-echo     %SystemDrive%\Python2*-x64\   (for 64 bits)
+echo.
+echo Python interpreters detected in this machine:
+for /f "delims=" %%P in (install.cfg) do cmd /c if exist "%%P" echo     %%P
 goto Exit
 
 :Default
@@ -28,17 +24,7 @@ python setup.py install
 goto Exit
 
 :All
-if exist %SystemDrive%\Python24\python.exe %SystemDrive%\Python24\python.exe setup.py install
-if exist %SystemDrive%\Python25\python.exe %SystemDrive%\Python25\python.exe setup.py install
-if exist %SystemDrive%\Python26\python.exe %SystemDrive%\Python26\python.exe setup.py install
-if exist %SystemDrive%\Python27\python.exe %SystemDrive%\Python27\python.exe setup.py install
-if exist %SystemDrive%\Python25-x64\python.exe %SystemDrive%\Python25-x64\python.exe setup.py install
-if exist %SystemDrive%\Python26-x64\python.exe %SystemDrive%\Python26-x64\python.exe setup.py install
-if exist %SystemDrive%\Python27-x64\python.exe %SystemDrive%\Python27-x64\python.exe setup.py install
-if exist %SystemDrive%\pypy-1.5\pypy.exe %SystemDrive%\pypy-1.5\pypy.exe setup.py install
-if exist %SystemDrive%\pypy-1.6\pypy-c.exe %SystemDrive%\pypy-1.6\pypy-c.exe setup.py install
-if exist %SystemDrive%\pypy-1.7\pypy.exe %SystemDrive%\pypy-1.7\pypy.exe setup.py install
-if exist %SystemDrive%\pypy-1.8\pypy.exe %SystemDrive%\pypy-1.8\pypy.exe setup.py install
+for /f "delims=" %%P in (install.cfg) do cmd /c if exist "%%P" "%%P" setup.py install
 goto Exit
 
 :Exit
