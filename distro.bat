@@ -36,8 +36,8 @@ set BDIST_UAC=--user-access-control auto
 
 :: Epydoc command line switches
 set EPYDOC_OPT=--config epydoc.cfg
-set EPYDOC_HTML_OPT=--html --show-frames --css default
-set EPYDOC_PDF_OPT=--pdf --separate-classes
+set EPYDOC_HTML_OPT=--html
+set EPYDOC_PDF_OPT=--pdf
 
 if exist %PYTHON_x64% goto Epydoc64
 if exist %PYTHON_x86% goto Epydoc32
