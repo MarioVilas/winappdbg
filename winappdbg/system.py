@@ -2659,7 +2659,6 @@ class Window (psyobj):
     Interface to an open window in the current desktop.
 
     @group Properties:
-        hWnd, dwProcessId, dwThreadId,
         get_handle, get_pid, get_tid,
         get_process, get_thread,
         set_process, set_thread,
@@ -2795,15 +2794,6 @@ class Window (psyobj):
             self.dwProcessId = process.get_pid()
             self.__process = process
 
-    # This horrible kludge is needed to keep Epydoc from complaining...
-    # if it wasn't for that it'd be a tidy one liner. :P
-    tmp = get_process.__doc__, set_process.__doc__
-    del get_process.__doc__
-    del set_process.__doc__
-    process = property(get_process, set_process)
-    get_process.__doc__, set_process.__doc__ = tmp
-    del tmp
-
     def get_thread(self):
         """
         @rtype:  L{Thread}
@@ -2831,15 +2821,6 @@ class Window (psyobj):
                 raise TypeError(msg)
             self.dwThreadId = thread.get_tid()
             self.__thread = thread
-
-    # This horrible kludge is needed to keep Epydoc from complaining...
-    # if it wasn't for that it'd be a tidy one liner. :P
-    tmp = get_thread.__doc__, set_thread.__doc__
-    del get_thread.__doc__
-    del set_thread.__doc__
-    thread = property(get_thread, set_thread)
-    get_thread.__doc__, set_thread.__doc__ = tmp
-    del tmp
 
     def __get_window(self, hWnd):
         """
@@ -2935,13 +2916,11 @@ class Window (psyobj):
     # * properties x, y, width, height
     # * properties left, top, right, bottom
 
-    # Unfortunately Epydoc has a bug that causes it to complain when you create
-    # a property from getters and/or setters that contain docstrings. I hope
-    # they finally get around to fixing it one day, because this has been a
-    # standard Python feature for quite some time now.
-    classname = property(get_classname)
-    text = property(get_text, set_text)
-    placement = property(get_placement, set_placement)
+    process = property(get_process, set_process, doc="")
+    thread = property(get_thread, set_thread, doc="")
+    classname = property(get_classname, doc="")
+    text = property(get_text, set_text, doc="")
+    placement = property(get_placement, set_placement, doc="")
 
 #------------------------------------------------------------------------------
 
