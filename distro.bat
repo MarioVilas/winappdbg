@@ -35,12 +35,9 @@ set BDIST_UAC=--user-access-control auto
 
 
 :: Epydoc command line switches
-set EPYDOC_OPT=--verbose --fail-on-docstring-warning --simple-term --docformat epytext --name "WinAppDbg - Programming Reference" --url "http://sourceforge.net/projects/winappdbg/" winappdbg
-set EPYDOC_HTML_OPT=--html --include-log --show-frames --css default
+set EPYDOC_OPT=--config epydoc.cfg
+set EPYDOC_HTML_OPT=--html --show-frames --css default
 set EPYDOC_PDF_OPT=--pdf --separate-classes
-set EPYDOC_TEST_OPT=--check
-set EPYDOC_OUTPUT_OPT=--show-private --no-imports --inheritance=included
-set EPYDOC_GRAPH_OPT=--graph all
 
 if exist %PYTHON_x64% goto Epydoc64
 if exist %PYTHON_x86% goto Epydoc32
@@ -166,13 +163,13 @@ if not exist %EPYDOC_SCRIPT% (
 )
 
 :: Generate the HTML documentation
-%EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OUTPUT_OPT% %EPYDOC_OPT%
+%EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OPT%
 
 :: Compile the HTML documentation into a CHM file
 if %errorlevel%==0 hhc winappdbg.hhp
 
 :: Generate the PDF documentation
-%EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OUTPUT_OPT% %EPYDOC_OPT%
+%EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 
 goto Next
 
