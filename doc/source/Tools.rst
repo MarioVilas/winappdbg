@@ -3,7 +3,7 @@
 Tools
 *****
 
-The *WinAppDbg* package comes with a collection of tools useful for common tasks when debugging or fuzzing a program. The most important tool, the :ref:`Crash logger <crash-logger>`, attaches to any number of target processes and collects crash dump information in a SQLite database. It can also apply :ref:`heuristics <crash-key>` to discard multiple occurrences of the same crash.
+The *WinAppDbg* package comes with a collection of tools useful for common tasks when debugging or fuzzing a program. The most important tool, the :ref:`Crash logger <crash-logger>`, attaches to any number of target processes and collects crash dump information in a SQL database. It can also apply :ref:`heuristics <signature>` to discard multiple occurrences of the same crash.
 
 The source code of these tools can also be read for more examples on programming using *WinAppDbg*.
 
@@ -15,32 +15,40 @@ Crash logger
 ++++++++++++
 
 .. figure:: _static/crash_logger.png
-   :align:  left
+   :align:  right
 
 * :download:`crash_logger.py <../../tools/crash_logger.py>` :
 
    Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database and/or log it through standard output.
 
-   Some simple :ref:`heuristics <crash-key>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
+   A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
 
    Additional features allow setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
 
 * :download:`crash_report.py <../../tools/crash_report.py>` :
 
-   Shows the contents of the crashes database file to standard output.
-
-* :download:`crash_report_mssql.py <../../tools/crash_report_mssql.py>` :
-
-   Shows the contents of the crashes MS SQL database to standard output.
+   Shows the contents of the crashes database to standard output.
 
 Process tools
 +++++++++++++
 
 These tools were inspired by the **ptools** suite by `Nicolás Economou <http://tinyurl.com/nicolaseconomou>`_.
 
+* :download:`pdebug.py <../../tools/pdebug.py>` :
+
+   Extremely simple command line debugger. It's main feature is being written entirely in Python, so it's easy to modify or write plugins for it.
+
+* :download:`ptrace.py <../../tools/ptrace.py>` :
+
+   Traces execution of a process. It supports three methods: single stepping, single stepping on branches, and native syscall hooking.
+
 * :download:`pinject.py <../../tools/pinject.py>` :
 
    Forces a process to load a DLL library of your choice.
+
+* :download:`pfind.py <../../tools/pfind.py>` :
+
+   Finds the given text, binary data, binary pattern or regular expression in a process memory space.
 
 * :download:`plist.py <../../tools/plist.py>` :
 
@@ -49,10 +57,6 @@ These tools were inspired by the **ptools** suite by `Nicolás Economou <http://
 * :download:`pmap.py <../../tools/pmap.py>` :
 
    Shows a map of a process memory space.
-
-* :download:`pfind.py <../../tools/pfind.py>` :
-
-   Finds the given text, binary data, binary pattern or regular expression in a process memory space.
 
 * :download:`pread.py <../../tools/pread.py>` :
 
@@ -66,14 +70,6 @@ These tools were inspired by the **ptools** suite by `Nicolás Economou <http://
 
    Terminates a process or a batch of processes.
 
-* :download:`ptrace.py <../../tools/ptrace.py>` :
-
-   Traces execution of a process. It supports three methods: single stepping, single stepping on branches, and native syscall hooking.
-
-* :download:`pdebug.py <../../tools/pdebug.py>` :
-
-   Extremely simple command line debugger. It's main feature is being written entirely in Python, so it's easy to modify or write plugins for it.
-
 Miscellaneous
 +++++++++++++
 
@@ -84,4 +80,3 @@ Miscellaneous
 * :download:`hexdump.py <../../tools/hexdump.py>` :
 
    Shows an hexadecimal dump of the contents of a file.
-

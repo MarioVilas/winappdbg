@@ -76,6 +76,9 @@ class CmdError (Exception):
 #==============================================================================
 
 class ConsoleDebugger (Cmd, EventHandler):
+    """
+    Interactive console debugger.
+    """
 
 #------------------------------------------------------------------------------
 # Class variables

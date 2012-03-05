@@ -11,8 +11,22 @@ The intended audience are QA engineers and software security auditors wishing to
 
 Current features also include disassembling x86 native code (using the `diStorm disassembler <http://ragestorm.net/distorm/>`_), debugging multiple processes simultaneously and produce a detailed log of application crashes, useful for fuzzing and automated testing.
 
-Table of Contents
------------------
+Download
+--------
+
+* `winappdbg-1.5.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.exe/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.exe/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download>`_ - Manual install (setup.py)
+
+For more information go to the :ref:`downloads page <download>`.
+
+Reference
+---------
+
+`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
+
+Tutorial
+--------
 
 .. toctree::
    :maxdepth: 2
@@ -21,8 +35,3 @@ Table of Contents
    Tools
    ProgrammingGuide
    Redistribution
-
-Reference documentation
------------------------
-
-`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.

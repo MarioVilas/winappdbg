@@ -1430,8 +1430,8 @@ class CrashContainer (psyobj):
         """
         Removes a crash from the container.
 
-        @type  crash: L{Crash}
-        @param crash: Crash object to remove.
+        @type  key: L{Crash} unique key.
+        @param key: Key of the crash to get.
         """
         skey = self.marshall_key(key)
         del self.__db[skey]

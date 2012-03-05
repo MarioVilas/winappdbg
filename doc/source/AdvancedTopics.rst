@@ -8,7 +8,6 @@ This section contains some more detailed explanations on the internal workings o
 .. toctree::
    :maxdepth: 3
 
-   CrashKey
+   Signature
    HowLabelsWork
    HowBreakpointsWork
-

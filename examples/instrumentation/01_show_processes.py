@@ -32,11 +32,6 @@
 
 from winappdbg import System
 
-# Request debugging privileges for the current process
-# This is needed to get some information from services
-# (Try commenting out this line to see what happens!)
-System.request_debug_privileges()
-
 # Create a system snaphot
 system = System()
 

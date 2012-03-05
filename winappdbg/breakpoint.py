@@ -1822,6 +1822,7 @@ class BreakpointContainer (psyobj):
 
     # Defining breakpoints.
 
+    # Code breakpoints.
     def define_code_breakpoint(self, dwProcessId, address,   condition = True,
                                                                 action = None):
         """
@@ -1880,6 +1881,7 @@ class BreakpointContainer (psyobj):
         self.__codeBP[key] = bp
         return bp
 
+    # Page breakpoints.
     def define_page_breakpoint(self, dwProcessId, address,       pages = 1,
                                                              condition = True,
                                                                 action = None):
@@ -1954,6 +1956,7 @@ class BreakpointContainer (psyobj):
             address = address + pageSize
         return bp
 
+    # Hardware breakpoints.
     def define_hardware_breakpoint(self, dwThreadId, address,
                                               triggerFlag = BP_BREAK_ON_ACCESS,
                                                  sizeFlag = BP_WATCH_DWORD,

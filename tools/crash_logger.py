@@ -79,6 +79,13 @@ class LoggingEventHandler(EventHandler):
     """
     Event handler that logs all events to standard output.
     It also remembers crashes, bugs or otherwise interesting events.
+
+    @type crashCollector: class
+    @cvar crashCollector:
+        Crash collector class. Tipically L{Crash} or a custom subclass of it.
+
+        Most users don't ever need to change this.
+        See: U{http://winappdbg.sourceforge.net/Signature.html}
     """
 
     def __init__(self, options, currentConfig = None):
@@ -118,7 +125,7 @@ class LoggingEventHandler(EventHandler):
     def __add_crash(self, event, bFullReport = False):
 
         # Generate a crash object.
-        crash = Crash(event)
+        crash = self.crashCollector(event)
         crash.addNote('Config: %s' % self.currentConfig)
 
         # Determine if the crash was previously known.
@@ -177,7 +184,7 @@ class LoggingEventHandler(EventHandler):
         action = System.argv_to_cmdline(self.options.action)
         if '%' in action:
             if not crash:
-                crash = Crash(event)
+                crash = self.crashCollector(event)
             # %COUNT% - Number of crashes currently stored in the database.
             # %EXCEPTIONCODE% - Exception code in hexa
             # %EVENTCODE% - Event code in hexa
@@ -196,6 +203,7 @@ class LoggingEventHandler(EventHandler):
             action = action.replace('%SP%',             HexDump.address(crash.sp) )
             action = action.replace('%FP%',             HexDump.address(crash.fp) )
             action = action.replace('%WHERE%',          str(crash.labelPC) )
+            del crash
         action = "cmd.exe /c %s" % action
         system  = System()
         process = system.start_process(action, bConsole = True)

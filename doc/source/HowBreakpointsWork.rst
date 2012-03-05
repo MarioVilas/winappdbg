@@ -27,10 +27,9 @@ When hit, code breakpoints trigger a **breakpoint** event at your :ref:`event ha
 
 Let's look at the signature of *define_code_breakpoint*:
 
-::
-
-    def define_code_breakpoint(self, dwProcessId, address,   condition = True,
-                                                                action = None):
+.. literalinclude:: ../../winappdbg/breakpoint.py
+   :start-after: # Code breakpoints.
+   :end-before: """
 
 Where **dwProcessId** is the Id of the process where we want to set the breakpoint and **address** is the location of the breakpoint in the process memory. The other two parameters are optional and will be :ref:`explained later <conditional-and-automatic-breakpoints>`.
 
@@ -45,11 +44,9 @@ When hit, page breakpoints trigger a **guard_page** event at your :ref:`event ha
 
 Let's see the signature of *define_page_breakpoint*:
 
-::
-
-    def define_page_breakpoint(self, dwProcessId, address,       pages = 1,
-                                                             condition = True,
-                                                                action = None):
+.. literalinclude:: ../../winappdbg/breakpoint.py
+   :start-after: # Page breakpoints.
+   :end-before: """
 
 Where **dwProcessId** is the same. But now **address** needs to be page-aligned and **pages** is the number of pages covered by the breakpoint. This is because `VirtualProtectEx() <http://msdn.microsoft.com/en-us/library/aa366899(VS.85).aspx>`_ works only with entire pages, you can't change the access permissions on individual bytes.
 
@@ -64,13 +61,9 @@ When hit, hardware breakpoints trigger a **single_step** event at your :ref:`eve
 
 The signature of *define_hardware_breakpoint* is this:
 
-::
-
-    def define_hardware_breakpoint(self, dwThreadId, address,
-                                              triggerFlag = BP_BREAK_ON_ACCESS,
-                                                 sizeFlag = BP_WATCH_DWORD,
-                                                condition = True,
-                                                   action = None):
+.. literalinclude:: ../../winappdbg/breakpoint.py
+   :start-after: # Hardware breakpoints.
+   :end-before: """
 
 Seems a little more complicated than the others. :)
 
@@ -303,4 +296,3 @@ The following table describes the listing methods and what they return, where **
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
     | **get_process_hardware_breakpoints** | Returns all hardware breakpoints for each thread in the given process as a list of tuples (tid, bp). |
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
-
