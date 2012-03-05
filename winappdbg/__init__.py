@@ -185,8 +185,15 @@ from system import *
 from registry import *
 from textio import *
 from util import *
+
 import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+
+try:
+    from sql import *
+    __all__.append('CrashDAO')
+except ImportError:
+    pass
 
 # Library version
 version = "Version 1.5"
