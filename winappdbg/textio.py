@@ -65,11 +65,6 @@ import time
 import struct
 import traceback
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #------------------------------------------------------------------------------
 
 class HexInput (StaticClass):
@@ -828,7 +823,7 @@ class HexDump (StaticClass):
 
 #------------------------------------------------------------------------------
 
-class Table (psyobj):
+class Table (object):
     """
     Text based table. The number of columns and the width of each column
     is automatically calculated.
@@ -1461,7 +1456,7 @@ class DebugLog (StaticClass):
 
 #------------------------------------------------------------------------------
 
-class Logger(psyobj):
+class Logger(object):
     """
     Logs text to standard output and/or a text file.
 

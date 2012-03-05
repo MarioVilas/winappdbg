@@ -50,11 +50,6 @@ import ctypes
 import warnings
 import traceback
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
 # If you set this warning to be considered as an error,

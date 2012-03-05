@@ -39,11 +39,6 @@ import warnings
 from defines import *
 from version import *
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #--- CONTEXT structure and constants ------------------------------------------
 
 import context_i386
@@ -504,7 +499,7 @@ PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION = 2
 
 #--- Handle wrappers ----------------------------------------------------------
 
-class Handle (psyobj):
+class Handle (object):
     """
     Encapsulates Win32 handles to avoid leaking them.
 
@@ -823,7 +818,7 @@ class SnapshotHandle (Handle):
 
 #--- Structure wrappers -------------------------------------------------------
 
-class ProcessInformation (psyobj):
+class ProcessInformation (object):
     """
     Process information object returned by L{CreateProcess}.
     """
@@ -1016,7 +1011,7 @@ class MemoryBasicInformation (object):
         """
         return self.has_content() and bool(self.Protect & self.EXECUTABLE_AND_WRITEABLE)
 
-class ProcThreadAttributeList (psyobj):
+class ProcThreadAttributeList (object):
     """
     Extended process and thread attribute support.
 
@@ -1355,7 +1350,7 @@ LPBY_HANDLE_FILE_INFORMATION = ctypes.POINTER(BY_HANDLE_FILE_INFORMATION)
 #   FileIoPriorityHintInfo = 12,
 #   MaximumFileInfoByHandlesClass = 13
 # } FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
-class FILE_INFO_BY_HANDLE_CLASS(psyobj):
+class FILE_INFO_BY_HANDLE_CLASS(object):
     FileBasicInfo                   = 0
     FileStandardInfo                = 1
     FileNameInfo                    = 2

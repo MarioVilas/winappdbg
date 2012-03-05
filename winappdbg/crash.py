@@ -69,11 +69,6 @@ import zlib
 import pprint
 import warnings
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 # lazy imports
 sql = None
 anydbm = None
@@ -1097,7 +1092,7 @@ class Crash (object):
 
 #==============================================================================
 
-class CrashContainer (psyobj):
+class CrashContainer (object):
     """
     Manages a database of persistent Crash objects, trying to avoid duplicates.
     Uses a DBM database file for persistency.
@@ -1493,7 +1488,7 @@ class CrashContainer (psyobj):
 
 #==============================================================================
 
-class CrashDictionary(psyobj):
+class CrashDictionary(object):
     """
     Dictionary-like persistence interface for L{Crash} objects.
 
@@ -1711,7 +1706,7 @@ class VolatileCrashContainer (CrashTable):
         super(VolatileCrashContainer, self).__init__(
             allowRepeatedKeys=allowRepeatedKeys)
 
-class DummyCrashContainer(psyobj):
+class DummyCrashContainer(object):
     """
     Fakes a database of volatile Crash objects,
     trying to mimic part of it's interface, but

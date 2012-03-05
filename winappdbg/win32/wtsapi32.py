@@ -37,11 +37,6 @@ __revision__ = "$Id$"
 from defines import *
 from advapi32 import *
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #--- Constants ----------------------------------------------------------------
 
 WTS_CURRENT_SERVER_HANDLE = 0

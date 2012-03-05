@@ -84,11 +84,6 @@ except ImportError:
             "Download it from: http://code.google.com/p/distorm3")
             raise NotImplementedError(msg)
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
 # TODO
@@ -97,7 +92,7 @@ except ImportError:
 # of toolhelp32 not working when the process hasn't finished initializing.
 # See: http://pferrie.host22.com/misc/lowlevel3.htm
 
-class _ModuleContainer (psyobj):
+class _ModuleContainer (object):
     """
     Encapsulates the capability to contain Module objects.
 
@@ -1258,7 +1253,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 
 #==============================================================================
 
-class _ThreadContainer (psyobj):
+class _ThreadContainer (object):
     """
     Encapsulates the capability to contain Thread objects.
 
@@ -1668,7 +1663,7 @@ class _ThreadContainer (psyobj):
 
 #==============================================================================
 
-class _ProcessContainer (psyobj):
+class _ProcessContainer (object):
     """
     Encapsulates the capability to contain Process objects.
 
@@ -2654,7 +2649,7 @@ class _ProcessContainer (psyobj):
 # point the hook callback to it. We'd need to have the remote procedure call
 # feature first as (I believe) the hook can't be set remotely in this case.
 
-class Window (psyobj):
+class Window (object):
     """
     Interface to an open window in the current desktop.
 
@@ -3297,7 +3292,7 @@ class Window (psyobj):
 
 #==============================================================================
 
-class Module (psyobj):
+class Module (object):
     """
     Interface to a DLL library loaded in the context of another process.
 
@@ -3971,7 +3966,7 @@ class Module (psyobj):
 # TODO
 # + fetch special registers (MMX, XMM, 3DNow!, etc)
 
-class Thread (psyobj):
+class Thread (object):
     """
     Interface to a thread in another process.
 

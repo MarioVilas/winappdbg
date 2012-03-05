@@ -40,11 +40,6 @@ __revision__ = "$Id$"
 import ctypes
 import functools
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.
@@ -207,7 +202,7 @@ def RaiseIfLastError(result, func = None, arguments = ()):
         raise ctypes.WinError(code)
     return result
 
-class GuessStringType(psyobj):
+class GuessStringType(object):
     """
     Decorator that guesses the correct version (A or W) to call
     based on the types of the strings passed as parameters.
@@ -304,7 +299,7 @@ class GuessStringType(psyobj):
         # Call the function and return the result
         return fn(*argv, **argd)
 
-class DefaultStringType(psyobj):
+class DefaultStringType(object):
     """
     Decorator that uses the default version (A or W) to call
     based on the configuration of the L{GuessStringType} decorator.

@@ -51,12 +51,6 @@ try:
 except ImportError:
     pass
 
-try:
-    import psyco
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 # XXX TODO
 # Use the "signal" module to avoid having to deal with unexpected
 # KeyboardInterrupt exceptions everywhere. Ideally there should be a way to
@@ -538,10 +532,10 @@ class LoggingEventHandler(EventHandler):
 
 #==============================================================================
 
-class CrashLogger (psyobj):
+class CrashLogger (object):
 
     # Options object with its default settings.
-    class Options (psyobj):
+    class Options (object):
         def __init__(self):
 
             # Targets
@@ -1042,7 +1036,8 @@ def main(argv):
 
 if __name__ == '__main__':
     try:
+        import psyco
         psyco.bind(main)
-    except NameError:
+    except ImportError:
         pass
     main(sys.argv)

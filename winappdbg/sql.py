@@ -73,11 +73,6 @@ except ImportError:
             return x
         return d
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
 class BaseDTO (object):
@@ -530,7 +525,7 @@ class _EnableSQLiteForeignKeys (PoolListener):
             dbapi_con.close()
             raise sqlite3.Error()
 
-class BaseDAO (psyobj):
+class BaseDAO (object):
     """
     Data Access Object base class.
 

@@ -62,11 +62,6 @@ from cmd import Cmd
 # lazy imports
 readline = None
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
 # Exception to be raised when a command parsing error occurs.

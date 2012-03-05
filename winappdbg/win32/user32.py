@@ -38,11 +38,6 @@ from defines import *
 from kernel32 import GetLastError, SetLastError
 from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #--- Helpers ------------------------------------------------------------------
 
 def MAKE_WPARAM(wParam):
@@ -64,7 +59,7 @@ def MAKE_LPARAM(lParam):
     """
     return ctypes.cast(lParam, LPARAM)
 
-class WindowEnumerator (psyobj):
+class WindowEnumerator (object):
     """
     Window enumerator class.  You can pass it's instances
     as callback functions in window enumeration APIs.
@@ -386,7 +381,7 @@ LPGUITHREADINFO = PGUITHREADINFO
 # XXX not sure if these classes should be psyco-optimized,
 # it may not work if the user wants to serialize them for some reason
 
-class Point(psyobj):
+class Point(object):
     """
     Python wrapper over the L{POINT} class.
 
@@ -482,7 +477,7 @@ class Point(psyobj):
         """
         return MapWindowPoints(hWndFrom, hWndTo, [self])
 
-class Rect(psyobj):
+class Rect(object):
     """
     Python wrapper over the L{RECT} class.
 
@@ -614,7 +609,7 @@ class Rect(psyobj):
         points = [ (self.left, self.top), (self.right, self.bottom) ]
         return MapWindowPoints(hWndFrom, hWndTo, points)
 
-class WindowPlacement(psyobj):
+class WindowPlacement(object):
     """
     Python wrapper over the L{WINDOWPLACEMENT} class.
     """
@@ -1140,7 +1135,7 @@ def GetWindowRect(hWnd):
     _GetWindowRect.argtypes = [HWND, LPRECT]
     _GetWindowRect.restype  = bool
     _GetWindowRect.errcheck = RaiseIfZero
-    
+
     lpRect = RECT()
     _GetWindowRect(hWnd, ctypes.byref(lpRect))
     return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)
@@ -1154,7 +1149,7 @@ def GetClientRect(hWnd):
     _GetClientRect.argtypes = [HWND, LPRECT]
     _GetClientRect.restype  = bool
     _GetClientRect.errcheck = RaiseIfZero
-    
+
     lpRect = RECT()
     _GetClientRect(hWnd, ctypes.byref(lpRect))
     return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)

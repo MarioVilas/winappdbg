@@ -93,14 +93,9 @@ from textio import HexDump
 import ctypes
 ##import weakref
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
-class Event (psyobj):
+class Event (object):
     """
     Event object.
 
@@ -1150,7 +1145,7 @@ class EventFactory (object):
 
 #==============================================================================
 
-class EventHandler (psyobj):
+class EventHandler (object):
     """
     Base class for debug event handlers.
 

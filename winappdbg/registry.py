@@ -45,14 +45,9 @@ import win32
 import collections
 import warnings
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
-class _RegistryContainer (psyobj):
+class _RegistryContainer (object):
     """
     Base class for L{Registry} and L{RegistryKey}.
     """

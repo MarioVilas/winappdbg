@@ -85,11 +85,6 @@ import optparse
 
 import win32
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
 def kill_python_thread(tid):
@@ -131,7 +126,7 @@ class BannerHelpFormatter(optparse.IndentedHelpFormatter):
         return '%s\n%s' % (self.banner, msg)
 
 # See Process.generate_memory_snapshot()
-class Regenerator(psyobj):
+class Regenerator(object):
     """
     Calls a generator and iterates it. When it's finished iterating, the
     generator is called again. This allows you to iterate a generator more

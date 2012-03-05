@@ -66,14 +66,9 @@ from util import DebugRegister
 from textio import HexDump
 import win32
 
-try:
-    from psyco.classes import *
-except ImportError:
-    psyobj = object
-
 #==============================================================================
 
-class Breakpoint (psyobj):
+class Breakpoint (object):
     """
     Base class for breakpoints.
     Here's the breakpoints state machine.
@@ -961,7 +956,7 @@ class HardwareBreakpoint (Breakpoint):
 # is wrong for 64 bit Windows. Perhaps a better scheme is in order? Ideally
 # it should be kept compatible with previous versions.
 
-class Hook (psyobj):
+class Hook (object):
     """
     Used by L{Debug.hook_function}.
 
@@ -1391,7 +1386,7 @@ class ApiHook (Hook):
 
 #==============================================================================
 
-class BufferWatch (psyobj):
+class BufferWatch (object):
     """
     Used by L{Debug.watch_buffer}.
 
@@ -1510,7 +1505,7 @@ class BufferWatch (psyobj):
 
 #==============================================================================
 
-class BreakpointContainer (psyobj):
+class BreakpointContainer (object):
     """
     Encapsulates the capability to contain Breakpoint objects.
 
