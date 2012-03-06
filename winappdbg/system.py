@@ -6301,7 +6301,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Retrieves the environment block memory address for the process.
 
-        @note: The size is always C{None} on Windows XP and below.
+        @note: The size is always enough to contain the environment data, but
+            it may not be an exact size. It's best to read the memory and
+            scan for two null wide chars to find the actual size.
 
         @rtype:  tuple(int, int)
         @return: Tuple with the memory address of the environment block
@@ -6316,8 +6318,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             EnvironmentSize = pp.EnvironmentSize
         except AttributeError:
-            EnvironmentSize = None
-
+            mbi = self.mquery(Environment)
+            EnvironmentSize = mbi.RegionSize + mbi.BaseAddress - Environment
         return (Environment, EnvironmentSize)
 
     def get_command_line(self):
@@ -6349,31 +6351,23 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         block         = list()
         address, size = self.get_environment_block()
-        char_size     = ctypes.sizeof(win32.WCHAR)
 
-        # If we know the block size, read the memory once and parse it.
-        if size:
-            data = self.peek(address, size)
-            while data:
-                chunk = ctypes.create_unicode_string(data).value
-                if not chunk:
-                    break
-                block.append(chunk)
-                data = data[ (len(chunk) + 1) * char_size : ]
-
-        # If we don't know the block size, read the memory many times.
-        # XXX FIXME
-        # This is inefficient! A process memory cache would help here...
-        else:
-            while 1:
-                chunk = self.peek_string(address,  dwMaxSize = System.pageSize,
-                                                    fUnicode = True)
-##                print "Chunk: ",
-##                print chunk
-                if not chunk:
-                    break
-                block.append(chunk)
-                address += (len(chunk) + 1) * char_size
+        # Read the memory once and parse it.
+        data = self.peek(address, size)
+        data = unicode(data, 'U16', 'replace')
+        last = 0
+        while data:
+            pos = data.find(u'\0', last)
+            if pos < 0:
+                break
+            if last == 0 and data[0] == u'=':
+                last = pos + 1
+                continue   # usually the first entry contains garbage
+            chunk = data[ last : pos ]
+            last = pos + 1
+            if not chunk or chunk == u'\0':
+                break
+            block.append(chunk)
 
         # Return the environment data.
         return block
@@ -6398,7 +6392,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         for chunk in block:
             sep = chunk.find(u'=')
             if sep >= 0:
-                key, value = chunk[:sep], chunk[sep:]
+                key, value = chunk[:sep], chunk[sep+1:]
             else:
                 key, value = chunk, u''
             if not environment.has_key(key):

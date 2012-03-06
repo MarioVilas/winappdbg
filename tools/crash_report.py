@@ -36,7 +36,9 @@ import sys
 import time
 import optparse
 
-from winappdbg import CrashContainer, CrashTable
+from winappdbg import Crash, CrashContainer, CrashDictionary, win32
+
+from crash_logger import CrashLogger
 
 try:
     import cerealizer
@@ -49,7 +51,7 @@ def parse_cmdline(argv):
     if len(argv) == 1:
         argv = argv + ['--help']
     usage  = (
-             "\n    %prog <database file> [more database files...]\n"
+             "\n    %prog <configuration file> [more configuration files...]\n"
              "\n"
              "Produces a full report of each crash found by crash_logger.py"
              )
@@ -80,58 +82,62 @@ def filter_inexistent_files(old_list):
     return new_list
 
 def open_database(filename):
-    print "Opening database: %s" % filename
     cc = None
 
-    # Try opening as a DBM database.
+    # Parse the configuration file to get the database URI.
+    print "Opening configuration file: %s" % filename
+    cl = CrashLogger()
+    options = cl.read_config_file(filename)
+
+    # Open the database.
     try:
-        import anydbm
-        try:
-            cc = CrashContainer( filename )
-        except anydbm.error, e:
-            error = str(e)
-    except ImportError:
-        print "Warning: no DBM support present"
+        if not options.database:
+            print "Warning: no database configured here, ignored"
+            return
+        elif options.database.startswith('dbm://'):
+            dbfile = options.database[6:]
+            print "Connecting to DBM database file: %s" % dbfile
+            cc = CrashContainer(dbfile)
+        else:
+            print "Connecting to database: %s" % options.database
+            cc = CrashDictionary(options.database)
+    except Exception, e:
+        print "Error connecting to the database: %s" % e
+        return
 
-    # Try opening as a SQLite database.
-    if cc is None:
-        try:
-            try:
-                import sqlite3 as sqlite
-            except ImportError:
-                from pysqlite2 import dbapi2 as sqlite
-            try:
-                cc = CrashTable( filename )
-            except sqlite.DatabaseError, e:
-                error = str(e)
-        except ImportError:
-            print "Warning: no SQLite support present"
-
-    if cc is None:
-        print "Error: %s: %r" % (error, filename)
+    # Return the crash container.
     return cc
 
 def print_report_for_database(cc, options):
-    if cc:
-        print "Found %d crashes:" % len(cc)
-        print '-' * 79
-        ccl = [(c.timeStamp, c) for c in cc]    # XXX may use a lot of memory
-        ccl.sort()                  # XXX may fail if timestamps are repeated
-        for (timeStamp, c) in ccl:
-            local = time.localtime(timeStamp)
-            ldate = time.strftime("%x", local)
-            ltime = time.strftime("%X", local)
-            msecs = (c.timeStamp % 1) * 1000
-            msg = '%s %s.%04d' % (ldate, ltime, msecs)
-            print msg
-            if options.verbose:
-                print c.fullReport(),
-            else:
-                print c.briefReport()
+    if cc is not None:
+        count = cc.__len__()
+        print count, type(count), type(cc), cc.__len__
+        if not count:
+            print "No crashes to report."
+            print
+        else:
+            print "Found %d crashes:" % count
             print '-' * 79
-    elif cc is not None:
-        print "No crashes to report."
-        print
+            print_crash_report(cc, options)
+
+def print_crash_report(cc, options):
+    ccl = [(c.timeStamp, c) for c in cc]      # XXX may use a lot of memory
+    ccl.sort()           # XXX may be inaccurate if timestamps are repeated
+    for (timeStamp, c) in ccl:
+        local = time.localtime(timeStamp)
+        ldate = time.strftime("%x", local)
+        ltime = time.strftime("%X", local)
+        msecs = (c.timeStamp % 1) * 1000
+        msg = '%s %s.%04d' % (ldate, ltime, msecs)
+        print msg
+        if options.verbose:
+            report = c.fullReport()
+        else:
+            report = c.briefReport() + '\n'
+        if isinstance(report, unicode):
+            report = report.encode('UTF8')          # XXX HORRIBLE HACK!
+        print report,
+        print '-' * 79
 
 def main(argv):
     print "Crash logger report"

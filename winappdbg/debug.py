@@ -882,6 +882,7 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         print "Interactive debugging session started."
         print "Use the \"help\" command to list all available commands."
+        print "Use the \"quit\" command to close this session."
         print
         console = ConsoleDebugger()
         console.confirm_quit = bConfirmQuit

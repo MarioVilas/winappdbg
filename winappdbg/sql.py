@@ -50,7 +50,7 @@ from sqlalchemy.interfaces import PoolListener
 from sqlalchemy.orm import sessionmaker, relationship, backref, deferred
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.schema import Index
-from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, \
+from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, Binary, \
                              LargeBinary, Enum, PickleType, TEXT, VARCHAR
 
 from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
@@ -348,14 +348,10 @@ class CrashDTO (BaseDTO):
     timestamp = Column(DateTime, nullable=False, index=True)
 
     # Heuristic signature.
-    signature = Column(PickleType(protocol=0, pickler=pickle, mutable=False),
-                       nullable=False)
+    signature = Column(Binary, nullable=False)
 
     # Pickled Crash object, minus the memory dump.
-    data = Column(PickleType(protocol=HIGHEST_PROTOCOL, pickler=Marshaller,
-                             mutable=False),
-                  nullable=False)
-    data = deferred(data)
+    data = deferred(Column(LargeBinary, nullable=False))
 
     # Exploitability test.
     exploitable = Column(Integer, nullable=False)
@@ -404,14 +400,14 @@ class CrashDTO (BaseDTO):
 
         # Timestamp and signature.
         self.timestamp = datetime.datetime.fromtimestamp( crash.timeStamp )
-        self.signature = crash.signature
+        self.signature = buffer(pickle.dumps(crash.signature, protocol=0))
 
         # Pickled Crash object, minus the memory dump.
         if crash.memoryMap:
             warnings.warn("Serializing a crash dump that contains a memory"
                           " dump may be very slow and take up more space in"
                           " the database!")
-        self.data = crash
+        self.data = buffer(Marshaller.dumps(crash))
 
         # Exploitability test.
         self.exploitability_rating, \
@@ -458,10 +454,13 @@ class CrashDTO (BaseDTO):
 
         # Environment description.
         self.command_line    = crash.commandLine
-        if type(crash.environmentData) == type(u''):
-            self.environment = u'\0'.join(crash.environmentData) + u'\0'
+        if crash.environmentData is None:
+            self.environment = None
         else:
-            self.environment = '\0'.join(crash.environmentData) + '\0'
+            if type(crash.environmentData) == type(u''):
+                self.environment = u'\0'.join(crash.environmentData) + u'\0'
+            else:
+                self.environment = '\0'.join(crash.environmentData) + '\0'
 
         # Notes.
         self.notes = crash.notesReport()
@@ -477,10 +476,15 @@ class CrashDTO (BaseDTO):
         @rtype:  L{Crash}
         @return: Crash object.
         """
-        crash = self.data
+        crash = Marshaller.loads(str(self.data))
+        if not isinstance(crash, Crash):
+            raise TypeError(
+                "Expected Crash instance, got %s instead" % type(crash))
         crash._rowid = self.id
         if not crash.memoryMap:
-            crash.memoryMap = [dto.toMBI(getMemoryDump) for dto in self.memory]
+            memory = getattr(self, "memory", [])
+            if memory:
+                crash.memoryMap = [dto.toMBI(getMemoryDump) for dto in memory]
         return crash
 
 # Fix for MySQL databases only, where a special "length" parameter is required.
@@ -642,7 +646,7 @@ def Transactional(fn, self, *argv, **argd):
 
     It may only work with subclasses of L{BaseDAO}.
     """
-    self._transactional(fn, *argv, **argd)
+    return self._transactional(fn, *argv, **argd)
 
 #==============================================================================
 
@@ -676,8 +680,9 @@ class CrashDAO (BaseDAO):
 
         # Filter out duplicated crashes, if requested.
         if not allow_duplicates:
-            if self._session.query(CrashDTO)                        \
-                            .filter_by(signature=crash.signature)   \
+            signature = buffer(pickle.dumps(crash.signature, protocol=0))
+            if self._session.query(CrashDTO.id)                \
+                            .filter_by(signature=signature) \
                             .count() > 0:
                 return
 
@@ -795,7 +800,8 @@ class CrashDAO (BaseDAO):
         # Build the SQL query.
         query = self._session.query(CrashDTO)
         if signature is not None:
-            query = query.filter(CrashDTO.signature == signature)
+            sig_buffer = buffer(pickle.dumps(signature, protocol=0))
+            query = query.filter(CrashDTO.signature == sig_buffer)
         if since:
             query = query.filter(CrashDTO.timestamp >= since)
         if until:
@@ -804,8 +810,8 @@ class CrashDAO (BaseDAO):
             query = query.offset(offset)
         if limit:
             query = query.limit(limit)
-        if sort:
-            if sort > 0:
+        if order:
+            if order > 0:
                 query = query.asc(CrashDTO.timestamp)
             else:
                 query = query.desc(CrashDTO.timestamp)
@@ -829,7 +835,10 @@ class CrashDAO (BaseDAO):
 
         @type  crash: L{Crash}
         @param crash: Crash object to compare with. Fields set to C{None} are
-            ignored, all other fields are used in the comparison.
+            ignored, all other fields but the signature are used in the
+            comparison.
+
+            To search for signature instead use the L{find} method.
 
         @type  offset: int
         @param offset: (Optional) Skip the first I{offset} results.
@@ -856,7 +865,9 @@ class CrashDAO (BaseDAO):
         # Filter all the fields in the crashes table that are present in the
         # CrashDTO object and not set to None, except for the row ID.
         for name, column in CrashDTO.__dict__.iteritems():
-            if name != 'id' and not name.startswith('__'):
+            if not name.startswith('__') and name not in ('id',
+                                                          'signature',
+                                                          'data'):
                 if isinstance(column, Column):
                     value = getattr(dto, name, None)
                     if value is not None:
@@ -887,9 +898,10 @@ class CrashDAO (BaseDAO):
         @rtype:  int
         @return: Count of crash dumps stored in this database.
         """
-        query = self._session.query(CrashDTO)
+        query = self._session.query(CrashDTO.id)
         if signature:
-            query = query.filter_by(signature=signature)
+            sig_buffer = buffer(pickle.dumps(signature, protocol=0))
+            query = query.filter_by(signature=sig_buffer)
         return query.count()
 
     @Transactional

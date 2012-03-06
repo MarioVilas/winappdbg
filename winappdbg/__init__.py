@@ -102,6 +102,7 @@ __all__ =   [
 
                 # from crash import *
                 'Crash',
+                'CrashDictionary',
                 'CrashContainer',
                 'CrashTable',
                 'CrashTableMSSQL',

@@ -100,6 +100,108 @@ class CLIENT_ID(Structure):
 ##        ("InMemoryOrderModuleList", LIST_ENTRY),
 ##]
 
+# From http://undocumented.ntinternals.net/UserMode/Structures/RTL_USER_PROCESS_PARAMETERS.html
+# typedef struct _RTL_USER_PROCESS_PARAMETERS {
+#   ULONG                   MaximumLength;
+#   ULONG                   Length;
+#   ULONG                   Flags;
+#   ULONG                   DebugFlags;
+#   PVOID                   ConsoleHandle;
+#   ULONG                   ConsoleFlags;
+#   HANDLE                  StdInputHandle;
+#   HANDLE                  StdOutputHandle;
+#   HANDLE                  StdErrorHandle;
+#   UNICODE_STRING          CurrentDirectoryPath;
+#   HANDLE                  CurrentDirectoryHandle;
+#   UNICODE_STRING          DllPath;
+#   UNICODE_STRING          ImagePathName;
+#   UNICODE_STRING          CommandLine;
+#   PVOID                   Environment;
+#   ULONG                   StartingPositionLeft;
+#   ULONG                   StartingPositionTop;
+#   ULONG                   Width;
+#   ULONG                   Height;
+#   ULONG                   CharWidth;
+#   ULONG                   CharHeight;
+#   ULONG                   ConsoleTextAttributes;
+#   ULONG                   WindowFlags;
+#   ULONG                   ShowWindowFlags;
+#   UNICODE_STRING          WindowTitle;
+#   UNICODE_STRING          DesktopName;
+#   UNICODE_STRING          ShellInfo;
+#   UNICODE_STRING          RuntimeData;
+#   RTL_DRIVE_LETTER_CURDIR DLCurrentDirectory[0x20];
+# } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+
+# kd> dt _RTL_USER_PROCESS_PARAMETERS
+# ntdll!_RTL_USER_PROCESS_PARAMETERS
+#    +0x000 MaximumLength    : Uint4B
+#    +0x004 Length           : Uint4B
+#    +0x008 Flags            : Uint4B
+#    +0x00c DebugFlags       : Uint4B
+#    +0x010 ConsoleHandle    : Ptr32 Void
+#    +0x014 ConsoleFlags     : Uint4B
+#    +0x018 StandardInput    : Ptr32 Void
+#    +0x01c StandardOutput   : Ptr32 Void
+#    +0x020 StandardError    : Ptr32 Void
+#    +0x024 CurrentDirectory : _CURDIR
+#    +0x030 DllPath          : _UNICODE_STRING
+#    +0x038 ImagePathName    : _UNICODE_STRING
+#    +0x040 CommandLine      : _UNICODE_STRING
+#    +0x048 Environment      : Ptr32 Void
+#    +0x04c StartingX        : Uint4B
+#    +0x050 StartingY        : Uint4B
+#    +0x054 CountX           : Uint4B
+#    +0x058 CountY           : Uint4B
+#    +0x05c CountCharsX      : Uint4B
+#    +0x060 CountCharsY      : Uint4B
+#    +0x064 FillAttribute    : Uint4B
+#    +0x068 WindowFlags      : Uint4B
+#    +0x06c ShowWindowFlags  : Uint4B
+#    +0x070 WindowTitle      : _UNICODE_STRING
+#    +0x078 DesktopInfo      : _UNICODE_STRING
+#    +0x080 ShellInfo        : _UNICODE_STRING
+#    +0x088 RuntimeData      : _UNICODE_STRING
+#    +0x090 CurrentDirectores : [32] _RTL_DRIVE_LETTER_CURDIR
+#    +0x290 EnvironmentSize  : Uint4B
+##class RTL_USER_PROCESS_PARAMETERS(Structure):
+##    _fields_ = [
+##        ("MaximumLength",           ULONG),
+##        ("Length",                  ULONG),
+##        ("Flags",                   ULONG),
+##        ("DebugFlags",              ULONG),
+##        ("ConsoleHandle",           PVOID),
+##        ("ConsoleFlags",            ULONG),
+##        ("StandardInput",           HANDLE),
+##        ("StandardOutput",          HANDLE),
+##        ("StandardError",           HANDLE),
+##        ("CurrentDirectory",        CURDIR),
+##        ("DllPath",                 UNICODE_STRING),
+##        ("ImagePathName",           UNICODE_STRING),
+##        ("CommandLine",             UNICODE_STRING),
+##        ("Environment",             PVOID),
+##        ("StartingX",               ULONG),
+##        ("StartingY",               ULONG),
+##        ("CountX",                  ULONG),
+##        ("CountY",                  ULONG),
+##        ("CountCharsX",             ULONG),
+##        ("CountCharsY",             ULONG),
+##        ("FillAttribute",           ULONG),
+##        ("WindowFlags",             ULONG),
+##        ("ShowWindowFlags",         ULONG),
+##        ("WindowTitle",             UNICODE_STRING),
+##        ("DesktopInfo",             UNICODE_STRING),
+##        ("ShellInfo",               UNICODE_STRING),
+##        ("RuntimeData",             UNICODE_STRING),
+##        ("CurrentDirectores",       RTL_DRIVE_LETTER_CURDIR * 32), # typo here?
+##
+##        # Windows 2008 and Vista
+##        ("EnvironmentSize",         ULONG),
+##]
+##    @property
+##    def CurrentDirectories(self):
+##        return self.CurrentDirectores
+
 # From MSDN:
 #
 # typedef struct _RTL_USER_PROCESS_PARAMETERS {
@@ -275,92 +377,6 @@ class CURDIR(Structure):
         ("DosPath", UNICODE_STRING),
         ("Handle",  PVOID),
 ]
-
-# From MSDN:
-#
-# typedef struct _RTL_USER_PROCESS_PARAMETERS {
-#   BYTE           Reserved1[16];
-#   PVOID          Reserved2[10];
-#   UNICODE_STRING ImagePathName;
-#   UNICODE_STRING CommandLine;
-# } RTL_USER_PROCESS_PARAMETERS,
-# *PRTL_USER_PROCESS_PARAMETERS;
-##class RTL_USER_PROCESS_PARAMETERS(Structure):
-##    _fields_ = [
-##        ("Reserved1",       BYTE * 16),
-##        ("Reserved2",       PVOID * 10),
-##        ("ImagePathName",   UNICODE_STRING),
-##        ("CommandLine",     UNICODE_STRING),
-##]
-
-# kd> dt _RTL_USER_PROCESS_PARAMETERS
-# ntdll!_RTL_USER_PROCESS_PARAMETERS
-#    +0x000 MaximumLength    : Uint4B
-#    +0x004 Length           : Uint4B
-#    +0x008 Flags            : Uint4B
-#    +0x00c DebugFlags       : Uint4B
-#    +0x010 ConsoleHandle    : Ptr32 Void
-#    +0x014 ConsoleFlags     : Uint4B
-#    +0x018 StandardInput    : Ptr32 Void
-#    +0x01c StandardOutput   : Ptr32 Void
-#    +0x020 StandardError    : Ptr32 Void
-#    +0x024 CurrentDirectory : _CURDIR
-#    +0x030 DllPath          : _UNICODE_STRING
-#    +0x038 ImagePathName    : _UNICODE_STRING
-#    +0x040 CommandLine      : _UNICODE_STRING
-#    +0x048 Environment      : Ptr32 Void
-#    +0x04c StartingX        : Uint4B
-#    +0x050 StartingY        : Uint4B
-#    +0x054 CountX           : Uint4B
-#    +0x058 CountY           : Uint4B
-#    +0x05c CountCharsX      : Uint4B
-#    +0x060 CountCharsY      : Uint4B
-#    +0x064 FillAttribute    : Uint4B
-#    +0x068 WindowFlags      : Uint4B
-#    +0x06c ShowWindowFlags  : Uint4B
-#    +0x070 WindowTitle      : _UNICODE_STRING
-#    +0x078 DesktopInfo      : _UNICODE_STRING
-#    +0x080 ShellInfo        : _UNICODE_STRING
-#    +0x088 RuntimeData      : _UNICODE_STRING
-#    +0x090 CurrentDirectores : [32] _RTL_DRIVE_LETTER_CURDIR
-#    +0x290 EnvironmentSize  : Uint4B
-##class RTL_USER_PROCESS_PARAMETERS(Structure):
-##    _fields_ = [
-##        ("MaximumLength",           ULONG),
-##        ("Length",                  ULONG),
-##        ("Flags",                   ULONG),
-##        ("DebugFlags",              ULONG),
-##        ("ConsoleHandle",           PVOID),
-##        ("ConsoleFlags",            ULONG),
-##        ("StandardInput",           HANDLE),
-##        ("StandardOutput",          HANDLE),
-##        ("StandardError",           HANDLE),
-##        ("CurrentDirectory",        CURDIR),
-##        ("DllPath",                 UNICODE_STRING),
-##        ("ImagePathName",           UNICODE_STRING),
-##        ("CommandLine",             UNICODE_STRING),
-##        ("Environment",             PVOID),
-##        ("StartingX",               ULONG),
-##        ("StartingY",               ULONG),
-##        ("CountX",                  ULONG),
-##        ("CountY",                  ULONG),
-##        ("CountCharsX",             ULONG),
-##        ("CountCharsY",             ULONG),
-##        ("FillAttribute",           ULONG),
-##        ("WindowFlags",             ULONG),
-##        ("ShowWindowFlags",         ULONG),
-##        ("WindowTitle",             UNICODE_STRING),
-##        ("DesktopInfo",             UNICODE_STRING),
-##        ("ShellInfo",               UNICODE_STRING),
-##        ("RuntimeData",             UNICODE_STRING),
-##        ("CurrentDirectores",       RTL_DRIVE_LETTER_CURDIR * 32), # typo here?
-##
-##        # Windows 2008 and Vista
-##        ("EnvironmentSize",         ULONG),
-##]
-##    @property
-##    def CurrentDirectories(self):
-##        return self.CurrentDirectores
 
 # From http://www.nirsoft.net/kernel_struct/vista/RTL_CRITICAL_SECTION_DEBUG.html
 #

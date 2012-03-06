@@ -66,7 +66,6 @@ import win32
 import os
 import time
 import zlib
-import pprint
 import warnings
 
 # lazy imports
@@ -77,7 +76,8 @@ anydbm = None
 
 # Secure alternative to pickle, use it if present.
 try:
-    import cerealizer as pickle
+    import cerealizer
+    pickle = cerealizer
 
     # There is no optimization function for cerealized objects.
     def optimize(picklestring):
@@ -122,11 +122,11 @@ class Marshaller (StaticClass):
     """
 
     @staticmethod
-    def dumps(self, obj, protocol=HIGHEST_PROTOCOL):
+    def dumps(obj, protocol=HIGHEST_PROTOCOL):
         return zlib.compress(optimize(pickle.dumps(obj)), 9)
 
     @staticmethod
-    def loads(self, data):
+    def loads(data):
         return pickle.loads(zlib.decompress(data))
 
 #==============================================================================
@@ -566,7 +566,7 @@ class Crash (object):
         try:
             self.environmentData = process.get_environment_data()
             self.environment     = process.parse_environment_data(
-                                                          self.environmentData)
+                                                        self.environmentData)
         except Exception:
 ##            raise   # XXX DEBUG
             pass
@@ -960,7 +960,8 @@ class Crash (object):
             msg += '\nCommand line: %s\n' % self.commandLine
 
         if self.environment:
-            msg += '\nEnvironment: %s\n' % pprint.pformat(self.environment)
+            msg += '\nEnvironment:\n'
+            msg += self.environmentReport()
 
         if not self.labelPC:
             base = HexDump.address(self.lpBaseOfDll, address_size)
@@ -1030,6 +1031,18 @@ class Crash (object):
             if not msg.endswith('\n'):
                 msg += '\n'
             msg += '\n'
+        return msg
+
+    def environmentReport(self):
+        """
+        @rtype: str
+        @return: The process environment variables,
+            merged and formatted for a report.
+        """
+        msg = ''
+        if self.environment:
+            for key, value in self.environment.iteritems():
+                msg += '  %s=%s\n' % (key, value)
         return msg
 
     def notesReport(self):
