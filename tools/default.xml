@@ -33,10 +33,7 @@
 <duplicates           value="true"  />
 <firstchance          value="false" />
 <memory               value="0"     />
-<nodb                 value="false" />
-<dbm></dbm>
-<sqlite></sqlite>
-<mssql></mssql>
+<database></database>
 <logfile></logfile>
 
 </configuration>
