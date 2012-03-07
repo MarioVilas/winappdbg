@@ -127,6 +127,7 @@ __all__ =   [
 
                 # from event import *
                 'EventHandler',
+                'EventSift',
 ##                'EventFactory',
 ##                'EventDispatcher',
                 'Event',

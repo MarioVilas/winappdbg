@@ -34,7 +34,7 @@ Event handling module.
 @see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging}
 
 @group Debugging:
-    EventHandler
+    EventHandler, EventSift
 
 @group Debug events:
     EventFactory,
@@ -62,8 +62,9 @@ __all__ = [
             # Event dispatcher used internally by the Debug class.
             'EventDispatcher',
 
-            # Base class for user-defined event handlers.
+            # Base classes for user-defined event handlers.
             'EventHandler',
+            'EventSift',
 
             # Dummy event object that can be used as a placeholder.
             # It's never returned by the EventFactory.
@@ -89,6 +90,7 @@ from win32 import FileHandle, ProcessHandle, ThreadHandle
 from breakpoint import ApiHook
 from system import Module, Thread, Process, PathOperations
 from textio import HexDump
+from util import StaticClass
 
 import ctypes
 ##import weakref
@@ -1088,7 +1090,7 @@ class RIPEvent (Event):
 
 #==============================================================================
 
-class EventFactory (object):
+class EventFactory (StaticClass):
     """
     Factory of L{Event} objects.
 
@@ -1131,18 +1133,6 @@ class EventFactory (object):
         eventClass = cls.eventClasses.get(raw.dwDebugEventCode, cls.baseEvent)
         return eventClass(debug, raw)
 
-    def __new__(typ, *args, **kwargs):
-        """
-        C{EventFactory} is a singleton, you can't really have multiple
-        instances of it. To create this effect, the C{__new__} operator
-        was overriden to return always the I{class} object instead
-        of new I{instances}.
-
-        @rtype:  L{EventFactory}
-        @return: C{EventFactory} class (NOT an instance)
-        """
-        return EventFactory
-
 #==============================================================================
 
 class EventHandler (object):
@@ -1150,6 +1140,9 @@ class EventHandler (object):
     Base class for debug event handlers.
 
     Your program should subclass it to implement it's own event handling.
+
+    The constructor can be overriden as long as you call the superclass
+    constructor. The special method L{__call__} B{MUST NOT} be overriden.
 
     The signature for event handlers is the following::
 
@@ -1303,9 +1296,6 @@ class EventHandler (object):
 
                 # (more libraries can go here...)
             }
-
-        For a more complete support of API hooking, you can also check out
-        Universal Hooker at U{http://oss.coresecurity.com/projects/uhooker.htm}
     """
 
 #------------------------------------------------------------------------------
@@ -1314,6 +1304,35 @@ class EventHandler (object):
     apiHooks = {}
 
     def __init__(self):
+        """
+        Class constructor. Don't forget to call it when subclassing!
+
+        Forgetting to call the superclass constructor is a common mistake when
+        you're new to Python. :)
+
+        Example::
+            class MyEventHandler (EventHandler):
+
+                # Override the constructor to use an extra argument.
+                def __init__(self, myArgument):
+
+                    # Do something with the argument, like keeping it
+                    # as an instance variable.
+                    self.myVariable = myArgument
+
+                    # Call the superclass constructor.
+                    super(MyEventHandler, self).__init__()
+
+                # The rest of your code below...
+        """
+
+        # TODO
+        # All this does is set up the hooks.
+        # This code should be moved to the EventDispatcher class.
+        # Then the hooks can be set up at set_event_handler() instead, making
+        # this class even simpler. The downside here is deciding where to store
+        # the ApiHook objects.
+
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
         if self.apiHooks and win32.CONTEXT.arch != win32.ARCH_I386:
@@ -1348,29 +1367,191 @@ class EventHandler (object):
         """
         Dispatch debug events.
 
+        @warn: B{Don't override this method!}
+
         @type  event: L{Event}
         @param event: Event object.
         """
-        eventCode = event.get_event_code()
-        if eventCode == win32.EXCEPTION_DEBUG_EVENT:
-            method = getattr(self, 'exception', self.event)
-            method = getattr(self, event.eventMethod, method)
-        else:
-            method = getattr(self, event.eventMethod, self.event)
         try:
-            if eventCode == win32.LOAD_DLL_DEBUG_EVENT:
+            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT:
                 self.__setApiHooksForDll(event)
         finally:
-            return method(event)
+            method = EventDispatcher.get_handler_method(self, event)
+            if method is not None:
+                return method(event)
+
+#==============================================================================
+
+# TODO
+#  * Make it more generic by adding a few more callbacks.
+#    That way it will be possible to make a thread sifter too.
+#  * This interface feels too much like an antipattern.
+#    When apiHooks is deprecated this will have to be reviewed.
+
+class EventSift(EventHandler):
+    """
+    Event handler that allows you to use customized event handlers for each
+    process you're attached to.
+
+    This makes coding the event handlers much easier, because each instance
+    will only "know" about one process. So you can code your event handler as
+    if only one process was being debugged, but your debugger can attach to
+    multiple processes.
+
+    Example::
+        from winappdbg import Debug, EventHandler, EventSift
+
+        # This class was written assuming only one process is attached.
+        # If you used it directly it would break when attaching to another
+        # process, or when a child process is spawned.
+        class MyEventHandler (EventHandler):
+
+            def create_process(self, event):
+                self.first = True
+                self.name = event.get_process().get_filename()
+                print "Attached to %s" % self.name
+
+            def breakpoint(self, event):
+                if self.first:
+                    self.first = False
+                    print "First breakpoint reached at %s" % self.name
+
+            def exit_process(self, event):
+                print "Detached from %s" % self.name
+
+        # Now when debugging we use the EventSift to be able to work with
+        # multiple processes while keeping our code simple. :)
+        if __name__ == "__main__":
+            handler = EventSift(MyEventHandler)
+            #handler = MyEventHandler()  # try uncommenting this line...
+            with Debug(handler) as debug:
+                debug.execl("calc.exe")
+                debug.execl("notepad.exe")
+                debug.execl("charmap.exe")
+                debug.loop()
+
+    Subclasses of C{EventSift} can prevent specific event types from
+    being forwarded by simply defining a method for it. That means your
+    subclass can handle some event types globally while letting other types
+    be handled on per-process basis. To forward events manually you can
+    call C{self.event(event)}.
+
+    Example::
+        class MySift (EventSift):
+
+            # Don't forward this event.
+            def debug_control_c(self, event):
+                pass
+
+            # Handle this event globally without forwarding it.
+            def output_string(self, event):
+                print "Debug string: %s" % event.get_debug_string()
+
+            # Handle this event globally and then forward it.
+            def create_process(self, event):
+                print "New process created, PID: %d" % event.get_pid()
+                return self.event(event)
+
+            # All other events will be forwarded.
+
+    Note that overriding the C{event} method would cause no events to be
+    forwarded at all. To prevent this, call the superclass implementation.
+
+    Example::
+        class MySift (EventSift):
+
+            def event(self, event):
+
+                # If the event matches some custom criteria...
+                if we_want_to_forward_this_event(event):
+
+                    # Forward it.
+                    return super(MySift, self).event(event)
+
+                # Otherwise, don't.
+
+        def we_want_to_forward_this_event(event):
+            "Use whatever logic you want here..."
+            # (...)
+
+
+    @type cls: class
+    @ivar cls:
+        Event handler class. There will be one instance of this class
+        per debugged process in the L{forward} dictionary.
+
+    @type argv: list
+    @ivar argv:
+        Positional arguments to pass to the constructor of L{cls}.
+
+    @type argd: list
+    @ivar argd:
+        Keyword arguments to pass to the constructor of L{cls}.
+
+    @type forward: dict
+    @ivar forward:
+        Dictionary that maps each debugged process ID to an instance of L{cls}.
+    """
+
+    def __init__(self, cls, *argv, **argd):
+        """
+        Maintains an instance of your event handler for each process being
+        debugged, and forwards the events of each process to each corresponding
+        instance.
+
+        @warn: If you subclass L{EventSift} and reimplement this method,
+            don't forget to call the superclass constructor!
+
+        @see: L{event}
+
+        @type  cls: class
+        @param cls: Event handler class. This must be the class itself, not an
+            instance! All additional arguments passed to the constructor of
+            the event forwarder will be passed on to the constructor of this
+            class as well.
+        """
+        self.cls     = cls
+        self.argv    = argv
+        self.argd    = argd
+        self.forward = dict()
+        super(EventSift, self).__init__()
+
+    # XXX HORRIBLE HACK
+    # This makes apiHooks work in the inner handlers.
+    # With any luck it will be removed when apiHooks is deprecated.
+    def __call__(self, event):
+        try:
+            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT and \
+                                        isinstance(handler, EventHandler):
+                handler = self.forward.get(pid, None)
+                if handler is None:
+                    handler = self.cls(*self.argv, **self.argd)
+                self.forward[event.get_pid()] = handler
+                handler.__EventHandler_setApiHooksForDll(event)
+        finally:
+            return super(EventSift, self).__call__(event)
 
     def event(self, event):
         """
-        Handler for events not handled by any other defined method.
+        Forwards events to the corresponding instance of your event handler
+        for this process.
 
-        @type  event: L{Event}
-        @param event: Event object.
+        If you subclass L{EventSift} and reimplement this method, no event
+        will be forwarded at all unless you call the superclass implementation.
+
+        If your filtering is based on the event type, there's a much easier way
+        to do it: just implement a handler for it.
         """
-        pass
+        eventCode = event.get_event_code()
+        pid = event.get_pid()
+        handler = self.forward.get(pid, None)
+        if handler is None:
+            handler = self.cls(*self.argv, **self.argd)
+            if eventCode != win32.EXIT_PROCESS_DEBUG_EVENT:
+                self.forward[pid] = handler
+        elif eventCode == win32.EXIT_PROCESS_DEBUG_EVENT:
+            del self.forward[pid]
+        return handler(event)
 
 #==============================================================================
 
@@ -1479,6 +1660,34 @@ class EventDispatcher (object):
             previous = None
         self.__eventHandler = eventHandler
         return previous
+
+    @staticmethod
+    def get_handler_method(eventHandler, event, fallback=None):
+        """
+        Retrieves the appropriate callback method from an L{EventHandler}
+        instance for the given L{Event} object.
+
+        @type  eventHandler: L{EventHandler}
+        @param eventHandler:
+            Event handler object whose methods we are examining.
+
+        @type  event: L{Event}
+        @param event: Debugging event to be handled.
+
+        @type  fallback: callable
+        @param fallback: (Optional) If no suitable method is found in the
+            L{EventHandler} instance, return this value.
+
+        @rtype:  callable
+        @return: Bound method that will handle the debugging event.
+            Returns C{None} if no such method is defined.
+        """
+        eventCode = event.get_event_code()
+        method = getattr(eventHandler, 'event', fallback)
+        if eventCode == win32.EXCEPTION_DEBUG_EVENT:
+            method = getattr(eventHandler, 'exception', method)
+        method = getattr(eventHandler, event.eventMethod, method)
+        return method
 
     def dispatch(self, event):
         """
