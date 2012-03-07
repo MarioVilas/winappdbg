@@ -164,14 +164,12 @@ class Regenerator(object):
             raise
 
 class StaticClass (object):
-    @classmethod
     def __new__(cls, *argv, **argd):
         "Don't try to instance this class, just use the static methods."
         raise NotImplementedError(
                 "Cannot instance static class %s" % cls.__name__)
 
 class DeprecatedClass (object):
-    @classmethod
     def __new__(cls, *argv, **argd):
         "Don't use this class!"
         raise NotImplementedError(
