@@ -16,7 +16,7 @@ echo To Install on every available Python version, run:
 echo     %0 all
 echo.
 echo Python interpreters detected in this machine:
-for /f "delims=" %%P in (install.cfg) do cmd /c if exist "%%P" echo     %%P
+for /f "delims=#" %%P in (install.cfg) do cmd /c if exist "%%P" echo     %%P
 goto Exit
 
 :Default
@@ -24,7 +24,7 @@ python setup.py install
 goto Exit
 
 :All
-for /f "delims=" %%P in (install.cfg) do cmd /c if exist "%%P" "%%P" setup.py install
+for /f "delims=#" %%P in (install.cfg) do cmd /c if exist "%%P" "%%P" setup.py install
 goto Exit
 
 :Exit
