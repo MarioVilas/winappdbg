@@ -136,7 +136,6 @@ goto Next
 %PYTHON_x64% setup.py bdist_wininst %BDIST_UAC%
 
 :: Build the Windows MSI installer packages for 32 bits
-%PYTHON_x86% setup.py bdist_msi --target-version=2.4
 %PYTHON_x86% setup.py bdist_msi --target-version=2.5
 %PYTHON_x86% setup.py bdist_msi --target-version=2.6
 %PYTHON_x86% setup.py bdist_msi --target-version=2.7

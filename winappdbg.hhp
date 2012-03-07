@@ -1,7 +1,7 @@
 [OPTIONS]
 Binary TOC=Yes
 Compatibility=1.1 or later
-Compiled file=html\winappdbg-1.4.chm
+Compiled file=html\winappdbg-1.5.chm
 Default Window=WinAppDbg Reference
 Default topic=html\index.html
 Display compile notes=No

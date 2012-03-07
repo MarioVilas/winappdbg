@@ -59,7 +59,7 @@ scripts = glob.glob(os.path.join(here, 'tools', '*.py'))
 params = {
 
     # Setup instructions
-    'requires'          : ['ctypes', 'distorm3', 'sqlite3', 'pyodbc'],
+    'requires'          : ['ctypes', 'distorm3', 'sqlalchemy'],
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
@@ -72,7 +72,7 @@ params = {
     'author'            : 'Mario Vilas',
     'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
     'url'               : 'http://winappdbg.sourceforge.net/',
-    'download_url'      : 'http://sourceforge.net/projects/winappdbg/',
+    'download_url'      : 'http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/',
     'platforms'         : ['win32', 'win64'],
     'classifiers'       : [
                         'License :: OSI Approved :: BSD License',
@@ -81,7 +81,6 @@ params = {
                         'Intended Audience :: Developers',
                         'Natural Language :: English',
                         'Operating System :: Microsoft :: Windows',
-                        'Programming Language :: Python :: 2.4',
                         'Programming Language :: Python :: 2.5',
                         'Programming Language :: Python :: 2.6',
                         'Programming Language :: Python :: 2.7',
