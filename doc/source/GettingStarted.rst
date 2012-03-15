@@ -114,7 +114,9 @@ The following tables show which Python interpreters, operating systems and proce
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
     | PyPy 1.4 and earlier     |    *untested*     | It doesn't seem to be available for download any more...                                                        |
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
-    | PyPy 1.5 and newer       |  *experimental*   | Some compatibility issues need fixing.                                                                          |
+    | PyPy 1.5 and 1.6         |    *untested*     | The sqlite3 dll is missing, after you fix that it should be the same as newer versions.                         |
+    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
+    | PyPy 1.7 and newer       |  *experimental*   | Some compatibility issues need fixing.                                                                          |
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
     | IronPython 2.0 and newer |  *experimental*   | Some compatibility issues need fixing.                                                                          |
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------|
