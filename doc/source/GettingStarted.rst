@@ -45,7 +45,7 @@ Simply run the **Windows installer** package and follow the wizard.
 
 If you prefer to install directly from the **sources** package, extract it to any temporary folder and run the following command ::
 
-    setup.py install
+    install
 
 You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
 
@@ -156,6 +156,17 @@ The following tables show which Python interpreters, operating systems and proce
     +----------------------------------------+------------+--------------------------------------------------------------------+
     | Intel IA64 (Itanium)                   | *untested* | No actual Itanium system to test it on, help is needed!            |
     +----------------------------------------+------------+--------------------------------------------------------------------+
+
+Known issues
+------------
+
+* Python strings default encoding is 'ascii' since Python 2.5. While I did my best to prevent encoding errors when manipulting binary data, I recommend setting the default to 'latin-1' (ISO 8859-1) instead. You can do this by adding a `sitecustomize.py <http://docs.python.org/faq/programming.html?highlight=sitecustomize#what-does-unicodeerror-ascii-decoding-encoding-error-ordinal-not-in-range-128-mean>`_ script to your Python installation.
+
+* Debugging 32 bit processes from a 64 bit Python VM does not work very well. Debugging 64 bit processes from a 32 bit Python VM does not work at all. This is in part because the Win32 API makes it difficult, but there's also a design problem in WinAppDbg: most of the C struct definitions change from 32 to 64 bits and there's currently no support for having both definitions at the same time.
+
+* Step-on-branch mode stopped working since Windows Vista. This is due to a change in the Windows kernel. The next version of WinAppDbg will support this.
+
+* Setting hardware breakpoints in the main thread before the process has finished initializing does not work. This is not supported by the Windows itself, and is not a limitation of WinAppDbg. Future versions of WinAppDbg will try to detect this error and warn about it.
 
 License
 -------
