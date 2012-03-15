@@ -50,7 +50,7 @@ from sqlalchemy.interfaces import PoolListener
 from sqlalchemy.orm import sessionmaker, relationship, backref, deferred
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.schema import Index
-from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, Binary, \
+from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, \
                              LargeBinary, Enum, PickleType, TEXT, VARCHAR
 
 from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
@@ -348,7 +348,7 @@ class CrashDTO (BaseDTO):
     timestamp = Column(DateTime, nullable=False, index=True)
 
     # Heuristic signature.
-    signature = Column(Binary, nullable=False)
+    signature = Column(LargeBinary, nullable=False)
 
     # Pickled Crash object, minus the memory dump.
     data = deferred(Column(LargeBinary, nullable=False))
