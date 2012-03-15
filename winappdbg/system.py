@@ -2765,7 +2765,6 @@ class Window (object):
         """
         @rtype:  L{Process}
         @return: Parent Process object.
-            Returns C{None} if unknown.
         """
         if self.__process is not None:
             return self.__process
@@ -2777,7 +2776,7 @@ class Window (object):
         Manually set the parent process. Use with care!
 
         @type  process: L{Process}
-        @param process: (Optional) Process object. Use C{None} for no process.
+        @param process: (Optional) Process object. Use C{None} to autodetect.
         """
         if process is None:
             self.__process = None
@@ -2793,7 +2792,6 @@ class Window (object):
         """
         @rtype:  L{Thread}
         @return: Parent Thread object.
-            Returns C{None} if unknown.
         """
         if self.__thread is not None:
             return self.__thread
@@ -2805,7 +2803,7 @@ class Window (object):
         Manually set the thread process. Use with care!
 
         @type  thread: L{Thread}
-        @param thread: (Optional) Thread object. Use C{None} for no thread.
+        @param thread: (Optional) Thread object. Use C{None} to autodetect.
         """
         if thread is None:
             self.__thread = None
@@ -2838,6 +2836,22 @@ class Window (object):
         @raise WindowsError: An error occured while processing this request.
         """
         return win32.GetClassName( self.get_handle() )
+
+    def get_style(self):
+        """
+        @rtype:  int
+        @return: Window style mask.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return win32.GetWindowLong( self.get_handle(), win32.GWL_STYLE )
+
+    def get_extended_style(self):
+        """
+        @rtype:  int
+        @return: Window extended style mask.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return win32.GetWindowLong( self.get_handle(), win32.GWL_EXSTYLE )
 
     def get_text(self):
         """
@@ -2914,6 +2928,8 @@ class Window (object):
     process = property(get_process, set_process, doc="")
     thread = property(get_thread, set_thread, doc="")
     classname = property(get_classname, doc="")
+    style = property(get_style, doc="")
+    exstyle = property(get_extended_style, doc="")
     text = property(get_text, set_text, doc="")
     placement = property(get_placement, set_placement, doc="")
 
@@ -3973,7 +3989,7 @@ class Thread (object):
     @group Properties:
         get_tid, get_pid, get_process, set_process, get_exit_code, is_alive,
         get_name, set_name, get_windows, get_teb, get_teb_address, is_wow64,
-        get_handle, open_handle, close_handle
+        get_arch, get_os, get_handle, open_handle, close_handle
 
     @group Instrumentation:
         suspend, resume, kill, wait
@@ -4767,6 +4783,30 @@ class Thread (object):
             self.__wow64 = wow64
         return wow64
 
+    def get_arch(self):
+        """
+        @rtype:  str
+        @return: The architecture in which this thread believes to be running.
+            For example, if running a 32 bit binary in a 64 bit machine, the
+            architecture returned by this method will be L{win32.ARCH_I386},
+            but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
+        """
+        if System.bits == 32 and not System.wow64:
+            return System.arch
+        return self.get_process().get_arch()
+
+    def get_bits(self):
+        """
+        @rtype:  str
+        @return: The number of bits in which this thread believes to be
+            running. For example, if running a 32 bit binary in a 64 bit
+            machine, the number of bits returned by this method will be C{32},
+            but the value of L{System.arch} will be C{64}.
+        """
+        if System.bits == 32 and not System.wow64:
+            return 32
+        return self.get_process().get_bits()
+
     def is_hidden(self):
         """
         Determines if the thread has been hidden from debuggers.
@@ -5453,8 +5493,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     @group Properties:
         get_pid, get_filename, get_exit_code,
-        is_alive, is_debugged,
-        is_wow64, get_dep_policy, get_peb, get_peb_address,
+        is_alive, is_debugged, is_wow64, get_arch, get_bits,
+        get_dep_policy, get_peb, get_peb_address,
         get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
@@ -6073,6 +6113,40 @@ class Process (_ThreadContainer, _ModuleContainer):
                     wow64 = False
             self.__wow64 = wow64
         return wow64
+
+    def get_arch(self):
+        """
+        @rtype:  str
+        @return: The architecture in which this process believes to be running.
+            For example, if running a 32 bit binary in a 64 bit machine, the
+            architecture returned by this method will be L{win32.ARCH_I386},
+            but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
+        """
+        if System.bits == 32 and not System.wow64:
+            return System.arch
+        if not self.is_wow64():
+            return System.arch
+        if System.arch == win32.ARCH_AMD64:
+            return win32.ARCH_I386
+        raise NotImplementedError()
+
+    def get_bits(self):
+        """
+        @rtype:  str
+        @return: The number of bits in which this process believes to be
+            running. For example, if running a 32 bit binary in a 64 bit
+            machine, the number of bits returned by this method will be C{32},
+            but the value of L{System.arch} will be C{64}.
+        """
+        if System.bits == 32 and not System.wow64:
+            return 32
+        if self.is_wow64():
+            return 32
+        if System.wow64:
+            return 64
+        return System.bits
+
+    # TODO: get_os, to test compatibility run
 
     def get_dep_policy(self):
         """
@@ -8022,7 +8096,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # Old method, using shellcode.
         if procname:
-            if System.arch != win32.ARCH_I386:
+            if self.get_arch() != win32.ARCH_I386:
                 raise NotImplementedError()
             dllname = str(dllname)
 
@@ -8048,7 +8122,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                     " in the remote process")
 
             # Shellcode follows...
-            code  = ''.encode('utf8')
+            code  = ''.encode('latin1')
 
             # push dllname
             code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'

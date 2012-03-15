@@ -421,12 +421,8 @@ class Crash (object):
 
         # Determine the architecture.
         self.os                 = System.os
-        if process.is_wow64():
-            self.arch           = win32.ARCH_I386
-            self.bits           = 32
-        else:
-            self.arch           = System.arch
-            self.bits           = System.bits
+        self.arch               = process.get_arch()
+        self.bits               = process.get_bits()
 
         # The following properties are always retrieved for all events.
         self.eventCode          = event.get_event_code()
