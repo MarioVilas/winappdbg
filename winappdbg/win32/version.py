@@ -596,9 +596,6 @@ def _get_bits():
     """
     return sizeof(SIZE_T) * 8
 
-# Current integer size in bits. See L{_get_bits} for more details.
-bits = _get_bits()
-
 def _get_arch():
     """
     Determines the current processor architecture.
@@ -624,9 +621,6 @@ def _get_arch():
         return ARCH_IA64
     return ARCH_UNKNOWN
 
-# Current processor architecture. See L{_get_arch} for more details.
-arch = _get_arch()
-
 def _get_wow64():
     """
     Determines if the current process is running in Windows-On-Windows 64 bits.
@@ -646,9 +640,6 @@ def _get_wow64():
         except Exception:
             wow64 = False
     return wow64
-
-# Set to C{True} if the current process is running in WOW64. See L{_get_wow64} for more details.
-wow64 = _get_wow64()
 
 def _get_os():
     """
@@ -714,11 +705,7 @@ def _get_os():
                     if bits == 64 or wow64:
                         return 'Windows 2003 (64 bits)'
                     return 'Windows 2003'
-                try:
-                    si = GetNativeSystemInfo()
-                except Exception:
-                    si = GetSystemInfo()
-                if osvi.wProductType == VER_NT_WORKSTATION and si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
+                if osvi.wProductType == VER_NT_WORKSTATION and arch == ARCH_AMD64:
                     return 'Windows XP (64 bits)'
                 else:
                     if bits == 64 or wow64:
@@ -731,6 +718,17 @@ def _get_os():
         if osvi.dwMajorVersion == 4:
             return 'Windows NT'
     return 'Unknown'
+
+# The order of the following definitions DOES matter!
+
+# Current integer size in bits. See L{_get_bits} for more details.
+bits = _get_bits()
+
+# Current processor architecture. See L{_get_arch} for more details.
+arch = _get_arch()
+
+# Set to C{True} if the current process is running in WOW64. See L{_get_wow64} for more details.
+wow64 = _get_wow64()
 
 # Current operating system. See L{_get_os} for more details.
 os = _get_os()

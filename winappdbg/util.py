@@ -43,10 +43,6 @@ Miscellaneous utility classes and functions.
     WriteableAddressIterator,
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
-    Regenerator,
-    StaticClass,
-    DeprecatedClass,
-    kill_python_thread
 """
 
 __revision__ = "$Id$"
@@ -70,13 +66,6 @@ __all__ = [
     # Debug registers manipulation
     'DebugRegister',
 
-    # Miscellaneous
-    'Regenerator',
-    'BannerHelpFormatter',
-    'StaticClass',
-    'DeprecatedClass',
-    'kill_python_thread',
-
     ]
 
 import os
@@ -87,34 +76,21 @@ import win32
 
 #==============================================================================
 
-def kill_python_thread(tid):
+class classproperty(property):
     """
-    Kills a Python thread given it's thread ID
-    by injecting a C{KeyboardInterrupt} exception.
+    Class property method.
 
-    @warn:
-        This function MUST ONLY be used in Python threads belonging to the same
-        process as the caller. It cannot be used on threads belonging to other
-        processes, nor on native threads created by the C{CreateThread} API.
+    Only works for getting properties, if you set them
+    the symbol gets overwritten in the class namespace.
 
-    @see:
-        U{http://stackoverflow.com/questions/323972}
-
-    @type  tid: int
-    @param tid:
-        The thread ID is either the {ident} property in a C{threading.Thread}
-        object, or the return value of the C{thread.start_new_thread} function.
-
-    @raise ValueError: The thread ID is invalid.
-    @raise SystemError: The call has failed for another reason.
+    Inspired on: U{http://stackoverflow.com/a/7864317/426293}
     """
-    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid,
-                                        ctypes.py_object(KeyboardInterrupt))
-    if res == 0:
-        raise ValueError("Invalid thread ID: %r" % tid)
-    if res != 1:
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, 0)
-        raise SystemError("PyThreadState_SetAsyncExc failed, reason: %d" % res)
+    def __init__(self, fget=None, fset=None, fdel=None, doc=""):
+        if fset is not None or fdel is not None:
+            raise NotImplementedError()
+        super(classproperty, self).__init__(fget=classmethod(fget), doc=doc)
+    def __get__(self, cls, owner):
+        return self.fget.__get__(None, owner)()
 
 class BannerHelpFormatter(optparse.IndentedHelpFormatter):
     "Just a small tweak to optparse to be able to print a banner."
@@ -345,15 +321,20 @@ class MemoryAddresses (StaticClass):
         automatically updated on runtime when importing the module.
     """
 
-    # Try to get the pageSize value on runtime,
-    # ignoring exceptions on failure.
-    try:
+    @classproperty
+    def pageSize(cls):
+        """
+        Try to get the pageSize value on runtime.
+        """
         try:
-            pageSize = win32.GetSystemInfo().dwPageSize
-        except WindowsError:
+            try:
+                pageSize = win32.GetSystemInfo().dwPageSize
+            except WindowsError:
+                pageSize = 0x1000
+        except NameError:
             pageSize = 0x1000
-    except NameError:
-        pageSize = 0x1000
+        cls.pageSize = pageSize     # now this function won't be called again
+        return pageSize
 
     @classmethod
     def align_address_to_page_start(cls, address):

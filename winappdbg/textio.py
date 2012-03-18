@@ -58,7 +58,6 @@ __all__ =   [
             ]
 
 import win32
-from win32.version import arch, os, bits
 from util import StaticClass
 
 import time
@@ -1092,25 +1091,40 @@ class CrashDump (StaticClass):
         return result
 
     @staticmethod
-    def dump_stack_peek(data, separator = ' ', width = 16):
+    def dump_stack_peek(data, separator = ' ', width = 16, arch = None):
         """
         Dump data from pointers guessed within the given stack dump.
 
         @type  data: str
         @param data: Dictionary mapping stack offsets to the data they point to.
 
+        @type  separator: str
+        @param separator:
+            Separator between the hexadecimal representation of each character.
+
+        @type  width: int
+        @param width:
+            (Optional) Maximum number of characters to convert per text line.
+            This value is also used for padding.
+
+        @type  arch: str
+        @param arch: Architecture of the machine whose registers were dumped.
+            Defaults to the current architecture.
+
         @rtype:  str
         @return: Text suitable for logging.
         """
         if data is None:
             return ''
+        if arch is None:
+            arch = win32.arch
         pointers = data.keys()
         pointers.sort()
         result = ''
         if pointers:
-            if win32.CONTEXT.arch == win32.ARCH_I386:
+            if arch == win32.ARCH_I386:
                 spreg = 'esp'
-            elif win32.CONTEXT.arch == win32.ARCH_AMD64:
+            elif arch == win32.ARCH_AMD64:
                 spreg = 'rsp'
             else:
                 spreg = 'STACK' # just a generic tag
@@ -1511,6 +1525,8 @@ class Logger(object):
         @type  text: str
         @param text: Text to print.
         """
+        if isinstance(text, unicode):
+            text = text.encode('utf-8')
         if self.verbose:
             print text
         if self.logfile:

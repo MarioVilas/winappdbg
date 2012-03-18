@@ -1155,11 +1155,11 @@ class Hook (object):
         """
         aThread = event.get_thread()
         ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
-        if win32.CONTEXT.arch == win32.ARCH_I386:
+        if ctx.arch == win32.ARCH_I386:
             retval = ctx['Eax']
-        elif win32.CONTEXT.arch == win32.ARCH_AMD64:
+        elif ctx.arch == win32.ARCH_AMD64:
             retval = ctx['Rax']
-##        elif win32.CONTEXT.arch == win32.ARCH_IA64:
+##        elif ctx.arch == win32.ARCH_IA64:
 ##            retval = ctx['IntV0']   # r8
         else:
             retval = None

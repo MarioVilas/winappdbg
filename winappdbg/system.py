@@ -57,9 +57,10 @@ __all__ =   [
 
 import win32
 import win32.version
-from textio import HexInput, HexDump
-from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister
 from registry import Registry
+from textio import HexInput, HexDump
+from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister, \
+                 classproperty
 
 import re
 import os
@@ -4490,7 +4491,10 @@ class Thread (object):
 
 #------------------------------------------------------------------------------
 
-    if win32.CONTEXT.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+    # TODO: a metaclass would do a better job instead of checking the platform
+    #       during module import, also would support mixing 32 and 64 bits
+
+    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
         def get_pc(self):
             """
@@ -4549,7 +4553,7 @@ class Thread (object):
             context.fp = fp
             self.set_context(context)
 
-    elif win32.CONTEXT.arch == win32.ARCH_IA64:
+    elif win32.arch == win32.ARCH_IA64:
 
         def get_gp(self):
             """
@@ -4610,7 +4614,7 @@ class Thread (object):
 
 #------------------------------------------------------------------------------
 
-    if win32.CONTEXT.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
         class Flags (object):
             'Commonly used processor flags'
@@ -8337,7 +8341,11 @@ class System (_ProcessContainer):
     os    = win32.os
     wow64 = win32.wow64
 
-    pageSize = MemoryAddresses.pageSize
+    @classproperty
+    def pageSize(cls):
+        pageSize = MemoryAddresses.pageSize
+        cls.pageSize = pageSize
+        return pageSize
 
     registry = Registry()
 
