@@ -163,9 +163,6 @@ __all__ =   [
                 'WriteableAddressIterator',
                 'ExecutableAndWriteableAddressIterator',
                 'DebugRegister',
-##                'Regenerator',
-##                'BannerHelpFormatter',
-##                'kill_python_thread',
 
                 # import win32
                 'win32',
@@ -198,4 +195,5 @@ except ImportError:
     pass
 
 # Library version
-version = "Version 1.5"
+version_number = 1.5
+version = "Version %s" % version_number
