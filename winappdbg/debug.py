@@ -769,11 +769,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         is raised. Multiple calls are allowed.
 
         This is a trivial example script::
-
             import sys
             debug = Debug()
-            debug.execv( sys.argv [ 1 : ] )
             try:
+                debug.execv( sys.argv [ 1 : ] )
                 debug.loop()
             finally:
                 debug.stop()
