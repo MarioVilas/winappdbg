@@ -361,14 +361,14 @@ class ConsoleDebugger (Cmd, EventHandler):
     # XXX TODO
     # Support non-integer registers here.
     def is_register(self, token):
-        if win32.CONTEXT.arch == 'i386':
+        if win32.arch == 'i386':
             if token in self.register_aliases_full_32:
                 return True
             token = token.title()
             for (name, typ) in win32.CONTEXT._fields_:
                 if name == token:
                     return win32.sizeof(typ) == win32.sizeof(win32.DWORD)
-        elif win32.CONTEXT.arch == 'amd64':
+        elif win32.arch == 'amd64':
             if token in self.register_aliases_full_64:
                 return True
             token = token.title()
@@ -393,7 +393,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if ctx.has_key( token.title() ):
             return ctx.get( token.title() )     # eax -> Eax
 
-        if win32.CONTEXT.arch == 'i386':
+        if ctx.arch == 'i386':
 
             if token in self.segment_names:
                 return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
@@ -407,7 +407,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if token in self.register_alias_32_to_8_high.keys():
                 return (ctx.get( self.register_alias_32_to_8_high[token] ) & 0xFF00) >> 8
 
-        elif win32.CONTEXT.arch == 'amd64':
+        elif ctx.arch == 'amd64':
 
             if token in self.segment_names:
                 return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
