@@ -70,7 +70,7 @@ If you're still using Python 2.4 or Python 2.5 64-bit, you'll need to install `c
 
 The following packages provide extra features and performance improvements, they are very recommended but not mandatory:
 
-* The `diStorm <http://code.google.com/p/distorm/>`_ package is needed to disassemble code. You can download the `official <http://code.google.com/p/distorm/downloads/detail?name=distorm.zip&can=2&q=>`_ Python wrappers (32 bits only, manual install) or our own `installers <http://winappdbg.sourceforge.net/distorm3/>`_. Bear in mind that the official build is more likely to stay up to date.
+* The `diStorm <http://code.google.com/p/distorm/downloads/list/>`_ package is needed to disassemble code.
 
 * The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives the crash logger tool the ability to connect to almost any SQL database.
 
