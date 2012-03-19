@@ -196,6 +196,10 @@ class Debug (EventDispatcher, BreakpointContainer):
         """
         return self.get_debugee_count()
 
+    # TODO: maybe custom __bool__ to break out of loop() ?
+    # it already does work (because of __len__) but it'd be
+    # useful to do it from the event handler anyway
+
 #------------------------------------------------------------------------------
 
     def attach(self, dwProcessId):
@@ -790,7 +794,7 @@ class Debug (EventDispatcher, BreakpointContainer):
             continued before returning. This may happen, for example, if the
             event handler raises an exception nobody catches.
         """
-        while self.get_debugee_count() > 0:
+        while self:
             self.next()
 
     def get_debugee_count(self):
