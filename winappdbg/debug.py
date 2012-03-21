@@ -29,7 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging module.
+Debugging.
 
 @group Debugging:
     Debug
@@ -37,18 +37,19 @@ Debugging module.
 
 __revision__ = "$Id$"
 
-__all__ = [ 'Debug' ]
+__all__ = [ 'Debug', 'MixedBitsWarning' ]
 
 import win32
-from system import System, Process, Thread, Module
-from breakpoint import BreakpointContainer, CodeBreakpoint
+from system import System
+from process import Process
+from thread import Thread
+from module import Module
+from breakpoint import _BreakpointContainer, CodeBreakpoint
 from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
 from interactive import ConsoleDebugger
 
-import sys
-import ctypes
 import warnings
-import traceback
+##import traceback
 
 #==============================================================================
 
@@ -76,7 +77,7 @@ class MixedBitsWarning (Warning):
 #   not such a great idea to use the snapshot to store data that really belongs
 #   to the Debug class.
 
-class Debug (EventDispatcher, BreakpointContainer):
+class Debug (EventDispatcher, _BreakpointContainer):
     """
     The main debugger class.
 

@@ -29,14 +29,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Breakpoints module.
+Breakpoints.
 
 @group Breakpoints:
     Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint,
     BufferWatch, Hook, ApiHook
-
-@group Capabilities (private):
-    BreakpointContainer
 """
 
 __revision__ = "$Id$"
@@ -56,15 +53,13 @@ __all__ = [
     'ApiHook',
     'BufferWatch',
 
-    # Breakpoint container capabilities
-    'BreakpointContainer',
-
     ]
 
-from system import Process, System, MemoryAddresses
-from util import DebugRegister
-from textio import HexDump
 import win32
+from system import System
+from process import Process
+from util import DebugRegister, MemoryAddresses
+from textio import HexDump
 
 #==============================================================================
 
@@ -1505,7 +1500,7 @@ class BufferWatch (object):
 
 #==============================================================================
 
-class BreakpointContainer (object):
+class _BreakpointContainer (object):
     """
     Encapsulates the capability to contain Breakpoint objects.
 

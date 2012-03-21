@@ -29,7 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Crash dump support module.
+Crash dump support.
 
 @group Crash reporting:
     Crash, CrashDictionary
@@ -58,10 +58,10 @@ __all__ = [
 
 ]
 
-from system import System, MemoryAddresses, PathOperations
-from textio import HexDump, CrashDump
-from util import StaticClass
 import win32
+from system import System
+from textio import HexDump, CrashDump
+from util import StaticClass, MemoryAddresses, PathOperations
 
 import os
 import time

@@ -90,6 +90,7 @@ __revision__ = "$Id$"
 __all__ =   [
                 # Library version
                 'version',
+                'version_number',
 
                 # from breakpoint import *
 ##                'Breakpoint',
@@ -114,12 +115,21 @@ __all__ =   [
 
                 # from debug import *
                 'Debug',
+                'MixedBitsWarning'
+
+                # from module import *
+                'Module',
+
+                # from thread import *
+                'Thread',
+
+                # from window import *
+                'Window',
+
+                # from process import *
+                'Process',
 
                 # from system import *
-                'Module',
-                'Thread',
-                'Window',
-                'Process',
                 'System',
 
                 # from registry import *
@@ -177,13 +187,17 @@ __all__ =   [
 # Import all public symbols
 from breakpoint import *
 from crash import *
-from interactive import *
 from debug import *
 from event import *
-from system import *
+from interactive import *
+from module import *
+from process import *
 from registry import *
 from textio import *
+from thread import *
 from util import *
+from system import *
+from window import *
 
 import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
@@ -192,7 +206,9 @@ try:
     from sql import *
     __all__.append('CrashDAO')
 except ImportError:
-    pass
+    import warnings
+    warnings.warn("No SQL database support present (missing dependencies?)",
+                  Warning)
 
 # Library version
 version_number = 1.5

@@ -46,7 +46,8 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 # TODO document this module with docstrings.
 
 import win32
-from system import System, PathOperations
+from system import System
+from util import PathOperations
 from event import EventHandler, NoEvent
 from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
 

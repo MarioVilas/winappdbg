@@ -88,12 +88,11 @@ __all__ = [
 import win32
 from win32 import FileHandle, ProcessHandle, ThreadHandle
 from breakpoint import ApiHook
-from system import Module, Thread, Process, PathOperations
+from module import Module
+from thread import Thread
+from process import Process
 from textio import HexDump
-from util import StaticClass
-
-import ctypes
-##import weakref
+from util import StaticClass, PathOperations
 
 #==============================================================================
 
@@ -139,7 +138,6 @@ class Event (object):
         @type  raw: L{DEBUG_EVENT}
         @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
         """
-##        self.__debug        = weakref.ref(debug)
         self.debug          = debug
         self.raw            = raw
         self.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED

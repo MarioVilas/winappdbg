@@ -29,7 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Registry access module.
+Registry access.
 
 @group Instrumentation:
     Registry, RegistryKey
