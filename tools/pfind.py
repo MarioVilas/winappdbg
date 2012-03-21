@@ -42,12 +42,6 @@ import os
 import sys
 import optparse
 
-try:
-    import psyco
-    from psyco.classes import *
-except ImportError:
-    pass
-
 #==============================================================================
 
 class Search (object):
@@ -433,8 +427,9 @@ def main(argv):
 
 if __name__ == '__main__':
     try:
+        import psyco
         psyco.cannotcompile(re.compile)
         psyco.bind(main)
-    except NameError:
+    except ImportError:
         pass
     main(sys.argv)
