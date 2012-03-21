@@ -208,7 +208,7 @@ try:
 except ImportError:
     import warnings
     warnings.warn("No SQL database support present (missing dependencies?)",
-                  Warning)
+                  ImportWarning)
 
 # Library version
 version_number = 1.5
