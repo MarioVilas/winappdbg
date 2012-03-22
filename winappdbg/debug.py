@@ -132,7 +132,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @raise WindowsError: Raises an exception on error.
         """
         EventDispatcher.__init__(self, eventHandler)
-        BreakpointContainer.__init__(self)
+        _BreakpointContainer.__init__(self)
 
         bHostileCode = flags.pop('bHostileCode', False)
 
@@ -1033,7 +1033,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         except KeyError:
             pass
 
-        bCallHandler = BreakpointContainer.notify_exit_process(self, event)
+        bCallHandler = _BreakpointContainer.notify_exit_process(self, event)
         bCallHandler = bCallHandler and self.system.notify_exit_process(event)
         return bCallHandler
 
@@ -1049,7 +1049,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler = BreakpointContainer.notify_exit_thread(self, event)
+        bCallHandler = _BreakpointContainer.notify_exit_thread(self, event)
         bCallHandler = bCallHandler and \
                                   event.get_process().notify_exit_thread(event)
         return bCallHandler
@@ -1066,7 +1066,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler = BreakpointContainer.notify_unload_dll(self, event)
+        bCallHandler = _BreakpointContainer.notify_unload_dll(self, event)
         bCallHandler = bCallHandler and \
                                 event.get_process().notify_unload_dll(event)
 
