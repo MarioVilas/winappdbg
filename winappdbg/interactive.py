@@ -284,6 +284,8 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Token is a command line to execute.
     def input_command_line(self, command_line):
         argv  = self.debug.system.cmdline_to_argv(command_line)
+        if not argv:
+            raise CmdError("missing command line to execute")
         fname = argv[0]
         if not os.path.exists(fname):
             try:
