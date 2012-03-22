@@ -46,13 +46,15 @@ __revision__ = "$Id$"
 __all__ = ['Process']
 
 import win32
-from textio import HexDump
+from textio import HexDump, HexInput
 from util import Regenerator, PathOperations, MemoryAddresses
 from module import Module, _ModuleContainer
 from thread import Thread, _ThreadContainer
 from window import Window
 
 import re
+import ctypes
+import struct
 
 try:
     from distorm3 import Decode, Decode16Bits, Decode32Bits, Decode64Bits
@@ -2225,7 +2227,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         prevAddr    = minAddr - 1
         currentAddr = minAddr
         memoryMap   = list()
-        while currentAddr < maxAddr and currentAddr > prevAddr:
+        while prevAddr < currentAddr < maxAddr:
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
