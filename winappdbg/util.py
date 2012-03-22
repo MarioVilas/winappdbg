@@ -370,19 +370,25 @@ class MemoryAddresses (StaticClass):
 
         @type  begin: int
         @param begin: Memory address of the beginning of the buffer.
+            Use C{None} for the first legal address in the address space.
 
         @type  end: int
         @param end: Memory address of the end of the buffer.
+            Use C{None} for the last legal address in the address space.
 
         @rtype:  tuple( int, int )
         @return: Aligned memory addresses.
         """
-        if end > begin:
+        if begin is None:
+            begin = 0
+        if end is None:
+            end = win32.LPVOID(-1).value  # XXX HACK
+        if end < begin:
             begin, end = end, begin
-        return (
-            cls.align_address_to_page_start(begin),
-            cls.align_address_to_page_end(end)
-            )
+        begin = cls.align_address_to_page_start(begin)
+        if end != cls.align_address_to_page_start(end):
+            end = cls.align_address_to_page_end(end)
+        return (begin, end)
 
     @classmethod
     def get_buffer_size_in_pages(cls, address, size):
