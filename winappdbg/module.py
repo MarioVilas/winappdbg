@@ -43,6 +43,9 @@ import win32
 from textio import HexInput, HexDump
 from util import PathOperations
 
+# delayed imports
+Process = None
+
 #==============================================================================
 
 class Module (object):

@@ -177,12 +177,12 @@ class Window (object):
         self.dwThreadId, self.dwProcessId = \
                             win32.GetWindowThreadProcessId(self.get_handle())
 
-    def __load_Process_class():
+    def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
             from process import Process
 
-    def __load_Thread_class():
+    def __load_Thread_class(self):
         global Thread       # delayed import
         if Thread is None:
             from thread import Thread

@@ -156,7 +156,7 @@ class Thread (object):
 ##        return isinstance(aThread, Thread)           and \
 ##               self.get_tid() == aThread.get_tid()
 
-    def __load_Process_class():
+    def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
             from process import Process
