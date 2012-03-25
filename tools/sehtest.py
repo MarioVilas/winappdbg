@@ -41,7 +41,8 @@ import optparse
 
 import winappdbg
 from winappdbg import win32
-from winappdbg import Debug, EventHandler, System, Process, MemoryAddresses
+from winappdbg import Debug, EventHandler, EventSift
+from winappdbg import System, Process, MemoryAddresses
 from winappdbg import DataAddressIterator, ExecutableAddressIterator
 from winappdbg import HexInput, HexDump, CrashDump, Logger
 
@@ -109,10 +110,6 @@ class Bruteforcer(EventHandler):
         self.debug   = event.debug
         self.pid     = event.get_pid()
         self.process = event.get_process()
-        self.create_thread(event)
-
-    def create_thread(self, event):
-        tid = event.get_tid()
 
     def exception(self, event):
         if event.is_first_chance():
@@ -349,32 +346,11 @@ class Bruteforcer(EventHandler):
 
 #------------------------------------------------------------------------------
 
-class EventForwarder(EventHandler):
-    def __init__(self, cls, options):
-        self.cls     = cls
-        self.options = options
-        self.forward = dict()
-        super(EventForwarder, self).__init__()
+class BruteforcerSift(EventSift):
 
     def event(self, event):
         logger.log_event(event)
-        pid = event.get_pid()
-        if self.forward.has_key(pid):
-            return self.forward[pid](event)
-
-    def create_process(self, event):
-        logger.log_event(event)
-        handler = self.cls(self.options)
-        self.forward[event.get_pid()] = handler
-        return handler(event)
-
-    def exit_process(self, event):
-        logger.log_event(event)
-        pid = event.get_pid()
-        if self.forward.has_key(pid):
-            retval = self.forward[pid](event)
-            del self.forward[pid]
-            return retval
+        return super(MySift, self).event(event)
 
     def breakpoint(self, event):
         event.continueStatus = win32.DBG_EXCEPTION_HANDLED
@@ -404,7 +380,7 @@ def main( argv ):
     options = parse_cmdline(argv)
 
     # Create the event handler object
-    eventHandler = EventForwarder(Bruteforcer, options)
+    eventHandler = BruteforcerSift(Bruteforcer, options)
 
     # Create the debug object
     debug = Debug(eventHandler)
