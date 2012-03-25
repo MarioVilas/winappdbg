@@ -80,7 +80,8 @@ class PDebug (ConsoleDebugger):
     # Clean up when closing the debugger.
     def finalize(self):
 ##        self.remove_control_c_handler()
-        self.destroy_debugger(self.options.autodetach)
+        if hasattr(self, "options"):
+            self.destroy_debugger(self.options.autodetach)
         self.save_history()
 
     # Instance a Debug object and start using it.
