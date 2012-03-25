@@ -61,7 +61,7 @@ class Thread (object):
     @group Properties:
         get_tid, get_pid, get_process, set_process, get_exit_code, is_alive,
         get_name, set_name, get_windows, get_teb, get_teb_address, is_wow64,
-        get_arch, get_os, get_handle, open_handle, close_handle
+        get_arch, get_handle, open_handle, close_handle
 
     @group Instrumentation:
         suspend, resume, kill, wait

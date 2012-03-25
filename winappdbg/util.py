@@ -43,6 +43,7 @@ Miscellaneous utility classes and functions.
     WriteableAddressIterator,
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
+    Regenerator
 """
 
 __revision__ = "$Id$"
@@ -66,6 +67,8 @@ __all__ = [
     # Debug registers manipulation
     'DebugRegister',
 
+    # Miscellaneous
+    'Regenerator',
     ]
 
 import os
