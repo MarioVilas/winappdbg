@@ -51,6 +51,7 @@ from util import Regenerator, PathOperations, MemoryAddresses
 from module import Module, _ModuleContainer
 from thread import Thread, _ThreadContainer
 from window import Window
+from search import Search, BytePattern, TextPattern, RegExpPattern, HexPattern
 
 import re
 import ctypes
@@ -1088,6 +1089,217 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: On error an exception is raised.
         """
         return self.parse_environment_data( self.get_environment_data() )
+
+#------------------------------------------------------------------------------
+
+    def search(self, pattern, minAddr = None, maxAddr = None):
+        """
+        Search for the given pattern within the process memory.
+
+        @type  pattern: str, unicode or L{Pattern}
+        @param pattern: Pattern to search for.
+            It may be a byte string, a Unicode string, or an instance of
+            L{Pattern}.
+
+            The following L{Pattern} subclasses are provided by WinAppDbg:
+             - L{BytePattern}
+             - L{TextPattern}
+             - L{RegExpPattern}
+             - L{HexPattern}
+
+            You can also write your own subclass of L{Pattern} for customized
+            searches.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Start the search at this memory address.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Stop the search at this memory address.
+
+        @rtype:  iterator of tuple( int, int, str )
+        @return: An iterator of tuples. Each tuple contains the following:
+             - The memory address where the pattern was found.
+             - The size of the data that matches the pattern.
+             - The data that matches the pattern.
+
+        @raise WindowsError: An error occurred when querying or reading the
+            process memory.
+        """
+        if isinstance(pattern, str):
+            return self.search_bytes(pattern, minAddr, maxAddr)
+        if isinstance(pattern, unicode):
+            return self.search_bytes(pattern.encode("utf-16le"),
+                                     minAddr, maxAddr)
+        if isinstance(pattern, Pattern):
+            return Search.search_process(self, pattern, minAddr, maxAddr)
+        raise TypeError("Unknown pattern type: %r" % type(pattern))
+
+    def search_bytes(self, bytes, minAddr = None, maxAddr = None):
+        """
+        Search for the given byte pattern within the process memory.
+
+        @type  bytes: str
+        @param bytes: Bytes to search for.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Start the search at this memory address.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Stop the search at this memory address.
+
+        @rtype:  iterator of int
+        @return: An iterator of memory addresses where the pattern was found.
+
+        @raise WindowsError: An error occurred when querying or reading the
+            process memory.
+        """
+        pattern = BytePattern(bytes)
+        matches = Search.search_process(self, pattern, minAddr, maxAddr)
+        for addr, size, data in matches:
+            yield addr
+
+    def search_text(self, text, encoding = "utf-16le",
+                                caseSensitive = False,
+                                minAddr = None,
+                                maxAddr = None):
+        """
+        Search for the given text within the process memory.
+
+        @type  text: str or unicode
+        @param text: Text to search for.
+
+        @type  encoding: str
+        @param encoding: (Optional) Encoding for the text parameter.
+            Only used when the text to search for is a Unicode string.
+            Don't change unless you know what you're doing!
+
+        @type  caseSensitive: bool
+        @param caseSensitive: C{True} of the search is case sensitive,
+            C{False} otherwise.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Start the search at this memory address.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Stop the search at this memory address.
+
+        @rtype:  iterator of tuple( int, str )
+        @return: An iterator of tuples. Each tuple contains the following:
+             - The memory address where the pattern was found.
+             - The text that matches the pattern.
+
+        @raise WindowsError: An error occurred when querying or reading the
+            process memory.
+        """
+        pattern = TextPattern(text, encoding, caseSensitive)
+        matches = Search.search_process(self, pattern, minAddr, maxAddr)
+        for addr, size, data in matches:
+            yield addr, data
+
+    def search_regexp(self, regexp, flags = 0,
+                                    minAddr = None,
+                                    maxAddr = None,
+                                    bufferPages = -1):
+        """
+        Search for the given regular expression within the process memory.
+
+        @type  regexp: str
+        @param regexp: Regular expression string.
+
+        @type  flags: int
+        @param flags: Regular expression flags.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Start the search at this memory address.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Stop the search at this memory address.
+
+        @type  bufferPages: int
+        @param bufferPages: (Optional) Number of memory pages to buffer when
+            performing the search. Valid values are:
+             - C{0} or C{None}:
+               Automatically determine the required buffer size. May not give
+               complete results for regular expressions that match variable
+               sized strings.
+             - C{> 0}: Set the buffer size, in memory pages.
+             - C{< 0}: Disable buffering entirely. This may give you a little
+               speed gain at the cost of an increased memory usage. If the
+               target process has very large contiguous memory regions it may
+               actually be slower or even fail. It's also the only way to
+               guarantee complete results for regular expressions that match
+               variable sized strings.
+
+        @rtype:  iterator of tuple( int, int, str )
+        @return: An iterator of tuples. Each tuple contains the following:
+             - The memory address where the pattern was found.
+             - The size of the data that matches the pattern.
+             - The data that matches the pattern.
+
+        @raise WindowsError: An error occurred when querying or reading the
+            process memory.
+        """
+        pattern = RegExpPattern(regexp, flags)
+        return Search.search_process(self, pattern,
+                                     minAddr, maxAddr,
+                                     bufferPages)
+
+    def search_hexa(self, hexa, minAddr = None, maxAddr = None):
+        """
+        Search for the given hexadecimal pattern within the process memory.
+
+        Hex patterns must be in this form::
+            "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
+
+        Spaces are optional. Capitalization of hex digits doesn't matter.
+        This is exactly equivalent to the previous example::
+            "68656C6C6F20776F726C64"            # "hello world"
+
+        Wildcards are allowed, in the form of a C{?} sign in any hex digit::
+            "5? 5? c3"          # pop register / pop register / ret
+            "b8 ?? ?? ?? ??"    # mov eax, immediate value
+
+        @type  hexa: str
+        @param hexa: Pattern to search for.
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Start the search at this memory address.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Stop the search at this memory address.
+
+        @rtype:  iterator of tuple( int, str )
+        @return: An iterator of tuples. Each tuple contains the following:
+             - The memory address where the pattern was found.
+             - The bytes that match the pattern.
+
+        @raise WindowsError: An error occurred when querying or reading the
+            process memory.
+        """
+        pattern = HexPattern(hexa)
+        matches = Search.search_process(self, pattern, minAddr, maxAddr)
+        for addr, size, data in matches:
+            yield addr, data
+
+    def strings(self, minSize = 4, maxSize = 1024):
+        """
+        Extract ASCII strings from the process memory.
+
+        @type  minSize: int
+        @param minSize: (Optional) Minimum size of the strings to search for.
+
+        @type  maxSize: int
+        @param maxSize: (Optional) Maximum size of the strings to search for.
+
+        @rtype:  iterator of tuple(int, int, str)
+        @return: Iterator of strings extracted from the process memory.
+            Each tuple contains the following:
+             - The memory address where the string was found.
+             - The size of the string.
+             - The string.
+        """
+        return Search.extract_ascii_strings(self, minSize = minSize,
+                                                  maxSize = maxSize)
 
 #------------------------------------------------------------------------------
 
@@ -2202,6 +2414,7 @@ class Process (_ThreadContainer, _ModuleContainer):
     def get_memory_map(self, minAddr = None, maxAddr = None):
         """
         Produces a memory map to the process address space.
+
         Optionally restrict the map to the given address range.
 
         @see: L{mquery}
@@ -2215,18 +2428,48 @@ class Process (_ThreadContainer, _ModuleContainer):
         @rtype:  list( L{win32.MemoryBasicInformation} )
         @return: List of memory region information objects.
         """
-        if minAddr is None:
-            minAddr = 0
-        if maxAddr is None:
-            maxAddr = win32.LPVOID(-1).value  # XXX HACK
-        if minAddr > maxAddr:
-            minAddr, maxAddr = maxAddr, minAddr
-        minAddr     = MemoryAddresses.align_address_to_page_start(minAddr)
-        if maxAddr != MemoryAddresses.align_address_to_page_start(maxAddr):
-            maxAddr = MemoryAddresses.align_address_to_page_end(maxAddr)
+        return list(self.iter_memory_map(minAddr, maxAddr))
+
+    def generate_memory_map(self, minAddr = None, maxAddr = None):
+        """
+        Returns a L{Regenerator} that can iterate indefinitely over the memory
+        map to the process address space.
+
+        Optionally restrict the map to the given address range.
+
+        @see: L{mquery}
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+
+        @rtype:  L{Regenerator} of L{win32.MemoryBasicInformation}
+        @return: List of memory region information objects.
+        """
+        return Regenerator(self.iter_memory_map, minAddr, maxAddr)
+
+    def iter_memory_map(self, minAddr = None, maxAddr = None):
+        """
+        Produces an iterator over the memory map to the process address space.
+
+        Optionally restrict the map to the given address range.
+
+        @see: L{mquery}
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+
+        @rtype:  iterator of L{win32.MemoryBasicInformation}
+        @return: List of memory region information objects.
+        """
+        minAddr, maxAddr = MemoryAddresses.align_address_range(minAddr,maxAddr)
         prevAddr    = minAddr - 1
         currentAddr = minAddr
-        memoryMap   = list()
         while prevAddr < currentAddr < maxAddr:
             try:
                 mbi = self.mquery(currentAddr)
@@ -2234,10 +2477,9 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
-            memoryMap.append(mbi)
+            yield mbi
             prevAddr    = currentAddr
             currentAddr = mbi.BaseAddress + mbi.RegionSize
-        return memoryMap
 
     def get_mapped_filenames(self, memoryMap = None):
         """
@@ -2257,12 +2499,8 @@ class Process (_ThreadContainer, _ModuleContainer):
             memoryMap = self.get_memory_map()
         mappedFilenames = dict()
         for mbi in memoryMap:
-
-            # this check is redundant, but it saves an API call
-            # just comment it out if it gives problems
             if mbi.Type not in (win32.MEM_IMAGE, win32.MEM_MAPPED):
                 continue
-
             baseAddress = mbi.BaseAddress
             fileName    = ""
             try:
@@ -2276,8 +2514,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     def generate_memory_snapshot(self, minAddr = None, maxAddr = None):
         """
-        Returns a generator that allows you to iterate through the memory
-        contents of a process.
+        Returns a L{Regenerator} that allows you to iterate through the memory
+        contents of a process indefinitely.
 
         It's basically the same as the L{take_memory_snapshot} method, but it
         takes the snapshot of each memory region as it goes, as opposed to
@@ -2311,17 +2549,56 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  maxAddr: int
         @param maxAddr: (Optional) Ending address in address range to query.
 
-        @rtype:  generator of L{win32.MemoryBasicInformation}
+        @rtype:  L{Regenerator} of L{win32.MemoryBasicInformation}
         @return: Generator that when iterated returns memory region information
             objects. Two extra properties are added to these objects:
              - C{filename}: Mapped filename, or C{None}.
              - C{content}: Memory contents, or C{None}.
         """
-        return Regenerator(self.__generate_memory_snapshot, minAddr, maxAddr)
+        return Regenerator(self.iter_memory_snapshot, minAddr, maxAddr)
 
-    def __generate_memory_snapshot(self, minAddr = None, maxAddr = None):
+    def iter_memory_snapshot(self, minAddr = None, maxAddr = None):
         """
-        Internally used by L{generate_memory_snapshot}.
+        Returns an iterator that allows you to go through the memory contents
+        of a process.
+
+        It's basically the same as the L{take_memory_snapshot} method, but it
+        takes the snapshot of each memory region as it goes, as opposed to
+        taking the whole snapshot at once. This allows you to work with very
+        large snapshots without a significant performance penalty.
+
+        Example::
+            # Print the memory contents of a process.
+            process.suspend()
+            try:
+                snapshot = process.generate_memory_snapshot()
+                for mbi in snapshot:
+                    print HexDump.hexblock(mbi.content, mbi.BaseAddress)
+            finally:
+                process.resume()
+
+        The downside of this is the process must remain suspended while
+        iterating the snapshot, otherwise strange things may happen.
+
+        The snapshot can only iterated once. To be able to iterate indefinitely
+        call the L{generate_memory_snapshot} method instead.
+
+        You can also iterate the memory of a dead process, just as long as the
+        last open handle to it hasn't been closed.
+
+        @see: L{take_memory_snapshot}
+
+        @type  minAddr: int
+        @param minAddr: (Optional) Starting address in address range to query.
+
+        @type  maxAddr: int
+        @param maxAddr: (Optional) Ending address in address range to query.
+
+        @rtype:  iterator of L{win32.MemoryBasicInformation}
+        @return: Iterator of memory region information objects.
+            Two extra properties are added to these objects:
+             - C{filename}: Mapped filename, or C{None}.
+             - C{content}: Memory contents, or C{None}.
         """
 
         # One may feel tempted to include calls to self.suspend() and
@@ -2376,8 +2653,18 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Takes a snapshot of the memory contents of the process.
 
-        It's best if the process is suspended when taking the snapshot.
-        Execution can be resumed afterwards.
+        It's best if the process is suspended (if alive) when taking the
+        snapshot. Execution can be resumed afterwards.
+
+        Example::
+            # Print the memory contents of a process.
+            process.suspend()
+            try:
+                snapshot = process.take_memory_snapshot()
+                for mbi in snapshot:
+                    print HexDump.hexblock(mbi.content, mbi.BaseAddress)
+            finally:
+                process.resume()
 
         You can also iterate the memory of a dead process, just as long as the
         last open handle to it hasn't been closed.
@@ -2400,7 +2687,7 @@ class Process (_ThreadContainer, _ModuleContainer):
              - C{filename}: Mapped filename, or C{None}.
              - C{content}: Memory contents, or C{None}.
         """
-        return list( self.generate_memory_snapshot(minAddr, maxAddr) )
+        return list( self.iter_memory_snapshot(minAddr, maxAddr) )
 
     def restore_memory_snapshot(self, snapshot, bSkipMappedFiles = True):
         """
@@ -2427,9 +2714,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise RuntimeError: An error occured while restoring the snapshot.
         @raise TypeError: A snapshot of the wrong type was passed.
         """
-        if not isinstance(snapshot, list):
+        if not snapshot or not isinstance(snapshot, list) \
+                or not isinstance(snapshot[0], win32.MemoryBasicInformation):
             raise TypeError( "Only snapshots returned by " \
-                             "take_memory_snapshots() can be used here." )
+                             "take_memory_snapshot() can be used here." )
 
         # Get the process handle.
         hProcess = self.get_handle( win32.PROCESS_VM_WRITE          |
@@ -2446,7 +2734,8 @@ class Process (_ThreadContainer, _ModuleContainer):
 
                 # If the region matches, restore it directly.
                 new_mbi = self.mquery(old_mbi.BaseAddress)
-                if new_mbi.BaseAddress == old_mbi.BaseAddress and new_mbi.RegionSize == old_mbi.RegionSize:
+                if new_mbi.BaseAddress == old_mbi.BaseAddress and \
+                                    new_mbi.RegionSize == old_mbi.RegionSize:
                     self.__restore_mbi(hProcess, new_mbi, old_mbi)
 
                 # If the region doesn't match, restore it page by page.
@@ -2489,7 +2778,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         Used internally by L{restore_memory_snapshot}.
         """
 
-##        print "Restoring %s-%s" % (HexDump.address(old_mbi.BaseAddress), HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize))
+##        print "Restoring %s-%s" % (HexDump.address(old_mbi.BaseAddress), \
+##                   HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize))
 
         # Restore the region state.
         if new_mbi.State != old_mbi.State:
@@ -2497,52 +2787,77 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if old_mbi.is_reserved():
 
                     # Free -> Reserved
-                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE, old_mbi.Protect)
+                    address = win32.VirtualAllocEx(hProcess,
+                                                   old_mbi.BaseAddress,
+                                                   old_mbi.RegionSize,
+                                                   win32.MEM_RESERVE,
+                                                   old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError(msg)
-                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+                    # permissions already restored
+                    new_mbi.Protect = old_mbi.Protect
 
                 else:   # elif old_mbi.is_commited():
 
                     # Free -> Commited
-                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RESERVE | win32.MEM_COMMIT, old_mbi.Protect)
+                    address = win32.VirtualAllocEx(hProcess,
+                                                   old_mbi.BaseAddress,
+                                                   old_mbi.RegionSize,
+                                                   win32.MEM_RESERVE | \
+                                                   win32.MEM_COMMIT,
+                                                   old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError(msg)
-                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+                    # permissions already restored
+                    new_mbi.Protect = old_mbi.Protect
 
             elif new_mbi.is_reserved():
                 if old_mbi.is_commited():
 
                     # Reserved -> Commited
-                    address = win32.VirtualAllocEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_COMMIT, old_mbi.Protect)
+                    address = win32.VirtualAllocEx(hProcess,
+                                                   old_mbi.BaseAddress,
+                                                   old_mbi.RegionSize,
+                                                   win32.MEM_COMMIT,
+                                                   old_mbi.Protect)
                     if address != old_mbi.BaseAddress:
                         self.free(address)
                         msg = "Error restoring region at address %s"
                         msg = msg % HexDump(old_mbi.BaseAddress)
                         raise RuntimeError(msg)
-                    new_mbi.Protect = old_mbi.Protect   # permissions already restored
+                    # permissions already restored
+                    new_mbi.Protect = old_mbi.Protect
 
                 else:   # elif old_mbi.is_free():
 
                     # Reserved -> Free
-                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_RELEASE)
+                    win32.VirtualFreeEx(hProcess,
+                                        old_mbi.BaseAddress,
+                                        old_mbi.RegionSize,
+                                        win32.MEM_RELEASE)
 
             else:   # elif new_mbi.is_commited():
                 if old_mbi.is_reserved():
 
                     # Commited -> Reserved
-                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT)
+                    win32.VirtualFreeEx(hProcess,
+                                        old_mbi.BaseAddress,
+                                        old_mbi.RegionSize,
+                                        win32.MEM_DECOMMIT)
 
                 else:   # elif old_mbi.is_free():
 
                     # Commited -> Free
-                    win32.VirtualFreeEx(hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, win32.MEM_DECOMMIT | win32.MEM_RELEASE)
+                    win32.VirtualFreeEx(hProcess,
+                                        old_mbi.BaseAddress,
+                                        old_mbi.RegionSize,
+                                        win32.MEM_DECOMMIT | win32.MEM_RELEASE)
 
         new_mbi.State = old_mbi.State
 
