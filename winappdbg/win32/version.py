@@ -396,6 +396,13 @@ def GetSystemMetrics(nIndex):
     _GetSystemMetrics.restype  = ctypes.c_int
     return _GetSystemMetrics(nIndex)
 
+# SIZE_T WINAPI GetLargePageMinimum(void);
+def GetLargePageMinimum():
+    _GetLargePageMinimum = windll.user32.GetLargePageMinimum
+    _GetLargePageMinimum.argtypes = []
+    _GetLargePageMinimum.restype  = SIZE_T
+    return _GetLargePageMinimum()
+
 # HANDLE WINAPI GetCurrentProcess(void);
 def GetCurrentProcess():
 ##    return 0xFFFFFFFFFFFFFFFFL
