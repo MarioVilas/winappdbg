@@ -56,8 +56,13 @@ from textio import HexInput
 from util import StaticClass, MemoryAddresses
 import win32
 
-import re
 import warnings
+
+try:
+    # http://pypi.python.org/pypi/regex
+    import regex as re
+except ImportError:
+    import re
 
 #==============================================================================
 
