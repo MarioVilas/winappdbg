@@ -982,11 +982,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
 
+        # Pass the event to the breakpoint container.
+        bCallHandler = _BreakpointContainer.notify_load_dll(self, event)
+
         # Get the process where the DLL was loaded.
         aProcess = event.get_process()
 
         # Pass the event to the process.
-        retval = aProcess.notify_load_dll(event)
+        bCallHandler = aProcess.notify_load_dll(event) and bCallHandler
 
         # Anti-anti-debugging tricks on ntdll.dll.
         if self.__bHostileCode:
@@ -1005,7 +1008,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 self.break_at(aProcess.get_pid(),
                         aProcess.resolve_label('ntdll!DbgUiRemoteBreakin'))
 
-        return retval
+        return bCallHandler
 
     def notify_exit_process(self, event):
         """
@@ -1034,7 +1037,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             pass
 
         bCallHandler = _BreakpointContainer.notify_exit_process(self, event)
-        bCallHandler = bCallHandler and self.system.notify_exit_process(event)
+        bCallHandler = self.system.notify_exit_process(event) and bCallHandler
         return bCallHandler
 
     def notify_exit_thread(self, event):

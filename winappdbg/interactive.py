@@ -65,6 +65,22 @@ readline = None
 
 #==============================================================================
 
+class DummyEvent (NoEvent):
+
+    def get_pid(self):
+        return self._pid
+
+    def get_tid(self):
+        return self._tid
+
+    def get_process(self):
+        return self._process
+
+    def get_thread(self):
+        return self._thread
+
+#==============================================================================
+
 # Exception to be raised when a command parsing error occurs.
 class CmdError (Exception):
     pass
@@ -149,6 +165,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         # Full path to the history file.
         self.history_file_full_path = None
 
+        # Last executed command
+        self.__lastcmd = ""
+
 #------------------------------------------------------------------------------
 # Debugger
 
@@ -188,6 +207,15 @@ class ConsoleDebugger (Cmd, EventHandler):
     @property
     def lastEvent(self):
         return self.debug.lastEvent
+
+    def set_fake_last_event(self, process):
+        if self.lastEvent is None:
+            self.debug.lastEvent = DummyEvent(self.debug)
+            self.debug.lastEvent._process = process
+            self.debug.lastEvent._thread = process.get_thread(
+                                                process.get_thread_ids()[0])
+            self.debug.lastEvent._pid = process.get_pid()
+            self.debug.lastEvent._tid = self.lastEvent._thread.get_tid()
 
 #------------------------------------------------------------------------------
 # Input
@@ -313,7 +341,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         address = None
         if self.is_register(token):
             if tid is None:
-                if pid != self.lastEvent.get_pid():
+                if self.lastEvent is None or pid != self.lastEvent.get_pid():
                     msg = "can't resolve register (%s) for unknown thread"
                     raise CmdError(msg % token)
                 tid = self.lastEvent.get_tid()
@@ -322,9 +350,11 @@ class ConsoleDebugger (Cmd, EventHandler):
             try:
                 address = self.input_hexadecimal_integer(token)
             except ValueError:
-                if pid is None or pid == self.lastEvent.get_pid():
-                    if not self.lastEvent:
+                if pid is None:
+                    if self.lastEvent is None:
                         raise CmdError("no current process set")
+                    process = self.lastEvent.get_process()
+                elif self.lastEvent is not None and pid == self.lastEvent.get_pid():
                     process = self.lastEvent.get_process()
                 else:
                     try:
@@ -384,7 +414,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Returns None if no register name is matched.
     def input_register(self, token, tid = None):
         if tid is None:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             thread = self.lastEvent.get_thread()
         else:
@@ -555,11 +585,11 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Show the current location in any process and thread.
     def print_current_location(self, process = None, thread = None):
         if not process:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             process = self.lastEvent.get_process()
         if not thread:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             thread  = self.lastEvent.get_thread()
         thread.suspend()
@@ -610,7 +640,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if self.cmdprefix:
             pid = self.input_process(self.cmdprefix)
         else:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             pid = self.lastEvent.get_pid()
         return pid
@@ -620,7 +650,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if self.cmdprefix:
             tid = self.input_thread(self.cmdprefix)
         else:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             tid = self.lastEvent.get_tid()
         return tid
@@ -649,7 +679,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                     msg = "unknown process or thread (%s)" % self.cmdprefix
                     raise CmdError(msg)
         else:
-            if not self.lastEvent:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             pid = self.lastEvent.get_pid()
             tid = self.lastEvent.get_tid()
@@ -664,9 +694,11 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Get the process object.
     def get_process(self, pid = None):
-        if pid is None or pid == self.lastEvent.get_pid():
-            if self.debug.get_debugee_count() <= 0:
+        if pid is None:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
+            process = self.lastEvent.get_process()
+        elif self.lastEvent is not None and pid == self.lastEvent.get_pid():
             process = self.lastEvent.get_process()
         else:
             try:
@@ -677,9 +709,11 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Get the thread object.
     def get_thread(self, tid = None):
-        if tid is None or tid == self.lastEvent.get_tid():
-            if self.debug.get_debugee_count() <= 0:
+        if tid is None:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
+            thread = self.lastEvent.get_thread()
+        elif self.lastEvent is not None and tid == self.lastEvent.get_tid():
             thread = self.lastEvent.get_thread()
         else:
             try:
@@ -719,7 +753,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         # Get the thread.
         if tid is None:
-            if self.debug.get_debugee_count() <= 0:
+            if self.lastEvent is None:
                 raise CmdError("no current process set")
             thread = self.lastEvent.get_thread()
         else:
@@ -1185,6 +1219,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             token_list.insert(0, self.cmdprefix)
         targets = self.input_process_list(token_list)
         if not targets:
+            if self.lastEvent is None:
+                raise CmdError("no current process set")
             targets = [ self.lastEvent.get_pid() ]
         for pid in targets:
             try:
@@ -1207,6 +1243,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             print "Spawned process (%d)" % process.get_pid()
         except Exception, e:
             raise CmdError("can't execute")
+        self.set_fake_last_event(process)
 
     def do_console(self, arg):
         """
@@ -1222,6 +1259,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             print "Spawned process (%d)" % process.get_pid()
         except Exception, e:
             raise CmdError("can't execute")
+        self.set_fake_last_event(process)
 
     def do_continue(self, arg):
         """
@@ -1246,7 +1284,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         if arg:
             raise CmdError("too many arguments")
-        self.lastEvent.continueStatus = win32.DBG_EXCEPTION_HANDLED
+        if self.lastEvent:
+            self.lastEvent.continueStatus = win32.DBG_EXCEPTION_HANDLED
         return self.do_go(arg)
 
     def do_gn(self, arg):
@@ -1257,7 +1296,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         if arg:
             raise CmdError("too many arguments")
-        self.lastEvent.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+        if self.lastEvent:
+            self.lastEvent.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
         return self.do_go(arg)
 
     def do_refresh(self, arg):
@@ -1372,21 +1412,21 @@ class ConsoleDebugger (Cmd, EventHandler):
             if self.cmdprefix:
                 pid, tid = self.get_process_and_thread_ids_from_prefix()
                 if tid is None:
-                    if pid == self.lastEvent.get_pid():
+                    if self.lastEvent is not None and pid == self.lastEvent.get_pid():
                         msg = "You are about to kill the current process."
                     else:
                         msg = "You are about to kill process %d." % pid
                     if self.ask_user(msg):
                         self.kill_process(pid)
                 else:
-                    if tid == self.lastEvent.get_tid():
+                    if self.lastEvent is not None and tid == self.lastEvent.get_tid():
                         msg = "You are about to kill the current thread."
                     else:
                         msg = "You are about to kill thread %d." % tid
                     if self.ask_user(msg):
                         self.kill_thread(tid)
             else:
-                if not self.lastEvent:
+                if self.lastEvent is None:
                     raise CmdError("no current process set")
                 pid = self.lastEvent.get_pid()
                 if self.ask_user("You are about to kill the current process."):
@@ -1438,7 +1478,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not targets:
             targets = debug.get_debugee_pids()
             targets.sort()
-        current = self.lastEvent.get_pid()
+        if self.lastEvent:
+            current = self.lastEvent.get_pid()
+        else:
+            current = None
         for pid in targets:
             if pid != current and debug.is_debugee(pid):
                 process = system.get_process(pid)
@@ -1455,7 +1498,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
-        if not self.lastEvent:
+        if self.lastEvent is None:
             raise CmdError("no current process set")
         if arg:     # XXX this check is to be removed
             raise CmdError("too many arguments")
@@ -1484,6 +1527,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if arg:     # XXX this check is to be removed
             raise CmdError("too many arguments")
+        if self.lastEvent is None:
+            raise CmdError("no current thread set")
         self.lastEvent.get_thread().set_tf()
         return True
 
@@ -1496,10 +1541,22 @@ class ConsoleDebugger (Cmd, EventHandler):
         pid = self.get_process_id_from_prefix()
         if not self.debug.is_debugee(pid):
             raise CmdError("target process is not being debugged")
-        process    = self.get_process(pid)
-        token_list = self.split_tokens(arg, 1, 1)
-        address    = self.input_address(token_list[0], pid)
+        process     = self.get_process(pid)
+        token_list  = self.split_tokens(arg, 1, 1)
+        try:
+            address = self.input_address(token_list[0], pid)
+            deferred = False
+        except Exception:
+            address = token_list[0]
+            deferred = True
+        if not address:
+            address = token_list[0]
+            deferred = True
         self.debug.break_at(pid, address)
+        if deferred:
+            print "Deferred breakpoint set at %s" % address
+        else:
+            print "Breakpoint set at %s" % address
 
     def do_ba(self, arg):
         """
@@ -1573,19 +1630,38 @@ class ConsoleDebugger (Cmd, EventHandler):
             if self.cmdprefix:
                 targets.insert(0, self.input_process(self.cmdprefix))
             if not targets:
-                if not self.lastEvent:
+                if self.lastEvent is None:
                     raise CmdError("no current process is set")
                 targets = [ self.lastEvent.get_pid() ]
         for pid in targets:
             bplist = debug.get_process_code_breakpoints(pid)
+            printed_process_banner = False
             if bplist:
-                print "Process %d:" % pid
+                if not printed_process_banner:
+                    print "Process %d:" % pid
+                    printed_process_banner = True
                 for bp in bplist:
                     address = repr(bp)[1:-1].replace('remote address ','')
                     print "  %s" % address
+            dbplist = debug.get_process_deferred_code_breakpoints(pid)
+            if dbplist:
+                if not printed_process_banner:
+                    print "Process %d:" % pid
+                    printed_process_banner = True
+                for (label, action, oneshot) in dbplist:
+                    if oneshot:
+                        address = "  Deferred unconditional one-shot" \
+                              " code breakpoint at %s"
+                    else:
+                        address = "  Deferred unconditional" \
+                              " code breakpoint at %s"
+                    address = address % label
+                    print "  %s" % address
             bplist = debug.get_process_page_breakpoints(pid)
             if bplist:
-                print "Process %d:" % pid
+                if not printed_process_banner:
+                    print "Process %d:" % pid
+                    printed_process_banner = True
                 for bp in bplist:
                     address = repr(bp)[1:-1].replace('remote address ','')
                     print "  %s" % address

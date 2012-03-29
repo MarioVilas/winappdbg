@@ -53,13 +53,25 @@ __all__ = [
     'ApiHook',
     'BufferWatch',
 
+    # Warnings
+    'BreakpointWarning',
+
     ]
 
 import win32
-from system import System
 from process import Process
 from util import DebugRegister, MemoryAddresses
 from textio import HexDump
+
+import warnings
+
+#==============================================================================
+
+class BreakpointWarning (Warning):
+    """
+    This warning is issued when a non-fatal error occurs that's related to
+    breakpoints.
+    """
 
 #==============================================================================
 
@@ -296,7 +308,7 @@ class Breakpoint (object):
         @type  condition: function
         @param condition: (Optional) Condition callback function.
         """
-        if condition in (True, False, None):
+        if condition in (True, False, None):    # XXX
             self.__condition = True
         else:
             self.__condition = condition
@@ -487,7 +499,6 @@ class Breakpoint (object):
 # XXX TODO
 # Check if the user is trying to set a code breakpoint on a memory mapped file,
 # so we don't end up writing the int3 instruction in the file by accident.
-# It's probably enough to change the page protection to copy-on-write.
 
 class CodeBreakpoint (Breakpoint):
     """
@@ -501,7 +512,7 @@ class CodeBreakpoint (Breakpoint):
 
     typeName = 'code breakpoint'
 
-    if System.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
         bpInstruction = '\xCC'      # int 3
 
     def __init__(self, address, condition = True, action = None):
@@ -519,8 +530,8 @@ class CodeBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        if System.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
-            msg = "Code breakpoints not supported for %s" % System.arch
+        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+            msg = "Code breakpoints not supported for %s" % win32.arch
             raise NotImplementedError(msg)
         Breakpoint.__init__(self, address, len(self.bpInstruction),
                             condition, action)
@@ -534,8 +545,11 @@ class CodeBreakpoint (Breakpoint):
         @param aProcess: Process object.
         """
         address = self.get_address()
-        # XXX maybe if the previous value is \xCC we shouldn't trust it?
         self.__previousValue = aProcess.read(address, len(self.bpInstruction))
+        if self.__previousValue == self.bpInstruction:
+            msg = "Possible overlapping code breakpoints at %s"
+            msg = msg % HexDump.address(address)
+            warnings.warn(msg, BreakpointWarning)
         aProcess.write(address, self.bpInstruction)
 
     def __clear_bp(self, aProcess):
@@ -545,13 +559,16 @@ class CodeBreakpoint (Breakpoint):
         @type  aProcess: L{Process}
         @param aProcess: Process object.
         """
-        # Only restore the previous value if the int3 is still there.
         address = self.get_address()
         currentValue = aProcess.read(address, len(self.bpInstruction))
         if currentValue == self.bpInstruction:
+            # Only restore the previous value if the int3 is still there.
             aProcess.write(self.get_address(), self.__previousValue)
         else:
             self.__previousValue = currentValue
+            msg = "Overwritten code breakpoint at %s"
+            msg = msg % HexDump.address(address)
+            warnings.warn(msg, BreakpointWarning)
 
     def disable(self, aProcess, aThread):
         if not self.is_disabled() and not self.is_running():
@@ -572,7 +589,7 @@ class CodeBreakpoint (Breakpoint):
     # If another thread runs on over the target address while
     # the breakpoint is in RUNNING state, we'll miss it. There
     # is a solution to this but it's somewhat complicated, so
-    # I'm leaving it for the next version of the debugger. :(
+    # I'm leaving it for another version of the debugger. :(
     def running(self, aProcess, aThread):
         self.__clear_bp(aProcess)
         aThread.set_tf()
@@ -622,11 +639,11 @@ class PageBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        Breakpoint.__init__(self, address, pages * System.pageSize,  condition,
-                                                                        action)
+        Breakpoint.__init__(self, address, pages * MemoryAddresses.pageSize,
+                            condition, action)
 ##        if (address & 0x00000FFF) != 0:
-        floordiv_align = long(address) // long(System.pageSize)
-        truediv_align  = float(address) / float(System.pageSize)
+        floordiv_align = long(address) // long(MemoryAddresses.pageSize)
+        truediv_align  = float(address) / float(MemoryAddresses.pageSize)
         if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
                     "must be aligned to a page size boundary "  \
@@ -639,7 +656,7 @@ class PageBreakpoint (Breakpoint):
         @return: The size in pages of the breakpoint.
         """
         # The size is always a multiple of the page size.
-        return self.get_size() // System.pageSize
+        return self.get_size() // MemoryAddresses.pageSize
 
     def __set_bp(self, aProcess):
         """
@@ -672,9 +689,9 @@ class PageBreakpoint (Breakpoint):
         super(PageBreakpoint, self).disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
-        if System.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             msg = "Only one-shot page breakpoints are supported for %s"
-            raise NotImplementedError(msg % System.arch)
+            raise NotImplementedError(msg % win32.arch)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
         super(PageBreakpoint, self).enable(aProcess, aThread)
@@ -804,8 +821,8 @@ class HardwareBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        if System.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
-            msg = "Hardware breakpoints not supported for %s" % System.arch
+        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+            msg = "Hardware breakpoints not supported for %s" % win32.arch
             raise NotImplementedError(msg)
         if   sizeFlag == self.WATCH_BYTE:
             size = 1
@@ -1555,7 +1572,9 @@ class _BreakpointContainer (object):
         get_process_code_breakpoints,
         get_process_page_breakpoints,
         get_process_hardware_breakpoints,
-        get_thread_hardware_breakpoints
+        get_thread_hardware_breakpoints,
+        get_all_deferred_code_breakpoints,
+        get_process_deferred_code_breakpoints
 
     @group Batch operations on breakpoints:
         enable_all_breakpoints,
@@ -1571,6 +1590,7 @@ class _BreakpointContainer (object):
         notify_guard_page,
         notify_breakpoint,
         notify_single_step,
+        notify_load_dll,
         notify_unload_dll,
         notify_exit_thread,
         notify_exit_process
@@ -1639,7 +1659,7 @@ class _BreakpointContainer (object):
         self.__hardwareBP   = dict()    # tid -> [ HardwareBreakpoint ]
         self.__runningBP    = dict()    # tid -> set( Breakpoint )
         self.__tracing      = set()     # set( tid )
-##        self.__hook_objects = dict()    # (pid, address) -> Hook
+        self.__deferredBP   = dict()    # pid -> label -> (action, oneshot)
 
 #------------------------------------------------------------------------------
 
@@ -1672,24 +1692,6 @@ class _BreakpointContainer (object):
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
-
-#------------------------------------------------------------------------------
-
-    # This operates on the set of hooks. It only exists so the user can
-    # enumerate the hooks he/she has set. In the future, with a more extensive
-    # use of weakrefs, it may also be useful to prevent the garbage collector
-    # from claiming hooks that are still active.
-
-##    def __add_hook(self, pid, address, hookObj):
-##        "Auxiliary method."
-##        self.__hook_objects[ (pid, address) ] = hookObj
-
-##    def __del_hook(self, pid, address):
-##        "Auxiliary method."
-##        try:
-##            del self.__hook_objects[ (pid, address) ]
-##        except KeyError:
-##            pass
 
 #------------------------------------------------------------------------------
 
@@ -1753,10 +1755,11 @@ class _BreakpointContainer (object):
                 self.__cleanup_breakpoint( event, self.__pageBP[(bp_pid, bp_address)] )
                 del self.__pageBP[(bp_pid, bp_address)]
 
-##        # Cleanup hooks
-##        for (bp_pid, bp_address) in self.__hook_objects.keys():
-##            if bp_pid == pid:
-##                del self.__hook_objects[ (bp_pid, bp_address) ]
+        # Cleanup deferred code breakpoints
+        try:
+            del self.__deferredBP[pid]
+        except KeyError:
+            pass
 
     def __cleanup_module(self, event):
         """
@@ -1801,12 +1804,6 @@ class _BreakpointContainer (object):
                 if process.get_module_at_address(bp_address) == module:
                     self.__cleanup_breakpoint(event, bp)
                     del self.__pageBP[(bp_pid, bp_address)]
-
-##        # Cleanup hooks on this module
-##        for (bp_pid, bp_address) in self.__hook_objects.keys():
-##            if bp_pid == pid:
-##                if process.get_module_at_address(bp_address) == module:
-##                    del self.__hook_objects[ (bp_pid, bp_address) ]
 
 #------------------------------------------------------------------------------
 
@@ -1930,7 +1927,7 @@ class _BreakpointContainer (object):
         end     = begin + bp.get_size()
 
         address  = begin
-        pageSize = System.pageSize
+        pageSize = MemoryAddresses.pageSize
         while address < end:
             key = (dwProcessId, address)
             if key in self.__pageBP:
@@ -2512,7 +2509,7 @@ class _BreakpointContainer (object):
         if not bp.is_disabled():
             self.disable_page_breakpoint(dwProcessId, address)
         address  = begin
-        pageSize = System.pageSize
+        pageSize = MemoryAddresses.pageSize
         while address < end:
             del self.__pageBP[ (dwProcessId, address) ]
             address = address + pageSize
@@ -3178,6 +3175,32 @@ class _BreakpointContainer (object):
 
         return bCallHandler
 
+    def notify_load_dll(self, event):
+        """
+        Notify the loading of a DLL.
+
+        @type  event: L{LoadDLLEvent}
+        @param event: Load DLL event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        """
+        self.__set_deferred_breakpoints(event)
+        return True
+
+    def notify_unload_dll(self, event):
+        """
+        Notify the unloading of a DLL.
+
+        @type  event: L{UnloadDLLEvent}
+        @param event: Unload DLL event.
+
+        @rtype:  bool
+        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        """
+        self.__cleanup_module(event)
+        return True
+
     def notify_exit_thread(self, event):
         """
         Notify the termination of a thread.
@@ -3186,7 +3209,7 @@ class _BreakpointContainer (object):
         @param event: Exit thread event.
 
         @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        @return: C{True} to call the user-defined handler, C{False} otherwise.
         """
         self.__cleanup_thread(event)
         return True
@@ -3199,23 +3222,10 @@ class _BreakpointContainer (object):
         @param event: Exit process event.
 
         @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        @return: C{True} to call the user-defined handler, C{False} otherwise.
         """
         self.__cleanup_process(event)
         self.__cleanup_thread(event)
-        return True
-
-    def notify_unload_dll(self, event):
-        """
-        Notify the unloading of a DLL.
-
-        @type  event: L{UnloadDLLEvent}
-        @param event: Unload DLL event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
-        """
-        self.__cleanup_module(event)
         return True
 
 #------------------------------------------------------------------------------
@@ -3224,34 +3234,73 @@ class _BreakpointContainer (object):
     # about defining or enabling breakpoints, and many errors are ignored
     # (like for example setting the same breakpoint twice, here the second
     # breakpoint replaces the first, much like in WinDBG). It should be easier
-    # and more intuitive, if less detailed.
+    # and more intuitive, if less detailed. It also allows the use of deferred
+    # breakpoints.
 
 #------------------------------------------------------------------------------
 
     # Code breakpoints
 
-    def __set_break(self, pid, address, action):
+    def __set_break(self, pid, address, action, oneshot):
         """
         Used by L{break_at} and L{stalk_at}.
 
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code instruction to break at.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
 
         @type  action: function
         @param action: (Optional) Action callback function.
 
             See L{define_code_breakpoint} for more details.
+
+        @type  oneshot: bool
+        @param oneshot: C{True} for one-shot breakpoints, C{False} otherwise.
+
+        @rtype:  L{Breakpoint}
+        @return: Returns the new L{Breakpoint} object, or C{None} if the label
+            couldn't be resolved and the breakpoint was deferred. Deferred
+            breakpoints are set when the DLL they point to is loaded.
         """
+        if type(address) not in (int, long):
+            label = address
+            try:
+                address = self.system.get_process(pid).resolve_label(address)
+                if not address:
+                    raise Exception()
+            except Exception:
+                try:
+                    deferred = self.__deferredBP[pid]
+                except KeyError:
+                    deferred = dict()
+                    self.__deferredBP[pid] = deferred
+                if deferred.has_key(label):
+                    msg = "Redefined deferred code breakpoint at %s in process ID %d"
+                    msg = msg % (label, pid)
+                    warnings.warn(msg, BreakpointWarning)
+                deferred[label] = (action, oneshot)
+                return None
         if self.has_code_breakpoint(pid, address):
             bp = self.get_code_breakpoint(pid, address)
-            if bp.get_action() != action:
+            if bp.get_action() is not action:
                 bp.set_action(action)
+                msg = "Redefined code breakpoint at %s in process ID %d"
+                msg = msg % (label, pid)
+                warnings.warn(msg, BreakpointWarning)
         else:
             self.define_code_breakpoint(pid, address, True, action)
             bp = self.get_code_breakpoint(pid, address)
+        if oneshot:
+            if not bp.is_one_shot():
+                self.enable_one_shot_code_breakpoint(pid, address)
+        else:
+            if not bp.is_enabled():
+                self.enable_code_breakpoint(pid, address)
         return bp
 
     def __clear_break(self, pid, address):
@@ -3261,53 +3310,148 @@ class _BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code breakpoint.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
         """
+        if type(address) not in (int, long):
+            unknown = True
+            label = address
+            try:
+                deferred = self.__deferredBP[pid]
+                del deferred[label]
+                unknown = False
+            except KeyError:
+##                traceback.print_last()      # XXX DEBUG
+                pass
+            aProcess = self.system.get_process(pid)
+            try:
+                address = aProcess.resolve_label(label)
+                if not address:
+                    raise Exception()
+            except Exception:
+##                traceback.print_last()      # XXX DEBUG
+                if unknown:
+                    msg = ("Can't clear unknown code breakpoint"
+                           " at %s in process ID %d")
+                    msg = msg % (label, pid)
+                    warnings.warn(msg, BreakpointWarning)
+                return
         if self.has_code_breakpoint(pid, address):
             self.erase_code_breakpoint(pid, address)
+
+    def __set_deferred_breakpoints(self, event):
+        """
+        Used internally. Sets all deferred breakpoints for a DLL when it's
+        loaded.
+
+        @type  event: L{LoadDLLEvent}
+        @param event: Load DLL event.
+        """
+        pid = event.get_pid()
+        try:
+            deferred = self.__deferredBP[pid]
+        except KeyError:
+            return
+        aProcess = event.get_process()
+        for (label, (action, oneshot)) in deferred.items():
+            try:
+                address = aProcess.resolve_label(label)
+            except Exception:
+                continue
+            del deferred[label]
+            try:
+                self.__set_break(pid, address, action, oneshot)
+            except Exception:
+                msg = "Can't set deferred breakpoint %s at process ID %d"
+                msg = msg % (label, pid)
+                warnings.warn(msg, BreakpointWarning)
+
+    def get_all_deferred_code_breakpoints(self):
+        """
+        Returns a list of deferred code breakpoints.
+
+        @rtype:  tuple of (int, str, callable, bool)
+        @return: Tuple containing the following elements:
+             - Process ID where to set the breakpoint.
+             - Label pointing to the address where to set the breakpoint.
+             - Action callback for the breakpoint.
+             - C{True} of the breakpoint is one-shot, C{False} otherwise.
+        """
+        result = []
+        for pid, deferred in self.__deferredBP.iteritems():
+            for (label, (action, oneshot)) in deferred.iteritems():
+                result.add( (pid, label, action, oneshot) )
+        return result
+
+    def get_process_deferred_code_breakpoints(self, dwProcessId):
+        """
+        Returns a list of deferred code breakpoints.
+
+        @type  dwProcessId: int
+        @param dwProcessId: Process ID.
+
+        @rtype:  tuple of (int, str, callable, bool)
+        @return: Tuple containing the following elements:
+             - Label pointing to the address where to set the breakpoint.
+             - Action callback for the breakpoint.
+             - C{True} of the breakpoint is one-shot, C{False} otherwise.
+        """
+        return [ (label, action, oneshot)
+                  for (label, (action, oneshot))
+                  in self.__deferredBP.get(dwProcessId, {}).iteritems() ]
 
     def stalk_at(self, pid, address, action = None):
         """
         Sets a one shot code breakpoint at the given process and address.
+
+        If instead of an address you pass a label, the breakpoint may be
+        deferred until the DLL it points to is loaded.
 
         @see: L{break_at}, L{dont_stalk_at}
 
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code instruction to break at.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
 
         @type  action: function
         @param action: (Optional) Action callback function.
 
             See L{define_code_breakpoint} for more details.
         """
-        bp = self.__set_break(pid, address, action)
-        if not bp.is_one_shot():
-            self.enable_one_shot_code_breakpoint(pid, address)
+        self.__set_break(pid, address, action, oneshot = True)
 
     def break_at(self, pid, address, action = None):
         """
         Sets a code breakpoint at the given process and address.
+
+        If instead of an address you pass a label, the breakpoint may be
+        deferred until the DLL it points to is loaded.
 
         @see: L{stalk_at}, L{dont_break_at}
 
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code instruction to break at.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
 
         @type  action: function
         @param action: (Optional) Action callback function.
 
             See L{define_code_breakpoint} for more details.
         """
-        bp = self.__set_break(pid, address, action)
-        if not bp.is_enabled():
-            self.enable_code_breakpoint(pid, address)
+        self.__set_break(pid, address, action, oneshot = False)
 
     def dont_break_at(self, pid, address):
         """
@@ -3316,8 +3460,11 @@ class _BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code instruction to break at.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
         """
         self.__clear_break(pid, address)
 
@@ -3328,8 +3475,11 @@ class _BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Memory address of code instruction to break at.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
         """
         self.__clear_break(pid, address)
 
@@ -3342,11 +3492,17 @@ class _BreakpointContainer (object):
         """
         Sets a function hook at the given address.
 
+        If instead of an address you pass a label, the hook may be
+        deferred until the DLL it points to is loaded.
+
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Function address.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
 
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
@@ -3386,23 +3542,28 @@ class _BreakpointContainer (object):
         """
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
-        if System.arch != win32.ARCH_I386:
+        if win32.arch != win32.ARCH_I386:
             raise NotImplementedError()
 
         hookObj = Hook(preCB, postCB, paramCount)
         self.break_at(pid, address, hookObj)
-##        self.__add_hook(address, hookObj)
 
     def stalk_function(self, pid, address,         preCB = None, postCB = None,
                                                                paramCount = 0):
         """
         Sets a one-shot function hook at the given address.
 
+        If instead of an address you pass a label, the hook may be
+        deferred until the DLL it points to is loaded.
+
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Function address.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
 
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
@@ -3442,12 +3603,11 @@ class _BreakpointContainer (object):
         """
         # XXX HACK
         # This will be removed when hooks are supported in AMD64.
-        if System.arch != win32.ARCH_I386:
+        if win32.arch != win32.ARCH_I386:
             raise NotImplementedError()
 
         hookObj = Hook(preCB, postCB, paramCount)
         self.stalk_at(pid, address, hookObj)
-##        self.__add_hook(address, hookObj)
 
     def dont_hook_function(self, pid, address):
         """
@@ -3456,11 +3616,13 @@ class _BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Function address.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
         """
         self.dont_break_at(pid, address)
-##        self.__del_hook(address)
 
     # alias
     unhook_function = dont_hook_function
@@ -3472,11 +3634,13 @@ class _BreakpointContainer (object):
         @type  pid: int
         @param pid: Process global ID.
 
-        @type  address: int
-        @param address: Function address.
+        @type  address: int or str
+        @param address:
+            Memory address of code instruction to break at. It can be an
+            integer value for the actual address or a string with a label
+            to be resolved.
         """
         self.dont_stalk_at(pid, address)
-##        self.__del_hook(address)
 
 #------------------------------------------------------------------------------
 
@@ -3674,7 +3838,7 @@ class _BreakpointContainer (object):
             cset = set()     # condition objects
 
             page_addr = base
-            pageSize  = System.pageSize
+            pageSize  = MemoryAddresses.pageSize
             while page_addr < limit:
 
                 # If a breakpoints exists, reuse it.
@@ -3759,7 +3923,7 @@ class _BreakpointContainer (object):
         # For each breakpoint, if no buffers are on watch, erase it.
         cset = set()     # condition objects
         page_addr = base
-        pageSize = System.pageSize
+        pageSize = MemoryAddresses.pageSize
         while page_addr < limit:
             if self.has_page_breakpoint(pid, page_addr):
                 bp = self.get_page_breakpoint(pid, page_addr)
