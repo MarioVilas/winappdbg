@@ -1521,10 +1521,11 @@ class EventSift(EventHandler):
         try:
             if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT and \
                                         isinstance(handler, EventHandler):
+                pid = event.get_pid()
                 handler = self.forward.get(pid, None)
                 if handler is None:
                     handler = self.cls(*self.argv, **self.argd)
-                self.forward[event.get_pid()] = handler
+                self.forward[pid] = handler
                 handler.__EventHandler_setApiHooksForDll(event)
         finally:
             return super(EventSift, self).__call__(event)
