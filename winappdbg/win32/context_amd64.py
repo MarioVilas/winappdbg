@@ -416,7 +416,7 @@ class CONTEXT(Structure):
 
     @classmethod
     def from_dict(cls, ctx):
-        'Instance a new structure from a Python dictionary.'
+        'Instance a new structure from a Python native type.'
         ctx = Context(ctx)
         s = cls()
         ContextFlags = ctx['ContextFlags']

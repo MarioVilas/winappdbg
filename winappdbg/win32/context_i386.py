@@ -261,7 +261,7 @@ class CONTEXT(Structure):
         return s
 
     def to_dict(self):
-        'Convert a structure into a Python dictionary.'
+        'Convert a structure into a Python native type.'
         ctx = Context()
         ContextFlags = self.ContextFlags
         ctx['ContextFlags'] = ContextFlags
