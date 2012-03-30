@@ -34,16 +34,16 @@ from winappdbg import Debug
 
 import sys
 
-# Instance a Debug object
+# Instance a Debug object.
 debug = Debug()
 try:
 
-    # Start a new process for debugging
+    # Start a new process for debugging.
     debug.execv( sys.argv[ 1 : ] )
 
-    # Wait for the debugee to finish
+    # Wait for the debugee to finish.
     debug.loop()
 
-# Stop the debugger
+# Stop the debugger.
 finally:
     debug.stop()

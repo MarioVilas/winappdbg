@@ -116,7 +116,7 @@ __all__ =   [
 
                 # from debug import *
                 'Debug',
-                'MixedBitsWarning'
+                'MixedBitsWarning',
 
                 # from module import *
                 'Module',

@@ -1331,18 +1331,20 @@ class EventHandler (object):
         # this class even simpler. The downside here is deciding where to store
         # the ApiHook objects.
 
-        # XXX HACK
-        # This will be removed when hooks are supported in AMD64.
-        if self.apiHooks and win32.CONTEXT.arch != win32.ARCH_I386:
-            raise NotImplementedError(
-                "Hooks are not yet implemented in 64 bits")
-
         # Convert the tuples into instances of the ApiHook class.
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
-        self.__apiHooks = dict()
+        apiHooks = dict()
         for lib, hooks in self.apiHooks.iteritems():
-            self.__apiHooks[lib] = [ ApiHook(self, *h) for h in hooks ]
+            hook_objs = []
+            for proc, args in hooks:
+                if type(args) in (int, long):
+                    h = ApiHook(self, lib, proc, paramCount = args)
+                else:
+                    h = ApiHook(self, lib, proc,  signature = args)
+                hook_objs.append(h)
+            apiHooks[lib] = hook_objs
+        self.__apiHooks = apiHooks
 
     def __setApiHooksForDll(self, event):
         """
@@ -1359,7 +1361,7 @@ class EventHandler (object):
                 for hook_lib, hook_api_list in self.__apiHooks.iteritems():
                     if hook_lib == lib_name:
                         for hook_api_stub in hook_api_list:
-                            hook_api_stub.hook(debug, pid, lib_name)
+                            hook_api_stub.hook(debug, pid)
 
     def __call__(self, event):
         """

@@ -41,19 +41,20 @@ try:
 except ImportError:
     from pysqlite2 import dbapi2 as sqlite
 
-# Create a snaphot of running processes
+# Create a snaphot of running processes.
 system = winappdbg.System()
 system.request_debug_privileges()
 system.scan_processes()
 
-# Get all processes that match the requested filenames
+# Get all processes that match the requested filenames.
 for filename in sys.argv[1:]:
     print "Looking for: %s" % filename
     for process, pathname in system.find_processes_by_filename(filename):
-        pid = process.get_pid()
-        print "Dumping memory for process ID %d" % pid
+        pid  = process.get_pid()
+        bits = process.get_bits()
+        print "Dumping memory for process ID %d (%d bits)" % (pid, bits)
 
-        # Parse the database filename
+        # Parse the database filename.
         dbfile   = '%d.db' % pid
         if os.path.exists(dbfile):
             counter = 1
@@ -65,11 +66,11 @@ for filename in sys.argv[1:]:
             del counter
         print "Creating database %s" % dbfile
 
-        # Connect to the database and get a cursor
+        # Connect to the database and get a cursor.
         database = sqlite.connect(dbfile)
         cursor   = database.cursor()
 
-        # Create the table for the memory map
+        # Create the table for the memory map.
         cursor.execute("""
             CREATE TABLE MemoryMap (
                 Address INTEGER PRIMARY KEY,
@@ -82,18 +83,18 @@ for filename in sys.argv[1:]:
             )
         """)
 
-        # Get a memory map of the process
+        # Get a memory map of the process.
         memoryMap       = process.get_memory_map()
         mappedFilenames = process.get_mapped_filenames(memoryMap)
 
         # For each memory block in the map...
         for mbi in memoryMap:
 
-            # Address and size of memory block
+            # Address and size of memory block.
             BaseAddress = mbi.BaseAddress
             RegionSize  = mbi.RegionSize
 
-            # State (free or allocated)
+            # State (free or allocated).
             if   mbi.State == win32.MEM_RESERVE:
                 State   = "Reserved"
             elif mbi.State == win32.MEM_COMMIT:
@@ -103,7 +104,7 @@ for filename in sys.argv[1:]:
             else:
                 State   = "Unknown"
 
-            # Page protection bits (R/W/X/G)
+            # Page protection bits (R/W/X/G).
             if mbi.State != win32.MEM_COMMIT:
                 Protect = ""
             else:
@@ -138,7 +139,7 @@ for filename in sys.argv[1:]:
                 else:
                     Protect += "-"
 
-            # Type (file mapping, executable image, or private memory)
+            # Type (file mapping, executable image, or private memory).
             if   mbi.Type == win32.MEM_IMAGE:
                 Type    = "Image"
             elif mbi.Type == win32.MEM_MAPPED:
@@ -150,27 +151,27 @@ for filename in sys.argv[1:]:
             else:
                 Type    = "Unknown"
 
-            # Mapped file name, if any
+            # Mapped file name, if any.
             FileName = mappedFilenames.get(BaseAddress, None)
 
-            # Read the data contained in the memory block, if any
+            # Read the data contained in the memory block, if any.
             Data = None
             if mbi.has_content():
                 print 'Reading %s-%s' % (
-                    winappdbg.HexDump.address(BaseAddress),
-                    winappdbg.HexDump.address(BaseAddress + RegionSize)
+                    winappdbg.HexDump.address(BaseAddress, bits),
+                    winappdbg.HexDump.address(BaseAddress + RegionSize, bits)
                 )
                 Data = process.read(BaseAddress, RegionSize)
                 Data = zlib.compress(Data, zlib.Z_BEST_COMPRESSION)
                 Data = sqlite.Binary(Data)
 
-            # Output a row in the table
+            # Output a row in the table.
             cursor.execute(
                 'INSERT INTO MemoryMap VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (BaseAddress, RegionSize, State, Protect, Type, FileName, Data)
             )
 
-        # Commit the changes, close the cursor and the database
+        # Commit the changes, close the cursor and the database.
         database.commit()
         cursor.close()
         database.close()

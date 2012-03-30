@@ -78,7 +78,8 @@ class Thread (object):
         get_stack_frame, get_stack_frame_range, get_stack_range,
         get_stack_trace, get_stack_trace_with_labels,
         read_stack_data, read_stack_dwords, read_stack_qwords,
-        peek_stack_data, peek_stack_dwords, peek_stack_qwords
+        peek_stack_data, peek_stack_dwords, peek_stack_qwords,
+        read_stack_structure, read_stack_frame
 
     @group Registers:
         get_context,
@@ -957,7 +958,8 @@ class Thread (object):
         Limit    = LimitLow | LimitHi
         if address > Limit:
             msg = "Address %s too large for segment %s (selector %d)"
-            msg = msg % (HexDump.address(address), segment, selector)
+            msg = msg % (HexDump.address(address, self.get_bits()),
+                         segment, selector)
             raise ValueError(msg)
         return Base + address
 
@@ -1093,6 +1095,7 @@ class Thread (object):
         trace    = list()
         if aProcess.get_module_count() == 0:
             aProcess.scan_modules()
+        bits = aProcess.get_bits()
         while depth > 0:
             if fp == 0:
                 break
@@ -1108,11 +1111,11 @@ class Thread (object):
                 if lib.fileName:
                     lib = lib.fileName
                 else:
-                    lib = "%s" % HexDump.address(lib.lpBaseOfDll)
+                    lib = "%s" % HexDump.address(lib.lpBaseOfDll, bits)
             if bUseLabels:
                 label = aProcess.get_label_at_address(ra)
                 if bMakePretty:
-                    label = '%s (%s)' % (HexDump.address(ra), label)
+                    label = '%s (%s)' % (HexDump.address(ra, bits), label)
                 trace.append( (fp, label) )
             else:
                 trace.append( (fp, ra, lib) )
@@ -1326,6 +1329,46 @@ class Thread (object):
         if not stackData:
             return ()
         return struct.unpack('<'+('Q'*count), stackData)
+
+    def read_stack_structure(self, structure, offset = 0):
+        """
+        Reads the given structure at the top of the stack.
+
+        @type  structure: ctypes.Structure
+        @param structure: Structure of the data to read from the stack.
+
+        @type  offset: int
+        @param offset: Offset from the stack pointer to begin reading.
+            The stack pointer is the same returned by the L{get_sp} method.
+
+        @rtype:  tuple
+        @return: Tuple of elements read from the stack. The type of each
+            element matches the types in the stack frame structure.
+        """
+        aProcess  = self.get_process()
+        stackData = aProcess.read_structure(self.get_sp() + offset, structure)
+        return tuple([ stackData.__getattribute__(name)
+                       for (name, type) in stackData._fields_ ])
+
+    def read_stack_frame(self, stack_frame_structure, offset = 0):
+        """
+        Reads the stack frame of the thread.
+
+        @type  structure: ctypes.Structure
+        @param structure: Structure of the stack frame.
+
+        @type  offset: int
+        @param offset: Offset from the frame pointer to begin reading.
+            The frame pointer is the same returned by the L{get_fp} method.
+
+        @rtype:  tuple
+        @return: Tuple of elements read from the stack frame. The type of each
+            element matches the types in the stack frame structure.
+        """
+        aProcess  = self.get_process()
+        stackData = aProcess.read_structure(self.get_fp() + offset, structure)
+        return tuple([ stackData.__getattribute__(name)
+                       for (name, type) in stackData._fields_ ])
 
     def read_code_bytes(self, size = 128, offset = 0):
         """

@@ -34,19 +34,19 @@ from winappdbg import Debug
 
 import sys
 
-# Get the process ID from the command line
+# Get the process ID from the command line.
 pid = int( sys.argv[1] )
 
-# Instance a Debug object
+# Instance a Debug object.
 debug = Debug()
 try:
 
-    # Attach to a running process
+    # Attach to a running process.
     debug.attach( pid )
 
-    # Wait for the debugee to finish
+    # Wait for the debugee to finish.
     debug.loop()
 
-# Stop the debugger
+# Stop the debugger.
 finally:
     debug.stop()

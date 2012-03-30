@@ -34,10 +34,10 @@ from winappdbg import Process, System
 
 def freeze_threads( pid ):
 
-    # Request debug privileges
+    # Request debug privileges.
     System.request_debug_privileges()
 
-    # Instance a Process object
+    # Instance a Process object.
     process = Process( pid )
 
     # This would also do the trick...
@@ -46,21 +46,21 @@ def freeze_threads( pid ):
     #
     # ...but let's do it the hard way:
 
-    # Lookup the threads in the process
+    # Lookup the threads in the process.
     process.scan_threads()
 
     # For each thread in the process...
     for thread in process.iter_threads():
 
-        # Suspend the thread execution
+        # Suspend the thread execution.
         thread.suspend()
 
 def unfreeze_threads( pid ):
 
-    # Request debug privileges
+    # Request debug privileges.
     System.request_debug_privileges()
 
-    # Instance a Process object
+    # Instance a Process object.
     process = Process( pid )
 
     # This would also do the trick...
@@ -69,18 +69,18 @@ def unfreeze_threads( pid ):
     #
     # ...but let's do it the hard way:
 
-    # Lookup the threads in the process
+    # Lookup the threads in the process.
     process.scan_threads()
 
     # For each thread in the process...
     for thread in process.iter_threads():
 
-        # Resume the thread execution
+        # Resume the thread execution.
         thread.resume()
 
 # When invoked from the command line,
 # the first argument is either "f" or "u"
-# the second argument is a process ID
+# the second argument is a process ID.
 if __name__ == "__main__":
     import sys
     command = sys.argv[1][0].lower()

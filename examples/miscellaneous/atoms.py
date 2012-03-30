@@ -32,7 +32,7 @@
 
 from winappdbg.win32 import GlobalGetAtomName, MAXINTATOM
 
-# print all valid named global atoms to standard output
+# print all valid named global atoms to standard output.
 def print_atoms():
     for x in xrange(0, MAXINTATOM):
         try:

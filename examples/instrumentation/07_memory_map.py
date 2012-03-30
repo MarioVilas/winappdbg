@@ -34,10 +34,13 @@ from winappdbg import win32, Process, HexDump
 
 def print_memory_map( pid ):
 
-    # Instance a Process object
+    # Instance a Process object.
     process = Process( pid )
 
-    # Get the process memory map
+    # Find out if it's a 32 or 64 bit process.
+    bits = process.get_bits()
+
+    # Get the process memory map.
     memoryMap = process.get_memory_map()
 
     # Now you could do this...
@@ -51,11 +54,11 @@ def print_memory_map( pid ):
     print "Address   \tSize      \tState     \tAccess    \tType"
     for mbi in memoryMap:
 
-        # Address and size of memory block
-        BaseAddress = HexDump.address(mbi.BaseAddress)
-        RegionSize  = HexDump.address(mbi.RegionSize)
+        # Address and size of memory block.
+        BaseAddress = HexDump.address(mbi.BaseAddress, bits)
+        RegionSize  = HexDump.address(mbi.RegionSize,  bits)
 
-        # State (free or allocated)
+        # State (free or allocated).
         if   mbi.State == win32.MEM_RESERVE:
             State   = "Reserved  "
         elif mbi.State == win32.MEM_COMMIT:
@@ -65,7 +68,7 @@ def print_memory_map( pid ):
         else:
             State   = "Unknown   "
 
-        # Page protection bits (R/W/X/G)
+        # Page protection bits (R/W/X/G).
         if mbi.State != win32.MEM_COMMIT:
             Protect = "          "
         else:
@@ -102,7 +105,7 @@ def print_memory_map( pid ):
                 Protect += "-"
             Protect += "   "
 
-        # Type (file mapping, executable image, or private memory)
+        # Type (file mapping, executable image, or private memory).
         if   mbi.Type == win32.MEM_IMAGE:
             Type    = "Image     "
         elif mbi.Type == win32.MEM_MAPPED:
@@ -114,12 +117,12 @@ def print_memory_map( pid ):
         else:
             Type    = "Unknown   "
 
-        # Print the memory block information
+        # Print the memory block information.
         fmt = "%s\t%s\t%s\t%s\t%s"
         print fmt % ( BaseAddress, RegionSize, State, Protect, Type )
 
 # When invoked from the command line,
-# the first argument is a process ID
+# the first argument is a process ID.
 if __name__ == "__main__":
     import sys
     print_memory_map( int( sys.argv[1] ) )

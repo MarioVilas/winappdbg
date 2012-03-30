@@ -59,10 +59,9 @@ def MAKE_LPARAM(lParam):
     """
     return ctypes.cast(lParam, LPARAM)
 
-class WindowEnumerator (object):
+class __WindowEnumerator (object):
     """
-    Window enumerator class.  You can pass it's instances
-    as callback functions in window enumeration APIs.
+    Window enumerator class. Used internally by the window enumeration APIs.
     """
     def __init__(self):
         self.hwnd = list()
@@ -702,6 +701,38 @@ def FindWindowW(lpClassName = None, lpWindowName = None):
 
 FindWindow = GuessStringType(FindWindowA, FindWindowW)
 
+# HWND WINAPI FindWindowEx(
+#   __in_opt  HWND hwndParent,
+#   __in_opt  HWND hwndChildAfter,
+#   __in_opt  LPCTSTR lpszClass,
+#   __in_opt  LPCTSTR lpszWindow
+# );
+def FindWindowExA(hwndParent = None, hwndChildAfter = None, lpClassName = None, lpWindowName = None):
+    _FindWindowExA = windll.user32.FindWindowExA
+    _FindWindowExA.argtypes = [HWND, HWND, LPSTR, LPSTR]
+    _FindWindowExA.restype  = HWND
+
+    hWnd = _FindWindowExA(hwndParent, hwndChildAfter, lpClassName, lpWindowName)
+    if not hWnd:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return hWnd
+
+def FindWindowExW(hwndParent = None, hwndChildAfter = None, lpClassName = None, lpWindowName = None):
+    _FindWindowExW = windll.user32.FindWindowExW
+    _FindWindowExW.argtypes = [HWND, HWND, LPWSTR, LPWSTR]
+    _FindWindowExW.restype  = HWND
+
+    hWnd = _FindWindowExW(hwndParent, hwndChildAfter, lpClassName, lpWindowName)
+    if not hWnd:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return hWnd
+
+FindWindowEx = GuessStringType(FindWindowExA, FindWindowExW)
+
 # int GetClassName(
 #     HWND hWnd,
 #     LPTSTR lpClassName,
@@ -1187,7 +1218,7 @@ def GetGUIThreadInfo(idThread):
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumWndProc (WindowEnumerator):
+class __EnumWndProc (__WindowEnumerator):
     pass
 
 # BOOL EnumWindows(
@@ -1211,7 +1242,7 @@ def EnumWindows():
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumThreadWndProc (WindowEnumerator):
+class __EnumThreadWndProc (__WindowEnumerator):
     pass
 
 # BOOL EnumThreadWindows(
@@ -1236,7 +1267,7 @@ def EnumThreadWindows(dwThreadId):
 #     HWND hwnd,
 #     LPARAM lParam
 # );
-class __EnumChildProc (WindowEnumerator):
+class __EnumChildProc (__WindowEnumerator):
     pass
 
 # BOOL EnumChildWindows(

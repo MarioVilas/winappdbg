@@ -31,27 +31,32 @@
 # $Id$
 
 from winappdbg import Debug, EventHandler, System
+from winappdbg.win32 import *
 
 
 class MyEventHandler( EventHandler ):
 
 
-    # Here we set which API calls we want to intercept
+    # Here we set which API calls we want to intercept.
     apiHooks = {
 
-        # Hooks for the kernel32 library
+        # Hooks for the kernel32 library.
         'kernel32.dll' : [
-                           #  Function            Parameters
-                           ( 'CreateFileA'     ,   7  ),
-                           ( 'CreateFileW'     ,   7  ),
-                         ],
 
-        # Hooks for the advapi32 library
+            #  Function            Parameters
+            ( 'CreateFileA'     , (PVOID, DWORD, DWORD, PVOID, DWORD, DWORD, HANDLE) ),
+            ( 'CreateFileW'     , (PVOID, DWORD, DWORD, PVOID, DWORD, DWORD, HANDLE) ),
+
+        ],
+
+        # Hooks for the advapi32 library.
         'advapi32.dll' : [
-                           #  Function            Parameters
-                           ( 'RegCreateKeyExA' ,   9  ),
-                           ( 'RegCreateKeyExW' ,   9  ),
-                         ],
+
+            #  Function            Parameters
+            ( 'RegCreateKeyExA' , (HKEY, PVOID, DWORD, PVOID, DWORD, REGSAM, PVOID, PVOID, PVOID) ),
+            ( 'RegCreateKeyExW' , (HKEY, PVOID, DWORD, PVOID, DWORD, REGSAM, PVOID, PVOID, PVOID) ),
+
+        ],
     }
 
 
@@ -129,28 +134,24 @@ class MyEventHandler( EventHandler ):
 
 def simple_debugger( argv ):
 
-    # Check we're running in a 32 bits machine
-    if System.bits != 32:
-        raise NotImplementedError( "This example only runs in 32 bits" )
-
-    # Instance a Debug object, passing it the MyEventHandler instance
+    # Instance a Debug object, passing it the MyEventHandler instance.
     debug = Debug( MyEventHandler() )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

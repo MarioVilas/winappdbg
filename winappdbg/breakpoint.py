@@ -63,6 +63,7 @@ from process import Process
 from util import DebugRegister, MemoryAddresses
 from textio import HexDump
 
+import ctypes
 import warnings
 
 #==============================================================================
@@ -963,10 +964,7 @@ class HardwareBreakpoint (Breakpoint):
 # minor issue since when you're fuzzing a function for overflows you're usually
 # not interested in the return value anyway.
 
-# XXX TODO
-# The assumption that all parameters are DWORDs and all we need is the count
-# is wrong for 64 bit Windows. Perhaps a better scheme is in order? Ideally
-# it should be kept compatible with previous versions.
+# TODO: an API to modify the hooked function's arguments
 
 class Hook (object):
     """
@@ -995,7 +993,8 @@ class Hook (object):
     #
     useHardwareBreakpoints = False
 
-    def __init__(self, preCB = None, postCB = None, paramCount = 0):
+    def __init__(self, preCB = None, postCB = None,
+                       paramCount = None, signature = None):
         """
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
@@ -1034,12 +1033,199 @@ class Hook (object):
         @param paramCount:
             (Optional) Number of parameters for the C{preCB} callback,
             not counting the return address. Parameters are read from
-            the stack and assumed to be DWORDs.
+            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
+
+            This is a faster way to pull stack parameters in 32 bits, but in 64
+            bits (or with some odd APIs in 32 bits) it won't be useful, since
+            not all arguments to the hooked function will be of the same size.
+
+            For a more reliable and cross-platform way of hooking use the
+            C{signature} argument instead.
+
+        @type  signature: tuple
+        @param signature:
+            (Optional) Tuple of C{ctypes} data types that constitute the
+            hooked function signature. When the function is called, this will
+            be used to parse the arguments from the stack.
         """
-        self.__paramCount = paramCount
         self.__preCB      = preCB
         self.__postCB     = postCB
+        self.__paramCount = paramCount
         self.__paramStack = dict()   # tid -> list of tuple( arg, arg, arg... )
+
+        if win32.arch != win32.ARCH_I386:
+            self.useHardwareBreakpoints = False
+
+        if win32.bits == 64 and paramCount and not signature:
+            signature = ctypes.QWORD * paramCount
+
+        if signature:
+            # FIXME: all pointers should be converted to c_void_p!
+            self.__signature = self.__calc_signature(signature)
+        else:
+            self.__signature = None
+
+    if win32.arch == win32.ARCH_I386:
+
+        def __calc_signature(self, signature):
+            class Arguments (ctypes.Structure):
+                _fields_ = [ ("arg_%s" % i, signature[i]) \
+                             for i in xrange(len(signature) - 1, -1, -1) ]
+            return Arguments
+
+        def __get_return_address(self, aProcess, aThread):
+            return aProcess.read_pointer( aThread.get_sp() )
+
+        def __get_function_arguments(self, aProcess, aThread):
+            if self.__signature:
+                params = aThread.read_stack_structure(self.__signature,
+                                           offset = win32.sizeof(win32.LPVOID))
+            elif self.__paramCount:
+                params = aThread.read_stack_dwords(self.__paramCount,
+                                           offset = win32.sizeof(win32.LPVOID))
+            else:
+                params = ()
+            return params
+
+        def __get_return_value(self, aThread):
+            ctx = aThread.get_context(win32.CONTEXT_INTEGER)
+            return ctx['Eax']
+
+    elif win32.arch == win32.ARCH_AMD64:
+
+        # Make a list of floating point types.
+        __float_types = (
+            ctypes.c_double,
+            ctypes.c_float,
+        )
+        # Long doubles are not supported in old versions of ctypes!
+        try:
+            __float_types += (ctypes.c_longdouble,)
+        except AttributeError:
+            pass
+
+        def __calc_signature(self, signature):
+            float_types = self.__float_types
+            sizeof      = ctypes.sizeof
+            reg_size    = sizeof(ctypes.c_size_t)
+
+            reg_int_sig   = []
+            reg_float_sig = []
+            stack_sig     = []
+
+            for i in xrange(len(signature)):
+                arg  = signature[i]
+                name = "arg_%d" % i
+                stack_sig.insert( 0, (name, arg) )
+                if i < 4:
+                    if type(arg) in float_types:
+                        reg_float_sig.append( (name, arg) )
+                    elif sizeof(arg) <= reg_size:
+                        reg_int_sig.append( (name, arg) )
+                    else:
+                        msg = ("Hook signatures don't support structures"
+                               " within the first 4 arguments of a function"
+                               " for the %s architecture") % win32.arch
+                        raise NotImplementedError(msg)
+
+            if reg_int_sig:
+                class RegisterArguments (ctypes.Structure):
+                    _fields_ = reg_int_sig
+            else:
+                RegisterArguments = None
+            if reg_float_sig:
+                class FloatArguments (ctypes.Structure):
+                    _fields_ = reg_float_sig
+            else:
+                FloatArguments = None
+            if stack_sig:
+                class StackArguments (ctypes.Structure):
+                    _fields_ = stack_sig
+            else:
+                StackArguments = None
+
+            return (len(signature),
+                    RegisterArguments,
+                    FloatArguments,
+                    StackArguments)
+
+        def __get_return_address(self, aProcess, aThread):
+            return aProcess.read_pointer( aThread.get_sp() )
+
+        def __get_function_arguments(self, aProcess, aThread):
+            if self.__signature:
+                (args_count,
+                 RegisterArguments,
+                 FloatArguments,
+                 StackArguments) = self.__signature
+                arguments = {}
+                if StackArguments:
+                    address = aThread.get_sp() + win32.sizeof(win32.LPVOID)
+                    stack_struct = aProcess.read_structure(address,
+                                                                StackArguments)
+                    stack_args = dict(
+                        [ (name, stack_struct.__getattribute__(name))
+                            for (name, type) in stack_struct._fields_ ]
+                    )
+                    arguments.update(stack_args)
+                flags = 0
+                if RegisterArguments:
+                    flags = flags | win32.CONTEXT_INTEGER
+                if FloatArguments:
+                    flags = flags | win32.CONTEXT_MMX_REGISTERS
+                if flags:
+                    ctx = aThread.get_context(flags)
+                    if RegisterArguments:
+                        buffer = (win32.QWORD * 4)(ctx['Rcx'], ctx['Rdx'],
+                                                   ctx['R8'], ctx['R9'])
+                        reg_args = self.__get_arguments_from_buffer(buffer,
+                                                             RegisterArguments)
+                        arguments.update(reg_args)
+                    if FloatArguments:
+                        buffer = (win32.M128A * 4)(ctx['XMM0'], ctx['XMM1'],
+                                                   ctx['XMM2'], ctx['XMM3'])
+                        float_args = self.__get_arguments_from_buffer(buffer,
+                                                                FloatArguments)
+                        arguments.update(float_args)
+                params = tuple( [ arguments["arg_%d" % i]
+                                  for i in xrange(args_count) ] )
+            else:
+                params = ()
+            return params
+
+        def __get_arguments_from_buffer(self, buffer, structure):
+            b_ptr  = ctypes.pointer(buffer)
+            v_ptr  = ctypes.cast(b_ptr, ctypes.c_void_p)
+            s_ptr  = ctypes.cast(v_ptr, ctypes.POINTER(structure))
+            struct = s_ptr.contents
+            return dict(
+                [ (name, struct.__getattribute__(name))
+                    for (name, type) in struct._fields_ ]
+            )
+
+        def __get_return_value(self, aThread):
+            ctx = aThread.get_context(win32.CONTEXT_INTEGER)
+            return ctx['Rax']
+
+    else:
+
+        def __calc_signature(self, signature):
+            raise NotImplementedError(
+                "Hooks signatures are not supported for architecture: %s" \
+                % win32.arch)
+
+        def __get_return_address(self, aProcess, aThread):
+            return None
+
+        def __get_function_arguments(self, aProcess, aThread):
+            if self.__signature or self.__paramCount:
+                raise NotImplementedError(
+                    "Hooks signatures are not supported for architecture: %s" \
+                    % win32.arch)
+            return ()
+
+        def __get_return_value(self, aThread):
+            return None
 
     # By using break_at() to set a process-wide breakpoint on the function's
     # return address, we might hit a race condition when more than one thread
@@ -1059,20 +1245,20 @@ class Hook (object):
         """
         debug = event.debug
 
-        # Get the parameters from the stack.
         dwProcessId = event.get_pid()
         dwThreadId  = event.get_tid()
         aProcess    = event.get_process()
         aThread     = event.get_thread()
-        ra          = aProcess.read_pointer( aThread.get_sp() )
-        params      = aThread.read_stack_dwords(self.__paramCount,
-                                           offset = win32.sizeof(win32.LPVOID))
 
-        # Keep the parameters for later use.
+        # Get the return address and function arguments.
+        ra     = self.__get_return_address(aProcess, aThread)
+        params = self.__get_function_arguments(aProcess, aThread)
+
+        # Keep the function arguments for later use.
         self.__push_params(dwThreadId, params)
 
         # If we need to hook the return from the function...
-        if self.__postCB is not None:
+        if ra is not None and self.__postCB is not None:
 
             # Try to set a one shot hardware breakpoint at the return address.
             useHardwareBreakpoints = self.useHardwareBreakpoints
@@ -1088,9 +1274,11 @@ class Hook (object):
                         )
                     debug.enable_one_shot_hardware_breakpoint(dwThreadId, ra)
                 except Exception, e:
-##                    import traceback        # XXX DEBUG
-##                    traceback.print_exc()
                     useHardwareBreakpoints = False
+                    msg = ("Failed to set hardware breakpoint"
+                           " at address %s for thread ID %d")
+                    msg = msg % (HexDump.address(ra), dwThreadId)
+                    warnings.warn(msg, BreakpointWarning)
 
             # If not possible, set a code breakpoint instead.
             if not useHardwareBreakpoints:
@@ -1100,7 +1288,7 @@ class Hook (object):
         try:
             self.__callHandler(self.__preCB, event, ra, *params)
 
-        # If no "post" callback is defined, forget the parameters.
+        # If no "post" callback is defined, forget the function arguments.
         finally:
             if self.__postCB is None:
                 self.__pop_params(dwThreadId)
@@ -1166,15 +1354,7 @@ class Hook (object):
         @param event: Breakpoint hit event.
         """
         aThread = event.get_thread()
-        ctx     = aThread.get_context(win32.CONTEXT_INTEGER)
-        if ctx.arch == win32.ARCH_I386:
-            retval = ctx['Eax']
-        elif ctx.arch == win32.ARCH_AMD64:
-            retval = ctx['Rax']
-##        elif ctx.arch == win32.ARCH_IA64:
-##            retval = ctx['IntV0']   # r8
-        else:
-            retval = None
+        retval  = self.__get_return_value(aThread)
         self.__callHandler(self.__postCB, event, retval)
 
     def __callHandler(self, callback, event, *params):
@@ -1190,8 +1370,8 @@ class Hook (object):
         @type  params: tuple
         @param params: Parameters for the callback function.
         """
-        event.hook = self
         if callback is not None:
+            event.hook = self
             callback(event, *params)
 
     def __push_params(self, tid, params):
@@ -1308,12 +1488,22 @@ class ApiHook (Hook):
     return value from the function call.
 
     @see: L{EventHandler.apiHooks}
+
+    @type modName: str
+    @ivar modName: Module name.
+
+    @type procName: str
+    @ivar procName: Procedure name.
     """
 
-    def __init__(self, eventHandler, procName, paramCount = 0):
+    def __init__(self, eventHandler, modName, procName, paramCount = None,
+                                                         signature = None):
         """
         @type  eventHandler: L{EventHandler}
         @param eventHandler: Event handler instance.
+
+        @type  modName: str
+        @param modName: Module name.
 
         @type  procName: str
         @param procName: Procedure name.
@@ -1346,17 +1536,40 @@ class ApiHook (Hook):
             This may not always be so, especially in 64 bits Windows.
 
         @type  paramCount: int
-        @param paramCount: (Optional) Number of parameters for the callback.
-            Parameters are read from the stack and assumed to be DWORDs.
-            The first parameter of the pre callback is always the return address.
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
+
+            This is a faster way to pull stack parameters in 32 bits, but in 64
+            bits (or with some odd APIs in 32 bits) it won't be useful, since
+            not all arguments to the hooked function will be of the same size.
+
+            For a more reliable and cross-platform way of hooking use the
+            C{signature} argument instead.
+
+        @type  signature: tuple
+        @param signature:
+            (Optional) Tuple of C{ctypes} data types that constitute the
+            hooked function signature. When the function is called, this will
+            be used to parse the arguments from the stack.
         """
+        self.__modName  = modName
         self.__procName = procName
 
         preCB  = getattr(eventHandler, 'pre_%s'  % procName, None)
         postCB = getattr(eventHandler, 'post_%s' % procName, None)
-        Hook.__init__(self, preCB, postCB, paramCount)
+        Hook.__init__(self, preCB, postCB, paramCount, signature)
 
-    def hook(self, debug, pid, modName):
+    @property
+    def modName(self):
+        return self.__modName
+
+    @property
+    def procName(self):
+        return self.__procName
+
+    def hook(self, debug, pid):
         """
         Installs the API hook on a given process and module.
 
@@ -1367,18 +1580,11 @@ class ApiHook (Hook):
 
         @type  pid: int
         @param pid: Process ID.
-
-        @type  modName: str
-        @param modName: Module name.
         """
-        address = debug.resolve_exported_function(pid, modName, self.__procName)
-        if address is None:
-            msg = "Cannot resolve symbol %s at module %s"
-            msg = msg % (modName, self.__procName)
-            raise ValueError(msg)
-        Hook.hook(self, debug, pid, address)
+        label = "%s!%s" % (self.__modName, self.__procName)
+        Hook.hook(self, debug, pid, label)
 
-    def unhook(self, debug, pid, modName):
+    def unhook(self, debug, pid):
         """
         Removes the API hook from the given process and module.
 
@@ -1389,12 +1595,9 @@ class ApiHook (Hook):
 
         @type  pid: int
         @param pid: Process ID.
-
-        @type  modName: str
-        @param modName: Module name.
         """
-        address = debug.resolve_exported_function(pid, modName, self.__procName)
-        Hook.unhook(self, debug, pid, address)
+        label = "%s!%s" % (self.__modName, self.__procName)
+        Hook.unhook(self, debug, pid, label)
 
 #==============================================================================
 
@@ -2996,8 +3199,9 @@ class _BreakpointContainer (object):
         pid             = event.get_pid()
         bCallHandler    = True
 
-        # Align address to page boundary
-        address = address & 0xFFFFF000
+        # Align address to page boundary.
+        mask = ~(MemoryAddresses.pageSize - 1)
+        address = address & mask
 
         # Do we have a page breakpoint there?
         key = (pid, address)
@@ -3425,8 +3629,13 @@ class _BreakpointContainer (object):
         @param action: (Optional) Action callback function.
 
             See L{define_code_breakpoint} for more details.
+
+        @rtype:  bool
+        @return: C{True} if the breakpoint was set immediately, or C{False} if
+            it was deferred.
         """
-        self.__set_break(pid, address, action, oneshot = True)
+        bp = self.__set_break(pid, address, action, oneshot = True)
+        return bp is not None
 
     def break_at(self, pid, address, action = None):
         """
@@ -3450,8 +3659,13 @@ class _BreakpointContainer (object):
         @param action: (Optional) Action callback function.
 
             See L{define_code_breakpoint} for more details.
+
+        @rtype:  bool
+        @return: C{True} if the breakpoint was set immediately, or C{False} if
+            it was deferred.
         """
-        self.__set_break(pid, address, action, oneshot = False)
+        bp = self.__set_break(pid, address, action, oneshot = False)
+        return bp is not None
 
     def dont_break_at(self, pid, address):
         """
@@ -3487,8 +3701,9 @@ class _BreakpointContainer (object):
 
     # Function hooks
 
-    def hook_function(self, pid, address,          preCB = None, postCB = None,
-                                                               paramCount = 0):
+    def hook_function(self, pid, address,
+                      preCB = None, postCB = None,
+                      paramCount = None, signature = None):
         """
         Sets a function hook at the given address.
 
@@ -3538,18 +3753,32 @@ class _BreakpointContainer (object):
         @param paramCount:
             (Optional) Number of parameters for the C{preCB} callback,
             not counting the return address. Parameters are read from
-            the stack and assumed to be DWORDs.
+            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
+
+            This is a faster way to pull stack parameters in 32 bits, but in 64
+            bits (or with some odd APIs in 32 bits) it won't be useful, since
+            not all arguments to the hooked function will be of the same size.
+
+            For a more reliable and cross-platform way of hooking use the
+            C{signature} argument instead.
+
+        @type  signature: tuple
+        @param signature:
+            (Optional) Tuple of C{ctypes} data types that constitute the
+            hooked function signature. When the function is called, this will
+            be used to parse the arguments from the stack.
+
+        @rtype:  bool
+        @return: C{True} if the hook was set immediately, or C{False} if
+            it was deferred.
         """
-        # XXX HACK
-        # This will be removed when hooks are supported in AMD64.
-        if win32.arch != win32.ARCH_I386:
-            raise NotImplementedError()
+        hookObj = Hook(preCB, postCB, paramCount, signature)
+        bp = self.break_at(pid, address, hookObj)
+        return bp is not None
 
-        hookObj = Hook(preCB, postCB, paramCount)
-        self.break_at(pid, address, hookObj)
-
-    def stalk_function(self, pid, address,         preCB = None, postCB = None,
-                                                               paramCount = 0):
+    def stalk_function(self, pid, address,
+                       preCB = None, postCB = None,
+                       paramCount = None, signature = None):
         """
         Sets a one-shot function hook at the given address.
 
@@ -3599,15 +3828,28 @@ class _BreakpointContainer (object):
         @param paramCount:
             (Optional) Number of parameters for the C{preCB} callback,
             not counting the return address. Parameters are read from
-            the stack and assumed to be DWORDs.
-        """
-        # XXX HACK
-        # This will be removed when hooks are supported in AMD64.
-        if win32.arch != win32.ARCH_I386:
-            raise NotImplementedError()
+            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
 
+            This is a faster way to pull stack parameters in 32 bits, but in 64
+            bits (or with some odd APIs in 32 bits) it won't be useful, since
+            not all arguments to the hooked function will be of the same size.
+
+            For a more reliable and cross-platform way of hooking use the
+            C{signature} argument instead.
+
+        @type  signature: tuple
+        @param signature:
+            (Optional) Tuple of C{ctypes} data types that constitute the
+            hooked function signature. When the function is called, this will
+            be used to parse the arguments from the stack.
+
+        @rtype:  bool
+        @return: C{True} if the breakpoint was set immediately, or C{False} if
+            it was deferred.
+        """
         hookObj = Hook(preCB, postCB, paramCount)
-        self.stalk_at(pid, address, hookObj)
+        bp = self.stalk_at(pid, address, hookObj)
+        return bp is not None
 
     def dont_hook_function(self, pid, address):
         """

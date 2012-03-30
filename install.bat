@@ -21,7 +21,7 @@ goto Exit
 
 :Default
 python setup.py install
-python -c "import winappdbg; from winappdbg import sql; print 'Installation successful.'"
+python -c "import winappdbg; from winappdbg import *; from winappdbg import sql; print 'Installation successful.'"
 goto Exit
 
 :All
@@ -36,7 +36,7 @@ echo.
 echo Testing installation success...
 echo.
 for /f "delims=#" %%P in (install.cfg) do (
-    cmd /c if exist "%%P" "%%P" -c "print 'Interpreter: %%P'; import winappdbg; from winappdbg import sql; print 'OK'"
+    cmd /c if exist "%%P" "%%P" -c "print 'Interpreter: %%P'; import winappdbg; from winappdbg import *; from winappdbg import sql; print 'OK'"
     cmd /c if exist "%%P" echo.
 )
 echo Done.

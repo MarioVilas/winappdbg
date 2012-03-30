@@ -520,7 +520,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             msg = "No disassembler found for architecture: %s" % win32.arch
             raise NotImplementedError(msg)
-        if (not win32.wow64 and win32.bits == 32) or self.is_wow64():
+        if self.get_bits() == 32:
             return Decode(lpAddress, code, Decode32Bits)
         return Decode(lpAddress, code, Decode64Bits)
 
@@ -2778,8 +2778,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         Used internally by L{restore_memory_snapshot}.
         """
 
-##        print "Restoring %s-%s" % (HexDump.address(old_mbi.BaseAddress), \
-##                   HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize))
+##        print "Restoring %s-%s" % (HexDump.address(old_mbi.BaseAddress, self.get_bits()), \
+##                   HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize, self.get_bits()))
 
         # Restore the region state.
         if new_mbi.State != old_mbi.State:

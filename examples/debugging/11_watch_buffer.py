@@ -30,34 +30,34 @@
 
 # $Id$
 
-from winappdbg import Debug, EventHandler, System, win32
+from winappdbg import Debug, EventHandler, System, HexDump, win32
 
 
 class MyHook (object):
 
-    # Keep record of the buffers we watch
+    # Keep record of the buffers we watch.
     def __init__(self):
         self.__watched = dict()
 
 
-    # This function will be called when entering the hooked function
+    # This function will be called when entering the hooked function.
     def entering( self, event, ra, hModule, lpProcName ):
 
-        # Ignore calls using ordinals intead of names
-        if lpProcName & 0xFFFF0000 == 0:
+        # Ignore calls using ordinals instead of names.
+        if lpProcName - (lpProcName & 0xFFFF) == 0:
             return
 
-        # Get the procedure name
+        # Get the procedure name.
         procName = event.get_process().peek_string( lpProcName )
 
-        # Ignore calls using an empty string
+        # Ignore calls using an empty string.
         if not procName:
             return
 
-        # Show a message to the user
+        # Show a message to the user.
         print "GetProcAddress( %r );" % procName
 
-        # Watch the procedure name buffer for access
+        # Watch the procedure name buffer for access.
         pid     = event.get_pid()
         address = lpProcName
         size    = len(procName) + 1
@@ -69,86 +69,93 @@ class MyHook (object):
         #
         # event.debug.stalk_buffer( pid, address, size, action )
 
-        # Remember the location of the buffer
+        # Remember the location of the buffer.
         self.__watched[ event.get_tid() ] = ( address, size )
 
 
-    # This function will be called when leaving the hooked function
+    # This function will be called when leaving the hooked function.
     def leaving( self, event, return_value ):
 
-        # Get the thread ID
-        tid = thread.get_tid()
+        # Get the thread ID.
+        tid = event.get_tid()
 
-        # Get the buffer location
+        # Get the buffer location.
         ( address, size ) = self.__watched[ tid ]
 
-        # Stop watching the buffer
+        # Stop watching the buffer.
         event.debug.dont_watch_buffer( event.get_pid(), address, size )
         #event.debug.dont_stalk_buffer( event.get_pid(), address, size )
 
-        # Forget the buffer location
+        # Forget the buffer location.
         del self.__watched[ tid ]
 
 
-    # This function will be called every time the procedure name buffer is accessed
+    # This function will be called every time the procedure name buffer is accessed.
     def accessed( self, event ):
 
-        # Show the user where we're running
+        # Show the user where we're running.
         thread = event.get_thread()
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
-        print "0x%.08x: %s" % ( code[0], code[2].lower() )
+        print "%s: %s" % (
+            HexDump.address(code[0], thread.get_bits()),
+            code[2].lower()
+        )
 
 
 class MyEventHandler( EventHandler ):
 
-    # Called guard page exceptions NOT raised by our breakpoints
+    # Called on guard page exceptions NOT raised by our breakpoints.
     def guard_page( self, event ):
         print event.get_exception_name()
 
-    # Called on DLL load events
+    # Called on DLL load events.
     def load_dll( self, event ):
 
-        # Get the new module object
+        # Get the new module object.
         module = event.get_module()
 
         # If it's kernel32...
         if module.match_name( "kernel32.dll" ):
 
-            # Get the process ID
+            # Get the process ID.
             pid = event.get_pid()
 
-            # Get the address of wsprintf
+            # Get the address of the function to hook.
             address = module.resolve( "GetProcAddress" )
 
-            # Hook the wsprintf function
-            event.debug.hook_function( pid, address, MyHook().entering, paramCount = 2 )
+            # This is an approximated signature of the function.
+            # Pointers must be void so ctypes doesn't try to read from them.
+            signature = ( win32.HMODULE, win32.PVOID )
+
+            # Hook the function.
+            event.debug.hook_function( pid, address, MyHook().entering, signature = signature )
 
 
 def simple_debugger( argv ):
 
-    # Check we're running in a 32 bits machine
+    # Check we're running in a 32 bits machine.
     if System.bits != 32:
         raise NotImplementedError( "This example only runs in 32 bits" )
 
-    # Instance a Debug object, passing it the MyEventHandler instance
+    # Instance a Debug object, passing it the MyEventHandler instance.
     debug = Debug( MyEventHandler() )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

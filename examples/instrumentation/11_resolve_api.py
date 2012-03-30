@@ -34,25 +34,25 @@ from winappdbg import Process, System
 
 def print_api_address( pid, modName, procName ):
 
-    # Request debug privileges
+    # Request debug privileges.
     System.request_debug_privileges()
 
-    # Instance a Process object
+    # Instance a Process object.
     process = Process( pid )
 
-    # Lookup it's modules
+    # Lookup it's modules.
     process.scan_modules()
 
-    # Get the module
+    # Get the module.
     module = process.get_module_by_name( modName )
     if not module:
         print "Module not found: %s" % modName
         return
 
-    # Resolve the requested API function address
+    # Resolve the requested API function address.
     address = module.resolve( procName )
 
-    # Print the address
+    # Print the address.
     if address:
         print "%s!%s == 0x%.08x" % ( modName, procName, address )
     else:
@@ -61,7 +61,7 @@ def print_api_address( pid, modName, procName ):
 # When invoked from the command line,
 # the first argument is a process ID,
 # the second argunemt is a module name,
-# the third argument is a procedure name
+# the third argument is a procedure name.
 if __name__ == "__main__":
     import sys
     pid      = int( sys.argv[1] )

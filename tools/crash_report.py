@@ -111,10 +111,8 @@ def open_database(filename):
 def print_report_for_database(cc, options):
     if cc is not None:
         count = cc.__len__()
-        print count, type(count), type(cc), cc.__len__
         if not count:
             print "No crashes to report."
-            print
         else:
             print "Found %d crashes:" % count
             print '-' * 79

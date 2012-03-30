@@ -36,50 +36,51 @@ from winappdbg import Debug, EventHandler, HexDump, CrashDump, win32
 class MyEventHandler( EventHandler ):
 
 
-    # Create process events go here
+    # Create process events go here.
     def create_process( self, event ):
 
-        # Start tracing the main thread
+        # Start tracing the main thread.
         event.debug.start_tracing( event.get_tid() )
 
 
-    # Create thread events go here
+    # Create thread events go here.
     def create_thread( self, event ):
 
-        # Start tracing the new thread
+        # Start tracing the new thread.
         event.debug.start_tracing( event.get_tid() )
 
 
-    # Single step events go here
+    # Single step events go here.
     def single_step( self, event ):
 
-        # Show the user where we're running
+        # Show the user where we're running.
         thread = event.get_thread()
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
-        print "%s: %s" % ( HexDump.address(code[0]), code[2].lower() )
+        bits   = event.get_process().get_bits()
+        print "%s: %s" % ( HexDump.address(code[0], bits), code[2].lower() )
 
 
 def simple_debugger( argv ):
 
-    # Instance a Debug object, passing it the MyEventHandler instance
+    # Instance a Debug object, passing it the MyEventHandler instance.
     debug = Debug( MyEventHandler() )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

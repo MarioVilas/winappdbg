@@ -97,9 +97,10 @@ class Search (object):
         msg     = self.showfmt % vars()
         if data is not None:
             msg += "\n"
-            p = self.start & 0xFFFFFFF0
-            q = (self.end & 0xFFFFFFF0) + 0x10
-            msg += HexDump.hexblock( data[p:q], address & 0xFFFFFFF0 )
+            mask = ~0xF
+            p = self.start & mask
+            q = (self.end & mask) + 0x10
+            msg += HexDump.hexblock( data[p:q], address & mask )
             if msg.endswith('\n'):
                 msg = msg[:-len('\n')]
         return msg

@@ -31,19 +31,25 @@
 # $Id$
 
 from winappdbg import Debug, EventHandler, System
+from winappdbg.win32 import PVOID
 
 
-# This function will be called when the hooked function is entered
+# This function will be called when the hooked function is entered.
 def wsprintf( event, ra, lpOut, lpFmt ):
 
-    # Get the format string
-    lpFmt = event.get_process().peek_string( lpFmt, fUnicode = True )
+    # Get the format string.
+    process = event.get_process()
+    lpFmt   = process.peek_string( lpFmt, fUnicode = True )
 
-    # Get the vararg parameters
+    # Get the vararg parameters.
     count      = lpFmt.replace( '%%', '%' ).count( '%' )
-    parameters = event.get_thread().read_stack_dwords( count, offset = 3 )
+    thread     = event.get_thread()
+    if process.get_bits() == 32:
+        parameters = thread.read_stack_dwords( count, offset = 3 )
+    else:
+        parameters = thread.read_stack_qwords( count, offset = 3 )
 
-    # Show a message to the user
+    # Show a message to the user.
     showparams = ", ".join( [ hex(x) for x in parameters ] )
     print "wsprintf( %r, %s );" % ( lpFmt, showparams )
 
@@ -52,51 +58,52 @@ class MyEventHandler( EventHandler ):
 
     def load_dll( self, event ):
 
-        # Get the new module object
+        # Get the new module object.
         module = event.get_module()
 
         # If it's user32...
         if module.match_name("user32.dll"):
 
-            # Get the process ID
+            # Get the process ID.
             pid = event.get_pid()
 
-            # Get the address of wsprintf
+            # Get the address of wsprintf.
             address = module.resolve( "wsprintfW" )
 
-            # Hook the wsprintf function
-            event.debug.hook_function( pid, address, wsprintf, paramCount = 2 )
+            # This is an approximated signature of the wsprintf function.
+            # Pointers must be void so ctypes doesn't try to read from them.
+            # Varargs are obviously not included.
+            signature = ( PVOID, PVOID )
+
+            # Hook the wsprintf function.
+            event.debug.hook_function( pid, address, wsprintf, signature = signature)
 
             # Use stalk_function instead of hook_function
-            # to be notified only the first time the function is called
+            # to be notified only the first time the function is called.
             #
-            # event.debug.stalk_function( pid, address, wsprintf, paramCount = 2 )
+            # event.debug.stalk_function( pid, address, wsprintf, signature = signature)
 
 
 def simple_debugger( argv ):
 
-    # Check we're running in a 32 bits machine
-    if System.bits != 32:
-        raise NotImplementedError( "This example only runs in 32 bits" )
-
-    # Instance a Debug object, passing it the MyEventHandler instance
+    # Instance a Debug object, passing it the MyEventHandler instance.
     debug = Debug( MyEventHandler() )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

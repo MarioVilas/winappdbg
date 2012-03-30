@@ -37,14 +37,14 @@ from winappdbg import win32
 
 def processKiller(dwProcessId):
 
-    # Attach to the process
+    # Attach to the process.
     win32.DebugActiveProcess( dwProcessId )
 
-    # Quit the current thread
+    # Quit the current thread.
     thread.exit()
 
 # When invoked from the command line,
-# take the first argument as a process id
+# take the first argument as a process ID.
 if __name__ == "__main__":
     dwProcessId = int( sys.argv[1] )
     processKiller( dwProcessId )

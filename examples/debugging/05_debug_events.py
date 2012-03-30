@@ -34,45 +34,50 @@ from winappdbg import Debug, HexDump
 
 def my_event_handler( event ):
 
-    # Get the event name
+    # Get the event name.
     name = event.get_event_name()
 
-    # Get the event code
+    # Get the event code.
     code = event.get_event_code()
 
-    # Get the process ID where the event occured
+    # Get the process ID where the event occured.
     pid = event.get_pid()
 
-    # Get the thread ID where the event occured
+    # Get the thread ID where the event occured.
     tid = event.get_tid()
 
-    # Get the value of EIP at the thread
+    # Get the value of EIP at the thread.
     pc = event.get_thread().get_pc()
 
-    # Show something to the user
+    # Show something to the user.
+    bits = event.get_process().get_bits()
     format_string = "%s (%s) at address %s, process %d, thread %d"
-    message = format_string % ( name, HexDump.integer(code), HexDump.address(pc), pid, tid )
+    message = format_string % ( name,
+                                HexDump.integer(code, bits),
+                                HexDump.address(pc, bits),
+                                pid,
+                                tid )
     print message
 
 def simple_debugger( argv ):
 
-    # Instance a Debug object, passing it the event handler callback
+    # Instance a Debug object, passing it the event handler callback.
     debug = Debug( my_event_handler )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

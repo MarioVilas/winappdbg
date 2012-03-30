@@ -33,74 +33,76 @@
 from winappdbg import Debug, EventHandler, HexDump
 
 
-# This function will be called when our breakpoint is hit
+# This function will be called when our breakpoint is hit.
 def action_callback( event ):
+    process = event.get_process()
+    thread  = event.get_thread()
 
-    # Get the address of the top of the stack
-    stack   = event.get_thread().get_sp()
+    # Get the address of the top of the stack.
+    stack   = thread.get_sp()
 
-    # Get the return address of the call
-    address = event.get_process().read_pointer( stack )
+    # Get the return address of the call.
+    address = process.read_pointer( stack )
 
-    # Get the process and thread IDs
+    # Get the process and thread IDs.
     pid     = event.get_pid()
     tid     = event.get_tid()
 
-    # Show a message to the user
+    # Show a message to the user.
     message = "kernel32!CreateFileW called from %s by thread %d at process %d"
-    print message % ( HexDump.address(address), tid, pid )
+    print message % ( HexDump.address(address, process.get_bits()), tid, pid )
 
 
 class MyEventHandler( EventHandler ):
 
     def load_dll( self, event ):
 
-        # Get the new module object
+        # Get the new module object.
         module = event.get_module()
 
         # If it's kernel32.dll...
         if module.match_name("kernel32.dll"):
 
-            # Get the process ID
+            # Get the process ID.
             pid = event.get_pid()
 
-            # Get the address of CreateFile
+            # Get the address of CreateFile.
             address = module.resolve( "CreateFileW" )
 
-            # Set a breakpoint at CreateFile
+            # Set a breakpoint at CreateFile.
             event.debug.break_at( pid, address, action_callback )
 
             # If you use stalk_at instead of break_at,
-            # the message will only be shown once
+            # the message will only be shown once.
             #
             # event.debug.stalk_at( pid, address, action_callback )
 
 
 def simple_debugger( argv ):
 
-    # Instance a Debug object, passing it the MyEventHandler instance
+    # Instance a Debug object, passing it the MyEventHandler instance.
     debug = Debug( MyEventHandler() )
     try:
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( argv )
 
         # If you start the new process like this instead, the
-        # debugger will automatically attach to the child processes
+        # debugger will automatically attach to the child processes.
         #
         # debug.execv( argv, bFollow = True )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
-    # Stop the debugger
+    # Stop the debugger.
     finally:
         debug.stop()
 
 
 # When invoked from the command line,
 # the first argument is an executable file,
-# and the remaining arguments are passed to the newly created process
+# and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
     simple_debugger( sys.argv[1:] )

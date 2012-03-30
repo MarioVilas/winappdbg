@@ -37,22 +37,22 @@ from winappdbg import Debug
 
 import sys
 
-# Using the Debug object in a "with" context ensures proper cleanup
+# Using the Debug object in a "with" context ensures proper cleanup.
 with Debug() as debug:
 
     # The user can stop debugging with Control-C
     try:
         print "Hit Control-C to stop debugging..."
 
-        # Start a new process for debugging
+        # Start a new process for debugging.
         debug.execv( sys.argv[ 1 : ] )
 
-        # Wait for the debugee to finish
+        # Wait for the debugee to finish.
         debug.loop()
 
     # If the user presses Control-C...
     except KeyboardInterrupt:
         print "Interrupted by user."
 
-        # Kill all debugged processes
+        # Kill all debugged processes.
         debug.kill_all()

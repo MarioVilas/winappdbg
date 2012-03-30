@@ -871,12 +871,6 @@ class Crash (object):
         @rtype:  str
         @return: Short description of the event.
         """
-        if self.arch == win32.ARCH_I386:
-            integer_size = 8   # len('FFFFFFFF')
-            address_size = 8   # len('FFFFFFFF')
-        else:
-            integer_size = None
-            address_size = None
         if self.exceptionCode is not None:
             if self.exceptionCode == win32.EXCEPTION_BREAKPOINT:
                 if self.isOurBreakpoint:
@@ -891,7 +885,7 @@ class Crash (object):
                 what = self.exceptionName
             else:
                 what = "Exception %s" % \
-                            HexDump.integer(self.exceptionCode, integer_size)
+                            HexDump.integer(self.exceptionCode, self.bits)
             if self.firstChance:
                 chance = 'first'
             else:
@@ -899,26 +893,26 @@ class Crash (object):
             if self.exceptionLabel:
                 where = self.exceptionLabel
             elif self.exceptionAddress:
-                where = HexDump.address(self.exceptionAddress, address_size)
+                where = HexDump.address(self.exceptionAddress, self.bits)
             elif self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc, address_size)
+                where = HexDump.address(self.pc, self.bits)
             msg = "%s (%s chance) at %s" % (what, chance, where)
         elif self.debugString is not None:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc, address_size)
+                where = HexDump.address(self.pc, self.bits)
             msg = "Debug string from %s: %r" % (where, self.debugString)
         else:
             if self.labelPC:
                 where = self.labelPC
             else:
-                where = HexDump.address(self.pc, address_size)
+                where = HexDump.address(self.pc, self.bits)
             msg = "%s (%s) at %s" % (
                         self.eventName,
-                        HexDump.integer(self.eventCode, integer_size),
+                        HexDump.integer(self.eventCode, self.bits),
                         where
                        )
         return msg
@@ -934,14 +928,10 @@ class Crash (object):
         msg  = self.briefReport()
         msg += '\n'
 
-        if self.arch == win32.ARCH_I386:
-            width        = 16
-            integer_size = 8   # len('FFFFFFFF')
-            address_size = 8   # len('FFFFFFFF')
+        if self.bits == 32:
+            width = 16
         else:
-            width        = 8
-            integer_size = None
-            address_size = None
+            width = 8
 
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             (exploitability, expcode, expdescription) = self.isExploitable()
@@ -960,7 +950,7 @@ class Crash (object):
             msg += self.environmentReport()
 
         if not self.labelPC:
-            base = HexDump.address(self.lpBaseOfDll, address_size)
+            base = HexDump.address(self.lpBaseOfDll, self.bits)
             if self.modFileName:
                 fn   = PathOperations.pathname_to_filename(self.modFileName)
                 msg += '\nRunning in %s (%s)\n' % (fn, base)
@@ -979,15 +969,17 @@ class Crash (object):
         if self.faultDisasm:
             msg += '\nCode disassembly:\n'
             msg += CrashDump.dump_code(self.faultDisasm, self.pc,
-                                                address_size = address_size)
+                                       bits = self.bits)
 
         if self.stackTrace:
             msg += '\nStack trace:\n'
             if self.stackTracePretty:
                 msg += CrashDump.dump_stack_trace_with_labels(
-                                        self.stackTracePretty, address_size)
+                                        self.stackTracePretty,
+                                        bits = self.bits)
             else:
-                msg += CrashDump.dump_stack_trace(self.stackTrace, address_size)
+                msg += CrashDump.dump_stack_trace(self.stackTrace,
+                                                  bits = self.bits)
 
         if self.stackFrame:
             if self.stackPeek:
@@ -995,24 +987,23 @@ class Crash (object):
                 msg += CrashDump.dump_stack_peek(self.stackPeek, width = width)
             msg += '\nStack dump:\n'
             msg += HexDump.hexblock(self.stackFrame, self.sp,
-                                    address_size = address_size, width = width)
+                                    bits = self.bits, width = width)
 
         if self.faultCode and not self.modFileName:
             msg += '\nCode dump:\n'
             msg += HexDump.hexblock(self.faultCode, self.pc,
-                                    address_size = address_size, width = width)
+                                    bits = self.bits, width = width)
 
         if self.faultMem:
             if self.faultPeek:
                 msg += '\nException address pointers:\n'
                 msg += CrashDump.dump_data_peek(self.faultPeek,
                                                 self.exceptionAddress,
-                                                address_size = address_size,
+                                                bits  = self.bits,
                                                 width = width)
             msg += '\nException address dump:\n'
             msg += HexDump.hexblock(self.faultMem, self.exceptionAddress,
-                                    address_size = address_size,
-                                    width = width)
+                                    bits = self.bits, width = width)
 
         if self.memoryMap:
             msg += '\nMemory map:\n'
@@ -1021,7 +1012,7 @@ class Crash (object):
                 if hasattr(mbi, 'filename') and mbi.filename:
                     mappedFileNames[mbi.BaseAddress] = mbi.filename
             msg += CrashDump.dump_memory_map(self.memoryMap, mappedFileNames,
-                                             address_size = address_size)
+                                             bits = self.bits)
 
         if not msg.endswith('\n\n'):
             if not msg.endswith('\n'):

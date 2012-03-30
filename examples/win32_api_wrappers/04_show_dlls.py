@@ -34,7 +34,7 @@ from winappdbg.win32 import *
 
 def print_modules( pid ):
 
-    # Determine if we have 32 bit or 64 bit pointers
+    # Determine if we have 32 bit or 64 bit pointers.
     if sizeof(SIZE_T) == sizeof(DWORD):
         fmt = "%.8x    %.8x    %s"
         hdr = "%-8s    %-8s    %s"
@@ -42,31 +42,31 @@ def print_modules( pid ):
         fmt = "%.16x    %.16x    %s"
         hdr = "%-16s    %-16s    %s"
 
-    # Print a banner
+    # Print a banner.
     print "Modules for process %d:" % pid
     print
     print hdr % ("Address", "Size", "Path")
 
-    # Create a snapshot of the process, only take the heap list
+    # Create a snapshot of the process, only take the heap list.
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
 
-    # Enumerate the modules
+    # Enumerate the modules.
     module = Module32First( hSnapshot )
     while module is not None:
 
-        # Print the module address, size and pathname
+        # Print the module address, size and pathname.
         print fmt % ( module.modBaseAddr,
                       module.modBaseSize,
                       module.szExePath )
 
-        # Next module in the process
+        # Next module in the process.
         module = Module32Next( hSnapshot )
 
-    # No need to call CloseHandle, the handle is closed automatically when it goes out of scope
+    # No need to call CloseHandle, the handle is closed automatically when it goes out of scope.
     return
 
 # When invoked from the command line,
-# take the first argument as a process id
+# take the first argument as a process ID.
 if __name__ == "__main__":
     import sys
     print_modules( int( sys.argv[1] ) )

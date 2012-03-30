@@ -34,7 +34,7 @@ from winappdbg.win32 import *
 
 def print_drivers( fFullPath = False ):
 
-    # Determine if we have 32 bit or 64 bit pointers
+    # Determine if we have 32 bit or 64 bit pointers.
     if sizeof(SIZE_T) == sizeof(DWORD):
         fmt = "%.08x\t%s"
         hdr = "%-8s\t%s"
@@ -42,7 +42,7 @@ def print_drivers( fFullPath = False ):
         fmt = "%.016x\t%s"
         hdr = "%-16s\t%s"
 
-    # Get the list of loaded device drivers
+    # Get the list of loaded device drivers.
     ImageBaseList = EnumDeviceDrivers()
     print "Device drivers found: %d" % len(ImageBaseList)
     print
@@ -51,17 +51,17 @@ def print_drivers( fFullPath = False ):
     # For each device driver...
     for ImageBase in ImageBaseList:
 
-        # Get the device driver filename
+        # Get the device driver filename.
         if fFullPath:
             DriverName = GetDeviceDriverFileName(ImageBase)
         else:
             DriverName = GetDeviceDriverBaseName(ImageBase)
 
-        # Print the device driver image base and filename
+        # Print the device driver image base and filename.
         print fmt % (ImageBase, DriverName)
 
 # When invoked from the command line,
-# -f means show full pathnames instead of base filenames
+# -f means show full pathnames instead of base filenames.
 if __name__ == "__main__":
     import sys
     fFullPath = '-f' in sys.argv[1:]

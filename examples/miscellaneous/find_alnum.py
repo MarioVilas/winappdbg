@@ -84,7 +84,7 @@ def print_alnum_jump_addresses(pid):
 
         # Print each executable alphanumeric address.
         for address, packed in iterate_alnum_jump_addresses(iterator):
-            print HexDump.address(address), repr(packed)
+            print HexDump.address(address, process.get_bits()), repr(packed)
 
     # Resume the process when we're done.
     # This is inside a "finally" block, so if the program is interrupted
