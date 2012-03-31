@@ -19,7 +19,7 @@ Crash logger
 
 * :download:`crash_logger.py <../../tools/crash_logger.py>` :
 
-   Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database and/or log it through standard output.
+   Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database (SQLite, MySQL, SQL Server, etc.) and/or log it through standard output.
 
    A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
 
@@ -69,6 +69,10 @@ These tools were inspired by the **ptools** suite by `Nicolás Economou <http://
 * :download:`pkill.py <../../tools/pkill.py>` :
 
    Terminates a process or a batch of processes.
+
+* :download:`pstrings.py <../../tools/pstrings.py>` :
+
+   Dumps all ASCII strings from a live process.
 
 Miscellaneous
 +++++++++++++
