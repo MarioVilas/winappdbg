@@ -602,7 +602,7 @@ class Thread (object):
             @rtype:  int
             @return: Value of the frame pointer register.
             """
-            context = self.get_context(win32.CONTEXT_CONTROL)
+            context = self.get_context(win32.CONTEXT_INTEGER)
             return context.fp
 
         def set_fp(self, fp):
@@ -612,67 +612,8 @@ class Thread (object):
             @type  fp: int
             @param fp: Value of the frame pointer register.
             """
-            context = self.get_context(win32.CONTEXT_CONTROL)
+            context = self.get_context(win32.CONTEXT_INTEGER)
             context.fp = fp
-            self.set_context(context)
-
-    elif win32.arch == win32.ARCH_IA64:
-
-        def get_gp(self):
-            """
-            @rtype:  int
-            @return: Value of the GP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.gp
-
-        def set_gp(self, gp):
-            """
-            Sets the value of the frame pointer register.
-
-            @type  gp: int
-            @param gp: Value of the GP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.gp = gp
-            self.set_context(context)
-
-        def get_sp(self):
-            """
-            @rtype:  int
-            @return: Value of the SP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.sp
-
-        def set_sp(self, sp):
-            """
-            Sets the value of the SP register.
-
-            @type  sp: int
-            @param sp: Value of the SP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.sp = sp
-            self.set_context(context)
-
-        def get_rp(self):
-            """
-            @rtype:  int
-            @return: Value of the RP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.rp
-
-        def set_rp(self, rp):
-            """
-            Sets the value of the RP register.
-
-            @type  rp: int
-            @param rp: Value of the RP register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.rp = rp
             self.set_context(context)
 
 #------------------------------------------------------------------------------
@@ -1160,7 +1101,7 @@ class Thread (object):
 
         @raise WindowsError: Raises an exception on error.
         """
-        return self.__get_stack_trace(depth, True)
+        return self.__get_stack_trace(depth, True, bMakePretty)
 
     def get_stack_frame_range(self):
         """

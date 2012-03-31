@@ -547,12 +547,39 @@ def VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask):
 
 ARCH_UNKNOWN = "unknown"
 ARCH_I386    = "i386"
-ARCH_AMD64   = "amd64"
+ARCH_MIPS    = "mips"
+ARCH_ALPHA   = "alpha"
+ARCH_PPC     = "ppc"
+ARCH_SHX     = "shx"
+ARCH_ARM     = "arm"
 ARCH_IA64    = "ia64"
+ARCH_ALPHA64 = "alpha64"
+ARCH_MSIL    = "msil"
+ARCH_AMD64   = "amd64"
+ARCH_SPARC   = "sparc"
 
-ARCH_IA32 = ARCH_I386
-ARCH_X86  = ARCH_I386
-ARCH_X64  = ARCH_AMD64
+# aliases
+ARCH_IA32    = ARCH_I386
+ARCH_X86     = ARCH_I386
+ARCH_X64     = ARCH_AMD64
+ARCH_POWERPC = ARCH_PPC
+ARCH_HITACHI = ARCH_SHX
+ARCH_ITANIUM = ARCH_IA64
+
+# win32 constants -> our constants
+_arch_map = {
+    PROCESSOR_ARCHITECTURE_INTEL          : ARCH_I386,
+    PROCESSOR_ARCHITECTURE_MIPS           : ARCH_MIPS,
+    PROCESSOR_ARCHITECTURE_ALPHA          : ARCH_ALPHA,
+    PROCESSOR_ARCHITECTURE_PPC            : ARCH_PPC,
+    PROCESSOR_ARCHITECTURE_SHX            : ARCH_SHX,
+    PROCESSOR_ARCHITECTURE_ARM            : ARCH_ARM,
+    PROCESSOR_ARCHITECTURE_IA64           : ARCH_IA64,
+    PROCESSOR_ARCHITECTURE_ALPHA64        : ARCH_ALPHA64,
+    PROCESSOR_ARCHITECTURE_MSIL           : ARCH_MSIL,
+    PROCESSOR_ARCHITECTURE_AMD64          : ARCH_AMD64,
+    PROCESSOR_ARCHITECTURE_SPARC          : ARCH_SPARC,
+}
 
 OS_UNKNOWN   = "Unknown"
 OS_NT        = "Windows NT"
@@ -609,24 +636,42 @@ def _get_arch():
 
     @rtype: str
     @return:
-        One of the following values:
-         - L{ARCH_UNKNOWN} (C{"unknown"})
+        On error, returns:
+
+         - L{ARCH_UNKNOWN} (C{"unknown"}) meaning the architecture could not be detected or is not known to WinAppDbg.
+
+        On success, returns one of the following values:
+
          - L{ARCH_I386} (C{"i386"}) for Intel 32-bit x86 processor or compatible.
          - L{ARCH_AMD64} (C{"amd64"}) for Intel 64-bit x86_64 processor or compatible.
+
+        May also return one of the following values if you get both Python and
+        WinAppDbg to work in such machines... let me know if you do! :)
+
+         - L{ARCH_MIPS} (C{"mips"}) for MIPS compatible processors.
+         - L{ARCH_ALPHA} (C{"alpha"}) for Alpha processors.
+         - L{ARCH_PPC} (C{"ppc"}) for PowerPC compatible processors.
+         - L{ARCH_SHX} (C{"shx"}) for Hitachi SH processors.
+         - L{ARCH_ARM} (C{"arm"}) for ARM compatible processors.
          - L{ARCH_IA64} (C{"ia64"}) for Intel Itanium processor or compatible.
+         - L{ARCH_ALPHA64} (C{"alpha64"}) for Alpha64 processors.
+         - L{ARCH_MSIL} (C{"msil"}) for the .NET virtual machine.
+         - L{ARCH_SPARC} (C{"sparc"}) for Sun Sparc processors.
+
+        Probably IronPython returns C{ARCH_MSIL} but I haven't tried it. Python
+        on Windows CE and Windows Mobile should return C{ARCH_ARM}. Python on
+        Solaris using Wine would return C{ARCH_SPARC}. Python in an Itanium
+        machine should return C{ARCH_IA64} both on Wine and proper Windows.
+        All other values should only be returned on Linux using Wine.
     """
     try:
         si = GetNativeSystemInfo()
     except Exception:
         si = GetSystemInfo()
-    wProcessorArchitecture = si.id.w.wProcessorArchitecture
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL:
-        return ARCH_I386
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64:
-        return ARCH_AMD64
-    if wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64:
-        return ARCH_IA64
-    return ARCH_UNKNOWN
+    try:
+        return _arch_map[si.id.w.wProcessorArchitecture]
+    except KeyError:
+        return ARCH_UNKNOWN
 
 def _get_wow64():
     """
