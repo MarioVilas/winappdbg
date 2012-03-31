@@ -38,7 +38,7 @@ __revision__ = "$Id$"
 import os
 import sys
 
-from winappdbg import win32, Process, System, HexDump
+from winappdbg import win32, Process, System, HexDump, HexInput
 
 def main():
     print "Process string extractor"
@@ -55,7 +55,7 @@ def main():
 
     try:
         pid = HexInput.integer(sys.argv[1])
-    except:
+    except Exception, e:
         s = System()
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
@@ -65,7 +65,7 @@ def main():
         if len(pl) > 1:
             print "Multiple processes found for %s" % sys.argv[1]
             for p,n in pl:
-                print "\t%s: %s" % (HexDump.integer(p),n)
+                print "\t%s: %s" % (p.get_pid(),n)
             return
         pid = pl[0][0].get_pid()
         s.clear()
@@ -73,6 +73,7 @@ def main():
 
     p = Process(pid)
     for address, size, data in p.strings():
+        if data.endswith('\0'): data = data[:-1]
         print "%s: %r" % (HexDump.address(address), data)
 
 if __name__ == '__main__':
