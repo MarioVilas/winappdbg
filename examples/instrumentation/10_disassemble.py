@@ -53,7 +53,7 @@ def print_thread_disassembly( tid ):
 
         # Or even this:
         # process = thread.get_process()
-        # code    = process.disassemble_around(eip)
+        # code    = process.disassemble_around( eip )
 
     # Resume the thread execution.
     finally:

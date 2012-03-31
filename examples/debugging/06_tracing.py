@@ -64,18 +64,13 @@ class MyEventHandler( EventHandler ):
 def simple_debugger( argv ):
 
     # Instance a Debug object, passing it the MyEventHandler instance.
-    debug = Debug( MyEventHandler() )
-    try:
+    with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
 
         # Start a new process for debugging.
         debug.execv( argv )
 
         # Wait for the debugee to finish.
         debug.loop()
-
-    # Stop the debugger.
-    finally:
-        debug.stop()
 
 
 # When invoked from the command line,

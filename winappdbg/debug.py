@@ -107,7 +107,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
     # Automatically set to True the first time a Debug object is instanced.
     _debug_privileges_requested = False
 
-    def __init__(self, eventHandler = None, **flags):
+    def __init__(self, eventHandler = None,               bKillOnExit = False,
+                                                         bHostileCode = False):
         """
         Debugger object.
 
@@ -115,8 +116,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @param eventHandler:
             (Optional, recommended) Custom event handler object.
 
-        @type    bHostileCode: bool
-        @keyword bHostileCode: (Optional) Hostile code mode.
+        @type  bKillOnExit: bool
+        @param bKillOnExit: (Optional) Kill on exit mode.
+            If C{True} debugged processes are killed when the debugger is
+            stopped. If C{False} when the debugger stops it detaches from all
+            debugged processes and leaves them running (default).
+
+        @type  bHostileCode: bool
+        @param bHostileCode: (Optional) Hostile code mode.
             Set to C{True} to take some basic precautions against anti-debug
             tricks. Disabled by default.
 
@@ -134,23 +141,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
         EventDispatcher.__init__(self, eventHandler)
         _BreakpointContainer.__init__(self)
 
-        bHostileCode = flags.pop('bHostileCode', False)
-
-        if flags.has_key('bKillOnExit'):
-            if flags['bKillOnExit']:
-                raise NotImplementedError(
-                    "The kill on exit mode is no longer supported"
-                    " since WinAppDbg 1.5")
-            warnings.warn(
-                "The kill on exit mode is no longer supported"
-                " since WinAppDbg 1.5", DeprecationWarning)
-            del flags['bKillOnExit']
-
-        if flags:
-            raise TypeError("Unknown keyword arguments: %s" % flags.keys())
-
         self.system                         = System()
         self.lastEvent                      = None
+        self.__bKillOnExit                  = bKillOnExit
         self.__bHostileCode                 = bHostileCode
         self.__breakOnEP                    = set()     # set of pids
         self.__attachedDebugees             = set()     # set of pids
@@ -694,6 +687,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Stops debugging all processes.
 
+        If the kill on exit mode is on, debugged processes are killed when the
+        debugger is stopped. Otherwise when the debugger stops it detaches from
+        all debugged processes and leaves them running (default). For more
+        details see: L{__init__}
+
         @note: This method is better than L{detach_from_all} because it can
             gracefully handle the last debugging event before detaching.
 
@@ -730,7 +728,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 if not bIgnoreExceptions:
                     raise
         try:
-            self.detach_from_all(bIgnoreExceptions)
+            if self.__bKillOnExit:
+                self.kill_all(bIgnoreExceptions)
+            else:
+                self.detach_from_all(bIgnoreExceptions)
         except Exception:
             if not bIgnoreExceptions:
                 raise
