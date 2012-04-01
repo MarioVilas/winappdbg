@@ -62,7 +62,7 @@ def my_event_handler( event ):
 def simple_debugger( argv ):
 
     # Instance a Debug object, passing it the event handler callback.
-    debug = Debug( my_event_handler )
+    debug = Debug( my_event_handler, bKillOnExit = True )
     try:
 
         # Start a new process for debugging.

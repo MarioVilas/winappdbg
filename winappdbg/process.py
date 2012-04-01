@@ -1303,6 +1303,17 @@ class Process (_ThreadContainer, _ModuleContainer):
 
 #------------------------------------------------------------------------------
 
+    def __read_c_type(self, address, format, c_type):
+        size = ctypes.sizeof(c_type)
+        packed = self.read(address, size)
+        if len(packed) != size:
+            raise ctypes.WinError()
+        return struct.unpack(format, packed)[0]
+
+    def __write_c_type(self, address, format, unpacked):
+        packed = struct.pack('@L', unpacked)
+        self.write(address, packed)
+
     # XXX TODO
     # + Maybe change page permissions before trying to read?
     def read(self, lpBaseAddress, nSize):
@@ -1351,92 +1362,6 @@ class Process (_ThreadContainer, _ModuleContainer):
         if r != len(lpBuffer):
             raise ctypes.WinError()
 
-    def read_uint(self, lpBaseAddress):
-        """
-        Reads a single unsigned integer from the memory of the process.
-
-        @see: L{peek}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin reading.
-
-        @rtype:  int
-        @return: Integer value read from the process memory.
-
-        @raise WindowsError: On error an exception is raised.
-        """
-        packedDword     = self.read(lpBaseAddress, 4)
-        if len(packedDword) != 4:
-            raise ctypes.WinError()
-        unpackedDword   = struct.unpack('<L', packedDword)[0]
-        return unpackedDword
-
-    def write_uint(self, lpBaseAddress, unpackedDword):
-        """
-        Writes a single unsigned integer to the memory of the process.
-
-        @note: Page permissions may be changed temporarily while writing.
-
-        @see: L{poke_uint}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
-
-        @type  unpackedDword: int, long
-        @param unpackedDword: Value to write.
-
-        @raise WindowsError: On error an exception is raised.
-        """
-        packedDword = struct.pack('<L', unpackedDword)
-        self.write(lpBaseAddress, packedDword)
-
-    def read_pointer(self, lpBaseAddress):
-        """
-        Reads a single pointer value from the memory of the process.
-
-        @see: L{peek_pointer}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin reading.
-
-        @rtype:  int
-        @return: Pointer value read from the process memory.
-
-        @raise WindowsError: On error an exception is raised.
-        """
-        lpvoidLength = win32.sizeof(win32.LPVOID)
-        packedValue = self.read(lpBaseAddress, lpvoidLength)
-        if lpvoidLength == 4:
-            lpvoidFmt   = '<L'
-        else:
-            lpvoidFmt   = '<Q'
-        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
-        return unpackedValue
-
-    def write_pointer(self, lpBaseAddress, unpackedValue):
-        """
-        Writes a single pointer value to the memory of the process.
-
-        @note: Page permissions may be changed temporarily while writing.
-
-        @see: L{poke_pointer}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
-
-        @type  unpackedValue: int, long
-        @param unpackedValue: Value to write.
-
-        @raise WindowsError: On error an exception is raised.
-        """
-        lpvoidLength    = win32.sizeof(win32.LPVOID)
-        if lpvoidLength == 4:
-            lpvoidFmt   = '<L'
-        else:
-            lpvoidFmt   = '<Q'
-        packedValue = struct.pack(lpvoidFmt, unpackedValue)
-        self.write(lpBaseAddress, packedValue)
-
     def read_char(self, lpBaseAddress):
         """
         Reads a single character to the memory of the process.
@@ -1470,6 +1395,244 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: On error an exception is raised.
         """
         self.write(lpBaseAddress, chr(char))
+
+    def read_int(self, lpBaseAddress):
+        """
+        Reads a signed integer from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '@l', ctypes.c_int)
+
+    def write_int(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a signed integer to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '@l', unpackedValue)
+
+    def read_uint(self, lpBaseAddress):
+        """
+        Reads an unsigned integer from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '@L', ctypes.c_uint)
+
+    def write_uint(self, lpBaseAddress, unpackedValue):
+        """
+        Writes an unsigned integer to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '@L', unpackedValue)
+
+    def read_float(self, lpBaseAddress):
+        """
+        Reads a float from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Floating point value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '@f', ctypes.c_float)
+
+    def write_float(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a float to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Floating point value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '@f', unpackedValue)
+
+    def read_double(self, lpBaseAddress):
+        """
+        Reads a double from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Floating point value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '@d', ctypes.c_double)
+
+    def write_double(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a double to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Floating point value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '@d', unpackedValue)
+
+    def read_pointer(self, lpBaseAddress):
+        """
+        Reads a pointer value from the memory of the process.
+
+        @see: L{peek_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '@P', ctypes.c_void_p)
+
+    def write_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a pointer value to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '@P', unpackedValue)
+
+    def read_dword(self, lpBaseAddress):
+        """
+        Reads a DWORD from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '=L', win32.DWORD)
+
+    def write_dword(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a DWORD to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '=L', unpackedValue)
+
+    def read_qword(self, lpBaseAddress):
+        """
+        Reads a QWORD from the memory of the process.
+
+        @see: L{peek}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '=Q', win32.QWORD)
+
+    def write_qword(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a QWORD to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '=Q', unpackedValue)
 
     def read_structure(self, lpBaseAddress, stype):
         """

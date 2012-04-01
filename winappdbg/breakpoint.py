@@ -65,6 +65,7 @@ from textio import HexDump
 
 import ctypes
 import warnings
+import traceback
 
 #==============================================================================
 
@@ -72,6 +73,12 @@ class BreakpointWarning (Warning):
     """
     This warning is issued when a non-fatal error occurs that's related to
     breakpoints.
+    """
+
+class BreakpointCallbackWarning (RuntimeWarning):
+    """
+    This warnings is issued when an uncaught exception was raised by a
+    breakpoint's user-defined callback.
     """
 
 #==============================================================================
@@ -328,7 +335,14 @@ class Breakpoint (object):
         if condition is True:
             return True
         if callable(condition):
-            return condition(event)
+            try:
+                return bool( condition(event) )
+            except Exception, e:
+                msg = ("Breakpoint condition callback %r"
+                       " raised an exception: %s")
+                msg = msg % (condition, traceback.format_exc(e))
+                warnings.warn(msg, BreakpointCallbackWarning)
+                return False
         return condition
 
 #------------------------------------------------------------------------------
@@ -374,7 +388,14 @@ class Breakpoint (object):
         """
         action = self.get_action()
         if action is not None:
-            return bool( action(event) )
+            try:
+                return bool( action(event) )
+            except Exception, e:
+                msg = ("Breakpoint action callback %r"
+                       " raised an exception: %s")
+                msg = msg % (action, traceback.format_exc(e))
+                warnings.warn(msg, BreakpointCallbackWarning)
+                return False
         return True
 
 #------------------------------------------------------------------------------

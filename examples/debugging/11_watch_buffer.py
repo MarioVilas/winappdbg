@@ -37,30 +37,47 @@ class MyHook (object):
 
     # Keep record of the buffers we watch.
     def __init__(self):
-        self.__watched = dict()
+        self.__watched  = dict()
+        self.__previous = None
 
 
     # This function will be called when entering the hooked function.
-    def entering( self, event, ra, hModule, lpProcName ):
+    def entering( self, event, ra, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped ):
 
-        # Ignore calls using ordinals instead of names.
-        if lpProcName - (lpProcName & 0xFFFF) == 0:
-            return
-
-        # Get the procedure name.
-        procName = event.get_process().peek_string( lpProcName )
-
-        # Ignore calls using an empty string.
-        if not procName:
+        # Ignore calls using a NULL pointer.
+        if not lpBuffer:
             return
 
         # Show a message to the user.
-        print "GetProcAddress( %r );" % procName
+        print "\nReadFile:\n\tHandle %x\n\tExpected bytes: %d" % ( hFile, nNumberOfBytesToRead )
 
-        # Watch the procedure name buffer for access.
+        # Stop watching the previous buffer.
+        if self.__previous:
+            ( address, size ) = self.__previous
+            event.debug.dont_watch_buffer( event.get_pid(), address, size )
+
+        # Remember the location of the buffer and size.
+        self.__watched[ event.get_tid() ] = ( lpBuffer, lpNumberOfBytesRead )
+
+
+    # This function will be called when leaving the hooked function.
+    def leaving( self, event, return_value ):
+
+        # If the function call failed ignore it.
+        if return_value == 0:
+            print "\nReadFile:\n\tStatus: FAIL"
+            return
+
+        # Get the buffer location and size.
+        tid     = event.get_tid()
+        process = event.get_process()
+        ( lpBuffer, lpNumberOfBytesRead ) = self.__watched[ tid ]
+        del self.__watched[ tid ]
+
+        # Watch the buffer for access.
         pid     = event.get_pid()
-        address = lpProcName
-        size    = len(procName) + 1
+        address = lpBuffer
+        size    = process.read_dword( lpNumberOfBytesRead )
         action  = self.accessed
         event.debug.watch_buffer( pid, address, size, action )
 
@@ -69,25 +86,11 @@ class MyHook (object):
         #
         # event.debug.stalk_buffer( pid, address, size, action )
 
-        # Remember the location of the buffer.
-        self.__watched[ event.get_tid() ] = ( address, size )
+        # Remember the buffer location.
+        self.__previous = ( address, size )
 
-
-    # This function will be called when leaving the hooked function.
-    def leaving( self, event, return_value ):
-
-        # Get the thread ID.
-        tid = event.get_tid()
-
-        # Get the buffer location.
-        ( address, size ) = self.__watched[ tid ]
-
-        # Stop watching the buffer.
-        event.debug.dont_watch_buffer( event.get_pid(), address, size )
-        #event.debug.dont_stalk_buffer( event.get_pid(), address, size )
-
-        # Forget the buffer location.
-        del self.__watched[ tid ]
+        # Show a message to the user.
+        print "\nReadFile:\n\tStatus: SUCCESS\n\tRead bytes: %d" % size
 
 
     # This function will be called every time the procedure name buffer is accessed.
@@ -122,35 +125,27 @@ class MyEventHandler( EventHandler ):
             pid = event.get_pid()
 
             # Get the address of the function to hook.
-            address = module.resolve( "GetProcAddress" )
+            address = module.resolve( "ReadFile" )
 
             # This is an approximated signature of the function.
             # Pointers must be void so ctypes doesn't try to read from them.
-            signature = ( win32.HMODULE, win32.PVOID )
+            signature = ( win32.HANDLE, win32.PVOID, win32.DWORD, win32.PVOID, win32.PVOID )
 
             # Hook the function.
-            event.debug.hook_function( pid, address, MyHook().entering, signature = signature )
+            hook = MyHook()
+            event.debug.hook_function( pid, address, hook.entering, hook.leaving, signature = signature )
 
 
 def simple_debugger( argv ):
 
-    # Check we're running in a 32 bits machine.
-    if System.bits != 32:
-        raise NotImplementedError( "This example only runs in 32 bits" )
-
     # Instance a Debug object, passing it the MyEventHandler instance.
-    debug = Debug( MyEventHandler() )
-    try:
+    with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
 
         # Start a new process for debugging.
         debug.execv( argv )
 
         # Wait for the debugee to finish.
         debug.loop()
-
-    # Stop the debugger.
-    finally:
-        debug.stop()
 
 
 # When invoked from the command line,

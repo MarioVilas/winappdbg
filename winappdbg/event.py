@@ -94,6 +94,16 @@ from process import Process
 from textio import HexDump
 from util import StaticClass, PathOperations
 
+import warnings
+
+#==============================================================================
+
+class EventCallbackWarnings (RuntimeWarning):
+    """
+    This warnings is issued when an uncaught exception was raised by a
+    user-defined event handler.
+    """
+
 #==============================================================================
 
 class Event (object):
@@ -1752,7 +1762,14 @@ class EventDispatcher (object):
         #  method was not defined, or was and it returned True.
         try:
             if bCallHandler and self.__eventHandler is not None:
-                returnValue = self.__eventHandler(event)
+                try:
+                    returnValue = self.__eventHandler(event)
+                except Exception, e:
+                    msg = ("Event handler pre-callback %r"
+                           " raised an exception: %s")
+                    msg = msg % (action, traceback.format_exc(e))
+                    warnings.warn(msg, EventCallbackWarning)
+                    returnValue = None
 
         # Call the post-notify method if defined, even if an exception is
         #  raised by the user-defined event handler.
