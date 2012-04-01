@@ -35,12 +35,23 @@ import sys
 
 try:
 
-    # Get the coordinates from the command line.
-    x = int( sys.argv[1] )
-    y = int( sys.argv[2] )
+    # If two arguments are given, the first is the classname
+    # and the second is the caption text.
+    if len(sys.argv) > 2:
+        classname = sys.argv[1]
+        caption   = sys.argv[2]
+        if not classname:
+            classname = None
+        if not caption:
+            caption   = None
+        window = System.find_window( classname, caption )
 
-    # Get the window at the requested position.
-    window   = System.get_window_at( x, y )
+    # If only one argument is given, try the caption text, then the classname.
+    else:
+        try:
+            window = System.find_window( windowName = sys.argv[1] )
+        except WindowsError:
+            window = System.find_window( className = sys.argv[1] )
 
     # Get the window coordinates.
     rect     = window.get_screen_rect()
@@ -57,4 +68,4 @@ try:
     print "Size:     (%i, %i)" % size
 
 except WindowsError:
-    print "No window at those coordinates!"
+    print "No window found!"

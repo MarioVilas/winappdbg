@@ -172,3 +172,10 @@ Example #14: get windows by screen position
 .. literalinclude:: ../../examples/instrumentation/14_get_window_at.py
    :start-after: $Id
 
+Example #15: find windows by class and caption
+++++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/15_find_window.py>`
+
+.. literalinclude:: ../../examples/instrumentation/15_find_window.py
+   :start-after: $Id
