@@ -37,43 +37,38 @@ from winappdbg import *
 from time import time
 
 # Using the Debug object in a "with" context ensures proper cleanup.
-with Debug() as dbg:
+with Debug( bKillOnExit = True ) as dbg:
 
     # Run the Windows Calculator (calc.exe).
     dbg.execl('calc.exe')
-    try:
 
-        # This makes sure calc.exe dies even if our own process
-        # is killed from the Task Manager.
-        System.set_kill_on_exit_mode(True)
+    # For the extra paranoid: this makes sure calc.exe dies
+    # even if our own process is killed from the Task Manager.
+    System.set_kill_on_exit_mode(True)
 
-        # The execution time limit is 5 seconds.
-        maxTime = time() + 5
+    # The execution time limit is 5 seconds.
+    maxTime = time() + 5
 
-        # Loop while calc.exe is alive and the time limit wasn't reached.
-        while dbg and time() < maxTime:
-            try:
+    # Loop while calc.exe is alive and the time limit wasn't reached.
+    while dbg and time() < maxTime:
+        try:
 
-                # Get the next debug event.
-                dbg.wait(1000)  # 1 second accuracy
+            # Get the next debug event.
+            dbg.wait(1000)  # 1 second accuracy
 
-                # Show the current time on screen.
-                print time()
+            # Show the current time on screen.
+            print time()
 
-            # If wait() times out just try again.
-            # On any other error stop debugging.
-            except WindowsError, e:
-                if e.winerror in (win32.ERROR_SEM_TIMEOUT,
-                                  win32.WAIT_TIMEOUT):
-                    continue
-                raise
+        # If wait() times out just try again.
+        # On any other error stop debugging.
+        except WindowsError, e:
+            if e.winerror in (win32.ERROR_SEM_TIMEOUT,
+                              win32.WAIT_TIMEOUT):
+                continue
+            raise
 
-            # Dispatch the event and continue execution.
-            try:
-                dbg.dispatch()
-            finally:
-                dbg.cont()
-
-    # Kill calc.exe before exiting.
-    finally:
-        dbg.kill_all()
+        # Dispatch the event and continue execution.
+        try:
+            dbg.dispatch()
+        finally:
+            dbg.cont()

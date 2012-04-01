@@ -8,7 +8,7 @@ More examples
 Set a debugging timeout
 +++++++++++++++++++++++
 
-Sometimes you'll want to set a maximum time to debug your target, especially when fuzzing. This is an example on how to code a custom debugging loop with a timeout. It launches the Windows Calculator and stops when the target process is closed or after a 5 seconds timeout.
+Sometimes you'll want to set a maximum time to debug your target, especially when fuzzing or analyzing malware. This is an example on how to code a custom debugging loop with a timeout. It launches the Windows Calculator and stops when the target process is closed or after a 5 seconds timeout.
 
 :download:`Download <../../examples/miscellaneous/time-to-debug.py>`
 

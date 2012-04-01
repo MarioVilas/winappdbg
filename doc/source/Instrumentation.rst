@@ -195,5 +195,5 @@ Example #17: kill a program using its window
 :download:`Download <../../examples/instrumentation/17_kill.py>`
 
 .. literalinclude:: ../../examples/instrumentation/17_kill.py
-   :start-after: # --------------
+   :start-after: # ...begins just like example 16...
    :end-before: if __name__ == '__main__':

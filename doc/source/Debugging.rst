@@ -111,7 +111,11 @@ These are the most important exception notification methods:
 | **guard_page**      | A guard page exception was raised by the debugee.  | When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.                                                                                                                                  |
 +---------------------+----------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-In addition to all this, the *EventHandler* class provides a simple method for API hooking: the **apiHooks** class property. This property is a dictionary of tuples, specifying which API calls to hook on what DLL libraries, and how many parameter does each call take. That's it! The *EventHandler* class will automatically hooks this APIs for you when the corresponding library is loaded, and a method of your subclass will be called when entering and leaving the API function.
+In addition to all this, the *EventHandler* class provides a simple method for API hooking: the **apiHooks** class property. This property is a dictionary of tuples, specifying which API calls to hook on what DLL libraries, and what parameters does each call take (using ctypes definitions). That's it! The *EventHandler* class will automatically hooks this APIs for you when the corresponding library is loaded, and a method of your subclass will be called when entering and leaving the API function.
+
+.. note::
+
+    One thing to be careful with when hooking API functions: all pointers should be declared as having the void type. Otherwise ctypes gets too "helpful" and tries to access the memory pointed to by them... and crashes, since those pointers only work in the debugged process.
 
 Example #6: tracing execution
 ++++++++++++++++++++++++++++++

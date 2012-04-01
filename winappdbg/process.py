@@ -1367,7 +1367,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a single character to the memory of the process.
 
-        @see: L{write_char}
+        @see: L{peek_char}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1385,7 +1385,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{write_char}
+        @see: L{poke_char}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1401,7 +1401,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a signed integer from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_int}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1419,7 +1419,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{poke_uint}
+        @see: L{poke_int}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1435,7 +1435,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads an unsigned integer from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_uint}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1469,7 +1469,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a float from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_float}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1487,7 +1487,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{poke_uint}
+        @see: L{poke_float}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1503,7 +1503,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a double from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_double}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1521,7 +1521,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{poke_uint}
+        @see: L{poke_double}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1571,7 +1571,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a DWORD from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_dword}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1589,7 +1589,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{poke_uint}
+        @see: L{poke_dword}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1605,7 +1605,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Reads a QWORD from the memory of the process.
 
-        @see: L{peek}
+        @see: L{peek_qword}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1623,7 +1623,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @note: Page permissions may be changed temporarily while writing.
 
-        @see: L{poke_uint}
+        @see: L{poke_qword}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin writing.
@@ -1691,7 +1691,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         Reads an ASCII or Unicode string
         from the address space of the process.
 
-        @see: L{read}
+        @see: L{peek_string}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1717,6 +1717,20 @@ class Process (_ThreadContainer, _ModuleContainer):
         return szString
 
 #------------------------------------------------------------------------------
+
+    # FIXME this won't work properly with a different endianness!
+    def __peek_c_type(self, address, format, c_type):
+        size = ctypes.sizeof(c_type)
+        packed = self.peek(address, size)
+        if len(packed) < size:
+            packed = '\0' * (size - len(packed)) + packed
+        elif len(packed) > size:
+            packed = packed[:size]
+        return struct.unpack(format, packed)[0]
+
+    def __poke_c_type(self, address, format, unpacked):
+        packed = struct.poke('@L', unpacked)
+        return self.poke(address, packed)
 
     def peek(self, lpBaseAddress, nSize):
         """
@@ -1799,99 +1813,6 @@ class Process (_ThreadContainer, _ModuleContainer):
                 self.mprotect(lpBaseAddress, len(lpBuffer), mbi.Protect)
         return r
 
-    def peek_uint(self, lpBaseAddress):
-        """
-        Reads a single unsigned integer from the memory of the process.
-
-        @see: L{read_uint}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin reading.
-
-        @rtype:  int
-        @return: Integer value read from the process memory.
-            Returns zero on error.
-        """
-        dwordLength = win32.sizeof(win32.UINT)
-        packedDword = self.peek(lpBaseAddress, dwordLength)
-        if len(packedDword) < dwordLength:
-            packedDword += '\x00' * (dwordLength - len(packedDword))
-        unpackedDword = struct.unpack('<L', packedDword)[0]
-        return unpackedDword
-
-    def poke_uint(self, lpBaseAddress, unpackedDword):
-        """
-        Writes a single unsigned integer to the memory of the process.
-
-        @note: Page permissions may be changed temporarily while writing.
-
-        @see: L{write_uint}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
-
-        @type  unpackedDword: int, long
-        @param unpackedDword: Value to write.
-
-        @rtype:  int
-        @return: Number of bytes written.
-            May be less than the number of bytes to write.
-        """
-        packedDword     = struct.pack('<L', unpackedDword)
-        dwBytesWritten  = self.poke(lpBaseAddress, packedDword)
-        return dwBytesWritten
-
-    def peek_pointer(self, lpBaseAddress):
-        """
-        Reads a single pointer value from the memory of the process.
-
-        @see: L{read_pointer}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin reading.
-
-        @rtype:  int
-        @return: Pointer value read from the process memory.
-            Returns zero on error.
-        """
-        lpvoidLength = win32.sizeof(win32.LPVOID)
-        packedValue = self.read(lpBaseAddress, lpvoidLength)
-        if len(packedValue) < lpvoidLength:
-            packedValue += '\x00' * (lpvoidLength - len(packedValue))
-        if lpvoidLength == 4:
-            lpvoidFmt   = '<L'
-        else:
-            lpvoidFmt   = '<Q'
-        unpackedValue = struct.unpack(lpvoidFmt, packedValue)[0]
-        return unpackedValue
-
-    def poke_pointer(self, lpBaseAddress, unpackedValue):
-        """
-        Writes a single pointer value to the memory of the process.
-
-        @note: Page permissions may be changed temporarily while writing.
-
-        @see: L{write_pointer}
-
-        @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
-
-        @type  unpackedValue: int, long
-        @param unpackedValue: Value to write.
-
-        @rtype:  int
-        @return: Number of bytes written.
-            May be less than the number of bytes to write.
-        """
-        lpvoidLength    = win32.sizeof(win32.LPVOID)
-        if lpvoidLength == 4:
-            lpvoidFmt   = '<L'
-        else:
-            lpvoidFmt   = '<Q'
-        packedValue     = struct.pack(lpvoidFmt, unpackedValue)
-        dwBytesWritten  = self.poke(lpBaseAddress, packedValue)
-        return dwBytesWritten
-
     def peek_char(self, lpBaseAddress):
         """
         Reads a single character from the memory of the process.
@@ -1930,12 +1851,257 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         return self.poke(lpBaseAddress, chr(char))
 
+    def peek_int(self, lpBaseAddress):
+        """
+        Reads a signed integer from the memory of the process.
+
+        @see: L{read_int}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '@l', ctypes.c_int)
+
+    def poke_int(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a signed integer to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_int}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '@l', unpackedValue)
+
+    def peek_uint(self, lpBaseAddress):
+        """
+        Reads an unsigned integer from the memory of the process.
+
+        @see: L{read_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '@L', ctypes.c_uint)
+
+    def poke_uint(self, lpBaseAddress, unpackedValue):
+        """
+        Writes an unsigned integer to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_uint}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '@L', unpackedValue)
+
+    def peek_float(self, lpBaseAddress):
+        """
+        Reads a float from the memory of the process.
+
+        @see: L{read_float}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '@f', ctypes.c_float)
+
+    def poke_float(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a float to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_float}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '@f', unpackedValue)
+
+    def peek_double(self, lpBaseAddress):
+        """
+        Reads a double from the memory of the process.
+
+        @see: L{read_double}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '@d', ctypes.c_double)
+
+    def poke_double(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a double to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_double}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '@d', unpackedValue)
+
+    def peek_dword(self, lpBaseAddress):
+        """
+        Reads a DWORD from the memory of the process.
+
+        @see: L{read_dword}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '=L', win32.DWORD)
+
+    def poke_dword(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a DWORD to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_dword}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '=L', unpackedValue)
+
+    def peek_qword(self, lpBaseAddress):
+        """
+        Reads a QWORD from the memory of the process.
+
+        @see: L{read_qword}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Integer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '=Q', win32.QWORD)
+
+    def poke_qword(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a QWORD to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_qword}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '=Q', unpackedValue)
+
+    def peek_pointer(self, lpBaseAddress):
+        """
+        Reads a pointer value from the memory of the process.
+
+        @see: L{read_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  int
+        @return: Pointer value read from the process memory.
+            Returns zero on error.
+        """
+        return self.__peek_c_type(lpBaseAddress, '@P', ctypes.c_void_p)
+
+    def poke_pointer(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a pointer value to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{write_pointer}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: int, long
+        @param unpackedValue: Value to write.
+
+        @rtype:  int
+        @return: Number of bytes written.
+            May be less than the number of bytes to write.
+        """
+        return self.__poke_c_type(lpBaseAddress, '@P', unpackedValue)
+
     def peek_string(self, lpBaseAddress, fUnicode = False, dwMaxSize = 0x1000):
         """
         Tries to read an ASCII or Unicode string
         from the address space of the process.
 
-        @see: L{peek}
+        @see: L{read_string}
 
         @type  lpBaseAddress: int
         @param lpBaseAddress: Memory address to begin reading.
@@ -1994,6 +2160,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
+
+        @see: L{peek}
 
         @type  data: str
         @param data: Binary data to find pointers in.

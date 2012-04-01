@@ -63,7 +63,8 @@ class MyEventHandler( EventHandler ):
 
 def simple_debugger( argv ):
 
-    # Instance a Debug object, passing it the MyEventHandler instance.
+    # Instance a Debug object using the "with" statement.
+    # Note how we don't need to call "debug.stop()" anymore.
     with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
 
         # Start a new process for debugging.

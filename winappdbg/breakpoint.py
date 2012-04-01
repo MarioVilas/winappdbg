@@ -1128,7 +1128,7 @@ class Hook (object):
         def __calc_signature(self, signature):
             float_types = self.__float_types
             c_sizeof    = ctypes.sizeof
-            reg_size    = sizeof(ctypes.c_size_t)
+            reg_size    = c_sizeof(ctypes.c_size_t)
 
             reg_int_sig   = []
             reg_float_sig = []
