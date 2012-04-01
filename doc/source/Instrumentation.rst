@@ -155,27 +155,45 @@ Example #12: enumerate the top-level windows
 .. literalinclude:: ../../examples/instrumentation/12_list_windows.py
    :start-after: $Id
 
-Example #13: traverse the windows tree
+Example #13: minimize all top-level windows
++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/13_minimize_all.py>`
+
+.. literalinclude:: ../../examples/instrumentation/13_minimize_all.py
+   :start-after: $Id
+
+Example #14: traverse the windows tree
 ++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/13_show_window_tree.py>`
+:download:`Download <../../examples/instrumentation/14_show_window_tree.py>`
 
-.. literalinclude:: ../../examples/instrumentation/13_show_window_tree.py
+.. literalinclude:: ../../examples/instrumentation/14_show_window_tree.py
    :start-after: $Id
    :end-before: if __name__ == '__main__':
 
-Example #14: get windows by screen position
+Example #15: get windows by screen position
 +++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/14_get_window_at.py>`
+:download:`Download <../../examples/instrumentation/15_get_window_at.py>`
 
-.. literalinclude:: ../../examples/instrumentation/14_get_window_at.py
+.. literalinclude:: ../../examples/instrumentation/15_get_window_at.py
    :start-after: $Id
 
-Example #15: find windows by class and caption
+Example #16: find windows by class and caption
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/15_find_window.py>`
+:download:`Download <../../examples/instrumentation/16_find_window.py>`
 
-.. literalinclude:: ../../examples/instrumentation/15_find_window.py
+.. literalinclude:: ../../examples/instrumentation/16_find_window.py
    :start-after: $Id
+   :end-before: if __name__ == '__main__':
+
+Example #17: kill a program using its window
+++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/17_kill.py>`
+
+.. literalinclude:: ../../examples/instrumentation/17_kill.py
+   :start-after: # --------------
+   :end-before: if __name__ == '__main__':
