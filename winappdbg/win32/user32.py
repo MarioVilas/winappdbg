@@ -1282,10 +1282,11 @@ def EnumChildWindows(hWndParent = NULL):
 
     EnumFunc = __EnumChildProc()
     lpEnumFunc = WNDENUMPROC(EnumFunc)
-    if not _EnumChildWindows(hWndParent, lpEnumFunc, NULL):
-        errcode = GetLastError()
-        if errcode not in (ERROR_NO_MORE_FILES, ERROR_SUCCESS):
-            raise ctypes.WinError(errcode)
+    SetLastError(ERROR_SUCCESS)
+    _EnumChildWindows(hWndParent, lpEnumFunc, NULL)
+    errcode = GetLastError()
+    if errcode != ERROR_SUCCESS and errcode not in (ERROR_NO_MORE_FILES, ERROR_SUCCESS):
+        raise ctypes.WinError(errcode)
     return EnumFunc.hwnd
 
 # LRESULT SendMessage(

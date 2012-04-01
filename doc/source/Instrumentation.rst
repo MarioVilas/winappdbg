@@ -154,3 +154,12 @@ Example #12: enumerate the top-level windows
 
 .. literalinclude:: ../../examples/instrumentation/12_list_windows.py
    :start-after: $Id
+
+Example #13: traverse the windows tree
+++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/13_show_window_tree.py>`
+
+.. literalinclude:: ../../examples/instrumentation/13_show_window_tree.py
+   :start-after: $Id
+   :end-before: if __name__ == '__main__':
