@@ -263,6 +263,7 @@ class Window (object):
         """
         @rtype:  str
         @return: Window class name.
+
         @raise WindowsError: An error occured while processing this request.
         """
         return win32.GetClassName( self.get_handle() )
@@ -271,6 +272,7 @@ class Window (object):
         """
         @rtype:  int
         @return: Window style mask.
+
         @raise WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowLong( self.get_handle(), win32.GWL_STYLE )
@@ -279,6 +281,7 @@ class Window (object):
         """
         @rtype:  int
         @return: Window extended style mask.
+
         @raise WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowLong( self.get_handle(), win32.GWL_EXSTYLE )
@@ -287,9 +290,12 @@ class Window (object):
         """
         @see:    L{set_text}
         @rtype:  str
-        @return: Window text (caption).
+        @return: Window text (caption) on success, C{None} on error.
         """
-        return win32.GetWindowText( self.get_handle() )
+        try:
+            return win32.GetWindowText( self.get_handle() )
+        except WindowsError:
+            return None
 
     def set_text(self, text):
         """
@@ -299,6 +305,8 @@ class Window (object):
 
         @type  text: str
         @param text: New window text.
+
+        @raise WindowsError: An error occured while processing this request.
         """
         win32.SetWindowText( self.get_handle(), text )
 
@@ -310,6 +318,8 @@ class Window (object):
 
         @rtype:  L{win32.WindowPlacement}
         @return: Window placement in the desktop.
+
+        @raise WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowPlacement( self.get_handle() )
 

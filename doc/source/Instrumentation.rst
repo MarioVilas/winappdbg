@@ -142,3 +142,15 @@ Example #11: resolve an API function in a process
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
+The Window class
+----------------
+
+A *Window* object lets you manipulate any window in the current desktop. You can get a *Window* instance by querying a *System* object.
+
+Example #12: enumerate the top-level windows
+++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/12_list_windows.py>`
+
+.. literalinclude:: ../../examples/instrumentation/12_list_windows.py
+   :start-after: $Id
