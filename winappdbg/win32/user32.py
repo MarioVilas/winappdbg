@@ -885,6 +885,7 @@ def GetWindow(hWnd, uCmd):
     _GetWindow.argtypes = [HWND, UINT]
     _GetWindow.restype  = HWND
 
+    SetLastError(ERROR_SUCCESS)
     hWndTarget = _GetWindow(hWnd, uCmd)
     if not hWndTarget:
         winerr = GetLastError()
@@ -900,6 +901,7 @@ def GetParent(hWnd):
     _GetParent.argtypes = [HWND]
     _GetParent.restype  = HWND
 
+    SetLastError(ERROR_SUCCESS)
     hWndParent = _GetParent(hWnd)
     if not hWndParent:
         winerr = GetLastError()
@@ -916,6 +918,7 @@ def GetAncestor(hWnd, gaFlags = GA_PARENT):
     _GetAncestor.argtypes = [HWND, UINT]
     _GetAncestor.restype  = HWND
 
+    SetLastError(ERROR_SUCCESS)
     hWndParent = _GetAncestor(hWnd, gaFlags)
     if not hWndParent:
         winerr = GetLastError()

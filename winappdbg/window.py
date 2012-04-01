@@ -458,29 +458,26 @@ class Window (object):
         """
         @see:    L{get_tree}
         @rtype:  L{Window}
-        @return: Root window for this tree.
-        @raise RuntimeError: Can't find the root window for this tree.
+        @return: If this is a child window, return the top-level window it
+            belongs to.
+            If this window is already a top-level window, returns itself.
         @raise WindowsError: An error occured while processing this request.
         """
-        return win32.GetAncestor( self.get_handle(), win32.GA_ROOTOWNER )
+        hWnd     = self.get_handle()
+        history  = set()
+        hPrevWnd = hWnd
+        while hWnd and hWnd not in history:
+            history.add(hWnd)
+            hPrevWnd = hWnd
+            hWnd     = win32.GetParent(hWnd)
+        if hWnd in history:
+            # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
+            return self
+        if hPrevWnd != self.get_handle():
+            return self.__get_window(hPrevWnd)
+        return self
 
-        # The above code works around a bug in the Win32 API
-        # in some versions of Windows.
-##        hWnd     = self.get_handle()
-##        history  = set()
-##        hPrevWnd = hWnd
-##        while hWnd and hWnd not in history:
-##            history.add(hWnd)
-##            hPrevWnd = hWnd
-##            hWnd     = win32.GetParent(hWnd)
-##        if hWnd in history:
-##            # See: https://docs.google.com/View?id=dfqd62nk_228h28szgz
-##            raise RuntimeError("Can't find the root window for this tree")
-##        if hPrevWnd != self.hWnd:
-##            return self.__get_window(hPrevWnd)
-##        return self
-
-    def get_child_at(self, x, y):
+    def get_child_at(self, x, y, bAllowTransparency = True):
         """
         Get the child window located at the given coordinates. If no such
         window exists an exception is raised.
@@ -489,17 +486,31 @@ class Window (object):
 
         @type  x: int
         @param x: Horizontal coordinate.
+
         @type  y: int
         @param y: Vertical coordinate.
 
+        @type  bAllowTransparency: bool
+        @param bAllowTransparency: If C{True} transparent areas in windows are
+            ignored, returning the window behind them. If C{False} transparent
+            areas are treated just like any other area.
+
         @rtype:  L{Window}
-        @return: Child window at the requested position. If no such window
-            exists a C{WindowsError} exception is raised.
+        @return: Child window at the requested position, or C{None} if there
+            is no window at those coordinates.
 
         @raise WindowsError: An error occured while processing this request.
         """
-        win32.ChildWindowFromPoint( self.get_handle(), (x, y) )
-##        win32.RealChildWindowFromPoint( self.get_handle(), (x, y) )
+        try:
+            if bAllowTransparency:
+                hWnd = win32.RealChildWindowFromPoint( self.get_handle(), (x, y) )
+            else:
+                hWnd = win32.ChildWindowFromPoint( self.get_handle(), (x, y) )
+            if hWnd:
+                return self.__get_window(hWnd)
+        except WindowsError:
+            pass
+        return None
 
 #------------------------------------------------------------------------------
 

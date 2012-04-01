@@ -163,3 +163,12 @@ Example #13: traverse the windows tree
 .. literalinclude:: ../../examples/instrumentation/13_show_window_tree.py
    :start-after: $Id
    :end-before: if __name__ == '__main__':
+
+Example #14: get the windows tree as a dictionary
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/14_get_window_tree.py>`
+
+.. literalinclude:: ../../examples/instrumentation/14_get_window_tree.py
+   :start-after: $Id
+   :end-before: if __name__ == '__main__':

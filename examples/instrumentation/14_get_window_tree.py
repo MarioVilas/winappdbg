@@ -30,30 +30,8 @@
 
 # $Id$
 
-from winappdbg import System, HexDump
-
-
-def show_window_tree( window, indent = 0 ):
-
-    # Show this window's handle and caption.
-    # Use some ASCII art to show the layout. :)
-    handle  = HexDump.integer( window.get_handle() )
-    caption = window.get_text()
-    line = ""
-    if indent > 0:
-        print "|   " * indent
-        line = "|   " * (indent - 1) + "|---"
-    else:
-        print "|"
-    if caption is not None:
-        line += handle + ": " + caption
-    else:
-        line += handle
-    print line
-
-    # Recursively show the child windows.
-    for child in window.get_children():
-        show_window_tree( child, indent + 1 )
+from winappdbg import System
+from pprint import pprint
 
 
 def main():
@@ -61,11 +39,14 @@ def main():
     # Create a system snaphot.
     system = System()
 
-    # Get the Desktop window.
-    root = system.get_desktop_window()
+    # Get the desktop window.
+    desktop = system.get_desktop_window()
 
-    # Now show the window tree.
-    show_window_tree(root)
+    # Get the window tree.
+    tree = desktop.get_tree()
+
+    # Pretty-print it.
+    pprint( tree )
 
 
 if __name__ == '__main__':
