@@ -275,7 +275,7 @@ class Window (object):
 
         @raise WindowsError: An error occured while processing this request.
         """
-        return win32.GetWindowLong( self.get_handle(), win32.GWL_STYLE )
+        return win32.GetWindowLongPtr( self.get_handle(), win32.GWL_STYLE )
 
     def get_extended_style(self):
         """
@@ -284,7 +284,7 @@ class Window (object):
 
         @raise WindowsError: An error occured while processing this request.
         """
-        return win32.GetWindowLong( self.get_handle(), win32.GWL_EXSTYLE )
+        return win32.GetWindowLongPtr( self.get_handle(), win32.GWL_EXSTYLE )
 
     def get_text(self):
         """

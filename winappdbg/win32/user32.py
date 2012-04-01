@@ -35,6 +35,7 @@ Wrapper for user32.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from version import bits
 from kernel32 import GetLastError, SetLastError
 from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
@@ -842,17 +843,38 @@ SetWindowText = GuessStringType(SetWindowTextA, SetWindowTextW)
 def GetWindowLongA(hWnd, nIndex = 0):
     _GetWindowLongA = windll.user32.GetWindowLongA
     _GetWindowLongA.argtypes = [HWND, ctypes.c_int]
-    _GetWindowLongA.restype  = LONG
+    _GetWindowLongA.restype  = DWORD
     return _GetWindowLongA(hWnd, nIndex)
 
 def GetWindowLongW(hWnd, nIndex = 0):
     _GetWindowLongW = windll.user32.GetWindowLongW
     _GetWindowLongW.argtypes = [HWND, ctypes.c_int]
-    _GetWindowLongW.restype  = LONG
+    _GetWindowLongW.restype  = DWORD
     return _GetWindowLongW(hWnd, nIndex)
 
-##GetWindowLong = GuessStringType(GetWindowLongA, GetWindowLongW)
-GetWindowLong = GetWindowLongA  # XXX HACK
+GetWindowLong = DefaultStringType(GetWindowLongA, GetWindowLongW)
+
+if bits == 32:
+
+    GetWindowLongPtrA = GetWindowLongA
+    GetWindowLongPtrW = GetWindowLongW
+    GetWindowLongPtr  = GetWindowLong
+
+else:
+
+    def GetWindowLongPtrA(hWnd, nIndex = 0):
+        _GetWindowLongPtrA = windll.user32.GetWindowLongPtrA
+        _GetWindowLongPtrA.argtypes = [HWND, ctypes.c_int]
+        _GetWindowLongPtrA.restype  = SIZE_T
+        return _GetWindowLongPtrA(hWnd, nIndex)
+
+    def GetWindowLongPtrW(hWnd, nIndex = 0):
+        _GetWindowLongPtrW = windll.user32.GetWindowLongPtrW
+        _GetWindowLongPtrW.argtypes = [HWND, ctypes.c_int]
+        _GetWindowLongPtrW.restype  = DWORD
+        return _GetWindowLongPtrW(hWnd, nIndex)
+
+    GetWindowLongPtr = DefaultStringType(GetWindowLongPtrA, GetWindowLongPtrW)
 
 # HWND GetShellWindow(VOID);
 def GetShellWindow():
