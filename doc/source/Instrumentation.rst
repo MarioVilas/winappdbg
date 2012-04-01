@@ -164,21 +164,11 @@ Example #13: traverse the windows tree
    :start-after: $Id
    :end-before: if __name__ == '__main__':
 
-Example #14: get the windows tree as a dictionary
-+++++++++++++++++++++++++++++++++++++++++++++++++
+Example #14: get windows by screen position
++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/14_get_window_tree.py>`
+:download:`Download <../../examples/instrumentation/14_get_window_at.py>`
 
-.. literalinclude:: ../../examples/instrumentation/14_get_window_tree.py
+.. literalinclude:: ../../examples/instrumentation/14_get_window_at.py
    :start-after: $Id
-   :end-before: if __name__ == '__main__':
-
-Example #15: query windows by screen position
-+++++++++++++++++++++++++++++++++++++++++++++
-
-:download:`Download <../../examples/instrumentation/15_get_window_at.py>`
-
-.. literalinclude:: ../../examples/instrumentation/15_get_window_at.py
-   :start-after: $Id
-
 

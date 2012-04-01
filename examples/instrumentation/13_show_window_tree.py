@@ -67,6 +67,9 @@ def main():
     # Now show the window tree.
     show_window_tree(root)
 
+    # You can also ge the tree as a Python dictionary:
+    # tree = root.get_tree()
+    # print tree
 
 if __name__ == '__main__':
     main()
