@@ -1198,7 +1198,7 @@ class Hook (object):
                     ctx = aThread.get_context(flags)
                     if RegisterArguments:
                         buffer = (win32.QWORD * 4)(ctx['Rcx'], ctx['Rdx'],
-                                                   ctx['R8'], ctx['R9'])
+                                                   ctx['R8'],  ctx['R9'])
                         reg_args = self.__get_arguments_from_buffer(buffer,
                                                              RegisterArguments)
                         arguments.update(reg_args)
