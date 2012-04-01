@@ -613,6 +613,7 @@ ERROR_BAD_ARGUMENTS                 = 160
 ERROR_BAD_PATHNAME                  = 161
 ERROR_ALREADY_EXISTS                = 183
 ERROR_INVALID_FLAG_NUMBER           = 186
+ERROR_ENVVAR_NOT_FOUND              = 203
 ERROR_FILENAME_EXCED_RANGE          = 206
 ERROR_MORE_DATA                     = 234
 
