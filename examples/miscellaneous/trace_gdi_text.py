@@ -50,6 +50,15 @@ def TextOutA(event, ra, hdc, nXStart, nYStart, lpString, cbString):
 def TextOutW(event, ra, hdc, nXStart, nYStart, lpString, cbString):
     log_wide(event, "TextOutW", lpString, cbString)
 
+ETO_OPAQUE          = 0x0002
+ETO_CLIPPED         = 0x0004
+ETO_GLYPH_INDEX     = 0x0010
+ETO_RTLREADING      = 0x0080
+ETO_NUMERICSLATIN   = 0x0800
+ETO_NUMERICSLOCAL   = 0x0400
+ETO_IGNORELANGUAGE  = 0x1000
+ETO_PDY             = 0x2000
+
 # BOOL ExtTextOut(
 #   __in  HDC hdc,
 #   __in  int X,
@@ -61,10 +70,13 @@ def TextOutW(event, ra, hdc, nXStart, nYStart, lpString, cbString):
 #   __in  const INT *lpDx
 # );
 def ExtTextOutA(event, ra, hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx):
+    if fuOptions & ETO_GLYPH_INDEX:
+        print "ExtTextOutA(ETO_GLYPH_INDEX)"
     log_ansi(event, "ExtTextOutA", lpString, cbCount)
 
 def ExtTextOutW(event, ra, hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx):
-    print hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx
+    if fuOptions & ETO_GLYPH_INDEX:
+        print "ExtTextOutW(ETO_GLYPH_INDEX)"
     log_wide(event, "ExtTextOutW", lpString, cbCount)
 
 # typedef struct _POLYTEXT {
@@ -149,6 +161,9 @@ class MyEventHandler( EventHandler ):
             event.debug.hook_function(pid, module.resolve("PolyTextOutW"),   PolyTextOutW,   signature = sig_PolyTextOut)
 
 def simple_debugger(argv):
+    #if "Vista" in os or "Windows 7" in os:
+    #    print "This example doesn't work in Windows Vista and above!"
+    #    return
     print DebugLog.log_text("Trace started on %s" % argv[0])
     debug = Debug( MyEventHandler() )
     try:
