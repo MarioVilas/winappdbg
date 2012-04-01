@@ -1922,7 +1922,7 @@ class _BreakpointContainer (object):
         # Cleanup running breakpoints
         try:
             for bp in self.__runningBP[tid]:
-                self.__cleanup_breakpoint( event, bp )
+                self.__cleanup_breakpoint(event, bp)
             del self.__runningBP[tid]
         except KeyError:
             pass
@@ -1930,7 +1930,7 @@ class _BreakpointContainer (object):
         # Cleanup hardware breakpoints
         try:
             for bp in self.__hardwareBP[tid]:
-                self.__cleanup_breakpoint( event, bp )
+                self.__cleanup_breakpoint(event, bp)
             del self.__hardwareBP[tid]
         except KeyError:
             pass
@@ -1949,14 +1949,16 @@ class _BreakpointContainer (object):
         # Cleanup code breakpoints
         for (bp_pid, bp_address) in self.__codeBP.keys():
             if bp_pid == pid:
-                self.__cleanup_breakpoint( event, self.__codeBP[(bp_pid, bp_address)] )
-                del self.__codeBP[(bp_pid, bp_address)]
+                bp = self.__codeBP[ (bp_pid, bp_address) ]
+                self.__cleanup_breakpoint(event, bp)
+                del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints
         for (bp_pid, bp_address) in self.__pageBP.keys():
             if bp_pid == pid:
-                self.__cleanup_breakpoint( event, self.__pageBP[(bp_pid, bp_address)] )
-                del self.__pageBP[(bp_pid, bp_address)]
+                bp = self.__pageBP[ (bp_pid, bp_address) ]
+                self.__cleanup_breakpoint(event, bp)
+                del self.__pageBP[ (bp_pid, bp_address) ]
 
         # Cleanup deferred code breakpoints
         try:
@@ -1998,15 +2000,17 @@ class _BreakpointContainer (object):
         for (bp_pid, bp_address) in self.__codeBP.keys():
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
+                    bp = self.__codeBP[ (bp_pid, bp_address) ]
                     self.__cleanup_breakpoint(event, bp)
-                    del self.__codeBP[(bp_pid, bp_address)]
+                    del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints on this module
         for (bp_pid, bp_address) in self.__pageBP.keys():
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
+                    bp = self.__pageBP[ (bp_pid, bp_address) ]
                     self.__cleanup_breakpoint(event, bp)
-                    del self.__pageBP[(bp_pid, bp_address)]
+                    del self.__pageBP[ (bp_pid, bp_address) ]
 
 #------------------------------------------------------------------------------
 
