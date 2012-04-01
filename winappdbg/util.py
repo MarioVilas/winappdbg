@@ -301,7 +301,7 @@ class PathOperations (StaticClass):
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
                     except WindowsError, e:
-                        if win32.winerror(e) in (win32.ERROR_FILE_NOT_FOUND, \
+                        if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
                                                  win32.ERROR_PATH_NOT_FOUND):
                             continue
                         raise

@@ -95,10 +95,11 @@ from textio import HexDump
 from util import StaticClass, PathOperations
 
 import warnings
+import traceback
 
 #==============================================================================
 
-class EventCallbackWarnings (RuntimeWarning):
+class EventCallbackWarning (RuntimeWarning):
     """
     This warnings is issued when an uncaught exception was raised by a
     user-defined event handler.
@@ -942,7 +943,7 @@ class LoadDLLEvent (Event):
             # For some reason the module object is missing, so make a new one.
             aModule = Module(lpBaseOfDll,
                              hFile    = self.get_file_handle(),
-                             fileName = get_filename(),
+                             fileName = self.get_filename(),
                              process  = aProcess)
             aProcess._add_module(aModule)
         return aModule
@@ -1531,14 +1532,14 @@ class EventSift(EventHandler):
     # With any luck it will be removed when apiHooks is deprecated.
     def __call__(self, event):
         try:
-            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT and \
-                                        isinstance(handler, EventHandler):
+            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT:
                 pid = event.get_pid()
                 handler = self.forward.get(pid, None)
                 if handler is None:
                     handler = self.cls(*self.argv, **self.argd)
                 self.forward[pid] = handler
-                handler.__EventHandler_setApiHooksForDll(event)
+                if isinstance(handler, EventHandler):
+                    handler.__EventHandler_setApiHooksForDll(event)
         finally:
             return super(EventSift, self).__call__(event)
 
@@ -1767,7 +1768,7 @@ class EventDispatcher (object):
                 except Exception, e:
                     msg = ("Event handler pre-callback %r"
                            " raised an exception: %s")
-                    msg = msg % (action, traceback.format_exc(e))
+                    msg = msg % (self.__eventHandler, traceback.format_exc(e))
                     warnings.warn(msg, EventCallbackWarning)
                     returnValue = None
 

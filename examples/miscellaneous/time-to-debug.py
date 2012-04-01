@@ -63,8 +63,8 @@ with Debug() as dbg:
             # If wait() times out just try again.
             # On any other error stop debugging.
             except WindowsError, e:
-                if win32.winerror(e) in (win32.ERROR_SEM_TIMEOUT,
-                                         win32.WAIT_TIMEOUT):
+                if e.winerror in (win32.ERROR_SEM_TIMEOUT,
+                                  win32.WAIT_TIMEOUT):
                     continue
                 raise
 

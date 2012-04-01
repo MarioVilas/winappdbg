@@ -118,8 +118,8 @@ class RegistryKey (_RegistryContainer):
         try:
             win32.RegQueryValueEx(self._handle, name, False)
             return True
-        except WindowsError:
-            if win32.winerror(e) == win32.ERROR_FILE_NOT_FOUND:
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 return False
             raise
 
@@ -127,7 +127,7 @@ class RegistryKey (_RegistryContainer):
         try:
             return win32.RegQueryValueEx(self._handle, name)[0]
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_FILE_NOT_FOUND:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(name)
             raise
 
@@ -394,7 +394,7 @@ class Registry (_RegistryContainer):
             with win32.RegOpenKey(hive, subpath):
                 return True
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_FILE_NOT_FOUND:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 return False
             raise
 
@@ -403,7 +403,7 @@ class Registry (_RegistryContainer):
         try:
             handle = win32.RegOpenKey(hive, subpath)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_FILE_NOT_FOUND:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(path)
             raise
         return RegistryKey(path, handle)
@@ -435,7 +435,7 @@ class Registry (_RegistryContainer):
         try:
             win32.RegDeleteTree(hive, subpath)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_FILE_NOT_FOUND:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(path)
             raise
 

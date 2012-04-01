@@ -51,7 +51,8 @@ from util import Regenerator, PathOperations, MemoryAddresses
 from module import Module, _ModuleContainer
 from thread import Thread, _ThreadContainer
 from window import Window
-from search import Search, BytePattern, TextPattern, RegExpPattern, HexPattern
+from search import Search, \
+                   Pattern, BytePattern, TextPattern, RegExpPattern, HexPattern
 
 import re
 import ctypes
@@ -428,7 +429,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             self.wait(0)
         except WindowsError, e:
-            return win32.winerror(e) == win32.WAIT_TIMEOUT
+            return e.winerror == win32.WAIT_TIMEOUT
         return False
 
     def get_exit_code(self):
@@ -2127,7 +2128,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.has_content()
@@ -2147,7 +2148,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return True
@@ -2169,7 +2170,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_free()
@@ -2191,7 +2192,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_reserved()
@@ -2213,7 +2214,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_commited()
@@ -2235,7 +2236,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_guard()
@@ -2259,7 +2260,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_readable()
@@ -2283,7 +2284,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_writeable()
@@ -2307,7 +2308,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_copy_on_write()
@@ -2331,7 +2332,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable()
@@ -2359,7 +2360,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             mbi = self.mquery(address)
         except WindowsError, e:
-            if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+            if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
         return mbi.is_executable_and_writeable()
@@ -2391,7 +2392,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.has_content():
@@ -2425,7 +2426,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_readable():
@@ -2459,7 +2460,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_writeable():
@@ -2494,7 +2495,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_copy_on_write():
@@ -2528,7 +2529,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_executable():
@@ -2566,7 +2567,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(address)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
             if not mbi.is_executable():
@@ -2637,7 +2638,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 mbi = self.mquery(currentAddr)
             except WindowsError, e:
-                if win32.winerror(e) == win32.ERROR_INVALID_PARAMETER:
+                if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
             yield mbi
@@ -2782,7 +2783,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             filenames = self.get_mapped_filenames(memory)
         except WindowsError, e:
-            if win32.winerror(e) != win32.ERROR_ACCESS_DENIED:
+            if e.winerror != win32.ERROR_ACCESS_DENIED:
                 raise
             filenames = dict()
 
@@ -2899,7 +2900,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                 new_mbi = self.mquery(old_mbi.BaseAddress)
                 if new_mbi.BaseAddress == old_mbi.BaseAddress and \
                                     new_mbi.RegionSize == old_mbi.RegionSize:
-                    self.__restore_mbi(hProcess, new_mbi, old_mbi)
+                    self.__restore_mbi(hProcess, new_mbi, old_mbi,
+                                       bSkipMappedFiles)
 
                 # If the region doesn't match, restore it page by page.
                 else:
@@ -2929,14 +2931,15 @@ class Process (_ThreadContainer, _ModuleContainer):
                     while address < end:
                         old_mbi.BaseAddress = address
                         new_mbi.BaseAddress = address
-                        self.__restore_mbi(hProcess, new_mbi, old_mbi)
+                        self.__restore_mbi(hProcess, new_mbi, old_mbi,
+                                           bSkipMappedFiles)
                         address = address + step
 
         # Resume execution.
         finally:
             self.resume()
 
-    def __restore_mbi(self, hProcess, new_mbi, old_mbi):
+    def __restore_mbi(self, hProcess, new_mbi, old_mbi, bSkipMappedFiles):
         """
         Used internally by L{restore_memory_snapshot}.
         """
@@ -3542,13 +3545,13 @@ class _ProcessContainer (object):
 
             # This API only exists in Windows 2003, Vista and above.
             try:
-                hThread = win32.OpenThread(THREAD_QUERY_LIMITED_INFORMATION,
-                                           False, dwThreadId)
+                hThread = win32.OpenThread(
+                    win32.THREAD_QUERY_LIMITED_INFORMATION, False, dwThreadId)
             except WindowsError, e:
-                if win32.winerror(e) != win32.ERROR_ACCESS_DENIED:
+                if e.winerror != win32.ERROR_ACCESS_DENIED:
                     raise
-                hThread = win32.OpenThread(THREAD_QUERY_INFORMATION,
-                                           False, dwThreadId)
+                hThread = win32.OpenThread(
+                    win32.THREAD_QUERY_INFORMATION, False, dwThreadId)
             try:
                 dwProcessId = win32.GetProcessIdOfThread(hThread)
             finally:

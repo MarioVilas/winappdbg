@@ -1127,7 +1127,7 @@ class Hook (object):
 
         def __calc_signature(self, signature):
             float_types = self.__float_types
-            sizeof      = ctypes.sizeof
+            c_sizeof    = ctypes.sizeof
             reg_size    = sizeof(ctypes.c_size_t)
 
             reg_int_sig   = []
@@ -1141,7 +1141,7 @@ class Hook (object):
                 if i < 4:
                     if type(arg) in float_types:
                         reg_float_sig.append( (name, arg) )
-                    elif sizeof(arg) <= reg_size:
+                    elif c_sizeof(arg) <= reg_size:
                         reg_int_sig.append( (name, arg) )
                     else:
                         msg = ("Hook signatures don't support structures"

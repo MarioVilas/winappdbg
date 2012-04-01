@@ -1019,8 +1019,8 @@ class CrashLogger (object):
                     debug.wait(100)
                     break
                 except WindowsError, e:
-                    if win32.winerror(e) not in (win32.ERROR_SEM_TIMEOUT,
-                                                 win32.WAIT_TIMEOUT):
+                    if e.winerror not in (win32.ERROR_SEM_TIMEOUT,
+                                          win32.WAIT_TIMEOUT):
                         logger.log_exc()
                         raise   # don't ignore this error
                 except Exception:

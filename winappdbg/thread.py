@@ -399,7 +399,7 @@ class Thread (object):
         try:
             self.wait(0)
         except WindowsError, e:
-            error = win32.winerror(e)
+            error = e.winerror
             if error == win32.ERROR_ACCESS_DENIED:
                 raise
             return error == win32.WAIT_TIMEOUT
@@ -797,7 +797,7 @@ class Thread (object):
             architecture returned by this method will be L{win32.ARCH_I386},
             but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
         """
-        if win32.bits == 32 and not win3.wow64:
+        if win32.bits == 32 and not win32.wow64:
             return win32.arch
         return self.get_process().get_arch()
 
