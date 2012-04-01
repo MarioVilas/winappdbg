@@ -86,13 +86,11 @@ class Thread (object):
         get_register,
         get_flags, get_flag_value,
         get_pc, get_sp, get_fp,
-        get_gp, get_rp,
         get_cf, get_df, get_sf, get_tf, get_zf,
         set_context,
         set_register,
         set_flags, set_flag_value,
         set_pc, set_sp, set_fp,
-        set_gp, set_rp,
         set_cf, set_df, set_sf, set_tf, set_zf,
         clear_cf, clear_df, clear_sf, clear_tf, clear_zf,
         Flags
@@ -1291,7 +1289,7 @@ class Thread (object):
         return tuple([ stackData.__getattribute__(name)
                        for (name, type) in stackData._fields_ ])
 
-    def read_stack_frame(self, stack_frame_structure, offset = 0):
+    def read_stack_frame(self, structure, offset = 0):
         """
         Reads the stack frame of the thread.
 

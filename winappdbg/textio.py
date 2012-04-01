@@ -921,8 +921,8 @@ class Table (object):
         Get the width of the text output for the table.
 
         @rtype:  int
-        @return:
-            Width in characters for the text output, including the C{"\n"}.
+        @return: Width in characters for the text output,
+            including the newline character.
         """
         width = 0
         if self.__width:
