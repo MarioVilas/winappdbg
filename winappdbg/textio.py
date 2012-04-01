@@ -85,6 +85,10 @@ class HexInput (StaticClass):
         @return: Parsed integer value.
         """
         token = token.strip()
+        neg = False
+        if token.startswith('-'):
+            token = token[1:]
+            neg = True
         if token.startswith('0x'):
             result = int(token, 16)     # hexadecimal
         elif token.startswith('0b'):
@@ -96,6 +100,8 @@ class HexInput (StaticClass):
                 result = int(token)     # decimal
             except ValueError:
                 result = int(token, 16) # hexadecimal (no "0x" prefix)
+        if neg:
+            result = -result
         return result
 
     @staticmethod
@@ -333,7 +339,9 @@ class HexOutput (StaticClass):
             integer_size = cls.integer_size
         else:
             integer_size = (bits / 4) + 2
-        return ('0x%%.%dx' % (integer_size - 2)) % integer
+        if integer >= 0:
+            return ('0x%%.%dx' % (integer_size - 2)) % integer
+        return ('-0x%%.%dx' % (integer_size - 2)) % -integer
 
     @classmethod
     def address(cls, address, bits = None):
@@ -349,11 +357,14 @@ class HexOutput (StaticClass):
         @rtype:  str
         @return: Text output.
         """
-        if address_size is None:
+        if bits is None:
             address_size = cls.address_size
+            bits = win32.bits
         else:
             address_size = (bits / 4) + 2
-        return ('0x%%.%dx' % (cls.address_size - 2)) % address
+        if address < 0:
+            address = ((2 ** bits) - 1) ^ ~address
+        return ('0x%%.%dx' % (address_size - 2)) % address
 
     @staticmethod
     def hexadecimal(data):
@@ -493,8 +504,11 @@ class HexDump (StaticClass):
         """
         if bits is None:
             address_size = cls.address_size
+            bits = win32.bits
         else:
             address_size = bits / 4
+        if address < 0:
+            address = ((2 ** bits) - 1) ^ ~address
         return ('%%.%dX' % address_size) % address
 
     @staticmethod
