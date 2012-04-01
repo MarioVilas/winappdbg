@@ -131,6 +131,22 @@ Example #7: intercepting API calls
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
+The EventSift class
+-------------------
+
+If you're debugging more than one process at a time, keeping track of everything can be trickier. For that reason there's also a class called **EventSift**. You can wrap your *EventHandler* class with it to create a new *EventHandler* instance for each debugged process.
+
+That way, your *EventHandler* can be written as if only a single process was being debugged, but you can attach to as many processes as you want. Each *EventHandler* will only "see" its own debugee.
+
+Example #8: sifting events per process
+++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/debugging/08_event_sifting.py>`
+
+.. literalinclude:: ../../examples/debugging/08_event_sifting.py
+   :start-after: from winappdbg
+   :end-before: # When invoked from the command line,
+
 .. _breakpoints-watches-and-hooks:
 
 Breakpoints, watches and hooks
@@ -162,39 +178,39 @@ The stalking methods and their equivalents are the following:
 | **stalk_buffer**   | watch_buffer    |
 +--------------------+-----------------+
 
-Example #8: setting a breakpoint
+Example #9: setting a breakpoint
 +++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/08_breakpoint.py>`
+:download:`Download <../../examples/debugging/09_breakpoint.py>`
 
-.. literalinclude:: ../../examples/debugging/08_breakpoint.py
+.. literalinclude:: ../../examples/debugging/09_breakpoint.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #9: hooking a function
+Example #10: hooking a function
 +++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/09_hook_function.py>`
+:download:`Download <../../examples/debugging/10_hook_function.py>`
 
-.. literalinclude:: ../../examples/debugging/09_hook_function.py
+.. literalinclude:: ../../examples/debugging/10_hook_function.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #10: watching a variable
+Example #11: watching a variable
 +++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/10_watch_variable.py>`
+:download:`Download <../../examples/debugging/11_watch_variable.py>`
 
-.. literalinclude:: ../../examples/debugging/10_watch_variable.py
+.. literalinclude:: ../../examples/debugging/11_watch_variable.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #11: watching a buffer
+Example #12: watching a buffer
 +++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/11_watch_buffer.py>`
+:download:`Download <../../examples/debugging/12_watch_buffer.py>`
 
-.. literalinclude:: ../../examples/debugging/11_watch_buffer.py
+.. literalinclude:: ../../examples/debugging/12_watch_buffer.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
@@ -211,20 +227,20 @@ In addition to exported functions, debugging symbols are used whenever possible.
 
 A complete explanation on how labels work can be found at the wiki page HowLabelsWork.
 
-Example #12: getting the label for a given memory address
+Example #13: getting the label for a given memory address
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/12_get_label.py>`
+:download:`Download <../../examples/debugging/13_get_label.py>`
 
-.. literalinclude:: ../../examples/debugging/12_get_label.py
+.. literalinclude:: ../../examples/debugging/13_get_label.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #13: resolving a label back into a memory address
+Example #14: resolving a label back into a memory address
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/13_resolve_label.py>`
+:download:`Download <../../examples/debugging/14_resolve_label.py>`
 
-.. literalinclude:: ../../examples/debugging/13_resolve_label.py
+.. literalinclude:: ../../examples/debugging/14_resolve_label.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
