@@ -31,6 +31,7 @@
 # $Id$
 
 from winappdbg import Debug, EventHandler, DebugLog
+from winappdbg.win32 import *
 from ctypes import *
 
 #------------------------------------------------------------------------------
@@ -63,6 +64,7 @@ def ExtTextOutA(event, ra, hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx):
     log_ansi(event, "ExtTextOutA", lpString, cbCount)
 
 def ExtTextOutW(event, ra, hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx):
+    print hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx
     log_wide(event, "ExtTextOutW", lpString, cbCount)
 
 # typedef struct _POLYTEXT {
@@ -124,6 +126,7 @@ def log_wide(event, fn, lpString, nCount):
         if c_int(nCount).value == -1:
             lpString = event.get_process().peek_string(lpString, fUnicode = True)
         else:
+            #lpString = event.get_process().peek_string(lpString, fUnicode = True, dwMaxSize = nCount)
             lpString = event.get_process().peek(lpString, nCount * 2)
             lpString = unicode(lpString, 'U16', 'replace')
         print DebugLog.log_text("%s( %r );" % (fn, lpString))
@@ -133,12 +136,17 @@ class MyEventHandler( EventHandler ):
         pid = event.get_pid()
         module = event.get_module()
         if module.match_name("gdi32.dll"):
-            event.debug.hook_function(pid, module.resolve("TextOutA"),       TextOutA,       paramCount = 5)
-            event.debug.hook_function(pid, module.resolve("TextOutW"),       TextOutW,       paramCount = 5)
-            event.debug.hook_function(pid, module.resolve("ExtTextOutA"),    ExtTextOutA,    paramCount = 8)
-            event.debug.hook_function(pid, module.resolve("ExtTextOutW"),    ExtTextOutW,    paramCount = 8)
-            event.debug.hook_function(pid, module.resolve("PolyTextOutA"),   PolyTextOutA,   paramCount = 2)
-            event.debug.hook_function(pid, module.resolve("PolyTextOutW"),   PolyTextOutW,   paramCount = 2)
+
+            sig_TextOut     = (HDC, c_int, c_int, c_void_p, c_int)
+            sig_ExtTextOut  = (HDC, c_int, c_int, UINT, c_void_p, c_void_p, UINT, c_void_p)
+            sig_PolyTextOut = (HDC, c_void_p, c_int)
+
+            event.debug.hook_function(pid, module.resolve("TextOutA"),       TextOutA,       signature = sig_TextOut)
+            event.debug.hook_function(pid, module.resolve("TextOutW"),       TextOutW,       signature = sig_TextOut)
+            event.debug.hook_function(pid, module.resolve("ExtTextOutA"),    ExtTextOutA,    signature = sig_ExtTextOut)
+            event.debug.hook_function(pid, module.resolve("ExtTextOutW"),    ExtTextOutW,    signature = sig_ExtTextOut)
+            event.debug.hook_function(pid, module.resolve("PolyTextOutA"),   PolyTextOutA,   signature = sig_PolyTextOut)
+            event.debug.hook_function(pid, module.resolve("PolyTextOutW"),   PolyTextOutW,   signature = sig_PolyTextOut)
 
 def simple_debugger(argv):
     print DebugLog.log_text("Trace started on %s" % argv[0])
