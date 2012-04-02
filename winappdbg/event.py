@@ -1094,6 +1094,10 @@ class RIPEvent (Event):
         """
         @rtype:  int
         @return: RIP type code as defined by the Win32 API.
+            May be C{0} or one of the following:
+             - L{win32.SLE_ERROR}
+             - L{win32.SLE_MINORERROR}
+             - L{win32.SLE_WARNING}
         """
         return self.raw.u.RipInfo.dwType
 

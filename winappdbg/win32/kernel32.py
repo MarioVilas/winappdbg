@@ -429,6 +429,11 @@ ACCESS_VIOLATION_TYPE_READ      = EXCEPTION_READ_FAULT
 ACCESS_VIOLATION_TYPE_WRITE     = EXCEPTION_WRITE_FAULT
 ACCESS_VIOLATION_TYPE_DEP       = EXCEPTION_EXECUTE_FAULT
 
+# RIP event types
+SLE_ERROR      = 1
+SLE_MINORERROR = 2
+SLE_WARNING    = 3
+
 # DuplicateHandle constants
 DUPLICATE_CLOSE_SOURCE      = 0x00000001
 DUPLICATE_SAME_ACCESS       = 0x00000002
@@ -496,6 +501,12 @@ PRODUCT_WEB_SERVER_CORE = 0x0000001D
 # DEP policy flags
 PROCESS_DEP_ENABLE = 1
 PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION = 2
+
+# Error modes
+SEM_FAILCRITICALERRORS      = 0x001
+SEM_NOGPFAULTERRORBOX       = 0x002
+SEM_NOALIGNMENTFAULTEXCEPT  = 0x004
+SEM_NOOPENFILEERRORBOX      = 0x800
 
 #--- Handle wrappers ----------------------------------------------------------
 
@@ -1836,6 +1847,43 @@ def SetLastError(dwErrCode):
     _SetLastError.restype  = None
     _SetLastError(dwErrCode)
 
+# UINT WINAPI GetErrorMode(void);
+def GetErrorMode():
+    _GetErrorMode = windll.kernel32.GetErrorMode
+    _GetErrorMode.argtypes = []
+    _GetErrorMode.restype  = UINT
+    return _GetErrorMode()
+
+# UINT WINAPI SetErrorMode(
+#   __in  UINT uMode
+# );
+def SetErrorMode(uMode):
+    _SetErrorMode = windll.kernel32.SetErrorMode
+    _SetErrorMode.argtypes = [UINT]
+    _SetErrorMode.restype  = UINT
+    return _SetErrorMode(dwErrCode)
+
+# DWORD GetThreadErrorMode(void);
+def GetThreadErrorMode():
+    _GetThreadErrorMode = windll.kernel32.GetThreadErrorMode
+    _GetThreadErrorMode.argtypes = []
+    _GetThreadErrorMode.restype  = DWORD
+    return _GetThreadErrorMode()
+
+# BOOL SetThreadErrorMode(
+#   __in   DWORD dwNewMode,
+#   __out  LPDWORD lpOldMode
+# );
+def SetThreadErrorMode(dwNewMode):
+    _SetThreadErrorMode = windll.kernel32.SetThreadErrorMode
+    _SetThreadErrorMode.argtypes = [DWORD, LPDWORD]
+    _SetThreadErrorMode.restype  = BOOL
+    _SetThreadErrorMode.errcheck = RaiseIfZero
+
+    old = DWORD(0)
+    _SetThreadErrorMode(dwErrCode, ctypes.byref(old))
+    return old.value
+
 # BOOL WINAPI CloseHandle(
 #   __in  HANDLE hObject
 # );
@@ -2046,6 +2094,97 @@ def FreeLibrary(hModule):
     _FreeLibrary.restype  = bool
     _FreeLibrary.errcheck = RaiseIfZero
     _FreeLibrary(hModule)
+
+# PVOID WINAPI RtlPcToFileHeader(
+#   __in   PVOID PcValue,
+#   __out  PVOID *BaseOfImage
+# );
+def RtlPcToFileHeader(PcValue):
+    _RtlPcToFileHeader = windll.kernel32.RtlPcToFileHeader
+    _RtlPcToFileHeader.argtypes = [PVOID, POINTER(PVOID)]
+    _RtlPcToFileHeader.restype  = PRUNTIME_FUNCTION
+
+    BaseOfImage = PVOID(0)
+    _RtlPcToFileHeader(PcValue, ctypes.byref(BaseOfImage))
+    return BaseOfImage.value
+
+# TODO RtlLookupFunctionEntry
+
+##class RUNTIME_FUNCTION (Structure):
+##    _fields_ = [
+##        ("Start",  ULONG),
+##        ("End",    ULONG),
+##        ("Unwind", ULONG),
+##    ]
+##PRUNTIME_FUNCTION = POINTER(RUNTIME_FUNCTION)
+##
+##if arch == ARCH_I386:
+##
+##    # PVOID WINAPI RtlLookupFunctionEntry(
+##    #   __in   ULONGLONG ControlPC,
+##    #   __out  PULONGLONG ImageBase,
+##    #   __out  PULONGLONG TargetGp
+##    # );
+##    def RtlLookupFunctionEntry(ControlPC):
+##        _RtlLookupFunctionEntry = windll.kernel32.RtlLookupFunctionEntry
+##        _RtlLookupFunctionEntry.argtypes = [ULONGLONG, PULONGLONG, PULONGLONG]
+##        _RtlLookupFunctionEntry.restype  = PRUNTIME_FUNCTION
+##
+##        ImageBase = ULONGLONG(0)
+##        TargetGp  = ULONGLONG(0)
+##        pEntry = _RtlLookupFunctionEntry(PcValue, ctypes.byref(ImageBase), ctypes.byref(TargetGp))
+##        return pEntry, ImageBase.value, TargetGp.value
+##
+##elif arch == ARCH_AMD64:
+##
+##    UNWIND_HISTORY_TABLE_SIZE   = 12
+##    UNWIND_HISTORY_TABLE_NONE   = 0
+##    UNWIND_HISTORY_TABLE_GLOBAL = 1
+##    UNWIND_HISTORY_TABLE_LOCAL  = 2
+##
+##    # typedef struct _UNWIND_HISTORY_TABLE_ENTRY {
+##    #         ULONG64 ImageBase;
+##    #         PRUNTIME_FUNCTION FunctionEntry;
+##    # } UNWIND_HISTORY_TABLE_ENTRY, *PUNWIND_HISTORY_TABLE_ENTRY;
+##    class UNWIND_HISTORY_TABLE_ENTRY (Structure):
+##        _fields_ = [
+##            ("ImageBase",       ULONG64),
+##            ("FunctionEntry",   PRUNTIME_FUNCTION),
+##        ]
+##    PUNWIND_HISTORY_TABLE_ENTRY = POINTER(UNWIND_HISTORY_TABLE_ENTRY)
+##
+##    # typedef struct _UNWIND_HISTORY_TABLE {
+##    #         ULONG Count;
+##    #         UCHAR Search;
+##    #         ULONG64 LowAddress;
+##    #         ULONG64 HighAddress;
+##    #         UNWIND_HISTORY_TABLE_ENTRY Entry[UNWIND_HISTORY_TABLE_SIZE];
+##    # } UNWIND_HISTORY_TABLE, *PUNWIND_HISTORY_TABLE;
+##    class UNWIND_HISTORY_TABLE (Structure):
+##        _fields_ = [
+##            ("Count",       ULONG),
+##            ("Search",      UCHAR),
+##            ("LowAddress",  ULONG64),
+##            ("HighAddress", ULONG64),
+##            ("ImageBase",   UNWIND_HISTORY_TABLE_ENTRY * UNWIND_HISTORY_TABLE_SIZE),
+##        ]
+##    PUNWIND_HISTORY_TABLE = POINTER(UNWIND_HISTORY_TABLE)
+##
+##    # PRUNTIME_FUNCTION WINAPI RtlLookupFunctionEntry (
+##    #     IN ULONG64 ControlPc,
+##    #     OUT PULONG64 ImageBase,
+##    #     IN OUT PUNWIND_HISTORY_TABLE HistoryTable OPTIONAL
+##    #     );
+##    def RtlLookupFunctionEntry(ControlPc):
+##        _RtlLookupFunctionEntry = windll.kernel32.RtlLookupFunctionEntry
+##        _RtlLookupFunctionEntry.argtypes = [ULONG64, PULONG64, PUNWIND_HISTORY_TABLE]
+##        _RtlLookupFunctionEntry.restype  = PRUNTIME_FUNCTION
+##
+##        ImageBase    = ULONGLONG(0)
+##        HistoryTable = UNWIND_HISTORY_TABLE()
+##        HistoryTable.Count = UNWIND_HISTORY_TABLE_SIZE  # ctypes.sizeof(HistoryTable)
+##        pEntry = _RtlLookupFunctionEntry(PcValue, ctypes.byref(ImageBase), ctypes.byref(HistoryTable))
+##        return pEntry, ImageBase.value, HistoryTable
 
 #------------------------------------------------------------------------------
 # File API and related

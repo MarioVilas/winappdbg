@@ -55,6 +55,7 @@ __all__ = [
 
     # Warnings
     'BreakpointWarning',
+    'BreakpointCallbackWarning',
 
     ]
 
@@ -488,7 +489,9 @@ class Breakpoint (object):
     def hit(self, event):
         """
         Notify a breakpoint that it's been hit.
-        This triggers the corresponding state transition.
+
+        This triggers the corresponding state transition and sets the
+        C{breakpoint} property of the given L{Event} object.
 
         @see: L{disable}, L{enable}, L{one_shot}, L{running}
 
@@ -500,6 +503,8 @@ class Breakpoint (object):
         aProcess = event.get_process()
         aThread  = event.get_thread()
         state    = self.get_state()
+
+        event.breakpoint = self
 
         if state == self.ENABLED:
             self.running(aProcess, aThread)
@@ -514,7 +519,7 @@ class Breakpoint (object):
             # this should not happen
             msg = "Hit a disabled breakpoint at address %s"
             msg = msg % HexDump.address( self.get_address() )
-            raise AssertionError(msg)
+            warnings.warn(msg, BreakpointWarning)
 
 #==============================================================================
 
@@ -1890,13 +1895,9 @@ class _BreakpointContainer (object):
     # This operates on the dictionary of running breakpoints.
     # Since the bps are meant to stay alive no cleanup is done here.
 
-    def __has_running_bp(self, tid):
+    def __get_running_bp_set(self, tid):
         "Auxiliary method."
-        return tid in self.__runningBP and self.__runningBP[tid]
-
-    def __pop_running_bp(self, tid):
-        "Auxiliary method."
-        return self.__runningBP[tid].pop()
+        return self.__runningBP.get(tid, ())
 
     def __add_running_bp(self, tid, bp):
         "Auxiliary method."
@@ -3228,20 +3229,14 @@ class _BreakpointContainer (object):
         mask = ~(MemoryAddresses.pageSize - 1)
         address = address & mask
 
-        # Do we have a page breakpoint there?
+        # Do we have an active page breakpoint there?
         key = (pid, address)
         if key in self.__pageBP:
             bp = self.__pageBP[key]
-
-            # Breakpoint is ours.
-            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-
-            # Set the "breakpoint" property of the event object.
-            event.breakpoint     = bp
-
-            # Ignore disabled and running breakpoints.
-            # (This should not happen anyway)
             if bp.is_enabled() or bp.is_one_shot():
+
+                # Breakpoint is ours.
+                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
                 # Hit the breakpoint.
                 bp.hit(event)
@@ -3262,6 +3257,10 @@ class _BreakpointContainer (object):
                 else:
                     bCallHandler = bCondition
 
+        # If we don't have a breakpoint here pass the exception to the debugee.
+        else:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+
         return bCallHandler
 
     def notify_breakpoint(self, event):
@@ -3278,29 +3277,24 @@ class _BreakpointContainer (object):
         pid             = event.get_pid()
         bCallHandler    = True
 
-        # Do we have a code breakpoint there?
+        # Do we have an active code breakpoint there?
         key = (pid, address)
         if key in self.__codeBP:
             bp = self.__codeBP[key]
-
-            # Breakpoint is ours.
-            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-
-            # Set the "breakpoint" property of the event object.
-            event.breakpoint     = bp
-
-            # Ignore disabled breakpoints.
             if not bp.is_disabled():
 
-                # Hit the breakpoint.
-                bp.hit(event)
-
-                # Change the EIP to the exception address.
-                # This accounts for the change in EIP caused by
+                # Change the program counter (PC) to the exception address.
+                # This accounts for the change in PC caused by
                 # executing the breakpoint instruction, no matter
                 # the size of it.
                 aThread = event.get_thread()
                 aThread.set_pc(address)
+
+                # Swallow the exception.
+                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+
+                # Hit the breakpoint.
+                bp.hit(event)
 
                 # Remember breakpoints in RUNNING state.
                 if bp.is_running():
@@ -3321,6 +3315,10 @@ class _BreakpointContainer (object):
         elif event.get_process().is_system_defined_breakpoint(address):
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
+        # If we don't have a breakpoint here pass the exception to the debugee.
+        else:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+
         return bCallHandler
 
     def notify_single_step(self, event):
@@ -3338,69 +3336,86 @@ class _BreakpointContainer (object):
         aThread         = event.get_thread()
         bCallHandler    = True
 
-        # Try to detect the Ice Breakpoint undocumented instruction.
-        # We only do it when in hostile mode to avoid the performance penalty,
-        # since that instruction is never generated by a compiler.
-        bFakeSingleStep = False
-        if self.in_hostile_mode():
-            if self.system.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-                c = event.get_process().read_char( aThread.get_pc() - 1 )
-                if c == 0xF1:   # int1
-                    bFakeSingleStep = True
+        # Set the default to pass the exception to the debugee.
+        # If we later determine the exception is ours, hide it instead.
+        try:
+            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
-        # When the thread is in tracing mode,
-        # don't pass the exception to the debugee
-        # and set the trap flag again.
-        if self.is_tracing(tid):
-            if not bFakeSingleStep:
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-            aThread.set_tf()
-            # XXX TODO
-            # don't let popf instructions get the real value of the trap flag
-            # in i386/amd64 when debugging in hostile mode
+            # Try to detect the Ice Breakpoint undocumented instruction.
+            # We only do it when in hostile mode to avoid the performance
+            # penalty, since that instruction is never generated by a compiler.
+            bFakeSingleStep = False
+            if self.in_hostile_mode():
+                if self.system.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+                    c = event.get_process().read_char( aThread.get_pc() - 1 )
+                    if c == 0xF1:   # int1
+                        bFakeSingleStep = True
 
-        # Handle breakpoints in RUNNING state.
-        while self.__has_running_bp(tid):
-            if not bFakeSingleStep:
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-            bCallHandler = False
-            bp = self.__pop_running_bp(tid)
-            bp.hit(event)
+            # When the thread is in tracing mode,
+            # don't pass the exception to the debugee
+            # and set the trap flag again.
+            if self.is_tracing(tid):
+                if not bFakeSingleStep:
+                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                aThread.set_tf()
 
-        # Handle hardware breakpoints.
-        if tid in self.__hardwareBP:
-            ctx     = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
-            Dr6     = ctx['Dr6']
-            ctx['Dr6'] = Dr6 & DebugRegister.clearHitMask
-            aThread.set_context(ctx)
-            bFoundBreakpoint = False
-            bCondition       = False
-            hwbpList = [ bp for bp in self.__hardwareBP[tid] ]
-            for bp in hwbpList:
-                if not bp in self.__hardwareBP[tid]:
-                    continue    # it was removed by a user-defined callback
-                slot = bp.get_slot()
-                if (slot is not None) and (Dr6 & DebugRegister.hitMask[slot]):
-                    if not bFoundBreakpoint:    # set before actions are called
-                        if not bFakeSingleStep:
-                            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-                    bFoundBreakpoint = True
-                    event.breakpoint = bp
-                    bp.hit(event)
-                    if bp.is_running():
-                        self.__add_running_bp(tid, bp)
-                    bThisCondition = bp.eval_condition(event)
-                    if bThisCondition and bp.is_automatic():
-                        bp.run_action(event)
-                        bThisCondition = False
-                    bCondition = bCondition or bThisCondition
-            if bFoundBreakpoint:
-                bCallHandler = bCondition
+                # TODO
+                # don't let popf instructions get the real value of the trap
+                # flag in i386/amd64 when debugging in hostile mode
 
-        # Always call the user-defined handler
-        # when the thread is in tracing mode.
-        if self.is_tracing(tid):
-            bCallHandler = True
+            # Handle breakpoints in RUNNING state.
+            running = self.__get_running_bp_set(tid)
+            if running:
+                if not bFakeSingleStep:
+                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                bCallHandler = False
+                while running:
+                    try:
+                        running.pop().hit(event)
+                    except Exception, e:
+                        warnings.warn(str(e), BreakpointWarning)
+
+            # Handle hardware breakpoints.
+            if tid in self.__hardwareBP:
+                ctx     = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
+                Dr6     = ctx['Dr6']
+                ctx['Dr6'] = Dr6 & DebugRegister.clearHitMask
+                aThread.set_context(ctx)
+                bFoundBreakpoint = False
+                bCondition       = False
+                hwbpList = [ bp for bp in self.__hardwareBP[tid] ]
+                for bp in hwbpList:
+                    if not bp in self.__hardwareBP[tid]:
+                        continue    # it was removed by a user-defined callback
+                    slot = bp.get_slot()
+                    if (slot is not None) and \
+                                           (Dr6 & DebugRegister.hitMask[slot]):
+                        if not bFoundBreakpoint: #set before actions are called
+                            if not bFakeSingleStep:
+                                event.continueStatus = \
+                                                    win32.DBG_EXCEPTION_HANDLED
+                        bFoundBreakpoint = True
+                        bp.hit(event)
+                        if bp.is_running():
+                            self.__add_running_bp(tid, bp)
+                        bThisCondition = bp.eval_condition(event)
+                        if bThisCondition and bp.is_automatic():
+                            bp.run_action(event)
+                            bThisCondition = False
+                        bCondition = bCondition or bThisCondition
+                if bFoundBreakpoint:
+                    bCallHandler = bCondition
+
+            # Always call the user-defined handler
+            # when the thread is in tracing mode.
+            if self.is_tracing(tid):
+                bCallHandler = True
+
+        # If the user hit Control-C while we were inside the try block,
+        # set the default back to DBG_EXCEPTION_HANDLED.
+        except:
+            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            raise
 
         return bCallHandler
 

@@ -101,6 +101,7 @@ __all__ =   [
 ##                'ApiHook',
 ##                'BufferWatch',
                 'BreakpointWarning',
+                'BreakpointCallbackWarning',
 
                 # from crash import *
                 'Crash',
@@ -186,7 +187,7 @@ __all__ =   [
             ]
 
 # Import all public symbols
-from breakpoint import BreakpointWarning
+from breakpoint import *
 from crash import *
 from debug import *
 from event import *
