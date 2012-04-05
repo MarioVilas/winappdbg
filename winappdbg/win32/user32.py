@@ -844,13 +844,27 @@ def GetWindowLongA(hWnd, nIndex = 0):
     _GetWindowLongA = windll.user32.GetWindowLongA
     _GetWindowLongA.argtypes = [HWND, ctypes.c_int]
     _GetWindowLongA.restype  = DWORD
-    return _GetWindowLongA(hWnd, nIndex)
+
+    SetLastError(ERROR_SUCCESS)
+    retval = _GetWindowLongA(hWnd, nIndex)
+    if retval == 0:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return retval
 
 def GetWindowLongW(hWnd, nIndex = 0):
     _GetWindowLongW = windll.user32.GetWindowLongW
     _GetWindowLongW.argtypes = [HWND, ctypes.c_int]
     _GetWindowLongW.restype  = DWORD
-    return _GetWindowLongW(hWnd, nIndex)
+
+    SetLastError(ERROR_SUCCESS)
+    retval = _GetWindowLongW(hWnd, nIndex)
+    if retval == 0:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return retval
 
 GetWindowLong = DefaultStringType(GetWindowLongA, GetWindowLongW)
 
@@ -866,13 +880,27 @@ else:
         _GetWindowLongPtrA = windll.user32.GetWindowLongPtrA
         _GetWindowLongPtrA.argtypes = [HWND, ctypes.c_int]
         _GetWindowLongPtrA.restype  = SIZE_T
-        return _GetWindowLongPtrA(hWnd, nIndex)
+
+        SetLastError(ERROR_SUCCESS)
+        retval = _GetWindowLongPtrA(hWnd, nIndex)
+        if retval == 0:
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
+        return retval
 
     def GetWindowLongPtrW(hWnd, nIndex = 0):
         _GetWindowLongPtrW = windll.user32.GetWindowLongPtrW
         _GetWindowLongPtrW.argtypes = [HWND, ctypes.c_int]
         _GetWindowLongPtrW.restype  = DWORD
-        return _GetWindowLongPtrW(hWnd, nIndex)
+
+        SetLastError(ERROR_SUCCESS)
+        retval = _GetWindowLongPtrW(hWnd, nIndex)
+        if retval == 0:
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
+        return retval
 
     GetWindowLongPtr = DefaultStringType(GetWindowLongPtrA, GetWindowLongPtrW)
 
