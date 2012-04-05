@@ -225,3 +225,36 @@ def ShellExecuteExW(lpExecInfo):
     _ShellExecuteExW.restype  = BOOL
     _ShellExecuteExW.errcheck = RaiseIfZero
     _ShellExecuteExW(byref(lpExecInfo))
+
+# HINSTANCE FindExecutable(
+#   __in      LPCTSTR lpFile,
+#   __in_opt  LPCTSTR lpDirectory,
+#   __out     LPTSTR lpResult
+# );
+def FindExecutableA(lpFile, lpDirectory = None):
+    _FindExecutableA = windll.shell32.FindExecutableA
+    _FindExecutableA.argtypes = [LPSTR, LPSTR, LPSTR]
+    _FindExecutableA.restype  = HINSTANCE
+
+    lpResult = ctypes.create_string_buffer(MAX_PATH)
+    success = _FindExecutableA(lpFile, lpDirectory, lpResult)
+    success = ctypes.cast(success, ctypes.c_void_p)
+    success = success.value
+    if not success > 32:    # weird! isn't it?
+        raise ctypes.WinError(success)
+    return lpResult.value
+
+def FindExecutableW(lpFile, lpDirectory = None):
+    _FindExecutableW = windll.shell32.FindExecutableW
+    _FindExecutableW.argtypes = [LPWSTR, LPWSTR, LPWSTR]
+    _FindExecutableW.restype  = HINSTANCE
+
+    lpResult = ctypes.create_unicode_buffer(MAX_PATH)
+    success = _FindExecutableW(lpFile, lpDirectory, lpResult)
+    success = ctypes.cast(success, ctypes.c_void_p)
+    success = success.value
+    if not success > 32:    # weird! isn't it?
+        raise ctypes.WinError(success)
+    return lpResult.value
+
+FindExecutable = GuessStringType(FindExecutableA, FindExecutableW)
