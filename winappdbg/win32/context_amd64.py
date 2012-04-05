@@ -38,6 +38,8 @@ from defines import *
 from version import ARCH_AMD64
 import context_i386
 
+#--- CONTEXT structures and constants -----------------------------------------
+
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access
 # violation.
@@ -615,6 +617,178 @@ PWOW64_FLOATING_SAVE_AREA   = POINTER(WOW64_FLOATING_SAVE_AREA)
 PWOW64_CONTEXT              = POINTER(WOW64_CONTEXT)
 PWOW64_LDT_ENTRY            = POINTER(WOW64_LDT_ENTRY)
 
+#--- Stack unwinding constants and structures ---------------------------------
+
+# RtlVirtualUnwind HandlerType
+UNW_FLAG_NHANDLER  = 0
+UNW_FLAG_EHANDLER  = 1
+UNW_FLAG_UHANDLER  = 2
+UNW_FLAG_CHAININFO = 4
+
+UNWIND_HISTORY_TABLE_SIZE   = 12
+UNWIND_HISTORY_TABLE_NONE   = 0
+UNWIND_HISTORY_TABLE_GLOBAL = 1
+UNWIND_HISTORY_TABLE_LOCAL  = 2
+
+class RUNTIME_FUNCTION (Structure):
+    _fields_ = [
+        ("Start",  ULONG),
+        ("End",    ULONG),
+        ("Unwind", ULONG),
+    ]
+PRUNTIME_FUNCTION = POINTER(RUNTIME_FUNCTION)
+
+# typedef struct _UNWIND_HISTORY_TABLE_ENTRY {
+#         ULONG64 ImageBase;
+#         PRUNTIME_FUNCTION FunctionEntry;
+# } UNWIND_HISTORY_TABLE_ENTRY, *PUNWIND_HISTORY_TABLE_ENTRY;
+class UNWIND_HISTORY_TABLE_ENTRY (Structure):
+    _fields_ = [
+        ("ImageBase",       ULONG64),
+        ("FunctionEntry",   PRUNTIME_FUNCTION),
+    ]
+PUNWIND_HISTORY_TABLE_ENTRY = POINTER(UNWIND_HISTORY_TABLE_ENTRY)
+
+# typedef struct _UNWIND_HISTORY_TABLE {
+#         ULONG Count;
+#         UCHAR Search;
+#         ULONG64 LowAddress;
+#         ULONG64 HighAddress;
+#         UNWIND_HISTORY_TABLE_ENTRY Entry[UNWIND_HISTORY_TABLE_SIZE];
+# } UNWIND_HISTORY_TABLE, *PUNWIND_HISTORY_TABLE;
+class UNWIND_HISTORY_TABLE (Structure):
+    _fields_ = [
+        ("Count",       ULONG),
+        ("Search",      UCHAR),
+        ("LowAddress",  ULONG64),
+        ("HighAddress", ULONG64),
+        ("ImageBase",   UNWIND_HISTORY_TABLE_ENTRY * UNWIND_HISTORY_TABLE_SIZE),
+    ]
+PUNWIND_HISTORY_TABLE = POINTER(UNWIND_HISTORY_TABLE)
+
+# typedef struct _KNONVOLATILE_CONTEXT_POINTERS {
+#    union {
+#        PM128A FloatingContext[16];
+#        struct {
+#            PM128A Xmm0;
+#            PM128A Xmm1;
+#            PM128A Xmm2;
+#            PM128A Xmm3;
+#            PM128A Xmm4;
+#            PM128A Xmm5;
+#            PM128A Xmm6;
+#            PM128A Xmm7;
+#            PM128A Xmm8;
+#            PM128A Xmm9;
+#            PM128A Xmm10;
+#            PM128A Xmm11;
+#            PM128A Xmm12;
+#            PM128A Xmm13;
+#            PM128A Xmm14;
+#            PM128A Xmm15;
+#        };
+#    };
+#
+#    union {
+#        PULONG64 IntegerContext[16];
+#        struct {
+#            PULONG64 Rax;
+#            PULONG64 Rcx;
+#            PULONG64 Rdx;
+#            PULONG64 Rbx;
+#            PULONG64 Rsp;
+#            PULONG64 Rbp;
+#            PULONG64 Rsi;
+#            PULONG64 Rdi;
+#            PULONG64 R8;
+#            PULONG64 R9;
+#            PULONG64 R10;
+#            PULONG64 R11;
+#            PULONG64 R12;
+#            PULONG64 R13;
+#            PULONG64 R14;
+#            PULONG64 R15;
+#        };
+#    };
+# } KNONVOLATILE_CONTEXT_POINTERS, *PKNONVOLATILE_CONTEXT_POINTERS;
+class KNONVOLATILE_CONTEXT_POINTERS (Structure):
+    _fields_ = [
+        ("Xmm0",  PM128A),
+        ("Xmm1",  PM128A),
+        ("Xmm2",  PM128A),
+        ("Xmm3",  PM128A),
+        ("Xmm4",  PM128A),
+        ("Xmm5",  PM128A),
+        ("Xmm6",  PM128A),
+        ("Xmm7",  PM128A),
+        ("Xmm8",  PM128A),
+        ("Xmm9",  PM128A),
+        ("Xmm10", PM128A),
+        ("Xmm11", PM128A),
+        ("Xmm12", PM128A),
+        ("Xmm13", PM128A),
+        ("Xmm14", PM128A),
+        ("Xmm15", PM128A),
+        ("Rax",   PULONG64),
+        ("Rcx",   PULONG64),
+        ("Rdx",   PULONG64),
+        ("Rbx",   PULONG64),
+        ("Rsp",   PULONG64),
+        ("Rbp",   PULONG64),
+        ("Rsi",   PULONG64),
+        ("Rdi",   PULONG64),
+        ("R8",    PULONG64),
+        ("R9",    PULONG64),
+        ("R10",   PULONG64),
+        ("R11",   PULONG64),
+        ("R12",   PULONG64),
+        ("R13",   PULONG64),
+        ("R14",   PULONG64),
+        ("R15",   PULONG64),
+    ]
+
+    @property
+    def FloatingContext(self):
+        return (
+            self.Xmm0,
+            self.Xmm1,
+            self.Xmm2,
+            self.Xmm3,
+            self.Xmm4,
+            self.Xmm5,
+            self.Xmm6,
+            self.Xmm7,
+            self.Xmm8,
+            self.Xmm9,
+            self.Xmm10,
+            self.Xmm11,
+            self.Xmm12,
+            self.Xmm13,
+            self.Xmm14,
+            self.Xmm15,
+        )
+
+    @property
+    def IntegerContext(self):
+        return (
+            self.Rax,
+            self.Rcx,
+            self.Rdx,
+            self.Rbx,
+            self.Rsp,
+            self.Rbp,
+            self.Rsi,
+            self.Rdi,
+            self.R8,
+            self.R9,
+            self.R10,
+            self.R11,
+            self.R12,
+            self.R13,
+            self.R14,
+            self.R15,
+        )
+
 ###############################################################################
 
 # BOOL WINAPI GetThreadSelectorEntry(
@@ -745,3 +919,32 @@ def Wow64SetThreadContext(hThread, lpContext):
     if isinstance(lpContext, dict):
         lpContext = WOW64_CONTEXT.from_dict(lpContext)
     _Wow64SetThreadContext(hThread, byref(lpContext))
+
+# PRUNTIME_FUNCTION WINAPI RtlLookupFunctionEntry (
+#     IN ULONG64 ControlPc,
+#     OUT PULONG64 ImageBase,
+#     IN OUT PUNWIND_HISTORY_TABLE HistoryTable OPTIONAL
+#     );
+def RtlLookupFunctionEntry(ControlPc):
+    _RtlLookupFunctionEntry = windll.kernel32.RtlLookupFunctionEntry
+    _RtlLookupFunctionEntry.argtypes = [ULONG64, PULONG64, PUNWIND_HISTORY_TABLE]
+    _RtlLookupFunctionEntry.restype  = PRUNTIME_FUNCTION
+
+    ImageBase    = ULONGLONG(0)
+    HistoryTable = UNWIND_HISTORY_TABLE()
+    HistoryTable.Count = UNWIND_HISTORY_TABLE_SIZE  # ctypes.sizeof(HistoryTable)
+    pEntry = _RtlLookupFunctionEntry(PcValue, ctypes.byref(ImageBase), ctypes.byref(HistoryTable))
+    return pEntry, ImageBase.value, HistoryTable
+
+# PEXCEPTION_ROUTINE WINAPI RtlVirtualUnwind (
+#    __in DWORD HandlerType,
+#    __in DWORD64 ImageBase,
+#    __in DWORD64 ControlPc,
+#    __in PRUNTIME_FUNCTION FunctionEntry,
+#    __inout PCONTEXT ContextRecord,
+#    __out PVOID *HandlerData,
+#    __out PDWORD64 EstablisherFrame,
+#    __inout_opt PKNONVOLATILE_CONTEXT_POINTERS ContextPointers OPTIONAL
+#    );
+
+# TODO
