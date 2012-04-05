@@ -1083,7 +1083,7 @@ class Hook (object):
             self.useHardwareBreakpoints = False
 
         if win32.bits == 64 and paramCount and not signature:
-            signature = ctypes.QWORD * paramCount
+            signature = (win32.QWORD,) * paramCount
 
         if signature:
             # FIXME: all pointers should be converted to c_void_p!
