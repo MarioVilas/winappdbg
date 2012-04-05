@@ -614,12 +614,6 @@ class Debug (EventDispatcher, _BreakpointContainer):
         code = event.get_event_code()
         if code == win32.EXCEPTION_DEBUG_EVENT:
 
-            # Noncontinuable exceptions terminate the process by default.
-            # They are never caused by the debugger itself.
-
-            if event.is_noncontinuable():
-                event.continueStatus = win32.DBG_TERMINATE_PROCESS
-
             # At this point, by default some exception types are swallowed by
             # the debugger, because we don't know yet if it was caused by the
             # debugger itself or the debugged process.
@@ -635,20 +629,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
             # bad handles detection with Microsoft's gflags.exe utility. See:
             # http://msdn.microsoft.com/en-us/library/windows/hardware/ff549557(v=vs.85).aspx
 
-            else:
-                exc_code = event.get_exception_code()
-                if exc_code in (
-                        win32.EXCEPTION_BREAKPOINT,
-                        win32.EXCEPTION_GUARD_PAGE,
-                    ):
-                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-                elif exc_code == win32.EXCEPTION_INVALID_HANDLE:
-                    if self.__bHostileCode:
-                        event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
-                    else:
-                        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-                else:
+            exc_code = event.get_exception_code()
+            if exc_code in (
+                    win32.EXCEPTION_BREAKPOINT,
+                    win32.EXCEPTION_GUARD_PAGE,
+                ):
+                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            elif exc_code == win32.EXCEPTION_INVALID_HANDLE:
+                if self.__bHostileCode:
                     event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+                else:
+                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            else:
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
         elif code == win32.RIP_EVENT and \
                    event.get_rip_type() == win32.SLE_ERROR:
