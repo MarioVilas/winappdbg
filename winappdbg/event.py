@@ -440,9 +440,9 @@ class ExceptionEvent (Event):
     def is_first_chance(self):
         """
         @rtype:  bool
-        @return: True for first chance exceptions, False for last chance.
+        @return: C{True} for first chance exceptions, C{False} for last chance.
         """
-        return self.raw.u.Exception.dwFirstChance != win32.FALSE
+        return self.raw.u.Exception.dwFirstChance != 0
 
     def is_last_chance(self):
         """
@@ -456,7 +456,8 @@ class ExceptionEvent (Event):
         @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
 
         @rtype:  bool
-        @return: True if the exception is noncontinuable.
+        @return: C{True} if the exception is noncontinuable,
+            C{False} otherwise.
 
             Attempting to continue a noncontinuable exception results in an
             EXCEPTION_NONCONTINUABLE_EXCEPTION exception to be raised.
@@ -470,6 +471,26 @@ class ExceptionEvent (Event):
         @return: The opposite of L{is_noncontinuable}.
         """
         return not self.is_noncontinuable()
+
+    def is_user_defined_exception(self):
+        """
+        Determines if this is an user-defined exception. User-defined
+        exceptions may contain any exception code that is not system reserved.
+
+        Often the exception code is also a valid Win32 error code, but that's
+        up to the debugged application.
+
+        @rtype:  bool
+        @return: C{True} if the exception is user-defined, C{False} otherwise.
+        """
+        return self.get_exception_code() & 0x10000000 == 0
+
+    def is_system_defined_exception(self):
+        """
+        @rtype:  bool
+        @return: The opposite of L{is_user_defined_exception}.
+        """
+        return not self.is_user_defined_exception()
 
     def get_exception_code(self):
         """
