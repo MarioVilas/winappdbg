@@ -244,48 +244,6 @@ class IMAGEHLP_MODULEW64 (Structure):
     ]
 PIMAGEHLP_MODULEW64 = POINTER(IMAGEHLP_MODULEW64)
 
-#--- Stack unwinding constants and structures ---------------------------------
-
-# typedef struct _IMAGE_RUNTIME_FUNCTION_ENTRY {
-#   DWORD BeginAddress;
-#   DWORD EndAddress;
-#   DWORD UnwindInfoAddress;
-# } _IMAGE_RUNTIME_FUNCTION_ENTRY, *_PIMAGE_RUNTIME_FUNCTION_ENTRY;
-class RUNTIME_FUNCTION (Structure):
-    _fields_ = [
-        ("Start",  ULONG),
-        ("End",    ULONG),
-        ("Unwind", ULONG),
-    ]
-PRUNTIME_FUNCTION = POINTER(RUNTIME_FUNCTION)
-
-#typedef struct _FPO_DATA {
-#  DWORD ulOffStart;
-#  DWORD cbProcSize;
-#  DWORD cdwLocals;
-#  WORD  cdwParams;
-#  WORD  cbProlog  :8;
-#  WORD  cbRegs  :3;
-#  WORD  fHasSEH  :1;
-#  WORD  fUseBP  :1;
-#  WORD  reserved  :1;
-#  WORD  cbFrame  :2;
-#} FPO_DATA, *PFPO_DATA;
-class FPO_DATA (Structure):
-    _fields_ = [
-        ("ulOffStart", DWORD),
-        ("cbProcSize", DWORD),
-        ("cdwLocals",  DWORD),
-        ("cdwParams",  WORD),           # size in DWORDs
-        ("cbProlog",   WORD,    8),
-        ("cbRegs",     WORD,    3),
-        ("fHasSEH",    WORD,    1),
-        ("fUseBP",     WORD,    1),
-        ("reserved",   WORD,    1),
-        ("cbFrame",    WORD,    2),
-    ]
-PFPO_DATA = POINTER(FPO_DATA)
-
 #--- dbghelp.dll --------------------------------------------------------------
 
 # XXX the ANSI versions of these functions don't end in "A" as expected!
@@ -792,47 +750,6 @@ def SymSetHomeDirectoryW(hProcess, dir = None):
     return dir
 
 SymSetHomeDirectory = GuessStringType(SymSetHomeDirectoryA, SymSetHomeDirectoryW)
-
-# PVOID WINAPI SymFunctionTableAccess(
-#   __in  HANDLE hProcess,
-#   __in  DWORD AddrBase
-# );
-def SymFunctionTableAccess(hProcess, AddrBase):
-    _SymFunctionTableAccess = windll.dbghelp.SymFunctionTableAccess
-    _SymFunctionTableAccess.argtypes = [HANDLE, DWORD]
-    _SymFunctionTableAccess.restype  = DWORD
-    _SymFunctionTableAccess.errcheck = RaiseIfZero
-
-    ptr = _SymFunctionTableAccess(hProcess, AddrBase)
-    return __SymFunctionTableAccess_convert_pointer(ptr)
-
-# PVOID WINAPI SymFunctionTableAccess64(
-#   __in  HANDLE hProcess,
-#   __in  DWORD64 AddrBase
-# );
-def SymFunctionTableAccess64(hProcess, AddrBase):
-    _SymFunctionTableAccess64 = windll.dbghelp.SymFunctionTableAccess64
-    _SymFunctionTableAccess64.argtypes = [HANDLE, DWORD64]
-    _SymFunctionTableAccess64.restype  = DWORD64
-    _SymFunctionTableAccess64.errcheck = RaiseIfZero
-
-    ptr = _SymFunctionTableAccess64(hProcess, AddrBase)
-    return __SymFunctionTableAccess_convert_pointer(ptr)
-
-if arch == ARCH_AMD64:
-
-    def __SymFunctionTableAccess_convert_pointer(address):
-        return ctypes.cast(PVOID(address), PFPO_DATA)
-
-elif arch == ARCH_AMD64:
-
-    def __SymFunctionTableAccess_convert_pointer(address):
-        return ctypes.cast(PVOID(address), PRUNTIME_FUNCTION)
-
-else:
-
-    def __SymFunctionTableAccess_convert_pointer(address):
-        return PVOID(address)
 
 #--- DbgHelp 5+ support, patch by Neitsa --------------------------------------
 
