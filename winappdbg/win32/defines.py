@@ -363,6 +363,7 @@ def MakeWideVersion(fn):
     return wrapper
 
 #--- Types --------------------------------------------------------------------
+# http://msdn.microsoft.com/en-us/library/aa383751(v=vs.85).aspx
 
 # Map of basic C types to Win32 types
 LPVOID      = ctypes.c_void_p
@@ -370,29 +371,47 @@ CHAR        = ctypes.c_char
 WCHAR       = ctypes.c_wchar
 BYTE        = ctypes.c_ubyte
 SBYTE       = ctypes.c_byte
-WORD        = ctypes.c_ushort
-SWORD       = ctypes.c_short
-DWORD       = ctypes.c_uint
-SDWORD      = ctypes.c_int
-QWORD       = ctypes.c_ulonglong
-SQWORD      = ctypes.c_longlong
+WORD        = ctypes.c_uint16
+SWORD       = ctypes.c_int16
+DWORD       = ctypes.c_uint32
+SDWORD      = ctypes.c_int32
+QWORD       = ctypes.c_uint64
+SQWORD      = ctypes.c_int64
 SHORT       = ctypes.c_short
 USHORT      = ctypes.c_ushort
 INT         = ctypes.c_int
 UINT        = ctypes.c_uint
 LONG        = ctypes.c_long
 ULONG       = ctypes.c_ulong
-LONGLONG    = ctypes.c_longlong
-ULONGLONG   = ctypes.c_ulonglong
+LONGLONG    = ctypes.c_int64        # c_longlong
+ULONGLONG   = ctypes.c_uint64       # c_ulonglong
 LPSTR       = ctypes.c_char_p
 LPWSTR      = ctypes.c_wchar_p
+INT8        = ctypes.c_int8
+INT16       = ctypes.c_int16
+INT32       = ctypes.c_int32
+INT64       = ctypes.c_int64
+UINT8       = ctypes.c_uint8
+UINT16      = ctypes.c_uint16
+UINT32      = ctypes.c_uint32
+UINT64      = ctypes.c_uint64
+LONG32      = ctypes.c_int32
+LONG64      = ctypes.c_int64
+ULONG32     = ctypes.c_uint32
+ULONG64     = ctypes.c_uint64
+DWORD32     = ctypes.c_uint32
+DWORD64     = ctypes.c_uint64
+BOOL        = ctypes.c_int
+FLOAT       = ctypes.c_float
 
 # Map size_t to SIZE_T
 try:
     SIZE_T  = ctypes.c_size_t
+    SSIZE_T = ctypes.c_ssize_t
 except AttributeError:
     # Size of a pointer
     SIZE_T  = {1:BYTE, 2:WORD, 4:DWORD, 8:QWORD}[sizeof(LPVOID)]
+    SSIZE_T = {1:SBYTE, 2:SWORD, 4:SDWORD, 8:SQWORD}[sizeof(LPVOID)]
 PSIZE_T     = POINTER(SIZE_T)
 
 # Not really pointers but pointer-sized integers
@@ -419,16 +438,12 @@ PDWORD      = LPDWORD
 PDWORD_PTR  = POINTER(DWORD_PTR)
 PULONG      = LPULONG
 PLONG       = LPLONG
-BOOL        = DWORD
+CCHAR       = CHAR
 BOOLEAN     = BYTE
 PBOOL       = POINTER(BOOL)
 LPBOOL      = PBOOL
 TCHAR       = CHAR      # XXX ANSI by default?
 UCHAR       = BYTE
-ULONG32     = DWORD
-DWORD32     = DWORD
-ULONG64     = QWORD
-DWORD64     = QWORD
 DWORDLONG   = ULONGLONG
 LPDWORD32   = POINTER(DWORD32)
 LPULONG32   = POINTER(ULONG32)
