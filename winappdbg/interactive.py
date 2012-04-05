@@ -582,8 +582,15 @@ class ConsoleDebugger (Cmd, EventHandler):
         thread  = event.get_thread()
         self.print_current_location(process, thread)
 
+    # Show the current location in the code.
+    def print_breakpoint_location(self, event):
+        process = event.get_process()
+        thread  = event.get_thread()
+        pc = event.get_exception_address()
+        self.print_current_location(process, thread, pc)
+
     # Show the current location in any process and thread.
-    def print_current_location(self, process = None, thread = None):
+    def print_current_location(self, process = None, thread = None, pc = None):
         if not process:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
@@ -594,7 +601,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             thread  = self.lastEvent.get_thread()
         thread.suspend()
         try:
-            pc  = thread.get_pc()
+            if pc is None:
+                pc = thread.get_pc()
             ctx = thread.get_context()
         finally:
             thread.resume()
@@ -1264,8 +1272,8 @@ class ConsoleDebugger (Cmd, EventHandler):
     def do_continue(self, arg):
         """
         continue - continue execution
-        go - continue execution
         g - continue execution
+        go - continue execution
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
@@ -1274,7 +1282,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         if self.debug.get_debugee_count() > 0:
             return True
 
-    do_g = do_continue
+    do_g  = do_continue
+    do_go = do_continue
 
     def do_gh(self, arg):
         """
@@ -2062,10 +2071,6 @@ class ConsoleDebugger (Cmd, EventHandler):
 #------------------------------------------------------------------------------
 # Event handling
 
-# FIXME
-# * not all breakpoints and single steps should be handled, we have to
-#   remember which ones we set and which ones we didn't
-
 # TODO
 # * add configurable stop/don't stop behavior on events and exceptions
 
@@ -2080,18 +2085,19 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.prompt_user()
 
     # Stop for breakpoint exceptions.
-    # Handle all of them, even if they aren't ours.
     def breakpoint(self, event):
-        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.print_event_location(event)
+        self.print_breakpoint_location(event)
         self.prompt_user()
 
     # Stop for single step exceptions.
-    # Handle all of them, even if they aren't ours.
     def single_step(self, event):
-        event.continueStatus = win32.DBG_EXCEPTION_HANDLED
-        self.print_event_location(event)
+        self.print_breakpoint_location(event)
         self.prompt_user()
+
+    # Don't stop for C++ exceptions.
+    def ms_vc_exception(self, event):
+        self.print_exception(event)
+        event.continueStatus = win32.DBG_CONTINUE
 
     # Don't stop for process start.
     def create_process(self, event):
