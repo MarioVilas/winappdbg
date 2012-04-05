@@ -429,30 +429,3 @@ def SetThreadContext(hThread, lpContext):
     if isinstance(lpContext, dict):
         lpContext = CONTEXT.from_dict(lpContext)
     _SetThreadContext(hThread, byref(lpContext))
-
-# TODO RtlLookupFunctionEntry
-
-##class RUNTIME_FUNCTION (Structure):
-##    _fields_ = [
-##        ("Start",  ULONG),
-##        ("End",    ULONG),
-##        ("Unwind", ULONG),
-##    ]
-##PRUNTIME_FUNCTION = POINTER(RUNTIME_FUNCTION)
-##
-##if arch == ARCH_I386:
-##
-##    # PVOID WINAPI RtlLookupFunctionEntry(
-##    #   __in   ULONGLONG ControlPC,
-##    #   __out  PULONGLONG ImageBase,
-##    #   __out  PULONGLONG TargetGp
-##    # );
-##    def RtlLookupFunctionEntry(ControlPC):
-##        _RtlLookupFunctionEntry = windll.kernel32.RtlLookupFunctionEntry
-##        _RtlLookupFunctionEntry.argtypes = [ULONGLONG, PULONGLONG, PULONGLONG]
-##        _RtlLookupFunctionEntry.restype  = PRUNTIME_FUNCTION
-##
-##        ImageBase = ULONGLONG(0)
-##        TargetGp  = ULONGLONG(0)
-##        pEntry = _RtlLookupFunctionEntry(PcValue, ctypes.byref(ImageBase), ctypes.byref(TargetGp))
-##        return pEntry, ImageBase.value, TargetGp.value
