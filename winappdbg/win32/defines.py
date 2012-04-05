@@ -628,6 +628,8 @@ ERROR_NOACCESS                      = 998
 ERROR_DEBUGGER_INACTIVE             = 1284
 ERROR_NONE_MAPPED                   = 1332
 
+RPC_S_SERVER_UNAVAILABLE            = 1722
+
 # Standard access rights
 DELETE                           = 0x00010000L
 READ_CONTROL                     = 0x00020000L
