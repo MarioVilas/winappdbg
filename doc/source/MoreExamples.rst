@@ -46,17 +46,6 @@ Note that in 64 bit processors most memory addresses are not alphanumeric, so th
 
 .. _trace-gdi-text:
 
-Trace all calls to text drawing in GDI
-++++++++++++++++++++++++++++++++++++++
-
-This example hooks all text drawing functions in GDI and prints the text. It can be useful to extract text messages and logs from GUI programs.
-
-:download:`Download <../../examples/miscellaneous/trace_gdi_text.py>`
-
-.. literalinclude:: ../../examples/miscellaneous/trace_gdi_text.py
-   :start-after: # $Id
-   :end-before: # When invoked from the command line,
-
 .. _atoms:
 
 Enumerate all named global atoms
