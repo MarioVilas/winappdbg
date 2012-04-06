@@ -37,7 +37,7 @@ Module instrumentation.
 
 __revision__ = "$Id$"
 
-__all__ = ['Module']
+__all__ = ['Module', 'DebugSymbolsWarning']
 
 import win32
 from textio import HexInput, HexDump
@@ -45,6 +45,15 @@ from util import PathOperations
 
 # delayed imports
 Process = None
+
+import os
+import warnings
+import traceback
+
+#==============================================================================
+
+class DebugSymbolsWarning (UserWarning):
+    "Warning issued if the debug symbols support isn't working properly."
 
 #==============================================================================
 
@@ -100,17 +109,19 @@ class Module (object):
         Internally used by L{Module} to enumerate symbols in a module.
         """
 
-        def __init__(self):
+        def __init__(self, undecorate = False):
             self.symbols = list()
+            self.undecorate = undecorate
 
         def __call__(self, SymbolName, SymbolAddress, SymbolSize, UserContext):
             """
             Callback that receives symbols and stores them in a Python list.
             """
-##            try:
-##                SymbolName = win32.UnDecorateSymbolName(SymbolName)
-##            except Exception, e:
-##                pass
+            if self.undecorate:
+                try:
+                    SymbolName = win32.UnDecorateSymbolName(SymbolName)
+                except Exception, e:
+                    pass
             self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
             return win32.TRUE
 
@@ -419,20 +430,23 @@ class Module (object):
                 pass
             try:
                 try:
-                    win32.SymLoadModule64(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                    success = win32.SymLoadModule64(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
                 except WindowsError:
+                    success = 0
+                if not success:
                     ImageName = self.get_filename()
-                    win32.SymLoadModule64(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
-                try:
-                    win32.SymEnumerateSymbols64(hProcess, BaseOfDll, Enumerator)
-                finally:
-                    win32.SymUnloadModule64(hProcess, BaseOfDll)
+                    success = win32.SymLoadModule64(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
+                if success:
+                    try:
+                        win32.SymEnumerateSymbols64(hProcess, BaseOfDll, Enumerator)
+                    finally:
+                        win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
         except WindowsError, e:
-##            import traceback        # XXX DEBUG
-##            traceback.print_exc()
-            pass
+            msg = "Cannot load debug symbols for process ID %d, reason:\n%s"
+            msg = msg % (self.get_pid(), traceback.format_exc(e))
+            warnings.warn(msg, DebugSymbolsWarning)
         self.__symbols = Enumerator.symbols
 
     def unload_symbols(self):
@@ -492,9 +506,23 @@ class Module (object):
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
                 if symbol == SymbolName:
                     return SymbolAddress
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                try:
+                    SymbolName = win32.UnDecorateSymbolName(SymbolName)
+                except Exception, e:
+                    continue
+                if symbol == SymbolName:
+                    return SymbolAddress
         else:
             symbol = symbol.lower()
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                if symbol == SymbolName.lower():
+                    return SymbolAddress
+            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
+                try:
+                    SymbolName = win32.UnDecorateSymbolName(SymbolName)
+                except Exception, e:
+                    continue
                 if symbol == SymbolName.lower():
                     return SymbolAddress
 
@@ -682,7 +710,7 @@ class Module (object):
             address = self.resolve(procedure)
             if address is None:
 
-                # If it's a symbol, use the symbol.
+                # If it's a debug symbol, use the symbol.
                 address = self.resolve_symbol(procedure)
 
                 # If it's the keyword "start" use the entry point.
@@ -756,6 +784,7 @@ class _ModuleContainer (object):
 
     def __init__(self):
         self.__moduleDict = dict()
+        self.__system_breakpoints = dict()
 
         # Replace split_label with the fuzzy version on object instances.
         self.split_label = self.__use_fuzzy_mode
@@ -1584,6 +1613,40 @@ When called as an instance method, the fuzzy syntax mode is used::
             label = self.parse_label(None, None, address)
         return label
 
+#------------------------------------------------------------------------------
+
+    # The memory addresses of system breakpoints are be cached, since they're
+    # all in system libraries it's not likely they'll ever change their address
+    # during the lifetime of the process... I don't suppose a program could
+    # happily unload ntdll.dll and survive.
+    def __get_system_breakpoint(self, label):
+        try:
+            return self.__system_breakpoints[label]
+        except KeyError:
+            try:
+                address = self.resolve_label(label)
+            except Exception:
+                return None
+            self.__system_breakpoints[label] = address
+            return address
+
+    # It's in kernel32 in Windows Server 2003, in ntdll since Windows Vista.
+    # It can only be resolved if we have the debug symbols.
+    def get_break_on_error_ptr(self):
+        """
+        @rtype: int
+        @return:
+            If present, returns the address of the C{g_dwLastErrorToBreakOn}
+            global variable for this process. If not, returns C{None}.
+        """
+        address = self.__get_system_breakpoint("ntdll!g_dwLastErrorToBreakOn")
+        if not address:
+            address = self.__get_system_breakpoint(
+                                            "kernel32!g_dwLastErrorToBreakOn")
+            # cheat a little :)
+            self.__system_breakpoints["ntdll!g_dwLastErrorToBreakOn"] = address
+        return address
+
     def is_system_defined_breakpoint(self, address):
         """
         @type  address: int
@@ -1594,27 +1657,15 @@ When called as an instance method, the fuzzy syntax mode is used::
             breakpoint. System defined breakpoints are hardcoded into
             system libraries.
         """
-        return address is not None and (
-            address == self.get_system_breakpoint()         or \
-            address == self.get_wow64_system_breakpoint()   or \
-            address == self.get_user_breakpoint()           or \
-            address == self.get_wow64_user_breakpoint()     or \
-            address == self.get_breakin_breakpoint()        or \
-            address == self.get_wow64_breakin_breakpoint()
-        )
-
-    # TODO
-    # The memory addresses of system breakpoints could be cached.
-    # Since they're all in system libraries it's not likely they'll ever
-    # change their address during the lifetime of the process... I don't
-    # suppose a program could happily unload ntdll.dll and survive.
-    # The difficulty is knowing when resolution fails because the breakpoint
-    # does not exist in the current version of Windows, and when it's simply
-    # the process module snapshot not having been yet initialized.
+        if address:
+            module = self.get_module_at_address(address)
+            if module:
+                return module.match_name("ntdll")    or \
+                       module.match_name("kernel32")
+        return False
 
     # FIXME
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
-    # In Windows 2000 I've been told it's in ntdll!NtDebugBreak (not sure yet).
     def get_system_breakpoint(self):
         """
         @rtype:  int or None
@@ -1622,23 +1673,7 @@ When called as an instance method, the fuzzy syntax mode is used::
             within the process address space.
             Returns C{None} on error.
         """
-        try:
-            return self.resolve_label("ntdll!DbgBreakPoint")
-        except Exception:
-            return None
-
-    # Equivalent of ntdll!DbgBreakPoint in Wow64.
-    def get_wow64_system_breakpoint(self):
-        """
-        @rtype:  int or None
-        @return: Memory address of the Wow64 system breakpoint
-            within the process address space.
-            Returns C{None} on error.
-        """
-        try:
-            return self.resolve_label("ntdll32!DbgBreakPoint")
-        except Exception:
-            return None
+        return self.__get_system_breakpoint("ntdll!DbgBreakPoint")
 
     # I don't know when this breakpoint is actually used...
     def get_user_breakpoint(self):
@@ -1648,23 +1683,7 @@ When called as an instance method, the fuzzy syntax mode is used::
             within the process address space.
             Returns C{None} on error.
         """
-        try:
-            return self.resolve_label("ntdll!DbgUserBreakPoint")
-        except Exception:
-            return None
-
-    # Equivalent of ntdll!DbgBreakPoint in Wow64.
-    def get_wow64_user_breakpoint(self):
-        """
-        @rtype:  int or None
-        @return: Memory address of the Wow64 user breakpoint
-            within the process address space.
-            Returns C{None} on error.
-        """
-        try:
-            return self.resolve_label("ntdll32!DbgUserBreakPoint")
-        except Exception:
-            return None
+        return self.__get_system_breakpoint("ntdll!DbgUserBreakPoint")
 
     # This breakpoint can only be resolved when the
     # debugging symbols for ntdll.dll are loaded.
@@ -1675,12 +1694,29 @@ When called as an instance method, the fuzzy syntax mode is used::
             within the process address space.
             Returns C{None} on error.
         """
-        try:
-            return self.resolve_label("ntdll!DbgUiRemoteBreakin")
-        except Exception:
-            return None
+        return self.__get_system_breakpoint("ntdll!DbgUiRemoteBreakin")
 
     # Equivalent of ntdll!DbgBreakPoint in Wow64.
+    def get_wow64_system_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 system breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        return self.__get_system_breakpoint("ntdll32!DbgBreakPoint")
+
+    # Equivalent of ntdll!DbgUserBreakPoint in Wow64.
+    def get_wow64_user_breakpoint(self):
+        """
+        @rtype:  int or None
+        @return: Memory address of the Wow64 user breakpoint
+            within the process address space.
+            Returns C{None} on error.
+        """
+        return self.__get_system_breakpoint("ntdll32!DbgUserBreakPoint")
+
+    # Equivalent of ntdll!DbgUiRemoteBreakin in Wow64.
     def get_wow64_breakin_breakpoint(self):
         """
         @rtype:  int or None
@@ -1688,10 +1724,9 @@ When called as an instance method, the fuzzy syntax mode is used::
             within the process address space.
             Returns C{None} on error.
         """
-        try:
-            return self.resolve_label("ntdll32!DbgUiRemoteBreakin")
-        except Exception:
-            return None
+        return self.__get_system_breakpoint("ntdll32!DbgUiRemoteBreakin")
+
+#------------------------------------------------------------------------------
 
     def load_symbols(self):
         """

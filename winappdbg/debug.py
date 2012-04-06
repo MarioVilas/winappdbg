@@ -55,7 +55,7 @@ import warnings
 
 # If you set this warning to be considered as an error,
 # you can stop the debugger from attaching to WOW64 processes.
-class MixedBitsWarning (Warning):
+class MixedBitsWarning (RuntimeWarning):
     """
     Mixture of 32 and 64 bits is considered experimental.
     Use at your own risk!
@@ -104,7 +104,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
     """
 
     # Automatically set to True the first time a Debug object is instanced.
-    _debug_privileges_requested = False
+    _debug_static_init = False
 
     def __init__(self, eventHandler = None,               bKillOnExit = False,
                                                          bHostileCode = False):
@@ -148,12 +148,18 @@ class Debug (EventDispatcher, _BreakpointContainer):
         self.__attachedDebugees             = set()     # set of pids
         self.__startedDebugees              = set()     # set of pids
 
-        # Request debug privileges for the current process.
-        # Only do this once, and only after instancing a Debug object,
-        # so passive debuggers don't get detected because of this.
-        if not self._debug_privileges_requested:
+        if not self._debug_static_init:
+            self._debug_static_init = True
+
+            # Request debug privileges for the current process.
+            # Only do this once, and only after instancing a Debug object,
+            # so passive debuggers don't get detected because of this.
             self.system.request_debug_privileges(bIgnoreExceptions = False)
-            self._debug_privileges_requested = True
+
+            # Try to fix the symbol store path if it wasn't set.
+            # But don't enable symbol downloading by default, since it may
+            # degrade performance severely.
+            self.system.fix_symbol_store_path(remote = False, force = False)
 
 ##    # It's hard not to create circular references,
 ##    # and if we have a destructor, we can end up leaking everything.
@@ -632,14 +638,16 @@ class Debug (EventDispatcher, _BreakpointContainer):
             exc_code = event.get_exception_code()
             if exc_code in (
                     win32.EXCEPTION_BREAKPOINT,
+                    win32.EXCEPTION_WX86_BREAKPOINT,
+                    win32.EXCEPTION_SINGLE_STEP,
                     win32.EXCEPTION_GUARD_PAGE,
                 ):
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                event.continueStatus = win32.DBG_CONTINUE
             elif exc_code == win32.EXCEPTION_INVALID_HANDLE:
                 if self.__bHostileCode:
                     event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
                 else:
-                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                    event.continueStatus = win32.DBG_CONTINUE
             else:
                 event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 

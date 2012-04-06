@@ -35,7 +35,42 @@ Wrapper for dbghelp.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from version import *
 from kernel32 import *
+
+#------------------------------------------------------------------------------
+# Tries to load the newest version of dbghelp.dll if available.
+
+import os
+import os.path
+
+if arch == ARCH_AMD64:
+    if wow64:
+        pathname = os.path.join(
+                            os.getenv("ProgramFiles(x86)",
+                                os.getenv("ProgramFiles")),
+                            "Debugging Tools for Windows (x86)",
+                            "dbghelp.dll")
+    else:
+        pathname = os.path.join(
+                            os.getenv("ProgramFiles"),
+                            "Debugging Tools for Windows (x64)",
+                            "dbghelp.dll")
+elif arch == ARCH_I386:
+    pathname = os.path.join(
+                    os.getenv("ProgramFiles"),
+                    "Debugging Tools for Windows (x86)",
+                    "dbghelp.dll")
+else:
+    pathname = None
+
+try:
+    dbghelp = ctypes.windll.LoadLibrary(pathname)
+    ctypes.windll.dbghelp = dbghelp
+except Exception:
+    pass
+
+#------------------------------------------------------------------------------
 
 # SymGetHomeDirectory "type" values
 hdBase = 0
@@ -330,6 +365,7 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
         BaseOfDll = 0
     if not SizeOfDll:
         SizeOfDll = 0
+    SetLastError(ERROR_SUCCESS)
     lpBaseAddress = _SymLoadModule(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
     if lpBaseAddress == NULL:
         dwErrorCode = GetLastError()
@@ -358,6 +394,7 @@ def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None,
         BaseOfDll = 0
     if not SizeOfDll:
         SizeOfDll = 0
+    SetLastError(ERROR_SUCCESS)
     lpBaseAddress = _SymLoadModule64(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
     if lpBaseAddress == NULL:
         dwErrorCode = GetLastError()
@@ -1137,9 +1174,11 @@ IMAGE_FILE_MACHINE_AMD64 = 0x8664   #x64 (AMD64 or EM64T)
 #  __in_opt  PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
 # );
 #===============================================================================
-def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
-                ReadMemoryRoutine = None,  FunctionTableAccessRoutine = None,
-                GetModuleBaseRoutine = None, TranslateAddress = None):
+def StackWalk64(MachineType, hProcess, hThread, StackFrame,
+                ContextRecord = None, ReadMemoryRoutine = None,
+                FunctionTableAccessRoutine = None, GetModuleBaseRoutine = None,
+                TranslateAddress = None):
+
     _StackWalk64 = windll.dbghelp.StackWalk64
     _StackWalk64.argtypes = [DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID,
                              PREAD_PROCESS_MEMORY_ROUTINE64,
@@ -1172,10 +1211,19 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
     else:
         pTranslateAddress = ctypes.cast(None, PTRANSLATE_ADDRESS_ROUTINE64)
 
+    pContextRecord = None
+    if ContextRecord:
+        pContextRecord = PCONTEXT(ContextRecord)
+    else:
+        ContextRecord = CONTEXT()
+        ContextRecord.ContextFlags = CONTEXT_ALL
+        pContextRecord = PCONTEXT(ContextRecord)
+        GetThreadContext(hThread, pContextRecord, raw=True)
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
-    ret = _StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
-                 pReadMemoryRoutine, pFunctionTableAccessRoutine,
-                 pGetModuleBaseRoutine, pTranslateAddress)
+    ret = _StackWalk64(MachineType, hProcess, hThread, ctypes.byref(StackFrame),
+                       pContextRecord, pReadMemoryRoutine,
+                       pFunctionTableAccessRoutine, pGetModuleBaseRoutine,
+                       pTranslateAddress)
 
     return ret

@@ -627,7 +627,7 @@ PWOW64_LDT_ENTRY            = POINTER(WOW64_LDT_ENTRY)
 def GetThreadSelectorEntry(hThread, dwSelector):
     _GetThreadSelectorEntry = windll.kernel32.GetThreadSelectorEntry
     _GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, LPLDT_ENTRY]
-    _GetThreadSelectorEntry.restype = bool
+    _GetThreadSelectorEntry.restype  = bool
     _GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     ldt = LDT_ENTRY()
@@ -638,14 +638,14 @@ def GetThreadSelectorEntry(hThread, dwSelector):
 #   __in     HANDLE hThread,
 #   __inout  LPCONTEXT lpContext
 # );
-def GetThreadContext(hThread, ContextFlags = None):
+def GetThreadContext(hThread, ContextFlags = None, raw = False):
     _GetThreadContext = windll.kernel32.GetThreadContext
     _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _GetThreadContext.restype = bool
+    _GetThreadContext.restype  = bool
     _GetThreadContext.errcheck = RaiseIfZero
 
     if ContextFlags is None:
-        ContextFlags = CONTEXT_ALL
+        ContextFlags = CONTEXT_ALL | CONTEXT_AMD64
     lpContext = CONTEXT()
     lpContext.ContextFlags = ContextFlags
     _GetThreadContext(hThread, byref(lpContext))
@@ -658,7 +658,7 @@ def GetThreadContext(hThread, ContextFlags = None):
 def SetThreadContext(hThread, lpContext):
     _SetThreadContext = windll.kernel32.SetThreadContext
     _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _SetThreadContext.restype = bool
+    _SetThreadContext.restype  = bool
     _SetThreadContext.errcheck = RaiseIfZero
 
     if isinstance(lpContext, dict):
@@ -673,7 +673,7 @@ def SetThreadContext(hThread, lpContext):
 def Wow64GetThreadSelectorEntry(hThread, dwSelector):
     _Wow64GetThreadSelectorEntry = windll.kernel32.Wow64GetThreadSelectorEntry
     _Wow64GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, PWOW64_LDT_ENTRY]
-    _Wow64GetThreadSelectorEntry.restype = bool
+    _Wow64GetThreadSelectorEntry.restype  = bool
     _Wow64GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     lpSelectorEntry = WOW64_LDT_ENTRY()
@@ -686,7 +686,7 @@ def Wow64GetThreadSelectorEntry(hThread, dwSelector):
 def Wow64ResumeThread(hThread):
     _Wow64ResumeThread = windll.kernel32.Wow64ResumeThread
     _Wow64ResumeThread.argtypes = [HANDLE]
-    _Wow64ResumeThread.restype = DWORD
+    _Wow64ResumeThread.restype  = DWORD
 
     previousCount = _Wow64ResumeThread(hThread)
     if previousCount == DWORD(-1).value:
@@ -699,7 +699,7 @@ def Wow64ResumeThread(hThread):
 def Wow64SuspendThread(hThread):
     _Wow64SuspendThread = windll.kernel32.Wow64SuspendThread
     _Wow64SuspendThread.argtypes = [HANDLE]
-    _Wow64SuspendThread.restype = DWORD
+    _Wow64SuspendThread.restype  = DWORD
 
     previousCount = _Wow64SuspendThread(hThread)
     if previousCount == DWORD(-1).value:
@@ -716,7 +716,7 @@ def Wow64SuspendThread(hThread):
 def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
     _Wow64GetThreadContext = windll.kernel32.Wow64GetThreadContext
     _Wow64GetThreadContext.argtypes = [HANDLE, LPVOID]
-    _Wow64GetThreadContext.restype = bool
+    _Wow64GetThreadContext.restype  = bool
     _Wow64GetThreadContext.errcheck = RaiseIfZero
 
     # XXX doesn't exist in XP 64 bits
@@ -724,7 +724,7 @@ def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
     if lpContext is None:
         lpContext = WOW64_CONTEXT()
         if ContextFlags is None:
-            lpContext.ContextFlags = WOW64_CONTEXT_ALL
+            lpContext.ContextFlags = WOW64_CONTEXT_ALL | WOW64_CONTEXT_i386
         else:
             lpContext.ContextFlags = ContextFlags
     elif ContextFlags is not None:
@@ -739,7 +739,7 @@ def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
 def Wow64SetThreadContext(hThread, lpContext):
     _Wow64SetThreadContext = windll.kernel32.Wow64SetThreadContext
     _Wow64SetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
-    _Wow64SetThreadContext.restype = bool
+    _Wow64SetThreadContext.restype  = bool
     _Wow64SetThreadContext.errcheck = RaiseIfZero
 
     # XXX doesn't exist in XP 64 bits

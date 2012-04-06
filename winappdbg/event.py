@@ -94,6 +94,7 @@ from process import Process
 from textio import HexDump
 from util import StaticClass, PathOperations
 
+import ctypes
 import warnings
 import traceback
 
@@ -411,7 +412,7 @@ class ExceptionEvent (Event):
         win32.EXCEPTION_WX86_BREAKPOINT           : 'WOW64 breakpoint',
         win32.CONTROL_C_EXIT                      : 'Control-C exit',
         win32.DBG_CONTROL_C                       : 'Debug Control-C',
-        win32.MS_VC_EXCEPTION                     : 'Microsoft Visual C exception',
+        win32.MS_VC_EXCEPTION                     : 'Microsoft Visual C++ exception',
     }
 
     @property
@@ -434,8 +435,10 @@ class ExceptionEvent (Event):
         @return: User-friendly name of the exception.
         """
         code = self.get_exception_code()
-        unk  = 'C++ exception %s' % HexDump.integer(code)
-        return self.__exceptionDescription.get(code, unk)
+        winerror = ctypes.WinError(code)
+        strerror = winerror.strerror
+        default = 'Exception code %s (%s)' % (HexDump.integer(code), strerror)
+        return self.__exceptionDescription.get(code, default)
 
     def is_first_chance(self):
         """
@@ -1621,6 +1624,7 @@ class EventDispatcher (object):
     # Unknown codes are ignored.
     __preExceptionNotifyCallbackName = {
         win32.EXCEPTION_BREAKPOINT                : 'notify_breakpoint',
+        win32.EXCEPTION_WX86_BREAKPOINT           : 'notify_breakpoint',
         win32.EXCEPTION_SINGLE_STEP               : 'notify_single_step',
         win32.EXCEPTION_GUARD_PAGE                : 'notify_guard_page',
         win32.DBG_CONTROL_C                       : 'notify_debug_control_c',

@@ -44,6 +44,7 @@ __revision__ = "$Id$"
 __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 
 # TODO document this module with docstrings.
+# TODO command to set a last error breakpoint.
 
 import win32
 from system import System
@@ -2086,6 +2087,11 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Stop for breakpoint exceptions.
     def breakpoint(self, event):
+        self.print_breakpoint_location(event)
+        self.prompt_user()
+
+    # Stop for breakpoint exceptions.
+    def wow64_breakpoint(self, event):
         self.print_breakpoint_location(event)
         self.prompt_user()
 

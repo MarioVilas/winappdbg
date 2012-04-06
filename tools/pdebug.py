@@ -90,6 +90,9 @@ class PDebug (ConsoleDebugger):
         # Instance a debugger
         debug = Debug(self, bHostileCode = self.options.hostile)
 
+        # Make sure the remote symbol store is set
+        System.fix_symbol_store_path(remote = True, force = False)
+
         # Populate the snapshot of processes
         debug.system.scan()
 

@@ -121,6 +121,7 @@ __all__ =   [
 
                 # from module import *
                 'Module',
+                'DebugSymbolsWarning',
 
                 # from thread import *
                 'Thread',

@@ -70,7 +70,7 @@ import traceback
 
 #==============================================================================
 
-class BreakpointWarning (Warning):
+class BreakpointWarning (UserWarning):
     """
     This warning is issued when a non-fatal error occurs that's related to
     breakpoints.
@@ -618,8 +618,9 @@ class CodeBreakpoint (Breakpoint):
     # is a solution to this but it's somewhat complicated, so
     # I'm leaving it for another version of the debugger. :(
     def running(self, aProcess, aThread):
-        self.__clear_bp(aProcess)
-        aThread.set_tf()
+        if self.is_enabled():
+            self.__clear_bp(aProcess)
+            aThread.set_tf()
         super(CodeBreakpoint, self).running(aProcess, aThread)
 
 #==============================================================================
@@ -3291,7 +3292,7 @@ class _BreakpointContainer (object):
                 aThread.set_pc(address)
 
                 # Swallow the exception.
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                event.continueStatus = win32.DBG_CONTINUE
 
                 # Hit the breakpoint.
                 bp.hit(event)
@@ -3313,7 +3314,7 @@ class _BreakpointContainer (object):
 
         # Handle the system breakpoint.
         elif event.get_process().is_system_defined_breakpoint(address):
-            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            event.continueStatus = win32.DBG_CONTINUE
 
         # If we don't have a breakpoint here pass the exception to the debugee.
         else:
@@ -3356,7 +3357,7 @@ class _BreakpointContainer (object):
             # and set the trap flag again.
             if self.is_tracing(tid):
                 if not bFakeSingleStep:
-                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                    event.continueStatus = win32.DBG_CONTINUE
                 aThread.set_tf()
 
                 # TODO
@@ -3367,7 +3368,7 @@ class _BreakpointContainer (object):
             running = self.__get_running_bp_set(tid)
             if running:
                 if not bFakeSingleStep:
-                    event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                    event.continueStatus = win32.DBG_CONTINUE
                 bCallHandler = False
                 while running:
                     try:
@@ -3392,8 +3393,7 @@ class _BreakpointContainer (object):
                                            (Dr6 & DebugRegister.hitMask[slot]):
                         if not bFoundBreakpoint: #set before actions are called
                             if not bFakeSingleStep:
-                                event.continueStatus = \
-                                                    win32.DBG_EXCEPTION_HANDLED
+                                event.continueStatus = win32.DBG_CONTINUE
                         bFoundBreakpoint = True
                         bp.hit(event)
                         if bp.is_running():
@@ -3412,9 +3412,9 @@ class _BreakpointContainer (object):
                 bCallHandler = True
 
         # If the user hit Control-C while we were inside the try block,
-        # set the default back to DBG_EXCEPTION_HANDLED.
+        # set the default continueStatus back.
         except:
-            event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+            event.continueStatus = win32.DBG_CONTINUE
             raise
 
         return bCallHandler
@@ -4403,6 +4403,63 @@ class _BreakpointContainer (object):
         """
         for pid in self.get_debugee_pids():
             self.stop_tracing_process(pid)
+
+#------------------------------------------------------------------------------
+
+    # Break on LastError values (only available since Windows Server 2003)
+
+    def break_on_error(self, pid, errorCode):
+        """
+        Sets or clears the system breakpoint for a given Win32 error code.
+
+        Use L{is_system_breakpoint} to tell if a breakpoint exception was
+        caused by a system breakpoint or by the application itself (for example
+        because of a failed assertion in the code).
+
+        @note: This functionality is only available since Windows Server 2003.
+            In 2003 it only breaks on error values set externally to the
+            kernel32.dll library, but this was fixed in Windows Vista.
+
+        @warn: This method will fail if the debug symbols for ntdll (kernel32
+            in Windows 2003) are not present. For more information see:
+            L{System.fix_symbol_store_path}.
+
+        @see: U{http://www.nynaeve.net/?p=147}
+
+        @type  pid: int
+        @param pid: Process ID.
+
+        @type  errorCode: int
+        @param errorCode: Win32 error code to stop on. Set to C{0} or
+            C{ERROR_SUCCESS} to clear the breakpoint instead.
+
+        @raise NotImplementedError:
+            The functionality is not supported in this system.
+
+        @raise WindowsError:
+            An error occurred while processing this request.
+        """
+        aProcess = self.system.get_process(pid)
+        address  = aProcess.get_break_on_error_ptr()
+        if not address:
+            raise NotImplementedError(
+                        "The functionality is not supported in this system.")
+        aProcess.write_dword(address, errorCode)
+
+    def dont_break_on_error(self, pid):
+        """
+        Alias to L{break_on_error}C{(pid, ERROR_SUCCESS)}.
+
+        @type  pid: int
+        @param pid: Process ID.
+
+        @raise NotImplementedError:
+            The functionality is not supported in this system.
+
+        @raise WindowsError:
+            An error occurred while processing this request.
+        """
+        self.break_on_error(pid, 0)
 
 #------------------------------------------------------------------------------
 

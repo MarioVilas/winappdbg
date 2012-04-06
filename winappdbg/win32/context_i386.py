@@ -392,7 +392,7 @@ LPLDT_ENTRY = PLDT_ENTRY
 def GetThreadSelectorEntry(hThread, dwSelector):
     _GetThreadSelectorEntry = windll.kernel32.GetThreadSelectorEntry
     _GetThreadSelectorEntry.argtypes = [HANDLE, DWORD, LPLDT_ENTRY]
-    _GetThreadSelectorEntry.restype = bool
+    _GetThreadSelectorEntry.restype  = bool
     _GetThreadSelectorEntry.errcheck = RaiseIfZero
 
     ldt = LDT_ENTRY()
@@ -403,14 +403,14 @@ def GetThreadSelectorEntry(hThread, dwSelector):
 #   __in     HANDLE hThread,
 #   __inout  LPCONTEXT lpContext
 # );
-def GetThreadContext(hThread, ContextFlags = None):
+def GetThreadContext(hThread, ContextFlags = None, raw = False):
     _GetThreadContext = windll.kernel32.GetThreadContext
     _GetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _GetThreadContext.restype = bool
+    _GetThreadContext.restype  = bool
     _GetThreadContext.errcheck = RaiseIfZero
 
     if ContextFlags is None:
-        ContextFlags = CONTEXT_ALL
+        ContextFlags = CONTEXT_ALL | CONTEXT_i386
     lpContext = CONTEXT()
     lpContext.ContextFlags = ContextFlags
     _GetThreadContext(hThread, byref(lpContext))
@@ -423,7 +423,7 @@ def GetThreadContext(hThread, ContextFlags = None):
 def SetThreadContext(hThread, lpContext):
     _SetThreadContext = windll.kernel32.SetThreadContext
     _SetThreadContext.argtypes = [HANDLE, LPCONTEXT]
-    _SetThreadContext.restype = bool
+    _SetThreadContext.restype  = bool
     _SetThreadContext.errcheck = RaiseIfZero
 
     if isinstance(lpContext, dict):

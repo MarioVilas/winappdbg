@@ -471,32 +471,35 @@ class Thread (object):
         # If an exception is raised, make sure the thread execution is resumed.
         try:
 
-            # If we're not in WOW64, things are simple :)
-            if not win32.wow64:
-##                if self.is_wow64():
-##                    if ContextFlags is not None:
-##                        ContextFlags = ContextFlags & (~win32.ContextArchMask)
-##                        ContextFlags = ContextFlags | win32.WOW64_CONTEXT_i386
-##                    ctx = win32.Wow64GetThreadContext(hThread,
-##                                                 ContextFlags = ContextFlags)
-##                else:
-                    ctx = win32.GetThreadContext(hThread,
-                                                 ContextFlags = ContextFlags)
+            if win32.bits == self.get_bits():
 
-            # If we're in WOW64, things are tricky!
+                # 64 bit debugger attached to 64 bit process, or
+                # 32 bit debugger attached to 32 bit process.
+                ctx = win32.GetThreadContext(hThread,
+                                             ContextFlags = ContextFlags)
+
             else:
                 if self.is_wow64():
-                    ctx = win32.GetThreadContext(hThread,
+
+                    # 64 bit debugger attached to 32 bit process.
+                    if ContextFlags is not None:
+                        ContextFlags &= ~win32.ContextArchMask
+                        ContextFlags |=  win32.WOW64_CONTEXT_i386
+                    ctx = win32.Wow64GetThreadContext(hThread,
                                                  ContextFlags = ContextFlags)
+
                 else:
+
+                    # 32 bit debugger attached to 64 bit process.
                     # XXX only i386/AMD64 is supported in this particular case
                     if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
                         raise NotImplementedError()
                     if ContextFlags is not None:
-                        ContextFlags = ContextFlags & (~win32.ContextArchMask)
-                        ContextFlags = ContextFlags | win32.context_amd64.CONTEXT_AMD64
+                        ContextFlags &= ~win32.ContextArchMask
+                        ContextFlags |=  win32.context_amd64.CONTEXT_AMD64
                     ctx = win32.context_amd64.GetThreadContext(hThread,
                                                  ContextFlags = ContextFlags)
+
         finally:
             if bSuspended:
                 self.resume()
@@ -600,7 +603,8 @@ class Thread (object):
             @rtype:  int
             @return: Value of the frame pointer register.
             """
-            context = self.get_context(win32.CONTEXT_INTEGER)
+            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+            context = self.get_context(flags)
             return context.fp
 
         def set_fp(self, fp):
@@ -610,7 +614,8 @@ class Thread (object):
             @type  fp: int
             @param fp: Value of the frame pointer register.
             """
-            context = self.get_context(win32.CONTEXT_INTEGER)
+            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+            context = self.get_context(flags)
             context.fp = fp
             self.set_context(context)
 
@@ -1010,6 +1015,75 @@ class Thread (object):
     def __get_stack_trace(self, depth = 16, bUseLabels = True,
                                                            bMakePretty = True):
         """
+        Tries to get a stack trace for the current function using the debug
+        helper API (dbghelp.dll).
+
+        @type  depth: int
+        @param depth: Maximum depth of stack trace.
+
+        @type  bUseLabels: bool
+        @param bUseLabels: C{True} to use labels, C{False} to use addresses.
+
+        @rtype:  tuple of tuple( int, int, str )
+        @return: Stack trace of the thread as a tuple of
+            ( return address, frame pointer address, module filename )
+            when C{bUseLabels} is C{True}, or a tuple of
+            ( return address, frame pointer label )
+            when C{bUseLabels} is C{False}.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+
+        if win32.arch == win32.ARCH_I386:
+            MachineType = win32.IMAGE_FILE_MACHINE_I386
+        elif win32.arch == win32.ARCH_AMD64:
+            MachineType = win32.IMAGE_FILE_MACHINE_AMD64
+        elif win32.arch == win32.ARCH_IA64:
+            MachineType = win32.IMAGE_FILE_MACHINE_IA64
+        else:
+            msg = "Stack walking is not available for this architecture: %s"
+            raise NotImplementedError(msg % win32.arch)
+
+        aProcess = self.get_process()
+        hProcess = aProcess.get_handle( win32.PROCESS_VM_READ |
+                                        win32.PROCESS_QUERY_INFORMATION )
+        hThread  = self.get_handle( win32.THREAD_GET_CONTEXT |
+                                    win32.THREAD_QUERY_INFORMATION )
+
+        StackFrame = win32.STACKFRAME64()
+        StackFrame.AddrPC    = win32.ADDRESS64( self.get_pc() )
+        StackFrame.AddrFrame = win32.ADDRESS64( self.get_fp() )
+        StackFrame.AddrStack = win32.ADDRESS64( self.get_sp() )
+
+        trace = list()
+        while win32.StackWalk64(MachineType, hProcess, hThread, StackFrame):
+            if depth <= 0:
+                break
+            fp = StackFrame.AddrFrame
+            ra = aProcess.peek_pointer(fp + 4)
+            if ra == 0:
+                break
+            lib = aProcess.get_module_at_address(ra)
+            if lib is None:
+                lib = ""
+            else:
+                if lib.fileName:
+                    lib = lib.fileName
+                else:
+                    lib = "%s" % HexDump.address(lib.lpBaseOfDll, bits)
+            if bUseLabels:
+                label = aProcess.get_label_at_address(ra)
+                if bMakePretty:
+                    label = '%s (%s)' % (HexDump.address(ra, bits), label)
+                trace.append( (fp, label) )
+            else:
+                trace.append( (fp, ra, lib) )
+            fp = aProcess.peek_pointer(fp)
+        return tuple(trace)
+
+    def __get_stack_trace_manually(self, depth = 16, bUseLabels = True,
+                                                           bMakePretty = True):
+        """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
 
@@ -1075,7 +1149,15 @@ class Thread (object):
 
         @raise WindowsError: Raises an exception on error.
         """
-        return self.__get_stack_trace(depth, False)
+        try:
+            trace = self.__get_stack_trace(depth, False)
+        except Exception, e:
+            import traceback
+            traceback.print_exc(e)
+            trace = ()
+        if not trace:
+            trace = self.__get_stack_trace_manually(depth, False)
+        return trace
 
     def get_stack_trace_with_labels(self, depth = 16, bMakePretty = True):
         """
@@ -1099,7 +1181,13 @@ class Thread (object):
 
         @raise WindowsError: Raises an exception on error.
         """
-        return self.__get_stack_trace(depth, True, bMakePretty)
+        try:
+            trace = self.__get_stack_trace(depth, True, bMakePretty)
+        except Exception, e:
+            trace = ()
+        if not trace:
+            trace = self.__get_stack_trace_manually(depth, True, bMakePretty)
+        return trace
 
     def get_stack_frame_range(self):
         """
