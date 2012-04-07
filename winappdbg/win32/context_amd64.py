@@ -646,10 +646,12 @@ def GetThreadContext(hThread, ContextFlags = None, raw = False):
 
     if ContextFlags is None:
         ContextFlags = CONTEXT_ALL | CONTEXT_AMD64
-    lpContext = CONTEXT()
-    lpContext.ContextFlags = ContextFlags
-    _GetThreadContext(hThread, byref(lpContext))
-    return lpContext.to_dict()
+    Context = CONTEXT()
+    Context.ContextFlags = ContextFlags
+    _GetThreadContext(hThread, byref(Context))
+    if raw:
+        return Context
+    return Context.to_dict()
 
 # BOOL WINAPI SetThreadContext(
 #   __in  HANDLE hThread,
@@ -713,24 +715,21 @@ def Wow64SuspendThread(hThread):
 #   __in     HANDLE hThread,
 #   __inout  PWOW64_CONTEXT lpContext
 # );
-def Wow64GetThreadContext(hThread, ContextFlags = None, lpContext = None):
+def Wow64GetThreadContext(hThread, ContextFlags = None):
     _Wow64GetThreadContext = windll.kernel32.Wow64GetThreadContext
-    _Wow64GetThreadContext.argtypes = [HANDLE, LPVOID]
+    _Wow64GetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
     _Wow64GetThreadContext.restype  = bool
     _Wow64GetThreadContext.errcheck = RaiseIfZero
 
     # XXX doesn't exist in XP 64 bits
 
-    if lpContext is None:
-        lpContext = WOW64_CONTEXT()
-        if ContextFlags is None:
-            lpContext.ContextFlags = WOW64_CONTEXT_ALL | WOW64_CONTEXT_i386
-        else:
-            lpContext.ContextFlags = ContextFlags
-    elif ContextFlags is not None:
-        lpContext.ContextFlags = ContextFlags
-    _Wow64GetThreadContext(hThread, byref(lpContext))
-    return lpContext.to_dict()
+    Context = WOW64_CONTEXT()
+    if ContextFlags is None:
+        Context.ContextFlags = WOW64_CONTEXT_ALL | WOW64_CONTEXT_i386
+    else:
+        Context.ContextFlags = ContextFlags
+    _Wow64GetThreadContext(hThread, byref(Context))
+    return Context.to_dict()
 
 # BOOL WINAPI Wow64SetThreadContext(
 #   __in  HANDLE hThread,

@@ -485,8 +485,7 @@ class Thread (object):
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
                         ContextFlags |=  win32.WOW64_CONTEXT_i386
-                    ctx = win32.Wow64GetThreadContext(hThread,
-                                                 ContextFlags = ContextFlags)
+                    ctx = win32.Wow64GetThreadContext(hThread, ContextFlags)
 
                 else:
 

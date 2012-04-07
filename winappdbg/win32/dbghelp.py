@@ -1212,13 +1212,9 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame,
         pTranslateAddress = ctypes.cast(None, PTRANSLATE_ADDRESS_ROUTINE64)
 
     pContextRecord = None
-    if ContextRecord:
-        pContextRecord = PCONTEXT(ContextRecord)
-    else:
-        ContextRecord = CONTEXT()
-        ContextRecord.ContextFlags = CONTEXT_ALL
-        pContextRecord = PCONTEXT(ContextRecord)
-        GetThreadContext(hThread, pContextRecord, raw=True)
+    if ContextRecord is None:
+        ContextRecord = GetThreadContext(hThread, raw=True)
+    pContextRecord = PCONTEXT(ContextRecord)
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
     ret = _StackWalk64(MachineType, hProcess, hThread, ctypes.byref(StackFrame),

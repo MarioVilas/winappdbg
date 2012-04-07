@@ -411,10 +411,12 @@ def GetThreadContext(hThread, ContextFlags = None, raw = False):
 
     if ContextFlags is None:
         ContextFlags = CONTEXT_ALL | CONTEXT_i386
-    lpContext = CONTEXT()
-    lpContext.ContextFlags = ContextFlags
-    _GetThreadContext(hThread, byref(lpContext))
-    return lpContext.to_dict()
+    Context = CONTEXT()
+    Context.ContextFlags = ContextFlags
+    _GetThreadContext(hThread, byref(Context))
+    if raw:
+        return Context
+    return Context.to_dict()
 
 # BOOL WINAPI SetThreadContext(
 #   __in  HANDLE hThread,
