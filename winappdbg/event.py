@@ -435,10 +435,15 @@ class ExceptionEvent (Event):
         @return: User-friendly name of the exception.
         """
         code = self.get_exception_code()
-        winerror = ctypes.WinError(code)
-        strerror = winerror.strerror
-        default = 'Exception code %s (%s)' % (HexDump.integer(code), strerror)
-        return self.__exceptionDescription.get(code, default)
+        description = self.__exceptionDescription.get(code, None)
+        if description is None:
+            try:
+                description = 'Exception code %s (%s)'
+                description = description % (HexDump.integer(code),
+                                             ctypes.FormatError(code))
+            except OverflowError:
+                description = 'Exception code %s' % HexDump.integer(code)
+        return description
 
     def is_first_chance(self):
         """
