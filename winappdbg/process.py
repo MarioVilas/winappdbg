@@ -53,25 +53,11 @@ from thread import Thread, _ThreadContainer
 from window import Window
 from search import Search, \
                    Pattern, BytePattern, TextPattern, RegExpPattern, HexPattern
+from disasm import Disassembler
 
 import re
 import ctypes
 import struct
-
-try:
-    from distorm3 import Decode, Decode16Bits, Decode32Bits, Decode64Bits
-except ImportError:
-    try:
-        from distorm import Decode, Decode16Bits, Decode32Bits, Decode64Bits
-    except ImportError:
-        Decode16Bits = None
-        Decode32Bits = None
-        Decode64Bits = None
-        def Decode(*argv, **argd):
-            "PLEASE INSTALL DISTORM BEFORE GENERATING THE DOCUMENTATION"
-            msg = ("diStorm is not installed or can't be found. "
-            "Download it from: http://code.google.com/p/distorm3")
-            raise NotImplementedError(msg)
 
 #==============================================================================
 
@@ -518,12 +504,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise NotImplementedError:
             No compatible disassembler was found for the current platform.
         """
-        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
-            msg = "No disassembler found for architecture: %s" % win32.arch
-            raise NotImplementedError(msg)
-        if self.get_bits() == 32:
-            return Decode(lpAddress, code, Decode32Bits)
-        return Decode(lpAddress, code, Decode64Bits)
+        try:
+            disasm = self.__disasm
+        except AttributeError:
+            disasm = self.__disasm = Disassembler( self.get_arch() )
+        return disasm.decode(lpAddress, code)
 
     def disassemble(self, lpAddress, dwSize):
         """
