@@ -119,6 +119,7 @@ __all__ =   [
                 # from disasm import *
                 'Disassembler',
                 'DistormEngine',
+                'BeaEngine',
 
                 # from event import *
                 'EventHandler',

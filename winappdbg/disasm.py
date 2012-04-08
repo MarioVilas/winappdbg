@@ -34,15 +34,17 @@ Binary code disassembly.
 
 __revision__ = "$Id$"
 
-__all__ = ['Disassembler', 'DistormEngine']
+__all__ = ['Disassembler', 'DistormEngine', 'BeaEngine']
 
+from textio import HexDump
 import win32
 
+import ctypes
 import warnings
 
 # lazy imports
 distorm3 = None
-r_asm = None
+BeaEnginePython = None
 
 #==============================================================================
 
@@ -61,7 +63,7 @@ class Engine (object):
 #==============================================================================
 
 class DistormEngine (Engine):
-    name = "distorm"
+    name = "diStorm"
     desc = "diStorm disassembler by Gil Dabah"
     url  = "https://code.google.com/p/distorm3"
 
@@ -109,58 +111,134 @@ class DistormEngine (Engine):
 
 #==============================================================================
 
-##class RadareEngine (Engine):
-##    name = "radare"
-##    desc = "Radare2 by Pancake (https://twitter.com/trufae)"
-##    url  = "http://radare.org/get/"
-##
-##    supported = set((
-##        win32.ARCH_I386,
-##        win32.ARCH_AMD64,
-##        win32.ARCH_ARM,
-##        win32.ARCH_MIPS,
-##        win32.ARCH_PPC,
-##        win32.ARCH_SHX,
-##        win32.ARCH_SPARC,
-##    ))
-##
-##    def __init__(self, arch = None):
-##
-##        # Use the default architecture if none specified.
-##        if not arch:
-##            arch = win32.arch
-##
-##        # Validate the architecture.
-##        if arch not in self.supported:
-##            msg = "The %s engine cannot decode %s code."
-##            msg = msg % (self.name, arch)
-##            raise NotImplementedError(msg)
-##
-##        # Load the distorm bindings.
-##        global r_asm
-##        if r_asm is None:
-##            try:
-##                from r2 import r_asm
-##            except ImportError:
-##                msg = ("%s is not installed or can't be found. "
-##                "Download it from: %s" % (self.name, self.url))
-##                raise NotImplementedError(msg)
-##
-##        # Load the decoder object.
-##        rasm = r_asm.RAsm()
-##        rasm.use({
-##            win32.ARCH_I386:    'x86.olly',
-##            win32.ARCH_AMD64:   'x86.udis86',
-##            win32.ARCH_ARM:     'arm',
-##            win32.ARCH_MIPS:    'mips',
-##            win32.ARCH_PPC:     'ppc',
-##            win32.ARCH_SHX:     'sh',
-##            win32.ARCH_SPARC:   'sparc',
-##        }[arch])
-##        self.__rasm = rasm
-##
-##    def decode(self, address, code):
-##        return self.__rasm.mdisassemble(code)
+class BeaEngine (Engine):
+    name = "BeaEngine"
+    desc = "BeaEngine disassembler by Beatrix"
+    url  = "https://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/"
+
+    supported = set((
+        win32.ARCH_I386,
+        win32.ARCH_AMD64,
+    ))
+
+    def __init__(self, arch = None):
+
+        # Use the default architecture if none specified.
+        if not arch:
+            arch = win32.arch
+
+        # Remember the architecture.
+        self.arch = arch
+
+        # Validate the architecture.
+        if arch not in self.supported:
+            msg = "The %s engine cannot decode %s code."
+            msg = msg % (self.name, arch)
+            raise NotImplementedError(msg)
+
+        # Load the BeaEngine ctypes wrapper.
+        global BeaEnginePython
+        if BeaEnginePython is None:
+            try:
+                import BeaEnginePython
+            except ImportError:
+                msg = ("%s is not installed or can't be found. "
+                "Download it from: %s" % (self.name, self.url))
+                raise NotImplementedError(msg)
+
+    def decode(self, address, code):
+        addressof = ctypes.addressof
+
+        # Instance the code buffer.
+        buffer = ctypes.create_string_buffer(code)
+        buffer_ptr = addressof(buffer)
+
+        # Instance the disassembler structure.
+        Instruction = BeaEnginePython.DISASM()
+        Instruction.VirtualAddr = address
+        Instruction.EIP = buffer_ptr
+        Instruction.SecurityBlock = buffer_ptr + len(code)
+        if self.arch == win32.ARCH_I386:
+            Instruction.Archi = 0
+        else:
+            Instruction.Archi = 1
+        Instruction.Options = ( BeaEnginePython.Tabulation      +
+                                BeaEnginePython.NasmSyntax      +
+                                BeaEnginePython.SuffixedNumeral +
+                                BeaEnginePython.ShowSegmentRegs )
+
+        # Prepare for looping over each instruction.
+        result = []
+        Disasm = BeaEnginePython.Disasm
+        InstructionPtr = addressof(Instruction)
+        hexdump = HexDump.hexadecimal
+        append = result.append
+        OUT_OF_BLOCK   = BeaEnginePython.OUT_OF_BLOCK
+        UNKNOWN_OPCODE = BeaEnginePython.UNKNOWN_OPCODE
+
+        # For each decoded instruction...
+        while True:
+
+            # Calculate the current offset into the buffer.
+            offset = Instruction.EIP - buffer_ptr
+
+            # If we've gone past the buffer, break the loop.
+            if offset >= len(code):
+                break
+
+            # Decode the current instruction.
+            InstrLength = Disasm(InstructionPtr)
+
+            # If BeaEngine detects we've gone past the buffer, break the loop.
+            if InstrLength == OUT_OF_BLOCK:
+                break
+
+            # The instruction could not be decoded.
+            if InstrLength == UNKNOWN_OPCODE:
+
+                # Output a single byte as a "db" instruction.
+                char = "%.2X" % ord(buffer[offset])
+                result.append((
+                    Instruction.VirtualAddr,
+                    1,
+                    "db %sh" % char,
+                    char,
+                ))
+                Instruction.VirtualAddr += 1
+                Instruction.EIP += 1
+
+            # The instruction was decoded but reading past the buffer's end.
+            # This can happen when the last instruction is a prefix without an
+            # opcode. For example: decode(0, '\x66')
+            elif offset + InstrLength > len(code):
+
+                # Output each byte as a "db" instruction.
+                for offset in xrange(offset, offset + len(code)):
+                    char = "%.2X" % ord(buffer[offset])
+                    result.append((
+                        Instruction.VirtualAddr,
+                        1,
+                        "db %sh" % char,
+                        char,
+                    ))
+                    Instruction.VirtualAddr += 1
+                    Instruction.EIP += 1
+
+            # The instruction was decoded correctly.
+            else:
+
+                # Output the decoded instruction.
+                append((
+                    Instruction.VirtualAddr,
+                    InstrLength,
+                    Instruction.CompleteInstr.strip(),
+                    hexdump(buffer.raw[offset:offset+InstrLength]),
+                ))
+                Instruction.VirtualAddr += InstrLength
+                Instruction.EIP += InstrLength
+
+        # Return the list of decoded instructions.
+        return result
 
 #==============================================================================
 
@@ -170,6 +248,7 @@ class Disassembler (object):
 
     engines = (
         DistormEngine,
+        BeaEngine,
     )
 
     # Cache of already loaded disassemblers.
