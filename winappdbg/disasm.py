@@ -32,12 +32,13 @@
 Binary code disassembly.
 
 @Disassemblers:
-    Disassembler, DistormEngine, BeaEngine
+    Disassembler,
+    BeaEngine, DistormEngine, PyDasmEngine
 """
 
 __revision__ = "$Id$"
 
-__all__ = ['Disassembler', 'DistormEngine', 'BeaEngine']
+__all__ = ['Disassembler', 'BeaEngine', 'DistormEngine', 'PyDasmEngine']
 
 from textio import HexDump
 import win32
@@ -46,8 +47,9 @@ import ctypes
 import warnings
 
 # lazy imports
-distorm3 = None
 BeaEnginePython = None
+distorm3 = None
+pydasm = None
 
 #==============================================================================
 
@@ -86,6 +88,35 @@ class Engine (object):
         """
         raise NotImplementedError()
 
+    def _validate_arch(self, arch = None):
+        """
+        @type  arch: str
+        @param arch: Name of the processor architecture.
+            If not provided the current processor architecture is assumed.
+            For more details see L{win32.version._get_arch}.
+
+        @rtype  arch: str
+        @return arch: Name of the processor architecture.
+            If not provided the current processor architecture is assumed.
+            For more details see L{win32.version._get_arch}.
+
+        @raise NotImplementedError: This disassembler doesn't support the
+            requested processor architecture.
+        """
+
+        # Use the default architecture if none specified.
+        if not arch:
+            arch = win32.arch
+
+        # Validate the architecture.
+        if arch not in self.supported:
+            msg = "The %s engine cannot decode %s code."
+            msg = msg % (self.name, arch)
+            raise NotImplementedError(msg)
+
+        # Return the architecture.
+        return arch
+
     def decode(self, address, code):
         """
         @type  address: int
@@ -109,55 +140,6 @@ class Engine (object):
 
 #==============================================================================
 
-class DistormEngine (Engine):
-    name = "diStorm"
-    desc = "diStorm disassembler by Gil Dabah"
-    url  = "https://code.google.com/p/distorm3"
-
-    supported = set((
-        win32.ARCH_I386,
-        win32.ARCH_AMD64,
-    ))
-
-    def __init__(self, arch = None):
-
-        # Use the default architecture if none specified.
-        if not arch:
-            arch = win32.arch
-
-        # Validate the architecture.
-        if arch not in self.supported:
-            msg = "The %s engine cannot decode %s code."
-            msg = msg % (self.name, arch)
-            raise NotImplementedError(msg)
-
-        # Load the distorm bindings.
-        global distorm3
-        if distorm3 is None:
-            try:
-                import distorm3
-            except ImportError:
-                try:
-                    import distorm as distorm3
-                except ImportError:
-                    msg = ("%s is not installed or can't be found. "
-                    "Download it from: %s" % (self.name, self.url))
-                    raise NotImplementedError(msg)
-
-        # Load the decoder function.
-        self.__decode = distorm3.Decode
-
-        # Load the bits flag.
-        self.__flag = {
-            win32.ARCH_I386:  distorm3.Decode32Bits,
-            win32.ARCH_AMD64: distorm3.Decode64Bits,
-        }[arch]
-
-    def decode(self, address, code):
-        return self.__decode(address, code, self.__flag)
-
-#==============================================================================
-
 class BeaEngine (Engine):
     name = "BeaEngine"
     desc = "BeaEngine disassembler by Beatrix"
@@ -170,18 +152,8 @@ class BeaEngine (Engine):
 
     def __init__(self, arch = None):
 
-        # Use the default architecture if none specified.
-        if not arch:
-            arch = win32.arch
-
         # Remember the architecture.
-        self.arch = arch
-
-        # Validate the architecture.
-        if arch not in self.supported:
-            msg = "The %s engine cannot decode %s code."
-            msg = msg % (self.name, arch)
-            raise NotImplementedError(msg)
+        self.arch = self._validate_arch(arch)
 
         # Load the BeaEngine ctypes wrapper.
         global BeaEnginePython
@@ -289,6 +261,116 @@ class BeaEngine (Engine):
 
 #==============================================================================
 
+class DistormEngine (Engine):
+    name = "diStorm"
+    desc = "diStorm disassembler by Gil Dabah"
+    url  = "https://code.google.com/p/distorm3"
+
+    supported = set((
+        win32.ARCH_I386,
+        win32.ARCH_AMD64,
+    ))
+
+    def __init__(self, arch = None):
+
+        # Validate the architecture.
+        arch = self._validate_arch(arch)
+
+        # Load the distorm bindings.
+        global distorm3
+        if distorm3 is None:
+            try:
+                import distorm3
+            except ImportError:
+                try:
+                    import distorm as distorm3
+                except ImportError:
+                    msg = ("%s is not installed or can't be found. "
+                    "Download it from: %s" % (self.name, self.url))
+                    raise NotImplementedError(msg)
+
+        # Load the decoder function.
+        self.__decode = distorm3.Decode
+
+        # Load the bits flag.
+        self.__flag = {
+            win32.ARCH_I386:  distorm3.Decode32Bits,
+            win32.ARCH_AMD64: distorm3.Decode64Bits,
+        }[arch]
+
+    def decode(self, address, code):
+        return self.__decode(address, code, self.__flag)
+
+#==============================================================================
+
+class PyDasmEngine (Engine):
+    name = "PyDasm"
+    desc = "PyDasm: Python bindings to libdasm"
+    url  = "https://code.google.com/p/libdasm/"
+
+    supported = set((
+        win32.ARCH_I386,
+    ))
+
+    def __init__(self, arch = None):
+
+        # Validate the architecture.
+        arch = self._validate_arch(arch)
+
+        # Load the libdasm bindings.
+        global pydasm
+        if pydasm is None:
+            try:
+                import pydasm
+            except ImportError:
+                msg = ("%s is not installed or can't be found. "
+                "Download it from: %s" % (self.name, self.url))
+                raise NotImplementedError(msg)
+
+    def decode(self, address, code):
+
+        # Decode each instruction in the buffer.
+        result = []
+        offset = 0
+        while offset < len(code):
+
+            # Try to decode the current instruction.
+            instruction = pydasm.get_instruction(code[offset:offset+32],
+                                                 pydasm.MODE_32)
+
+            # Get the memory address of the current instruction.
+            current = address + offset
+
+            # Illegal opcode or opcode longer than remaining buffer.
+            if not instruction or instruction.length + offset > len(code):
+                hexdump = '%.2X' % ord(code[offset])
+                disasm  = 'db 0x%s' % hexdump
+                ilen    = 1
+
+            # Correctly decoded instruction.
+            else:
+                disasm  = pydasm.get_instruction_string(instruction,
+                                                        pydasm.FORMAT_INTEL,
+                                                        current)
+                ilen    = instruction.length
+                hexdump = HexDump.hexadecimal(code[offset:offset+ilen])
+
+            # Add the decoded instruction to the list.
+            result.append((
+                current,
+                ilen,
+                disasm,
+                hexdump,
+            ))
+
+            # Move to the next instruction.
+            offset += ilen
+
+        # Return the list of decoded instructions.
+        return result
+
+#==============================================================================
+
 # TODO: use a lock to access __decoder
 
 class Disassembler (object):
@@ -302,8 +384,9 @@ class Disassembler (object):
     """
 
     engines = (
-        DistormEngine,
+        DistormEngine,  # diStorm engine goes first for backwards compatibility
         BeaEngine,
+        PyDasmEngine,
     )
 
     # Cache of already loaded disassemblers.
