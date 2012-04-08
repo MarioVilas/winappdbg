@@ -30,6 +30,9 @@
 
 """
 Binary code disassembly.
+
+@Disassemblers:
+    Disassembler, DistormEngine, BeaEngine
 """
 
 __revision__ = "$Id$"
@@ -49,15 +52,59 @@ BeaEnginePython = None
 #==============================================================================
 
 class Engine (object):
+    """
+    Base class for disassembly engine adaptors.
+
+    @type name: str
+    @cvar name: Engine name to use with the L{Disassembler} class.
+
+    @type desc: str
+    @cvar desc: User friendly name of the disassembler engine.
+
+    @type url: str
+    @cvar url: Download URL.
+
+    @type supports: set(str)
+    @cvar supports: Set of supported processor architectures.
+        For more details see L{win32.version._get_arch}.
+    """
+
     name = "<insert engine name here>"
     desc = "<insert engine description here>"
     url  = "<insert download url here>"
     supports = set()
 
     def __init__(self, arch = None):
+        """
+        @type  arch: str
+        @param arch: Name of the processor architecture.
+            If not provided the current processor architecture is assumed.
+            For more details see L{win32.version._get_arch}.
+
+        @raise NotImplementedError: This disassembler doesn't support the
+            requested processor architecture.
+        """
         raise NotImplementedError()
 
     def decode(self, address, code):
+        """
+        @type  address: int
+        @param address: Memory address where the code was read from.
+
+        @type  code: str
+        @param code: Machine code to disassemble.
+
+        @rtype:  list of tuple( long, int, str, str )
+        @return: List of tuples. Each tuple represents an assembly instruction
+            and contains:
+             - Memory address of instruction.
+             - Size of instruction in bytes.
+             - Disassembly line of instruction.
+             - Hexadecimal dump of instruction.
+
+        @raise NotImplementedError: This disassembler could not be loaded.
+            This may be due to missing dependencies.
+        """
         raise NotImplementedError()
 
 #==============================================================================
@@ -245,6 +292,14 @@ class BeaEngine (Engine):
 # TODO: use a lock to access __decoder
 
 class Disassembler (object):
+    """
+    Generic disassembler. Uses a set of adapters to decide which library to
+    load for which supported platform.
+
+    @type engines: set( L{Engine} )
+    @cvar engines: Set of supported engines. If you implement your own adapter
+        you can add its class here to make it available to L{Disassembler}.
+    """
 
     engines = (
         DistormEngine,
@@ -255,6 +310,26 @@ class Disassembler (object):
     __decoder = {}
 
     def __new__(cls, arch = None, engine = None):
+        """
+        Factory class. You can't really instance a L{Disassembler} object,
+        instead one of the adapter L{Engine} subclasses is returned.
+
+        @type  arch: str
+        @param arch: (Optional) Name of the processor architecture.
+            If not provided the current processor architecture is assumed.
+            For more details see L{win32.version._get_arch}.
+
+        @type  engine: str
+        @param engine: (Optional) Name of the disassembler engine.
+            If not provided a compatible one is loaded automatically.
+            See: L{Engine.name}
+
+        @raise NotImplementedError: No compatible disassembler was found that
+            could decode machine code for the requested architecture. This may
+            be due to missing dependencies.
+
+        @raise ValueError: An unknown engine name was supplied.
+        """
 
         # Use the default architecture if none specified.
         if not arch:
@@ -297,7 +372,7 @@ class Disassembler (object):
                     break
             if not found:
                 msg = "Unsupported disassembler engine: %s" % engine
-                raise NotImplementedError(msg)
+                raise ValueError(msg)
             if arch not in clazz.supported:
                 msg = "The %s engine cannot decode %s code." % selected
                 raise NotImplementedError(msg)
