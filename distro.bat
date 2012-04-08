@@ -131,19 +131,9 @@ goto Next
 
 :WinInst
 
-:: Build the Windows installer packages
-%PYTHON_x86% setup.py bdist_wininst %BDIST_UAC%
-%PYTHON_x64% setup.py bdist_wininst %BDIST_UAC%
-
-:: Build the Windows MSI installer packages for 32 bits
-%PYTHON_x86% setup.py bdist_msi --target-version=2.5
-%PYTHON_x86% setup.py bdist_msi --target-version=2.6
-%PYTHON_x86% setup.py bdist_msi --target-version=2.7
-
-:: Build the Windows MSI installer packages for 64 bits
-%PYTHON_x64% setup.py bdist_msi --target-version=2.5
-%PYTHON_x64% setup.py bdist_msi --target-version=2.6
-%PYTHON_x64% setup.py bdist_msi --target-version=2.7
+:: Build the Windows installer packages (this requires Python 2.7)
+%PYTHON_x86% setup.py bdist_msi
+%PYTHON_x64% setup.py bdist_msi
 
 goto Next
 
