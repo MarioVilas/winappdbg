@@ -112,31 +112,13 @@ __all__ =   [
                 'VolatileCrashContainer',
                 'DummyCrashContainer',
 
-                # from interactive import *
-                'ConsoleDebugger',
-
                 # from debug import *
                 'Debug',
                 'MixedBitsWarning',
 
-                # from module import *
-                'Module',
-                'DebugSymbolsWarning',
-
-                # from thread import *
-                'Thread',
-
-                # from window import *
-                'Window',
-
-                # from process import *
-                'Process',
-
-                # from system import *
-                'System',
-
-                # from registry import *
-                'Registry',
+                # from disasm import *
+                'Disassembler',
+                'DistormEngine',
 
                 # from event import *
                 'EventHandler',
@@ -155,6 +137,22 @@ __all__ =   [
                 'RIPEvent',
                 'ExceptionEvent',
 
+                # from interactive import *
+                'ConsoleDebugger',
+
+                # from module import *
+                'Module',
+                'DebugSymbolsWarning',
+
+                # from process import *
+                'Process',
+
+                # from system import *
+                'System',
+
+                # from registry import *
+                'Registry',
+
                 # from textio import *
                 'HexDump',
                 'HexInput',
@@ -163,6 +161,9 @@ __all__ =   [
                 'CrashDump',
                 'DebugLog',
                 'Logger',
+
+                # from thread import *
+                'Thread',
 
                 # from util import *
                 'PathOperations',
@@ -176,6 +177,9 @@ __all__ =   [
                 'WriteableAddressIterator',
                 'ExecutableAndWriteableAddressIterator',
                 'DebugRegister',
+
+                # from window import *
+                'Window',
 
                 # import win32
                 'win32',
@@ -191,15 +195,16 @@ __all__ =   [
 from breakpoint import *
 from crash import *
 from debug import *
+from disasm import *
 from event import *
 from interactive import *
 from module import *
 from process import *
 from registry import *
+from system import *
 from textio import *
 from thread import *
 from util import *
-from system import *
 from window import *
 
 import win32
