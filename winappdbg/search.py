@@ -32,7 +32,7 @@
 """
 Process memory search.
 
-@group Search:
+@group Memory search:
     Search,
     Pattern,
     BytePattern,

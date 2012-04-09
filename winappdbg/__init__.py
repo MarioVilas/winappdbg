@@ -40,14 +40,25 @@ Web:     U{http://winappdbg.sourceforge.net/}
 Blog:    U{http://breakingcode.wordpress.com}
 
 @group Debugging:
-    Debug, EventHandler, DebugLog, ConsoleDebugger
+    Debug, EventHandler, EventSift, DebugLog, ConsoleDebugger
 
 @group Instrumentation:
     System, Process, Thread, Module, Window
 
+@group Disassemblers:
+    Disassembler,
+    BeaEngine, DistormEngine, PyDasmEngine
+
 @group Crash reporting:
-    Crash, CrashDump, CrashContainer, CrashTable, CrashTableMSSQL,
-    VolatileCrashContainer, DummyCrashContainer
+    Crash, CrashDump, CrashDAO, CrashDictionary
+
+@group Memory search:
+    Search,
+    Pattern,
+    BytePattern,
+    TextPattern,
+    RegExpPattern,
+    HexPattern
 
 @group Debug events:
     Event,
@@ -79,6 +90,10 @@ Blog:    U{http://breakingcode.wordpress.com}
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
     Regenerator
+
+@group Warnings:
+    MixedBitsWarning, BreakpointWarning, BreakpointCallbackWarning,
+    EventCallbackWarning, DebugSymbolsWarning,
 
 @type version: str
 @var  version: This WinAppDbg release version.
