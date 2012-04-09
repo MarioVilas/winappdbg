@@ -762,13 +762,8 @@ class _ModuleContainer (object):
         clear_modules
 
     @group Labels:
-        parse_label,
-        split_label,
-        sanitize_label,
-        resolve_label,
-        resolve_label_components,
-        get_label_at_address,
-        split_label_strict,
+        parse_label, split_label, sanitize_label, resolve_label,
+        resolve_label_components, get_label_at_address, split_label_strict,
         split_label_fuzzy
 
     @group Symbols:

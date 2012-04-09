@@ -65,7 +65,7 @@ class System (_ProcessContainer):
         find_window, get_window_at, get_desktop_window, get_foreground_window
 
     @group Debugging:
-        load_dbghelp, request_debug_privileges
+        load_dbghelp, fix_symbol_store_path, request_debug_privileges
 
     @group Postmortem debugging:
         get_postmortem_debugger, set_postmortem_debugger,
