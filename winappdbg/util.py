@@ -148,12 +148,6 @@ class StaticClass (object):
         raise NotImplementedError(
                 "Cannot instance static class %s" % cls.__name__)
 
-class DeprecatedClass (object):
-    def __new__(cls, *argv, **argd):
-        "Don't use this class!"
-        raise NotImplementedError(
-                "Cannot instance deprecated class %s" % cls.__name__)
-
 #==============================================================================
 
 class PathOperations (StaticClass):
