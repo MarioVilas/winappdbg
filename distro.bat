@@ -160,6 +160,10 @@ if %errorlevel%==0 hhc winappdbg.hhp
 :: Generate the PDF documentation
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 
+:: Move the files to the dist folder
+if exist html\winappdbg-1.5.chm move html\winappdbg-1.5.chm dist\winappdbg-1.5-reference.chm
+if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-1.5-reference.pdf
+
 goto Next
 
 
@@ -184,7 +188,7 @@ call make.bat htmlhelp
 cd build\htmlhelp
 hhc WinAppDbg.hhp
 cd ..\..\..
-if exist doc\build\htmlhelp\WinAppDbg.chm move doc\build\htmlhelp\WinAppDbg.chm dist\
+if exist doc\build\htmlhelp\WinAppDbg.chm move doc\build\htmlhelp\WinAppDbg.chm dist\winappdbg-1.5-tutorial.chm
 
 :: Generate the PDF manual
 cd doc
@@ -192,7 +196,7 @@ call make.bat latex
 cd build\latex
 make
 cd ..\..\..
-if exist doc\build\latex\WinAppDbg.pdf move doc\build\latex\WinAppDbg.pdf dist\
+if exist doc\build\latex\WinAppDbg.pdf move doc\build\latex\WinAppDbg.pdf dist\winappdbg-1.5-tutorial.pdf
 
 goto Next
 
