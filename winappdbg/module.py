@@ -33,6 +33,9 @@ Module instrumentation.
 
 @group Instrumentation:
     Module
+
+@group Warnings:
+    DebugSymbolsWarning
 """
 
 __revision__ = "$Id$"

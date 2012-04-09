@@ -127,6 +127,7 @@ __all__ =   [
                 'EventSift',
 ##                'EventFactory',
 ##                'EventDispatcher',
+                'EventCallbackWarning',
                 'Event',
 ##                'NoEvent',
                 'CreateProcessEvent',

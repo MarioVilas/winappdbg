@@ -34,6 +34,9 @@ Breakpoints.
 @group Breakpoints:
     Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint,
     BufferWatch, Hook, ApiHook
+
+@group Warnings:
+    BreakpointWarning, BreakpointCallbackWarning
 """
 
 __revision__ = "$Id$"

@@ -50,6 +50,9 @@ Event handling module.
     OutputDebugStringEvent,
     RIPEvent,
     ExceptionEvent
+
+@group Warnings:
+    EventCallbackWarning
 """
 
 __revision__ = "$Id$"
@@ -65,6 +68,9 @@ __all__ = [
             # Base classes for user-defined event handlers.
             'EventHandler',
             'EventSift',
+
+            # Warning for uncaught exceptions on event callbacks.
+            'EventCallbackWarning',
 
             # Dummy event object that can be used as a placeholder.
             # It's never returned by the EventFactory.

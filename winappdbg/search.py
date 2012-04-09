@@ -32,13 +32,13 @@
 """
 Process memory search.
 
-@group Instrumentation:
+@group Search:
+    Search,
     Pattern,
     BytePattern,
     TextPattern,
     RegExpPattern,
-    HexPattern,
-    Search
+    HexPattern
 """
 
 __revision__ = "$Id$"

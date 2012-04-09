@@ -33,6 +33,9 @@ Debugging.
 
 @group Debugging:
     Debug
+
+@group Warnings:
+    MixedBitsWarning
 """
 
 __revision__ = "$Id$"

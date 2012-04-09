@@ -65,8 +65,8 @@ else:
     pathname = None
 
 try:
-    dbghelp = ctypes.windll.LoadLibrary(pathname)
-    ctypes.windll.dbghelp = dbghelp
+    _dbghelp = ctypes.windll.LoadLibrary(pathname)
+    ctypes.windll.dbghelp = _dbghelp
 except Exception:
     pass
 

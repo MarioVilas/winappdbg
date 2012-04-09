@@ -31,7 +31,7 @@
 """
 Binary code disassembly.
 
-@Disassemblers:
+@group Disassemblers:
     Disassembler,
     BeaEngine, DistormEngine, PyDasmEngine
 """
@@ -95,8 +95,8 @@ class Engine (object):
             If not provided the current processor architecture is assumed.
             For more details see L{win32.version._get_arch}.
 
-        @rtype  arch: str
-        @return arch: Name of the processor architecture.
+        @rtype:  str
+        @return: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
             For more details see L{win32.version._get_arch}.
 

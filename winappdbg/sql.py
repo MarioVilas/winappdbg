@@ -37,7 +37,7 @@ SQL database storage support.
 
 __revision__ = "$Id$"
 
-__all__ = ["CrashDAO"]
+__all__ = ['CrashDAO']
 
 import sqlite3
 import datetime
