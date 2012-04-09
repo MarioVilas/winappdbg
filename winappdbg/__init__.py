@@ -93,7 +93,7 @@ Blog:    U{http://breakingcode.wordpress.com}
 
 @group Warnings:
     MixedBitsWarning, BreakpointWarning, BreakpointCallbackWarning,
-    EventCallbackWarning, DebugSymbolsWarning,
+    EventCallbackWarning, DebugSymbolsWarning
 
 @type version: str
 @var  version: This WinAppDbg release version.
@@ -168,6 +168,14 @@ __all__ =   [
                 # from system import *
                 'System',
 
+                # from search import *
+                'Search',
+                'Pattern',
+                'BytePattern',
+                'TextPattern',
+                'RegExpPattern',
+                'HexPattern',
+
                 # from registry import *
                 'Registry',
 
@@ -220,6 +228,7 @@ from module import *
 from process import *
 from registry import *
 from system import *
+from search import *
 from textio import *
 from thread import *
 from util import *

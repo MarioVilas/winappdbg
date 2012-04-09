@@ -138,7 +138,7 @@ class Crash (object):
 
     @group Basic information:
         timeStamp, signature, eventCode, eventName, pid, tid, arch, os, bits,
-        registers, labelPC
+        registers, labelPC, pc, sp, fp
 
     @group Optional information:
         debugString,
@@ -162,6 +162,8 @@ class Crash (object):
 
     @group Extra information:
         commandLine,
+        environment,
+        environmentData,
         registersPeek,
         stackRange,
         stackFrame,
@@ -173,7 +175,7 @@ class Crash (object):
         memoryMap
 
     @group Report:
-        briefReport, fullReport, notesReport, isExploitable
+        briefReport, fullReport, notesReport, environmentReport, isExploitable
 
     @group Notes:
         addNote, getNotes, iterNotes, hasNotes, clearNotes, notes

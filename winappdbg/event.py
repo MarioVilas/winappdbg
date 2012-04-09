@@ -1609,6 +1609,9 @@ class EventSift(EventHandler):
 class EventDispatcher (object):
     """
     Implements debug event dispatching capabilities.
+
+    @group Debugging events:
+        get_event_handler, set_event_handler, get_handler_method, dispatch
     """
 
     # Maps event code constants to the names of the pre-notify routines.

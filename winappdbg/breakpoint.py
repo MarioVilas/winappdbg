@@ -101,7 +101,7 @@ class Breakpoint (object):
         is_disabled, is_enabled, is_one_shot, is_running,
         get_state, get_state_name
     @group Information:
-        get_address, get_size, is_here
+        get_address, get_size, get_span, is_here
     @group Conditional breakpoints:
         is_conditional, is_unconditional,
         get_condition, set_condition, eval_condition
@@ -646,6 +646,9 @@ class PageBreakpoint (Breakpoint):
     Page access breakpoint (using guard pages).
 
     @see: L{Debug.watch_buffer}
+
+    @group Information:
+        get_size_in_pages
     """
 
     typeName = 'page breakpoint'
@@ -743,8 +746,13 @@ class HardwareBreakpoint (Breakpoint):
     Hardware breakpoint (using debug registers).
 
     @see: L{Debug.watch_variable}
+
+    @group Information:
+        get_slot, get_trigger, get_watch
+
     @group Trigger flags:
         BREAK_ON_EXECUTION, BREAK_ON_WRITE, BREAK_ON_ACCESS
+
     @group Watch size flags:
         WATCH_BYTE, WATCH_WORD, WATCH_DWORD, WATCH_QWORD
 
@@ -1046,9 +1054,9 @@ class Hook (object):
                     # (...)
 
             In the above example, the value for C{paramCount} would be C{3}.
-
-            Note that the second example assumes all parameters are DWORDs.
+            Note that these examples assume all parameters are DWORDs.
             This may not always be so, especially in 64 bits Windows.
+            See the C{signature} argument.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
@@ -1757,7 +1765,8 @@ class _BreakpointContainer (object):
     @group Breakpoints:
         break_at, watch_variable, watch_buffer, hook_function,
         dont_break_at, dont_watch_variable, dont_watch_buffer,
-        dont_hook_function, unhook_function
+        dont_hook_function, unhook_function,
+        break_on_error, dont_break_on_error
 
     @group Stalking:
         stalk_at, stalk_variable, stalk_buffer, stalk_function,
@@ -3811,6 +3820,9 @@ class _BreakpointContainer (object):
                     # (...)
 
             In the above example, the value for C{paramCount} would be C{3}.
+            Note that these examples assume all parameters are DWORDs.
+            This may not always be so, especially in 64 bits Windows.
+            See the C{signature} argument.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
@@ -3886,6 +3898,9 @@ class _BreakpointContainer (object):
                     # (...)
 
             In the above example, the value for C{paramCount} would be C{3}.
+            Note that these examples assume all parameters are DWORDs.
+            This may not always be so, especially in 64 bits Windows.
+            See the C{signature} argument.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.

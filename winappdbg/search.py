@@ -44,12 +44,12 @@ Process memory search.
 __revision__ = "$Id$"
 
 __all__ =   [
+                'Search',
                 'Pattern',
                 'BytePattern',
                 'TextPattern',
                 'RegExpPattern',
                 'HexPattern',
-                'Search',
             ]
 
 from textio import HexInput
