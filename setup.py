@@ -59,7 +59,7 @@ scripts = glob.glob(os.path.join(here, 'tools', '*.py'))
 params = {
 
     # Setup instructions
-    'requires'          : ['ctypes', 'distorm3', 'sqlalchemy'],
+    'requires'          : ['ctypes', 'BeaEnginePython', 'sqlalchemy'],
     'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32'],
     'scripts'           : scripts,
