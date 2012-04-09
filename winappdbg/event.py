@@ -1301,49 +1301,59 @@ class EventHandler (object):
         tuples of ( procedure name, parameter count ).
 
         All procedures listed here will be hooked for calls from the debugee.
-        When this happens, the corresponding event handler is notified both
+        When this happens, the corresponding event handler can be notified both
         when the procedure is entered and when it's left by the debugee.
 
-        For example, if the procedure name is "LoadLibraryEx" the event handler
-        routines must be defined as "pre_LoadLibraryEx" and "post_LoadLibraryEx"
-        in your class.
+        For example, let's hook the LoadLibraryEx() API call.
+        This would be the declaration of apiHooks::
 
-        The signature for the routines can be something like this::
+            from winappdbg import EventHandler
+            from winappdbg.win32 import *
 
-            def pre_LoadLibraryEx(event, *params):
-                ra   = params[0]        # return address
-                argv = params[1:]       # function parameters
+            # (...)
 
-                # (...)
+            class MyEventHandler (EventHandler):
 
-            def post_LoadLibrary(event, return_value):
+                apiHook = {
 
-                # (...)
+                    "kernel32.dll" : (
 
-        But since you can also specify the number of arguments, this signature
-        works too (four arguments in this case)::
+                        #   Procedure name      Signature
+                        (   "LoadLibraryEx",    (PVOID, HANDLE, DWORD) ),
+
+                        # (more procedures can go here...)
+                    ),
+
+                    # (more libraries can go here...)
+                }
+
+                # (your method definitions go here...)
+
+        Note that the filename pointer was declared of type PVOID. This is very
+        important! All pointers should be declared as void type to prevent
+        ctypes from being "too helpful" and trying to dereference the address
+        of the pointer.
+
+        Now, to intercept calls to LoadLibraryEx define a method like this in
+        your event handler class::
 
             def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
                 szFilename = event.get_process().peek_string(lpFilename)
 
                 # (...)
 
-        Note that the number of parameters to pull from the stack includes the
-        return address. The apiHooks dictionary for the example above would
-        look like this::
+        Note that the first parameter is always the L{Event} object, and the
+        second parameter is the return address. The third parameter and above
+        are the values passed to the hooked function.
 
-            apiHook = {
+        Finally, to intercept returns from calls to LoadLibraryEx define a
+        method like this::
 
-                "kernel32.dll" : (
+            def post_LoadLibraryEx(event, retval):
+                # (...)
 
-                    #   Procedure name      Parameter count
-                    (   "LoadLibraryEx",    4 ),
-
-                    # (more procedures can go here...)
-                ),
-
-                # (more libraries can go here...)
-            }
+        The first parameter is the L{Event} object and the second is the
+        return value from the hooked function.
     """
 
 #------------------------------------------------------------------------------
