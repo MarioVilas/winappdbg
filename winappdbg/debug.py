@@ -87,18 +87,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
     @group Debugging:
         attach, detach, detach_from_all, execv, execl, kill, kill_all, clear,
         get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode,
-        interactive
+        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode
 
     @group Debugging loop:
-        loop, next, wait, dispatch, cont, stop
-
-    @group Event notifications (private):
-        notify_create_process,
-        notify_create_thread,
-        notify_rip,
-        notify_debug_control_c,
-        notify_ms_vc_exception
+        interactive, loop, stop, next, wait, dispatch, cont
 
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
@@ -948,7 +940,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
 #------------------------------------------------------------------------------
 
-    def notify_create_process(self, event):
+    def _notify_create_process(self, event):
         """
         Notify the creation of a new process.
 
@@ -965,7 +957,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             if dwProcessId not in self.__startedDebugees:
                 self.__startedDebugees.add(dwProcessId)
 
-        retval = self.system.notify_create_process(event)
+        retval = self.system._notify_create_process(event)
 
         # Set a breakpoint on the program's entry point if requested.
         # Try not to use the Event object's entry point value, as in some cases
@@ -1001,7 +993,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         return retval
 
-    def notify_create_thread(self, event):
+    def _notify_create_thread(self, event):
         """
         Notify the creation of a new thread.
 
@@ -1013,9 +1005,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        return event.get_process().notify_create_thread(event)
+        return event.get_process()._notify_create_thread(event)
 
-    def notify_load_dll(self, event):
+    def _notify_load_dll(self, event):
         """
         Notify the load of a new module.
 
@@ -1029,13 +1021,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
 
         # Pass the event to the breakpoint container.
-        bCallHandler = _BreakpointContainer.notify_load_dll(self, event)
+        bCallHandler = _BreakpointContainer._notify_load_dll(self, event)
 
         # Get the process where the DLL was loaded.
         aProcess = event.get_process()
 
         # Pass the event to the process.
-        bCallHandler = aProcess.notify_load_dll(event) and bCallHandler
+        bCallHandler = aProcess._notify_load_dll(event) and bCallHandler
 
         # Anti-anti-debugging tricks on ntdll.dll.
         if self.__bHostileCode:
@@ -1056,7 +1048,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         return bCallHandler
 
-    def notify_exit_process(self, event):
+    def _notify_exit_process(self, event):
         """
         Notify the termination of a process.
 
@@ -1082,11 +1074,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
         except KeyError:
             pass
 
-        bCallHandler = _BreakpointContainer.notify_exit_process(self, event)
-        bCallHandler = self.system.notify_exit_process(event) and bCallHandler
+        bCallHandler = _BreakpointContainer._notify_exit_process(self, event)
+        bCallHandler = self.system._notify_exit_process(event) and bCallHandler
         return bCallHandler
 
-    def notify_exit_thread(self, event):
+    def _notify_exit_thread(self, event):
         """
         Notify the termination of a thread.
 
@@ -1098,12 +1090,12 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler = _BreakpointContainer.notify_exit_thread(self, event)
+        bCallHandler = _BreakpointContainer._notify_exit_thread(self, event)
         bCallHandler = bCallHandler and \
-                                  event.get_process().notify_exit_thread(event)
+                                event.get_process()._notify_exit_thread(event)
         return bCallHandler
 
-    def notify_unload_dll(self, event):
+    def _notify_unload_dll(self, event):
         """
         Notify the unload of a module.
 
@@ -1115,11 +1107,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler = _BreakpointContainer.notify_unload_dll(self, event)
+        bCallHandler = _BreakpointContainer._notify_unload_dll(self, event)
         bCallHandler = bCallHandler and \
-                                event.get_process().notify_unload_dll(event)
+                                event.get_process()._notify_unload_dll(event)
 
-    def notify_rip(self, event):
+    def _notify_rip(self, event):
         """
         Notify of a RIP event.
 
@@ -1134,7 +1126,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         event.debug.detach( event.get_pid() )
         return True
 
-    def notify_debug_control_c(self, event):
+    def _notify_debug_control_c(self, event):
         """
         Notify of a Debug Ctrl-C exception.
 
@@ -1156,7 +1148,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
         return True
 
-    def notify_ms_vc_exception(self, event):
+    def _notify_ms_vc_exception(self, event):
         """
         Notify of a Microsoft Visual C exception.
 

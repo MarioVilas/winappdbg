@@ -1628,11 +1628,6 @@ class _ThreadContainer (object):
         has_thread, iter_threads, iter_thread_ids,
         find_threads_by_name, get_windows,
         clear_threads, clear_dead_threads, close_thread_handles
-
-    @group Event notifications (private):
-        notify_create_process,
-        notify_create_thread,
-        notify_exit_thread
     """
 
     def __init__(self):
@@ -1900,7 +1895,7 @@ class _ThreadContainer (object):
 
 #------------------------------------------------------------------------------
 
-    # XXX notify_* methods should not trigger a scan
+    # XXX _notify_* methods should not trigger a scan
 
     def _add_thread(self, aThread):
         """
@@ -1972,7 +1967,7 @@ class _ThreadContainer (object):
             if hThread != win32.INVALID_HANDLE_VALUE:
                 aThread.hThread = hThread   # may have more privileges
 
-    def notify_create_process(self, event):
+    def _notify_create_process(self, event):
         """
         Notify the creation of the main thread of this process.
 
@@ -1988,7 +1983,7 @@ class _ThreadContainer (object):
         self.__add_created_thread(event)
         return True
 
-    def notify_create_thread(self, event):
+    def _notify_create_thread(self, event):
         """
         Notify the creation of a new thread in this process.
 
@@ -2004,7 +1999,7 @@ class _ThreadContainer (object):
         self.__add_created_thread(event)
         return True
 
-    def notify_exit_thread(self, event):
+    def _notify_exit_thread(self, event):
         """
         Notify the termination of a thread.
 

@@ -779,10 +779,6 @@ class _ModuleContainer (object):
         get_user_breakpoint, get_breakin_breakpoint,
         get_wow64_system_breakpoint, get_wow64_user_breakpoint,
         get_wow64_breakin_breakpoint
-
-    @group Event notifications (private):
-        notify_load_dll,
-        notify_unload_dll
     """
 
     def __init__(self):
@@ -1831,7 +1827,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 
 #------------------------------------------------------------------------------
 
-    # XXX notify_* methods should not trigger a scan
+    # XXX _notify_* methods should not trigger a scan
 
     def _add_module(self, aModule):
         """
@@ -1903,7 +1899,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                 if fileName:
                     aModule.fileName = fileName
 
-    def notify_create_process(self, event):
+    def _notify_create_process(self, event):
         """
         Notify the load of the main module.
 
@@ -1919,7 +1915,7 @@ When called as an instance method, the fuzzy syntax mode is used::
         self.__add_loaded_module(event)
         return True
 
-    def notify_load_dll(self, event):
+    def _notify_load_dll(self, event):
         """
         Notify the load of a new module.
 
@@ -1935,7 +1931,7 @@ When called as an instance method, the fuzzy syntax mode is used::
         self.__add_loaded_module(event)
         return True
 
-    def notify_unload_dll(self, event):
+    def _notify_unload_dll(self, event):
         """
         Notify the release of a loaded module.
 

@@ -43,7 +43,7 @@ Blog:    U{http://breakingcode.wordpress.com}
     Debug, EventHandler, EventSift, DebugLog, ConsoleDebugger
 
 @group Instrumentation:
-    System, Process, Thread, Module, Window
+    System, Process, Thread, Module, Window, Registry
 
 @group Disassemblers:
     Disassembler,
@@ -94,6 +94,10 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Warnings:
     MixedBitsWarning, BreakpointWarning, BreakpointCallbackWarning,
     EventCallbackWarning, DebugSymbolsWarning
+
+@group Deprecated classes:
+    CrashContainer, CrashTable, CrashTableMSSQL,
+    VolatileCrashContainer, DummyCrashContainer
 
 @type version: str
 @var  version: This WinAppDbg release version.

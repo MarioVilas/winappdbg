@@ -1611,38 +1611,38 @@ class EventDispatcher (object):
     Implements debug event dispatching capabilities.
 
     @group Debugging events:
-        get_event_handler, set_event_handler, get_handler_method, dispatch
+        get_event_handler, set_event_handler, get_handler_method
     """
 
     # Maps event code constants to the names of the pre-notify routines.
     # These routines are called BEFORE the user-defined handlers.
     # Unknown codes are ignored.
     __preEventNotifyCallbackName = {
-        win32.CREATE_THREAD_DEBUG_EVENT   : 'notify_create_thread',
-        win32.CREATE_PROCESS_DEBUG_EVENT  : 'notify_create_process',
-        win32.LOAD_DLL_DEBUG_EVENT        : 'notify_load_dll',
+        win32.CREATE_THREAD_DEBUG_EVENT   : '_notify_create_thread',
+        win32.CREATE_PROCESS_DEBUG_EVENT  : '_notify_create_process',
+        win32.LOAD_DLL_DEBUG_EVENT        : '_notify_load_dll',
     }
 
     # Maps event code constants to the names of the post-notify routines.
     # These routines are called AFTER the user-defined handlers.
     # Unknown codes are ignored.
     __postEventNotifyCallbackName = {
-        win32.EXIT_THREAD_DEBUG_EVENT     : 'notify_exit_thread',
-        win32.EXIT_PROCESS_DEBUG_EVENT    : 'notify_exit_process',
-        win32.UNLOAD_DLL_DEBUG_EVENT      : 'notify_unload_dll',
-        win32.RIP_EVENT                   : 'notify_rip',
+        win32.EXIT_THREAD_DEBUG_EVENT     : '_notify_exit_thread',
+        win32.EXIT_PROCESS_DEBUG_EVENT    : '_notify_exit_process',
+        win32.UNLOAD_DLL_DEBUG_EVENT      : '_notify_unload_dll',
+        win32.RIP_EVENT                   : '_notify_rip',
     }
 
     # Maps exception code constants to the names of the pre-notify routines.
     # These routines are called BEFORE the user-defined handlers.
     # Unknown codes are ignored.
     __preExceptionNotifyCallbackName = {
-        win32.EXCEPTION_BREAKPOINT                : 'notify_breakpoint',
-        win32.EXCEPTION_WX86_BREAKPOINT           : 'notify_breakpoint',
-        win32.EXCEPTION_SINGLE_STEP               : 'notify_single_step',
-        win32.EXCEPTION_GUARD_PAGE                : 'notify_guard_page',
-        win32.DBG_CONTROL_C                       : 'notify_debug_control_c',
-        win32.MS_VC_EXCEPTION                     : 'notify_ms_vc_exception',
+        win32.EXCEPTION_BREAKPOINT        : '_notify_breakpoint',
+        win32.EXCEPTION_WX86_BREAKPOINT   : '_notify_breakpoint',
+        win32.EXCEPTION_SINGLE_STEP       : '_notify_single_step',
+        win32.EXCEPTION_GUARD_PAGE        : '_notify_guard_page',
+        win32.DBG_CONTROL_C               : '_notify_debug_control_c',
+        win32.MS_VC_EXCEPTION             : '_notify_ms_vc_exception',
     }
 
     # Maps exception code constants to the names of the post-notify routines.

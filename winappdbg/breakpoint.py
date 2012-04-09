@@ -1828,15 +1828,6 @@ class _BreakpointContainer (object):
         disable_process_breakpoints,
         erase_process_breakpoints
 
-    @group Event notifications (private):
-        notify_guard_page,
-        notify_breakpoint,
-        notify_single_step,
-        notify_load_dll,
-        notify_unload_dll,
-        notify_exit_thread,
-        notify_exit_process
-
     @group Breakpoint types:
         BP_TYPE_ANY, BP_TYPE_CODE, BP_TYPE_PAGE, BP_TYPE_HARDWARE
     @group Breakpoint states:
@@ -1950,7 +1941,8 @@ class _BreakpointContainer (object):
 
     def __cleanup_thread(self, event):
         """
-        Auxiliary method for L{notify_exit_thread} and L{notify_exit_process}.
+        Auxiliary method for L{_notify_exit_thread}
+        and L{_notify_exit_process}.
         """
         tid = event.get_tid()
 
@@ -1976,7 +1968,7 @@ class _BreakpointContainer (object):
 
     def __cleanup_process(self, event):
         """
-        Auxiliary method for L{notify_exit_process}.
+        Auxiliary method for L{_notify_exit_process}.
         """
         pid     = event.get_pid()
         process = event.get_process()
@@ -2003,7 +1995,7 @@ class _BreakpointContainer (object):
 
     def __cleanup_module(self, event):
         """
-        Auxiliary method for L{notify_unload_dll}.
+        Auxiliary method for L{_notify_unload_dll}.
         """
         pid     = event.get_pid()
         process = event.get_process()
@@ -3224,7 +3216,7 @@ class _BreakpointContainer (object):
 
     # Internal handlers of debug events.
 
-    def notify_guard_page(self, event):
+    def _notify_guard_page(self, event):
         """
         Notify breakpoints of a guard page exception event.
 
@@ -3276,7 +3268,7 @@ class _BreakpointContainer (object):
 
         return bCallHandler
 
-    def notify_breakpoint(self, event):
+    def _notify_breakpoint(self, event):
         """
         Notify breakpoints of a breakpoint exception event.
 
@@ -3334,7 +3326,7 @@ class _BreakpointContainer (object):
 
         return bCallHandler
 
-    def notify_single_step(self, event):
+    def _notify_single_step(self, event):
         """
         Notify breakpoints of a single step exception event.
 
@@ -3460,7 +3452,7 @@ class _BreakpointContainer (object):
 
         return bCallHandler
 
-    def notify_load_dll(self, event):
+    def _notify_load_dll(self, event):
         """
         Notify the loading of a DLL.
 
@@ -3473,7 +3465,7 @@ class _BreakpointContainer (object):
         self.__set_deferred_breakpoints(event)
         return True
 
-    def notify_unload_dll(self, event):
+    def _notify_unload_dll(self, event):
         """
         Notify the unloading of a DLL.
 
@@ -3486,7 +3478,7 @@ class _BreakpointContainer (object):
         self.__cleanup_module(event)
         return True
 
-    def notify_exit_thread(self, event):
+    def _notify_exit_thread(self, event):
         """
         Notify the termination of a thread.
 
@@ -3499,7 +3491,7 @@ class _BreakpointContainer (object):
         self.__cleanup_thread(event)
         return True
 
-    def notify_exit_process(self, event):
+    def _notify_exit_process(self, event):
         """
         Notify the termination of a process.
 

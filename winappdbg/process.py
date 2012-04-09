@@ -3491,7 +3491,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
 #------------------------------------------------------------------------------
 
-    def notify_create_process(self, event):
+    def _notify_create_process(self, event):
         """
         Notify the creation of a new process.
 
@@ -3505,9 +3505,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         # Do not use super() here.
-        bCallHandler = _ThreadContainer.notify_create_process(self, event)
+        bCallHandler = _ThreadContainer._notify_create_process(self, event)
         bCallHandler = bCallHandler and \
-                            _ModuleContainer.notify_create_process(self, event)
+                           _ModuleContainer._notify_create_process(self, event)
         return bCallHandler
 
 #==============================================================================
@@ -3540,10 +3540,6 @@ class _ProcessContainer (object):
         scan_modules, find_modules_by_address,
         find_modules_by_base, find_modules_by_name,
         get_module_count
-
-    @group Event notifications (private):
-        notify_create_process,
-        notify_exit_process
     """
 
     def __init__(self):
@@ -4391,7 +4387,7 @@ class _ProcessContainer (object):
 
 #------------------------------------------------------------------------------
 
-    # XXX notify_* methods should not trigger a scan
+    # XXX _notify_* methods should not trigger a scan
 
     def _add_process(self, aProcess):
         """
@@ -4428,7 +4424,7 @@ class _ProcessContainer (object):
         del self.__processDict[dwProcessId]
 
     # Notify the creation of a new process.
-    def notify_create_process(self, event):
+    def _notify_create_process(self, event):
         """
         Notify the creation of a new process.
 
@@ -4457,9 +4453,9 @@ class _ProcessContainer (object):
                 fileName = event.get_filename()
                 if fileName:
                     aProcess.fileName = fileName
-        return aProcess.notify_create_process(event)   # pass it to the process
+        return aProcess._notify_create_process(event)  # pass it to the process
 
-    def notify_exit_process(self, event):
+    def _notify_exit_process(self, event):
         """
         Notify the termination of a process.
 
