@@ -66,15 +66,15 @@ class Engine (object):
     @type url: str
     @cvar url: Download URL.
 
-    @type supports: set(str)
-    @cvar supports: Set of supported processor architectures.
+    @type supported: set(str)
+    @cvar supported: Set of supported processor architectures.
         For more details see L{win32.version._get_arch}.
     """
 
     name = "<insert engine name here>"
     desc = "<insert engine description here>"
     url  = "<insert download url here>"
-    supports = set()
+    supported = set()
 
     def __init__(self, arch = None):
         """
@@ -141,6 +141,12 @@ class Engine (object):
 #==============================================================================
 
 class BeaEngine (Engine):
+    """
+    Integration with the BeaEngine disassembler by Beatrix.
+
+    @see: U{https://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/}
+    """
+
     name = "BeaEngine"
     desc = "BeaEngine disassembler by Beatrix"
     url  = "https://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/"
@@ -262,6 +268,12 @@ class BeaEngine (Engine):
 #==============================================================================
 
 class DistormEngine (Engine):
+    """
+    Integration with the diStorm disassembler by Gil Dabah.
+
+    @see: U{https://code.google.com/p/distorm3}
+    """
+
     name = "diStorm"
     desc = "diStorm disassembler by Gil Dabah"
     url  = "https://code.google.com/p/distorm3"
@@ -304,6 +316,12 @@ class DistormEngine (Engine):
 #==============================================================================
 
 class PyDasmEngine (Engine):
+    """
+    Integration with PyDasm: Python bindings to libdasm.
+
+    @see: U{https://code.google.com/p/libdasm/}
+    """
+
     name = "PyDasm"
     desc = "PyDasm: Python bindings to libdasm"
     url  = "https://code.google.com/p/libdasm/"
