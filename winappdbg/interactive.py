@@ -67,6 +67,7 @@ readline = None
 #==============================================================================
 
 class DummyEvent (NoEvent):
+    "Dummy event object used internally by L{ConsoleDebugger}."
 
     def get_pid(self):
         return self._pid
@@ -82,15 +83,19 @@ class DummyEvent (NoEvent):
 
 #==============================================================================
 
-# Exception to be raised when a command parsing error occurs.
 class CmdError (Exception):
-    pass
+    """
+    Exception raised when a command parsing error occurs.
+    Used internally by L{ConsoleDebugger}.
+    """
 
 #==============================================================================
 
 class ConsoleDebugger (Cmd, EventHandler):
     """
     Interactive console debugger.
+
+    @see: L{Debug.interactive}
     """
 
 #------------------------------------------------------------------------------

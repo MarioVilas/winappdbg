@@ -766,6 +766,7 @@ class _ModuleContainer (object):
         split_label,
         sanitize_label,
         resolve_label,
+        resolve_label_components,
         get_label_at_address,
         split_label_strict,
         split_label_fuzzy
@@ -778,7 +779,7 @@ class _ModuleContainer (object):
         is_system_defined_breakpoint, get_system_breakpoint,
         get_user_breakpoint, get_breakin_breakpoint,
         get_wow64_system_breakpoint, get_wow64_user_breakpoint,
-        get_wow64_breakin_breakpoint
+        get_wow64_breakin_breakpoint, get_break_on_error_ptr
     """
 
     def __init__(self):

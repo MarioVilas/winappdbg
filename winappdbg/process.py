@@ -93,26 +93,34 @@ class Process (_ThreadContainer, _ModuleContainer):
         flush_instruction_cache, debug_break, peek_pointers_in_data
 
     @group Memory mapping:
-        take_memory_snapshot, generate_memory_snapshot,
+        take_memory_snapshot, generate_memory_snapshot, iter_memory_snapshot,
         restore_memory_snapshot, get_memory_map, get_mapped_filenames,
+        generate_memory_map, iter_memory_map,
         is_pointer, is_address_valid, is_address_free, is_address_reserved,
         is_address_commited, is_address_guard, is_address_readable,
         is_address_writeable, is_address_copy_on_write, is_address_executable,
         is_address_executable_and_writeable,
         is_buffer,
         is_buffer_readable, is_buffer_writeable, is_buffer_executable,
-        is_buffer_executable_and_writeable
+        is_buffer_executable_and_writeable, is_buffer_copy_on_write
 
     @group Memory allocation:
         malloc, free, mprotect, mquery
 
     @group Memory read:
-        read, read_char, read_uint, read_pointer, read_string, read_structure,
-        peek, peek_char, peek_uint, peek_pointer, peek_string
+        read, read_char, read_int, read_uint, read_float, read_double,
+        read_dword, read_qword, read_pointer, read_string, read_structure,
+        peek, peek_char, peek_int, peek_uint, peek_float, peek_double,
+        peek_dword, peek_qword, peek_pointer, peek_string
 
     @group Memory write:
-        write, write_char, write_uint, write_pointer,
-        poke, poke_char, poke_uint, poke_pointer
+        write, write_char, write_int, write_uint, write_float, write_double,
+        write_dword, write_qword, write_pointer,
+        poke, poke_char, poke_int, poke_uint, poke_float, poke_double,
+        poke_dword, poke_qword, poke_pointer
+
+    @group Memory search:
+        search, search_bytes, search_hexa, search_text, search_regexp, strings
 
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__
