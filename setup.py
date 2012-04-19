@@ -30,6 +30,8 @@
 
 __revision__ = "$Id$"
 
+__all__ = ['metadata', 'setup']
+
 from distutils.core import setup
 from warnings import warn
 
@@ -56,7 +58,7 @@ in Python under a Windows environment."""
 scripts = glob.glob(os.path.join(here, 'tools', '*.py'))
 
 # Set the parameters for the setup script
-params = {
+metadata = {
 
     # Setup instructions
     'requires'          : ['ctypes', 'BeaEnginePython', 'sqlalchemy'],
@@ -90,4 +92,5 @@ params = {
     }
 
 # Execute the setup script
-setup(**params)
+if __name__ == '__main__':
+    setup(**metadata)

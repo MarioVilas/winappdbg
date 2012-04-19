@@ -18,6 +18,10 @@
 ::   MikTex (or an equivalent Latex package for Windows, to generate pdfs)
 
 
+:: WinAppDbg version tag
+set VersionTag=1.5-beta
+
+
 :: Location of this batch script
 set BatchFile=%0
 
@@ -25,6 +29,7 @@ set BatchFile=%0
 :: Location of the Python interpreters
 set PYTHON_x86=%SystemDrive%\Python27\python.exe
 set PYTHON_x64=%SystemDrive%\Python27-x64\python.exe
+
 
 :: Source package options
 set SDIST_OPT=--formats=zip,bztar
@@ -38,6 +43,7 @@ set BDIST_UAC=--user-access-control auto
 set EPYDOC_OPT=--config epydoc.cfg
 set EPYDOC_HTML_OPT=--html
 set EPYDOC_PDF_OPT=--pdf
+
 
 if exist %PYTHON_x64% goto Epydoc64
 if exist %PYTHON_x86% goto Epydoc32
@@ -161,8 +167,8 @@ if %errorlevel%==0 hhc winappdbg.hhp
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 
 :: Move the files to the dist folder
-if exist html\winappdbg-1.5.chm move html\winappdbg-1.5.chm dist\winappdbg-1.5-reference.chm
-if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-1.5-reference.pdf
+if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
+if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-%VersionTag%-reference.pdf
 
 goto Next
 
@@ -188,7 +194,7 @@ call make.bat htmlhelp
 cd build\htmlhelp
 hhc WinAppDbg.hhp
 cd ..\..\..
-if exist doc\build\htmlhelp\WinAppDbg.chm move doc\build\htmlhelp\WinAppDbg.chm dist\winappdbg-1.5-tutorial.chm
+if exist doc\build\htmlhelp\WinAppDbg.chm move doc\build\htmlhelp\WinAppDbg.chm dist\winappdbg-%VersionTag%-tutorial.chm
 
 :: Generate the PDF manual
 cd doc
@@ -196,7 +202,7 @@ call make.bat latex
 cd build\latex
 make
 cd ..\..\..
-if exist doc\build\latex\WinAppDbg.pdf move doc\build\latex\WinAppDbg.pdf dist\winappdbg-1.5-tutorial.pdf
+if exist doc\build\latex\WinAppDbg.pdf move doc\build\latex\WinAppDbg.pdf dist\winappdbg-%VersionTag%-tutorial.pdf
 
 goto Next
 
