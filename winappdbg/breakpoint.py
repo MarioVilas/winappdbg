@@ -4451,9 +4451,9 @@ class _BreakpointContainer (object):
         """
         Sets or clears the system breakpoint for a given Win32 error code.
 
-        Use L{is_system_breakpoint} to tell if a breakpoint exception was
-        caused by a system breakpoint or by the application itself (for example
-        because of a failed assertion in the code).
+        Use L{Process.is_system_defined_breakpoint} to tell if a breakpoint
+        exception was caused by a system breakpoint or by the application
+        itself (for example because of a failed assertion in the code).
 
         @note: This functionality is only available since Windows Server 2003.
             In 2003 it only breaks on error values set externally to the

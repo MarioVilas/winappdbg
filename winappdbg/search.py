@@ -76,7 +76,7 @@ class Pattern (object):
      - L{RegExpPattern}
      - L{HexPattern}
 
-    @see: L{Search.search}
+    @see: L{Search.search_process}
     """
 
     def __init__(self, pattern):
@@ -145,7 +145,7 @@ class Pattern (object):
 
         This allows subclasses of L{Pattern} to filter out unwanted results,
         or modify the results before giving them to the caller of
-        L{Search.search}.
+        L{Search.search_process}.
 
         If the return value is C{None} the result is skipped.
 
