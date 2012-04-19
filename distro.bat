@@ -32,7 +32,7 @@ set PYTHON_x64=%SystemDrive%\Python27-x64\python.exe
 
 
 :: Source package options
-set SDIST_OPT=--formats=zip,bztar
+set SDIST_OPT=--formats=zip
 
 
 :: Windows installer package options
