@@ -2,8 +2,13 @@ include README
 include Makefile
 include MANIFEST.in
 include setup.py
+include distro.bat
+include install.bat
+include install.cfg
+include epydoc.cfg
 include winappdbg.hhp
 include doc/Makefile
+include doc/make.bat
 include doc/source/conf.py
 include doc/source/*.rst
 include doc/source/_static/*.png
@@ -12,5 +17,4 @@ include examples/debugging/*.py
 include examples/win32_api_wrappers/*.py
 include examples/miscellaneous/*.py
 include tools/*.py
-include tools/plugins/*.py
-include tools/plugins/README
+include tools/*.xml
