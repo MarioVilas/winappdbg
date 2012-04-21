@@ -70,7 +70,10 @@ If you're still using Python 2.4 or Python 2.5 64-bit, you'll need to install `c
 
 The following packages provide extra features and performance improvements, they are very recommended but not mandatory:
 
-* The `diStorm <http://code.google.com/p/distorm/downloads/list/>`_ package is needed to disassemble code.
+* WinAppDbg itself doesn't come with a disassembler, but any one of the following disassemblers is compatible:
+  * The `diStorm <http://code.google.com/p/distorm/downloads/list/>`_ disassembler by Gil Dabah (precompiled binaries, older version: `distorm-1.7.30.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ or `distorm-1.7.30.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_).
+  * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX (precompiled binaries: `BeaEnginePython-3.1.0.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_ or `BeaEnginePython-3.1.0.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_).
+  * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera (precompiled binaries: `PyDasm-1.5-precompiled.zip <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_).
 
 * The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives the crash logger tool the ability to connect to almost any SQL database.
 
