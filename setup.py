@@ -33,11 +33,35 @@ __revision__ = "$Id$"
 __all__ = ['metadata', 'setup']
 
 from distutils.core import setup
+from distutils import version
 from warnings import warn
 
+import re
 import os
 import sys
 import glob
+
+# Distutils hack: in order to be able to build MSI installers with loose
+# version numbers, we subclass StrictVersion to accept loose version numbers
+# and convert them to the strict format. This works because Distutils will
+# happily reinstall a package even if the version number matches exactly the
+# one already installed on the system - so we can simply strip all extraneous
+# characters and beta/postrelease version numbers will be treated just like
+# the base version number.
+if __name__ == '__main__':
+    StrictVersion = version.StrictVersion
+    class NotSoStrictVersion (StrictVersion):
+        def parse (self, vstring):
+            components = []
+            for token in vstring.split('.'):
+                token = token.strip()
+                match = re.search('^[0-9]+', token)
+                if match:
+                    number = token[ match.start() : match.end() ]
+                    components.append(number)
+            vstring = '.'.join(components)
+            return StrictVersion.parse(self, vstring)
+    version.StrictVersion = NotSoStrictVersion
 
 # Get the base directory
 here = os.path.dirname(__file__)
@@ -68,7 +92,7 @@ metadata = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.5',
+    'version'           : '1.5-beta2',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',

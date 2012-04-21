@@ -19,7 +19,7 @@
 
 
 :: WinAppDbg version tag
-set VersionTag=1.5-beta
+for /f "delims=" %%V in ('python -c "import setup; print setup.metadata[\"version\"]"') do set VersionTag=%%V
 
 
 :: Location of this batch script
@@ -167,6 +167,7 @@ if %errorlevel%==0 hhc winappdbg.hhp
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 
 :: Move the files to the dist folder
+if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
 if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-%VersionTag%-reference.pdf
 
@@ -185,7 +186,7 @@ if not exist dist mkdir dist
 cd doc
 call make.bat html
 cd build
-if exist html tar -cjf ../../dist/html.tar.bz2 html
+if exist html tar -cjf ../../dist/winappdbg-%VersionTag%-tutorial.tar.bz2 html
 cd ..\..
 
 :: Generate the CHM manual
