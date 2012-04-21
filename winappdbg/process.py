@@ -463,7 +463,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 #------------------------------------------------------------------------------
 
     # Regular expression to find hexadecimal values of any size.
-    __hexa_parameter = re.compile('0x[0-9A-Za-z]+')
+    __hexa_parameter = re.compile('0x[0-9A-Fa-f]+')
 
     def __fixup_labels(self, disasm):
         """
