@@ -87,7 +87,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
     @group Debugging:
         attach, detach, detach_from_all, execv, execl, kill, kill_all, clear,
         get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode
+        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode,
+        add_existing_session
 
     @group Debugging loop:
         interactive, loop, stop, next, wait, dispatch, cont
@@ -235,7 +236,6 @@ class Debug (EventDispatcher, _BreakpointContainer):
         win32.DebugActiveProcess(dwProcessId)
         self.__attachedDebugees.add(dwProcessId)
 
-        # XXX HACK
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
         # properly give some information, like the filename for each module.
@@ -243,6 +243,161 @@ class Debug (EventDispatcher, _BreakpointContainer):
         aProcess.scan_modules()
 
         return aProcess
+
+    def execv(self, argv, **kwargs):
+        """
+        Starts a new process for debugging.
+
+        This method uses a list of arguments. To use a command line string
+        instead, use L{execl}.
+
+        @see: L{attach}, L{detach}
+
+        @type  argv: list( str... )
+        @param argv: List of command line arguments to pass to the debugee.
+            The first element must be the debugee executable filename.
+
+        @type    bBreakOnEntryPoint: bool
+        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
+            at the program entry point.
+
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
+            Defaults to C{False}.
+
+        @type    bFollow: bool
+        @keyword bFollow: C{True} to automatically attach to child processes.
+            Defaults to C{False}.
+
+        @type    bInheritHandles: bool
+        @keyword bInheritHandles: C{True} if the new process should inherit
+            it's parent process' handles. Defaults to C{False}.
+
+        @type    bSuspended: bool
+        @keyword bSuspended: C{True} to suspend the main thread before any code
+            is executed in the debugee. Defaults to C{False}.
+
+        @type    dwParentProcessId: int or None
+        @keyword dwParentProcessId: C{None} if the debugger process should be
+            the parent process (default), or a process ID to forcefully set as
+            the debugee's parent (only available for Windows Vista and above).
+
+        @rtype:  L{Process}
+        @return: A new Process object. Normally you don't need to use it now,
+            it's best to interact with the process from the event handler.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+        lpCmdLine = self.system.argv_to_cmdline(argv)
+        return self.execl(lpCmdLine, **kwargs)
+
+    def execl(self, lpCmdLine, **kwargs):
+        """
+        Starts a new process for debugging.
+
+        This method uses a command line string. To use a list of arguments
+        instead, use L{execv}.
+
+        @see: L{attach}, L{detach}
+
+        @type  lpCmdLine: str
+        @param lpCmdLine: Command line string to execute.
+            The first token must be the debugee executable filename.
+            Tokens with spaces must be enclosed in double quotes.
+            Tokens including double quote characters must be escaped with a
+            backslash.
+
+        @type    bBreakOnEntryPoint: bool
+        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
+            at the program entry point. Defaults to C{False}.
+
+        @type    bConsole: bool
+        @keyword bConsole: True to inherit the console of the debugger.
+            Defaults to C{False}.
+
+        @type    bFollow: bool
+        @keyword bFollow: C{True} to automatically attach to child processes.
+            Defaults to C{False}.
+
+        @type    bInheritHandles: bool
+        @keyword bInheritHandles: C{True} if the new process should inherit
+            it's parent process' handles. Defaults to C{False}.
+
+        @type    bSuspended: bool
+        @keyword bSuspended: C{True} to suspend the main thread before any code
+            is executed in the debugee. Defaults to C{False}.
+
+        @type    dwParentProcessId: int or None
+        @keyword dwParentProcessId: C{None} if the debugger process should be
+            the parent process (default), or a process ID to forcefully set as
+            the debugee's parent (only available for Windows Vista and above).
+
+        @rtype:  L{Process}
+        @return: A new Process object. Normally you don't need to use it now,
+            it's best to interact with the process from the event handler.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+        kwargs['bDebug'] = True
+        bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
+        aProcess = None
+        try:
+            aProcess = self.system.start_process(lpCmdLine, **kwargs)
+            dwProcessId = aProcess.get_pid()
+            self.__startedDebugees.add(dwProcessId)
+            if bBreakOnEntryPoint:
+                self.__breakOnEP.add(dwProcessId)
+            return aProcess
+        except:
+            try:
+                if aProcess is not None:
+                    aProcess.kill()
+            except Exception:
+                pass
+            raise
+
+    def add_existing_session(self, dwProcessId, bStarted = False):
+        """
+        Use this method only when for some reason the debugger's been attached
+        to the target outside of WinAppDbg (for example when integrating with
+        other tools).
+
+        You don't normally need to call this method. Most users should call
+        L{attach}, L{execv} or L{execl} instead.
+
+        @type  dwProcessId: int
+        @param dwProcessId: Global process ID.
+
+        @type  bStarted: bool
+        @param bStarted: C{True} if the process was started by the debugger,
+            or C{False} if the process was attached to instead.
+
+        @raise WindowsError: The target process does not exist or the current
+            user doesn't have enough privileges to debug the target.
+        """
+
+        # Register the process object with the snapshot.
+        if not self.system.has_process(dwProcessId):
+            aProcess = Process(dwProcessId)
+            self.system._add_process(aProcess)
+        else:
+            aProcess = self.system.get_process(dwProcessId)
+
+        # Test for debug privileges on the target.
+        # Raises WindowsException on error.
+        aProcess.get_handle()
+
+        # Register the process ID with the debugger.
+        if bStarted:
+            self.__attachedDebugees.add(dwProcessId)
+        else:
+            self.__startedDebugees.add(dwProcessId)
+
+        # Scan the process threads and loaded modules.
+        # This is prefered because the thread and library events do not
+        # properly give some information, like the filename for each module.
+        aProcess.scan_threads()
+        aProcess.scan_modules()
 
     def __cleanup_process(self, dwProcessId, bIgnoreExceptions = False):
         """
@@ -450,118 +605,6 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         for pid in self.get_debugee_pids():
             self.detach(pid, bIgnoreExceptions = bIgnoreExceptions)
-
-    def execv(self, argv, **kwargs):
-        """
-        Starts a new process for debugging.
-
-        This method uses a list of arguments. To use a command line string
-        instead, use L{execl}.
-
-        @see: L{attach}, L{detach}
-
-        @type  argv: list( str... )
-        @param argv: List of command line arguments to pass to the debugee.
-            The first element must be the debugee executable filename.
-
-        @type    bBreakOnEntryPoint: bool
-        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
-            at the program entry point.
-
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
-            Defaults to C{False}.
-
-        @type    bFollow: bool
-        @keyword bFollow: C{True} to automatically attach to child processes.
-            Defaults to C{False}.
-
-        @type    bInheritHandles: bool
-        @keyword bInheritHandles: C{True} if the new process should inherit
-            it's parent process' handles. Defaults to C{False}.
-
-        @type    bSuspended: bool
-        @keyword bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee. Defaults to C{False}.
-
-        @type    dwParentProcessId: int or None
-        @keyword dwParentProcessId: C{None} if the debugger process should be
-            the parent process (default), or a process ID to forcefully set as
-            the debugee's parent (only available for Windows Vista and above).
-
-        @rtype:  L{Process}
-        @return: A new Process object. Normally you don't need to use it now,
-            it's best to interact with the process from the event handler.
-
-        @raise WindowsError: Raises an exception on error.
-        """
-        lpCmdLine = self.system.argv_to_cmdline(argv)
-        return self.execl(lpCmdLine, **kwargs)
-
-    def execl(self, lpCmdLine, **kwargs):
-        """
-        Starts a new process for debugging.
-
-        This method uses a command line string. To use a list of arguments
-        instead, use L{execv}.
-
-        @see: L{attach}, L{detach}
-
-        @type  lpCmdLine: str
-        @param lpCmdLine: Command line string to execute.
-            The first token must be the debugee executable filename.
-            Tokens with spaces must be enclosed in double quotes.
-            Tokens including double quote characters must be escaped with a
-            backslash.
-
-        @type    bBreakOnEntryPoint: bool
-        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
-            at the program entry point. Defaults to C{False}.
-
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
-            Defaults to C{False}.
-
-        @type    bFollow: bool
-        @keyword bFollow: C{True} to automatically attach to child processes.
-            Defaults to C{False}.
-
-        @type    bInheritHandles: bool
-        @keyword bInheritHandles: C{True} if the new process should inherit
-            it's parent process' handles. Defaults to C{False}.
-
-        @type    bSuspended: bool
-        @keyword bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee. Defaults to C{False}.
-
-        @type    dwParentProcessId: int or None
-        @keyword dwParentProcessId: C{None} if the debugger process should be
-            the parent process (default), or a process ID to forcefully set as
-            the debugee's parent (only available for Windows Vista and above).
-
-        @rtype:  L{Process}
-        @return: A new Process object. Normally you don't need to use it now,
-            it's best to interact with the process from the event handler.
-
-        @raise WindowsError: Raises an exception on error.
-        """
-        kwargs['bDebug'] = True
-        bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
-        aProcess = None
-        try:
-            aProcess = self.system.start_process(lpCmdLine, **kwargs)
-            dwProcessId = aProcess.get_pid()
-            self.__startedDebugees.add(dwProcessId)
-            if bBreakOnEntryPoint:
-                self.__breakOnEP.add(dwProcessId)
-            return aProcess
-        except:
-            try:
-                if aProcess is not None:
-                    aProcess.kill()
-            except Exception:
-                pass
-            raise
 
 #------------------------------------------------------------------------------
 
