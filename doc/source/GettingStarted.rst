@@ -72,7 +72,7 @@ The following packages provide extra features and performance improvements, they
 
 * *WinAppDbg* itself doesn't come with a disassembler, but any one of the following disassemblers is compatible:
 
-  * The `diStorm <http://code.google.com/p/distorm/downloads/list/>`_ disassembler by Gil Dabah (precompiled binaries, older version: `distorm-1.7.30.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ or `distorm-1.7.30.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_).
+  * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah (precompiled binaries, older version: `distorm-1.7.30.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ or `distorm-1.7.30.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_).
 
   * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX (precompiled binaries: `BeaEnginePython-3.1.0.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_ or `BeaEnginePython-3.1.0.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_).
 

@@ -166,7 +166,7 @@ The **watch_variable** method sets a hardware breakpoint at the given address. E
 
 Finally, the **watch_buffer** method sets a page breakpoint at the given address range. Every time a read or write access is made to that part of the memory a callback function is called. It's similar to *watch_variable* but it works for the entire process, not just a single thread, and it allows any range to be specified (*watch_variable* only works for small address ranges, from 1 to 8 bytes).
 
-*Debug* objects also allow *stalking*. Stalking basically means to set one-shot breakpoints - that is, breakpoints that are automatically disabled after they're hit for the first time. The term was originally coined by **Pedram Amini** for his `Process Stalker <http://pedram.redhive.com/process_stalking_manual/>`_ tool, and this technique is key to `differential debugging <http://www.zynamics.com/binnavi.html>`_.
+*Debug* objects also allow *stalking*. Stalking basically means to set one-shot breakpoints - that is, breakpoints that are automatically disabled after they're hit for the first time. The term was originally coined by **Pedram Amini** for his `Process Stalker <https://www.openrce.org/downloads/details/171>`_ tool, and this technique is key to `differential debugging <http://www.zynamics.com/binnavi.html>`_.
 
 The stalking methods and their equivalents are the following:
 
