@@ -1497,11 +1497,19 @@ class CrashDictionary(object):
     Currently the only implementation is through L{sql.CrashDAO}.
     """
 
-    def __init__(self, url = None, allowRepeatedKeys = True):
+    def __init__(self, url = None, creator = None, allowRepeatedKeys = True):
         """
         @type  url: str
         @param url: Connection URL of the crash database.
             See L{sql.CrashDAO.__init__} for more details.
+
+        @type  creator: callable
+        @param creator: (Optional) Callback function that creates the SQL
+            database connection.
+
+            Normally it's not necessary to use this argument. However in some
+            odd cases you may need to customize the database connection, for
+            example when using the integrated authentication in MSSQL.
 
         @type  allowRepeatedKeys: bool
         @param allowRepeatedKeys:
@@ -1514,7 +1522,7 @@ class CrashDictionary(object):
         if sql is None:
             import sql
         self._allowRepeatedKeys = allowRepeatedKeys
-        self._dao = sql.CrashDAO(url)
+        self._dao = sql.CrashDAO(url, creator)
 
     def add(self, crash):
         """

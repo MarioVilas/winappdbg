@@ -93,7 +93,7 @@ class BaseDTO (object):
 
         }
 
-BaseDTO = declarative_base(cls=BaseDTO)
+BaseDTO = declarative_base(cls = BaseDTO)
 
 #==============================================================================
 # Crash dumps DAO.
@@ -110,16 +110,16 @@ def _gen_valid_access_flags():
 _valid_access_flags = _gen_valid_access_flags()
 
 # Enumerated types for the memory table.
-n_MEM_ACCESS_ENUM = {"name":"MEM_ACCESS_ENUM"}
-n_MEM_ALLOC_ACCESS_ENUM = {"name":"MEM_ALLOC_ACCESS_ENUM"}
+n_MEM_ACCESS_ENUM = {"name" : "MEM_ACCESS_ENUM"}
+n_MEM_ALLOC_ACCESS_ENUM = {"name" : "MEM_ALLOC_ACCESS_ENUM"}
 MEM_ACCESS_ENUM = Enum(*_valid_access_flags,
                        **n_MEM_ACCESS_ENUM)
 MEM_ALLOC_ACCESS_ENUM = Enum(*_valid_access_flags,
                              **n_MEM_ALLOC_ACCESS_ENUM)
 MEM_STATE_ENUM  = Enum("Reserved", "Commited", "Free", "Unknown",
-                       name="MEM_STATE_ENUM")
+                       name = "MEM_STATE_ENUM")
 MEM_TYPE_ENUM   = Enum("Image", "Mapped", "Private", "Unknown",
-                       name="MEM_TYPE_ENUM")
+                       name = "MEM_TYPE_ENUM")
 
 # Cleanup the namespace.
 del _valid_access_flags
@@ -134,26 +134,20 @@ class MemoryDTO (BaseDTO):
     # Declare the table mapping.
     __tablename__ = 'memory'
     id            = Column(Integer, Sequence(__tablename__ + '_seq'),
-                           primary_key=True)
+                           primary_key = True)
     crash_id      = Column(Integer, ForeignKey('crashes.id',
-                                               ondelete='CASCADE',
-                                               onupdate='CASCADE'),
-                           nullable=False)
-    address       = Column(BigInteger, nullable=False, index=True)
-    size          = Column(BigInteger, nullable=False)
-    state         = Column(MEM_STATE_ENUM, nullable=False)
+                                               ondelete = 'CASCADE',
+                                               onupdate = 'CASCADE'),
+                           nullable = False)
+    address       = Column(BigInteger, nullable = False, index = True)
+    size          = Column(BigInteger, nullable = False)
+    state         = Column(MEM_STATE_ENUM, nullable = False)
     access        = Column(MEM_ACCESS_ENUM)
     type          = Column(MEM_TYPE_ENUM)
     alloc_base    = Column(BigInteger)
     alloc_access  = Column(MEM_ALLOC_ACCESS_ENUM)
     filename      = Column(TEXT)
     content       = deferred(Column(LargeBinary))
-
-    # Create a relationship between the memory dump and the crash information.
-    #crash = relationship("CrashDTO",
-    #                     backref=backref("memory", order_by=address,
-    #                                     cascade="all, delete-orphan",
-    #                                     passive_deletes=True))
 
     def __init__(self, crash_id, mbi):
         """
@@ -342,36 +336,36 @@ class CrashDTO (BaseDTO):
     __tablename__ = "crashes"
 
     # Primary key.
-    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key=True)
+    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key = True)
 
     # Timestamp.
-    timestamp = Column(DateTime, nullable=False, index=True)
+    timestamp = Column(DateTime, nullable = False, index = True)
 
     # Heuristic signature.
-    signature = Column(LargeBinary, nullable=False)
+    signature = Column(LargeBinary, nullable = False)
 
     # Pickled Crash object, minus the memory dump.
-    data = deferred(Column(LargeBinary, nullable=False))
+    data = deferred(Column(LargeBinary, nullable = False))
 
     # Exploitability test.
-    exploitable = Column(Integer, nullable=False)
-    exploitability_rule = Column(TEXT, nullable=False)
-    exploitability_rating = Column(TEXT, nullable=False)
-    exploitability_desc = Column(TEXT, nullable=False)
+    exploitable = Column(Integer, nullable = False)
+    exploitability_rule = Column(TEXT, nullable = False)
+    exploitability_rating = Column(TEXT, nullable = False)
+    exploitability_desc = Column(TEXT, nullable = False)
 
     # Platform description.
-    os = Column(TEXT, nullable=False)
-    arch = Column(TEXT, nullable=False)
-    bits = Column(Integer, nullable=False)
+    os = Column(TEXT, nullable = False)
+    arch = Column(TEXT, nullable = False)
+    bits = Column(Integer, nullable = False)
 
     # Event description.
-    event = Column(Integer, nullable=False)
-    pid = Column(Integer, nullable=False)
-    tid = Column(Integer, nullable=False)
-    pc = Column(BigInteger, nullable=False)
-    sp = Column(BigInteger, nullable=False)
-    fp = Column(BigInteger, nullable=False)
-    pc_label = Column(TEXT, nullable=False)
+    event = Column(Integer, nullable = False)
+    pid = Column(Integer, nullable = False)
+    tid = Column(Integer, nullable = False)
+    pc = Column(BigInteger, nullable = False)
+    sp = Column(BigInteger, nullable = False)
+    fp = Column(BigInteger, nullable = False)
+    pc_label = Column(TEXT, nullable = False)
 
     # Exception description.
     exception = Column(TEXT)
@@ -400,7 +394,7 @@ class CrashDTO (BaseDTO):
 
         # Timestamp and signature.
         self.timestamp = datetime.datetime.fromtimestamp( crash.timeStamp )
-        self.signature = buffer(pickle.dumps(crash.signature, protocol=0))
+        self.signature = buffer(pickle.dumps(crash.signature, protocol = 0))
 
         # Pickled Crash object, minus the memory dump.
         if crash.memoryMap:
@@ -465,7 +459,7 @@ class CrashDTO (BaseDTO):
         # Notes.
         self.notes = crash.notesReport()
 
-    def toCrash(self, getMemoryDump=False):
+    def toCrash(self, getMemoryDump = False):
         """
         Returns a L{Crash} object using the data retrieved from the database.
 
@@ -490,7 +484,7 @@ class CrashDTO (BaseDTO):
 # Fix for MySQL databases only, where a special "length" parameter is required.
 # See: http://docs.sqlalchemy.org/en/latest/dialects/mysql.html#mysql-indexes
 idx_signature = Index('ix_crashes_signature', CrashDTO.signature,
-                      mysql_length=256)
+                      mysql_length = 256)
 
 #==============================================================================
 
@@ -556,10 +550,12 @@ class BaseDAO (object):
 
     _echo = False
 
-    _new_session = sessionmaker(autoflush=True, autocommit=True,
-                                expire_on_commit=True, weak_identity_map=True)
+    _new_session = sessionmaker(autoflush = True,
+                                autocommit = True,
+                                expire_on_commit = True,
+                                weak_identity_map = True)
 
-    def __init__(self, url=None):
+    def __init__(self, url = None, creator = None):
         """
         Connect to the database using the given connection URL.
 
@@ -583,6 +579,14 @@ class BaseDAO (object):
 
             For more information see the C{SQLAlchemy} documentation online:
             U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
+
+        @type  creator: callable
+        @param creator: (Optional) Callback function that creates the SQL
+            database connection.
+
+            Normally it's not necessary to use this argument. However in some
+            odd cases you may need to customize the database connection, for
+            example when using the integrated authentication in MSSQL.
         """
 
         # Parse the connection URL.
@@ -597,13 +601,18 @@ class BaseDAO (object):
 
         # Load the database engine.
         if dialect == 'sqlite':
-            engine = create_engine(url, echo=self._echo, module=sqlite3.dbapi2,
-                                   listeners=[_EnableSQLiteForeignKeys()])
+            engine = create_engine(url,
+                                   echo = self._echo,
+                                   module = sqlite3.dbapi2,
+                                   listeners = [_EnableSQLiteForeignKeys()],
+                                   creator = creator)
         else:
-            engine = create_engine(url, echo=self._echo)
+            engine = create_engine(url,
+                                   echo = self._echo,
+                                   creator = creator)
 
         # Create a new session.
-        session = self._new_session(bind=engine)
+        session = self._new_session(bind = engine)
 
         # Create the required tables if they don't exist.
         BaseDTO.metadata.create_all(engine)
@@ -630,7 +639,7 @@ class BaseDAO (object):
 
         @raise Exception: Any exception raised by the method.
         """
-        self._session.begin(subtransactions=True)
+        self._session.begin(subtransactions = True)
         try:
             result = method(self, *argv, **argd)
             self._session.commit()
@@ -659,7 +668,7 @@ class CrashDAO (BaseDAO):
     """
 
     @Transactional
-    def add(self, crash, allow_duplicates=True):
+    def add(self, crash, allow_duplicates = True):
         """
         Add a new crash dump to the database.
 
@@ -680,9 +689,9 @@ class CrashDAO (BaseDAO):
 
         # Filter out duplicated crashes, if requested.
         if not allow_duplicates:
-            signature = buffer(pickle.dumps(crash.signature, protocol=0))
+            signature = buffer(pickle.dumps(crash.signature, protocol = 0))
             if self._session.query(CrashDTO.id)                \
-                            .filter_by(signature=signature) \
+                            .filter_by(signature = signature) \
                             .count() > 0:
                 return
 
@@ -747,9 +756,9 @@ class CrashDAO (BaseDAO):
 
     @Transactional
     def find(self,
-             signature=None, order=0,
-             since=None,  until=None,
-             offset=None, limit=None):
+             signature = None, order = 0,
+             since     = None, until = None,
+             offset    = None, limit = None):
         """
         Retrieve all L{Crash} objects in the database, optionally filtering
         them by signature and timestamp, and/or sorting them by timestamp.
@@ -800,7 +809,7 @@ class CrashDAO (BaseDAO):
         # Build the SQL query.
         query = self._session.query(CrashDTO)
         if signature is not None:
-            sig_buffer = buffer(pickle.dumps(signature, protocol=0))
+            sig_buffer = buffer(pickle.dumps(signature, protocol = 0))
             query = query.filter(CrashDTO.signature == sig_buffer)
         if since:
             query = query.filter(CrashDTO.timestamp >= since)
@@ -823,7 +832,7 @@ class CrashDAO (BaseDAO):
             return []
 
     @Transactional
-    def find_by_example(self, crash, offset=None, limit=None):
+    def find_by_example(self, crash, offset = None, limit = None):
         """
         Find all crash dumps that have common properties with the crash dump
         provided.
@@ -886,7 +895,7 @@ class CrashDAO (BaseDAO):
             return []
 
     @Transactional
-    def count(self, signature=None):
+    def count(self, signature = None):
         """
         Counts how many crash dump have been stored in this database.
         Optionally filters the count by heuristic signature.
@@ -900,8 +909,8 @@ class CrashDAO (BaseDAO):
         """
         query = self._session.query(CrashDTO.id)
         if signature:
-            sig_buffer = buffer(pickle.dumps(signature, protocol=0))
-            query = query.filter_by(signature=sig_buffer)
+            sig_buffer = buffer(pickle.dumps(signature, protocol = 0))
+            query = query.filter_by(signature = sig_buffer)
         return query.count()
 
     @Transactional
@@ -912,6 +921,6 @@ class CrashDAO (BaseDAO):
         @type  crash: L{Crash}
         @param crash: Crash dump to remove.
         """
-        query = self._session.query(CrashDTO).filter_by(id=crash._rowid)
-        query.delete(synchronize_session=False)
+        query = self._session.query(CrashDTO).filter_by(id = crash._rowid)
+        query.delete(synchronize_session = False)
         del crash._rowid
