@@ -20,6 +20,11 @@ Download
 
 For more information go to the :ref:`downloads page <download>`.
 
+Reference
+---------
+
+`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
+
 Tutorial
 --------
 
@@ -30,11 +35,6 @@ Tutorial
    Tools
    ProgrammingGuide
    Redistribution
-
-Reference
----------
-
-`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
 
 Related projects
 ----------------
