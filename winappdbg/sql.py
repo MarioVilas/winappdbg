@@ -134,7 +134,7 @@ class MemoryDTO (BaseDTO):
     # Declare the table mapping.
     __tablename__ = 'memory'
     id            = Column(Integer, Sequence(__tablename__ + '_seq'),
-                           primary_key = True)
+                           primary_key = True, autoincrement = True)
     crash_id      = Column(Integer, ForeignKey('crashes.id',
                                                ondelete = 'CASCADE',
                                                onupdate = 'CASCADE'),
@@ -336,7 +336,8 @@ class CrashDTO (BaseDTO):
     __tablename__ = "crashes"
 
     # Primary key.
-    id = Column(Integer, Sequence(__tablename__ + '_seq'), primary_key = True)
+    id = Column(Integer, Sequence(__tablename__ + '_seq'),
+                primary_key = True, autoincrement = True)
 
     # Timestamp.
     timestamp = Column(DateTime, nullable = False, index = True)
