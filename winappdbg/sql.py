@@ -249,7 +249,7 @@ class MemoryDTO (BaseDTO):
         retrieved from the database.
 
         @type  getMemoryDump: bool
-        @param getMemoryDump: If C{True} retrieve the memory dump.
+        @param getMemoryDump: (Optional) If C{True} retrieve the memory dump.
             Defaults to C{False} since this may be a costly operation.
 
         @rtype:  L{win32.MemoryBasicInformation}
@@ -670,13 +670,15 @@ class CrashDAO (BaseDAO):
     @Transactional
     def add(self, crash, allow_duplicates = True):
         """
-        Add a new crash dump to the database.
+        Add a new crash dump to the database, optionally filtering them by
+        signature to avoid duplicates.
 
         @type  crash: L{Crash}
         @param crash: Crash object.
 
         @type  allow_duplicates: bool
-        @param allow_duplicates: C{True} to always add the new crash dump.
+        @param allow_duplicates: (Optional)
+            C{True} to always add the new crash dump.
             C{False} to only add the crash dump if no other crash with the
             same signature is found in the database.
 
@@ -760,8 +762,8 @@ class CrashDAO (BaseDAO):
              since     = None, until = None,
              offset    = None, limit = None):
         """
-        Retrieve all L{Crash} objects in the database, optionally filtering
-        them by signature and timestamp, and/or sorting them by timestamp.
+        Retrieve all crash dumps in the database, optionally filtering them by
+        signature and timestamp, and/or sorting them by timestamp.
 
         Results can be paged to avoid consuming too much memory if the database
         is large.
@@ -773,7 +775,7 @@ class CrashDAO (BaseDAO):
             this signature. See L{Crash.signature} for more details.
 
         @type  order: int
-        @param order: Sort by timestamp.
+        @param order: (Optional) Sort by timestamp.
             If C{== 0}, results are not sorted.
             If C{> 0}, results are sorted from older to newer.
             If C{< 0}, results are sorted from newer to older.
@@ -824,6 +826,10 @@ class CrashDAO (BaseDAO):
                 query = query.asc(CrashDTO.timestamp)
             else:
                 query = query.desc(CrashDTO.timestamp)
+        else:
+            # Default ordering is by row ID, to get consistent results.
+            # Also some database engines require ordering when using offsets.
+            query = query.asc(CrashDTO.id)
 
         # Execute the SQL query and convert the results.
         try:
@@ -868,6 +874,10 @@ class CrashDAO (BaseDAO):
         # Build the query.
         query = self._session.query(CrashDTO)
 
+        # Order by row ID to get consistent results.
+        # Also some database engines require ordering when using offsets.
+        query = query.asc(CrashDTO.id)
+
         # Build a CrashDTO from the Crash object.
         dto = CrashDTO(crash)
 
@@ -897,7 +907,7 @@ class CrashDAO (BaseDAO):
     @Transactional
     def count(self, signature = None):
         """
-        Counts how many crash dump have been stored in this database.
+        Counts how many crash dumps have been stored in this database.
         Optionally filters the count by heuristic signature.
 
         @type  signature: object
