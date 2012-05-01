@@ -570,13 +570,15 @@ class BaseDAO (object):
             Examples:
              - Opening an SQLite file:
                C{dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")}
-             - Connecting to a previously configured MS-SQL database using the
-               C{PyODBC} library:
-               C{dao = CrashDAO("mssql+pyodbc://MyDSN")}
+             - Connecting to a Microsoft SQL Server database using a system DSN
+               with the C{PyODBC} library:
+               C{dao = CrashDAO("mssql+pyodbc:///?dsn=MyDSN")}
              - Connecting to a MySQL database called "crashes" running locally
                using the C{oursql} library, authenticating as the "winappdbg"
                user with no password:
                C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/crashes")}
+             - Connecting to a locally installed SQL Express database:
+               C{dao = CrashDAO("mssql://.\\SQLEXPRESS\crashes")}
 
             For more information see the C{SQLAlchemy} documentation online:
             U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
@@ -600,17 +602,16 @@ class BaseDAO (object):
         dialect = dialect.strip().lower()
         driver = driver.strip()
 
-        # Load the database engine.
+        # Prepare the database engine arguments.
+        arguments = {'echo' : self._echo}
         if dialect == 'sqlite':
-            engine = create_engine(url,
-                                   echo = self._echo,
-                                   module = sqlite3.dbapi2,
-                                   listeners = [_EnableSQLiteForeignKeys()],
-                                   creator = creator)
-        else:
-            engine = create_engine(url,
-                                   echo = self._echo,
-                                   creator = creator)
+            arguments['module'] = sqlite3.dbapi2
+            arguments['listeners'] = [_EnableSQLiteForeignKeys()]
+        if creator is not None:
+            arguments['creator'] = creator
+
+        # Load the database engine.
+        engine = create_engine(url, **arguments)
 
         # Create a new session.
         session = self._new_session(bind = engine)
