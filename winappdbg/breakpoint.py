@@ -1006,7 +1006,7 @@ class HardwareBreakpoint (Breakpoint):
 
 class _BaseHook (object):
     """
-    Used by L{Debug.hook_function}.
+    Used by L{Debug.hook_function} and L{Debug.stalk_function}.
 
     This class acts as an action callback for code breakpoints set at the
     beginning of a function. It automatically retrieves the parameters from
@@ -1164,6 +1164,7 @@ class _BaseHook (object):
         self.__push_params(dwThreadId, params)
 
         # If we need to hook the return from the function...
+        bHookedReturn = False
         if ra is not None and self.__postCB is not None:
 
             # Try to set a one shot hardware breakpoint at the return address.
@@ -1179,6 +1180,7 @@ class _BaseHook (object):
                         self.__postCallAction_hwbp
                         )
                     debug.enable_one_shot_hardware_breakpoint(dwThreadId, ra)
+                    bHookedReturn = True
                 except Exception, e:
                     useHardwareBreakpoints = False
                     msg = ("Failed to set hardware breakpoint"
@@ -1188,7 +1190,15 @@ class _BaseHook (object):
 
             # If not possible, set a code breakpoint instead.
             if not useHardwareBreakpoints:
-                debug.break_at(dwProcessId, ra, self.__postCallAction_codebp)
+                try:
+                    debug.break_at(dwProcessId, ra,
+                                   self.__postCallAction_codebp)
+                    bHookedReturn = True
+                except Exception, e:
+                    msg = ("Failed to set code breakpoint"
+                           " at address %s for process ID %d")
+                    msg = msg % (HexDump.address(ra), dwProcessId)
+                    warnings.warn(msg, BreakpointWarning)
 
         # Call the "pre" callback.
         try:
@@ -1196,7 +1206,7 @@ class _BaseHook (object):
 
         # If no "post" callback is defined, forget the function arguments.
         finally:
-            if self.__postCB is None:
+            if not bHookedReturn:
                 self.__pop_params(dwThreadId)
 
     def __postCallAction_hwbp(self, event):
@@ -1528,6 +1538,15 @@ class _Hook_amd64 (_BaseHook):
         return ctx['Rax']
 
 class Hook (_BaseHook):
+    """
+    Factory class to produce hook objects. Used by L{Debug.hook_function} and
+    L{Debug.stalk_function}.
+
+    When you try to instance this class, one of the architecture specific
+    implementations is returned instead.
+
+    @see: L{_BaseHook}, L{_Hook_i386}, L{_Hook_amd64}
+    """
 
     # This is a factory class that returns
     # the architecture specific implementation.
@@ -1555,6 +1574,57 @@ class Hook (_BaseHook):
     def __init__(self, preCB = None, postCB = None,
                        paramCount = None, signature = None, arch = None):
         """
+        @type  preCB: function
+        @param preCB: (Optional) Callback triggered on function entry.
+
+            The signature for the callback should be something like this::
+
+                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+
+                    # return address
+                    ra = params[0]
+
+                    # function arguments start from here...
+                    szFilename = event.get_process().peek_string(lpFilename)
+
+                    # (...)
+
+            Note that all pointer types are treated like void pointers, so your
+            callback won't get the string or structure pointed to by it, but
+            the remote memory address instead. This is so to prevent the ctypes
+            library from being "too helpful" and trying to dereference the
+            pointer. To get the actual data being pointed to, use one of the
+            L{Process.read} methods.
+
+        @type  postCB: function
+        @param postCB: (Optional) Callback triggered on function exit.
+
+            The signature for the callback should be something like this::
+
+                def post_LoadLibraryEx(event, return_value):
+
+                    # (...)
+
+        @type  paramCount: int
+        @param paramCount:
+            (Optional) Number of parameters for the C{preCB} callback,
+            not counting the return address. Parameters are read from
+            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
+
+            This is a faster way to pull stack parameters in 32 bits, but in 64
+            bits (or with some odd APIs in 32 bits) it won't be useful, since
+            not all arguments to the hooked function will be of the same size.
+
+            For a more reliable and cross-platform way of hooking use the
+            C{signature} argument instead.
+
+        @type  signature: tuple
+        @param signature:
+            (Optional) Tuple of C{ctypes} data types that constitute the
+            hooked function signature. When the function is called, this will
+            be used to parse the arguments from the stack. Overrides the
+            C{paramCount} argument.
+
         @type  arch: str
         @param arch: (Optional) Processor architecture of the target process.
             Defaults to the current architecture. See: L{win32.arch}
