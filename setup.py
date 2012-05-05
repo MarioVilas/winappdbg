@@ -92,7 +92,7 @@ metadata = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.5-beta2',
+    'version'           : '1.5-beta3',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
