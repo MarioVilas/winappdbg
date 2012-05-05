@@ -1408,22 +1408,43 @@ class EventHandler (object):
             apiHooks[lib] = hook_objs
         self.__apiHooks = apiHooks
 
-    def __setApiHooksForDll(self, event):
+    def __get_hooks_for_dll(self, event):
+        """
+        Get the requested API hooks for the current DLL.
+
+        Used by L{__hook_dll} and L{__unhook_dll}.
+        """
+        result = []
+        if self.__apiHooks:
+            path = event.get_module().get_filename()
+            if path:
+                lib_name = PathOperations.pathname_to_filename(path).lower()
+                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
+                    if hook_lib == lib_name:
+                        result.extend(hook_api_list)
+        return result
+
+    def __hook_dll(self, event):
         """
         Hook the requested API calls (in self.apiHooks).
 
         This method is called automatically whenever a DLL is loaded.
         """
-        if self.__apiHooks:
-            fileName = event.get_module().get_filename()
-            if fileName:
-                lib_name = PathOperations.pathname_to_filename(fileName).lower()
-                debug    = event.debug
-                pid      = event.get_pid()
-                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
-                    if hook_lib == lib_name:
-                        for hook_api_stub in hook_api_list:
-                            hook_api_stub.hook(debug, pid)
+        debug = event.debug
+        pid   = event.get_pid()
+        for hook_api_stub in self.__get_hooks_for_dll(event):
+            hook_api_stub.hook(debug, pid)
+
+    def __unhook_dll(self, event):
+        """
+        Unhook the requested API calls (in self.apiHooks).
+
+        This method is called automatically whenever a DLL is unloaded.
+        """
+        debug = event.debug
+        pid   = event.get_pid()
+        for hook_api_stub in self.__get_hooks_for_dll(event):
+            hook_api_stub.unhook(debug, pid)
 
     def __call__(self, event):
         """
@@ -1435,8 +1456,11 @@ class EventHandler (object):
         @param event: Event object.
         """
         try:
-            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT:
-                self.__setApiHooksForDll(event)
+            code = event.get_event_code()
+            if code == win32.LOAD_DLL_DEBUG_EVENT:
+                self.__hook_dll(event)
+            elif code == win32.UNLOAD_DLL_DEBUG_EVENT:
+                self.__unhook_dll(event)
         finally:
             method = EventDispatcher.get_handler_method(self, event)
             if method is not None:
@@ -1580,17 +1604,21 @@ class EventSift(EventHandler):
 
     # XXX HORRIBLE HACK
     # This makes apiHooks work in the inner handlers.
-    # With any luck it will be removed when apiHooks is deprecated.
     def __call__(self, event):
         try:
-            if event.get_event_code() == win32.LOAD_DLL_DEBUG_EVENT:
+            eventCode = event.get_event_code()
+            if eventCode in (win32.LOAD_DLL_DEBUG_EVENT,
+                             win32.LOAD_DLL_DEBUG_EVENT):
                 pid = event.get_pid()
                 handler = self.forward.get(pid, None)
                 if handler is None:
                     handler = self.cls(*self.argv, **self.argd)
                 self.forward[pid] = handler
                 if isinstance(handler, EventHandler):
-                    handler.__EventHandler_setApiHooksForDll(event)
+                    if eventCode == win32.LOAD_DLL_DEBUG_EVENT:
+                        handler.__EventHandler_hook_dll(event)
+                    else:
+                        handler.__EventHandler_unhook_dll(event)
         finally:
             return super(EventSift, self).__call__(event)
 

@@ -1562,6 +1562,9 @@ class Hook (_BaseHook):
 
 #------------------------------------------------------------------------------
 
+# This class acts as a factory of Hook objects, one per target process.
+# Said objects are deleted by the unhook() method.
+
 class ApiHook (object):
     """
     Used by L{EventHandler}.
@@ -1646,12 +1649,7 @@ class ApiHook (object):
         self.__signature  = signature
         self.__preCB      = getattr(eventHandler, 'pre_%s'  % procName, None)
         self.__postCB     = getattr(eventHandler, 'post_%s' % procName, None)
-        self.__hook       = None
-
-    def __create_hook(self, arch):
-        self.__hook = Hook(self.__preCB, self.__postCB,
-                           self.__paramCount, self.__signature,
-                           arch)
+        self.__hook       = dict()
 
     def __call__(self, event):
         """
@@ -1662,9 +1660,15 @@ class ApiHook (object):
 
         @raise WindowsError: An error occured.
         """
-        if self.__hook is None: # normally should not happen, but...
-            self.__create_hook( event.get_process().get_arch() )
-        return self.__hook(event)
+        pid = event.get_pid()
+        try:
+            hook = self.__hook[pid]
+        except KeyError:
+            hook = Hook(self.__preCB, self.__postCB,
+                        self.__paramCount, self.__signature,
+                        event.get_process().get_arch() )
+            self.__hook[pid] = hook
+        return hook(event)
 
     @property
     def modName(self):
@@ -1687,13 +1691,18 @@ class ApiHook (object):
         @param pid: Process ID.
         """
         label = "%s!%s" % (self.__modName, self.__procName)
-        if self.__hook is None:
+        try:
+            hook = self.__hook[pid]
+        except KeyError:
             try:
                 aProcess = debug.system.get_process(pid)
             except KeyError:
                 aProcess = Process(pid)
-            self.__create_hook( aProcess.get_arch() )
-        self.__hook.hook(debug, pid, label)
+            hook = Hook(self.__preCB, self.__postCB,
+                        self.__paramCount, self.__signature,
+                        aProcess.get_arch() )
+            self.__hook[pid] = hook
+        hook.hook(debug, pid, label)
 
     def unhook(self, debug, pid):
         """
@@ -1707,9 +1716,13 @@ class ApiHook (object):
         @type  pid: int
         @param pid: Process ID.
         """
+        try:
+            hook = self.__hook[pid]
+        except KeyError:
+            return
         label = "%s!%s" % (self.__modName, self.__procName)
-        if self.__hook is not None:
-            self.__hook.unhook(debug, pid, label)
+        hook.unhook(debug, pid, label)
+        del self.__hook[pid]
 
 #==============================================================================
 
