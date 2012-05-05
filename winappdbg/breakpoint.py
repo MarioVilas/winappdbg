@@ -1004,7 +1004,7 @@ class HardwareBreakpoint (Breakpoint):
 
 # TODO: an API to modify the hooked function's arguments
 
-class Hook (object):
+class _BaseHook (object):
     """
     Used by L{Debug.hook_function}.
 
@@ -1087,8 +1087,9 @@ class Hook (object):
         """
         self.__preCB      = preCB
         self.__postCB     = postCB
-        self.__paramCount = paramCount
         self.__paramStack = dict()   # tid -> list of tuple( arg, arg, arg... )
+
+        self._paramCount = paramCount
 
         if win32.arch != win32.ARCH_I386:
             self.useHardwareBreakpoints = False
@@ -1098,11 +1099,11 @@ class Hook (object):
 
         if signature:
             # FIXME: all pointers should be converted to c_void_p!
-            self.__signature = self.__calc_signature(signature)
+            self._signature = self._calc_signature(signature)
         else:
-            self.__signature = None
+            self._signature = None
 
-    def __cast_signature_pointers_to_void(self, signature):
+    def _cast_signature_pointers_to_void(self, signature):
         c_void_p  = ctypes.c_void_p
         c_char_p  = ctypes.c_char_p
         c_wchar_p = ctypes.c_wchar_p
@@ -1114,170 +1115,23 @@ class Hook (object):
                                             or t in [c_char_p, c_wchar_p]):
                 signature[i] = cast(t, c_void_p)
 
-    if win32.arch == win32.ARCH_I386:
+    def _calc_signature(self, signature):
+        raise NotImplementedError(
+            "Hook signatures are not supported for architecture: %s" \
+            % win32.arch)
 
-        def __calc_signature(self, signature):
-            self.__cast_signature_pointers_to_void(signature)
-            class Arguments (ctypes.Structure):
-                _fields_ = [ ("arg_%s" % i, signature[i]) \
-                             for i in xrange(len(signature) - 1, -1, -1) ]
-            return Arguments
+    def _get_return_address(self, aProcess, aThread):
+        return None
 
-        def __get_return_address(self, aProcess, aThread):
-            return aProcess.read_pointer( aThread.get_sp() )
-
-        def __get_function_arguments(self, aProcess, aThread):
-            if self.__signature:
-                params = aThread.read_stack_structure(self.__signature,
-                                           offset = win32.sizeof(win32.LPVOID))
-            elif self.__paramCount:
-                params = aThread.read_stack_dwords(self.__paramCount,
-                                           offset = win32.sizeof(win32.LPVOID))
-            else:
-                params = ()
-            return params
-
-        def __get_return_value(self, aThread):
-            ctx = aThread.get_context(win32.CONTEXT_INTEGER)
-            return ctx['Eax']
-
-    elif win32.arch == win32.ARCH_AMD64:
-
-        # Make a list of floating point types.
-        __float_types = (
-            ctypes.c_double,
-            ctypes.c_float,
-        )
-        # Long doubles are not supported in old versions of ctypes!
-        try:
-            __float_types += (ctypes.c_longdouble,)
-        except AttributeError:
-            pass
-
-        def __calc_signature(self, signature):
-            self.__cast_signature_pointers_to_void(signature)
-
-            float_types = self.__float_types
-            c_sizeof    = ctypes.sizeof
-            reg_size    = c_sizeof(ctypes.c_size_t)
-
-            reg_int_sig   = []
-            reg_float_sig = []
-            stack_sig     = []
-
-            for i in xrange(len(signature)):
-                arg  = signature[i]
-                name = "arg_%d" % i
-                stack_sig.insert( 0, (name, arg) )
-                if i < 4:
-                    if type(arg) in float_types:
-                        reg_float_sig.append( (name, arg) )
-                    elif c_sizeof(arg) <= reg_size:
-                        reg_int_sig.append( (name, arg) )
-                    else:
-                        msg = ("Hook signatures don't support structures"
-                               " within the first 4 arguments of a function"
-                               " for the %s architecture") % win32.arch
-                        raise NotImplementedError(msg)
-
-            if reg_int_sig:
-                class RegisterArguments (ctypes.Structure):
-                    _fields_ = reg_int_sig
-            else:
-                RegisterArguments = None
-            if reg_float_sig:
-                class FloatArguments (ctypes.Structure):
-                    _fields_ = reg_float_sig
-            else:
-                FloatArguments = None
-            if stack_sig:
-                class StackArguments (ctypes.Structure):
-                    _fields_ = stack_sig
-            else:
-                StackArguments = None
-
-            return (len(signature),
-                    RegisterArguments,
-                    FloatArguments,
-                    StackArguments)
-
-        def __get_return_address(self, aProcess, aThread):
-            return aProcess.read_pointer( aThread.get_sp() )
-
-        def __get_function_arguments(self, aProcess, aThread):
-            if self.__signature:
-                (args_count,
-                 RegisterArguments,
-                 FloatArguments,
-                 StackArguments) = self.__signature
-                arguments = {}
-                if StackArguments:
-                    address = aThread.get_sp() + win32.sizeof(win32.LPVOID)
-                    stack_struct = aProcess.read_structure(address,
-                                                                StackArguments)
-                    stack_args = dict(
-                        [ (name, stack_struct.__getattribute__(name))
-                            for (name, type) in stack_struct._fields_ ]
-                    )
-                    arguments.update(stack_args)
-                flags = 0
-                if RegisterArguments:
-                    flags = flags | win32.CONTEXT_INTEGER
-                if FloatArguments:
-                    flags = flags | win32.CONTEXT_MMX_REGISTERS
-                if flags:
-                    ctx = aThread.get_context(flags)
-                    if RegisterArguments:
-                        buffer = (win32.QWORD * 4)(ctx['Rcx'], ctx['Rdx'],
-                                                   ctx['R8'],  ctx['R9'])
-                        reg_args = self.__get_arguments_from_buffer(buffer,
-                                                             RegisterArguments)
-                        arguments.update(reg_args)
-                    if FloatArguments:
-                        buffer = (win32.M128A * 4)(ctx['XMM0'], ctx['XMM1'],
-                                                   ctx['XMM2'], ctx['XMM3'])
-                        float_args = self.__get_arguments_from_buffer(buffer,
-                                                                FloatArguments)
-                        arguments.update(float_args)
-                params = tuple( [ arguments["arg_%d" % i]
-                                  for i in xrange(args_count) ] )
-            else:
-                params = ()
-            return params
-
-        def __get_arguments_from_buffer(self, buffer, structure):
-            b_ptr  = ctypes.pointer(buffer)
-            v_ptr  = ctypes.cast(b_ptr, ctypes.c_void_p)
-            s_ptr  = ctypes.cast(v_ptr, ctypes.POINTER(structure))
-            struct = s_ptr.contents
-            return dict(
-                [ (name, struct.__getattribute__(name))
-                    for (name, type) in struct._fields_ ]
-            )
-
-        def __get_return_value(self, aThread):
-            ctx = aThread.get_context(win32.CONTEXT_INTEGER)
-            return ctx['Rax']
-
-    else:
-
-        def __calc_signature(self, signature):
+    def _get_function_arguments(self, aProcess, aThread):
+        if self._signature or self._paramCount:
             raise NotImplementedError(
-                "Hooks signatures are not supported for architecture: %s" \
+                "Hook signatures are not supported for architecture: %s" \
                 % win32.arch)
+        return ()
 
-        def __get_return_address(self, aProcess, aThread):
-            return None
-
-        def __get_function_arguments(self, aProcess, aThread):
-            if self.__signature or self.__paramCount:
-                raise NotImplementedError(
-                    "Hooks signatures are not supported for architecture: %s" \
-                    % win32.arch)
-            return ()
-
-        def __get_return_value(self, aThread):
-            return None
+    def _get_return_value(self, aThread):
+        return None
 
     # By using break_at() to set a process-wide breakpoint on the function's
     # return address, we might hit a race condition when more than one thread
@@ -1303,8 +1157,8 @@ class Hook (object):
         aThread     = event.get_thread()
 
         # Get the return address and function arguments.
-        ra     = self.__get_return_address(aProcess, aThread)
-        params = self.__get_function_arguments(aProcess, aThread)
+        ra     = self._get_return_address(aProcess, aThread)
+        params = self._get_function_arguments(aProcess, aThread)
 
         # Keep the function arguments for later use.
         self.__push_params(dwThreadId, params)
@@ -1406,7 +1260,7 @@ class Hook (object):
         @param event: Breakpoint hit event.
         """
         aThread = event.get_thread()
-        retval  = self.__get_return_value(aThread)
+        retval  = self._get_return_value(aThread)
         self.__callHandler(self.__postCB, event, retval)
 
     def __callHandler(self, callback, event, *params):
@@ -1528,9 +1382,187 @@ class Hook (object):
         """
         return debug.dont_break_at(pid, address)
 
+class _Hook_i386 (_BaseHook):
+
+    def _calc_signature(self, signature):
+        self._cast_signature_pointers_to_void(signature)
+        class Arguments (ctypes.Structure):
+            _fields_ = [ ("arg_%s" % i, signature[i]) \
+                         for i in xrange(len(signature) - 1, -1, -1) ]
+        return Arguments
+
+    def _get_return_address(self, aProcess, aThread):
+        return aProcess.read_pointer( aThread.get_sp() )
+
+    def _get_function_arguments(self, aProcess, aThread):
+        if self._signature:
+            params = aThread.read_stack_structure(self._signature,
+                                       offset = win32.sizeof(win32.LPVOID))
+        elif self._paramCount:
+            params = aThread.read_stack_dwords(self._paramCount,
+                                       offset = win32.sizeof(win32.LPVOID))
+        else:
+            params = ()
+        return params
+
+    def _get_return_value(self, aThread):
+        ctx = aThread.get_context(win32.CONTEXT_INTEGER)
+        return ctx['Eax']
+
+class _Hook_amd64 (_BaseHook):
+
+    # Make a list of floating point types.
+    __float_types = (
+        ctypes.c_double,
+        ctypes.c_float,
+    )
+    # Long doubles are not supported in old versions of ctypes!
+    try:
+        __float_types += (ctypes.c_longdouble,)
+    except AttributeError:
+        pass
+
+    def _calc_signature(self, signature):
+        self._cast_signature_pointers_to_void(signature)
+
+        float_types = self.__float_types
+        c_sizeof    = ctypes.sizeof
+        reg_size    = c_sizeof(ctypes.c_size_t)
+
+        reg_int_sig   = []
+        reg_float_sig = []
+        stack_sig     = []
+
+        for i in xrange(len(signature)):
+            arg  = signature[i]
+            name = "arg_%d" % i
+            stack_sig.insert( 0, (name, arg) )
+            if i < 4:
+                if type(arg) in float_types:
+                    reg_float_sig.append( (name, arg) )
+                elif c_sizeof(arg) <= reg_size:
+                    reg_int_sig.append( (name, arg) )
+                else:
+                    msg = ("Hook signatures don't support structures"
+                           " within the first 4 arguments of a function"
+                           " for the %s architecture") % win32.arch
+                    raise NotImplementedError(msg)
+
+        if reg_int_sig:
+            class RegisterArguments (ctypes.Structure):
+                _fields_ = reg_int_sig
+        else:
+            RegisterArguments = None
+        if reg_float_sig:
+            class FloatArguments (ctypes.Structure):
+                _fields_ = reg_float_sig
+        else:
+            FloatArguments = None
+        if stack_sig:
+            class StackArguments (ctypes.Structure):
+                _fields_ = stack_sig
+        else:
+            StackArguments = None
+
+        return (len(signature),
+                RegisterArguments,
+                FloatArguments,
+                StackArguments)
+
+    def _get_return_address(self, aProcess, aThread):
+        return aProcess.read_pointer( aThread.get_sp() )
+
+    def _get_function_arguments(self, aProcess, aThread):
+        if self._signature:
+            (args_count,
+             RegisterArguments,
+             FloatArguments,
+             StackArguments) = self._signature
+            arguments = {}
+            if StackArguments:
+                address = aThread.get_sp() + win32.sizeof(win32.LPVOID)
+                stack_struct = aProcess.read_structure(address,
+                                                            StackArguments)
+                stack_args = dict(
+                    [ (name, stack_struct.__getattribute__(name))
+                        for (name, type) in stack_struct._fields_ ]
+                )
+                arguments.update(stack_args)
+            flags = 0
+            if RegisterArguments:
+                flags = flags | win32.CONTEXT_INTEGER
+            if FloatArguments:
+                flags = flags | win32.CONTEXT_MMX_REGISTERS
+            if flags:
+                ctx = aThread.get_context(flags)
+                if RegisterArguments:
+                    buffer = (win32.QWORD * 4)(ctx['Rcx'], ctx['Rdx'],
+                                               ctx['R8'],  ctx['R9'])
+                    reg_args = self._get_arguments_from_buffer(buffer,
+                                                         RegisterArguments)
+                    arguments.update(reg_args)
+                if FloatArguments:
+                    buffer = (win32.M128A * 4)(ctx['XMM0'], ctx['XMM1'],
+                                               ctx['XMM2'], ctx['XMM3'])
+                    float_args = self._get_arguments_from_buffer(buffer,
+                                                            FloatArguments)
+                    arguments.update(float_args)
+            params = tuple( [ arguments["arg_%d" % i]
+                              for i in xrange(args_count) ] )
+        else:
+            params = ()
+        return params
+
+    def _get_arguments_from_buffer(self, buffer, structure):
+        b_ptr  = ctypes.pointer(buffer)
+        v_ptr  = ctypes.cast(b_ptr, ctypes.c_void_p)
+        s_ptr  = ctypes.cast(v_ptr, ctypes.POINTER(structure))
+        struct = s_ptr.contents
+        return dict(
+            [ (name, struct.__getattribute__(name))
+                for (name, type) in struct._fields_ ]
+        )
+
+    def _get_return_value(self, aThread):
+        ctx = aThread.get_context(win32.CONTEXT_INTEGER)
+        return ctx['Rax']
+
+class Hook (_BaseHook):
+
+    # This is a factory class that returns
+    # the architecture specific implementation.
+    def __new__(cls, *argv, **argd):
+        try:
+            arch = argd['arch']
+            del argd['arch']
+        except KeyError:
+            try:
+                arch = argv[4]
+                argv = argv[:4] + argv[5:]
+            except IndexError:
+                raise TypeError("Missing 'arch' argument!")
+        print arch
+        if arch is None:
+            raise TypeError()
+            arch = win32.arch
+        if arch == win32.ARCH_I386:
+            return _Hook_i386(*argv, **argd)
+        if arch == win32.ARCH_AMD64:
+            return _Hook_amd64(*argv, **argd)
+        return _BaseHook(*argv, **argd)
+
+    # Only defined to get the proper docstring. Not actually called.
+    def __init__(self, preCB = None, postCB = None,
+                       paramCount = None, signature = None, arch = None):
+        """
+        @type  arch: str
+        @param arch: (Optional) Processor architecture of the target process.
+            Defaults to the current architecture. See: L{win32.arch}
+        """
+
 #------------------------------------------------------------------------------
 
-class ApiHook (Hook):
+class ApiHook (object):
     """
     Used by L{EventHandler}.
 
@@ -1608,12 +1640,31 @@ class ApiHook (Hook):
             be used to parse the arguments from the stack. Overrides the
             C{paramCount} argument.
         """
-        self.__modName  = modName
-        self.__procName = procName
+        self.__modName    = modName
+        self.__procName   = procName
+        self.__paramCount = paramCount
+        self.__signature  = signature
+        self.__preCB      = getattr(eventHandler, 'pre_%s'  % procName, None)
+        self.__postCB     = getattr(eventHandler, 'post_%s' % procName, None)
+        self.__hook       = None
 
-        preCB  = getattr(eventHandler, 'pre_%s'  % procName, None)
-        postCB = getattr(eventHandler, 'post_%s' % procName, None)
-        Hook.__init__(self, preCB, postCB, paramCount, signature)
+    def __create_hook(self, arch):
+        self.__hook = Hook(self.__preCB, self.__postCB,
+                           self.__paramCount, self.__signature,
+                           arch)
+
+    def __call__(self, event):
+        """
+        Handles the breakpoint event on entry of the function.
+
+        @type  event: L{ExceptionEvent}
+        @param event: Breakpoint hit event.
+
+        @raise WindowsError: An error occured.
+        """
+        if self.__hook is None: # normally should not happen, but...
+            self.__create_hook( event.get_process().get_arch() )
+        return self.__hook(event)
 
     @property
     def modName(self):
@@ -1636,7 +1687,13 @@ class ApiHook (Hook):
         @param pid: Process ID.
         """
         label = "%s!%s" % (self.__modName, self.__procName)
-        Hook.hook(self, debug, pid, label)
+        if self.__hook is None:
+            try:
+                aProcess = debug.system.get_process(pid)
+            except KeyError:
+                aProcess = Process(pid)
+            self.__create_hook( aProcess.get_arch() )
+        self.__hook.hook(debug, pid, label)
 
     def unhook(self, debug, pid):
         """
@@ -1651,7 +1708,8 @@ class ApiHook (Hook):
         @param pid: Process ID.
         """
         label = "%s!%s" % (self.__modName, self.__procName)
-        Hook.unhook(self, debug, pid, label)
+        if self.__hook is not None:
+            self.__hook.unhook(debug, pid, label)
 
 #==============================================================================
 
@@ -3863,7 +3921,12 @@ class _BreakpointContainer (object):
         @return: C{True} if the hook was set immediately, or C{False} if
             it was deferred.
         """
-        hookObj = Hook(preCB, postCB, paramCount, signature)
+        try:
+            aProcess = self.system.get_process(pid)
+        except KeyError:
+            aProcess = Process(pid)
+        arch = aProcess.get_arch()
+        hookObj = Hook(preCB, postCB, paramCount, signature, arch)
         bp = self.break_at(pid, address, hookObj)
         return bp is not None
 
@@ -3940,7 +4003,12 @@ class _BreakpointContainer (object):
         @return: C{True} if the breakpoint was set immediately, or C{False} if
             it was deferred.
         """
-        hookObj = Hook(preCB, postCB, paramCount)
+        try:
+            aProcess = self.system.get_process(pid)
+        except KeyError:
+            aProcess = Process(pid)
+        arch = aProcess.get_arch()
+        hookObj = Hook(preCB, postCB, paramCount, signature, arch)
         bp = self.stalk_at(pid, address, hookObj)
         return bp is not None
 
