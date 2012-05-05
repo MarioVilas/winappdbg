@@ -1004,19 +1004,45 @@ class HardwareBreakpoint (Breakpoint):
 
 # TODO: an API to modify the hooked function's arguments
 
-class _BaseHook (object):
+class Hook (object):
     """
-    Used by L{Debug.hook_function} and L{Debug.stalk_function}.
+    Factory class to produce hook objects. Used by L{Debug.hook_function} and
+    L{Debug.stalk_function}.
 
-    This class acts as an action callback for code breakpoints set at the
+    When you try to instance this class, one of the architecture specific
+    implementations is returned instead.
+
+    Instances act as an action callback for code breakpoints set at the
     beginning of a function. It automatically retrieves the parameters from
     the stack, sets a breakpoint at the return address and retrieves the
     return value from the function call.
+
+    @see: L{_BaseHook}, L{_Hook_i386}, L{_Hook_amd64}
 
     @type useHardwareBreakpoints: bool
     @cvar useHardwareBreakpoints: C{True} to try to use hardware breakpoints,
         C{False} otherwise.
     """
+
+    # This is a factory class that returns
+    # the architecture specific implementation.
+    def __new__(cls, *argv, **argd):
+        try:
+            arch = argd['arch']
+            del argd['arch']
+        except KeyError:
+            try:
+                arch = argv[4]
+                argv = argv[:4] + argv[5:]
+            except IndexError:
+                raise TypeError("Missing 'arch' argument!")
+        if arch is None:
+            arch = win32.arch
+        if arch == win32.ARCH_I386:
+            return _Hook_i386(*argv, **argd)
+        if arch == win32.ARCH_AMD64:
+            return _Hook_amd64(*argv, **argd)
+        return object.__new__(cls, *argv, **argd)
 
     # XXX FIXME
     #
@@ -1032,7 +1058,8 @@ class _BaseHook (object):
     useHardwareBreakpoints = False
 
     def __init__(self, preCB = None, postCB = None,
-                       paramCount = None, signature = None):
+                       paramCount = None, signature = None,
+                       arch = None):
         """
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
@@ -1084,6 +1111,10 @@ class _BaseHook (object):
             hooked function signature. When the function is called, this will
             be used to parse the arguments from the stack. Overrides the
             C{paramCount} argument.
+
+        @type  arch: str
+        @param arch: (Optional) Target architecture. Defaults to the current
+            architecture. See: L{win32.arch}
         """
         self.__preCB      = preCB
         self.__postCB     = postCB
@@ -1098,7 +1129,6 @@ class _BaseHook (object):
             signature = (win32.QWORD,) * paramCount
 
         if signature:
-            # FIXME: all pointers should be converted to c_void_p!
             self._signature = self._calc_signature(signature)
         else:
             self._signature = None
@@ -1392,7 +1422,13 @@ class _BaseHook (object):
         """
         return debug.dont_break_at(pid, address)
 
-class _Hook_i386 (_BaseHook):
+class _Hook_i386 (Hook):
+    """
+    Implementation details for L{Hook} on the L{win32.ARCH_I386} architecture.
+    """
+
+    # We don't want to inherit the parent class __new__ method.
+    __new__ = object.__new__
 
     def _calc_signature(self, signature):
         self._cast_signature_pointers_to_void(signature)
@@ -1419,7 +1455,13 @@ class _Hook_i386 (_BaseHook):
         ctx = aThread.get_context(win32.CONTEXT_INTEGER)
         return ctx['Eax']
 
-class _Hook_amd64 (_BaseHook):
+class _Hook_amd64 (Hook):
+    """
+    Implementation details for L{Hook} on the L{win32.ARCH_AMD64} architecture.
+    """
+
+    # We don't want to inherit the parent class __new__ method.
+    __new__ = object.__new__
 
     # Make a list of floating point types.
     __float_types = (
@@ -1536,99 +1578,6 @@ class _Hook_amd64 (_BaseHook):
     def _get_return_value(self, aThread):
         ctx = aThread.get_context(win32.CONTEXT_INTEGER)
         return ctx['Rax']
-
-class Hook (_BaseHook):
-    """
-    Factory class to produce hook objects. Used by L{Debug.hook_function} and
-    L{Debug.stalk_function}.
-
-    When you try to instance this class, one of the architecture specific
-    implementations is returned instead.
-
-    @see: L{_BaseHook}, L{_Hook_i386}, L{_Hook_amd64}
-    """
-
-    # This is a factory class that returns
-    # the architecture specific implementation.
-    def __new__(cls, *argv, **argd):
-        try:
-            arch = argd['arch']
-            del argd['arch']
-        except KeyError:
-            try:
-                arch = argv[4]
-                argv = argv[:4] + argv[5:]
-            except IndexError:
-                raise TypeError("Missing 'arch' argument!")
-        print arch
-        if arch is None:
-            raise TypeError()
-            arch = win32.arch
-        if arch == win32.ARCH_I386:
-            return _Hook_i386(*argv, **argd)
-        if arch == win32.ARCH_AMD64:
-            return _Hook_amd64(*argv, **argd)
-        return _BaseHook(*argv, **argd)
-
-    # Only defined to get the proper docstring. Not actually called.
-    def __init__(self, preCB = None, postCB = None,
-                       paramCount = None, signature = None, arch = None):
-        """
-        @type  preCB: function
-        @param preCB: (Optional) Callback triggered on function entry.
-
-            The signature for the callback should be something like this::
-
-                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
-
-                    # return address
-                    ra = params[0]
-
-                    # function arguments start from here...
-                    szFilename = event.get_process().peek_string(lpFilename)
-
-                    # (...)
-
-            Note that all pointer types are treated like void pointers, so your
-            callback won't get the string or structure pointed to by it, but
-            the remote memory address instead. This is so to prevent the ctypes
-            library from being "too helpful" and trying to dereference the
-            pointer. To get the actual data being pointed to, use one of the
-            L{Process.read} methods.
-
-        @type  postCB: function
-        @param postCB: (Optional) Callback triggered on function exit.
-
-            The signature for the callback should be something like this::
-
-                def post_LoadLibraryEx(event, return_value):
-
-                    # (...)
-
-        @type  paramCount: int
-        @param paramCount:
-            (Optional) Number of parameters for the C{preCB} callback,
-            not counting the return address. Parameters are read from
-            the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
-
-            This is a faster way to pull stack parameters in 32 bits, but in 64
-            bits (or with some odd APIs in 32 bits) it won't be useful, since
-            not all arguments to the hooked function will be of the same size.
-
-            For a more reliable and cross-platform way of hooking use the
-            C{signature} argument instead.
-
-        @type  signature: tuple
-        @param signature:
-            (Optional) Tuple of C{ctypes} data types that constitute the
-            hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack. Overrides the
-            C{paramCount} argument.
-
-        @type  arch: str
-        @param arch: (Optional) Processor architecture of the target process.
-            Defaults to the current architecture. See: L{win32.arch}
-        """
 
 #------------------------------------------------------------------------------
 
