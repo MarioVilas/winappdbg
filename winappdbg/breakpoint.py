@@ -1017,7 +1017,7 @@ class Hook (object):
     the stack, sets a breakpoint at the return address and retrieves the
     return value from the function call.
 
-    @see: L{_BaseHook}, L{_Hook_i386}, L{_Hook_amd64}
+    @see: L{_Hook_i386}, L{_Hook_amd64}
 
     @type useHardwareBreakpoints: bool
     @cvar useHardwareBreakpoints: C{True} to try to use hardware breakpoints,
