@@ -1037,31 +1037,29 @@ class Hook (object):
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
 
-            The signature for the callback can be something like this::
-
-                def pre_LoadLibraryEx(event, *params):
-                    ra   = params[0]        # return address
-                    argv = params[1:]       # function parameters
-
-                    # (...)
-
-            But if you passed the right number of arguments, you can also
-            use a signature like this::
+            The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+
+                    # return address
+                    ra = params[0]
+
+                    # function arguments start from here...
                     szFilename = event.get_process().peek_string(lpFilename)
 
                     # (...)
 
-            In the above example, the value for C{paramCount} would be C{3}.
-            Note that these examples assume all parameters are DWORDs.
-            This may not always be so, especially in 64 bits Windows.
-            See the C{signature} argument.
+            Note that all pointer types are treated like void pointers, so your
+            callback won't get the string or structure pointed to by it, but
+            the remote memory address instead. This is so to prevent the ctypes
+            library from being "too helpful" and trying to dereference the
+            pointer. To get the actual data being pointed to, use one of the
+            L{Process.read} methods.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
 
-            The signature for the callback would be something like this::
+            The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
@@ -1084,7 +1082,8 @@ class Hook (object):
         @param signature:
             (Optional) Tuple of C{ctypes} data types that constitute the
             hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack.
+            be used to parse the arguments from the stack. Overrides the
+            C{paramCount} argument.
         """
         self.__preCB      = preCB
         self.__postCB     = postCB
@@ -1103,9 +1102,22 @@ class Hook (object):
         else:
             self.__signature = None
 
+    def __cast_signature_pointers_to_void(self, signature):
+        c_void_p  = ctypes.c_void_p
+        c_char_p  = ctypes.c_char_p
+        c_wchar_p = ctypes.c_wchar_p
+        _Pointer  = ctypes._Pointer
+        cast      = ctypes.cast
+        for i in xrange(len(signature)):
+            t = signature[i]
+            if t is not c_void_p and (issubclass(t, _Pointer) \
+                                            or t in [c_char_p, c_wchar_p]):
+                signature[i] = cast(t, c_void_p)
+
     if win32.arch == win32.ARCH_I386:
 
         def __calc_signature(self, signature):
+            self.__cast_signature_pointers_to_void(signature)
             class Arguments (ctypes.Structure):
                 _fields_ = [ ("arg_%s" % i, signature[i]) \
                              for i in xrange(len(signature) - 1, -1, -1) ]
@@ -1143,6 +1155,8 @@ class Hook (object):
             pass
 
         def __calc_signature(self, signature):
+            self.__cast_signature_pointers_to_void(signature)
+
             float_types = self.__float_types
             c_sizeof    = ctypes.sizeof
             reg_size    = c_sizeof(ctypes.c_size_t)
@@ -1538,7 +1552,8 @@ class ApiHook (Hook):
                                                          signature = None):
         """
         @type  eventHandler: L{EventHandler}
-        @param eventHandler: Event handler instance.
+        @param eventHandler: Event handler instance. This is where the hook
+            callbacks are to be defined (see below).
 
         @type  modName: str
         @param modName: Module name.
@@ -1550,28 +1565,28 @@ class ApiHook (Hook):
             For example, if the procedure is "LoadLibraryEx" the callback
             routines will be "pre_LoadLibraryEx" and "post_LoadLibraryEx".
 
-            The signature for the callbacks can be something like this::
+            The signature for the callbacks should be something like this::
 
-                def pre_LoadLibraryEx(event, *params):
-                    ra   = params[0]        # return address
-                    argv = params[1:]       # function parameters
+                def pre_LoadLibraryEx(self, event, ra, lpFilename, hFile, dwFlags):
 
-                    # (...)
+                    # return address
+                    ra = params[0]
 
-                def post_LoadLibraryEx(event, return_value):
-
-                    # (...)
-
-            But if you passed the right number of arguments, you can also
-            use a signature like this::
-
-                def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+                    # function arguments start from here...
                     szFilename = event.get_process().peek_string(lpFilename)
 
                     # (...)
 
-            Note that the second example assumes all parameters are DWORDs.
-            This may not always be so, especially in 64 bits Windows.
+                def post_LoadLibraryEx(self, event, return_value):
+
+                    # (...)
+
+            Note that all pointer types are treated like void pointers, so your
+            callback won't get the string or structure pointed to by it, but
+            the remote memory address instead. This is so to prevent the ctypes
+            library from being "too helpful" and trying to dereference the
+            pointer. To get the actual data being pointed to, use one of the
+            L{Process.read} methods.
 
         @type  paramCount: int
         @param paramCount:
@@ -1590,7 +1605,8 @@ class ApiHook (Hook):
         @param signature:
             (Optional) Tuple of C{ctypes} data types that constitute the
             hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack.
+            be used to parse the arguments from the stack. Overrides the
+            C{paramCount} argument.
         """
         self.__modName  = modName
         self.__procName = procName
@@ -3795,31 +3811,29 @@ class _BreakpointContainer (object):
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
 
-            The signature for the callback can be something like this::
-
-                def pre_LoadLibraryEx(event, *params):
-                    ra   = params[0]        # return address
-                    argv = params[1:]       # function parameters
-
-                    # (...)
-
-            But if you passed the right number of arguments, you can also
-            use a signature like this::
+            The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+
+                    # return address
+                    ra = params[0]
+
+                    # function arguments start from here...
                     szFilename = event.get_process().peek_string(lpFilename)
 
                     # (...)
 
-            In the above example, the value for C{paramCount} would be C{3}.
-            Note that these examples assume all parameters are DWORDs.
-            This may not always be so, especially in 64 bits Windows.
-            See the C{signature} argument.
+            Note that all pointer types are treated like void pointers, so your
+            callback won't get the string or structure pointed to by it, but
+            the remote memory address instead. This is so to prevent the ctypes
+            library from being "too helpful" and trying to dereference the
+            pointer. To get the actual data being pointed to, use one of the
+            L{Process.read} methods.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
 
-            The signature for the callback would be something like this::
+            The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
@@ -3842,7 +3856,8 @@ class _BreakpointContainer (object):
         @param signature:
             (Optional) Tuple of C{ctypes} data types that constitute the
             hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack.
+            be used to parse the arguments from the stack. Overrides the
+            C{paramCount} argument.
 
         @rtype:  bool
         @return: C{True} if the hook was set immediately, or C{False} if
@@ -3873,31 +3888,29 @@ class _BreakpointContainer (object):
         @type  preCB: function
         @param preCB: (Optional) Callback triggered on function entry.
 
-            The signature for the callback can be something like this::
-
-                def pre_LoadLibraryEx(event, *params):
-                    ra   = params[0]        # return address
-                    argv = params[1:]       # function parameters
-
-                    # (...)
-
-            But if you passed the right number of arguments, you can also
-            use a signature like this::
+            The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+
+                    # return address
+                    ra = params[0]
+
+                    # function arguments start from here...
                     szFilename = event.get_process().peek_string(lpFilename)
 
                     # (...)
 
-            In the above example, the value for C{paramCount} would be C{3}.
-            Note that these examples assume all parameters are DWORDs.
-            This may not always be so, especially in 64 bits Windows.
-            See the C{signature} argument.
+            Note that all pointer types are treated like void pointers, so your
+            callback won't get the string or structure pointed to by it, but
+            the remote memory address instead. This is so to prevent the ctypes
+            library from being "too helpful" and trying to dereference the
+            pointer. To get the actual data being pointed to, use one of the
+            L{Process.read} methods.
 
         @type  postCB: function
         @param postCB: (Optional) Callback triggered on function exit.
 
-            The signature for the callback would be something like this::
+            The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
@@ -3920,7 +3933,8 @@ class _BreakpointContainer (object):
         @param signature:
             (Optional) Tuple of C{ctypes} data types that constitute the
             hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack.
+            be used to parse the arguments from the stack. Overrides the
+            C{paramCount} argument.
 
         @rtype:  bool
         @return: C{True} if the breakpoint was set immediately, or C{False} if

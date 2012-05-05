@@ -1329,15 +1329,17 @@ class EventHandler (object):
 
                 # (your method definitions go here...)
 
-        Note that the filename pointer was declared of type PVOID. This is very
-        important! All pointers should be declared as void type to prevent
-        ctypes from being "too helpful" and trying to dereference the address
-        of the pointer.
+        Note that all pointer types are treated like void pointers, so your
+        callback won't get the string or structure pointed to by it, but the
+        remote memory address instead. This is so to prevent the ctypes library
+        from being "too helpful" and trying to dereference the pointer. To get
+        the actual data being pointed to, use one of the L{Process.read}
+        methods.
 
         Now, to intercept calls to LoadLibraryEx define a method like this in
         your event handler class::
 
-            def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
+            def pre_LoadLibraryEx(self, event, ra, lpFilename, hFile, dwFlags):
                 szFilename = event.get_process().peek_string(lpFilename)
 
                 # (...)
@@ -1349,7 +1351,7 @@ class EventHandler (object):
         Finally, to intercept returns from calls to LoadLibraryEx define a
         method like this::
 
-            def post_LoadLibraryEx(event, retval):
+            def post_LoadLibraryEx(self, event, retval):
                 # (...)
 
         The first parameter is the L{Event} object and the second is the

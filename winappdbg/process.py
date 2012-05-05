@@ -710,12 +710,20 @@ class Process (_ThreadContainer, _ModuleContainer):
             architecture returned by this method will be L{win32.ARCH_I386},
             but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
         """
+
+        # Are we in a 32 bit machine?
         if win32.bits == 32 and not win32.wow64:
             return win32.arch
+
+        # Is the process outside of WOW64?
         if not self.is_wow64():
             return win32.arch
+
+        # In WOW64, "amd64" becomes "i386".
         if win32.arch == win32.ARCH_AMD64:
             return win32.ARCH_I386
+
+        # We don't know the translation for other architectures.
         raise NotImplementedError()
 
     def get_bits(self):
@@ -726,13 +734,21 @@ class Process (_ThreadContainer, _ModuleContainer):
             machine, the number of bits returned by this method will be C{32},
             but the value of L{System.arch} will be C{64}.
         """
+
+        # Are we in a 32 bit machine?
         if win32.bits == 32 and not win32.wow64:
+
+            # All processes are 32 bits.
             return 32
+
+        # Is the process inside WOW64?
         if self.is_wow64():
+
+            # The process is 32 bits.
             return 32
-        if win32.wow64:
-            return 64
-        return win32.bits
+
+        # The process is 64 bits.
+        return 64
 
     # TODO: get_os, to test compatibility run
 
