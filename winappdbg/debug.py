@@ -226,8 +226,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Warn when mixing 32 and 64 bits.
         # This also allows the user to stop attaching altogether,
         # depending on how the warnings are configured.
-        if (System.wow64 and not aProcess.is_wow64()) or \
-                                (System.bits == 64 and aProcess.is_wow64()):
+        if System.bits != aProcess.get_bits():
             msg = "Mixture of 32 and 64 bits is considered experimental." \
                   " Use at your own risk!"
             warnings.warn(msg, MixedBitsWarning)
@@ -340,14 +339,25 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         kwargs['bDebug'] = True
         bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
+
         aProcess = None
         try:
             aProcess = self.system.start_process(lpCmdLine, **kwargs)
+
+            # Warn when mixing 32 and 64 bits.
+            # This also allows the user to stop attaching altogether,
+            # depending on how the warnings are configured.
+            if System.bits != aProcess.get_bits():
+                msg = "Mixture of 32 and 64 bits is considered experimental." \
+                      " Use at your own risk!"
+                warnings.warn(msg, MixedBitsWarning)
+
             dwProcessId = aProcess.get_pid()
             self.__startedDebugees.add(dwProcessId)
             if bBreakOnEntryPoint:
                 self.__breakOnEP.add(dwProcessId)
             return aProcess
+
         except:
             try:
                 if aProcess is not None:
