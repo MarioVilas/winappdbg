@@ -1,5 +1,4 @@
 include README
-include Makefile
 include MANIFEST.in
 include setup.py
 include distro.bat
