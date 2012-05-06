@@ -198,7 +198,7 @@ class BaseDAO (object):
              - Connecting to a MySQL database running locally, using the
                C{oursql} library, authenticating as the "winappdbg" user with no
                password:
-               C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/crashes")}
+               C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/Crashes")}
 
             For more information see the C{SQLAlchemy} documentation online:
             U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
@@ -206,6 +206,14 @@ class BaseDAO (object):
             Note that in all dialects except for SQLite the database
             must already exist. The tables schema, however, is created
             automatically when connecting for the first time.
+
+            To create the database in MSSQL, you can use the
+            U{SQLCMD<http://msdn.microsoft.com/en-us/library/ms180944.aspx>}
+            command::
+                sqlcmd -Q "CREATE DATABASE Crashes"
+
+            In MySQL you can use something like the following::
+                mysql -u root -e "CREATE DATABASE Crashes;"
 
             Some small changes to the schema may be tolerated (for example,
             increasing the maximum length of string columns, or adding new
