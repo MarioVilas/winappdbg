@@ -1497,7 +1497,7 @@ class CrashDictionary(object):
     Currently the only implementation is through L{sql.CrashDAO}.
     """
 
-    def __init__(self, url = None, creator = None, allowRepeatedKeys = True):
+    def __init__(self, url, creator = None, allowRepeatedKeys = True):
         """
         @type  url: str
         @param url: Connection URL of the crash database.

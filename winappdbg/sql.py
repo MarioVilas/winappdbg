@@ -45,17 +45,19 @@ import warnings
 
 from sqlalchemy import create_engine, Column, ForeignKey, Sequence
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.interfaces import PoolListener
-from sqlalchemy.orm import sessionmaker, relationship, backref, deferred
+from sqlalchemy.orm import sessionmaker, deferred
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.schema import Index
-from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, \
-                             LargeBinary, Enum, PickleType, TEXT, VARCHAR
+from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
+                             LargeBinary, Enum, VARCHAR
 
 from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
 from textio import CrashDump
 import win32
+
+#------------------------------------------------------------------------------
 
 try:
     from decorator import decorator
@@ -73,7 +75,43 @@ except ImportError:
             return x
         return d
 
-#==============================================================================
+#------------------------------------------------------------------------------
+
+@compiles(String, 'mysql')
+@compiles(VARCHAR, 'mysql')
+def _compile_varchar_mysql(element, compiler, **kw):
+    """MySQL hack to avoid the "VARCHAR requires a length" error."""
+    if not element.length or element.length == 'max':
+        return "TEXT"
+    else:
+        return compiler.visit_VARCHAR(element, **kw)
+
+#------------------------------------------------------------------------------
+
+class _SQLitePatch (PoolListener):
+    """
+    Used internally by L{BaseDAO}.
+
+    After connecting to an SQLite database, ensure that the foreign keys
+    support is enabled. If not, abort the connection.
+
+    @see: U{http://sqlite.org/foreignkeys.html}
+    """
+    def connect(dbapi_con, connection_record):
+        try:
+            cursor = dbapi_con.cursor()
+            try:
+                cursor.execute("PRAGMA foreign_keys = ON;")
+                cursor.execute("PRAGMA foreign_keys;")
+                if cursor.fetchone()[0] != 1:
+                    raise Exception()
+            finally:
+                cursor.close()
+        except Exception:
+            dbapi_con.close()
+            raise sqlite3.Error()
+
+#------------------------------------------------------------------------------
 
 class BaseDTO (object):
     """
@@ -95,8 +133,166 @@ class BaseDTO (object):
 
 BaseDTO = declarative_base(cls = BaseDTO)
 
+#------------------------------------------------------------------------------
+
+# TODO: if using mssql, check it's at least SQL Server 2005
+#       (LIMIT and OFFSET support is required).
+# TODO: if using mysql, check it's at least MySQL 5.0.3
+#       (nested transactions are required).
+# TODO: maybe in mysql check the tables are not myisam?
+# TODO: maybe create the database if it doesn't exist?
+# TODO: maybe add a method to compact the database?
+#       http://stackoverflow.com/questions/1875885
+#       http://www.sqlite.org/lang_vacuum.html
+#       http://dev.mysql.com/doc/refman/5.1/en/optimize-table.html
+#       http://msdn.microsoft.com/en-us/library/ms174459(v=sql.90).aspx
+
+class BaseDAO (object):
+    """
+    Data Access Object base class.
+
+    @type _url: sqlalchemy.url.URL
+    @ivar _url: Database connection URL.
+
+    @type _dialect: str
+    @ivar _dialect: SQL dialect currently being used.
+
+    @type _driver: str
+    @ivar _driver: Name of the database driver currently being used.
+        To get the actual Python module use L{_url}.get_driver() instead.
+
+    @type _session: sqlalchemy.orm.Session
+    @ivar _session: Database session object.
+
+    @type _new_session: class
+    @cvar _new_session: Custom configured Session class used to create the
+        L{_session} instance variable.
+
+    @type _echo: bool
+    @cvar _echo: Set to C{True} to print all SQL queries to standard output.
+    """
+
+    _echo = False
+
+    _new_session = sessionmaker(autoflush = True,
+                                autocommit = True,
+                                expire_on_commit = True,
+                                weak_identity_map = True)
+
+    def __init__(self, url, creator = None):
+        """
+        Connect to the database using the given connection URL.
+
+        The current implementation uses SQLAlchemy and so it will support
+        whatever database said module supports.
+
+        @type  url: str
+        @param url:
+            URL that specifies the database to connect to.
+
+            Some examples:
+             - Opening an SQLite file:
+               C{dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")}
+             - Connecting to a locally installed SQL Express database:
+               C{dao = CrashDAO("mssql://.\\SQLEXPRESS/Crashes?trusted_connection=yes")}
+             - Connecting to a MySQL database running locally, using the
+               C{oursql} library, authenticating as the "winappdbg" user with no
+               password:
+               C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/crashes")}
+
+            For more information see the C{SQLAlchemy} documentation online:
+            U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
+
+            Note that in all dialects except for SQLite the database
+            must already exist. The tables schema, however, is created
+            automatically when connecting for the first time.
+
+            Some small changes to the schema may be tolerated (for example,
+            increasing the maximum length of string columns, or adding new
+            columns with default values). Of course, it's best to test it
+            first before making changes in a live database. This all depends
+            very much on the SQLAlchemy version you're using, but it's best
+            to use the latest version always.
+
+        @type  creator: callable
+        @param creator: (Optional) Callback function that creates the SQL
+            database connection.
+
+            Normally it's not necessary to use this argument. However in some
+            odd cases you may need to customize the database connection.
+        """
+
+        # Parse the connection URL.
+        parsed_url = URL(url)
+        schema = parsed_url.drivername
+        if '+' in schema:
+            dialect, driver = schema.split('+')
+        else:
+            dialect, driver = schema, 'base'
+        dialect = dialect.strip().lower()
+        driver = driver.strip()
+
+        # Prepare the database engine arguments.
+        arguments = {'echo' : self._echo}
+        if dialect == 'sqlite':
+            arguments['module'] = sqlite3.dbapi2
+            arguments['listeners'] = [_SQLitePatch()]
+        if creator is not None:
+            arguments['creator'] = creator
+
+        # Load the database engine.
+        engine = create_engine(url, **arguments)
+
+        # Create a new session.
+        session = self._new_session(bind = engine)
+
+        # Create the required tables if they don't exist.
+        BaseDTO.metadata.create_all(engine)
+        # TODO: create a dialect specific index on the "signature" column.
+
+        # Set the instance properties.
+        self._url     = parsed_url
+        self._driver  = driver
+        self._dialect = dialect
+        self._session = session
+
+    def _transactional(self, method, *argv, **argd):
+        """
+        Begins a transaction and calls the given DAO method.
+
+        If the method executes successfully the transaction is commited.
+
+        If the method fails, the transaction is rolled back.
+
+        @type  method: callable
+        @param method: Bound method of this class or one of its subclasses.
+            The first argument will always be C{self}.
+
+        @return: The return value of the method call.
+
+        @raise Exception: Any exception raised by the method.
+        """
+        self._session.begin(subtransactions = True)
+        try:
+            result = method(self, *argv, **argd)
+            self._session.commit()
+            return result
+        except:
+            self._session.rollback()
+            raise
+
+#------------------------------------------------------------------------------
+
+@decorator
+def Transactional(fn, self, *argv, **argd):
+    """
+    Decorator that wraps DAO methods to handle transactions automatically.
+
+    It may only work with subclasses of L{BaseDAO}.
+    """
+    return self._transactional(fn, *argv, **argd)
+
 #==============================================================================
-# Crash dumps DAO.
 
 # Generates all possible memory access flags.
 def _gen_valid_access_flags():
@@ -122,9 +318,12 @@ MEM_TYPE_ENUM   = Enum("Image", "Mapped", "Private", "Unknown",
                        name = "MEM_TYPE_ENUM")
 
 # Cleanup the namespace.
+del _gen_valid_access_flags
 del _valid_access_flags
 del n_MEM_ACCESS_ENUM
 del n_MEM_ALLOC_ACCESS_ENUM
+
+#------------------------------------------------------------------------------
 
 class MemoryDTO (BaseDTO):
     """
@@ -146,7 +345,7 @@ class MemoryDTO (BaseDTO):
     type          = Column(MEM_TYPE_ENUM)
     alloc_base    = Column(BigInteger)
     alloc_access  = Column(MEM_ALLOC_ACCESS_ENUM)
-    filename      = Column(TEXT)
+    filename      = Column(String)
     content       = deferred(Column(LargeBinary))
 
     def __init__(self, crash_id, mbi):
@@ -327,6 +526,8 @@ class MemoryDTO (BaseDTO):
             protect = protect | win32.PAGE_WRITECOMBINE
         return protect
 
+#------------------------------------------------------------------------------
+
 class CrashDTO (BaseDTO):
     """
     Database mapping for crash dumps.
@@ -343,21 +544,21 @@ class CrashDTO (BaseDTO):
     timestamp = Column(DateTime, nullable = False, index = True)
 
     # Heuristic signature.
-    signature = Column(LargeBinary, nullable = False)
+    signature = Column(String, nullable = False)
 
     # Pickled Crash object, minus the memory dump.
     data = deferred(Column(LargeBinary, nullable = False))
 
     # Exploitability test.
     exploitable = Column(Integer, nullable = False)
-    exploitability_rule = Column(TEXT, nullable = False)
-    exploitability_rating = Column(TEXT, nullable = False)
-    exploitability_desc = Column(TEXT, nullable = False)
+    exploitability_rule = Column(String(32), nullable = False)
+    exploitability_rating = Column(String(32), nullable = False)
+    exploitability_desc = Column(String, nullable = False)
 
     # Platform description.
-    os = Column(TEXT, nullable = False)
-    arch = Column(TEXT, nullable = False)
-    bits = Column(Integer, nullable = False)
+    os = Column(String(32), nullable = False)
+    arch = Column(String(16), nullable = False)
+    bits = Column(Integer, nullable = False)    # Integer(4) is deprecated :(
 
     # Event description.
     event = Column(Integer, nullable = False)
@@ -366,26 +567,26 @@ class CrashDTO (BaseDTO):
     pc = Column(BigInteger, nullable = False)
     sp = Column(BigInteger, nullable = False)
     fp = Column(BigInteger, nullable = False)
-    pc_label = Column(TEXT, nullable = False)
+    pc_label = Column(String, nullable = False)
 
     # Exception description.
-    exception = Column(TEXT)
-    exception_text = Column(TEXT)
+    exception = Column(String(64))
+    exception_text = Column(String(64))
     exception_address = Column(BigInteger)
-    exception_label = Column(TEXT)
+    exception_label = Column(String)
     first_chance = Column(Boolean)
     fault_type = Column(Integer)
     fault_address = Column(BigInteger)
-    fault_label = Column(TEXT)
-    fault_disasm = Column(TEXT)
-    stack_trace = Column(TEXT)
+    fault_label = Column(String)
+    fault_disasm = Column(String)
+    stack_trace = Column(String)
 
     # Environment description.
-    command_line = Column(TEXT)
-    environment = Column(TEXT)
+    command_line = Column(String)
+    environment = Column(String)
 
     # Notes.
-    notes = Column(TEXT)
+    notes = Column(String)
 
     def __init__(self, crash):
         """
@@ -395,7 +596,7 @@ class CrashDTO (BaseDTO):
 
         # Timestamp and signature.
         self.timestamp = datetime.datetime.fromtimestamp( crash.timeStamp )
-        self.signature = buffer(pickle.dumps(crash.signature, protocol = 0))
+        self.signature = pickle.dumps(crash.signature, protocol = 0)
 
         # Pickled Crash object, minus the memory dump.
         if crash.memoryMap:
@@ -482,183 +683,6 @@ class CrashDTO (BaseDTO):
                 crash.memoryMap = [dto.toMBI(getMemoryDump) for dto in memory]
         return crash
 
-# Fix for MySQL databases only, where a special "length" parameter is required.
-# See: http://docs.sqlalchemy.org/en/latest/dialects/mysql.html#mysql-indexes
-idx_signature = Index('ix_crashes_signature', CrashDTO.signature,
-                      mysql_length = 256)
-
-#==============================================================================
-
-# TODO: if using mssql, check it's at least SQL Server 2005
-#       (LIMIT and OFFSET support is required).
-# TODO: if using mysql, check it's at least MySQL 5.0.3
-#       (nested transactions are required).
-# TODO: maybe in mysql check the tables are not myisam?
-# TODO: maybe create the database if it doesn't exist?
-# TODO: maybe add a method to compact the database?
-#       http://stackoverflow.com/questions/1875885
-#       http://www.sqlite.org/lang_vacuum.html
-#       http://dev.mysql.com/doc/refman/5.1/en/optimize-table.html
-#       http://msdn.microsoft.com/en-us/library/ms174459(v=sql.90).aspx
-
-class _EnableSQLiteForeignKeys (PoolListener):
-    """
-    Used internally by L{BaseDAO}.
-
-    When connecting to an SQLite database, ensure that foreign keys support is
-    enabled. If not, abort the connection.
-
-    @see: U{http://sqlite.org/foreignkeys.html}
-    """
-    def connect(dbapi_con, connection_record):
-        try:
-            cursor = dbapi_con.cursor()
-            try:
-                cursor.execute("PRAGMA foreign_keys = ON;")
-                cursor.execute("PRAGMA foreign_keys;")
-                if cursor.fetchone()[0] != 1:
-                    raise Exception()
-            finally:
-                cursor.close()
-        except Exception:
-            dbapi_con.close()
-            raise sqlite3.Error()
-
-class BaseDAO (object):
-    """
-    Data Access Object base class.
-
-    @type _url: sqlalchemy.url.URL
-    @ivar _url: Database connection URL.
-
-    @type _dialect: str
-    @ivar _dialect: SQL dialect currently being used.
-
-    @type _driver: str
-    @ivar _driver: Name of the database driver currently being used.
-        To get the actual Python module use L{_url}.get_driver() instead.
-
-    @type _session: sqlalchemy.orm.Session
-    @ivar _session: Database session object.
-
-    @type _new_session: class
-    @cvar _new_session: Custom configured Session class used to create the
-        L{_session} instance variable.
-
-    @type _echo: bool
-    @cvar _echo: Set to C{True} to print all SQL queries to standard output.
-    """
-
-    _echo = False
-
-    _new_session = sessionmaker(autoflush = True,
-                                autocommit = True,
-                                expire_on_commit = True,
-                                weak_identity_map = True)
-
-    def __init__(self, url = None, creator = None):
-        """
-        Connect to the database using the given connection URL.
-
-        The current implementation uses SQLAlchemy and so it will support
-        whatever database said module supports.
-
-        @type  url: str
-        @param url:
-            URL that specifies the database to connect to.
-
-            Examples:
-             - Opening an SQLite file:
-               C{dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")}
-             - Connecting to a Microsoft SQL Server database using a system DSN
-               with the C{PyODBC} library:
-               C{dao = CrashDAO("mssql+pyodbc:///?dsn=MyDSN")}
-             - Connecting to a MySQL database called "crashes" running locally
-               using the C{oursql} library, authenticating as the "winappdbg"
-               user with no password:
-               C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/crashes")}
-             - Connecting to a locally installed SQL Express database:
-               C{dao = CrashDAO("mssql://.\\SQLEXPRESS\crashes")}
-
-            For more information see the C{SQLAlchemy} documentation online:
-            U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
-
-        @type  creator: callable
-        @param creator: (Optional) Callback function that creates the SQL
-            database connection.
-
-            Normally it's not necessary to use this argument. However in some
-            odd cases you may need to customize the database connection, for
-            example when using the integrated authentication in MSSQL.
-        """
-
-        # Parse the connection URL.
-        parsed_url = URL(url)
-        schema = parsed_url.drivername
-        if '+' in schema:
-            dialect, driver = schema.split('+')
-        else:
-            dialect, driver = schema, 'base'
-        dialect = dialect.strip().lower()
-        driver = driver.strip()
-
-        # Prepare the database engine arguments.
-        arguments = {'echo' : self._echo}
-        if dialect == 'sqlite':
-            arguments['module'] = sqlite3.dbapi2
-            arguments['listeners'] = [_EnableSQLiteForeignKeys()]
-        if creator is not None:
-            arguments['creator'] = creator
-
-        # Load the database engine.
-        engine = create_engine(url, **arguments)
-
-        # Create a new session.
-        session = self._new_session(bind = engine)
-
-        # Create the required tables if they don't exist.
-        BaseDTO.metadata.create_all(engine)
-
-        # Set the instance properties.
-        self._url     = parsed_url
-        self._driver  = driver
-        self._dialect = dialect
-        self._session = session
-
-    def _transactional(self, method, *argv, **argd):
-        """
-        Begins a transaction and calls the given DAO method.
-
-        If the method executes successfully the transaction is commited.
-
-        If the method fails, the transaction is rolled back.
-
-        @type  method: callable
-        @param method: Bound method of this class or one of its subclasses.
-            The first argument will always be C{self}.
-
-        @return: The return value of the method call.
-
-        @raise Exception: Any exception raised by the method.
-        """
-        self._session.begin(subtransactions = True)
-        try:
-            result = method(self, *argv, **argd)
-            self._session.commit()
-            return result
-        except:
-            self._session.rollback()
-            raise
-
-@decorator
-def Transactional(fn, self, *argv, **argd):
-    """
-    Decorator that wraps DAO methods to handle transactions automatically.
-
-    It may only work with subclasses of L{BaseDAO}.
-    """
-    return self._transactional(fn, *argv, **argd)
-
 #==============================================================================
 
 # TODO: add a method to modify already stored crash dumps.
@@ -693,7 +717,7 @@ class CrashDAO (BaseDAO):
 
         # Filter out duplicated crashes, if requested.
         if not allow_duplicates:
-            signature = buffer(pickle.dumps(crash.signature, protocol = 0))
+            signature = pickle.dumps(crash.signature, protocol = 0)
             if self._session.query(CrashDTO.id)                \
                             .filter_by(signature = signature) \
                             .count() > 0:
@@ -813,8 +837,8 @@ class CrashDAO (BaseDAO):
         # Build the SQL query.
         query = self._session.query(CrashDTO)
         if signature is not None:
-            sig_buffer = buffer(pickle.dumps(signature, protocol = 0))
-            query = query.filter(CrashDTO.signature == sig_buffer)
+            sig_pickled = pickle.dumps(signature, protocol = 0)
+            query = query.filter(CrashDTO.signature == sig_pickled)
         if since:
             query = query.filter(CrashDTO.timestamp >= since)
         if until:
@@ -921,8 +945,8 @@ class CrashDAO (BaseDAO):
         """
         query = self._session.query(CrashDTO.id)
         if signature:
-            sig_buffer = buffer(pickle.dumps(signature, protocol = 0))
-            query = query.filter_by(signature = sig_buffer)
+            sig_pickled = pickle.dumps(signature, protocol = 0)
+            query = query.filter_by(signature = sig_pickled)
         return query.count()
 
     @Transactional
