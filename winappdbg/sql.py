@@ -196,9 +196,12 @@ class BaseDAO (object):
              - Connecting to a locally installed SQL Express database:
                C{dao = CrashDAO("mssql://.\\SQLEXPRESS/Crashes?trusted_connection=yes")}
              - Connecting to a MySQL database running locally, using the
-               C{oursql} library, authenticating as the "winappdbg" user with no
-               password:
+               C{oursql} library, authenticating as the "winappdbg" user with
+               no password:
                C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/Crashes")}
+             - Connecting to a Postgres database running locally,
+               authenticating with user and password:
+               C{dao = CrashDAO("postgresql://winappdbg:winappdbg@localhost/Crashes")}
 
             For more information see the C{SQLAlchemy} documentation online:
             U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
@@ -214,6 +217,9 @@ class BaseDAO (object):
 
             In MySQL you can use something like the following::
                 mysql -u root -e "CREATE DATABASE Crashes;"
+
+            And in Postgres::
+                createdb Crashes -h localhost -U winappdbg -p winappdbg -O winappdbg
 
             Some small changes to the schema may be tolerated (for example,
             increasing the maximum length of string columns, or adding new
