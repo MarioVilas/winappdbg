@@ -1747,6 +1747,68 @@ class ApiHook (object):
 
 class BufferWatch (object):
     """
+    Returned by L{Debug.watch_buffer}.
+
+    This object uniquely references a buffer being watched, even if there are
+    multiple watches set on the exact memory region.
+
+    @type pid: int
+    @ivar pid: Process ID.
+
+    @type start: int
+    @ivar start: Memory address of the start of the buffer.
+
+    @type end: int
+    @ivar end: Memory address of the end of the buffer.
+
+    @type action: callable
+    @ivar action: Action callback.
+
+    @type oneshot: bool
+    @ivar oneshot: C{True} for one shot breakpoints, C{False} otherwise.
+    """
+
+    def __init__(self, pid, start, end, action = None, oneshot = False):
+        self.__pid     = pid
+        self.__start   = start
+        self.__end     = end
+        self.__action  = action
+        self.__oneshot = oneshot
+
+    @property
+    def pid(self):
+        return self.__pid
+
+    @property
+    def start(self):
+        return self.__start
+
+    @property
+    def end(self):
+        return self.__end
+
+    @property
+    def action(self):
+        return self.__action
+
+    @property
+    def oneshot(self):
+        return self.__oneshot
+
+    def match(self, address):
+        """
+        Determine if the given memory address lies within the watched buffer.
+
+        @rtype: bool
+        @return: C{True} if the given memory address lies within the watched
+            buffer, C{False} otherwise.
+        """
+        return self.__start <= address < self.__end
+
+#==============================================================================
+
+class _BufferWatchCondition (object):
+    """
     Used by L{Debug.watch_buffer}.
 
     This class acts as a condition callback for page breakpoints.
@@ -1755,80 +1817,62 @@ class BufferWatch (object):
     """
 
     def __init__(self):
-        self.__ranges = dict()
+        self.__ranges = list()  # list of BufferWatch in definition order
 
-    def add(self, address, size, action = None):
+    def add(self, bw):
         """
-        Adds a buffer to the watch object.
+        Adds a buffer watch identifier.
 
-        @type  address: int
-        @param address: Memory address of buffer to watch.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to watch.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{Debug.define_page_breakpoint} for more details.
+        @type  bw: L{BufferWatch}
+        @param bw:
+            Buffer watch identifier.
         """
-        key = (address, address + size)
-        if key in self.__ranges:
-            msg = "Buffer from %s to %s is already being watched"
-            begin = HexDump.address(key[0])
-            end   = HexDump.address(key[1])
-            raise RuntimeError(msg % (begin, end))
-        self.__ranges[key] = action
+        self.__ranges.append(bw)
 
-    def remove(self, address, size):
+    def remove(self, bw):
         """
-        Removes a buffer from the watch object.
+        Removes a buffer watch identifier.
+
+        @type  bw: L{BufferWatch}
+        @param bw:
+            Buffer watch identifier.
+
+        @raise KeyError: The buffer watch identifier was already removed.
+        """
+        try:
+            self.__ranges.remove(bw)
+        except KeyError:
+            if not bw.oneshot:
+                raise
+
+    def remove_last_match(self, address, size):
+        """
+        Removes the last buffer from the watch object
+        to match the given address and size.
 
         @type  address: int
         @param address: Memory address of buffer to stop watching.
 
         @type  size: int
         @param size: Size in bytes of buffer to stop watching.
-        """
-        key = (address, address + size)
-        if key not in self.__ranges:
-            msg = "No buffer watch set at %s-%s"
-            begin = HexDump.address(key[0])
-            end   = HexDump.address(key[1])
-            raise RuntimeError(msg % (begin, end))
-        del self.__ranges[key]
 
-    def exists(self, address, size):
-        """
-        @type  address: int
-        @param address: Memory address of buffer being watched.
+        @rtype:  int
+        @return: Number of matching elements found. Only the last one to be
+            added is actually deleted upon calling this method.
 
-        @type  size: int
-        @param size: Size in bytes of buffer being watched.
-
-        @rtype:  bool
-        @return: C{True} if the buffer is being watched, C{False} otherwise.
+            This counter allows you to know if there are more matching elements
+            and how many.
         """
-        key = (address, address + size)
-        return key in self.__ranges
-
-    def span(self):
-        """
-        @rtype:  tuple( int, int )
-        @return:
-            Base address and size in pages required to watch all the buffers.
-        """
-        min_start = 0
-        max_end   = 0
-        for ((start, end), action) in self.__ranges.iteritems():
-            if start < min_start:
-                min_start = start
-            if end > max_end:
-                max_end = end
-        base  = MemoryAddresses.align_address_to_page_start(min_start)
-        size  = max_end - min_start
-        pages = MemoryAddresses.get_buffer_size_in_pages(min_start, size)
-        return ( base, pages )
+        count = 0
+        start = address
+        end   = address + size - 1
+        matched = None
+        for item in self.__ranges:
+            if item.match(start) and item.match(end):
+                matched = item
+                count += 1
+        self.__ranges.remove(matched)
+        return count
 
     def count(self):
         """
@@ -1854,12 +1898,22 @@ class BufferWatch (object):
         """
         address    = event.get_exception_information(1)
         bCondition = False
-        for ((start, end), action) in self.__ranges.iteritems():
-            bMatched = ( start <= address < end )
-            if bMatched and action is not None:
-                action(event)
-            else:
-                bCondition = bCondition or bMatched
+        for bw in self.__ranges:
+            bMatched = bw.match(address)
+            try:
+                if bMatched and action is not None:
+                    try:
+                        action(event)
+                    except Exception, e:
+                        msg = ("Breakpoint action callback %r"
+                               " raised an exception: %s")
+                        msg = msg % (action, traceback.format_exc(e))
+                        warnings.warn(msg, BreakpointCallbackWarning)
+                else:
+                    bCondition = bCondition or bMatched
+            finally:
+                if bMatched and bw.oneshot:
+                    event.debug.dont_watch_buffer(bw)
         return bCondition
 
 #==============================================================================
@@ -4247,15 +4301,12 @@ class _BreakpointContainer (object):
             C{False} to set a normal breakpoint.
         """
 
-        # TODO
-        # Check for overlapping page breakpoints.
-
         # Check the size isn't zero or negative.
         if size < 1:
             raise ValueError("Bad size for buffer watch: %r" % size)
 
-        # Get the process object.
-        aProcess = self.system.get_process(pid)
+        # Create the buffer watch identifier.
+        bw = BufferWatch(pid, address, address + size, action, bOneShot)
 
         # Get the base address and size in pages required for this buffer.
         base  = MemoryAddresses.align_address_to_page_start(address)
@@ -4282,9 +4333,10 @@ class _BreakpointContainer (object):
                     if bp not in bset:
                         condition = bp.get_condition()
                         if not condition in cset:
-                            if not isinstance(condition, BufferWatch):
-                                # this shouldn't happen unless you tinkered with it
-                                # or defined your own page breakpoints manually.
+                            if not isinstance(condition,_BufferWatchCondition):
+                                # this shouldn't happen unless you tinkered
+                                # with it or defined your own page breakpoints
+                                # manually.
                                 msg = "Can't watch buffer at page %s"
                                 msg = msg % HexDump.address(page_addr)
                                 raise RuntimeError(msg)
@@ -4293,7 +4345,7 @@ class _BreakpointContainer (object):
 
                 # If it doesn't, define it.
                 else:
-                    condition = BufferWatch()
+                    condition = _BufferWatchCondition()
                     bp = self.define_page_breakpoint(pid, page_addr, 1,
                                                      condition = condition)
                     bset.add(bp)
@@ -4304,14 +4356,10 @@ class _BreakpointContainer (object):
                 page_addr = page_addr + pageSize
 
             # For each breakpoint, enable it if needed.
-            if bOneShot:
-                for bp in bset:
-                    if not bp.is_one_shot():
-                        bp.one_shot(aProcess, None)
-            else:
-                for bp in bset:
-                    if not bp.is_enabled():
-                        bp.enable(aProcess, None)
+            aProcess = self.system.get_process(pid)
+            for bp in bset:
+                if bp.is_disabled() or bp.is_one_shot():
+                    bp.enable(aProcess, None)
 
         # On error...
         except:
@@ -4328,11 +4376,13 @@ class _BreakpointContainer (object):
 
         # For each condition object, add the new buffer.
         for condition in cset:
-            condition.add(address, size, action)
+            condition.add(bw)
 
-    def __clear_buffer_watch(self, pid, address, size):
+    def __clear_buffer_watch_old_method(self, pid, address, size):
         """
         Used by L{dont_watch_buffer} and L{dont_stalk_buffer}.
+
+        @warn: Deprecated since WinAppDbg 1.5.
 
         @type  pid: int
         @param pid: Process global ID.
@@ -4343,6 +4393,7 @@ class _BreakpointContainer (object):
         @type  size: int
         @param size: Size in bytes of buffer to stop watching.
         """
+        warnings.warn("Deprecated since WinAppDbg 1.5", DeprecationWarning)
 
         # Check the size isn't zero or negative.
         if size < 1:
@@ -4364,18 +4415,61 @@ class _BreakpointContainer (object):
                 bp = self.get_page_breakpoint(pid, page_addr)
                 condition = bp.get_condition()
                 if condition not in cset:
-                    if not isinstance(condition, BufferWatch):
+                    if not isinstance(condition, _BufferWatchCondition):
                         # this shouldn't happen unless you tinkered with it
                         # or defined your own page breakpoints manually.
                         continue
                     cset.add(condition)
-                    if condition.exists(address, size):
-                        condition.remove(address, size)
+                    condition.remove_last_match(address, size)
                     if condition.count() == 0:
                         try:
                             self.erase_page_breakpoint(pid, bp.get_address())
                         except WindowsError:
                             pass
+            page_addr = page_addr + pageSize
+
+    def __clear_buffer_watch(self, bw):
+        """
+        Used by L{dont_watch_buffer} and L{dont_stalk_buffer}.
+
+        @type  bw: L{BufferWatch}
+        @param bw: Buffer watch identifier.
+        """
+
+        # Get the PID and the start and end addresses of the buffer.
+        pid   = bw.pid
+        start = bw.start
+        end   = bw.end
+
+        # Get the base address and size in pages required for the buffer.
+        base  = MemoryAddresses.align_address_to_page_start(start)
+        limit = MemoryAddresses.align_address_to_page_end(end)
+        pages = MemoryAddresses.get_buffer_size_in_pages(start, end - start)
+
+        # For each page, get the breakpoint and it's condition object.
+        # For each condition, remove the buffer.
+        # For each breakpoint, if no buffers are on watch, erase it.
+        cset = set()     # condition objects
+        page_addr = base
+        pageSize = MemoryAddresses.pageSize
+        while page_addr < limit:
+            if self.has_page_breakpoint(pid, page_addr):
+                bp = self.get_page_breakpoint(pid, page_addr)
+                condition = bp.get_condition()
+                if condition not in cset:
+                    if not isinstance(condition, _BufferWatchCondition):
+                        # this shouldn't happen unless you tinkered with it
+                        # or defined your own page breakpoints manually.
+                        continue
+                    cset.add(condition)
+                    condition.remove(bw)
+                    if condition.count() == 0:
+                        try:
+                            self.erase_page_breakpoint(pid, bp.get_address())
+                        except WindowsError:
+                            msg = "Cannot remove page breakpoint at address %s"
+                            msg = msg % HexDump.address( bp.get_address() )
+                            warnings.warn(msg, BreakpointWarning)
             page_addr = page_addr + pageSize
 
     def watch_buffer(self, pid, address, size, action = None):
@@ -4397,6 +4491,9 @@ class _BreakpointContainer (object):
         @param action: (Optional) Action callback function.
 
             See L{define_page_breakpoint} for more details.
+
+        @rtype:  L{BufferWatch}
+        @return: Buffer watch identifier.
         """
         self.__set_buffer_watch(pid, address, size, action, False)
 
@@ -4420,38 +4517,52 @@ class _BreakpointContainer (object):
         @param action: (Optional) Action callback function.
 
             See L{define_page_breakpoint} for more details.
+
+        @rtype:  L{BufferWatch}
+        @return: Buffer watch identifier.
         """
         self.__set_buffer_watch(pid, address, size, action, True)
 
-    def dont_watch_buffer(self, pid, address, size):
+    def dont_watch_buffer(self, bw, *argv, **argd):
         """
         Clears a page breakpoint set by L{watch_buffer}.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to stop watching.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to stop watching.
+        @type  bw: L{BufferWatch}
+        @param bw:
+            Buffer watch identifier returned by L{watch_buffer}.
         """
-        self.__clear_buffer_watch(pid, address, size)
 
-    def dont_stalk_buffer(self, pid, address, size):
+        # The sane way to do it.
+        if not (argv or argd):
+            self.__clear_buffer_watch(bw)
+
+        # Backwards compatibility with WinAppDbg 1.4.
+        else:
+            argv = list(argv)
+            argv.insert(0, bw)
+            if argd.has_key('pid'):
+                argv.insert(0, argd.pop('pid'))
+            if argd.has_key('address'):
+                argv.insert(1, argd.pop('address'))
+            if argd.has_key('size'):
+                argv.insert(2, argd.pop('size'))
+            if argd:
+                raise TypeError("Wrong arguments for dont_watch_buffer()")
+            try:
+                pid, address, size = argv
+            except ValueError:
+                raise TypeError("Wrong arguments for dont_watch_buffer()")
+            self.__clear_buffer_watch_old_method(pid, address, size)
+
+    def dont_stalk_buffer(self, bw, *argv, **argd):
         """
         Clears a page breakpoint set by L{stalk_buffer}.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to stop watching.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to stop watching.
+        @type  bw: L{BufferWatch}
+        @param bw:
+            Buffer watch identifier returned by L{stalk_buffer}.
         """
-        self.__clear_buffer_watch(pid, address, size)
+        self.dont_watch_buffer(bw, *argv, **argd)
 
 #------------------------------------------------------------------------------
 
