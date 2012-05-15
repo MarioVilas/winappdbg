@@ -53,10 +53,10 @@ class MyHook (object):
 
         # Stop watching the previous buffer.
         if self.__previous:
-            ( address, size ) = self.__previous
-            event.debug.dont_watch_buffer( event.get_pid(), address, size )
+            event.debug.dont_watch_buffer( self.__previous )
+            self.__previous = None
 
-        # Remember the location of the buffer and size.
+        # Remember the location of the buffer and its size.
         self.__watched[ event.get_tid() ] = ( lpBuffer, lpNumberOfBytesRead )
 
 
@@ -79,15 +79,12 @@ class MyHook (object):
         address = lpBuffer
         size    = process.read_dword( lpNumberOfBytesRead )
         action  = self.accessed
-        event.debug.watch_buffer( pid, address, size, action )
+        self.__previous = event.debug.watch_buffer( pid, address, size, action )
 
         # Use stalk_buffer instead of watch_buffer to be notified
         # only of the first access to the buffer.
         #
-        # event.debug.stalk_buffer( pid, address, size, action )
-
-        # Remember the buffer location.
-        self.__previous = ( address, size )
+        # self.__previous = event.debug.stalk_buffer( pid, address, size, action )
 
         # Show a message to the user.
         print "\nReadFile:\n\tStatus: SUCCESS\n\tRead bytes: %d" % size
