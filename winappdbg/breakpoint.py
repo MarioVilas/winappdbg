@@ -1901,6 +1901,7 @@ class _BufferWatchCondition (object):
         for bw in self.__ranges:
             bMatched = bw.match(address)
             try:
+                action = bw.action
                 if bMatched and action is not None:
                     try:
                         action(event)
