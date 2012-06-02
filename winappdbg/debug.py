@@ -770,7 +770,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             win32.ContinueDebugEvent(dwProcessId, dwThreadId, dwContinueStatus)
 
         # If the event is the last event, forget it.
-        if event is self.lastEvent:
+        if event == self.lastEvent:
             self.lastEvent = None
 
     def stop(self, bIgnoreExceptions = True):

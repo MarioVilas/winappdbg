@@ -189,10 +189,10 @@ class Breakpoint (object):
             state = 'Disabled'
         else:
             state = 'Active (%s)' % self.get_state_name()
-        if self.get_condition() is True:
-            condition = 'unconditional'
-        else:
+        if self.is_conditional():
             condition = 'conditional'
+        else:
+            condition = 'unconditional'
         name = self.typeName
         size = self.get_size()
         if size == 1:
@@ -294,6 +294,7 @@ class Breakpoint (object):
         @rtype:  bool
         @return: C{True} if the breakpoint has a condition callback defined.
         """
+        # Do not evaluate as boolean! Test for identity with True instead.
         return self.__condition is not True
 
     def is_unconditional(self):
@@ -301,6 +302,7 @@ class Breakpoint (object):
         @rtype:  bool
         @return: C{True} if the breakpoint doesn't have a condition callback defined.
         """
+        # Do not evaluate as boolean! Test for identity with True instead.
         return self.__condition is True
 
     def get_condition(self):
@@ -320,7 +322,7 @@ class Breakpoint (object):
         @type  condition: function
         @param condition: (Optional) Condition callback function.
         """
-        if condition in (True, False, None):    # XXX
+        if condition is None:
             self.__condition = True
         else:
             self.__condition = condition
@@ -336,7 +338,7 @@ class Breakpoint (object):
         @return: C{True} to dispatch the event, C{False} otherwise.
         """
         condition = self.get_condition()
-        if condition is True:
+        if condition is True:   # shortcut for unconditional breakpoints
             return True
         if callable(condition):
             try:
@@ -347,7 +349,7 @@ class Breakpoint (object):
                 msg = msg % (condition, traceback.format_exc(e))
                 warnings.warn(msg, BreakpointCallbackWarning)
                 return False
-        return condition
+        return bool( condition )    # force evaluation now
 
 #------------------------------------------------------------------------------
 
@@ -3725,7 +3727,7 @@ class _BreakpointContainer (object):
                 return None
         if self.has_code_breakpoint(pid, address):
             bp = self.get_code_breakpoint(pid, address)
-            if bp.get_action() is not action:
+            if bp.get_action() != action:   # can't use "is not", fails for bound methods
                 bp.set_action(action)
                 msg = "Redefined code breakpoint at %s in process ID %d"
                 msg = msg % (label, pid)
