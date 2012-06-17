@@ -514,11 +514,24 @@ SEM_NOGPFAULTERRORBOX       = 0x002
 SEM_NOALIGNMENTFAULTEXCEPT  = 0x004
 SEM_NOOPENFILEERRORBOX      = 0x800
 
+# GetHandleInformation / SetHandleInformation
+HANDLE_FLAG_INHERIT             = 0x00000001
+HANDLE_FLAG_PROTECT_FROM_CLOSE  = 0x00000002
+
 #--- Handle wrappers ----------------------------------------------------------
 
 class Handle (object):
     """
     Encapsulates Win32 handles to avoid leaking them.
+
+    @type inherit: bool
+    @ivar inherit: C{True} if the handle is to be inherited by child processes,
+        C{False} otherwise.
+
+    @type protectFromClose: bool
+    @ivar protectFromClose: Set to C{True} to prevent the handle from being
+        closed. Must be set to C{False} before you're done using the handle,
+        or it will be left open until the debugger exits. Use with care!
 
     @see:
         L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}, L{SnapshotHandle}
@@ -671,6 +684,24 @@ class Handle (object):
 
     def __repr__(self):
         return '<%s: %d>' % (self.__class__.__name__, self.value)
+
+    def __get_inherit(self):
+        return bool( GetHandleInformation(self.value) & HANDLE_FLAG_INHERIT )
+
+    def __set_inherit(self, value):
+        flag = (0, HANDLE_FLAG_INHERIT)[ bool(value) ]
+        SetHandleInformation(self.value, flag, flag)
+
+    inherit = property(__get_inherit, __set_inherit)
+
+    def __get_protectFromClose(self):
+        return bool( GetHandleInformation(self.value) & HANDLE_FLAG_PROTECT_FROM_CLOSE )
+
+    def __set_protectFromClose(self, value):
+        flag = (0, HANDLE_FLAG_PROTECT_FROM_CLOSE)[ bool(value) ]
+        SetHandleInformation(self.value, flag, flag)
+
+    protectFromClose = property(__get_protectFromClose, __set_protectFromClose)
 
 class ProcessHandle (Handle):
     """
@@ -2116,6 +2147,32 @@ def RtlPcToFileHeader(PcValue):
 
 #------------------------------------------------------------------------------
 # File API and related
+
+# BOOL WINAPI GetHandleInformation(
+#   __in   HANDLE hObject,
+#   __out  LPDWORD lpdwFlags
+# );
+def GetHandleInformation(hObject):
+    _GetHandleInformation = windll.kernel32.GetHandleInformation
+    _GetHandleInformation.argtypes = [HANDLE, PDWORD]
+    _GetHandleInformation.restype  = bool
+    _GetHandleInformation.errcheck = RaiseIfZero
+
+    dwFlags = DWORD(0)
+    _GetHandleInformation(hObject, ctypes.byref(dwFlags))
+    return dwFlags.value
+
+# BOOL WINAPI SetHandleInformation(
+#   __in  HANDLE hObject,
+#   __in  DWORD dwMask,
+#   __in  DWORD dwFlags
+# );
+def SetHandleInformation(hObject, dwMask, dwFlags):
+    _SetHandleInformation = windll.kernel32.SetHandleInformation
+    _SetHandleInformation.argtypes = [HANDLE, DWORD, DWORD]
+    _SetHandleInformation.restype  = bool
+    _SetHandleInformation.errcheck = RaiseIfZero
+    _SetHandleInformation(hObject, dwMask, dwFlags)
 
 # UINT WINAPI GetWindowModuleFileName(
 #   __in   HWND hwnd,
