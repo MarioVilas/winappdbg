@@ -56,6 +56,8 @@ from search import Search, \
 from disasm import Disassembler
 
 import re
+import os
+import os.path
 import ctypes
 import struct
 import warnings
@@ -3570,7 +3572,7 @@ class _ProcessContainer (object):
     Encapsulates the capability to contain Process objects.
 
     @group Instrumentation:
-        start_process, argv_to_cmdline, cmdline_to_argv
+        start_process, argv_to_cmdline, cmdline_to_argv, get_explorer_pid
 
     @group Processes snapshot:
         scan, scan_processes, scan_processes_fast,
@@ -3605,11 +3607,11 @@ class _ProcessContainer (object):
         methods first. You don't need to call this yourself.
         """
         if not self.__processDict:
-##            self.scan()                     # recursive scan
             try:
-                self.scan_processes()       # normal scan
+                self.scan_processes()       # remote desktop api (relative fn)
             except Exception:
-                self.scan_processes_fast()  # fast scan (no filenames)
+                self.scan_processes_fast()  # psapi (no filenames)
+            self.scan_process_filenames()   # get the pathnames when possible
 
     def __contains__(self, anObject):
         """
@@ -3938,6 +3940,26 @@ class _ProcessContainer (object):
             raise
 
         return aProcess
+
+    def get_explorer_pid(self):
+        """
+        Tries to find the process ID for "explorer.exe".
+
+        @rtype:  int or None
+        @return: Returns the process ID, or C{None} on error.
+        """
+        try:
+            exp = win32.SHGetFolderPath(win32.CSIDL_WINDOWS)
+        except Exception:
+            exp = None
+        if not exp:
+            exp = os.getenv('SystemRoot')
+        if exp:
+            exp = os.path.join(exp, 'explorer.exe')
+            exp_list = self.find_processes_by_filename(exp)
+            if exp_list:
+                return exp_list[0][0].get_pid()
+        return None
 
 #------------------------------------------------------------------------------
 

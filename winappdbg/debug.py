@@ -276,10 +276,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @keyword bSuspended: C{True} to suspend the main thread before any code
             is executed in the debugee. Defaults to C{False}.
 
-        @type    dwParentProcessId: int or None
-        @keyword dwParentProcessId: C{None} if the debugger process should be
-            the parent process (default), or a process ID to forcefully set as
-            the debugee's parent (only available for Windows Vista and above).
+        @keyword dwParentProcessId: C{None} or C{0} if the debugger process
+            should be the parent process (default), or a process ID to
+            forcefully set as the debugee's parent (only available for Windows
+            Vista and above).
+
+            In hostile mode, the default is not the debugger process but the
+            process ID for "explorer.exe".
 
         @rtype:  L{Process}
         @return: A new Process object. Normally you don't need to use it now,
@@ -327,9 +330,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
             is executed in the debugee. Defaults to C{False}.
 
         @type    dwParentProcessId: int or None
-        @keyword dwParentProcessId: C{None} if the debugger process should be
-            the parent process (default), or a process ID to forcefully set as
-            the debugee's parent (only available for Windows Vista and above).
+        @keyword dwParentProcessId: C{None} or C{0} if the debugger process
+            should be the parent process (default), or a process ID to
+            forcefully set as the debugee's parent (only available for Windows
+            Vista and above).
+
+            In hostile mode, the default is not the debugger process but the
+            process ID for "explorer.exe".
 
         @rtype:  L{Process}
         @return: A new Process object. Normally you don't need to use it now,
@@ -337,12 +344,52 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        kwargs['bDebug'] = True
-        bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
 
+        # Set the "debug" flag to True.
+        kwargs['bDebug'] = True
+
+        # Pop the "break on EP" and "parent pid" flags.
+        bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
+        dwParentProcessId = kwargs.pop('dwParentProcessId', None)
+
+        # In hostile mode the default parent process is explorer.exe.
+        # Only supported for Windows Vista and above.
+        if self.__bHostileCode and not dwParentProcessId:
+            try:
+                vista_and_above = self.__vista_and_above
+            except AttributeError:
+                osi = win32.OSVERSIONINFOEXW()
+                osi.dwMajorVersion = 6
+                osi.dwMinorVersion = 0
+                osi.dwPlatformId   = win32.VER_PLATFORM_WIN32_NT
+                mask = 0
+                mask = win32.VerSetConditionMask(mask,
+                                          win32.VER_MAJORVERSION,
+                                          win32.VER_GREATER_EQUAL)
+                mask = win32.VerSetConditionMask(mask,
+                                          win32.VER_MAJORVERSION,
+                                          win32.VER_GREATER_EQUAL)
+                mask = win32.VerSetConditionMask(mask,
+                                          win32.VER_PLATFORMID,
+                                          win32.VER_EQUAL)
+                vista_and_above = win32.VerifyVersionInfoW(osi,
+                                          win32.VER_MAJORVERSION | \
+                                          win32.VER_MINORVERSION | \
+                                          win32.VER_PLATFORMID,
+                                          mask)
+                self.__vista_and_above = vista_and_above
+            if vista_and_above:
+                dwParentProcessId = self.system.get_explorer_pid()
+                if not dwParentProcessId:
+                    msg = ("Failed to find \"explorer.exe\"!"
+                           " Using the debugger as parent process.")
+                    warnings.warn(msg, RuntimeWarning)
+
+        # Start the new process.
         aProcess = None
         try:
-            aProcess = self.system.start_process(lpCmdLine, **kwargs)
+            aProcess = self.system.start_process(
+                lpCmdLine, dwParentProcessId = dwParentProcessId, **kwargs)
 
             # Warn when mixing 32 and 64 bits.
             # This also allows the user to stop attaching altogether,
@@ -352,12 +399,18 @@ class Debug (EventDispatcher, _BreakpointContainer):
                       " Use at your own risk!"
                 warnings.warn(msg, MixedBitsWarning)
 
+            # Add the new PID to the set of debugees.
             dwProcessId = aProcess.get_pid()
             self.__startedDebugees.add(dwProcessId)
+
+            # Add the new PID to the set of "break on EP" debugees if needed.
             if bBreakOnEntryPoint:
                 self.__breakOnEP.add(dwProcessId)
+
+            # Return the Process object.
             return aProcess
 
+        # On error kill the new process and raise an exception.
         except:
             try:
                 if aProcess is not None:
