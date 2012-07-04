@@ -40,12 +40,11 @@ __all__ =   [
 import winappdbg
 from winappdbg import *
 
+import re
 import os
 import sys
 import time
 import traceback
-import xml.dom
-import xml.dom.minidom
 
 try:
     import cerealizer
@@ -158,11 +157,15 @@ class LoggingEventHandler(EventHandler):
 
     # Actions to take for "interesting" events.
     def _action(self, event, crash = None):
+
+        # Pause if requested.
+        if self.options.pause:
+            raw_input("Press enter to continue...")
+
         try:
 
-            # Run the given command if any.
-            if self.options.action:
-                self._run_command(event, crash)
+            # Run the configured commands after finding a crash if requested.
+            self._run_action_commands(event, crash)
 
         finally:
 
@@ -170,41 +173,62 @@ class LoggingEventHandler(EventHandler):
             if self.options.interactive:
                 event.debug.interactive(bConfirmQuit = False)
 
-            # Pause if requested.
-            if self.options.pause:
-                raw_input("Press enter to continue...")
-
-    # Run the given command, if any.
-    # Wait until the command completes.
+    # Run the configured commands after finding a crash.
+    # Wait until each command completes before executing the next.
     # To avoid waiting, use the "start" command.
-    def _run_command(self, event, crash = None):
-        action = System.argv_to_cmdline(self.options.action)
-        if '%' in action:
-            if not crash:
-                crash = self.crashCollector(event)
-            # %COUNT% - Number of crashes currently stored in the database.
-            # %EXCEPTIONCODE% - Exception code in hexa
-            # %EVENTCODE% - Event code in hexa
-            # %EXCEPTION% - Exception name, human readable
-            # %EVENT% - Event name, human readable
-            # %PC% - Contents of EIP, in hexa
-            # %SP% - Contents of ESP, in hexa
-            # %FP% - Contents of EBP, in hexa
-            # %WHERE% - Location of the event (a label or address)
-            action = action.replace('%COUNT%',          str(len(self.knownCrashes)) )
-            action = action.replace('%EXCEPTIONCODE%',  HexDump.address(crash.exceptionCode) )
-            action = action.replace('%EVENTCODE%',      HexDump.address(crash.eventCode) )
-            action = action.replace('%EXCEPTION%',      str(crash.exceptionName) )
-            action = action.replace('%EVENT%',          str(crash.eventName) )
-            action = action.replace('%PC%',             HexDump.address(crash.pc) )
-            action = action.replace('%SP%',             HexDump.address(crash.sp) )
-            action = action.replace('%FP%',             HexDump.address(crash.fp) )
-            action = action.replace('%WHERE%',          str(crash.labelPC) )
-            del crash
-        action = "cmd.exe /c %s" % action
-        system  = System()
-        process = system.start_process(action, bConsole = True)
-        process.wait()
+    def _run_action_commands(self, event, crash = None):
+        for action in self.options.action:
+            if '%' in action:
+                if not crash:
+                    crash = self.crashCollector(event)
+                action = self._replace_action_variables(action, crash)
+            action = "cmd.exe /c " + action
+            system  = System()
+            process = system.start_process(action, bConsole = True)
+            process.wait()
+
+    # Make the variable replacements in an action command line string.
+    def _replace_action_variables(self, action, crash):
+
+        # %COUNT% - Number of crashes currently stored in the database
+        if '%COUNT%' in action:
+            action = action.replace('%COUNT%', str(len(self.knownCrashes)) )
+
+        # %EXCEPTIONCODE% - Exception code in hexa
+        if '%EXCEPTIONCODE%' in action:
+            action = action.replace('%EXCEPTIONCODE%',
+                                        HexDump.address(crash.exceptionCode) )
+
+        # %EVENTCODE% - Event code in hexa
+        if '%EVENTCODE%' in action:
+            action = action.replace('%EVENTCODE%',
+                                            HexDump.address(crash.eventCode) )
+
+        # %EXCEPTION% - Exception name, human readable
+        if '%EXCEPTION%' in action:
+            action = action.replace('%EXCEPTION%', str(crash.exceptionName) )
+
+        # %EVENT% - Event name, human readable
+        if '%EVENT%' in action:
+            action = action.replace('%EVENT%', str(crash.eventName) )
+
+        # %PC% - Contents of EIP, in hexa
+        if '%PC%' in action:
+            action = action.replace('%PC%', HexDump.address(crash.pc) )
+
+        # %SP% - Contents of ESP, in hexa
+        if '%SP%' in action:
+            action = action.replace('%SP%', HexDump.address(crash.sp) )
+
+        # %FP% - Contents of EBP, in hexa
+        if '%FP%' in action:
+            action = action.replace('%FP%', HexDump.address(crash.fp) )
+
+        # %WHERE% - Location of the event (a label or address)
+        if '%WHERE%' in action:
+            action = action.replace('%WHERE%', str(crash.labelPC) )
+
+        return action
 
     # Get the location of the code that triggered the event.
     def _get_location(self, event, address):
@@ -418,12 +442,7 @@ class LoggingEventHandler(EventHandler):
     # Kill the process if it's a second chance exception.
     def _post_exception(self, event):
         if hasattr(event, 'is_last_chance') and event.is_last_chance():
-##            try:
-##                event.get_thread().set_pc(
-##                  event.get_process().resolve_symbol('kernel32!ExitProcess')
-##                )
-##            except Exception:
-                event.get_process().kill()
+            event.get_process().kill()
 
     # Handle all exceptions not handled by the following methods.
     def exception(self, event):
@@ -546,15 +565,17 @@ class CrashLogger (object):
             self.console        = list()
             self.windowed       = list()
 
+            # List options
+            self.action         = list()
+            self.break_at       = list()
+            self.stalk_at       = list()
+
             # Tracing options
-            self.break_at       = None
-            self.stalk_at       = None
             self.pause          = False
             self.restart        = False
             self.time_limit     = 0
             self.echo           = False
             self.events         = 'exception'
-            self.action         = None
             self.interactive    = False
 
             # Debugging options
@@ -577,22 +598,36 @@ class CrashLogger (object):
         # Initial options object with default values
         options = self.Options()
 
-        # Keep track of duplicated tags
-        tags = set()
+        # Keep track of duplicated options
+        opt_history = set()
 
-        # Read the config file into a DOM object
-        dom = None
-        try:
-            dom = xml.dom.minidom.parse(config)
-            configuration = dom.getElementsByTagName('configuration')
-            if configuration.length != 1:
-                raise xml.dom.SyntaxErr()
+        # Regular expression to split the command and the arguments
+        regexp = re.compile(r'(\S+)\s+(.*)')
 
-            # Parse each node and read the settings
-            for node in configuration.item(0).childNodes:
-                if node.nodeType != xml.dom.Node.ELEMENT_NODE:
+        # Open the config file
+        with open(config, 'rU') as fd:
+            number = 0
+            while 1:
+
+                # Read a line
+                line = fd.readline()
+                if not line: break
+                number += 1
+
+                # Strip the extra whitespace
+                line = line.strip()
+
+                # If it's a comment line or a blank line, discard it
+                if not line or line.startswith('#'):
                     continue
-                key, value = self._parse_xml_tag(node)
+
+                # Split the option and its arguments
+                match = regexp.match(line)
+                if not match:
+                    msg = "cannot parse line %d of config file %s"
+                    msg = msg % (number, config)
+                    raise RuntimeError(msg)
+                key, value = match.groups()
 
                 # Targets
                 if   key == 'attach':
@@ -605,22 +640,27 @@ class CrashLogger (object):
                     if value:
                         options.windowed.append(value)
 
-                # Options
+                # List options
+                elif key == 'break_at':
+                    options.break_at.extend(self._parse_list(value))
+                elif key == 'stalk_at':
+                    options.stalk_at.extend(self._parse_list(value))
+                elif key == 'action':
+                    options.action.append(value)
+
+                # Switch options
                 else:
 
                     # Warn about duplicated options
-                    if key in tags:
-                        print "Warning: " \
-                              "duplicated option tag in config file: %s" % key
+                    if key in opt_history:
+                        print "Warning: duplicated option %s in line %d" \
+                              " of config file %s" % (key, number, config)
+                        print
                     else:
-                        tags.add(key)
+                        opt_history.add(key)
 
                     # Tracing options
-                    if   key == 'break_at':
-                        options.break_at = value
-                    elif key == 'stalk_at':
-                        options.stalk_at = value
-                    elif key == 'pause':
+                    if key == 'pause':
                         options.pause = self._parse_boolean(value)
                     elif key == 'restart':
                         options.restart = self._parse_boolean(value)
@@ -629,9 +669,7 @@ class CrashLogger (object):
                     elif key == 'echo':
                         options.echo = self._parse_boolean(value)
                     elif key == 'events':
-                        options.events = value
-                    elif key == 'action':
-                        options.action = value
+                        options.events = self._parse_list(value)
                     elif key == 'interactive':
                         options.interactive = self._parse_boolean(value)
 
@@ -659,14 +697,11 @@ class CrashLogger (object):
                     elif key == 'memory':
                         options.memory = int(value)
 
-                    # Unknown tag
+                    # Unknown option
                     else:
-                        raise xml.dom.NotSupportedErr(key)
-
-        # Destroy the DOM object
-        finally:
-            if dom is not None:
-                dom.unlink()
+                        msg = ("unknown option %s in line %d"
+                               " of config file %s") % (key, number, config)
+                        raise RuntimeError(msg)
 
         # Return the options object
         return options
@@ -750,28 +785,6 @@ class CrashLogger (object):
 
     def parse_options(self, options):
 
-        # Get the list of breakpoints to set
-        if options.break_at:
-            if not os.path.exists(options.break_at):
-                raise ValueError("breakpoint list file not found: %s" % options.break_at)
-            try:
-                options.break_at = HexInput.string_list_file(options.break_at)
-            except ValueError, e:
-                parser.error(str(e))
-        else:
-            options.break_at = list()
-
-        # Get the list of one-shot breakpoints to set
-        if options.stalk_at:
-            if not os.path.exists(options.stalk_at):
-                raise ValueError("one-shot breakpoint list file not found: %s" % options.stalk_at)
-            options.stalk_at = HexInput.string_list_file(options.stalk_at)
-        else:
-            options.stalk_at = list()
-
-        # Parse the list of events to monitor
-        options.events = self._parse_events(options.events)
-
         # Warn or fail about inconsistent use of DBM databases
         if options.database and options.database.startswith('dbm://'):
             if options.memory and options.memory > 1:
@@ -809,38 +822,12 @@ class CrashLogger (object):
             print "Warning: the 'pause' option is ignored when 'interactive' is set."
             print
 
-    def _parse_xml_tag(self, node):
-        key = node.nodeName
-        value = node.nodeValue
-        if key is None:
-            raise xml.dom.SyntaxErr()
-        if value is None:
-            if len(node.childNodes) == 0:
-                try:
-                    value = node.attributes['value'].value
-                except AttributeError:
-                    value = None
-                except KeyError:
-                    value = None
-            else:
-                if len(node.childNodes) > 1:
-                    raise xml.dom.HierarchyRequestErr()
-                text = node.childNodes[0]
-                if text.nodeType != xml.dom.Node.TEXT_NODE:
-                    raise xml.dom.SyntaxErr()
-                value = text.nodeValue
-                if value is None:
-                    raise xml.dom.SyntaxErr()
-        elif node.hasChildNodes():
-            raise xml.dom.HierarchyRequestErr()
-        return key, value
-
-    def _parse_events(self, value):
-        events = set()
-        for event_name in value.lower().split(','):
-            event_name = event_name.strip()
-            events.add(event_name)
-        return events
+    def _parse_list(self, value):
+        tokens = set()
+        for token in value.lower().split(','):
+            token = token.strip()
+            tokens.add(token)
+        return tokens
 
     def _parse_boolean(self, value):
         value = value.strip().lower()
@@ -940,8 +927,7 @@ class CrashLogger (object):
         print "Usage:"
         print "\t%s <configuration file>" % script
         print
-        print "See the online help to learn about the configuration file format:"
-        print "\thttp://winappdbg.sourceforge.net/Tools.html#crash-logger"
+        print "See example.cfg for details on the config file format."
 
     # Run the crash logger
     def run(self, config, options):
