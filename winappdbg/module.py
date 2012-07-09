@@ -312,6 +312,11 @@ class Module (object):
         pathname = self.get_filename()
         if pathname:
             modName = self.__filename_to_modname(pathname)
+            if isinstance(modName, unicode):
+                try:
+                    modName = modName.encode('latin-1')
+                except UnicodeEncodeError, e:
+                    warnings.warn(str(e))
         else:
             modName = "0x%x" % self.get_base()
         return modName
