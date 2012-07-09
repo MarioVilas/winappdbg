@@ -2092,17 +2092,23 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Stop for breakpoint exceptions.
     def breakpoint(self, event):
-        self.print_breakpoint_location(event)
+        if hasattr(event, 'breakpoint') and event.breakpoint:
+            self.print_breakpoint_location(event)
+        else:
+            self.print_exception(event)
         self.prompt_user()
 
-    # Stop for breakpoint exceptions.
+    # Stop for WOW64 breakpoint exceptions.
     def wow64_breakpoint(self, event):
-        self.print_breakpoint_location(event)
+        self.print_exception(event)
         self.prompt_user()
 
     # Stop for single step exceptions.
     def single_step(self, event):
-        self.print_breakpoint_location(event)
+        if event.debug.is_tracing(event.get_tid()):
+            self.print_breakpoint_location(event)
+        else:
+            self.print_exception(event)
         self.prompt_user()
 
     # Don't stop for C++ exceptions.
