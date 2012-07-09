@@ -1018,38 +1018,47 @@ class Process (_ThreadContainer, _ModuleContainer):
                                                             fUnicode=True)
         gst = win32.GuessStringType
         if gst.t_default == gst.t_ansi:
-            CommandLine = str(CommandLine)
+            CommandLine = CommandLine.encode('latin-1')
         return CommandLine
 
-    def get_environment_data(self):
+    def get_environment_data(self, fUnicode = None):
         """
         Retrieves the environment block data with wich the program is running.
 
+        @see: L{win32.GuessStringType}
+
+        @type  fUnicode: bool or None
+        @param fUnicode: C{True} to return a list of Unicode strings, C{False}
+            to return a list of ANSI strings, or C{None} to return whatever
+            the default is for string types.
+
         @rtype:  list of str
-        @return: Environment keys and values separated by a C{=} character,
+        @return: Environment keys and values separated by a (C{=}) character,
             as found in the process memory.
 
         @raise WindowsError: On error an exception is raised.
         """
-        block         = list()
-        address, size = self.get_environment_block()
 
-        # Read the memory once and parse it.
-        data = self.peek(address, size)
-        data = unicode(data, 'U16', 'replace')
-        last = 0
-        while data:
-            pos = data.find(u'\0', last)
-            if pos < 0:
+        # Read the environment block contents.
+        data = self.peek( *self.get_environment_block() )
+
+        # Parse the block into a list of Unicode strings.
+        block = list()
+        last = -1
+        while 1:
+            last = data.find('\0\0\0\0', last + 1)
+            if last < 0 or last & 1 == 0:
                 break
-            if last == 0 and data[0] == u'=':
-                last = pos + 1
-                continue   # usually the first entry contains garbage
-            chunk = data[ last : pos ]
-            last = pos + 1
-            if not chunk or chunk == u'\0':
-                break
-            block.append(chunk)
+        if last >= 0:
+            data = data[:last]
+        block = data.decode('U16').split(u'\0')
+
+        # Convert the data to ANSI if requested.
+        if fUnicode is None:
+            gst = win32.GuessStringType
+            fUnicode = gst.t_default == gst.t_unicode
+        if not fUnicode:
+            block = [x.encode('latin-1', 'replace') for x in block]
 
         # Return the environment data.
         return block
@@ -1059,50 +1068,70 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Parse the environment block into a Python dictionary.
 
-        @note: Duplicated keys are joined using null characters.
+        @note: Values of duplicated keys are joined using null characters.
 
         @type  block: list of str
-        @param block: List of Unicode strings as returned by
-            L{get_environment_data}.
+        @param block: List of strings as returned by L{get_environment_data}.
 
         @rtype:  dict(str S{->} str)
         @return: Dictionary of environment keys and values.
         """
+
+        # Create an empty environment dictionary.
         environment = dict()
+
+        # End here if the environment block is empty.
+        if not block:
+            return environment
+
+        # Prepare the tokens (ANSI or Unicode).
+        gst = win32.GuessStringType
+        if type(block[0]) == gst.t_ansi:
+            equals = '='
+            terminator = '\0'
+        else:
+            equals = u'='
+            terminator = u'\0'
 
         # Split the blocks into key/value pairs.
         for chunk in block:
-            sep = chunk.find(u'=')
-            if sep >= 0:
-                key, value = chunk[:sep], chunk[sep+1:]
-            else:
-                key, value = chunk, u''
+            sep = chunk.find(equals, 1)
+            if sep < 0:
+                raise Exception()
+                continue    # corrupted environment block?
+            key, value = chunk[:sep], chunk[sep+1:]
+
+            # For duplicated keys, append the value.
+            # Values are separated using null terminators.
             if not environment.has_key(key):
                 environment[key] = value
             else:
-                environment[key] += u'\0' + value
-
-        # Convert to ANSI if this is the default string type.
-        gst = win32.GuessStringType
-        if gst.t_default == gst.t_ansi:
-            environment = dict( [ (str(key), str(value)) \
-                                for (key, value) in environment.iteritems() ] )
+                environment[key] += terminator + value
 
         # Return the environment dictionary.
         return environment
 
-    def get_environment(self):
+    def get_environment(self, fUnicode = None):
         """
         Retrieves the environment with wich the program is running.
 
         @note: Duplicated keys are joined using null characters.
+
+        @see: L{win32.GuessStringType}
+
+        @type  fUnicode: bool or None
+        @param fUnicode: C{True} to return a list of Unicode strings, C{False}
+            to return a list of ANSI strings, or C{None} to return whatever
+            the default is for string types.
 
         @rtype:  dict(str S{->} str)
         @return: Dictionary of environment keys and values.
 
         @raise WindowsError: On error an exception is raised.
         """
-        return self.parse_environment_data( self.get_environment_data() )
+        return self.parse_environment_data(
+            self.get_environment_data(fUnicode)
+        )
 
 #------------------------------------------------------------------------------
 
