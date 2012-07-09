@@ -2109,7 +2109,7 @@ class _TEB_NT(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  ULONG * 26),
         ("UserReserved",                    ULONG * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   ULONG),
         ("FpSoftwareStatusRegister",        ULONG),
         ("SystemReserved1",                 PVOID * 54),
@@ -2247,7 +2247,7 @@ class _TEB_XP(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -2392,7 +2392,7 @@ class _TEB_XP_64(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -2541,7 +2541,7 @@ class _TEB_2003(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -2719,7 +2719,7 @@ class _TEB_2008(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -2910,7 +2910,7 @@ class _TEB_2008_64(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -3102,7 +3102,7 @@ class _TEB_2008_R2(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
@@ -3294,7 +3294,7 @@ class _TEB_2008_R2_64(Structure):
         ("Win32ThreadInfo",                 PVOID),
         ("User32Reserved",                  DWORD * 26),
         ("UserReserved",                    DWORD * 5),
-        ("WOW32Reserved",                   PVOID),
+        ("WOW32Reserved",                   PVOID), # ptr to wow64cpu!X86SwitchTo64BitMode
         ("CurrentLocale",                   DWORD),
         ("FpSoftwareStatusRegister",        DWORD),
         ("SystemReserved1",                 PVOID * 54),
