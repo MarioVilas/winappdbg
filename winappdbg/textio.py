@@ -1618,3 +1618,19 @@ class Logger(object):
         Log lines of text associated with the last Python exception.
         """
         self.__do_log( 'Exception raised: %s' % traceback.format_exc() )
+
+    def is_enabled(self):
+        """
+        Determines if the logger will actually print anything when the log_*
+        methods are called.
+
+        This may save some processing if the log text requires a lengthy
+        calculation to prepare. If no log file is set and stdout logging
+        is disabled, there's no point in preparing a log text that won't
+        be shown to anyone.
+
+        @rtype:  bool
+        @return: C{True} if a log file was set and/or standard output logging
+            is enabled, or C{False} otherwise.
+        """
+        return self.verbose or self.logfile
