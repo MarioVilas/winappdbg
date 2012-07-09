@@ -1023,6 +1023,14 @@ class Thread (object):
         @type  bUseLabels: bool
         @param bUseLabels: C{True} to use labels, C{False} to use addresses.
 
+        @type  bMakePretty: bool
+        @param bMakePretty:
+            C{True} for user readable labels,
+            C{False} for labels that can be passed to L{Process.resolve_label}.
+
+            "Pretty" labels look better when producing output for the user to
+            read, while pure labels are more useful programatically.
+
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename )
@@ -1091,6 +1099,14 @@ class Thread (object):
 
         @type  bUseLabels: bool
         @param bUseLabels: C{True} to use labels, C{False} to use addresses.
+
+        @type  bMakePretty: bool
+        @param bMakePretty:
+            C{True} for user readable labels,
+            C{False} for labels that can be passed to L{Process.resolve_label}.
+
+            "Pretty" labels look better when producing output for the user to
+            read, while pure labels are more useful programatically.
 
         @rtype:  tuple of tuple( int, int, str )
         @return: Stack trace of the thread as a tuple of
