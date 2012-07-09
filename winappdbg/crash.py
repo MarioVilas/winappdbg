@@ -530,9 +530,9 @@ class Crash (object):
         """
         Fetch extra data from the L{Event} object.
 
-        @note: This is only needed for exceptions. Since this method may take
-            a little longer to run, it's best to call it only after you've
-            determined the crash is interesting and you want to save it.
+        @note: Since this method may take a little longer to run, it's best to
+            call it only after you've determined the crash is interesting and
+            you want to save it.
 
         @type  event: L{Event}
         @param event: Event object for crash.
@@ -545,11 +545,11 @@ class Crash (object):
                See L{Process.get_memory_map}.
              - C{2} to take a full memory snapshot.
                See L{Process.take_memory_snapshot}.
-             - C{3} to take a full memory snapshot generator.
+             - C{3} to take a live memory snapshot.
                See L{Process.generate_memory_snapshot}.
         """
 
-        # Get the process and thread, but dont't store them in the DB.
+        # Get the process and thread, we'll use them below.
         process = event.get_process()
         thread  = event.get_thread()
 
@@ -569,42 +569,40 @@ class Crash (object):
 ##            raise   # XXX DEBUG
             pass
 
-        # Get some information for exception events.
+        # Data pointed to by registers.
+        self.registersPeek = thread.peek_pointers_in_registers()
+
+        # Module where execution is taking place.
+        aModule = process.get_module_at_address(self.pc)
+        if aModule is not None:
+            self.modFileName = aModule.get_filename()
+            self.lpBaseOfDll = aModule.get_base()
+
+        # Contents of the stack frame.
+        try:
+            self.stackRange = thread.get_stack_range()
+        except Exception, e:
+            pass
+        try:
+            self.stackFrame = thread.get_stack_frame()
+            stackFrame = self.stackFrame
+        except Exception, e:
+            self.stackFrame = thread.peek_stack_data()
+            stackFrame = self.stackFrame[:64]
+        if stackFrame:
+            self.stackPeek = process.peek_pointers_in_data(stackFrame)
+
+        # Code being executed.
+        self.faultCode   = thread.peek_code_bytes()
+        try:
+            self.faultDisasm = thread.disassemble_around_pc(32)
+        except Exception, e:
+##            raise   # XXX DEBUG
+            pass
+
+        # For memory related exceptions, get the memory contents
+        # of the location that caused the exception to be raised.
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
-
-            # Data pointed to by registers.
-            self.registersPeek = thread.peek_pointers_in_registers()
-
-            # Module that raised the exception.
-            aModule = process.get_module_at_address(self.pc)
-            if aModule is not None:
-                self.modFileName = aModule.get_filename()
-                self.lpBaseOfDll = aModule.get_base()
-
-            # Contents of the stack frame.
-            try:
-                self.stackRange = thread.get_stack_range()
-            except Exception, e:
-                pass
-            try:
-                self.stackFrame = thread.get_stack_frame()
-                stackFrame = self.stackFrame
-            except Exception, e:
-                self.stackFrame = thread.peek_stack_data()
-                stackFrame = self.stackFrame[:64]
-            if stackFrame:
-                self.stackPeek = process.peek_pointers_in_data(stackFrame)
-
-            # Code that raised the exception.
-            self.faultCode   = thread.peek_code_bytes()
-            try:
-                self.faultDisasm = thread.disassemble_around_pc(32)
-            except Exception, e:
-##                raise   # XXX DEBUG
-                pass
-
-            # For memory related exceptions, get the memory contents
-            # of the location that caused the exception to be raised.
             if self.pc != self.exceptionAddress and self.exceptionCode in (
                         win32.EXCEPTION_ACCESS_VIOLATION,
                         win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,
@@ -615,20 +613,21 @@ class Crash (object):
                         ):
                 self.faultMem = process.peek(self.exceptionAddress, 64)
                 if self.faultMem:
-                    self.faultPeek = process.peek_pointers_in_data(self.faultMem)
+                    self.faultPeek = process.peek_pointers_in_data(
+                                                                 self.faultMem)
 
-            # Take a snapshot of the process memory. Additionally get the
-            # memory contents if requested.
-            if takeMemorySnapshot == 1:
-                self.memoryMap = process.get_memory_map()
-                mappedFilenames = process.get_mapped_filenames(self.memoryMap)
-                for mbi in self.memoryMap:
-                    mbi.filename = mappedFilenames.get(mbi.BaseAddress, None)
-                    mbi.content  = None
-            elif takeMemorySnapshot == 2:
-                self.memoryMap = process.take_memory_snapshot()
-            elif takeMemorySnapshot == 3:
-                self.memoryMap = process.generate_memory_snapshot()
+        # Take a snapshot of the process memory. Additionally get the
+        # memory contents if requested.
+        if takeMemorySnapshot == 1:
+            self.memoryMap = process.get_memory_map()
+            mappedFilenames = process.get_mapped_filenames(self.memoryMap)
+            for mbi in self.memoryMap:
+                mbi.filename = mappedFilenames.get(mbi.BaseAddress, None)
+                mbi.content  = None
+        elif takeMemorySnapshot == 2:
+            self.memoryMap = process.take_memory_snapshot()
+        elif takeMemorySnapshot == 3:
+            self.memoryMap = process.generate_memory_snapshot()
 
     @property
     def pc(self):

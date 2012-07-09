@@ -557,12 +557,6 @@ class CrashDTO (BaseDTO):
     # Timestamp.
     timestamp = Column(DateTime, nullable = False, index = True)
 
-    # Heuristic signature.
-    signature = Column(String, nullable = False)
-
-    # Pickled Crash object, minus the memory dump.
-    data = deferred(Column(LargeBinary, nullable = False))
-
     # Exploitability test.
     exploitable = Column(Integer, nullable = False)
     exploitability_rule = Column(String(32), nullable = False)
@@ -575,7 +569,7 @@ class CrashDTO (BaseDTO):
     bits = Column(Integer, nullable = False)    # Integer(4) is deprecated :(
 
     # Event description.
-    event = Column(Integer, nullable = False)
+    event = Column(String, nullable = False)
     pid = Column(Integer, nullable = False)
     tid = Column(Integer, nullable = False)
     pc = Column(BigInteger, nullable = False)
@@ -599,8 +593,17 @@ class CrashDTO (BaseDTO):
     command_line = Column(String)
     environment = Column(String)
 
+    # Debug strings.
+    debug_string = Column(String)
+
     # Notes.
     notes = Column(String)
+
+    # Heuristic signature.
+    signature = Column(String, nullable = False)
+
+    # Pickled Crash object, minus the memory dump.
+    data = deferred(Column(LargeBinary, nullable = False))
 
     def __init__(self, crash):
         """
@@ -612,18 +615,19 @@ class CrashDTO (BaseDTO):
         self.timestamp = datetime.datetime.fromtimestamp( crash.timeStamp )
         self.signature = pickle.dumps(crash.signature, protocol = 0)
 
-        # Pickled Crash object, minus the memory dump.
-        if crash.memoryMap:
-            warnings.warn("Serializing a crash dump that contains a memory"
-                          " dump may be very slow and take up more space in"
-                          " the database!")
-        self.data = buffer(Marshaller.dumps(crash))
+        # Marshalled Crash object, minus the memory dump.
+        # This code is *not* thread safe!
+        memoryMap = crash.memoryMap
+        try:
+            crash.memoryMap = None
+            self.data = buffer( Marshaller.dumps(crash) )
+        finally:
+            crash.memoryMap = memoryMap
 
         # Exploitability test.
         self.exploitability_rating, \
         self.exploitability_rule,   \
-        self.exploitability_desc  = \
-                                    crash.isExploitable()
+        self.exploitability_desc  = crash.isExploitable()
 
         # Exploitability test as an integer result (for sorting).
         self.exploitable = [
@@ -641,7 +645,7 @@ class CrashDTO (BaseDTO):
         self.bits = crash.bits
 
         # Event description.
-        self.event    = crash.eventCode
+        self.event    = crash.eventName
         self.pid      = crash.pid
         self.tid      = crash.tid
         self.pc       = crash.pc
@@ -651,6 +655,7 @@ class CrashDTO (BaseDTO):
 
         # Exception description.
         self.exception         = crash.exceptionName
+        self.exception_text    = crash.exceptionDescription
         self.exception_address = crash.exceptionAddress
         self.exception_label   = crash.exceptionLabel
         self.first_chance      = crash.firstChance
@@ -662,15 +667,22 @@ class CrashDTO (BaseDTO):
         self.stack_trace       = CrashDump.dump_stack_trace_with_labels(
                                                       crash.stackTracePretty )
 
-        # Environment description.
-        self.command_line    = crash.commandLine
-        if crash.environmentData is None:
-            self.environment = None
-        else:
-            if type(crash.environmentData) == type(u''):
-                self.environment = u'\0'.join(crash.environmentData) + u'\0'
-            else:
-                self.environment = '\0'.join(crash.environmentData) + '\0'
+        # Command line.
+        self.command_line = crash.commandLine
+
+        # Environment.
+        envList = crash.environment.items()
+        envList.sort()
+        environment = ''
+        for envKey, envVal in envList:
+            # Must concatenate here instead of using a substitution,
+            # so strings can be automatically promoted to Unicode.
+            environment += envKey + '=' + envVal + '\n'
+        if environment:
+            self.environment = environment
+
+        # Debug string.
+        self.debug_string = crash.debugString
 
         # Notes.
         self.notes = crash.notesReport()
@@ -754,11 +766,6 @@ class CrashDAO (BaseDAO):
         r_crash = None
         try:
 
-            # Take out the memory map from the Crash object,
-            # so it doesn't get pickled into the database.
-            memoryMap = crash.memoryMap
-            crash.memoryMap = None
-
             # Fill out a new row for the crashes table.
             r_crash = CrashDTO(crash)
             session.add(r_crash)
@@ -770,21 +777,17 @@ class CrashDAO (BaseDAO):
         finally:
             try:
 
-                # Make the ORM forget the CrashDTO object so we can
-                # safely restore the memory map into the Crash object.
+                # Make the ORM forget the CrashDTO object.
                 if r_crash is not None:
                     session.expire(r_crash)
 
             finally:
 
-                # Just in case, delete the last reference to the CrashDTO
+                # Delete the last reference to the CrashDTO
                 # object, so the Python garbage collector claims it.
                 del r_crash
 
-                # Restore the memory map of the Crash object.
-                crash.memoryMap = memoryMap
-
-        # Return the row ID for the Crash object.
+        # Return the row ID.
         return crash_id
 
     # Store the memory dump into the memory table.

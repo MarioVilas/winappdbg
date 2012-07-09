@@ -222,8 +222,11 @@ class LoggingEventHandler(EventHandler):
 
         # %EXCEPTIONCODE% - Exception code in hexa
         if '%EXCEPTIONCODE%' in action:
-            action = action.replace('%EXCEPTIONCODE%',
-                                        HexDump.address(crash.exceptionCode) )
+            if crash.exceptionCode:
+                exceptionCode = HexDump.address(crash.exceptionCode)
+            else:
+                exceptionCode = HexDump.address(0)
+            action = action.replace('%EXCEPTIONCODE%', exceptionCode)
 
         # %EVENTCODE% - Event code in hexa
         if '%EVENTCODE%' in action:
@@ -232,11 +235,15 @@ class LoggingEventHandler(EventHandler):
 
         # %EXCEPTION% - Exception name, human readable
         if '%EXCEPTION%' in action:
-            action = action.replace('%EXCEPTION%', str(crash.exceptionName) )
+            if crash.exceptionName:
+                exceptionName = crash.exceptionName
+            else:
+                exceptionName = 'Not an exception'
+            action = action.replace('%EXCEPTION%', exceptionName)
 
         # %EVENT% - Event name, human readable
         if '%EVENT%' in action:
-            action = action.replace('%EVENT%', str(crash.eventName) )
+            action = action.replace('%EVENT%', crash.eventName)
 
         # %PC% - Contents of EIP, in hexa
         if '%PC%' in action:
@@ -252,7 +259,14 @@ class LoggingEventHandler(EventHandler):
 
         # %WHERE% - Location of the event (a label or address)
         if '%WHERE%' in action:
-            action = action.replace('%WHERE%', str(crash.labelPC) )
+            if crash.labelPC:
+                try:
+                    labelPC = str(crash.labelPC)
+                except UnicodeError:
+                    labelPC = HexDump.address(crash.pc)
+            else:
+                labelPC = HexDump.address(crash.pc)
+            action = action.replace('%WHERE%', labelPC)
 
         return action
 

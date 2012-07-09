@@ -1211,7 +1211,7 @@ class CrashDump (StaticClass):
         @rtype:  str
         @return: Text suitable for logging.
         """
-        if stack_trace is None:
+        if not stack_trace:
             return ''
         table = Table()
         table.addRow('Frame', 'Origin', 'Module')
@@ -1239,7 +1239,7 @@ class CrashDump (StaticClass):
         @rtype:  str
         @return: Text suitable for logging.
         """
-        if stack_trace is None:
+        if not stack_trace:
             return ''
         table = Table()
         table.addRow('Frame', 'Origin')
