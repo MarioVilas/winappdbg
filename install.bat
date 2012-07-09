@@ -45,6 +45,7 @@ goto Exit
 echo Installing...
 echo.
 for /f "delims=#" %%P in (install.cfg) do (
+    cmd /c if exist "%%P" echo Interpreter: %%P
     cmd /c if exist "%%P" "%%P" setup.py install
     cmd /c if exist "%%P" echo.
 )
