@@ -1016,7 +1016,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
 #------------------------------------------------------------------------------
 
-    def interactive(self, bConfirmQuit = True):
+    def interactive(self, bConfirmQuit = True, bShowBanner = True):
         """
         Start an interactive debugging session.
 
@@ -1024,14 +1024,22 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @param bConfirmQuit: Set to C{True} to ask the user for confirmation
             before closing the session, C{False} otherwise.
 
+        @type  bShowBanner: bool
+        @param bShowBanner: Set to C{True} to show a banner before entering
+            the session and after leaving it, C{False} otherwise.
+
         @warn: This will temporarily disable the user-defined event handler!
 
         This method returns when the user closes the session.
         """
+        print
+        print "-" * 79
         print "Interactive debugging session started."
         print "Use the \"help\" command to list all available commands."
         print "Use the \"quit\" command to close this session."
-        print
+        print "-" * 79
+        if self.lastEvent is None:
+            print
         console = ConsoleDebugger()
         console.confirm_quit = bConfirmQuit
         console.load_history()
@@ -1042,7 +1050,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
             console.stop_using_debugger()
             console.save_history()
         print
+        print "-" * 79
         print "Interactive debugging session closed."
+        print "-" * 79
+        print
 
 #------------------------------------------------------------------------------
 
