@@ -1,42 +1,86 @@
-.. _getting-started:
+.. _download:
 
-Getting started
-***************
+Downloading and installing
+**************************
 
 This is what you need to know to download, install and begin to use *WinAppDbg*:
 
-.. _download:
+Latest version
+--------------
 
-Download
---------
-
-The current version is **1.5**. There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
+The latest version is **1.5 beta 4** . There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
 
 The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version as a source code tarball from the `subversion repository <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/trunk.tar.gz?view=tar>`_.
 
 **Installer packages**
 
-* `winappdbg-1.5.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5-beta4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win32.msi/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5-beta4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win-amd64.msi/download>`_ - All supported 64-bit Python versions
 
 **Source code**
 
-* `winappdbg-1.5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download>`_ - Manual install (setup.py)
-
-Manuals
--------
+* `winappdbg-1.5-beta4.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.zip/download>`_ - Manual install (setup.py)
 
 The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.5/reference/>`_, but they're also available for download:
 
 **Windows Help Files**
 
-* `winappdbg-tutorial-1.5.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5.chm/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5.chm/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.5-beta4.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta4.chm/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.5-beta4.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta4.chm/download>`_ - Complete reference material
 
 **PDF Files (for printing)**
 
-* `winappdbg-tutorial-1.5.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5.pdf/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5.pdf/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.5-beta4.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta4.pdf/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.5-beta4.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta4.pdf/download>`_ - Complete reference material
+
+.. _older:
+
+Older versions
+--------------
+
+Older versions are still available for download as well:
+
+**1.4**
+
+* `Installers and source code`__
+* `Online help`__
+* `Tutorial`__
+
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/
+.. __: http://winappdbg.sourceforge.net/doc/v1.4/reference/
+.. __: http://winappdbg.sourceforge.net/doc/v1.4/tutorial/
+
+**1.3**
+
+* `Installers and source code`__
+* `Online help`__
+
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/
+.. __: http://winappdbg.sourceforge.net/doc/v1.3/
+
+**1.2**
+
+* `Installers and source code`__
+* `Online help`__
+
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.2/
+.. __: http://winappdbg.sourceforge.net/doc/v1.2/
+
+**1.1**
+
+* `Installers and source code`__
+* `Online help`__
+
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.1/
+.. __: http://winappdbg.sourceforge.net/doc/v1.1/
+
+**1.0**
+
+* `Installers and source code`__
+* `Online help`__
+
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.0/
+.. __: http://winappdbg.sourceforge.net/doc/v1.0/
 
 Install
 -------
@@ -82,7 +126,7 @@ The following packages provide extra features and performance improvements, they
 
 * The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
 
-* `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
+* `PyReadline <http://ipython.scipy.org/Wiki/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
 
 Support
 -------
@@ -112,7 +156,7 @@ The following tables show which Python interpreters, operating systems and proce
 * Python interpreters
 
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | Python 2.4 and earlier   |  *not supported*  | Use an `older version <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ of WinAppDbg in this case. |
+    | Python 2.4 and earlier   |  *not supported*  | Use an :ref:`older version <older>` of WinAppDbg in this case.                                                  |
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
     | Python 2.5 through 2.7   |     **full**      |                                                                                                                 |
     +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+

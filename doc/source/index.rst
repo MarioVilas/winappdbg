@@ -1,7 +1,7 @@
 .. _index:
 
-Welcome to WinAppDbg's documentation!
-*************************************
+Welcome to WinAppDbg |version|!
+*******************************
 
 The *WinAppDbg* python module allows developers to quickly code instrumentation scripts in **Python** under a **Windows** environment.
 
@@ -14,11 +14,13 @@ Current features also include disassembling x86 native code (using the `diStorm 
 Download
 --------
 
-* `winappdbg-1.5.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.exe/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.exe/download>`_ - All supported 64-bit Python versions
-* `winappdbg-1.5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download>`_ - Manual install (setup.py)
+Some quick links for the impatient:
 
-For more information go to the :ref:`downloads page <download>`.
+* `winappdbg-1.5-beta4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win32.exe/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5-beta4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win-amd64.exe/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5-beta4.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.zip/download>`_ - Manual install (setup.py)
+
+For more information, online docs and older versions go to the :ref:`downloads page <download>`.
 
 Reference
 ---------
@@ -31,7 +33,7 @@ Tutorial
 .. toctree::
    :maxdepth: 2
 
-   GettingStarted
+   Downloads
    Tools
    ProgrammingGuide
    Redistribution
@@ -48,7 +50,7 @@ Here is a list of software projects that use *WinAppDbg* in alphabetical order:
 
 And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit your needs, also in alphabetical order:
 
-* `ImmLib <http://debugger.immunityinc.com/Documentation/>`_ is a Python library to integrate your custom scripts into *Immunity Debugger*. It can only function inside the debugger, but it's the best solution if you aim at writing plugins for that debugger instead of standalone tools.
+* `ImmLib <http://debugger.immunityinc.com/>`_ is a Python library to integrate your custom scripts into *Immunity Debugger*. It can only function inside the debugger, but it's the best solution if you aim at writing plugins for that debugger instead of standalone tools.
 * `Kenshoto's vtrace debugger <https://code.google.com/p/vtrace-mirror/>`_ is a full fledged multiplatform debugger written in Python, and a personal favorite of mine. I took a few ideas when designing *WinAppDbg* and, while I feel mine is more complete when it comes to Windows-specific features, this is what I'd definitely recommend for multi-OS projects. See also the `community branch <https://code.google.com/p/vdebug/>`_.
 * `OllyPython <https://code.google.com/p/ollypython/>`_ is an *OllyDbg* plugin that integrates a Python debugger. Naturally it only works within OllyDbg and is not suitable for standalone projects.
 * `PyDbg <https://code.google.com/p/paimei/>`_ is another debugging library for Python that is part of the *Paimei* framework, but may work separately as well. It works on Windows and OSX. It predates *WinAppDbg* by quite some time but it's also been unmaintained for long, and it only works in Python versions 2.4 and 2.5. A newer branch called `PyDbg64 <https://github.com/gdbinit/pydbg64>`_ implements 64 bit support for both platforms.
@@ -57,9 +59,9 @@ And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit y
 * `pygdb <https://code.google.com/p/pygdb/>`_ is a simple wrapper on the GNU debugger that provides a GTK interface to it. Works in Linux and OSX.
 * `PyKd <https://pykd.codeplex.com/>`_ is like *PyDbgEng* and *PyDbgExt* combined into one - it can be both used from within the debugger and a standalone Python interpreter. Being a younger project it's still in alpha state, but looks very promising!
 * `PyMem <https://github.com/srounet/Pymem>`_ is a memory instrumentation library written in Python for Windows. It provides a subset of the functionality found in *WinAppDbg*, but if you're developing a tool that only needs to manipulate a process memory you may find it convenient to support both backends and leave the choice to the user.
-* `python-ptrace <http://pypi.python.org/pypi/python-ptrace>`_ is another debugger library for Python with the same goals as *WinAppDbg*. Here the approach used was to call the ptrace syscall, so naturally it works only on POSIX systems (BSD, Linux, OSX). If Kenshoto's vtrace is not an option you could try combining this with *WinAppDbg* to implement a multiplatform tool.
+* `python-ptrace <http://pypi.python.org/pypi/python-ptrace>`_ is another debugger library for Python with the same goals as *WinAppDbg*. Here the approach used was to call the ptrace syscall, so naturally it works only on POSIX systems (BSD, Linux, maybe OSX). If Kenshoto's vtrace is not an option you could try combining this with *WinAppDbg* to implement a multiplatform tool.
 * `PythonGdb <http://sourceware.org/gdb/wiki/PythonGdb>`_ is an embedded Python interpreter for the GNU debugger. It's already included in GDB 7.
 * `Radare <http://radare.nopcode.org>`_ is a console based multiplatform disassembler, debugger and reverse engineering framework. Python is among the languages supported for plugins and scripting.
-* `uhooker <http://oss.coresecurity.com/projects/uhooker.htm>`_ is a Python library to implement function hooks in other processes. While its functionality overlaps with some of *WinAppDbg*, the hooks implementation of *uhooker* is superior. Unfortunately the last update was in 2007. :(
+* `uhooker <http://www.coresecurity.com/content/open-source-projects#Uhooker>`_ is a Python library to implement function hooks in other processes. While its functionality overlaps with some of *WinAppDbg*, the hooks implementation of *uhooker* is superior. Unfortunately the last update was in 2007. :(
 
 See also the wonderful `Python Arsenal for RE <http://dsecrg.com/files/pub/pdf/Python%20arsenal%20for%20RE%201.1.pdf>`_ for an up to date reference of security related Python tools.
