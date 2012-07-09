@@ -16,4 +16,4 @@ include examples/debugging/*.py
 include examples/win32_api_wrappers/*.py
 include examples/miscellaneous/*.py
 include tools/*.py
-include tools/*.xml
+include tools/example.cfg
