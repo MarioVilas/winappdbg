@@ -84,7 +84,7 @@ Dependencies
 
 Naturally you need the `Python interpreter <http://www.python.org/download/>`_. It's recommended to use Python 2.7. You'll have to install the 32 bit VM to debug 32 bit targets and the 64 bit VM for 64 bit targets. Both VMs can be installed on the same machine.
 
-If you're still using Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it. Newer version os Python already have this module.
+If you're still using Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it. Newer versions of Python already have this module.
 
 The following packages provide extra features and performance improvements, they are very recommended but not mandatory.
 
