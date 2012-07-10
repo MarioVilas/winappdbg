@@ -40,45 +40,42 @@ Older versions
 
 Older versions are still available for download as well:
 
-**1.4**
++-----------------+-------------------+
+| Version **1.4** | * `Downloads`__   |
+| *(10 Dec 2010)* | * `Online help`__ |
+|                 | * `Tutorial`__    |
++-----------------+-------------------+
+| Version **1.3** | * `Downloads`__   |
+| *(12 Feb 2010)* | * `Online help`__ |
++-----------------+-------------------+
+| Version **1.2** | * `Downloads`__   |
+| *(16 Jun 2009)* | * `Online help`__ |
++-----------------+-------------------+
+| Version **1.1** | * `Downloads`__   |
+| *(18 May 2009)* | * `Online help`__ |
++-----------------+-------------------+
+| Version **1.0** | * `Downloads`__   |
+| *(22 Apr 2009)* | * `Online help`__ |
++-----------------+-------------------+
 
-* `Downloads`__
-* `Online help`__
-* `Tutorial`__
-
+.. WinAppDbg 1.4 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/
 .. __: http://winappdbg.sourceforge.net/doc/v1.4/reference/
 .. __: http://winappdbg.sourceforge.net/doc/v1.4/tutorial/
 
-**1.3**
-
-* `Downloads`__
-* `Online help`__
-
+.. WinAppDbg 1.3 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/
 .. __: http://winappdbg.sourceforge.net/doc/v1.3/
 
-**1.2**
-
-* `Downloads`__
-* `Online help`__
-
+.. WinAppDbg 1.2 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.2/
 .. __: http://winappdbg.sourceforge.net/doc/v1.2/
 
-**1.1**
-
-* `Downloads`__
-* `Online help`__
-
+.. WinAppDbg 1.1 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.1/
 .. __: http://winappdbg.sourceforge.net/doc/v1.1/
 
-**1.0**
-
-* `Downloads`__
-* `Online help`__
-
+.. WinAppDbg 1.0 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.0/
 .. __: http://winappdbg.sourceforge.net/doc/v1.0/
 
