@@ -9,7 +9,7 @@ It uses **ctypes** to wrap many `Win32 API <http://msdn.microsoft.com/en-us/libr
 
 The intended audience are QA engineers and software security auditors wishing to test or fuzz Windows applications with quickly coded Python scripts. Several :ref:`ready to use utilities <tools>` are shipped and can be used for this purposes.
 
-Current features also include disassembling x86 native code (using the `diStorm disassembler <http://ragestorm.net/distorm/>`_), debugging multiple processes simultaneously and produce a detailed log of application crashes, useful for fuzzing and automated testing.
+Current features also include disassembling x86 native code, debugging multiple processes simultaneously and produce a detailed log of application crashes, useful for fuzzing and automated testing.
 
 Download
 --------
@@ -36,7 +36,6 @@ Tutorial
    Downloads
    Tools
    ProgrammingGuide
-   Redistribution
 
 Related projects
 ----------------

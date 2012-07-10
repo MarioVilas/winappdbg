@@ -8,7 +8,7 @@ This is what you need to know to download, install and begin to use *WinAppDbg*:
 Latest version
 --------------
 
-The latest version is **1.5 beta 4** . There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
+The latest version is **1.5 beta 4**. There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
 
 The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version as a source code tarball from the `subversion repository <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/trunk.tar.gz?view=tar>`_.
 
@@ -42,7 +42,7 @@ Older versions are still available for download as well:
 
 **1.4**
 
-* `Installers and source code`__
+* `Downloads`__
 * `Online help`__
 * `Tutorial`__
 
@@ -52,7 +52,7 @@ Older versions are still available for download as well:
 
 **1.3**
 
-* `Installers and source code`__
+* `Downloads`__
 * `Online help`__
 
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/
@@ -60,7 +60,7 @@ Older versions are still available for download as well:
 
 **1.2**
 
-* `Installers and source code`__
+* `Downloads`__
 * `Online help`__
 
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.2/
@@ -68,7 +68,7 @@ Older versions are still available for download as well:
 
 **1.1**
 
-* `Installers and source code`__
+* `Downloads`__
 * `Online help`__
 
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.1/
@@ -76,11 +76,53 @@ Older versions are still available for download as well:
 
 **1.0**
 
-* `Installers and source code`__
+* `Downloads`__
 * `Online help`__
 
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.0/
 .. __: http://winappdbg.sourceforge.net/doc/v1.0/
+
+Dependencies
+------------
+
+Naturally you need the `Python interpreter <http://www.python.org/download/>`_. It's recommended to use Python 2.7. You'll have to install the 32 bit VM to debug 32 bit targets and the 64 bit VM for 64 bit targets. Both VMs can be installed on the same machine.
+
+If you're still using Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it. Newer version os Python already have this module.
+
+The following packages provide extra features and performance improvements, they are very recommended but not mandatory.
+
+Disassembler
+++++++++++++
+
+*WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed.
+
+ * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
+
+   * `Distorm 3.2, 32 bits <https://distorm.googlecode.com/files/distorm3-2.win32.exe>`_
+   * `Distorm 3.2, 64 bits <https://distorm.googlecode.com/files/distorm3-2.win-amd64.exe>`_
+   * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version)
+   * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version)
+
+ * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX:
+
+   * `BeaEngine 3.1.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_
+   * `BeaEngine 3.1.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_
+
+ * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
+
+   * `PyDasm 1.5, 32 and 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_
+
+Database storage
+++++++++++++++++
+
+The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the ability to use a SQL database to store and find crash dumps. Most major database engines are supported.
+
+Other goodies
++++++++++++++
+
+With the Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_, *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
+
+Also `PyReadline <http://ipython.scipy.org/Wiki/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
 
 Install
 -------
@@ -105,29 +147,6 @@ You can also install WinAppDbg from its `PyPI repository <http://pypi.python.org
 
 * `Python Package Manager <http://sourceforge.net/projects/pythonpkgmgr/>`_ (it's a GUI installer)
 
-Dependencies
-------------
-
-Naturally you need the `Python interpreter <http://www.python.org/download/>`_. It's recommended to use Python 2.7.
-
-If you're still using Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it. Newer version os Python already have this module.
-
-The following packages provide extra features and performance improvements, they are very recommended but not mandatory:
-
-* *WinAppDbg* itself doesn't come with a disassembler, but any one of the following disassemblers is compatible:
-
-  * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah (precompiled binaries, older version: `distorm-1.7.30.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ or `distorm-1.7.30.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_).
-
-  * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX (precompiled binaries: `BeaEnginePython-3.1.0.win32.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_ or `BeaEnginePython-3.1.0.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_).
-
-  * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera (precompiled binaries: `PyDasm-1.5-precompiled.zip <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_).
-
-* The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives the crash logger tool the ability to connect to almost any SQL database.
-
-* The Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_. *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download it from `here <http://psyco.sourceforge.net/download.html>`_.
-
-* `PyReadline <http://ipython.scipy.org/Wiki/PyReadline/Intro>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
-
 Support
 -------
 
@@ -145,69 +164,92 @@ Recommended platform:
 
 It might work, but was not tested, under *Windows 2000*, *Wine* and *ReactOS*, and some bugs and missing features are to be expected in these platforms (mainly due to missing APIs).
 
-Python 3.x support was experimental up to *WinAppDbg 1.4*, and was dropped with *WinAppDbg 1.5*. There are currently no plans to support Python 3.x in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
+Python 3 support was experimental up to *WinAppDbg 1.4*, and was dropped with *WinAppDbg 1.5*. There are currently no plans to support Python 3 in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
 
 While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <http://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
 
-If you find a bug or have a feature suggestion, don't hesitate to send an email to the [https://lists.sourceforge.net/lists/listinfo/winappdbg-users winappdbg-users] mailing list. Both comments and complaints are welcome! :)
+If you find a bug or have a feature suggestion, don't hesitate to send an email to the `winappdbg-users <https://lists.sourceforge.net/lists/listinfo/winappdbg-users>`_ mailing list. Both comments and complaints are welcome! :)
 
-The following tables show which Python interpreters, operating systems and processor architectures are currently supported. **Full** means all features are fully functional. **Partial** means some features may be broken and/or untested. **Experimental** means there is a subversion branch with at least partial support, but hasn't been merged to trunk yet. **Untested** means that though no testing was performed it should probably work.
+The following tables show which Python interpreters, operating systems and processor architectures are currently supported. **Full** means all features are fully functional. **Partial** means some features may be broken and/or untested. **Untested** means that though no testing was performed it should probably work. **Experimental** means it's not expected to work and although it might, you can encounter many bugs.
 
-* Python interpreters
+Python interpreters
++++++++++++++++++++
 
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | Python 2.4 and earlier   |  *not supported*  | Use an :ref:`older version <older>` of WinAppDbg in this case.                                                  |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | Python 2.5 through 2.7   |     **full**      |                                                                                                                 |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | Python 3.0 and newer     |  *not supported*  |                                                                                                                 |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | PyPy 1.4 and earlier     |  *not supported*  | It doesn't seem to be available for download any more...                                                        |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | PyPy 1.5 and 1.6         |  *experimental*   | The sqlite3 dll is missing, after you fix that it should be the same as newer versions.                         |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | PyPy 1.7 and newer       |  *experimental*   | Some compatibility issues need fixing.                                                                          |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
-    | IronPython 2.0 and newer |  *experimental*   | Some compatibility issues need fixing.                                                                          |
-    +--------------------------+-------------------+-----------------------------------------------------------------------------------------------------------------+
++--------------------------+-----------------+----------------------------------------------------------------+
+| Version                  | Status          | Notes                                                          |
++==========================+=================+================================================================+
+| CPython 2.4 and earlier  | *not supported* | Use an :ref:`older version <older>` of WinAppDbg in this case. |
++--------------------------+-----------------+----------------------------------------------------------------+
+| CPython 2.5 through 2.7  |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| CPython 3.0 and newer    | *not supported* | Planned for WinAppDbg 2.0.                                     |
++--------------------------+-----------------+----------------------------------------------------------------+
+| PyPy 1.4 and earlier     | *not supported* | It doesn't seem to be available for download any more...       |
++--------------------------+-----------------+----------------------------------------------------------------+
+| PyPy 1.5 and 1.6         | *experimental*  | The sqlite3 dll is missing, after you fix that                 |
+|                          |                 | it should be the same as newer versions.                       |
++--------------------------+-----------------+----------------------------------------------------------------+
+| PyPy 1.7 and newer       | *experimental*  | Some compatibility issues need fixing.                         |
++--------------------------+-----------------+----------------------------------------------------------------+
+| IronPython 2.0 and newer | *experimental*  | Some compatibility issues need fixing.                         |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Jython 2.5 and earlier   | *not supported* | Support for ctypes is                                          |
+|                          |                 | `incomplete <http://bugs.jython.org/issue1328>`_               |
+|                          |                 | in this platform.                                              |
++--------------------------+-----------------+----------------------------------------------------------------+
 
-* Operating systems
+Operating systems
++++++++++++++++++
 
-    +------------------------+------------+-----------------------------------+
-    | Windows 2000 and older | *partial*  | Some Win32 APIs didn't exist yet. |
-    +------------------------+------------+-----------------------------------+
-    | Windows XP             | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows Vista          | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows 7              | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows Server 2003    | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows Server 2003 R2 | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows Server 2008    | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | Windows Server 2008 R2 | **full**   |                                   |
-    +------------------------+------------+-----------------------------------+
-    | ReactOS                | *untested* | Probably similar to Windows 2000. |
-    +------------------------+------------+-----------------------------------+
-    | Linux (using Wine 1.2) | *untested* | Reported to work on Ubuntu.       |
-    +------------------------+------------+-----------------------------------+
-    | Linux (using Wine 1.3) | *untested* | Reported to work on Ubuntu.       |
-    +------------------------+------------+-----------------------------------+
++--------------------------+-----------------+----------------------------------------------------------------+
+| Version                  | Status          | Notes                                                          |
++==========================+=================+================================================================+
+| Windows 95, 98 and ME    | *not supported* | Some required Win32 API functions didn't exist yet.            |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows 2000 and older   |   *untested*    | Some required Win32 API functions didn't exist yet.            |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows XP               |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Server 2003      |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Server 2003 R2   |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Vista            |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows 7                |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Server 2008      |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Server 2008 R2   |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows 8                |   *untested*    | Probably similar to Windows 7.                                 |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Server 2012      |   *untested*    | Probably similar to Windows Server 2008 R2.                    |
++--------------------------+-----------------+----------------------------------------------------------------+
+| ReactOS                  |   *untested*    | Probably similar to Windows 2000.                              |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Linux (using Wine 1.2)   |   *untested*    | Reported to work on Ubuntu.                                    |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Linux (using Wine 1.3)   |   *untested*    | Reported to work on Ubuntu.                                    |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows + Cygwin         | *not supported* | Ctypes under Cygwin doesn't fully support                      |
+|                          |                 | calling Win32 API functions.                                   |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows Mobile           | *not supported* | Planned for WinAppDbg 2.0.                                     |
++--------------------------+-----------------+----------------------------------------------------------------+
 
-* Architectures
+Architectures
++++++++++++++
 
-    +----------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Intel x86 (32 bits) and compatible     |    **full**    |                                                                                                                                                                                        |
-    +----------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Intel x86_x64 (64 bits) and compatible |    **full**    |                                                                                                                                                                                        |
-    +----------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | ARM and compatible                     | *experimental* | Planned for WinAppDbg 1.6. See the next item about currently missing features.                                                                                                         |
-    +----------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Other architectures                    | *experimental* | Platform specific features are missing, for example: disassembling, reading or writing to registers, setting code and hardware breakpoints, function hooks, accessing the PEB and TEB. |
-    +----------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------+-----------------+----------------------------------------------------------------+
+| Version                  | Status          | Notes                                                          |
++==========================+=================+================================================================+
+| Intel (32 bits)          |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Intel (64 bits)          |    **full**     |                                                                |
++--------------------------+-----------------+----------------------------------------------------------------+
+| ARM                      | *not supported* | Planned for WinAppDbg 2.0.                                     |
++--------------------------+-----------------+----------------------------------------------------------------+
 
 Known issues
 ------------
@@ -216,9 +258,9 @@ Known issues
 
 * Debugging 32 bit processes from a 64 bit Python VM does not work very well. Debugging 64 bit processes from a 32 bit Python VM does not work at all. This is in part because the Win32 API makes it difficult, but there's also a design problem in WinAppDbg: most of the C struct definitions change from 32 to 64 bits and there's currently no support for having both definitions at the same time.
 
-* Step-on-branch mode stopped working since Windows Vista. This is due to a change in the Windows kernel. The next version of WinAppDbg will support this.
+* Step-on-branch mode stopped working since Windows Vista. This is due to a change in the Windows kernel. The next major version of WinAppDbg (2.0) will support this.
 
-* Setting hardware breakpoints in the main thread before the process has finished initializing does not work. This is not supported by the Windows itself, and is not a limitation of WinAppDbg. Future versions of WinAppDbg will try to detect this error and warn about it.
+* Setting hardware breakpoints in the main thread before the process has finished initializing does not work. This is not supported by the Windows API itself, and is not a limitation of WinAppDbg. Future versions of WinAppDbg will try to detect this error and warn about it.
 
 License
 -------
