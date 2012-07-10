@@ -93,21 +93,21 @@ Disassembler
 
 *WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed.
 
- * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
+* The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
 
-   * `Distorm 3.2, 32 bits <https://distorm.googlecode.com/files/distorm3-2.win32.exe>`_
-   * `Distorm 3.2, 64 bits <https://distorm.googlecode.com/files/distorm3-2.win-amd64.exe>`_
-   * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version)
-   * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version)
+  * `Distorm 3.2, 32 bits <https://distorm.googlecode.com/files/distorm3-2.win32.exe>`_
+  * `Distorm 3.2, 64 bits <https://distorm.googlecode.com/files/distorm3-2.win-amd64.exe>`_
+  * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version)
+  * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version)
 
- * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX:
+* The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX:
 
-   * `BeaEngine 3.1.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_
-   * `BeaEngine 3.1.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_
+  * `BeaEngine 3.1.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_
+  * `BeaEngine 3.1.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_
 
- * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
+* The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
 
-   * `PyDasm 1.5, 32 and 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_
+  * `PyDasm 1.5, 32 and 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_
 
 Database storage
 ++++++++++++++++
