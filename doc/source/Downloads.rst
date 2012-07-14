@@ -95,10 +95,10 @@ Disassembler
 
 * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
 
-  * `Distorm 3.2, 32 bits <https://distorm.googlecode.com/files/distorm3-2.win32.exe>`_
-  * `Distorm 3.2, 64 bits <https://distorm.googlecode.com/files/distorm3-2.win-amd64.exe>`_
-  * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version)
-  * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version)
+  * `Distorm 3.2, 32 bits <https://distorm.googlecode.com/files/distorm3-2.win32.exe>`_ (GPL v3)
+  * `Distorm 3.2, 64 bits <https://distorm.googlecode.com/files/distorm3-2.win-amd64.exe>`_ (GPL v3)
+  * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version, BSD license)
+  * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version, BSD license)
 
 * The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX:
 
@@ -108,6 +108,10 @@ Disassembler
 * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
 
   * `PyDasm 1.5, 32 and 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_
+
+* The `Libdisassemble <http://www.immunitysec.com/resources-freesoftware.shtml>`_ module from Immunity:
+
+  * `Libdisassemble 2.0 <https://www.immunitysec.com/downloads/libdisassemble2.0.tar.gz>`_
 
 Database storage
 ++++++++++++++++
