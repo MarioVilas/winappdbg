@@ -50,6 +50,7 @@ import warnings
 BeaEnginePython = None
 distorm3 = None
 pydasm = None
+libdisassemble = None
 
 #==============================================================================
 
@@ -389,6 +390,73 @@ class PyDasmEngine (Engine):
 
 #==============================================================================
 
+class LibdisassembleEngine (Engine):
+    """
+    Integration with Immunity libdisassemble.
+
+    @see: U{http://www.immunitysec.com/resources-freesoftware.shtml}
+    """
+
+    name = "Libdisassemble"
+    desc = "Immunity libdisassemble"
+    url  = "http://www.immunitysec.com/resources-freesoftware.shtml"
+
+    supported = set((
+        win32.ARCH_I386,
+    ))
+
+    def __init__(self, arch = None):
+
+        # Validate the architecture.
+        arch = self._validate_arch(arch)
+
+        # Load the libdisassemble module.
+        # Since it doesn't come with an installer or an __init__.py file
+        # users can only install it manually however they feel like it,
+        # so we'll have to do a bit of guessing to find it.
+        global libdisassemble
+        if libdisassemble is None:
+            try:
+                # If installed properly with __init__.py
+                import libdisassemble.disassemble as libdisassemble
+            except ImportError:
+                try:
+                    # If installed by just copying and pasting the files
+                    import disassemble as libdisassemble
+                except ImportError:
+                    msg = ("%s is not installed or can't be found. "
+                    "Download it from: %s" % (self.name, self.url))
+                    raise NotImplementedError(msg)
+
+    def decode(self, address, code):
+
+        # Decode each instruction in the buffer.
+        result = []
+        offset = 0
+        while offset < len(code):
+
+            # Decode the current instruction.
+            opcode  = libdisassemble.Opcode( code[offset:offset+32] )
+            length  = opcode.getSize()
+            disasm  = opcode.printOpcode('INTEL')
+            hexdump = HexDump.hexadecimal( code[offset:offset+length] )
+
+            # Add the decoded instruction to the list.
+            result.append((
+                address + offset,
+                length,
+                disasm,
+                hexdump,
+            ))
+
+            # Move to the next instruction.
+            offset += length
+
+        # Return the list of decoded instructions.
+        return result
+
+#==============================================================================
+
 # TODO: use a lock to access __decoder
 
 class Disassembler (object):
@@ -405,6 +473,7 @@ class Disassembler (object):
         DistormEngine,  # diStorm engine goes first for backwards compatibility
         BeaEngine,
         PyDasmEngine,
+        LibdisassembleEngine,
     )
 
     # Cache of already loaded disassemblers.
@@ -480,3 +549,47 @@ class Disassembler (object):
             decoder = clazz(arch)
             cls.__decoder[selected] = decoder
         return decoder
+
+#==============================================================================
+
+# Some simple test code.
+if __name__ == '__main__':
+    from sys import argv
+    from textio import HexInput, CrashDump
+
+    # Show the arguments order if none are given.
+    if len(argv) == 1:
+        print "%s <file> [offset] [size] [arch] [engine]" % argv[0]
+    else:
+
+        # Get the arguments from the command line.
+        filename = argv[1]
+        try:
+            offset = HexInput.address(argv[2])
+        except IndexError:
+            offset = 0
+        try:
+            size = HexInput.integer(argv[3])
+        except IndexError:
+            size = 0
+        try:
+            arch = argv[4]
+        except IndexError:
+            arch = None
+        try:
+            engine = argv[5]
+        except IndexError:
+            engine = None
+
+        # Disassemble and print the results.
+        disasm = Disassembler(arch, engine)
+        with open(filename, 'rb') as fd:
+            fd.seek(offset)
+            code = fd.read(size)
+        #print HexDump.hexadecimal(code)
+        #print
+        disassembly = disasm.decode(offset, code)
+        #for (addr, size, code, dump) in disassembly:
+        #    print (addr, size, code, dump)
+        #print
+        print CrashDump.dump_code(disassembly, offset)
