@@ -1278,7 +1278,7 @@ class CrashDump (StaticClass):
         @rtype:  str
         @return: Text suitable for logging.
         """
-        if disassembly is None:
+        if not disassembly:
             return ''
         table = Table(sep = ' | ')
         for (addr, size, code, dump) in disassembly:
@@ -1376,6 +1376,9 @@ class CrashDump (StaticClass):
         @rtype:  str
         @return: Text suitable for logging.
         """
+        if not memoryMap:
+            return ''
+
         table = Table()
         if mappedFilenames:
             table.addRow("Address", "Size", "State", "Access", "Type", "File")
