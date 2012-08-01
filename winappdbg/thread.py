@@ -1007,6 +1007,7 @@ class Thread (object):
             addresses.
         @raise   WindowsError: Raises an exception on error.
         """
+        # TODO use teb.DeallocationStack too (max. possible stack size)
         teb = self.get_teb()
         tib = teb.NtTib
         return ( tib.StackLimit, tib.StackBase )    # top, bottom
