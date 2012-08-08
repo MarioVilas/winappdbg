@@ -3404,7 +3404,8 @@ class _BreakpointContainer (object):
             if bp.is_enabled() or bp.is_one_shot():
 
                 # Breakpoint is ours.
-                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
+                event.continueStatus = win32.DBG_CONTINUE
+##                event.continueStatus = win32.DBG_EXCEPTION_HANDLED
 
                 # Hit the breakpoint.
                 bp.hit(event)
@@ -3426,6 +3427,7 @@ class _BreakpointContainer (object):
                     bCallHandler = bCondition
 
         # If we don't have a breakpoint here pass the exception to the debugee.
+        # This is a normally occurring exception so we shouldn't swallow it.
         else:
             event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
@@ -3480,12 +3482,20 @@ class _BreakpointContainer (object):
                     bCallHandler = bCondition
 
         # Handle the system breakpoint.
+        # TODO: examine the stack trace to figure out if it's really a
+        # system breakpoint or an antidebug trick. The caller should be
+        # inside ntdll if it's legit.
         elif event.get_process().is_system_defined_breakpoint(address):
             event.continueStatus = win32.DBG_CONTINUE
 
-        # If we don't have a breakpoint here pass the exception to the debugee.
+        # In hostile mode, if we don't have a breakpoint here pass the
+        # exception to the debugee. In normal mode assume all breakpoint
+        # exceptions are to be handled by the debugger.
         else:
-            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            if self.in_hostile_mode():
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            else:
+                event.continueStatus = win32.DBG_CONTINUE
 
         return bCallHandler
 
@@ -3504,11 +3514,14 @@ class _BreakpointContainer (object):
         aThread         = event.get_thread()
         aProcess        = event.get_process()
         bCallHandler    = True
+        bIsOurs         = False
 
-        # Set the default to pass the exception to the debugee.
+        # In hostile mode set the default to pass the exception to the debugee.
         # If we later determine the exception is ours, hide it instead.
+        old_continueStatus = event.continueStatus
         try:
-            event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
+            if self.in_hostile_mode():
+                event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
             # In hostile mode, read the last executed bytes to try to detect
             # some antidebug tricks. Skip this check in normal mode because
@@ -3524,8 +3537,7 @@ class _BreakpointContainer (object):
             bFakeSingleStep  = False
             bLastIsPushFlags = False
             bNextIsPopFlags  = False
-            if self.system.arch in (win32.ARCH_I386, win32.ARCH_AMD64) \
-                                                and self.in_hostile_mode():
+            if self.in_hostile_mode():
                 pc = aThread.get_pc()
                 c = aProcess.read_char(pc - 1)
                 if c == 0xF1:               # int1
@@ -3545,6 +3557,7 @@ class _BreakpointContainer (object):
             # don't pass the exception to the debugee
             # and set the trap flag again.
             if self.is_tracing(tid):
+                bIsOurs = True
                 if not bFakeSingleStep:
                     event.continueStatus = win32.DBG_CONTINUE
                 aThread.set_tf()
@@ -3563,6 +3576,7 @@ class _BreakpointContainer (object):
             # Handle breakpoints in RUNNING state.
             running = self.__get_running_bp_set(tid)
             if running:
+                bIsOurs = True
                 if not bFakeSingleStep:
                     event.continueStatus = win32.DBG_CONTINUE
                 bCallHandler = False
@@ -3591,6 +3605,7 @@ class _BreakpointContainer (object):
                             if not bFakeSingleStep:
                                 event.continueStatus = win32.DBG_CONTINUE
                         bFoundBreakpoint = True
+                        bIsOurs = True
                         bp.hit(event)
                         if bp.is_running():
                             self.__add_running_bp(tid, bp)
@@ -3607,10 +3622,15 @@ class _BreakpointContainer (object):
             if self.is_tracing(tid):
                 bCallHandler = True
 
+            # If we're not in hostile mode, by default we assume all single
+            # step exceptions are caused by the debugger.
+            if not bIsOurs and not self.in_hostile_mode():
+                aThread.clear_tf()
+
         # If the user hit Control-C while we were inside the try block,
         # set the default continueStatus back.
         except:
-            event.continueStatus = win32.DBG_CONTINUE
+            event.continueStatus = old_continueStatus
             raise
 
         return bCallHandler
