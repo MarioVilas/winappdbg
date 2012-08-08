@@ -36,6 +36,8 @@ Binary code disassembly.
     BeaEngine, DistormEngine, PyDasmEngine
 """
 
+from __future__ import with_statement
+
 __revision__ = "$Id$"
 
 __all__ = ['Disassembler', 'BeaEngine', 'DistormEngine', 'PyDasmEngine']
