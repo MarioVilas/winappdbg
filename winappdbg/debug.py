@@ -1097,7 +1097,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # code location where a new thread is spawned by the debugging
         # APIs, ntdll!DbgUiRemoteBreakin.
         if self.__bHostileCode:
-            aProcess = self.event.get_process()
+            aProcess = event.get_process()
             try:
                 hProcess = aProcess.get_handle(win32.PROCESS_QUERY_INFORMATION)
                 pbi = win32.NtQueryInformationProcess(
