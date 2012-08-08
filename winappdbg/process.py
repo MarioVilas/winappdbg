@@ -194,10 +194,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         hProcess = win32.OpenProcess(dwDesiredAccess, win32.FALSE, self.dwProcessId)
 
-        # In case hProcess was set to an actual handle value instead of a Handle
-        # object. This shouldn't happen unless the user tinkered with hFile.
-        if not hasattr(self.hProcess, '__del__'):
+        try:
             self.close_handle()
+        except Exception, e:
+            warnings.warn(
+                "Failed to close process handle: %s" % traceback.format_exc())
 
         self.hProcess = hProcess
 
@@ -1846,8 +1847,13 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 self.mprotect(lpBaseAddress, len(lpBuffer), prot)
             except Exception:
-##                traceback.print_exc()                           # XXX DEBUG
                 prot = None
+                msg = ("Failed to adjust page permissions"
+                       " for process %s at address %s: %s")
+                msg = msg % (self.get_pid(),
+                             HexDump.address(lpBaseAddress, self.get_bits()),
+                             traceback.format_exc())
+                warnings.warn(msg, RuntimeWarning)
         try:
             r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
         finally:
