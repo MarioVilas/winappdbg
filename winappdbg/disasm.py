@@ -72,6 +72,9 @@ class Engine (object):
     @type supported: set(str)
     @cvar supported: Set of supported processor architectures.
         For more details see L{win32.version._get_arch}.
+
+    @type arch: str
+    @ivar arch: Name of the processor architecture.
     """
 
     name = "<insert engine name here>"
@@ -89,7 +92,13 @@ class Engine (object):
         @raise NotImplementedError: This disassembler doesn't support the
             requested processor architecture.
         """
-        raise NotImplementedError()
+        self.arch = self._validate_arch(arch)
+        try:
+            self._import_dependencies()
+        except ImportError:
+            msg = "%s is not installed or can't be found. Download it from: %s"
+            msg = msg % (self.name, self.url)
+            raise NotImplementedError(msg)
 
     def _validate_arch(self, arch = None):
         """
@@ -119,6 +128,15 @@ class Engine (object):
 
         # Return the architecture.
         return arch
+
+    def _import_dependencies(self):
+        """
+        Loads the dependencies for this disassembler.
+
+        @raise ImportError: This disassembler cannot find or load the
+            necessary dependencies to make it work.
+        """
+        raise SyntaxError("Subclasses MUST implement this method!")
 
     def decode(self, address, code):
         """
@@ -159,20 +177,12 @@ class BeaEngine (Engine):
         win32.ARCH_AMD64,
     ))
 
-    def __init__(self, arch = None):
-
-        # Remember the architecture.
-        self.arch = self._validate_arch(arch)
+    def _import_dependencies(self):
 
         # Load the BeaEngine ctypes wrapper.
         global BeaEnginePython
         if BeaEnginePython is None:
-            try:
-                import BeaEnginePython
-            except ImportError:
-                msg = ("%s is not installed or can't be found. "
-                "Download it from: %s" % (self.name, self.url))
-                raise NotImplementedError(msg)
+            import BeaEnginePython
 
     def decode(self, address, code):
         addressof = ctypes.addressof
@@ -189,7 +199,7 @@ class BeaEngine (Engine):
         if self.arch == win32.ARCH_I386:
             Instruction.Archi = 0
         else:
-            Instruction.Archi = 1
+            Instruction.Archi = 0x40
         Instruction.Options = ( BeaEnginePython.Tabulation      +
                                 BeaEnginePython.NasmSyntax      +
                                 BeaEnginePython.SuffixedNumeral +
@@ -241,8 +251,8 @@ class BeaEngine (Engine):
             elif offset + InstrLength > len(code):
 
                 # Output each byte as a "db" instruction.
-                for offset in xrange(offset, offset + len(code)):
-                    char = "%.2X" % ord(buffer[offset])
+                for char in buffer[ offset : offset + len(code) ]:
+                    char = "%.2X" % ord(char)
                     result.append((
                         Instruction.VirtualAddr,
                         1,
@@ -286,10 +296,7 @@ class DistormEngine (Engine):
         win32.ARCH_AMD64,
     ))
 
-    def __init__(self, arch = None):
-
-        # Validate the architecture.
-        arch = self._validate_arch(arch)
+    def _import_dependencies(self):
 
         # Load the distorm bindings.
         global distorm3
@@ -297,12 +304,7 @@ class DistormEngine (Engine):
             try:
                 import distorm3
             except ImportError:
-                try:
-                    import distorm as distorm3
-                except ImportError:
-                    msg = ("%s is not installed or can't be found. "
-                    "Download it from: %s" % (self.name, self.url))
-                    raise NotImplementedError(msg)
+                import distorm as distorm3
 
         # Load the decoder function.
         self.__decode = distorm3.Decode
@@ -311,7 +313,7 @@ class DistormEngine (Engine):
         self.__flag = {
             win32.ARCH_I386:  distorm3.Decode32Bits,
             win32.ARCH_AMD64: distorm3.Decode64Bits,
-        }[arch]
+        }[self.arch]
 
     def decode(self, address, code):
         return self.__decode(address, code, self.__flag)
@@ -333,20 +335,12 @@ class PyDasmEngine (Engine):
         win32.ARCH_I386,
     ))
 
-    def __init__(self, arch = None):
-
-        # Validate the architecture.
-        arch = self._validate_arch(arch)
+    def _import_dependencies(self):
 
         # Load the libdasm bindings.
         global pydasm
         if pydasm is None:
-            try:
-                import pydasm
-            except ImportError:
-                msg = ("%s is not installed or can't be found. "
-                "Download it from: %s" % (self.name, self.url))
-                raise NotImplementedError(msg)
+            import pydasm
 
     def decode(self, address, code):
 
@@ -407,28 +401,24 @@ class LibdisassembleEngine (Engine):
         win32.ARCH_I386,
     ))
 
-    def __init__(self, arch = None):
-
-        # Validate the architecture.
-        arch = self._validate_arch(arch)
+    def _import_dependencies(self):
 
         # Load the libdisassemble module.
         # Since it doesn't come with an installer or an __init__.py file
         # users can only install it manually however they feel like it,
         # so we'll have to do a bit of guessing to find it.
+
         global libdisassemble
         if libdisassemble is None:
             try:
+
                 # If installed properly with __init__.py
                 import libdisassemble.disassemble as libdisassemble
+
             except ImportError:
-                try:
-                    # If installed by just copying and pasting the files
-                    import disassemble as libdisassemble
-                except ImportError:
-                    msg = ("%s is not installed or can't be found. "
-                    "Download it from: %s" % (self.name, self.url))
-                    raise NotImplementedError(msg)
+
+                # If installed by just copying and pasting the files
+                import disassemble as libdisassemble
 
     def decode(self, address, code):
 
@@ -466,7 +456,7 @@ class Disassembler (object):
     Generic disassembler. Uses a set of adapters to decide which library to
     load for which supported platform.
 
-    @type engines: set( L{Engine} )
+    @type engines: tuple( L{Engine} )
     @cvar engines: Set of supported engines. If you implement your own adapter
         you can add its class here to make it available to L{Disassembler}.
     """
@@ -517,13 +507,7 @@ class Disassembler (object):
                         try:
                             decoder = cls.__decoder[selected]
                         except KeyError:
-                            try:
-                                decoder = clazz(arch)
-                            except ImportError:
-                                msg = ("%s is not installed or can't be found."
-                                       " Download it from: ")
-                                msg = msg % (clazz.name, clazz.url)
-                                raise NotImplementedError(msg)
+                            decoder = clazz(arch)
                             cls.__decoder[selected] = decoder
                         return decoder
                 except NotImplementedError, e:
