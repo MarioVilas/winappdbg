@@ -718,6 +718,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
             return
 
         # Determine the default behaviour for this event.
+        # XXX HACK
+        # Some undocumented flags are used, but as far as I know in those
+        # versions of Windows that don't support them they should behave
+        # like DGB_CONTINUE.
+
         code = event.get_event_code()
         if code == win32.EXCEPTION_DEBUG_EVENT:
 
@@ -764,7 +769,6 @@ class Debug (EventDispatcher, _BreakpointContainer):
             # Sometimes other codes can be used and are ignored, sometimes not.
             # For example, when using the DBG_EXCEPTION_NOT_HANDLED code,
             # debug strings are sent twice (!)
-
             event.continueStatus = win32.DBG_CONTINUE
 
         # Dispatch the debug event.
