@@ -30,6 +30,8 @@ Reference
 Tutorial
 --------
 
+The easy way to learn to use *WinAppDbg*. If this is your first time, it's the right place to start!
+
 .. toctree::
    :maxdepth: 2
 
