@@ -46,6 +46,7 @@ Here is a list of software projects that use *WinAppDbg* in alphabetical order:
 * `PyPeElf <http://sourceforge.net/apps/trac/pypeelf>`_ is an open source GUI executable file analyzer for Windows and Linux released under the BSD license. You can download it `here <http://pypeelf.svn.sourceforge.net/svnroot/pypeelf/trunk>`_ and there's also a `blog <http://pypeelf.blogspot.com/>`_.
 * `python-haystack <https://github.com/trolldbois/python-haystack/>`_ is an heap analysis framework, focused on classic C structure matching. The basic functionnality is to search in a process' memory maps for a specific C Structures. The extended reverse engineering functionnality aims at reversing structures from memory/heap analysis.
 * `SRS <http://5d4a.wordpress.com/2009/12/07/messing-around-with-register/>`_ is a tool to spy on registry API calls made by the program of your choice.
+* `Tracer.py <https://brundlelab.wordpress.com/2012/08/19/small-and-cute-execution-tracer/>`_ is a "small and cute" execution tracer, in the words of it's author :) and to aid in differential debugging.
 
 And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit your needs, also in alphabetical order:
 
