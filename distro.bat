@@ -167,8 +167,8 @@ if %errorlevel%==0 hhc winappdbg.hhp
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 
 :: Move the files to the dist folder
-if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
+if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-%VersionTag%-reference.pdf
 
 goto Next
