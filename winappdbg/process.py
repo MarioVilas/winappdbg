@@ -882,7 +882,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Method 3: GetProcessImageFileName()
         #
         # Not implemented until Windows XP.
-        # For more info see http://blog.voidnish.com/?p=72
+        # For more info see:
+        # https://voidnish.wordpress.com/2005/06/20/getprocessimagefilenamequerydosdevice-trivia/
         if not name:
             try:
                 hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
