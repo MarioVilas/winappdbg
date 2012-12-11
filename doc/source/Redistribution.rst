@@ -12,7 +12,7 @@ Prerequisites
 
 The distribution building requires Python 2.7 as a minimum version. It works both with 32 and 64 bits. Older versions of Python will fail. The 32 bits interpreter is expected to be installed at %SystemDrive%\Python27 and the 64 bits version at %SystemDrive%\Python27-x64. If both are found the 64 bits version is used.
 
-This documentation was generated using `Sphinx <http://sphinx.pocoo.org/>`_. The reStructuredText sources are provided with the source code downloads only.
+This documentation was generated using `Sphinx <http://sphinx-doc.org/>`_. The reStructuredText sources are provided with the source code downloads only.
 
 The `Epydoc <http://epydoc.sourceforge.net/>`_ package is required to autogenerate the reference documentation. `GraphViz <http://www.graphviz.org/>`_ is used by Epydoc to generate UML graphs for the documentation.
 

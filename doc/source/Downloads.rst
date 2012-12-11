@@ -142,7 +142,7 @@ You can also install WinAppDbg (stable versions only) from its `PyPI repository 
 
     pip install winappdbg
 
-* `PyPM <http://code.activestate.com/pypm/search:winappdbg/>`_ (only when using `ActivePython <http://www.activestate.com/activepython>`_)
+* `PyPM <http://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <http://www.activestate.com/activepython>`_)
 
 * Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
 
@@ -169,7 +169,7 @@ It might work, but was not tested, under *Windows 2000*, *Wine* and *ReactOS*, a
 
 Python 3 support was experimental up to *WinAppDbg 1.4*, and was dropped with *WinAppDbg 1.5*. There are currently no plans to support Python 3 in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
 
-While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <http://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
+While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <https://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
 
 If you find a bug or have a feature suggestion, don't hesitate to send an email to the `winappdbg-users <https://lists.sourceforge.net/lists/listinfo/winappdbg-users>`_ mailing list. Both comments and complaints are welcome! :)
 
@@ -266,4 +266,4 @@ Known issues
 License
 -------
 
-This package is released under the `BSD license <http://en.wikipedia.org/wiki/BSD_license>`_, so as a user you are entitled to create derivative work and :ref:`redistribute <redistribution>` it if you wish. A makefile is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using `Epydoc <http://epydoc.sourceforge.net/>`_. The sources to this documentation are also provided and can be compiled with `Sphinx <http://sphinx.pocoo.org/>`_.
+This package is released under the `BSD license <http://en.wikipedia.org/wiki/BSD_license>`_, so as a user you are entitled to create derivative work and :ref:`redistribute <redistribution>` it if you wish. A makefile is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using `Epydoc <http://epydoc.sourceforge.net/>`_. The sources to this documentation are also provided and can be compiled with `Sphinx <http://sphinx-doc.org/>`_.
