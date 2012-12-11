@@ -5,10 +5,12 @@
 Building your own distribution packages
 ***************************************
 
-*WinAppDbg* is released under the :download:`BSD license <../../../misc/license/bsd.txt>`, so as a user you are entitled to create derivative work and redistribute it if you wish. A batch script is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using Epydoc and Sphinx.
+*WinAppDbg* is released under the :download:`BSD license <_static/bsd.txt>`, so as a user you are entitled to create derivative work and redistribute it if you wish. A batch script is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using Epydoc and Sphinx.
 
 Prerequisites
 -------------
+
+The distribution building requires Python 2.7 as a minimum version. It works both with 32 and 64 bits. Older versions of Python will fail. The 32 bits interpreter is expected to be installed at %SystemDrive%\Python27 and the 64 bits version at %SystemDrive%\Python27-x64. If both are found the 64 bits version is used.
 
 This documentation was generated using `Sphinx <http://sphinx.pocoo.org/>`_. The reStructuredText sources are provided with the source code downloads only.
 
