@@ -52,11 +52,13 @@ goto Exit
 
 :Epydoc64
 set EPYDOC_SCRIPT=%SystemDrive%\Python27-x64\Scripts\epydoc
+if not exist %EPYDOC_SCRIPT% set EPYDOC_SCRIPT=%SystemDrive%\Python27-x64\Scripts\epydoc.py
 set EPYDOC_CMD=%PYTHON_x64% %EPYDOC_SCRIPT%
 if exist %EPYDOC_SCRIPT% goto Start
 
 :Epydoc32
-set EPYDOC_SCRIPT=%SystemDrive%\Python27\Scripts\epydoc.py
+set EPYDOC_SCRIPT=%SystemDrive%\Python27\Scripts\epydoc
+if not exist %EPYDOC_SCRIPT% set EPYDOC_SCRIPT=%SystemDrive%\Python27\Scripts\epydoc.py
 set EPYDOC_CMD=%PYTHON_x86% %EPYDOC_SCRIPT%
 
 
