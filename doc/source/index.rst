@@ -16,9 +16,9 @@ Download
 
 Some quick links for the impatient:
 
-* `winappdbg-1.5-beta4.win32.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win32.exe/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5-beta4.win-amd64.exe <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.win-amd64.exe/download>`_ - All supported 64-bit Python versions
-* `winappdbg-1.5-beta4.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta4.zip/download>`_ - Manual install (setup.py)
+* `winappdbg-1.5-beta5.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win32.msi/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5-beta5.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5-beta5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.zip/download>`_ - Manual install (setup.py)
 
 For more information, online docs and older versions go to the :ref:`downloads page <download>`.
 

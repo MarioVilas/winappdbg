@@ -10,9 +10,9 @@ Building your own distribution packages
 Prerequisites
 -------------
 
-This documentation was generated using `Sphinx <http://sphinx.pocoo.org/>`_. The reStructuredText sources are provided with the source code downloads only. To get the syntax highlighting to work on Sphinx you'll have to install the `Pygments <http://pygments.org/>`_ library too.
+This documentation was generated using `Sphinx <http://sphinx.pocoo.org/>`_. The reStructuredText sources are provided with the source code downloads only.
 
-The `Epydoc <http://epydoc.sourceforge.net/>`_ package is required to autogenerate the reference documentation. [http://www.graphviz.org/ GraphViz] is used by Epydoc to generate UML graphs for the documentation.
+The `Epydoc <http://epydoc.sourceforge.net/>`_ package is required to autogenerate the reference documentation. `GraphViz <http://www.graphviz.org/>`_ is used by Epydoc to generate UML graphs for the documentation.
 
 A Latex compiler is used to generate the documentation in PDF format. We're currently using `MikTex 2.7 <http://miktex.org/>`_ on Windows.
 
@@ -24,8 +24,6 @@ All of these tools must be present in the **PATH** environment variable.
 
     +-------------------------------------------------------------------------------------+
     | `Download Sphinx             <http://pypi.python.org/pypi/Sphinx>`_                 |
-    +-------------------------------------------------------------------------------------+
-    | `Download Pygments           <http://pypi.python.org/pypi/Pygments>`_               |
     +-------------------------------------------------------------------------------------+
     | `Download Epydoc             <http://sourceforge.net/projects/epydoc/files/>`_      |
     +-------------------------------------------------------------------------------------+
@@ -47,12 +45,12 @@ Both the source code and Windows installer packages are generated with the Distu
 
 You can find more information on Distutils installer scripts `here <http://docs.python.org/distutils/setupscript.html>`_.
 
-An :download:`install batch file <../../install.bat>` is provided for convenience when installing WinAppDbg in multiple versions of Python coexisting in the same machine.
+An install batch file (:download:`install.bat <../../install.bat>`) is provided for convenience when installing WinAppDbg in multiple versions of Python coexisting in the same machine.
 
 Building the packages
 ---------------------
 
-A :download:`batch file <../../distro.bat>` is provided to build the packages. These are the commands it supports:
+A batch file (:download:`distro.bat<../../distro.bat>`) is provided to build the packages. These are the commands it supports:
 
 Building the project
 ++++++++++++++++++++
