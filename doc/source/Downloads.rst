@@ -111,9 +111,9 @@ Disassembler
 
 * The `Libdisassemble <http://www.immunitysec.com/resources-freesoftware.shtml>`_ module from Immunity:
 
-  * `Libdisassemble 2.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win32.msi>`_
-  * `Libdisassemble 2.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win-amd64.msi>`_
-  * `Libdisassemble 2.0, source install <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.zip>`_
+  * `Libdisassemble 2.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win32.msi/download>`_
+  * `Libdisassemble 2.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win-amd64.msi/download>`_
+  * `Libdisassemble 2.0, source install <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.zip/download>`_
 
 Database storage
 ++++++++++++++++
