@@ -72,6 +72,11 @@ class System (_ProcessContainer):
         get_postmortem_exclusion_list, add_to_postmortem_exclusion_list,
         remove_from_postmortem_exclusion_list
 
+    @group System services:
+        get_services, get_active_services,
+        start_service, stop_service,
+        pause_service, resume_service
+
     @group Miscellaneous global settings:
         set_kill_on_exit_mode, read_msr, write_msr, enable_step_on_branch_mode,
         get_last_branch_location
@@ -735,3 +740,152 @@ class System (_ProcessContainer):
             del key[pathname]
         except KeyError:
             return
+
+    @staticmethod
+    def get_services():
+        """
+        Retrieve a list of all system services.
+
+        @see: L{get_active_services},
+            L{start_service}, L{stop_service},
+            L{pause_service}, L{resume_service}
+
+        @rtype:  list( L{win32.ServiceStatusProcessEntry} )
+        @return: List of service status descriptors.
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
+            ) as hSCManager:
+                try:
+                    return win32.EnumServicesStatusEx(hSCManager)
+                except AttributeError:
+                    return win32.EnumServicesStatus(hSCManager)
+
+    @staticmethod
+    def get_active_services():
+        """
+        Retrieve a list of all active system services.
+
+        @see: L{get_services},
+            L{start_service}, L{stop_service},
+            L{pause_service}, L{resume_service}
+
+        @rtype:  list( L{win32.ServiceStatusProcessEntry} )
+        @return: List of service status descriptors.
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
+        ) as hSCManager:
+            return [ entry for entry in win32.EnumServicesStatusEx(hSCManager,
+                        dwServiceType  = win32.SERVICE_WIN32,
+                        dwServiceState = win32.SERVICE_ACTIVE) \
+                    if entry.ProcessId ]
+
+    @staticmethod
+    def get_service(name):
+        """
+        Get the service descriptor for the given service name.
+
+        @see: L{start_service}, L{stop_service},
+            L{pause_service}, L{resume_service}
+
+        @type  name: str
+        @param name: Service unique name. You can get this value from the
+            C{ServiceName} member of the service descriptors returned by
+            L{get_services} or L{get_active_services}.
+
+        @rtype:  L{win32.ServiceStatusProcessEntry}
+        @return: Service status descriptor.
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
+        ) as hSCManager:
+            with win32.OpenService(hSCManager, name,
+                                   dwDesiredAccess = win32.SERVICE_QUERY_STATUS
+            ) as hService:
+                try:
+                    return win32.QueryServiceStatusEx(hService)
+                except AttributeError:
+                    return win32.QueryServiceStatus(hService)
+
+    @staticmethod
+    def start_service(name, argv = None):
+        """
+        Start the service given by name.
+
+        @warn: This method requires UAC elevation in Windows Vista and above.
+
+        @see: L{stop_service}, L{pause_service}, L{resume_service}
+
+        @type  name: str
+        @param name: Service unique name. You can get this value from the
+            C{ServiceName} member of the service descriptors returned by
+            L{get_services} or L{get_active_services}.
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_CONNECT
+        ) as hSCManager:
+            with win32.OpenService(hSCManager, name,
+                                   dwDesiredAccess = win32.SERVICE_START
+            ) as hService:
+                win32.StartService(hService)
+
+    @staticmethod
+    def stop_service(name):
+        """
+        Stop the service given by name.
+
+        @warn: This method requires UAC elevation in Windows Vista and above.
+
+        @see: L{get_services}, L{get_active_services},
+            L{start_service}, L{pause_service}, L{resume_service}
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_CONNECT
+        ) as hSCManager:
+            with win32.OpenService(hSCManager, name,
+                                   dwDesiredAccess = win32.SERVICE_STOP
+            ) as hService:
+                win32.ControlService(hService, win32.SERVICE_CONTROL_STOP)
+
+    @staticmethod
+    def pause_service(name):
+        """
+        Pause the service given by name.
+
+        @warn: This method requires UAC elevation in Windows Vista and above.
+
+        @note: Not all services support this.
+
+        @see: L{get_services}, L{get_active_services},
+            L{start_service}, L{stop_service}, L{resume_service}
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_CONNECT
+        ) as hSCManager:
+            with win32.OpenService(hSCManager, name,
+                                dwDesiredAccess = win32.SERVICE_PAUSE_CONTINUE
+            ) as hService:
+                win32.ControlService(hService, win32.SERVICE_CONTROL_PAUSE)
+
+    @staticmethod
+    def resume_service(name):
+        """
+        Resume the service given by name.
+
+        @warn: This method requires UAC elevation in Windows Vista and above.
+
+        @note: Not all services support this.
+
+        @see: L{get_services}, L{get_active_services},
+            L{start_service}, L{stop_service}, L{pause_service}
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_CONNECT
+        ) as hSCManager:
+            with win32.OpenService(hSCManager, name,
+                                dwDesiredAccess = win32.SERVICE_PAUSE_CONTINUE
+            ) as hService:
+                win32.ControlService(hService, win32.SERVICE_CONTROL_CONTINUE)
+
+    # TODO: create_service, delete_service

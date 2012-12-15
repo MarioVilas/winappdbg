@@ -581,6 +581,10 @@ SC_GROUP_IDENTIFIERA = '+'
 
 SERVICE_NO_CHANGE = 0xffffffff
 
+# enum SC_STATUS_TYPE
+SC_STATUS_TYPE         = ctypes.c_int
+SC_STATUS_PROCESS_INFO = 0
+
 # enum SC_ENUM_TYPE
 SC_ENUM_TYPE         = ctypes.c_int
 SC_ENUM_PROCESS_INFO = 0
@@ -838,11 +842,37 @@ class ServiceStatusEntry(object):
         self.CheckPoint              = raw.ServiceStatus.dwCheckPoint
         self.WaitHint                = raw.ServiceStatus.dwWaitHint
 
+    def __str__(self):
+        output = []
+        if self.ServiceType & SERVICE_INTERACTIVE_PROCESS:
+            output.append("Interactive service")
+        else:
+            output.append("Service")
+        if self.DisplayName:
+            output.append("\"%s\" (%s)" % (self.DisplayName, self.ServiceName))
+        else:
+            output.append("\"%s\"" % self.ServiceName)
+        if   self.CurrentState == SERVICE_CONTINUE_PENDING:
+            output.append("is about to continue.")
+        elif self.CurrentState == SERVICE_PAUSE_PENDING:
+            output.append("is pausing.")
+        elif self.CurrentState == SERVICE_PAUSED:
+            output.append("is paused.")
+        elif self.CurrentState == SERVICE_RUNNING:
+            output.append("is running.")
+        elif self.CurrentState == SERVICE_START_PENDING:
+            output.append("is starting.")
+        elif self.CurrentState == SERVICE_STOP_PENDING:
+            output.append("is stopping.")
+        elif self.CurrentState == SERVICE_STOPPED:
+            output.append("is stopped.")
+        return " ".join(output)
+
 class ServiceStatusProcessEntry(object):
     """
     Service status entry returned by L{EnumServicesStatusEx}.
     """
-    
+
     def __init__(self, raw):
         """
         @type  raw: L{ENUM_SERVICE_STATUS_PROCESSA} or L{ENUM_SERVICE_STATUS_PROCESSW}
@@ -860,7 +890,7 @@ class ServiceStatusProcessEntry(object):
         self.ProcessId               = raw.ServiceStatusProcess.dwProcessId
         self.ServiceFlags            = raw.ServiceStatusProcess.dwServiceFlags
 
-    def __repr__(self):
+    def __str__(self):
         output = []
         if self.ServiceType & SERVICE_INTERACTIVE_PROCESS:
             output.append("Interactive service ")
@@ -904,7 +934,7 @@ class RegistryKeyHandle (UserModeHandle):
     """
     Registry key handle.
     """
-    
+
     _TYPE = HKEY
 
     def _close(self):
@@ -2401,7 +2431,7 @@ def OpenSCManagerA(lpMachineName = None, lpDatabaseName = None, dwDesiredAccess 
     _OpenSCManagerA.argtypes = [LPSTR, LPSTR, DWORD]
     _OpenSCManagerA.restype  = SC_HANDLE
     _OpenSCManagerA.errcheck = RaiseIfZero
-    
+
     hSCObject = _OpenSCManagerA(lpMachineName, lpDatabaseName, dwDesiredAccess)
     return ServiceControlManagerHandle(hSCObject)
 
@@ -2410,7 +2440,7 @@ def OpenSCManagerW(lpMachineName = None, lpDatabaseName = None, dwDesiredAccess 
     _OpenSCManagerW.argtypes = [LPWSTR, LPWSTR, DWORD]
     _OpenSCManagerW.restype  = SC_HANDLE
     _OpenSCManagerW.errcheck = RaiseIfZero
-    
+
     hSCObject = _OpenSCManagerA(lpMachineName, lpDatabaseName, dwDesiredAccess)
     return ServiceControlManagerHandle(hSCObject)
 
@@ -2463,12 +2493,12 @@ def CreateServiceA(hSCManager, lpServiceName,
                    lpDependencies = None,
                    lpServiceStartName = None,
                    lpPassword = None):
-    
+
     _CreateServiceA = windll.advapi32.CreateServiceA
     _CreateServiceA.argtypes = [SC_HANDLE, LPSTR, LPSTR, DWORD, DWORD, DWORD, DWORD, LPSTR, LPSTR, LPDWORD, LPSTR, LPSTR, LPSTR]
     _CreateServiceA.restype  = SC_HANDLE
     _CreateServiceA.errcheck = RaiseIfZero
-    
+
     dwTagId = DWORD(0)
     hService = _CreateServiceA(hSCManager, lpServiceName, dwDesiredAccess, dwServiceType, dwStartType, dwErrorControl, lpBinaryPathName, lpLoadOrderGroup, byref(dwTagId), lpDependencies, lpServiceStartName, lpPassword)
     return ServiceHandle(hService), dwTagId.value
@@ -2484,12 +2514,12 @@ def CreateServiceW(hSCManager, lpServiceName,
                    lpDependencies = None,
                    lpServiceStartName = None,
                    lpPassword = None):
-    
+
     _CreateServiceW = windll.advapi32.CreateServiceW
     _CreateServiceW.argtypes = [SC_HANDLE, LPWSTR, LPWSTR, DWORD, DWORD, DWORD, DWORD, LPWSTR, LPWSTR, LPDWORD, LPWSTR, LPWSTR, LPWSTR]
     _CreateServiceW.restype  = SC_HANDLE
     _CreateServiceW.errcheck = RaiseIfZero
-    
+
     dwTagId = DWORD(0)
     hService = _CreateServiceW(hSCManager, lpServiceName, dwDesiredAccess, dwServiceType, dwStartType, dwErrorControl, lpBinaryPathName, lpLoadOrderGroup, byref(dwTagId), lpDependencies, lpServiceStartName, lpPassword)
     return ServiceHandle(hService), dwTagId.value
@@ -2719,8 +2749,20 @@ def QueryServiceStatus(hService):
 #   _In_       DWORD cbBufSize,
 #   _Out_      LPDWORD pcbBytesNeeded
 # );
+def QueryServiceStatusEx(hService, InfoLevel = SC_STATUS_PROCESS_INFO):
 
-# TO DO
+    if InfoLevel != SC_STATUS_PROCESS_INFO:
+        raise NotImplementedError()
+
+    _QueryServiceStatusEx = windll.advapi32.QueryServiceStatusEx
+    _QueryServiceStatusEx.argtypes = [SC_HANDLE, SC_STATUS_TYPE, LPVOID, DWORD, LPDWORD]
+    _QueryServiceStatusEx.restype  = bool
+    _QueryServiceStatusEx.errcheck = RaiseIfZero
+
+    lpBuffer = SERVICE_STATUS_PROCESS()
+    cbBytesNeeded = DWORD(sizeof(lpBuffer))
+    _QueryServiceStatusEx(hService, InfoLevel, byref(lpBuffer), sizeof(lpBuffer), byref(cbBytesNeeded))
+    return ServiceStatusProcess(lpBuffer)
 
 # BOOL WINAPI EnumServicesStatus(
 #   _In_         SC_HANDLE hSCManager,
@@ -2732,9 +2774,65 @@ def QueryServiceStatus(hService):
 #   _Out_        LPDWORD lpServicesReturned,
 #   _Inout_opt_  LPDWORD lpResumeHandle
 # );
-#def EnumServicesStatusA(hSCManager, dwServiceType = SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL, ResumeHandle = None):
+def EnumServicesStatusA(hSCManager, dwServiceType = SERVICE_DRIVER | SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL):
+    _EnumServicesStatusA = windll.advapi32.EnumServicesStatusA
+    _EnumServicesStatusA.argtypes = [SC_HANDLE, DWORD, DWORD, LPVOID, DWORD, LPDWORD, LPDWORD, LPDWORD]
+    _EnumServicesStatusA.restype  = bool
 
-# TO DO
+    cbBytesNeeded    = DWORD(0)
+    ServicesReturned = DWORD(0)
+    ResumeHandle     = DWORD(0)
+
+    _EnumServicesStatusA(hSCManager, dwServiceType, dwServiceState, None, 0, byref(cbBytesNeeded), byref(ServicesReturned), byref(ResumeHandle))
+
+    Services = []
+    success = False
+    while GetLastError() == ERROR_MORE_DATA:
+        if cbBytesNeeded.value < sizeof(ENUM_SERVICE_STATUSA):
+            break
+        ServicesBuffer = ctypes.create_string_buffer("", cbBytesNeeded.value)
+        success = _EnumServicesStatusA(hSCManager, dwServiceType, dwServiceState, byref(ServicesBuffer), sizeof(ServicesBuffer), byref(cbBytesNeeded), byref(ServicesReturned), byref(ResumeHandle))
+        if sizeof(ServicesBuffer) < (sizeof(ENUM_SERVICE_STATUSA) * ServicesReturned.value):
+            raise ctypes.WinError()
+        lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUSA)
+        for index in xrange(0, ServicesReturned.value):
+            Services.append( ServiceStatusEntry(lpServicesArray[index]) )
+        if success: break
+    if not success:
+        raise ctypes.WinError()
+
+    return Services
+
+def EnumServicesStatusW(hSCManager, dwServiceType = SERVICE_DRIVER | SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL):
+    _EnumServicesStatusW = windll.advapi32.EnumServicesStatusW
+    _EnumServicesStatusW.argtypes = [SC_HANDLE, DWORD, DWORD, LPVOID, DWORD, LPDWORD, LPDWORD, LPDWORD]
+    _EnumServicesStatusW.restype  = bool
+
+    cbBytesNeeded    = DWORD(0)
+    ServicesReturned = DWORD(0)
+    ResumeHandle     = DWORD(0)
+
+    _EnumServicesStatusW(hSCManager, dwServiceType, dwServiceState, None, 0, byref(cbBytesNeeded), byref(ServicesReturned), byref(ResumeHandle))
+
+    Services = []
+    success = False
+    while GetLastError() == ERROR_MORE_DATA:
+        if cbBytesNeeded.value < sizeof(ENUM_SERVICE_STATUSW):
+            break
+        ServicesBuffer = ctypes.create_string_buffer("", cbBytesNeeded.value)
+        success = _EnumServicesStatusW(hSCManager, dwServiceType, dwServiceState, byref(ServicesBuffer), sizeof(ServicesBuffer), byref(cbBytesNeeded), byref(ServicesReturned), byref(ResumeHandle))
+        if sizeof(ServicesBuffer) < (sizeof(ENUM_SERVICE_STATUSW) * ServicesReturned.value):
+            raise ctypes.WinError()
+        lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUSW)
+        for index in xrange(0, ServicesReturned.value):
+            Services.append( ServiceStatusEntry(lpServicesArray[index]) )
+        if success: break
+    if not success:
+        raise ctypes.WinError()
+
+    return Services
+
+EnumServicesStatus = DefaultStringType(EnumServicesStatusA, EnumServicesStatusW)
 
 # BOOL WINAPI EnumServicesStatusEx(
 #   _In_         SC_HANDLE hSCManager,
@@ -2748,14 +2846,15 @@ def QueryServiceStatus(hService):
 #   _Inout_opt_  LPDWORD lpResumeHandle,
 #   _In_opt_     LPCTSTR pszGroupName
 # );
-def EnumServicesStatusExA(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServiceType = SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL, pszGroupName = None):
+def EnumServicesStatusExA(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServiceType = SERVICE_DRIVER | SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL, pszGroupName = None):
+
+    if InfoLevel != SC_ENUM_PROCESS_INFO:
+        raise NotImplementedError()
+
     _EnumServicesStatusExA = windll.advapi32.EnumServicesStatusExA
     _EnumServicesStatusExA.argtypes = [SC_HANDLE, SC_ENUM_TYPE, DWORD, DWORD, LPVOID, DWORD, LPDWORD, LPDWORD, LPDWORD, LPSTR]
     _EnumServicesStatusExA.restype  = bool
 
-    if InfoLevel != SC_ENUM_PROCESS_INFO:
-        raise NotImplementedError()
-    
     cbBytesNeeded    = DWORD(0)
     ServicesReturned = DWORD(0)
     ResumeHandle     = DWORD(0)
@@ -2780,14 +2879,14 @@ def EnumServicesStatusExA(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServic
 
     return Services
 
-def EnumServicesStatusExW(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServiceType = SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL, pszGroupName = None):
+def EnumServicesStatusExW(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServiceType = SERVICE_DRIVER | SERVICE_WIN32, dwServiceState = SERVICE_STATE_ALL, pszGroupName = None):
     _EnumServicesStatusExW = windll.advapi32.EnumServicesStatusExW
     _EnumServicesStatusExW.argtypes = [SC_HANDLE, SC_ENUM_TYPE, DWORD, DWORD, LPVOID, DWORD, LPDWORD, LPDWORD, LPDWORD, LPWSTR]
     _EnumServicesStatusExW.restype  = bool
 
     if InfoLevel != SC_ENUM_PROCESS_INFO:
         raise NotImplementedError()
-    
+
     cbBytesNeeded    = DWORD(0)
     ServicesReturned = DWORD(0)
     ResumeHandle     = DWORD(0)
