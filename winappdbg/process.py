@@ -63,6 +63,9 @@ import struct
 import warnings
 import traceback
 
+# delayed import
+System = None
+
 #==============================================================================
 
 # TODO
@@ -79,7 +82,7 @@ class Process (_ThreadContainer, _ModuleContainer):
     @group Properties:
         get_pid, get_filename, get_exit_code,
         is_alive, is_debugged, is_wow64, get_arch, get_bits,
-        get_dep_policy, get_peb, get_peb_address,
+        get_services, get_dep_policy, get_peb, get_peb_address,
         get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
@@ -756,6 +759,29 @@ class Process (_ThreadContainer, _ModuleContainer):
         return 64
 
     # TODO: get_os, to test compatibility run
+
+#------------------------------------------------------------------------------
+
+    def __load_System_class(self):
+        global System      # delayed import
+        if System is None:
+            from system import System
+
+    def get_services(self):
+        """
+        Retrieves the list of system services that are currently running in
+        this process.
+
+        @see: L{System.get_services}
+
+        @rtype:  list( L{win32.ServiceStatusProcessEntry} )
+        @return: List of service status descriptors.
+        """
+        self.__load_System_class()
+        pid = self.get_pid()
+        return [d for d in System.get_active_services() if d.ProcessId == pid]
+
+#------------------------------------------------------------------------------
 
     def get_dep_policy(self):
         """
