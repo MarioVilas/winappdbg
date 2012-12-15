@@ -703,6 +703,43 @@ class Handle (object):
 
     protectFromClose = property(__get_protectFromClose, __set_protectFromClose)
 
+class UserModeHandle (Handle):
+    """
+    Base class for non-kernel handles. Generally this means they are closed
+    by special Win32 API functions instead of CloseHandle() and some standard
+    operations (synchronizing, duplicating, inheritance) are not supported.
+
+    @type _TYPE: C type
+    @cvar _TYPE: C type to translate this handle to.
+        Subclasses should override this.
+        Defaults to L{HANDLE}.
+    """
+
+    # Subclasses should override this.
+    _TYPE = HANDLE
+
+    # This method must be implemented by subclasses.
+    def _close(self):
+        raise NotImplementedError()
+
+    # Translation to C type.
+    @property
+    def _as_parameter_(self):
+        return self._TYPE(self.value)
+
+    # Translation to C type.
+    @staticmethod
+    def from_param(value):
+        return self._TYPE(self.value)
+
+    # Operation not supported.
+    def dup(self):
+        raise NotImplementedError()
+
+    # Operation not supported.
+    def wait(self, dwMilliseconds = None):
+        raise NotImplementedError()
+
 class ProcessHandle (Handle):
     """
     Win32 process handle.
@@ -853,16 +890,7 @@ class SnapshotHandle (Handle):
 
     @see: L{Handle}
     """
-
-    def dup(self):
-        "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError(
-            "This method is meaningless for Toolhelp32 snaphots.")
-
-    def wait(self, dwMilliseconds = None):
-        "This method is meaningless for Toolhelp32 snaphots."
-        raise NotImplementedError(
-            "This method is meaningless for Toolhelp32 snaphots.")
+    pass
 
 #--- Structure wrappers -------------------------------------------------------
 
