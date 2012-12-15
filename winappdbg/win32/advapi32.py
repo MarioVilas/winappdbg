@@ -780,6 +780,44 @@ class ENUM_SERVICE_STATUS_PROCESSW(Structure):
 LPENUM_SERVICE_STATUS_PROCESSA = POINTER(ENUM_SERVICE_STATUS_PROCESSA)
 LPENUM_SERVICE_STATUS_PROCESSW = POINTER(ENUM_SERVICE_STATUS_PROCESSW)
 
+class ServiceStatus(object):
+    """
+    Wrapper for the L{SERVICE_STATUS} structure.
+    """
+
+    def __init__(self, raw):
+        """
+        @type  raw: L{SERVICE_STATUS}
+        @param raw: Raw structure for this service status data.
+        """
+        self.ServiceType             = raw.dwServiceType
+        self.CurrentState            = raw.dwCurrentState
+        self.ControlsAccepted        = raw.dwControlsAccepted
+        self.Win32ExitCode           = raw.dwWin32ExitCode
+        self.ServiceSpecificExitCode = raw.dwServiceSpecificExitCode
+        self.CheckPoint              = raw.dwCheckPoint
+        self.WaitHint                = raw.dwWaitHint
+
+class ServiceStatusProcess(object):
+    """
+    Wrapper for the L{SERVICE_STATUS_PROCESS} structure.
+    """
+
+    def __init__(self, raw):
+        """
+        @type  raw: L{SERVICE_STATUS_PROCESS}
+        @param raw: Raw structure for this service status data.
+        """
+        self.ServiceType             = raw.dwServiceType
+        self.CurrentState            = raw.dwCurrentState
+        self.ControlsAccepted        = raw.dwControlsAccepted
+        self.Win32ExitCode           = raw.dwWin32ExitCode
+        self.ServiceSpecificExitCode = raw.dwServiceSpecificExitCode
+        self.CheckPoint              = raw.dwCheckPoint
+        self.WaitHint                = raw.dwWaitHint
+        self.ProcessId               = raw.dwProcessId
+        self.ServiceFlags            = raw.dwServiceFlags
+
 class ServiceStatusEntry(object):
     """
     Service status entry returned by L{EnumServicesStatus}.
@@ -2324,6 +2362,18 @@ def RegFlushKey(hKey):
     _RegFlushKey.errcheck = RaiseIfNotErrorSuccess
     _RegFlushKey(hKey)
 
+# LONG WINAPI RegLoadMUIString(
+#   _In_       HKEY hKey,
+#   _In_opt_   LPCTSTR pszValue,
+#   _Out_opt_  LPTSTR pszOutBuf,
+#   _In_       DWORD cbOutBuf,
+#   _Out_opt_  LPDWORD pcbData,
+#   _In_       DWORD Flags,
+#   _In_opt_   LPCTSTR pszDirectory
+# );
+
+# TO DO
+
 #------------------------------------------------------------------------------
 
 # BOOL WINAPI CloseServiceHandle(
@@ -2376,18 +2426,14 @@ def OpenServiceA(hSCManager, lpServiceName, dwDesiredAccess = SERVICE_ALL_ACCESS
     _OpenServiceA.argtypes = [SC_HANDLE, LPSTR, DWORD]
     _OpenServiceA.restype  = SC_HANDLE
     _OpenServiceA.errcheck = RaiseIfZero
-    
-    hService = _OpenServiceA(hService)
-    return ServiceHandle(hService)
+    return ServiceHandle( _OpenServiceA(hSCManager, lpServiceName, dwDesiredAccess) )
 
 def OpenServiceW(hSCManager, lpServiceName, dwDesiredAccess = SERVICE_ALL_ACCESS):
     _OpenServiceW = windll.advapi32.OpenServiceW
     _OpenServiceW.argtypes = [SC_HANDLE, LPWSTR, DWORD]
     _OpenServiceW.restype  = SC_HANDLE
     _OpenServiceW.errcheck = RaiseIfZero
-    
-    hService = _OpenServiceW(hService)
-    return ServiceHandle(hService)
+    return ServiceHandle( _OpenServiceW(hSCManager, lpServiceName, dwDesiredAccess) )
 
 OpenService = GuessStringType(OpenServiceA, OpenServiceW)
 
@@ -2460,6 +2506,86 @@ def DeleteService(hService):
     _DeleteService.errcheck = RaiseIfZero
     _DeleteService(hService)
 
+# BOOL WINAPI GetServiceKeyName(
+#   _In_       SC_HANDLE hSCManager,
+#   _In_       LPCTSTR lpDisplayName,
+#   _Out_opt_  LPTSTR lpServiceName,
+#   _Inout_    LPDWORD lpcchBuffer
+# );
+def GetServiceKeyNameA(hSCManager, lpDisplayName):
+    _GetServiceKeyNameA = windll.advapi32.GetServiceKeyNameA
+    _GetServiceKeyNameA.argtypes = [SC_HANDLE, LPSTR, LPSTR, LPDWORD]
+    _GetServiceKeyNameA.restype  = bool
+
+    cchBuffer = DWORD(0)
+    _GetServiceKeyNameA(hSCManager, lpDisplayName, None, byref(cchBuffer))
+    if cchBuffer.value == 0:
+        raise ctypes.WinError()
+    lpServiceName = ctypes.create_string_buffer(cchBuffer.value + 1)
+    cchBuffer.value = sizeof(lpServiceName)
+    success = _GetServiceKeyNameA(hSCManager, lpDisplayName, lpServiceName, byref(cchBuffer))
+    if not success:
+        raise ctypes.WinError()
+    return lpServiceName.value
+
+def GetServiceKeyNameW(hSCManager, lpDisplayName):
+    _GetServiceKeyNameW = windll.advapi32.GetServiceKeyNameW
+    _GetServiceKeyNameW.argtypes = [SC_HANDLE, LPWSTR, LPWSTR, LPDWORD]
+    _GetServiceKeyNameW.restype  = bool
+
+    cchBuffer = DWORD(0)
+    _GetServiceKeyNameW(hSCManager, lpDisplayName, None, byref(cchBuffer))
+    if cchBuffer.value == 0:
+        raise ctypes.WinError()
+    lpServiceName = ctypes.create_unicode_buffer(cchBuffer.value + 2)
+    cchBuffer.value = sizeof(lpServiceName)
+    success = _GetServiceKeyNameW(hSCManager, lpDisplayName, lpServiceName, byref(cchBuffer))
+    if not success:
+        raise ctypes.WinError()
+    return lpServiceName.value
+
+GetServiceKeyName = GuessStringType(GetServiceKeyNameA, GetServiceKeyNameW)
+
+# BOOL WINAPI GetServiceDisplayName(
+#   _In_       SC_HANDLE hSCManager,
+#   _In_       LPCTSTR lpServiceName,
+#   _Out_opt_  LPTSTR lpDisplayName,
+#   _Inout_    LPDWORD lpcchBuffer
+# );
+def GetServiceDisplayNameA(hSCManager, lpServiceName):
+    _GetServiceDisplayNameA = windll.advapi32.GetServiceDisplayNameA
+    _GetServiceDisplayNameA.argtypes = [SC_HANDLE, LPSTR, LPSTR, LPDWORD]
+    _GetServiceDisplayNameA.restype  = bool
+
+    cchBuffer = DWORD(0)
+    _GetServiceDisplayNameA(hSCManager, lpServiceName, None, byref(cchBuffer))
+    if cchBuffer.value == 0:
+        raise ctypes.WinError()
+    lpDisplayName = ctypes.create_string_buffer(cchBuffer.value + 1)
+    cchBuffer.value = sizeof(lpDisplayName)
+    success = _GetServiceDisplayNameA(hSCManager, lpServiceName, lpDisplayName, byref(cchBuffer))
+    if not success:
+        raise ctypes.WinError()
+    return lpDisplayName.value
+
+def GetServiceDisplayNameW(hSCManager, lpServiceName):
+    _GetServiceDisplayNameW = windll.advapi32.GetServiceDisplayNameW
+    _GetServiceDisplayNameW.argtypes = [SC_HANDLE, LPWSTR, LPWSTR, LPDWORD]
+    _GetServiceDisplayNameW.restype  = bool
+
+    cchBuffer = DWORD(0)
+    _GetServiceDisplayNameW(hSCManager, lpServiceName, None, byref(cchBuffer))
+    if cchBuffer.value == 0:
+        raise ctypes.WinError()
+    lpDisplayName = ctypes.create_unicode_buffer(cchBuffer.value + 2)
+    cchBuffer.value = sizeof(lpDisplayName)
+    success = _GetServiceDisplayNameW(hSCManager, lpServiceName, lpDisplayName, byref(cchBuffer))
+    if not success:
+        raise ctypes.WinError()
+    return lpDisplayName.value
+
+GetServiceDisplayName = GuessStringType(GetServiceDisplayNameA, GetServiceDisplayNameW)
+
 # BOOL WINAPI QueryServiceConfig(
 #   _In_       SC_HANDLE hService,
 #   _Out_opt_  LPQUERY_SERVICE_CONFIG lpServiceConfig,
@@ -2503,6 +2629,43 @@ def DeleteService(hService):
 
 # TO DO
 
+# BOOL WINAPI StartService(
+#   _In_      SC_HANDLE hService,
+#   _In_      DWORD dwNumServiceArgs,
+#   _In_opt_  LPCTSTR *lpServiceArgVectors
+# );
+def StartServiceA(hService, ServiceArgVectors = None):
+    _StartServiceA = windll.advapi32.StartServiceA
+    _StartServiceA.argtypes = [SC_HANDLE, DWORD, LPVOID]
+    _StartServiceA.restype  = bool
+    _StartServiceA.errcheck = RaiseIfZero
+
+    if ServiceArgVectors:
+        dwNumServiceArgs = len(ServiceArgVectors)
+        CServiceArgVectors = (LPSTR * dwNumServiceArgs)(*ServiceArgVectors)
+        lpServiceArgVectors = ctypes.pointer(CServiceArgVectors)
+    else:
+        dwNumServiceArgs = 0
+        lpServiceArgVectors = None
+    _StartServiceA(hService, dwNumServiceArgs, lpServiceArgVectors)
+
+def StartServiceW(hService, ServiceArgVectors = None):
+    _StartServiceW = windll.advapi32.StartServiceW
+    _StartServiceW.argtypes = [SC_HANDLE, DWORD, LPVOID]
+    _StartServiceW.restype  = bool
+    _StartServiceW.errcheck = RaiseIfZero
+
+    if ServiceArgVectors:
+        dwNumServiceArgs = len(ServiceArgVectors)
+        CServiceArgVectors = (LPWSTR * dwNumServiceArgs)(*ServiceArgVectors)
+        lpServiceArgVectors = ctypes.pointer(CServiceArgVectors)
+    else:
+        dwNumServiceArgs = 0
+        lpServiceArgVectors = None
+    _StartServiceW(hService, dwNumServiceArgs, lpServiceArgVectors)
+
+StartService = GuessStringType(StartServiceA, StartServiceW)
+
 # BOOL WINAPI ControlService(
 #   _In_   SC_HANDLE hService,
 #   _In_   DWORD dwControl,
@@ -2513,11 +2676,10 @@ def ControlService(hService, dwControl):
     _ControlService.argtypes = [SC_HANDLE, DWORD, LPSERVICE_STATUS]
     _ControlService.restype  = bool
     _ControlService.errcheck = RaiseIfZero
-    _ControlService(hService, dwControl)
 
-    ServiceStatus = SERVICE_STATUS()
-    _ControlService(hService, dwControl, byref(ServiceStatus))
-    return ServiceStatus
+    rawServiceStatus = SERVICE_STATUS()
+    _ControlService(hService, dwControl, byref(rawServiceStatus))
+    return ServiceStatus(rawServiceStatus)
 
 # BOOL WINAPI ControlServiceEx(
 #   _In_     SC_HANDLE hService,
@@ -2535,6 +2697,20 @@ def ControlService(hService, dwControl):
 # );
 
 # TO DO
+
+# BOOL WINAPI QueryServiceStatus(
+#   _In_   SC_HANDLE hService,
+#   _Out_  LPSERVICE_STATUS lpServiceStatus
+# );
+def QueryServiceStatus(hService):
+    _QueryServiceStatus = windll.advapi32.QueryServiceStatus
+    _QueryServiceStatus.argtypes = [SC_HANDLE, LPSERVICE_STATUS]
+    _QueryServiceStatus.restype  = bool
+    _QueryServiceStatus.errcheck = RaiseIfZero
+
+    rawServiceStatus = SERVICE_STATUS()
+    _QueryServiceStatus(hService, byref(rawServiceStatus))
+    return ServiceStatus(rawServiceStatus)
 
 # BOOL WINAPI QueryServiceStatusEx(
 #   _In_       SC_HANDLE hService,
@@ -2637,3 +2813,14 @@ def EnumServicesStatusExW(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServic
     return Services
 
 EnumServicesStatusEx = DefaultStringType(EnumServicesStatusExA, EnumServicesStatusExW)
+
+# BOOL WINAPI EnumDependentServices(
+#   _In_       SC_HANDLE hService,
+#   _In_       DWORD dwServiceState,
+#   _Out_opt_  LPENUM_SERVICE_STATUS lpServices,
+#   _In_       DWORD cbBufSize,
+#   _Out_      LPDWORD pcbBytesNeeded,
+#   _Out_      LPDWORD lpServicesReturned
+# );
+
+# TO DO
