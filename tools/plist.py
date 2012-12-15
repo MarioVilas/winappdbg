@@ -62,10 +62,15 @@ import optparse
 def parse_cmdline(argv):
     'Parse the command line options.'
     parser = optparse.OptionParser()
+    parser.add_option("--format", action="store", default="auto",
+                      choices=("auto", "wide", "long"),
+                      help="display format [default: auto]")
     parser.add_option("-f", "--full-path", action="store_true", default=False,
                       help="show full pathnames")
     parser.add_option("-w", "--windows", action="store_true", default=False,
                       help="show window captions for each process")
+    parser.add_option("-d", "--services", action="store_true", default=False,
+                      help="show services running on each process")
     parser.add_option("-s", "--search", metavar="STRING",
                       help="optional search string")
     (options, argv) = parser.parse_args(argv)
@@ -158,30 +163,70 @@ def main(argv):
                 capset.add(text)
                 captions[pid] = capset
 
-    # Try to print the data as a wide table, as long as it fits on screen.
-    if options.windows:
-        headers = (" PID", "Filename", "Windows")
-    else:
-        headers = (" PID", "Filename")
-    table = Table()
-    table.addRow(*headers)
-    for pid in pid_list:
-        if filenames.has_key(pid):
-            fileName = filenames[pid]
-            if not options.windows:
-                table.addRow(' %d' % pid, fileName)
-            else:
+    # Get the services if requested.
+    services = dict()
+    if options.services:
+        try:
+            for descriptor in s.get_services():
+                try:
+                    services[descriptor.ProcessId].add(descriptor.ServiceName)
+                except KeyError:
+                    srvset = set()
+                    srvset.add(descriptor.ServiceName)
+                    services[descriptor.ProcessId] = srvset
+        except WindowsError, e:
+            print "Error getting the list of services: %s" % str(e)
+            return
+
+    if options.format == "auto":
+        if options.windows or options.services:
+            options.format = "long"
+    if options.format != "long":
+        headers = [" PID", "Filename"]
+        if options.windows:
+            headers.append("Windows")
+        if options.services:
+            headers.append("Services")
+        table = Table()
+        table.addRow(*headers)
+        for pid in pid_list:
+            if filenames.has_key(pid):
+                fileName = filenames[pid]
                 caplist = sorted( captions.get(pid, set()) )
-                if not caplist:
-                    table.addRow(' %d' % pid, fileName, '')
+                srvlist = sorted( services.get(pid, set()) )
+                if options.windows and options.services:
+                    if len(caplist) < len(srvlist):
+                        caplist.extend( [''] * (len(srvlist) - len(caplist)) )
+                    elif len(srvlist) < len(caplist):
+                        srvlist.extend( [''] * (len(caplist) - len(srvlist)) )
+                    if len(caplist):
+                        table.addRow(' %d' % pid, fileName, caplist[0], srvlist[0])
+                        for i in xrange(1, len(caplist)):
+                            table.addRow('', '', caplist[i], srvlist[i])
+                    else:
+                        table.addRow(' %d' % pid, fileName, '', '')
+                elif options.windows:
+                    if len(caplist):
+                        table.addRow(' %d' % pid, fileName, caplist[0])
+                        for i in xrange(1, len(caplist)):
+                            table.addRow('', '', caplist[i])
+                    else:
+                        table.addRow(' %d' % pid, fileName, '')
+                elif options.services:
+                    if len(srvlist):
+                        table.addRow(' %d' % pid, fileName, srvlist[0])
+                        for i in xrange(1, len(srvlist)):
+                            table.addRow('', '', srvlist[i])
+                    else:
+                        table.addRow(' %d' % pid, fileName, '')
                 else:
-                    table.addRow(' %d' % pid, fileName, caplist[0])
-                    for caption in caplist[1:]:
-                        table.addRow('', '', caption)
-    table.justify(0, 1)
-    if table.getWidth() < 79:
-        table.show()
-    else:
+                    table.addRow(' %d' % pid, fileName)
+        table.justify(0, 1)
+        if options.format == "auto" and table.getWidth() >= 80:
+            options.format = "long"
+        else:
+            table.show()
+    if options.format == "long":
 
         # If it doesn't fit, build a new table of only two rows. The first row
         # contains the headers and the second row the data. Insert an empty row
@@ -204,6 +249,12 @@ def main(argv):
                     table.addRow("Windows:", caption)
                     for caption in caplist:
                         table.addRow('', caption)
+                srvlist = sorted( services.get(pid, set()) )
+                if srvlist:
+                    srvname = srvlist.pop(0)
+                    table.addRow("Services:", srvname)
+                    for srvname in srvlist:
+                        table.addRow('', srvname)
         table.justify(0, 1)
         table.show()
 
