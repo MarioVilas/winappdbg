@@ -31,7 +31,7 @@
 
 __revision__ = "$Id$"
 
-from winappdbg import System, Table, win32
+from winappdbg import System, PathOperations, Table, win32
 
 import optparse, time
 
@@ -84,6 +84,48 @@ def main(argv):
 def show(search = None, wide = True):
     'show a table with the list of services'
 
+    # Take a snapshot of the running processes.
+    s = System()
+    s.request_debug_privileges()
+    try:
+        s.scan_processes()
+        s.scan_process_filenames()
+    except WindowsError:
+        s.scan_processes_fast()
+    pid_list = s.get_process_ids()
+    pid_list.sort()
+    if not pid_list:
+        print "Unknown error enumerating processes!"
+        return
+
+    # Get the filename of each process.
+    filenames = dict()
+    for pid in pid_list:
+        p = s.get_process(pid)
+
+        # Special process IDs.
+        # PID 0: System Idle Process. Also has a special meaning to the
+        #        toolhelp APIs (current process).
+        # PID 4: System Integrity Group. See this forum post for more info:
+        #        http://tinyurl.com/ycza8jo
+        #        (points to social.technet.microsoft.com)
+        #        Only on XP and above
+        # PID 8: System (?) only in Windows 2000 and below AFAIK.
+        #        It's probably the same as PID 4 in XP and above.
+        if pid in (0, 4, 8):
+            fileName = ""
+
+        # Get the filename for all other processes.
+        else:
+            fileName = p.get_filename()
+            if fileName:
+                fileName = PathOperations.pathname_to_filename(fileName)
+            else:
+                fileName = ""
+
+        # Remember the filename.
+        filenames[pid] = fileName
+
     # Make the search string lowercase if given.
     if search is not None:
         search = search.lower()
@@ -131,16 +173,30 @@ def show(search = None, wide = True):
         else:
             type = 'Unknown'
 
+        # Process ID.
+        try:
+            pid = descriptor.ProcessId
+            if pid:
+                pidStr = str(pid)
+            else:
+                pidStr = ""
+        except AttributeError:
+            pid = None
+            pidStr = ""
+
+        # Filename.
+        fileName = filenames.get(pid, "")
+
         # Append the row.
         data.append( (descriptor.ServiceName, descriptor.DisplayName,
-                      status, type, descriptor.ProcessId) )
+                      status, type, pidStr, fileName) )
 
     # Sort the rows.
     data = sorted(data)
 
     # Build the table and print it.
     if wide:
-        headers = ("Service", "Display name", "Status", "Type", "PID")
+        headers = ("Service", "Display name", "Status", "Type", "PID", "Path")
         table = Table()
         table.addRow(*headers)
         separator = ['-' * len(x) for x in headers]
@@ -150,16 +206,21 @@ def show(search = None, wide = True):
         table.show()
     else:
         need_empty_line = False
-        for (name, disp, status, type, pid) in data:
+        for (name, disp, status, type, pidStr, path) in data:
             if need_empty_line:
                 print
             else:
                 need_empty_line = True
             print "Service name:   %s" % name
-            print "Display name:   %s" % disp
+            if disp:
+                print "Display name:   %s" % disp
             print "Current status: %s" % status
             print "Service type:   %s" % type
-            print "Process ID:     %d (0x%x)" % (pid, pid)
+            if pidStr:
+                pid = int(pidStr)
+                print "Process ID:     %d (0x%x)" % (pid, pid)
+            if path:
+                print "Host filename:  %s" % path
 
 def copypasta(action, params, wait_state, doing_verb, done_verb):
     'common code in a lot of methods here :)'
