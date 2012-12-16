@@ -128,7 +128,7 @@ def main(argv):
         if pid == 0:
             fileName = "[System Idle Process]"
         elif pid == 4:
-            fileName = "[System]"
+            fileName = "[System Integrity Group]"
         elif pid == 8:
             fileName = "[System]"
 
