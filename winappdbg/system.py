@@ -76,7 +76,7 @@ class System (_ProcessContainer):
         get_services, get_active_services,
         start_service, stop_service,
         pause_service, resume_service,
-        get_service_display_name
+        get_service_display_name, get_service_from_display_name
 
     @group Miscellaneous global settings:
         set_kill_on_exit_mode, read_msr, write_msr, enable_step_on_branch_mode,
@@ -828,6 +828,26 @@ class System (_ProcessContainer):
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
         ) as hSCManager:
             return win32.GetServiceDisplayName(hSCManager, name)
+
+    @staticmethod
+    def get_service_from_display_name(displayName):
+        """
+        Get the service unique name given its display name.
+
+        @see: L{get_service}
+
+        @type  displayName: str
+        @param displayName: Service display name. You can get this value from
+            the C{DisplayName} member of the service descriptors returned by
+            L{get_services} or L{get_active_services}.
+
+        @rtype:  str
+        @return: Service unique name.
+        """
+        with win32.OpenSCManager(
+            dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
+        ) as hSCManager:
+            return win32.GetServiceKeyName(hSCManager, displayName)
 
     @staticmethod
     def start_service(name, argv = None):
