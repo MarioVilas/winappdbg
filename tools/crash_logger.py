@@ -103,6 +103,12 @@ class LoggingEventHandler(EventHandler):
         # Create the cache of resolved labels.
         self.labelsCache = dict()                   # pid -> label -> address
 
+        # Create the map of target services and their process IDs.
+        self.pidToServices = dict()                 # pid -> set(service...)
+
+        # Create the set of services marked for restart.
+        self.srvToRestart = set()
+
         # Call the base class constructor.
         super(LoggingEventHandler, self).__init__()
 
@@ -432,8 +438,32 @@ class LoggingEventHandler(EventHandler):
 
                     # Restart if requested.
                     if self.options.restart:
-                        cmdline = event.get_process().get_command_line()
-                        event.debug.execl(cmdline)
+                        dwProcessId = event.get_pid()
+                        aProcess = event.get_process()
+
+                        # Find out which services were running here.
+                        # FIXME: make this more efficient!
+                        currentServices = set([ d.ServiceName.lower() for d in aProcess.get_services() ])
+                        debuggedServices = set(self.options.service)
+                        debuggedServices.intersection_update(currentServices)
+
+                        # We have services dying here, mark them for restart.
+                        # They are restarted later at the debug loop.
+                        if debuggedServices:
+                            self.srvToRestart.update(currentServices)
+
+                        # Now check if this process had hosted any of our
+                        # target services before. If the service is stopped
+                        # externally we won't know it here, so we need to
+                        # keep this information beforehand.
+                        targetServices = self.pidToServices.pop(dwProcessId, set())
+                        if targetServices:
+                            self.srvToRestart.update(targetServices)
+
+                        # No services here, restart the process directly.
+                        if not debuggedServices and not targetServices:
+                            cmdline = aProcess.get_command_line()
+                            event.debug.execl(cmdline)
 
     # Handle the exit thread events.
     def exit_thread(self, event):
@@ -446,7 +476,7 @@ class LoggingEventHandler(EventHandler):
         finally:
 
             # Process the event.
-            self._default_event_processing(bLogEvent = False)
+            self._default_event_processing(event, bLogEvent = False)
 
     # Handle the unload dll events.
     def unload_dll(self, event):
@@ -672,6 +702,7 @@ class CrashLogger (object):
             self.attach         = list()
             self.console        = list()
             self.windowed       = list()
+            self.service        = list()
 
             # List options
             self.action         = list()
@@ -748,6 +779,9 @@ class CrashLogger (object):
                 elif key == 'windowed':
                     if value:
                         options.windowed.append(value)
+                elif key == 'service':
+                    if value:
+                        options.service.append(value)
 
                 # List options
                 elif key == 'break_at':
@@ -890,8 +924,26 @@ class CrashLogger (object):
             windowed_targets.append(token)
         options.windowed = windowed_targets
 
+        # Get the list of services to attach to
+        service_targets = list()
+        for token in options.service:
+            if not token:
+                continue
+            try:
+                status = System.get_service(token)
+            except WindowsError:
+                try:
+                    token  = System.get_service_from_display_name(token)
+                    status = System.get_service(token)
+                except WindowsError, e:
+                    raise ValueError("error searching for service %s: %s" % (token, str(e)))
+            if not hasattr(status, 'ProcessId'):
+                raise ValueError("service targets not supported by the current platform")
+            service_targets.append(token.lower())
+        options.service = service_targets
+
         # If no targets were set at all, show an error message
-        if not options.attach and not options.console and not options.windowed:
+        if not options.attach and not options.console and not options.windowed and not options.service:
            raise ValueError("no targets found!")
 
     def parse_options(self, options):
@@ -942,9 +994,9 @@ class CrashLogger (object):
 
     def _parse_boolean(self, value):
         value = value.strip().lower()
-        if value == 'true':
+        if value == 'true' or value == 'yes' or value == 'y' or value == '1':
             return True
-        if value == 'false':
+        if value == 'false' or value == 'no' or value == 'n' or value == '0':
             return False
         return bool(int(value))
 
@@ -1069,9 +1121,9 @@ class CrashLogger (object):
 
             # Run the crash logger using this debug object
             try:
-                self._start_or_attach(debug, options)
+                self._start_or_attach(debug, options, eventHandler)
                 try:
-                    self._debugging_loop(debug, options, eventHandler.logger)
+                    self._debugging_loop(debug, options, eventHandler)
                 except Exception:
                     if not options.verbose:
                         raise
@@ -1082,7 +1134,8 @@ class CrashLogger (object):
                 if not options.autodetach:
                     debug.kill_all(bIgnoreExceptions = True)
 
-    def _start_or_attach(self, debug, options):
+    def _start_or_attach(self, debug, options, eventHandler):
+        logger = eventHandler.logger
 
         # Start or attach to the targets
         try:
@@ -1094,6 +1147,17 @@ class CrashLogger (object):
             for cmdline in options.windowed:
                 debug.execl(cmdline, bConsole = False,
                                      bFollow  = options.follow)
+            for service in options.service:
+                status = System.get_service(service)
+                if not status.ProcessId:
+                    status = self._start_service(service, logger)
+                debug.attach(status.ProcessId)
+                try:
+                    eventHandler.pidToServices[status.ProcessId].add(service)
+                except KeyError:
+                    srvSet = set()
+                    srvSet.add(service)
+                    eventHandler.pidToServices[status.ProcessId] = srvSet
 
         # If the 'autodetach' was set to False,
         # make sure the debugees die if the debugger dies unexpectedly
@@ -1101,12 +1165,50 @@ class CrashLogger (object):
             if not options.autodetach:
                 debug.system.set_kill_on_exit_mode(True)
 
+    @staticmethod
+    def _start_service(service, logger):
+
+        # Start the service.
+        status = System.get_service(service)
+        try:
+            name = System.get_service_display_name(service)
+        except WindowsError:
+            name = service
+        print "Starting service \"%s\"..." % name
+        # TODO: maybe add support for starting services with arguments?
+        System.start_service(service)
+
+        # Wait for it to start.
+        timeout = 20
+        status = System.get_service(service)
+        while status.CurrentState == win32.SERVICE_START_PENDING:
+            timeout -= 1
+            if timeout <= 0:
+                logger.log_text("Error: timed out.")
+                msg = "Timed out waiting for service \"%s\" to start"
+                raise Exception(msg % name)
+            time.sleep(0.5)
+            status = System.get_service(service)
+
+        # Done.
+        logger.log_text("Service \"%s\" started successfully." % name)
+        return status
+
     # Main debugging loop
-    def _debugging_loop(self, debug, options, logger):
+    def _debugging_loop(self, debug, options, eventHandler):
+
+        # Get the logger.
+        logger = eventHandler.logger
+
+        # If there's a time limit, calculate how much is it.
         timedOut = False
         if options.time_limit:
             maxTime = time.time() + options.time_limit
+
+        # Loop until there are no more debuggees.
         while debug.get_debugee_count() > 0:
+
+            # Wait for debug events, with an optional timeout.
             while 1:
                 if options.time_limit:
                     timedOut = time.time() > maxTime
@@ -1126,11 +1228,42 @@ class CrashLogger (object):
             if timedOut:
                 logger.log_text("Execution time limit reached")
                 break
+
+            # Dispatch the debug event and continue execution.
             try:
                 try:
                     debug.dispatch()
                 finally:
                     debug.cont()
+            except Exception:
+                logger.log_exc()
+                if not options.ignore_errors:
+                    raise
+
+            # Restart services marked for restart by the event handler.
+            # Also attach to those services we want to debug.
+            try:
+                while eventHandler.srvToRestart:
+                    service = eventHandler.srvToRestart.pop()
+                    try:
+                        descriptor = self._start_service(service, logger)
+                        if service in options.service:
+                            try:
+                                debug.attach(descriptor.ProcessId)
+                                try:
+                                    eventHandler.pidToServices[descriptor.ProcessId].add(service)
+                                except KeyError:
+                                    srvSet = set()
+                                    srvSet.add(service)
+                                    eventHandler.pidToServices[descriptor.ProcessId] = srvSet
+                            except Exception:
+                                logger.log_exc()
+                                if not options.ignore_errors:
+                                    raise
+                    except Exception:
+                        logger.log_exc()
+                        if not options.ignore_errors:
+                            raise
             except Exception:
                 logger.log_exc()
                 if not options.ignore_errors:
