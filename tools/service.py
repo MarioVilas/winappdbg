@@ -56,19 +56,20 @@ def main(argv):
         command = argv[0].strip().lower()
     if command not in ('list', 'start', 'stop', 'pause', 'resume'):
         parser.error("unknown command: %s" % command)
-    if command != 'list':
-        try:
-            target = argv[1].strip().lower()
-        except IndexError:
+    try:
+        target = argv[1].strip().lower()
+    except IndexError:
+        target = None
+        if command != 'list':
             parser.error("missing argument for the %s command" % command)
-        if command == 'start':
-            target_args = argv[2:]
-        elif len(argv) > 2:
-            parser.error("extra arguments")
+    if command == 'start':
+        target_args = argv[2:]
+    elif len(argv) > 2:
+        parser.error("extra arguments")
 
     # Run the command.
     if   command == 'list':
-        show(options.wide)
+        show(target, options.wide)
     elif command == 'start':
         start(target, target_args)
     elif command == 'stop':
@@ -80,8 +81,12 @@ def main(argv):
     else:
         parser.error("internal error")
 
-def show(wide = True):
+def show(search = None, wide = True):
     'show a table with the list of services'
+
+    # Make the search string lowercase if given.
+    if search is not None:
+        search = search.lower()
 
     # Get the list of services.
     try:
@@ -94,21 +99,27 @@ def show(wide = True):
     data = []
     for descriptor in services:
 
+        # Filter out services that don't match the search string if given.
+        if search is not None and \
+            not search in descriptor.ServiceName.lower() and \
+            not search in descriptor.DisplayName.lower():
+                continue
+
         # Status.
         if   descriptor.CurrentState == win32.SERVICE_CONTINUE_PENDING:
-            status = "resuming..."
+            status = "Resuming..."
         elif descriptor.CurrentState == win32.SERVICE_PAUSE_PENDING:
-            status = "pausing..."
+            status = "Pausing..."
         elif descriptor.CurrentState == win32.SERVICE_PAUSED:
-            status = "paused"
+            status = "Paused"
         elif descriptor.CurrentState == win32.SERVICE_RUNNING:
-            status = "running"
+            status = "Running"
         elif descriptor.CurrentState == win32.SERVICE_START_PENDING:
-            status = "starting..."
+            status = "Starting..."
         elif descriptor.CurrentState == win32.SERVICE_STOP_PENDING:
-            status = "stopping..."
+            status = "Stopping..."
         elif descriptor.CurrentState == win32.SERVICE_STOPPED:
-            status = "stopped"
+            status = "Stopped"
 
         # Type.
         if   descriptor.ServiceType & win32.SERVICE_INTERACTIVE_PROCESS:
