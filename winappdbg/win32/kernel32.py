@@ -3958,13 +3958,13 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
 #------------------------------------------------------------------------------
 # Miscellaneous system information
 
-# Contribution by ivanlef0u (http://ivanlef0u.fr/)
-# XP SP3 and > only
 # BOOL WINAPI GetProcessDEPPolicy(
 #  __in   HANDLE hProcess,
 #  __out  LPDWORD lpFlags,
 #  __out  PBOOL lpPermanent
 # );
+# Contribution by ivanlef0u (http://ivanlef0u.fr/)
+# XP SP3 and > only
 def GetProcessDEPPolicy(hProcess):
     _GetProcessDEPPolicy = windll.kernel32.GetProcessDEPPolicy
     _GetProcessDEPPolicy.argtypes = [HANDLE, LPDWORD, PBOOL]

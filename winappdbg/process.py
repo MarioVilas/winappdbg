@@ -787,9 +787,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Retrieves the DEP (Data Execution Prevention) policy for this process.
 
-        @note: This method is only available in Windows XP SP3 and above.
-            When run on previous versions of Windows a C{NotImplementedError}
-            exception is raised.
+        @note: This method is only available in Windows XP SP3 and above, and
+            only for 32 bit processes. It will fail in any other circumstance.
 
         @see: U{http://msdn.microsoft.com/en-us/library/bb736297(v=vs.85).aspx}
 
