@@ -44,7 +44,20 @@ Note that in 64 bit processors most memory addresses are not alphanumeric, so th
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
-.. _trace-gdi-text:
+.. _enum-dep:
+
+Show processes DEP settings
++++++++++++++++++++++++++++
+
+Beginning with Windows XP SP3, it's possible to query a process and find out its Data Execution Prevention (DEP) settings. It may have DEP enabled or disabled, DEP-ATL thunking emulation enabled or disabled, and these settings may be changeable on runtime or permanent for the lifetime of the process.
+
+This example shows all 32 bits processes the current user has permission to access and shows their DEP settings.
+
+:download:`Download <../../examples/miscellaneous/find_alnum.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/dep.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
 
 .. _atoms:
 

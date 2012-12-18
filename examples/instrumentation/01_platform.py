@@ -30,15 +30,9 @@
 
 # $Id$
 
-from winappdbg import System
+from winappdbg import System, version
 
-import sys
-
-# Instance a System object.
-system = System()
-
-# Get the target application.
-command_line = system.argv_to_cmdline( sys.argv[ 1 : ] )
-
-# Start a new process.
-system.start_process( command_line )    # see the docs for more options
+# Show the Windows version and the current architecture.
+print "WinAppDbg %s" % version
+print "Running on %s for the %s architecture." % (System.os, System.arch)
+print "From this Python VM we can attach to %d-bit processes." % System.bits

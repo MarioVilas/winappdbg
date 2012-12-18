@@ -74,7 +74,7 @@ def show_window( window ):
     print "Size:     (%i, %i)" % size
 
 
-# ...begins just like example 16...
+# ...begins just like example 17...
 
 
 def user_confirmed():
