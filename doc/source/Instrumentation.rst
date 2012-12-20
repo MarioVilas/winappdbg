@@ -121,6 +121,15 @@ Example #10: getting the process memory map
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
+Example #11: searching the process memory
++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/11_memory_search.py>`
+
+.. literalinclude:: ../../examples/instrumentation/11_memory_search.py
+   :start-after: $Id
+   :end-before: # When invoked from the command line,
+
 .. _the-thread-class:
 
 The Thread class
@@ -130,30 +139,30 @@ A *Thread* object lets you manipulate any thread in any process in the system. Y
 
 You can manipulate the thread context (read and write to it's registers), perform typical debugger operations (getting stack traces, etc), suspend and resume execution, and more.
 
-Example #11: freeze all threads in a process
+Example #12: freeze all threads in a process
 +++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/11_freeze.py>`
+:download:`Download <../../examples/instrumentation/12_freeze.py>`
 
-.. literalinclude:: ../../examples/instrumentation/11_freeze.py
+.. literalinclude:: ../../examples/instrumentation/12_freeze.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #12: print a thread's context
+Example #13: print a thread's context
 ++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/12_registers.py>`
+:download:`Download <../../examples/instrumentation/13_registers.py>`
 
-.. literalinclude:: ../../examples/instrumentation/12_registers.py
+.. literalinclude:: ../../examples/instrumentation/13_registers.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #13: print a thread's code disassembly
+Example #14: print a thread's code disassembly
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/13_disassemble.py>`
+:download:`Download <../../examples/instrumentation/14_disassemble.py>`
 
-.. literalinclude:: ../../examples/instrumentation/13_disassemble.py
+.. literalinclude:: ../../examples/instrumentation/14_disassemble.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
@@ -164,12 +173,12 @@ The Module class
 
 A *Module* object lets you manipulate any thread in any process in the system. You can get a *Module* instance by enumerating a *Process* snapshot. *Module* objects can be used to resolve the addresses of exported functions in the process address space.
 
-Example #14: resolve an API function in a process
+Example #15: resolve an API function in a process
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/14_resolve_api.py>`
+:download:`Download <../../examples/instrumentation/15_resolve_api.py>`
 
-.. literalinclude:: ../../examples/instrumentation/14_resolve_api.py
+.. literalinclude:: ../../examples/instrumentation/15_resolve_api.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
@@ -178,55 +187,55 @@ The Window class
 
 A *Window* object lets you manipulate any window in the current desktop. You can get a *Window* instance by querying a *System* object.
 
-Example #15: enumerate the top-level windows
+Example #16: enumerate the top-level windows
 ++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/15_list_windows.py>`
+:download:`Download <../../examples/instrumentation/16_list_windows.py>`
 
-.. literalinclude:: ../../examples/instrumentation/15_list_windows.py
+.. literalinclude:: ../../examples/instrumentation/16_list_windows.py
    :start-after: $Id
 
-Example #16: minimize all top-level windows
+Example #17: minimize all top-level windows
 +++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/16_minimize_all.py>`
+:download:`Download <../../examples/instrumentation/17_minimize_all.py>`
 
-.. literalinclude:: ../../examples/instrumentation/16_minimize_all.py
+.. literalinclude:: ../../examples/instrumentation/17_minimize_all.py
    :start-after: $Id
 
-Example #17: traverse the windows tree
+Example #18: traverse the windows tree
 ++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/17_show_window_tree.py>`
+:download:`Download <../../examples/instrumentation/18_show_window_tree.py>`
 
-.. literalinclude:: ../../examples/instrumentation/17_show_window_tree.py
+.. literalinclude:: ../../examples/instrumentation/18_show_window_tree.py
    :start-after: $Id
    :end-before: if __name__ == '__main__':
 
-Example #18: get windows by screen position
+Example #19: get windows by screen position
 +++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/18_get_window_at.py>`
+:download:`Download <../../examples/instrumentation/19_get_window_at.py>`
 
-.. literalinclude:: ../../examples/instrumentation/18_get_window_at.py
+.. literalinclude:: ../../examples/instrumentation/19_get_window_at.py
    :start-after: $Id
 
-Example #19: find windows by class and caption
+Example #20: find windows by class and caption
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/19_find_window.py>`
+:download:`Download <../../examples/instrumentation/20_find_window.py>`
 
-.. literalinclude:: ../../examples/instrumentation/19_find_window.py
+.. literalinclude:: ../../examples/instrumentation/20_find_window.py
    :start-after: $Id
    :end-before: if __name__ == '__main__':
 
-Example #20: kill a program using its window
+Example #21: kill a program using its window
 ++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/20_kill.py>`
+:download:`Download <../../examples/instrumentation/21_kill.py>`
 
-.. literalinclude:: ../../examples/instrumentation/20_kill.py
-   :start-after: # ...begins just like example 19...
+.. literalinclude:: ../../examples/instrumentation/21_kill.py
+   :start-after: # ...begins just like example 20...
    :end-before: if __name__ == '__main__':
 
 Back to the System class
@@ -234,38 +243,38 @@ Back to the System class
 
 As promised, we're back on the *System* class to see more of its features. We'll now see how to access the Windows Registry and work with system services.
 
-Example #21: exporting a Registry key
+Example #22: exporting a Registry key
 +++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/21_registry_export.py>`
+:download:`Download <../../examples/instrumentation/22_registry_export.py>`
 
-.. literalinclude:: ../../examples/instrumentation/21_registry_export.py
+.. literalinclude:: ../../examples/instrumentation/22_registry_export.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #22: searching the Registry
+Example #23: searching the Registry
 +++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/22_registry_search.py>`
+:download:`Download <../../examples/instrumentation/23_registry_search.py>`
 
-.. literalinclude:: ../../examples/instrumentation/22_registry_search.py
+.. literalinclude:: ../../examples/instrumentation/23_registry_search.py
    :start-after: $Id
    :end-before: # ...
 
-Example #23: listing system services
+Example #24: listing system services
 ++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/23_services.py>`
+:download:`Download <../../examples/instrumentation/24_services.py>`
 
-.. literalinclude:: ../../examples/instrumentation/23_services.py
+.. literalinclude:: ../../examples/instrumentation/24_services.py
    :start-after: $Id
    :end-before: if __name__ == "__main__":
 
-Example #24: stopping and starting a system service
+Example #25: stopping and starting a system service
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/24_service_restart.py>`
+:download:`Download <../../examples/instrumentation/25_service_restart.py>`
 
-.. literalinclude:: ../../examples/instrumentation/24_service_restart.py
+.. literalinclude:: ../../examples/instrumentation/25_service_restart.py
    :start-after: $Id
    :end-before: # When invoked from the command line,

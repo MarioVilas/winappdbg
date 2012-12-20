@@ -16,16 +16,29 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
-.. _memory-dump-example:
+.. _memory-dump:
 
 Dump the memory of a process
 ++++++++++++++++++++++++++++
 
 This is an example on how to dump the memory map and contents of a process into an SQLite database. A table is created where each row is a memory region, and the columns are the properties of that region (address, size, mapped filename, etc.) and it's data. The data is compressed using zlib to reduce the database size, but simply commenting out line 160 stores the data in uncompressed form.
 
-:download:`Download <../../examples/miscellaneous/memory_dump_example.py>`
+:download:`Download <../../examples/miscellaneous/memory_dump.py>`
 
-.. literalinclude:: ../../examples/miscellaneous/memory_dump_example.py
+.. literalinclude:: ../../examples/miscellaneous/memory_dump.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
+.. _crash-dump:
+
+Produce a crash dump
+++++++++++++++++++++
+
+This is an example on how to store a crash dump into any supported SQL database, using the *CrashDAO* class. Requires `SQLAlchemy <http://www.sqlalchemy.org/>`_ to be installed to work.
+
+:download:`Download <../../examples/miscellaneous/crash_dump.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/crash_dump.py
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
@@ -53,7 +66,7 @@ Beginning with Windows XP SP3, it's possible to query a process and find out its
 
 This example shows all 32 bits processes the current user has permission to access and shows their DEP settings.
 
-:download:`Download <../../examples/miscellaneous/find_alnum.py>`
+:download:`Download <../../examples/miscellaneous/dep.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/dep.py
    :start-after: # $Id
