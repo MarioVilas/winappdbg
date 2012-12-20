@@ -59,6 +59,21 @@ This example shows all 32 bits processes the current user has permission to acce
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
+.. _disassembler:
+
+Choose the disassembler you want to use
++++++++++++++++++++++++++++++++++++++++
+
+WinAppDbg supports several disassembler engines. When more than one compatible engine is installed a default one is picked. However, you can manually select which one you want to use.
+
+This example shows you how to list the supported disassembler engines for the desired architecture and pick one.
+
+:download:`Download <../../examples/miscellaneous/disasm.py>`
+
+.. literalinclude:: ../../examples/miscellaneous/disasm.py
+   :start-after: # $Id
+   :end-before: # When invoked from the command line,
+
 .. _atoms:
 
 Enumerate all named global atoms
