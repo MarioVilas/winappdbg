@@ -742,6 +742,8 @@ class System (_ProcessContainer):
         except KeyError:
             return
 
+#------------------------------------------------------------------------------
+
     @staticmethod
     def get_services():
         """

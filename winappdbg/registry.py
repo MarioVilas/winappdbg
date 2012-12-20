@@ -112,11 +112,41 @@ class RegistryKey (_RegistryContainer):
 
     @property
     def handle(self):
+        #if not self._handle:
+        #    msg = "This Registry key handle has already been closed."
+        #    raise RuntimeError(msg)
         return self._handle
+
+    #def close(self):
+    #    """
+    #    Close the Registry key handle, freeing its resources. It cannot be
+    #    used again after calling this method.
+    #
+    #    @note: This method will be called automatically by the garbage
+    #        collector, and upon exiting a "with" block.
+    #
+    #    @raise RuntimeError: This Registry key handle has already been closed.
+    #    """
+    #    self.handle.close()
+    #
+    #def __enter__(self):
+    #    """
+    #    Compatibility with the "C{with}" Python statement.
+    #    """
+    #    return self
+    #
+    #def __exit__(self, type, value, traceback):
+    #    """
+    #    Compatibility with the "C{with}" Python statement.
+    #    """
+    #    try:
+    #        self.close()
+    #    except Exception:
+    #        pass
 
     def __contains__(self, name):
         try:
-            win32.RegQueryValueEx(self._handle, name, False)
+            win32.RegQueryValueEx(self.handle, name, False)
             return True
         except WindowsError, e:
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
@@ -125,40 +155,43 @@ class RegistryKey (_RegistryContainer):
 
     def __getitem__(self, name):
         try:
-            return win32.RegQueryValueEx(self._handle, name)[0]
+            return win32.RegQueryValueEx(self.handle, name)[0]
         except WindowsError, e:
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(name)
             raise
 
     def __setitem__(self, name, value):
-        win32.RegSetValueEx(self._handle, name, value)
+        win32.RegSetValueEx(self.handle, name, value)
 
     def __delitem__(self, name):
-        win32.RegDeleteValue(self._handle, name)
+        win32.RegDeleteValue(self.handle, name)
 
     def iterkeys(self):
+        handle = self.handle
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index, False)
+            resp = win32.RegEnumValue(handle, index, False)
             if resp is None:
                 break
             yield resp[0]
             index += 1
 
     def itervalues(self):
+        handle = self.handle
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index)
+            resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             yield resp[2]
             index += 1
 
     def iteritems(self):
+        handle = self.handle
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index)
+            resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             yield resp[0], resp[2]
@@ -166,10 +199,11 @@ class RegistryKey (_RegistryContainer):
 
     def keys(self):
         # return list(self.iterkeys())   # that can't be optimized by psyco
+        handle = self.handle
         keys = list()
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index, False)
+            resp = win32.RegEnumValue(handle, index, False)
             if resp is None:
                 break
             keys.append(resp[0])
@@ -178,10 +212,11 @@ class RegistryKey (_RegistryContainer):
 
     def values(self):
         # return list(self.itervalues()) # that can't be optimized by psyco
+        handle = self.handle
         values = list()
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index)
+            resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             values.append(resp[2])
@@ -190,31 +225,101 @@ class RegistryKey (_RegistryContainer):
 
     def items(self):
         # return list(self.iteritems()) # that can't be optimized by psyco
+        handle = self.handle
         items = list()
         index = 0
         while 1:
-            resp = win32.RegEnumValue(self._handle, index)
+            resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             items.append( (resp[0], resp[2]) )
             index += 1
         return items
 
+    def get_value_type(self, name):
+        """
+        Retrieves the low-level data type for the given value.
+
+        @type  name: str
+        @param name: Registry value name.
+
+        @rtype:  int
+        @return: One of the following constants:
+         - L{win32.REG_NONE} (0)
+         - L{win32.REG_SZ} (1)
+         - L{win32.REG_EXPAND_SZ} (2)
+         - L{win32.REG_BINARY} (3)
+         - L{win32.REG_DWORD} (4)
+         - L{win32.REG_DWORD_BIG_ENDIAN} (5)
+         - L{win32.REG_LINK} (6)
+         - L{win32.REG_MULTI_SZ} (7)
+         - L{win32.REG_RESOURCE_LIST} (8)
+         - L{win32.REG_FULL_RESOURCE_DESCRIPTOR} (9)
+         - L{win32.REG_RESOURCE_REQUIREMENTS_LIST} (10)
+         - L{win32.REG_QWORD} (11)
+
+        @raise KeyError: The specified value could not be found.
+        """
+        try:
+            return win32.RegQueryValueEx(self.handle, name)[1]
+        except WindowsError, e:
+            if e.winerror == win32.ERROR_FILE_NOT_FOUND:
+                raise KeyError(name)
+            raise
+
     def clear(self):
+        handle = self.handle
         while 1:
-            resp = win32.RegEnumValue(self._handle, 0, False)
+            resp = win32.RegEnumValue(handle, 0, False)
             if resp is None:
                 break
-            win32.RegDeleteValue(self._handle, resp[0])
+            win32.RegDeleteValue(handle, resp[0])
 
     def __str__(self):
-        return self['']
+        default = self['']
+        return str(default)
 
     def __unicode__(self):
-        return self[u'']
+        default = self[u'']
+        return unicode(default)
 
     def __repr__(self):
         return '<Registry key: "%s">' % self._path
+
+    def iterchildren(self):
+        """
+        Iterates the subkeys for this Registry key.
+
+        @rtype:  iter of L{RegistryKey}
+        @return: Iterator of subkeys.
+        """
+        handle = self.handle
+        index = 0
+        while 1:
+            subkey = win32.RegEnumKey(handle, index)
+            if subkey is None:
+                break
+            yield self.child(subkey)
+            index += 1
+
+    def children(self):
+        """
+        Returns a list of subkeys for this Registry key.
+
+        @rtype:  list(L{RegistryKey})
+        @return: List of subkeys.
+        """
+        # return list(self.iterchildren()) # that can't be optimized by psyco
+        handle = self.handle
+        result = []
+        index = 0
+        while 1:
+            subkey = win32.RegEnumKey(handle, index)
+            if subkey is None:
+                break
+            result.append( self.child(subkey) )
+            index += 1
+        return result
 
     def child(self, subkey):
         """
@@ -227,10 +332,8 @@ class RegistryKey (_RegistryContainer):
         @return: Subkey.
         """
         path = self._path + '\\' + subkey
-        handle = win32.RegOpenKey(self._handle, subkey)
+        handle = win32.RegOpenKey(self.handle, subkey)
         return RegistryKey(path, handle)
-
-    # TODO: add methods children() and iterchildren()
 
     def flush(self):
         """
@@ -242,7 +345,7 @@ class RegistryKey (_RegistryContainer):
 
         @warn: Calling this method too often may degrade performance.
         """
-        win32.RegFlushKey(self._handle)
+        win32.RegFlushKey(self.handle)
 
 #==============================================================================
 
@@ -318,14 +421,22 @@ class Registry (_RegistryContainer):
     def machine(self):
         return self._machine
 
-    def _parse_path(self, path):
+    def _split_path(self, path):
         """
-        Parses a Registry path and returns the hive and key.
+        Splits a Registry path and returns the hive and key.
+
+        @type  path: str
+        @param path: Registry path.
 
         @rtype:  tuple( int, str )
         @return: Tuple containing the hive handle and the subkey path.
-            For a local Registry, the hive handle is an integer.
-            For a remote Registry, the hive handle is a L{RegistryKeyHandle}.
+            The hive handle is always one of the following integer constants:
+             - L{win32.HKEY_CLASSES_ROOT}
+             - L{win32.HKEY_CURRENT_USER}
+             - L{win32.HKEY_LOCAL_MACHINE}
+             - L{win32.HKEY_USERS}
+             - L{win32.HKEY_PERFORMANCE_DATA}
+             - L{win32.HKEY_CURRENT_CONFIG}
         """
         if '\\' in path:
             p = path.find('\\')
@@ -334,10 +445,62 @@ class Registry (_RegistryContainer):
         else:
             hive = path
             path = None
-        handle = self._hives_by_name[hive]
+        handle = self._hives_by_name[ hive.upper() ]
+        return handle, path
+
+    def _parse_path(self, path):
+        """
+        Parses a Registry path and returns the hive and key.
+
+        @type  path: str
+        @param path: Registry path.
+
+        @rtype:  tuple( int, str )
+        @return: Tuple containing the hive handle and the subkey path.
+            For a local Registry, the hive handle is an integer.
+            For a remote Registry, the hive handle is a L{RegistryKeyHandle}.
+        """
+        handle, path = self._split_path(path)
         if self._machine is not None:
             handle = self._connect_hive(hive)
         return handle, path
+
+    def _join_path(self, hive, subkey):
+        """
+        Joins the hive and key to make a Registry path.
+
+        @type  hive: int
+        @param hive: Registry hive handle.
+            The hive handle must be one of the following integer constants:
+             - L{win32.HKEY_CLASSES_ROOT}
+             - L{win32.HKEY_CURRENT_USER}
+             - L{win32.HKEY_LOCAL_MACHINE}
+             - L{win32.HKEY_USERS}
+             - L{win32.HKEY_PERFORMANCE_DATA}
+             - L{win32.HKEY_CURRENT_CONFIG}
+
+        @type  subkey: str
+        @param subkey: Subkey path.
+
+        @rtype:  str
+        @return: Registry path.
+        """
+        path = self._hives_by_value[hive]
+        if subkey:
+            path = path + '\\' + subkey
+        return path
+
+    def _sanitize_path(self, path):
+        """
+        Sanitizes the given Registry path.
+
+        @type  path: str
+        @param path: Registry path.
+
+        @rtype:  str
+        @return: Registry path.
+        """
+        return self._join_path( *self._split_path(path) )
 
     def _connect_hive(self, hive):
         """
@@ -399,6 +562,7 @@ class Registry (_RegistryContainer):
             raise
 
     def __getitem__(self, path):
+        path = self._sanitize_path(path)
         hive, subpath = self._parse_path(path)
         try:
             handle = win32.RegOpenKey(hive, subpath)
@@ -449,6 +613,7 @@ class Registry (_RegistryContainer):
         @rtype:  L{RegistryKey}
         @return: The newly created Registry key.
         """
+        path = self._sanitize_path(path)
         hive, subpath = self._parse_path(path)
         handle = win32.RegCreateKey(hive, subpath)
         return RegistryKey(path, handle)
