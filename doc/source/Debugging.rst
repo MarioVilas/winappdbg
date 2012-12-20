@@ -16,6 +16,9 @@ A *Debug* object provides methods to launch new processes, attach to and detach 
 
 When you're finished using the *Debug* object, you must either call its *stop()* method from a *finally* block, or put the *Debug* object inside a *with* statement.
 
+.. note::
+   In previous examples we have used a **System.request_debug_privileges()** call to get debug privileges. When using the *Debug* class we don't need to do that - it's taken care of automatically in the constructor.
+
 Example #1: starting a new process and waiting for it to finish
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
