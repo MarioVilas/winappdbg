@@ -7,6 +7,8 @@ You can implement process instrumentation in your Python scripts by using the pr
 
 A *System* object is a snapshot of all running processes. It contains *Process* objects, which in turn are snapshots of threads and modules, containing *Thread* and *Module* objects.
 
+*System* objects also contain *Windows* objects, representing the windows in the current desktop.
+
 .. note::
 
     You don't need to be attached as a debugger for these classes to work.
@@ -226,3 +228,44 @@ Example #20: kill a program using its window
 .. literalinclude:: ../../examples/instrumentation/20_kill.py
    :start-after: # ...begins just like example 19...
    :end-before: if __name__ == '__main__':
+
+Back to the System class
+------------------------
+
+As promised, we're back on the *System* class to see more of its features. We'll now see how to access the Windows Registry and work with system services.
+
+Example #21: exporting a Registry key
++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/21_registry_export.py>`
+
+.. literalinclude:: ../../examples/instrumentation/21_registry_export.py
+   :start-after: $Id
+   :end-before: # When invoked from the command line,
+
+Example #22: searching the Registry
++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/22_registry_search.py>`
+
+.. literalinclude:: ../../examples/instrumentation/22_registry_search.py
+   :start-after: $Id
+   :end-before: # ...
+
+Example #23: listing system services
+++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/23_services.py>`
+
+.. literalinclude:: ../../examples/instrumentation/23_services.py
+   :start-after: $Id
+   :end-before: if __name__ == "__main__":
+
+Example #24: stopping and starting a system service
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/24_service_restart.py>`
+
+.. literalinclude:: ../../examples/instrumentation/24_service_restart.py
+   :start-after: $Id
+   :end-before: # When invoked from the command line,
