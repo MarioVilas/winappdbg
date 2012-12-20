@@ -90,6 +90,9 @@ def my_event_handler( event ):
         # crashes so they aren't added to the database.
         # dao.add( crash, allow_duplicates = False )
 
+        # You can also launch the interactive debugger from here. Try it! :)
+        # event.debug.interactive()
+
         # Kill the process.
         event.get_process().kill()
 

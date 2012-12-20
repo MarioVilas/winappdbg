@@ -29,19 +29,6 @@ This is an example on how to dump the memory map and contents of a process into 
    :start-after: # $Id
    :end-before: # When invoked from the command line,
 
-.. _crash-dump:
-
-Produce a crash dump
-++++++++++++++++++++
-
-This is an example on how to store a crash dump into any supported SQL database, using the *CrashDAO* class. Requires `SQLAlchemy <http://www.sqlalchemy.org/>`_ to be installed to work.
-
-:download:`Download <../../examples/miscellaneous/crash_dump.py>`
-
-.. literalinclude:: ../../examples/miscellaneous/crash_dump.py
-   :start-after: # $Id
-   :end-before: # When invoked from the command line,
-
 .. _find-alnum:
 
 Find alphanumeric addresses to jump to

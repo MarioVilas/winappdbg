@@ -52,6 +52,22 @@ Example #4: killing the debugged process when the debugger is closed
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
+.. _the-interactive-debugger:
+
+The interactive debugger
+------------------------
+
+The *Debug* class also contains an implementation of a simple console debugger. It can come in handy when testing your scripts, or to manually handle unexpected situations.
+
+Example #5: running an interactive debugger session
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/debugging/05_interactive.py>`
+
+.. literalinclude:: ../../examples/debugging/05_interactive.py
+   :start-after: $Id
+   :end-before: # When invoked from the command line,
+
 .. _the-event-class:
 
 The Event class
@@ -59,12 +75,36 @@ The Event class
 
 So far we have seen how to attach to or start processes. But a debugger also needs to react to events that happen in the debugee, and this is done by passing a callback function as the **eventHandler** parameter when instancing the *Debug* object. This callback, when called, will receive as parameter an **Event** object which describes the event and contains a reference to the *Debug* object itself.
 
-Example #5: handling debug events
+Example #6: handling debug events
 ++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/05_debug_events.py>`
+:download:`Download <../../examples/debugging/06_debug_events.py>`
 
-.. literalinclude:: ../../examples/debugging/05_debug_events.py
+.. literalinclude:: ../../examples/debugging/06_debug_events.py
+   :start-after: $Id
+   :end-before: # When invoked from the command line,
+
+.. _the-crash-and-crashdao-classes:
+
+The Crash and CrashDAO classes
+------------------------------
+
+Crashes are exceptions a program can't recover from (also known as second-chance exceptions or last chance exceptions). A **crash dump** is a collection of information from a crash in a program that can (hopefully!) help you reproduce or fix the bug that caused it in the first place.
+
+**WinAppDbg** provides the *Crash* class to generate and manipulate crash dumps. When instancing a *Crash* object only the most basic information is collected, you have to call the *fetch_extra_data* method to collect more data. This lets you control which information to gather and when - for example you may be interested in gathering more information only under certain conditions, or for certain kinds of exceptions.
+
+Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard `pickle <http://docs.python.org/2/library/pickle.html>`_ module, or similar modules like `cerealizer <http://home.gna.org/oomadness/en/cerealizer/index.html>`_. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
+
+A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <http://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
+
+Old versions of **WinAppDbg** (1.4 and older) supported DBM databases through the *CrashContainer* class, SQLite databases with the *CrashTable* class, and SQL Server databases with the *CrashTableMSSQL* class. They are now deprecated and, while still present for backwards compatibility (for the time being) its use is not recommended.
+
+Example #7: saving crash dumps
+++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/debugging/07_crash_dump.py>`
+
+.. literalinclude:: ../../examples/debugging/07_crash_dump.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
@@ -117,21 +157,21 @@ In addition to all this, the *EventHandler* class provides a simple method for A
 
     One thing to be careful with when hooking API functions: all pointers should be declared as having the void type. Otherwise ctypes gets too "helpful" and tries to access the memory pointed to by them... and crashes, since those pointers only work in the debugged process.
 
-Example #6: tracing execution
+Example #8: tracing execution
 ++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/06_tracing.py>`
+:download:`Download <../../examples/debugging/08_tracing.py>`
 
-.. literalinclude:: ../../examples/debugging/06_tracing.py
+.. literalinclude:: ../../examples/debugging/08_tracing.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #7: intercepting API calls
+Example #9: intercepting API calls
 +++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/07_api_hook.py>`
+:download:`Download <../../examples/debugging/09_api_hook.py>`
 
-.. literalinclude:: ../../examples/debugging/07_api_hook.py
+.. literalinclude:: ../../examples/debugging/09_api_hook.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
@@ -142,12 +182,12 @@ If you're debugging more than one process at a time, keeping track of everything
 
 That way, your *EventHandler* can be written as if only a single process was being debugged, but you can attach to as many processes as you want. Each *EventHandler* will only "see" its own debugee.
 
-Example #8: sifting events per process
+Example #10: sifting events per process
 ++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/08_event_sifting.py>`
+:download:`Download <../../examples/debugging/10_event_sifting.py>`
 
-.. literalinclude:: ../../examples/debugging/08_event_sifting.py
+.. literalinclude:: ../../examples/debugging/10_event_sifting.py
    :start-after: from winappdbg
    :end-before: # When invoked from the command line,
 
@@ -182,39 +222,39 @@ The stalking methods and their equivalents are the following:
 | **stalk_buffer**   | watch_buffer    |
 +--------------------+-----------------+
 
-Example #9: setting a breakpoint
+Example #11: setting a breakpoint
 +++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/09_breakpoint.py>`
+:download:`Download <../../examples/debugging/11_breakpoint.py>`
 
-.. literalinclude:: ../../examples/debugging/09_breakpoint.py
+.. literalinclude:: ../../examples/debugging/11_breakpoint.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #10: hooking a function
+Example #12: hooking a function
 +++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/10_hook_function.py>`
+:download:`Download <../../examples/debugging/12_hook_function.py>`
 
-.. literalinclude:: ../../examples/debugging/10_hook_function.py
+.. literalinclude:: ../../examples/debugging/12_hook_function.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #11: watching a variable
+Example #13: watching a variable
 +++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/11_watch_variable.py>`
+:download:`Download <../../examples/debugging/13_watch_variable.py>`
 
-.. literalinclude:: ../../examples/debugging/11_watch_variable.py
+.. literalinclude:: ../../examples/debugging/13_watch_variable.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
-Example #12: watching a buffer
+Example #14: watching a buffer
 +++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/12_watch_buffer.py>`
+:download:`Download <../../examples/debugging/14_watch_buffer.py>`
 
-.. literalinclude:: ../../examples/debugging/12_watch_buffer.py
+.. literalinclude:: ../../examples/debugging/14_watch_buffer.py
    :start-after: from winappdbg
    :end-before: def simple_debugger
 
@@ -231,20 +271,20 @@ In addition to exported functions, debugging symbols are used whenever possible.
 
 A complete explanation on how labels work can be found at the Advanced Topics section of this document.
 
-Example #13: getting the label for a given memory address
+Example #15: getting the label for a given memory address
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/13_get_label.py>`
+:download:`Download <../../examples/debugging/15_get_label.py>`
 
-.. literalinclude:: ../../examples/debugging/13_get_label.py
+.. literalinclude:: ../../examples/debugging/15_get_label.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
-Example #14: resolving a label back into a memory address
+Example #16: resolving a label back into a memory address
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/debugging/14_resolve_label.py>`
+:download:`Download <../../examples/debugging/16_resolve_label.py>`
 
-.. literalinclude:: ../../examples/debugging/14_resolve_label.py
+.. literalinclude:: ../../examples/debugging/16_resolve_label.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
