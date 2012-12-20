@@ -77,7 +77,7 @@ Blog:    U{http://breakingcode.wordpress.com}
     win32, Handle, ProcessHandle, ThreadHandle, FileHandle
 
 @group Miscellaneous:
-    HexInput, HexOutput, HexDump, Table, Logger,
+    HexInput, HexOutput, HexDump, Color, Table, Logger,
     PathOperations,
     MemoryAddresses,
     CustomAddressIterator,
@@ -187,6 +187,7 @@ __all__ =   [
                 'HexDump',
                 'HexInput',
                 'HexOutput',
+                'Color',
                 'Table',
                 'CrashDump',
                 'DebugLog',

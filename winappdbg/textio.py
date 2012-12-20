@@ -41,6 +41,7 @@ Functions for text input, logging or text output.
     HexDump,
     HexInput,
     HexOutput,
+    Color,
     Table,
     Logger
 """
@@ -51,6 +52,7 @@ __all__ =   [
                 'HexDump',
                 'HexInput',
                 'HexOutput',
+                'Color',
                 'Table',
                 'CrashDump',
                 'DebugLog',
@@ -857,6 +859,217 @@ class HexDump (StaticClass):
         return cls.hexblock_cb(cls.hexa_qword, data,
                                address, bits, width * 8,
                                cb_kwargs = {'separator': separator})
+
+#------------------------------------------------------------------------------
+
+class Color (object):
+    """
+    Colored console output.
+    """
+
+    @staticmethod
+    def _get_text_attributes():
+        return win32.GetConsoleScreenBufferInfo().wAttributes
+
+    @staticmethod
+    def _set_text_attributes(wAttributes):
+        win32.SetConsoleTextAttribute(wAttributes = wAttributes)
+
+    #--------------------------------------------------------------------------
+
+    @classmethod
+    def reset(cls):
+        "Reset the colors to the default values."
+        cls._set_text_attributes(win32.FOREGROUND_GREY)
+
+    #--------------------------------------------------------------------------
+
+    #@classmethod
+    #def underscore(cls, on = True):
+    #    wAttributes = cls._get_text_attributes()
+    #    if on:
+    #        wAttributes |=  win32.COMMON_LVB_UNDERSCORE
+    #    else:
+    #        wAttributes &= ~win32.COMMON_LVB_UNDERSCORE
+    #    cls._set_text_attributes(wAttributes)
+
+    #--------------------------------------------------------------------------
+
+    @classmethod
+    def default(cls):
+        "Make the current foreground color the default."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_GREY
+        wAttributes &= ~win32.FOREGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bright(cls):
+        "Make the current foreground color bright."
+        wAttributes = cls._get_text_attributes()
+        wAttributes |= win32.FOREGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def dark(cls):
+        "Make the current foreground color dark."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def black(cls):
+        "Make the text foreground color black."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        #wAttributes |=  win32.FOREGROUND_BLACK
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def white(cls):
+        "Make the text foreground color white."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_GREY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def red(cls):
+        "Make the text foreground color red."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_RED
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def green(cls):
+        "Make the text foreground color green."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_GREEN
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def blue(cls):
+        "Make the text foreground color blue."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_BLUE
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def cyan(cls):
+        "Make the text foreground color cyan."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_CYAN
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def magenta(cls):
+        "Make the text foreground color magenta."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_MAGENTA
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def yellow(cls):
+        "Make the text foreground color yellow."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.FOREGROUND_MASK
+        wAttributes |=  win32.FOREGROUND_YELLOW
+        cls._set_text_attributes(wAttributes)
+
+    #--------------------------------------------------------------------------
+
+    @classmethod
+    def bk_default(cls):
+        "Make the current background color the default."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        #wAttributes |= win32.BACKGROUND_BLACK
+        wAttributes &= ~win32.BACKGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_bright(cls):
+        "Make the current background color bright."
+        wAttributes = cls._get_text_attributes()
+        wAttributes |= win32.BACKGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_dark(cls):
+        "Make the current background color dark."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_INTENSITY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_black(cls):
+        "Make the text background color black."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        #wAttributes |= win32.BACKGROUND_BLACK
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_white(cls):
+        "Make the text background color white."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_GREY
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_red(cls):
+        "Make the text background color red."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_RED
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_green(cls):
+        "Make the text background color green."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_GREEN
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_blue(cls):
+        "Make the text background color blue."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_BLUE
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_cyan(cls):
+        "Make the text background color cyan."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_CYAN
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_magenta(cls):
+        "Make the text background color magenta."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_MAGENTA
+        cls._set_text_attributes(wAttributes)
+
+    @classmethod
+    def bk_yellow(cls):
+        "Make the text background color yellow."
+        wAttributes = cls._get_text_attributes()
+        wAttributes &= ~win32.BACKGROUND_MASK
+        wAttributes |=  win32.BACKGROUND_YELLOW
+        cls._set_text_attributes(wAttributes)
 
 #------------------------------------------------------------------------------
 
