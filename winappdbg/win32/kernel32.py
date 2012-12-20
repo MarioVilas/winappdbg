@@ -79,6 +79,12 @@ PROCESS_NAME_NATIVE = 1
 
 MAXINTATOM = 0xC000
 
+STD_INPUT_HANDLE  = 0xFFFFFFF6      # (DWORD)-10
+STD_OUTPUT_HANDLE = 0xFFFFFFF5      # (DWORD)-11
+STD_ERROR_HANDLE  = 0xFFFFFFF4      # (DWORD)-12
+
+ATTACH_PARENT_PROCESS = 0xFFFFFFFF  # (DWORD)-1
+
 # LoadLibraryEx constants
 DONT_RESOLVE_DLL_REFERENCES         = 0x00000001
 LOAD_LIBRARY_AS_DATAFILE            = 0x00000002
@@ -1408,7 +1414,7 @@ class BY_HANDLE_FILE_INFORMATION(Structure):
         ('nFileIndexHigh',          DWORD),
         ('nFileIndexLow',           DWORD),
     ]
-LPBY_HANDLE_FILE_INFORMATION = ctypes.POINTER(BY_HANDLE_FILE_INFORMATION)
+LPBY_HANDLE_FILE_INFORMATION = POINTER(BY_HANDLE_FILE_INFORMATION)
 
 # typedef enum _FILE_INFO_BY_HANDLE_CLASS {
 #   FileBasicInfo = 0,
@@ -1551,9 +1557,9 @@ class JIT_DEBUG_INFO(Structure):
 JIT_DEBUG_INFO32 = JIT_DEBUG_INFO
 JIT_DEBUG_INFO64 = JIT_DEBUG_INFO
 
-LPJIT_DEBUG_INFO   = ctypes.POINTER(JIT_DEBUG_INFO)
-LPJIT_DEBUG_INFO32 = ctypes.POINTER(JIT_DEBUG_INFO32)
-LPJIT_DEBUG_INFO64 = ctypes.POINTER(JIT_DEBUG_INFO64)
+LPJIT_DEBUG_INFO   = POINTER(JIT_DEBUG_INFO)
+LPJIT_DEBUG_INFO32 = POINTER(JIT_DEBUG_INFO32)
+LPJIT_DEBUG_INFO64 = POINTER(JIT_DEBUG_INFO64)
 
 #--- DEBUG_EVENT structure ----------------------------------------------------
 
@@ -1766,7 +1772,103 @@ class DEBUG_EVENT(Structure):
         ('dwThreadId',          DWORD),
         ('u',                   _DEBUG_EVENT_UNION_),
     ]
-LPDEBUG_EVENT = ctypes.POINTER(DEBUG_EVENT)
+LPDEBUG_EVENT = POINTER(DEBUG_EVENT)
+
+#--- Console API defines and structures ---------------------------------------
+
+FOREGROUND_MASK = 0x000F
+BACKGROUND_MASK = 0x00F0
+COMMON_LVB_MASK = 0xFF00
+
+FOREGROUND_BLACK     = 0x0000
+FOREGROUND_BLUE      = 0x0001
+FOREGROUND_GREEN     = 0x0002
+FOREGROUND_CYAN      = 0x0003
+FOREGROUND_RED       = 0x0004
+FOREGROUND_MAGENTA   = 0x0005
+FOREGROUND_YELLOW    = 0x0006
+FOREGROUND_GREY      = 0x0007
+FOREGROUND_INTENSITY = 0x0008
+
+BACKGROUND_BLACK     = 0x0000
+BACKGROUND_BLUE      = 0x0010
+BACKGROUND_GREEN     = 0x0020
+BACKGROUND_CYAN      = 0x0030
+BACKGROUND_RED       = 0x0040
+BACKGROUND_MAGENTA   = 0x0050
+BACKGROUND_YELLOW    = 0x0060
+BACKGROUND_GREY      = 0x0070
+BACKGROUND_INTENSITY = 0x0080
+
+COMMON_LVB_LEADING_BYTE    = 0x0100
+COMMON_LVB_TRAILING_BYTE   = 0x0200
+COMMON_LVB_GRID_HORIZONTAL = 0x0400
+COMMON_LVB_GRID_LVERTICAL  = 0x0800
+COMMON_LVB_GRID_RVERTICAL  = 0x1000
+COMMON_LVB_REVERSE_VIDEO   = 0x4000
+COMMON_LVB_UNDERSCORE      = 0x8000
+
+# typedef struct _CHAR_INFO {
+#   union {
+#     WCHAR UnicodeChar;
+#     CHAR  AsciiChar;
+#   } Char;
+#   WORD  Attributes;
+# } CHAR_INFO, *PCHAR_INFO;
+class _CHAR_INFO_CHAR(Union):
+    _fields_ = [
+        ('UnicodeChar', WCHAR),
+        ('AsciiChar',   CHAR),
+    ]
+class CHAR_INFO(Structure):
+    _fields_ = [
+        ('Char',       _CHAR_INFO_CHAR),
+        ('Attributes', WORD),
+   ]
+PCHAR_INFO = POINTER(CHAR_INFO)
+
+# typedef struct _COORD {
+#   SHORT X;
+#   SHORT Y;
+# } COORD, *PCOORD;
+class COORD(Structure):
+    _fields_ = [
+        ('X', SHORT),
+        ('Y', SHORT),
+    ]
+PCOORD = POINTER(COORD)
+
+# typedef struct _SMALL_RECT {
+#   SHORT Left;
+#   SHORT Top;
+#   SHORT Right;
+#   SHORT Bottom;
+# } SMALL_RECT;
+class SMALL_RECT(Structure):
+    _fields_ = [
+        ('Left',   SHORT),
+        ('Top',    SHORT),
+        ('Right',  SHORT),
+        ('Bottom', SHORT),
+    ]
+PSMALL_RECT = POINTER(SMALL_RECT)
+
+# typedef struct _CONSOLE_SCREEN_BUFFER_INFO {
+#   COORD      dwSize;
+#   COORD      dwCursorPosition;
+#   WORD       wAttributes;
+#   SMALL_RECT srWindow;
+#   COORD      dwMaximumWindowSize;
+# } CONSOLE_SCREEN_BUFFER_INFO;
+class CONSOLE_SCREEN_BUFFER_INFO(Structure):
+    _fields_ = [
+        ('dwSize',              COORD),
+        ('dwCursorPosition',    COORD),
+        ('wAttributes',         WORD),
+        ('srWindow',            SMALL_RECT),
+        ('dwMaximumWindowSize', COORD),
+    ]
+PCONSOLE_SCREEN_BUFFER_INFO = POINTER(CONSOLE_SCREEN_BUFFER_INFO)
 
 #--- Toolhelp library defines and structures ----------------------------------
 
@@ -1796,7 +1898,7 @@ class THREADENTRY32(Structure):
         ('tpDeltaPri',         LONG),
         ('dwFlags',            DWORD),
     ]
-LPTHREADENTRY32 = ctypes.POINTER(THREADENTRY32)
+LPTHREADENTRY32 = POINTER(THREADENTRY32)
 
 # typedef struct tagPROCESSENTRY32 {
 #    DWORD dwSize;
@@ -1823,7 +1925,7 @@ class PROCESSENTRY32(Structure):
         ('dwFlags',             DWORD),
         ('szExeFile',           TCHAR * 260),
     ]
-LPPROCESSENTRY32 = ctypes.POINTER(PROCESSENTRY32)
+LPPROCESSENTRY32 = POINTER(PROCESSENTRY32)
 
 # typedef struct tagMODULEENTRY32 {
 #   DWORD dwSize;
@@ -1850,7 +1952,7 @@ class MODULEENTRY32(Structure):
         ("szModule",      TCHAR * (MAX_MODULE_NAME32 + 1)),
         ("szExePath",     TCHAR * MAX_PATH),
     ]
-LPMODULEENTRY32 = ctypes.POINTER(MODULEENTRY32)
+LPMODULEENTRY32 = POINTER(MODULEENTRY32)
 
 # typedef struct tagHEAPENTRY32 {
 #   SIZE_T    dwSize;
@@ -1876,7 +1978,7 @@ class HEAPENTRY32(Structure):
         ("th32ProcessID",   DWORD),
         ("th32HeapID",      ULONG_PTR),
 ]
-LPHEAPENTRY32 = ctypes.POINTER(HEAPENTRY32)
+LPHEAPENTRY32 = POINTER(HEAPENTRY32)
 
 # typedef struct tagHEAPLIST32 {
 #   SIZE_T    dwSize;
@@ -2004,6 +2106,217 @@ def LocalFree(hMem):
     result = _LocalFree(hMem)
     if result != NULL:
         ctypes.WinError()
+
+#------------------------------------------------------------------------------
+# Console API
+
+# HANDLE WINAPI GetStdHandle(
+#   _In_  DWORD nStdHandle
+# );
+def GetStdHandle(nStdHandle):
+    _GetStdHandle = windll.kernel32.GetStdHandle
+    _GetStdHandle.argytpes = [DWORD]
+    _GetStdHandle.restype  = HANDLE
+    _GetStdHandle.errcheck = RaiseIfZero
+    return Handle( _GetStdHandle(nStdHandle), bOwnership = False )
+
+# BOOL WINAPI SetStdHandle(
+#   _In_  DWORD nStdHandle,
+#   _In_  HANDLE hHandle
+# );
+
+# TODO
+
+# UINT WINAPI GetConsoleCP(void);
+def GetConsoleCP():
+    _GetConsoleCP = windll.kernel32.GetConsoleCP
+    _GetConsoleCP.argytpes = []
+    _GetConsoleCP.restype  = UINT
+    return _GetConsoleCP()
+
+# UINT WINAPI GetConsoleOutputCP(void);
+def GetConsoleOutputCP():
+    _GetConsoleOutputCP = windll.kernel32.GetConsoleOutputCP
+    _GetConsoleOutputCP.argytpes = []
+    _GetConsoleOutputCP.restype  = UINT
+    return _GetConsoleOutputCP()
+
+#BOOL WINAPI SetConsoleCP(
+#  _In_  UINT wCodePageID
+#);
+def SetConsoleCP(wCodePageID):
+    _SetConsoleCP = windll.kernel32.SetConsoleCP
+    _SetConsoleCP.argytpes = [UINT]
+    _SetConsoleCP.restype  = bool
+    _SetConsoleCP.errcheck = RaiseIfZero
+    _SetConsoleCP(wCodePageID)
+
+#BOOL WINAPI SetConsoleOutputCP(
+#  _In_  UINT wCodePageID
+#);
+def SetConsoleOutputCP(wCodePageID):
+    _SetConsoleOutputCP = windll.kernel32.SetConsoleOutputCP
+    _SetConsoleOutputCP.argytpes = [UINT]
+    _SetConsoleOutputCP.restype  = bool
+    _SetConsoleOutputCP.errcheck = RaiseIfZero
+    _SetConsoleOutputCP(wCodePageID)
+
+# BOOL WINAPI FlushConsoleInputBuffer(
+#   _In_  HANDLE hConsoleInput
+# );
+def FlushConsoleInputBuffer(hConsoleInput = None):
+    _FlushConsoleInputBuffer = windll.kernel32.FlushConsoleInputBuffer
+    _FlushConsoleInputBuffer.argytpes = [HANDLE]
+    _FlushConsoleInputBuffer.restype  = bool
+    _FlushConsoleInputBuffer.errcheck = RaiseIfZero
+
+    if hConsoleOutput is None:
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
+    _FlushConsoleInputBuffer(hConsoleInput)
+
+# HANDLE WINAPI CreateConsoleScreenBuffer(
+#   _In_        DWORD dwDesiredAccess,
+#   _In_        DWORD dwShareMode,
+#   _In_opt_    const SECURITY_ATTRIBUTES *lpSecurityAttributes,
+#   _In_        DWORD dwFlags,
+#   _Reserved_  LPVOID lpScreenBufferData
+# );
+
+# TODO
+
+# BOOL WINAPI SetConsoleActiveScreenBuffer(
+#   _In_  HANDLE hConsoleOutput
+# );
+def SetConsoleActiveScreenBuffer(hConsoleInput = None):
+    _SetConsoleActiveScreenBuffer = windll.kernel32.SetConsoleActiveScreenBuffer
+    _SetConsoleActiveScreenBuffer.argytpes = [HANDLE]
+    _SetConsoleActiveScreenBuffer.restype  = bool
+    _SetConsoleActiveScreenBuffer.errcheck = RaiseIfZero
+
+    if hConsoleOutput is None:
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
+    _SetConsoleActiveScreenBuffer(hConsoleInput)
+
+# BOOL WINAPI GetConsoleScreenBufferInfo(
+#   _In_   HANDLE hConsoleOutput,
+#   _Out_  PCONSOLE_SCREEN_BUFFER_INFO lpConsoleScreenBufferInfo
+# );
+def GetConsoleScreenBufferInfo(hConsoleOutput = None):
+    _GetConsoleScreenBufferInfo = windll.kernel32.GetConsoleScreenBufferInfo
+    _GetConsoleScreenBufferInfo.argytpes = [HANDLE, PCONSOLE_SCREEN_BUFFER_INFO]
+    _GetConsoleScreenBufferInfo.restype  = bool
+    _GetConsoleScreenBufferInfo.errcheck = RaiseIfZero
+
+    if hConsoleOutput is None:
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
+    ConsoleScreenBufferInfo = CONSOLE_SCREEN_BUFFER_INFO()
+    _GetConsoleScreenBufferInfo(hConsoleOutput, byref(ConsoleScreenBufferInfo))
+    return ConsoleScreenBufferInfo
+
+# BOOL WINAPI GetConsoleScreenBufferInfoEx(
+#   _In_   HANDLE hConsoleOutput,
+#   _Out_  PCONSOLE_SCREEN_BUFFER_INFOEX lpConsoleScreenBufferInfoEx
+# );
+
+# TODO
+
+# BOOL WINAPI SetConsoleWindowInfo(
+#   _In_  HANDLE hConsoleOutput,
+#   _In_  BOOL bAbsolute,
+#   _In_  const SMALL_RECT *lpConsoleWindow
+# );
+def SetConsoleWindowInfo(hConsoleOutput, bAbsolute, (Left, Top, Right, Bottom)):
+    _SetConsoleWindowInfo = windll.kernel32.SetConsoleWindowInfo
+    _SetConsoleWindowInfo.argytpes = [HANDLE, BOOL, PSMALL_RECT]
+    _SetConsoleWindowInfo.restype  = bool
+    _SetConsoleWindowInfo.errcheck = RaiseIfZero
+
+    if hConsoleOutput is None:
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
+    ConsoleWindow = SMALL_RECT(Left, Top, Right, Bottom)
+    _SetConsoleWindowInfo(hConsoleOutput, bAbsolute, byref(ConsoleWindow))
+
+# BOOL WINAPI SetConsoleTextAttribute(
+#   _In_  HANDLE hConsoleOutput,
+#   _In_  WORD wAttributes
+# );
+def SetConsoleTextAttribute(hConsoleOutput = None, wAttributes = 0):
+    _SetConsoleTextAttribute = windll.kernel32.SetConsoleTextAttribute
+    _SetConsoleTextAttribute.argytpes = [HANDLE, WORD]
+    _SetConsoleTextAttribute.restype  = bool
+    _SetConsoleTextAttribute.errcheck = RaiseIfZero
+
+    if hConsoleOutput is None:
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
+    _SetConsoleTextAttribute(hConsoleOutput, wAttributes)
+
+# HANDLE WINAPI CreateConsoleScreenBuffer(
+#   _In_        DWORD dwDesiredAccess,
+#   _In_        DWORD dwShareMode,
+#   _In_opt_    const SECURITY_ATTRIBUTES *lpSecurityAttributes,
+#   _In_        DWORD dwFlags,
+#   _Reserved_  LPVOID lpScreenBufferData
+# );
+
+# TODO
+
+# BOOL WINAPI AllocConsole(void);
+def AllocConsole():
+    _AllocConsole = windll.kernel32.AllocConsole
+    _AllocConsole.argytpes = []
+    _AllocConsole.restype  = bool
+    _AllocConsole.errcheck = RaiseIfZero
+    _AllocConsole()
+
+# BOOL WINAPI AttachConsole(
+#   _In_  DWORD dwProcessId
+# );
+def AttachConsole(dwProcessId = ATTACH_PARENT_PROCESS):
+    _AttachConsole = windll.kernel32.AttachConsole
+    _AttachConsole.argytpes = [DWORD]
+    _AttachConsole.restype  = bool
+    _AttachConsole.errcheck = RaiseIfZero
+    _AttachConsole(dwProcessId)
+
+# BOOL WINAPI FreeConsole(void);
+def FreeConsole():
+    _FreeConsole = windll.kernel32.FreeConsole
+    _FreeConsole.argytpes = []
+    _FreeConsole.restype  = bool
+    _FreeConsole.errcheck = RaiseIfZero
+    _FreeConsole()
+
+# DWORD WINAPI GetConsoleProcessList(
+#   _Out_  LPDWORD lpdwProcessList,
+#   _In_   DWORD dwProcessCount
+# );
+
+# TODO
+
+# DWORD WINAPI GetConsoleTitle(
+#   _Out_  LPTSTR lpConsoleTitle,
+#   _In_   DWORD nSize
+# );
+
+# TODO
+
+#BOOL WINAPI SetConsoleTitle(
+#  _In_  LPCTSTR lpConsoleTitle
+#);
+
+# TODO
+
+# COORD WINAPI GetLargestConsoleWindowSize(
+#   _In_  HANDLE hConsoleOutput
+# );
+
+# TODO
+
+# BOOL WINAPI GetConsoleHistoryInfo(
+#   _Out_  PCONSOLE_HISTORY_INFO lpConsoleHistoryInfo
+# );
+
+# TODO
 
 #------------------------------------------------------------------------------
 # DLL API
@@ -2544,7 +2857,7 @@ def FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush = 0):
 # );
 def SearchPathA(lpPath, lpFileName, lpExtension):
     _SearchPathA = windll.kernel32.SearchPathA
-    _SearchPathA.argtypes = [LPSTR, LPSTR, LPSTR, DWORD, LPSTR, ctypes.POINTER(LPSTR)]
+    _SearchPathA.argtypes = [LPSTR, LPSTR, LPSTR, DWORD, LPSTR, POINTER(LPSTR)]
     _SearchPathA.restype  = DWORD
     _SearchPathA.errcheck = RaiseIfZero
 
@@ -2698,7 +3011,7 @@ GetFinalPathNameByHandle = GuessStringType(GetFinalPathNameByHandleA, GetFinalPa
 # );
 def GetFullPathNameA(lpFileName):
     _GetFullPathNameA = windll.kernel32.GetFullPathNameA
-    _GetFullPathNameA.argtypes = [LPSTR, DWORD, LPSTR, ctypes.POINTER(LPSTR)]
+    _GetFullPathNameA.argtypes = [LPSTR, DWORD, LPSTR, POINTER(LPSTR)]
     _GetFullPathNameA.restype  = DWORD
 
     nBufferLength = _GetFullPathNameA(lpFileName, 0, None, None)
@@ -2933,7 +3246,7 @@ def WaitForSingleObjectEx(hHandle, dwMilliseconds = INFINITE, bAlertable = True)
 # );
 def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE):
     _WaitForMultipleObjects = windll.kernel32.WaitForMultipleObjects
-    _WaitForMultipleObjects.argtypes = [DWORD, ctypes.POINTER(HANDLE), BOOL, DWORD]
+    _WaitForMultipleObjects.argtypes = [DWORD, POINTER(HANDLE), BOOL, DWORD]
     _WaitForMultipleObjects.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
@@ -2963,7 +3276,7 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
 # );
 def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINITE, bAlertable = True):
     _WaitForMultipleObjectsEx = windll.kernel32.WaitForMultipleObjectsEx
-    _WaitForMultipleObjectsEx.argtypes = [DWORD, ctypes.POINTER(HANDLE), BOOL, DWORD]
+    _WaitForMultipleObjectsEx.argtypes = [DWORD, POINTER(HANDLE), BOOL, DWORD]
     _WaitForMultipleObjectsEx.restype  = DWORD
 
     if not dwMilliseconds and dwMilliseconds != 0:
@@ -3141,7 +3454,7 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
 # );
 def WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer):
     _WriteProcessMemory = windll.kernel32.WriteProcessMemory
-    _WriteProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, ctypes.POINTER(SIZE_T)]
+    _WriteProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
     _WriteProcessMemory.restype  = bool
 
     nSize                   = len(lpBuffer)
