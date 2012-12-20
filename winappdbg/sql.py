@@ -671,15 +671,16 @@ class CrashDTO (BaseDTO):
         self.command_line = crash.commandLine
 
         # Environment.
-        envList = crash.environment.items()
-        envList.sort()
-        environment = ''
-        for envKey, envVal in envList:
-            # Must concatenate here instead of using a substitution,
-            # so strings can be automatically promoted to Unicode.
-            environment += envKey + '=' + envVal + '\n'
-        if environment:
-            self.environment = environment
+        if crash.environment:
+            envList = crash.environment.items()
+            envList.sort()
+            environment = ''
+            for envKey, envVal in envList:
+                # Must concatenate here instead of using a substitution,
+                # so strings can be automatically promoted to Unicode.
+                environment += envKey + '=' + envVal + '\n'
+            if environment:
+                self.environment = environment
 
         # Debug string.
         self.debug_string = crash.debugString
