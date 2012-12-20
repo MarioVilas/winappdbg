@@ -71,5 +71,7 @@ def show_services():
             print "Current status: STOPPED"
         print
 
+# When invoked from the command line,
+# call the show_services() function.
 if __name__ == "__main__":
     show_services()
