@@ -13,6 +13,12 @@ This simple implementation should suit most users needs, however if your project
 
 These are the elements included in the signature:
 
+* **Processor architecture**:
+
+  For different platforms the locations in the code would change. So if the locations are the same, it may be just a coincidence rather than the same crash.
+
+  But most importantly, even if it were the same crash we'd like to know we can trigger it in multiple platforms.
+
 * **Event code** and **exception code**:
 
   Wouldn't make sense not to include them. :)
@@ -54,3 +60,7 @@ These are the elements **NOT** included in the signature:
   Both are most likely to contain garbage we're not interested in (for the signature, that is) plus many values are dependent on a particular execution of the application.
 
   By ignoring this we might be missing different ways to trigger the same bug, though. But the main goal of the signature is to eliminate noise when fuzzing an application that crashes too often, so false positives are not much of an issue. In a scenario when a crash is rare we wouldn't want filtering by signature at all.
+
+* **Operating system version**:
+
+  Doesn't tell if it's the same crash or not, unless we're fuzzing the OS itself - and in that case we'd be more interested in the names and versions of the binary files.

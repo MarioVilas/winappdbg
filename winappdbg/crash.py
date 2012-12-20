@@ -616,6 +616,8 @@ class Crash (object):
                     self.faultPeek = process.peek_pointers_in_data(
                                                                  self.faultMem)
 
+        # TODO: maybe add names and versions of DLLs and EXE?
+
         # Take a snapshot of the process memory. Additionally get the
         # memory contents if requested.
         if takeMemorySnapshot == 1:
@@ -679,20 +681,23 @@ class Crash (object):
     @property
     def signature(self):
         if self.labelPC:
-            eip = self.labelPC
+            pc = self.labelPC
         else:
-            eip = self.pc
+            pc = self.pc
         if self.stackTraceLabels:
             trace = self.stackTraceLabels
         else:
             trace = self.stackTracePC
         return  (
+                self.arch,
                 self.eventCode,
                 self.exceptionCode,
-                eip,
+                pc,
                 trace,
                 self.debugString,
                 )
+        # TODO
+        # add the name and version of the binary where the crash happened?
 
     def isExploitable(self):
         """
