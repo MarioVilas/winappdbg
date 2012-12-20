@@ -225,11 +225,11 @@ Labels
 
 Labels are used to represent memory locations in a more user-friendly way than simply using their addresses. This is useful to provide a better user interface, both for input and output. Also, labels can be useful when DLL libraries in a debugee are relocated on each run - memory addresses change every time, but labels don't.
 
-For example, the label *"kernel32  CreateFileA"* always points to the *CreateFileA* function of the *kernel32.dll* library. The actual memory address, on the other hand, may change across Windows versions.
+For example, the label *"kernel32!CreateFileA"* always points to the *CreateFileA* function of the *kernel32.dll* library. The actual memory address, on the other hand, may change across Windows versions.
 
 In addition to exported functions, debugging symbols are used whenever possible.
 
-A complete explanation on how labels work can be found at the wiki page HowLabelsWork.
+A complete explanation on how labels work can be found at the Advanced Topics section of this document.
 
 Example #13: getting the label for a given memory address
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
