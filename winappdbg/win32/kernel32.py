@@ -3018,7 +3018,7 @@ def GetFullPathNameA(lpFileName):
     if nBufferLength <= 0:
         raise ctypes.WinError()
     lpBuffer   = ctypes.create_string_buffer('', nBufferLength + 1)
-    lpFilePart = LPSTR
+    lpFilePart = LPSTR()
     nCopied = _GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3033,7 +3033,7 @@ def GetFullPathNameW(lpFileName):
     if nBufferLength <= 0:
         raise ctypes.WinError()
     lpBuffer   = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
-    lpFilePart = LPSTR
+    lpFilePart = LPWSTR()
     nCopied = _GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()

@@ -156,28 +156,6 @@ class PathOperations (StaticClass):
     """
 
     @staticmethod
-    def pathname_to_filename(pathname):
-        """
-        @type  pathname: str
-        @param pathname: Absolute path.
-
-        @rtype:  str
-        @return: Relative path.
-        """
-        return win32.PathFindFileName(pathname)
-
-    @staticmethod
-    def filename_to_pathname(filename):
-        """
-        @type  filename: str
-        @param filename: Relative path.
-
-        @rtype:  str
-        @return: Absolute path.
-        """
-        return win32.GetFullPathName(filename)
-
-    @staticmethod
     def path_is_relative(path):
         """
         @see: L{path_is_absolute}
@@ -202,6 +180,35 @@ class PathOperations (StaticClass):
         @return: C{True} if the path is absolute, C{False} if it's relative.
         """
         return not win32.PathIsRelative(path)
+
+    @staticmethod
+    def make_relative(path, current = None):
+        """
+        @type  path: str
+        @param path: Absolute path.
+
+        @type  current: str
+        @param current: (Optional) Path to the current directory.
+
+        @rtype:  str
+        @return: Relative path.
+
+        @raise WindowsError: It's impossible to make the path relative.
+            This happens when the path and the current path are not on the
+            same disk drive or network share.
+        """
+        return win32.PathRelativePathTo(pszFrom = current, pszTo = path)
+
+    @staticmethod
+    def make_absolute(path):
+        """
+        @type  path: str
+        @param path: Relative path.
+
+        @rtype:  str
+        @return: Absolute path.
+        """
+        return win32.GetFullPathName(path)[0]
 
     @staticmethod
     def split_extension(pathname):
@@ -306,6 +313,22 @@ class PathOperations (StaticClass):
                                               name[ len(device_native_path) : ]
                         break
         return name
+
+    @staticmethod
+    def pathname_to_filename(pathname):
+        """
+        Equivalent to: C{PathOperations.split_filename(pathname)[0]}
+
+        @note: This function is preserved for backwards compatibility with
+            WinAppDbg 1.4 and earlier. It may be removed in future versions.
+
+        @type  pathname: str
+        @param pathname: Absolute path to a file.
+
+        @rtype:  str
+        @return: Filename component of the path.
+        """
+        return win32.PathFindFileName(pathname)
 
 #==============================================================================
 

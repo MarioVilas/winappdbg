@@ -35,6 +35,7 @@ Wrapper for shlwapi.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
+from kernel32 import *
 
 OS_WINDOWS                  = 0
 OS_NT                       = 1
@@ -100,7 +101,7 @@ def IsOS(dwOS):
 def PathAddBackslashA(lpszPath):
     _PathAddBackslashA = windll.shlwapi.PathAddBackslashA
     _PathAddBackslashA.argtypes = [LPSTR]
-    _PathAddBackslashA.restype = LPSTR
+    _PathAddBackslashA.restype  = LPSTR
 
     lpszPath = ctypes.create_string_buffer(lpszPath, MAX_PATH)
     retval = _PathAddBackslashA(lpszPath)
@@ -111,7 +112,7 @@ def PathAddBackslashA(lpszPath):
 def PathAddBackslashW(lpszPath):
     _PathAddBackslashW = windll.shlwapi.PathAddBackslashW
     _PathAddBackslashW.argtypes = [LPWSTR]
-    _PathAddBackslashW.restype = LPWSTR
+    _PathAddBackslashW.restype  = LPWSTR
 
     lpszPath = ctypes.create_unicode_buffer(lpszPath, MAX_PATH)
     retval = _PathAddBackslashW(lpszPath)
@@ -128,7 +129,7 @@ PathAddBackslash = GuessStringType(PathAddBackslashA, PathAddBackslashW)
 def PathAddExtensionA(lpszPath, pszExtension = None):
     _PathAddExtensionA = windll.shlwapi.PathAddExtensionA
     _PathAddExtensionA.argtypes = [LPSTR, LPSTR]
-    _PathAddExtensionA.restype = bool
+    _PathAddExtensionA.restype  = bool
     _PathAddExtensionA.errcheck = RaiseIfZero
 
     if not pszExtension:
@@ -140,7 +141,7 @@ def PathAddExtensionA(lpszPath, pszExtension = None):
 def PathAddExtensionW(lpszPath, pszExtension = None):
     _PathAddExtensionW = windll.shlwapi.PathAddExtensionW
     _PathAddExtensionW.argtypes = [LPWSTR, LPWSTR]
-    _PathAddExtensionW.restype = bool
+    _PathAddExtensionW.restype  = bool
     _PathAddExtensionW.errcheck = RaiseIfZero
 
     if not pszExtension:
@@ -158,7 +159,7 @@ PathAddExtension = GuessStringType(PathAddExtensionA, PathAddExtensionW)
 def PathAppendA(lpszPath, pszMore = None):
     _PathAppendA = windll.shlwapi.PathAppendA
     _PathAppendA.argtypes = [LPSTR, LPSTR]
-    _PathAppendA.restype = bool
+    _PathAppendA.restype  = bool
     _PathAppendA.errcheck = RaiseIfZero
 
     if not pszMore:
@@ -170,7 +171,7 @@ def PathAppendA(lpszPath, pszMore = None):
 def PathAppendW(lpszPath, pszMore = None):
     _PathAppendW = windll.shlwapi.PathAppendW
     _PathAppendW.argtypes = [LPWSTR, LPWSTR]
-    _PathAppendW.restype = bool
+    _PathAppendW.restype  = bool
     _PathAppendW.errcheck = RaiseIfZero
 
     if not pszMore:
@@ -189,7 +190,7 @@ PathAppend = GuessStringType(PathAppendA, PathAppendW)
 def PathCombineA(lpszDir, lpszFile):
     _PathCombineA = windll.shlwapi.PathCombineA
     _PathCombineA.argtypes = [LPSTR, LPSTR, LPSTR]
-    _PathCombineA.restype = LPSTR
+    _PathCombineA.restype  = LPSTR
 
     lpszDest = ctypes.create_string_buffer("", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
     retval = _PathCombineA(lpszDest, lpszDir, lpszFile)
@@ -200,7 +201,7 @@ def PathCombineA(lpszDir, lpszFile):
 def PathCombineW(lpszDir, lpszFile):
     _PathCombineW = windll.shlwapi.PathCombineW
     _PathCombineW.argtypes = [LPWSTR, LPWSTR, LPWSTR]
-    _PathCombineW.restype = LPWSTR
+    _PathCombineW.restype  = LPWSTR
 
     lpszDest = ctypes.create_unicode_buffer(u"", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
     retval = _PathCombineW(lpszDest, lpszDir, lpszFile)
@@ -217,7 +218,7 @@ PathCombine = GuessStringType(PathCombineA, PathCombineW)
 def PathCanonicalizeA(lpszSrc):
     _PathCanonicalizeA = windll.shlwapi.PathCanonicalizeA
     _PathCanonicalizeA.argtypes = [LPSTR, LPSTR]
-    _PathCanonicalizeA.restype = bool
+    _PathCanonicalizeA.restype  = bool
     _PathCanonicalizeA.errcheck = RaiseIfZero
 
     lpszDst = ctypes.create_string_buffer("", MAX_PATH)
@@ -227,7 +228,7 @@ def PathCanonicalizeA(lpszSrc):
 def PathCanonicalizeW(lpszSrc):
     _PathCanonicalizeW = windll.shlwapi.PathCanonicalizeW
     _PathCanonicalizeW.argtypes = [LPWSTR, LPWSTR]
-    _PathCanonicalizeW.restype = bool
+    _PathCanonicalizeW.restype  = bool
     _PathCanonicalizeW.errcheck = RaiseIfZero
 
     lpszDst = ctypes.create_unicode_buffer(u"", MAX_PATH)
@@ -236,19 +237,79 @@ def PathCanonicalizeW(lpszSrc):
 
 PathCanonicalize = GuessStringType(PathCanonicalizeA, PathCanonicalizeW)
 
+# BOOL PathRelativePathTo(
+#   _Out_  LPTSTR pszPath,
+#   _In_   LPCTSTR pszFrom,
+#   _In_   DWORD dwAttrFrom,
+#   _In_   LPCTSTR pszTo,
+#   _In_   DWORD dwAttrTo
+# );
+def PathRelativePathToA(pszFrom = None, dwAttrFrom = FILE_ATTRIBUTE_DIRECTORY, pszTo = None, dwAttrTo = FILE_ATTRIBUTE_DIRECTORY):
+    _PathRelativePathToA = windll.shlwapi.PathRelativePathToA
+    _PathRelativePathToA.argtypes = [LPSTR, LPSTR, DWORD, LPSTR, DWORD]
+    _PathRelativePathToA.restype  = bool
+    _PathRelativePathToA.errcheck = RaiseIfZero
+
+    # Make the paths absolute or the function fails.
+    if pszFrom:
+        pszFrom = GetFullPathNameA(pszFrom)[0]
+    else:
+        pszFrom = GetCurrentDirectoryA()
+    if pszTo:
+        pszTo = GetFullPathNameA(pszTo)[0]
+    else:
+        pszTo = GetCurrentDirectoryA()
+
+    # Argh, this function doesn't receive an output buffer size!
+    # We'll try to guess the maximum possible buffer size.
+    dwPath = max((len(pszFrom) + len(pszTo)) * 2 + 1, MAX_PATH + 1)
+    pszPath = ctypes.create_string_buffer('', dwPath)
+
+    # Also, it doesn't set the last error value.
+    # Whoever coded it must have been drunk or tripping on acid. Or both.
+    # The only failure conditions I've seen were invalid paths, paths not
+    # on the same drive, or the path is not absolute.
+    SetLastError(ERROR_INVALID_PARAMETER)
+
+    _PathRelativePathToA(pszPath, pszFrom, dwAttrFrom, pszTo, dwAttrTo)
+    return pszPath.value
+
+def PathRelativePathToW(pszFrom = None, dwAttrFrom = FILE_ATTRIBUTE_DIRECTORY, pszTo = None, dwAttrTo = FILE_ATTRIBUTE_DIRECTORY):
+    _PathRelativePathToW = windll.shlwapi.PathRelativePathToW
+    _PathRelativePathToW.argtypes = [LPWSTR, LPWSTR, DWORD, LPWSTR, DWORD]
+    _PathRelativePathToW.restype  = bool
+    _PathRelativePathToW.errcheck = RaiseIfZero
+
+    # Refer to PathRelativePathToA to know why this code is so ugly.
+    if pszFrom:
+        pszFrom = GetFullPathNameW(pszFrom)[0]
+    else:
+        pszFrom = GetCurrentDirectoryW()
+    if pszTo:
+        pszTo = GetFullPathNameW(pszTo)[0]
+    else:
+        pszTo = GetCurrentDirectoryW()
+    dwPath = max((len(pszFrom) + len(pszTo)) * 2 + 1, MAX_PATH + 1)
+    pszPath = ctypes.create_unicode_buffer(u'', dwPath)
+    SetLastError(ERROR_INVALID_PARAMETER)
+    _PathRelativePathToW(pszPath, pszFrom, dwAttrFrom, pszTo, dwAttrTo)
+    return pszPath.value
+
+PathRelativePathTo = GuessStringType(PathRelativePathToA, PathRelativePathToW)
+
 # BOOL PathFileExists(
 #     LPCTSTR pszPath
 # );
 def PathFileExistsA(pszPath):
     _PathFileExistsA = windll.shlwapi.PathFileExistsA
     _PathFileExistsA.argtypes = [LPSTR]
-    _PathFileExistsA.restype = bool
+    _PathFileExistsA.restype  = bool
     return _PathFileExistsA(pszPath)
 
 def PathFileExistsW(pszPath):
     _PathFileExistsW = windll.shlwapi.PathFileExistsW
     _PathFileExistsW.argtypes = [LPWSTR]
-    _PathFileExistsW.restype = bool
+    _PathFileExistsW.restype  = bool
     return _PathFileExistsW(pszPath)
 
 PathFileExists = GuessStringType(PathFileExistsA, PathFileExistsW)
@@ -259,14 +320,14 @@ PathFileExists = GuessStringType(PathFileExistsA, PathFileExistsW)
 def PathFindExtensionA(pszPath):
     _PathFindExtensionA = windll.shlwapi.PathFindExtensionA
     _PathFindExtensionA.argtypes = [LPSTR]
-    _PathFindExtensionA.restype = LPSTR
+    _PathFindExtensionA.restype  = LPSTR
     pszPath = ctypes.create_string_buffer(pszPath)
     return _PathFindExtensionA(pszPath)
 
 def PathFindExtensionW(pszPath):
     _PathFindExtensionW = windll.shlwapi.PathFindExtensionW
     _PathFindExtensionW.argtypes = [LPWSTR]
-    _PathFindExtensionW.restype = LPWSTR
+    _PathFindExtensionW.restype  = LPWSTR
     pszPath = ctypes.create_unicode_buffer(pszPath)
     return _PathFindExtensionW(pszPath)
 
@@ -278,14 +339,14 @@ PathFindExtension = GuessStringType(PathFindExtensionA, PathFindExtensionW)
 def PathFindFileNameA(pszPath):
     _PathFindFileNameA = windll.shlwapi.PathFindFileNameA
     _PathFindFileNameA.argtypes = [LPSTR]
-    _PathFindFileNameA.restype = LPSTR
+    _PathFindFileNameA.restype  = LPSTR
     pszPath = ctypes.create_string_buffer(pszPath)
     return _PathFindFileNameA(pszPath)
 
 def PathFindFileNameW(pszPath):
     _PathFindFileNameW = windll.shlwapi.PathFindFileNameW
     _PathFindFileNameW.argtypes = [LPWSTR]
-    _PathFindFileNameW.restype = LPWSTR
+    _PathFindFileNameW.restype  = LPWSTR
     pszPath = ctypes.create_unicode_buffer(pszPath)
     return _PathFindFileNameW(pszPath)
 
@@ -297,14 +358,14 @@ PathFindFileName = GuessStringType(PathFindFileNameA, PathFindFileNameW)
 def PathFindNextComponentA(pszPath):
     _PathFindNextComponentA = windll.shlwapi.PathFindNextComponentA
     _PathFindNextComponentA.argtypes = [LPSTR]
-    _PathFindNextComponentA.restype = LPSTR
+    _PathFindNextComponentA.restype  = LPSTR
     pszPath = ctypes.create_string_buffer(pszPath)
     return _PathFindNextComponentA(pszPath)
 
 def PathFindNextComponentW(pszPath):
     _PathFindNextComponentW = windll.shlwapi.PathFindNextComponentW
     _PathFindNextComponentW.argtypes = [LPWSTR]
-    _PathFindNextComponentW.restype = LPWSTR
+    _PathFindNextComponentW.restype  = LPWSTR
     pszPath = ctypes.create_unicode_buffer(pszPath)
     return _PathFindNextComponentW(pszPath)
 
@@ -317,7 +378,7 @@ PathFindNextComponent = GuessStringType(PathFindNextComponentA, PathFindNextComp
 def PathFindOnPathA(pszFile, ppszOtherDirs = None):
     _PathFindOnPathA = windll.shlwapi.PathFindOnPathA
     _PathFindOnPathA.argtypes = [LPSTR, LPSTR]
-    _PathFindOnPathA.restype = bool
+    _PathFindOnPathA.restype  = bool
 
     pszFile = ctypes.create_string_buffer(pszFile, MAX_PATH)
     if not ppszOtherDirs:
@@ -337,7 +398,7 @@ def PathFindOnPathA(pszFile, ppszOtherDirs = None):
 def PathFindOnPathW(pszFile, ppszOtherDirs = None):
     _PathFindOnPathW = windll.shlwapi.PathFindOnPathA
     _PathFindOnPathW.argtypes = [LPWSTR, LPWSTR]
-    _PathFindOnPathW.restype = bool
+    _PathFindOnPathW.restype  = bool
 
     pszFile = ctypes.create_unicode_buffer(pszFile, MAX_PATH)
     if not ppszOtherDirs:
@@ -362,14 +423,14 @@ PathFindOnPath = GuessStringType(PathFindOnPathA, PathFindOnPathW)
 def PathGetArgsA(pszPath):
     _PathGetArgsA = windll.shlwapi.PathGetArgsA
     _PathGetArgsA.argtypes = [LPSTR]
-    _PathGetArgsA.restype = LPSTR
+    _PathGetArgsA.restype  = LPSTR
     pszPath = ctypes.create_string_buffer(pszPath)
     return _PathGetArgsA(pszPath)
 
 def PathGetArgsW(pszPath):
     _PathGetArgsW = windll.shlwapi.PathGetArgsW
     _PathGetArgsW.argtypes = [LPWSTR]
-    _PathGetArgsW.restype = LPWSTR
+    _PathGetArgsW.restype  = LPWSTR
     pszPath = ctypes.create_unicode_buffer(pszPath)
     return _PathGetArgsW(pszPath)
 
@@ -382,13 +443,13 @@ PathGetArgs = GuessStringType(PathGetArgsA, PathGetArgsW)
 def PathIsContentTypeA(pszPath, pszContentType):
     _PathIsContentTypeA = windll.shlwapi.PathIsContentTypeA
     _PathIsContentTypeA.argtypes = [LPSTR, LPSTR]
-    _PathIsContentTypeA.restype = bool
+    _PathIsContentTypeA.restype  = bool
     return _PathIsContentTypeA(pszPath, pszContentType)
 
 def PathIsContentTypeW(pszPath, pszContentType):
     _PathIsContentTypeW = windll.shlwapi.PathIsContentTypeW
     _PathIsContentTypeW.argtypes = [LPWSTR, LPWSTR]
-    _PathIsContentTypeW.restype = bool
+    _PathIsContentTypeW.restype  = bool
     return _PathIsContentTypeW(pszPath, pszContentType)
 
 PathIsContentType = GuessStringType(PathIsContentTypeA, PathIsContentTypeW)
@@ -399,13 +460,13 @@ PathIsContentType = GuessStringType(PathIsContentTypeA, PathIsContentTypeW)
 def PathIsDirectoryA(pszPath):
     _PathIsDirectoryA = windll.shlwapi.PathIsDirectoryA
     _PathIsDirectoryA.argtypes = [LPSTR]
-    _PathIsDirectoryA.restype = bool
+    _PathIsDirectoryA.restype  = bool
     return _PathIsDirectoryA(pszPath)
 
 def PathIsDirectoryW(pszPath):
     _PathIsDirectoryW = windll.shlwapi.PathIsDirectoryW
     _PathIsDirectoryW.argtypes = [LPWSTR]
-    _PathIsDirectoryW.restype = bool
+    _PathIsDirectoryW.restype  = bool
     return _PathIsDirectoryW(pszPath)
 
 PathIsDirectory = GuessStringType(PathIsDirectoryA, PathIsDirectoryW)
@@ -416,13 +477,13 @@ PathIsDirectory = GuessStringType(PathIsDirectoryA, PathIsDirectoryW)
 def PathIsDirectoryEmptyA(pszPath):
     _PathIsDirectoryEmptyA = windll.shlwapi.PathIsDirectoryEmptyA
     _PathIsDirectoryEmptyA.argtypes = [LPSTR]
-    _PathIsDirectoryEmptyA.restype = bool
+    _PathIsDirectoryEmptyA.restype  = bool
     return _PathIsDirectoryEmptyA(pszPath)
 
 def PathIsDirectoryEmptyW(pszPath):
     _PathIsDirectoryEmptyW = windll.shlwapi.PathIsDirectoryEmptyW
     _PathIsDirectoryEmptyW.argtypes = [LPWSTR]
-    _PathIsDirectoryEmptyW.restype = bool
+    _PathIsDirectoryEmptyW.restype  = bool
     return _PathIsDirectoryEmptyW(pszPath)
 
 PathIsDirectoryEmpty = GuessStringType(PathIsDirectoryEmptyA, PathIsDirectoryEmptyW)
@@ -433,13 +494,13 @@ PathIsDirectoryEmpty = GuessStringType(PathIsDirectoryEmptyA, PathIsDirectoryEmp
 def PathIsNetworkPathA(pszPath):
     _PathIsNetworkPathA = windll.shlwapi.PathIsNetworkPathA
     _PathIsNetworkPathA.argtypes = [LPSTR]
-    _PathIsNetworkPathA.restype = bool
+    _PathIsNetworkPathA.restype  = bool
     return _PathIsNetworkPathA(pszPath)
 
 def PathIsNetworkPathW(pszPath):
     _PathIsNetworkPathW = windll.shlwapi.PathIsNetworkPathW
     _PathIsNetworkPathW.argtypes = [LPWSTR]
-    _PathIsNetworkPathW.restype = bool
+    _PathIsNetworkPathW.restype  = bool
     return _PathIsNetworkPathW(pszPath)
 
 PathIsNetworkPath = GuessStringType(PathIsNetworkPathA, PathIsNetworkPathW)
@@ -450,13 +511,13 @@ PathIsNetworkPath = GuessStringType(PathIsNetworkPathA, PathIsNetworkPathW)
 def PathIsRelativeA(pszPath):
     _PathIsRelativeA = windll.shlwapi.PathIsRelativeA
     _PathIsRelativeA.argtypes = [LPSTR]
-    _PathIsRelativeA.restype = bool
+    _PathIsRelativeA.restype  = bool
     return _PathIsRelativeA(pszPath)
 
 def PathIsRelativeW(pszPath):
     _PathIsRelativeW = windll.shlwapi.PathIsRelativeW
     _PathIsRelativeW.argtypes = [LPWSTR]
-    _PathIsRelativeW.restype = bool
+    _PathIsRelativeW.restype  = bool
     return _PathIsRelativeW(pszPath)
 
 PathIsRelative = GuessStringType(PathIsRelativeA, PathIsRelativeW)
@@ -467,13 +528,13 @@ PathIsRelative = GuessStringType(PathIsRelativeA, PathIsRelativeW)
 def PathIsRootA(pszPath):
     _PathIsRootA = windll.shlwapi.PathIsRootA
     _PathIsRootA.argtypes = [LPSTR]
-    _PathIsRootA.restype = bool
+    _PathIsRootA.restype  = bool
     return _PathIsRootA(pszPath)
 
 def PathIsRootW(pszPath):
     _PathIsRootW = windll.shlwapi.PathIsRootW
     _PathIsRootW.argtypes = [LPWSTR]
-    _PathIsRootW.restype = bool
+    _PathIsRootW.restype  = bool
     return _PathIsRootW(pszPath)
 
 PathIsRoot = GuessStringType(PathIsRootA, PathIsRootW)
@@ -485,13 +546,13 @@ PathIsRoot = GuessStringType(PathIsRootA, PathIsRootW)
 def PathIsSameRootA(pszPath1, pszPath2):
     _PathIsSameRootA = windll.shlwapi.PathIsSameRootA
     _PathIsSameRootA.argtypes = [LPSTR, LPSTR]
-    _PathIsSameRootA.restype = bool
+    _PathIsSameRootA.restype  = bool
     return _PathIsSameRootA(pszPath1, pszPath2)
 
 def PathIsSameRootW(pszPath1, pszPath2):
     _PathIsSameRootW = windll.shlwapi.PathIsSameRootW
     _PathIsSameRootW.argtypes = [LPWSTR, LPWSTR]
-    _PathIsSameRootW.restype = bool
+    _PathIsSameRootW.restype  = bool
     return _PathIsSameRootW(pszPath1, pszPath2)
 
 PathIsSameRoot = GuessStringType(PathIsSameRootA, PathIsSameRootW)
@@ -502,13 +563,13 @@ PathIsSameRoot = GuessStringType(PathIsSameRootA, PathIsSameRootW)
 def PathIsUNCA(pszPath):
     _PathIsUNCA = windll.shlwapi.PathIsUNCA
     _PathIsUNCA.argtypes = [LPSTR]
-    _PathIsUNCA.restype = bool
+    _PathIsUNCA.restype  = bool
     return _PathIsUNCA(pszPath)
 
 def PathIsUNCW(pszPath):
     _PathIsUNCW = windll.shlwapi.PathIsUNCW
     _PathIsUNCW.argtypes = [LPWSTR]
-    _PathIsUNCW.restype = bool
+    _PathIsUNCW.restype  = bool
     return _PathIsUNCW(pszPath)
 
 PathIsUNC = GuessStringType(PathIsUNCA, PathIsUNCW)
@@ -523,7 +584,7 @@ PathIsUNC = GuessStringType(PathIsUNCA, PathIsUNCW)
 def PathMakePrettyA(pszPath):
     _PathMakePrettyA = windll.shlwapi.PathMakePrettyA
     _PathMakePrettyA.argtypes = [LPSTR]
-    _PathMakePrettyA.restype = bool
+    _PathMakePrettyA.restype  = bool
     _PathMakePrettyA.errcheck = RaiseIfZero
 
     pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
@@ -533,7 +594,7 @@ def PathMakePrettyA(pszPath):
 def PathMakePrettyW(pszPath):
     _PathMakePrettyW = windll.shlwapi.PathMakePrettyW
     _PathMakePrettyW.argtypes = [LPWSTR]
-    _PathMakePrettyW.restype = bool
+    _PathMakePrettyW.restype  = bool
     _PathMakePrettyW.errcheck = RaiseIfZero
 
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
@@ -633,7 +694,7 @@ PathRemoveFileSpec = GuessStringType(PathRemoveFileSpecA, PathRemoveFileSpecW)
 def PathRenameExtensionA(pszPath, pszExt):
     _PathRenameExtensionA = windll.shlwapi.PathRenameExtensionA
     _PathRenameExtensionA.argtypes = [LPSTR, LPSTR]
-    _PathRenameExtensionA.restype = bool
+    _PathRenameExtensionA.restype  = bool
 
     pszPath = ctypes.create_string_buffer(pszPath, MAX_PATH)
     if _PathRenameExtensionA(pszPath, pszExt):
@@ -643,7 +704,7 @@ def PathRenameExtensionA(pszPath, pszExt):
 def PathRenameExtensionW(pszPath, pszExt):
     _PathRenameExtensionW = windll.shlwapi.PathRenameExtensionW
     _PathRenameExtensionW.argtypes = [LPWSTR, LPWSTR]
-    _PathRenameExtensionW.restype = bool
+    _PathRenameExtensionW.restype  = bool
 
     pszPath = ctypes.create_unicode_buffer(pszPath, MAX_PATH)
     if _PathRenameExtensionW(pszPath, pszExt):
@@ -660,7 +721,7 @@ PathRenameExtension = GuessStringType(PathRenameExtensionA, PathRenameExtensionW
 def PathUnExpandEnvStringsA(pszPath):
     _PathUnExpandEnvStringsA = windll.shlwapi.PathUnExpandEnvStringsA
     _PathUnExpandEnvStringsA.argtypes = [LPSTR, LPSTR]
-    _PathUnExpandEnvStringsA.restype = bool
+    _PathUnExpandEnvStringsA.restype  = bool
     _PathUnExpandEnvStringsA.errcheck = RaiseIfZero
 
     cchBuf = MAX_PATH
@@ -671,7 +732,7 @@ def PathUnExpandEnvStringsA(pszPath):
 def PathUnExpandEnvStringsW(pszPath):
     _PathUnExpandEnvStringsW = windll.shlwapi.PathUnExpandEnvStringsW
     _PathUnExpandEnvStringsW.argtypes = [LPWSTR, LPWSTR]
-    _PathUnExpandEnvStringsW.restype = bool
+    _PathUnExpandEnvStringsW.restype  = bool
     _PathUnExpandEnvStringsW.errcheck = RaiseIfZero
 
     cchBuf = MAX_PATH
