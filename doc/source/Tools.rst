@@ -23,7 +23,9 @@ Crash logger
 
    A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
 
-   Additional features allow setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
+   Additional features allow attaching to system services, setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
+
+   Settings are defined in a Unix-style configuration file. Here's a :download:`template file <../../tools/example.cfg>` you can use, where all options are explained.
 
 * :download:`crash_report.py <../../tools/crash_report.py>` :
 

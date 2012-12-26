@@ -59,4 +59,3 @@ Example #5: enumerating device drivers
 .. literalinclude:: ../../examples/win32_api_wrappers/05_show_drivers.py
    :start-after: $Id
    :end-before: # When invoked from the command line,
-
