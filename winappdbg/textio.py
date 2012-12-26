@@ -862,6 +862,8 @@ class HexDump (StaticClass):
 
 #------------------------------------------------------------------------------
 
+# TODO: implement an ANSI parser to simplify using colors
+
 class Color (object):
     """
     Colored console output.
@@ -876,6 +878,26 @@ class Color (object):
         win32.SetConsoleTextAttribute(wAttributes = wAttributes)
 
     #--------------------------------------------------------------------------
+
+    @classmethod
+    def can_use_colors(cls):
+        """
+        Determine if we can use colors.
+
+        Colored output only works when the output is a real console, and fails
+        when redirected to a file or pipe. Call this method before issuing a
+        call to any other method of this class to make sure it's actually
+        possible to use colors.
+
+        @rtype:  bool
+        @return: C{True} if it's possible to output text with color,
+            C{False} otherwise.
+        """
+        try:
+            cls._get_text_attributes()
+            return True
+        except Exception:
+            return False
 
     @classmethod
     def reset(cls):
@@ -905,8 +927,8 @@ class Color (object):
         cls._set_text_attributes(wAttributes)
 
     @classmethod
-    def bright(cls):
-        "Make the current foreground color bright."
+    def light(cls):
+        "Make the current foreground color light."
         wAttributes = cls._get_text_attributes()
         wAttributes |= win32.FOREGROUND_INTENSITY
         cls._set_text_attributes(wAttributes)
@@ -994,8 +1016,8 @@ class Color (object):
         cls._set_text_attributes(wAttributes)
 
     @classmethod
-    def bk_bright(cls):
-        "Make the current background color bright."
+    def bk_light(cls):
+        "Make the current background color light."
         wAttributes = cls._get_text_attributes()
         wAttributes |= win32.BACKGROUND_INTENSITY
         cls._set_text_attributes(wAttributes)
@@ -1073,6 +1095,8 @@ class Color (object):
 
 #------------------------------------------------------------------------------
 
+# TODO: another class for ASCII boxes
+
 class Table (object):
     """
     Text based table. The number of columns and the width of each column
@@ -1104,7 +1128,9 @@ class Table (object):
         missing = len_new - len_old
         if missing > 0:
             width.extend( len_row[ -missing : ] )
-        self.__width = [ max( width[i], len_row[i] ) for i in xrange(len_new) ]
+        elif missing < 0:
+            len_row.extend( [0] * (-missing) )
+        self.__width = [ max( width[i], len_row[i] ) for i in xrange(len(len_row)) ]
         self.__cols.append(row)
 
     def justify(self, column, direction):
@@ -1116,8 +1142,8 @@ class Table (object):
 
         @type  direction: int
         @param direction:
-            C{1} to justify left,
-            C{-1} to justify right.
+            C{-1} to justify left,
+            C{1} to justify right.
 
         @raise IndexError: Bad column index.
         @raise ValueError: Bad direction value.
@@ -1210,6 +1236,7 @@ class CrashDump (StaticClass):
         """
         Dump the x86 processor flags.
         The output mimics that of the WinDBG debugger.
+        Used by L{dump_registers}.
 
         @type  efl: int
         @param efl: Value of the eFlags register.
@@ -1269,7 +1296,7 @@ class CrashDump (StaticClass):
     @classmethod
     def dump_registers(cls, registers, arch = None):
         """
-        Dump the x86 processor register values.
+        Dump the x86/x64 processor register values.
         The output mimics that of the WinDBG debugger.
 
         @type  registers: dict( str S{->} int )
@@ -1747,7 +1774,7 @@ class Logger(object):
     Logs text to standard output and/or a text file.
 
     @type logfile: str or None
-    @ivar logfile: Append messahes to this text file.
+    @ivar logfile: Append messages to this text file.
 
     @type verbose: bool
     @ivar verbose: C{True} to print messages to standard output.
@@ -1760,7 +1787,7 @@ class Logger(object):
     def __init__(self, logfile = None, verbose = True):
         """
         @type  logfile: str or None
-        @param logfile: Append messahes to this text file.
+        @param logfile: Append messages to this text file.
 
         @type  verbose: bool
         @param verbose: C{True} to print messages to standard output.

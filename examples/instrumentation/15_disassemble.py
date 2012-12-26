@@ -59,13 +59,13 @@ def print_thread_disassembly( tid ):
     finally:
         thread.resume()
 
-    # Display the thread context.
+    # Display the disassembled code.
     print
     print CrashDump.dump_code( code, eip ),
 
 # When invoked from the command line,
 # the first argument is a thread ID
-# (use example3.py to enumerate threads).
+# (use example #4 to enumerate threads).
 if __name__ == "__main__":
     import sys
     tid = int( sys.argv[1] )

@@ -97,10 +97,9 @@ class Search (object):
         msg     = self.showfmt % vars()
         if data is not None:
             msg += "\n"
-            mask = ~0xF
-            p = self.start & mask
-            q = (self.end & mask) + 0x10
-            msg += HexDump.hexblock( data[p:q], address & mask )
+            p = self.start & (~0xF)
+            q = (self.end & (~0xF)) + 0x10
+            msg += HexDump.hexblock( data[p:q], address & (~0xF) )
             if msg.endswith('\n'):
                 msg = msg[:-len('\n')]
         return msg
@@ -218,7 +217,6 @@ class Main (object):
 
         # Options to control the search internals
         engine = optparse.OptionGroup(self.parser, "How to search")
-##                    "Tweak the internals of the search mechanism.")
         engine.add_option("-m", "--memory-pages",
                           action="store", type="int", metavar="NUMBER",
                           help="maximum number of consecutive memory pages" \
@@ -229,7 +227,6 @@ class Main (object):
 
         # Options to set the output type
         output = optparse.OptionGroup(self.parser, "What to show")
-##                    "Control the output.")
         output.add_option("-v", "--verbose", action="store_true", dest="verbose",
                           help="verbose output")
         output.add_option("-q", "--quiet", action="store_false", dest="verbose",
@@ -263,6 +260,10 @@ class Main (object):
            not self.options.pattern and \
            not self.options.regexp:
                self.parser.error("at least one search switch must be used")
+
+##        # Disable the --color switch if the output is not a console.
+##        if self.options.color and not Color.can_use_colors():
+##            self.options.color = False
 
     def prepare_input(self):
 

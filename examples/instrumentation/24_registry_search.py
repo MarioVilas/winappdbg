@@ -108,11 +108,7 @@ def highlight( search, text ):
 
 # Determine if the output is a console or a file.
 # Trying to use colors fails if the output is not the console.
-try:
-    Color.reset()
-    can_highlight = True
-except Exception:
-    can_highlight = False
+can_highlight = Color.can_use_colors()
 
 # When invoked from the command line,
 # the first argument is a search string.
