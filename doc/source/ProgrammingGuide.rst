@@ -10,6 +10,7 @@ This guide will show you through the most commonly used classes and methods of t
 
    Instrumentation
    Debugging
+   Helpers
    Win32APIWrappers
    MoreExamples
    AdvancedTopics
