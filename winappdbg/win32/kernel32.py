@@ -125,6 +125,23 @@ STANDARD_RIGHTS_EXECUTE     = (READ_CONTROL)
 STANDARD_RIGHTS_ALL         = (0x001F0000L)
 SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
 
+# Mutex access rights
+MUTEX_ALL_ACCESS   = 0x1F0001
+MUTEX_MODIFY_STATE = 1
+
+# Event access rights
+EVENT_ALL_ACCESS   = 0x1F0003
+EVENT_MODIFY_STATE = 2
+
+# Semaphore access rights
+SEMAPHORE_ALL_ACCESS   = 0x1F0003
+SEMAPHORE_MODIFY_STATE = 2
+
+# Timer access rights
+TIMER_ALL_ACCESS   = 0x1F0003
+TIMER_MODIFY_STATE = 2
+TIMER_QUERY_STATE  = 1
+
 # Process access rights for OpenProcess
 PROCESS_TERMINATE                 = 0x0001
 PROCESS_CREATE_THREAD             = 0x0002
@@ -3296,6 +3313,156 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
             if r != WAIT_TIMEOUT:
                 break
     return r
+
+# HANDLE WINAPI CreateMutex(
+#   _In_opt_  LPSECURITY_ATTRIBUTES lpMutexAttributes,
+#   _In_      BOOL bInitialOwner,
+#   _In_opt_  LPCTSTR lpName
+# );
+def CreateMutexA(lpMutexAttributes = None, bInitialOwner = True, lpName = None):
+    _CreateMutexA = windll.kernel32.CreateMutexA
+    _CreateMutexA.argtypes = [LPVOID, BOOL, LPSTR]
+    _CreateMutexA.restype  = HANDLE
+    _CreateMutexA.errcheck = RaiseIfZero
+    return Handle( _CreateMutexA(lpMutexAttributes, bInitialOwner, lpName) )
+
+def CreateMutexW(lpMutexAttributes = None, bInitialOwner = True, lpName = None):
+    _CreateMutexW = windll.kernel32.CreateMutexW
+    _CreateMutexW.argtypes = [LPVOID, BOOL, LPWSTR]
+    _CreateMutexW.restype  = HANDLE
+    _CreateMutexW.errcheck = RaiseIfZero
+    return Handle( _CreateMutexW(lpMutexAttributes, bInitialOwner, lpName) )
+
+CreateMutex = GuessStringType(CreateMutexA, CreateMutexW)
+
+# HANDLE WINAPI OpenMutex(
+#   _In_  DWORD dwDesiredAccess,
+#   _In_  BOOL bInheritHandle,
+#   _In_  LPCTSTR lpName
+# );
+def OpenMutexA(dwDesiredAccess = MUTEX_ALL_ACCESS, bInitialOwner = True, lpName = None):
+    _OpenMutexA = windll.kernel32.OpenMutexA
+    _OpenMutexA.argtypes = [DWORD, BOOL, LPSTR]
+    _OpenMutexA.restype  = HANDLE
+    _OpenMutexA.errcheck = RaiseIfZero
+    return Handle( _OpenMutexA(lpMutexAttributes, bInitialOwner, lpName) )
+
+def OpenMutexW(dwDesiredAccess = MUTEX_ALL_ACCESS, bInitialOwner = True, lpName = None):
+    _OpenMutexW = windll.kernel32.OpenMutexW
+    _OpenMutexW.argtypes = [DWORD, BOOL, LPWSTR]
+    _OpenMutexW.restype  = HANDLE
+    _OpenMutexW.errcheck = RaiseIfZero
+    return Handle( _OpenMutexW(lpMutexAttributes, bInitialOwner, lpName) )
+
+OpenMutex = GuessStringType(OpenMutexA, OpenMutexW)
+
+# HANDLE WINAPI CreateEvent(
+#   _In_opt_  LPSECURITY_ATTRIBUTES lpEventAttributes,
+#   _In_      BOOL bManualReset,
+#   _In_      BOOL bInitialState,
+#   _In_opt_  LPCTSTR lpName
+# );
+def CreateEventA(lpMutexAttributes = None, bManualReset = False, bInitialState = False, lpName = None):
+    _CreateEventA = windll.kernel32.CreateEventA
+    _CreateEventA.argtypes = [LPVOID, BOOL, BOOL, LPSTR]
+    _CreateEventA.restype  = HANDLE
+    _CreateEventA.errcheck = RaiseIfZero
+    return Handle( _CreateEventA(lpMutexAttributes, bManualReset, bInitialState, lpName) )
+
+def CreateEventW(lpMutexAttributes = None, bManualReset = False, bInitialState = False, lpName = None):
+    _CreateEventW = windll.kernel32.CreateEventW
+    _CreateEventW.argtypes = [LPVOID, BOOL, BOOL, LPWSTR]
+    _CreateEventW.restype  = HANDLE
+    _CreateEventW.errcheck = RaiseIfZero
+    return Handle( _CreateEventW(lpMutexAttributes, bManualReset, bInitialState, lpName) )
+
+CreateEvent = GuessStringType(CreateEventA, CreateEventW)
+
+# HANDLE WINAPI OpenEvent(
+#   _In_  DWORD dwDesiredAccess,
+#   _In_  BOOL bInheritHandle,
+#   _In_  LPCTSTR lpName
+# );
+def OpenEventA(dwDesiredAccess = EVENT_ALL_ACCESS, bInheritHandle = False, lpName = None):
+    _OpenEventA = windll.kernel32.OpenEventA
+    _OpenEventA.argtypes = [DWORD, BOOL, LPSTR]
+    _OpenEventA.restype  = HANDLE
+    _OpenEventA.errcheck = RaiseIfZero
+    return Handle( _OpenEventA(dwDesiredAccess, bInheritHandle, lpName) )
+
+def OpenEventW(dwDesiredAccess = EVENT_ALL_ACCESS, bInheritHandle = False, lpName = None):
+    _OpenEventW = windll.kernel32.OpenEventW
+    _OpenEventW.argtypes = [DWORD, BOOL, LPWSTR]
+    _OpenEventW.restype  = HANDLE
+    _OpenEventW.errcheck = RaiseIfZero
+    return Handle( _OpenEventW(dwDesiredAccess, bInheritHandle, lpName) )
+
+OpenEvent = GuessStringType(OpenEventA, OpenEventW)
+
+# HANDLE WINAPI CreateSemaphore(
+#   _In_opt_  LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
+#   _In_      LONG lInitialCount,
+#   _In_      LONG lMaximumCount,
+#   _In_opt_  LPCTSTR lpName
+# );
+
+# TODO
+
+# HANDLE WINAPI OpenSemaphore(
+#   _In_  DWORD dwDesiredAccess,
+#   _In_  BOOL bInheritHandle,
+#   _In_  LPCTSTR lpName
+# );
+
+# TODO
+
+# BOOL WINAPI ReleaseMutex(
+#   _In_  HANDLE hMutex
+# );
+def ReleaseMutex(hMutex):
+    _ReleaseMutex = windll.kernel32.ReleaseMutex
+    _ReleaseMutex.argtypes = [HANDLE]
+    _ReleaseMutex.restype  = bool
+    _ReleaseMutex.errcheck = RaiseIfZero
+    _ReleaseMutex(hMutex)
+
+# BOOL WINAPI SetEvent(
+#   _In_  HANDLE hEvent
+# );
+def SetEvent(hEvent):
+    _SetEvent = windll.kernel32.SetEvent
+    _SetEvent.argtypes = [HANDLE]
+    _SetEvent.restype  = bool
+    _SetEvent.errcheck = RaiseIfZero
+    _SetEvent(hEvent)
+
+# BOOL WINAPI ResetEvent(
+#   _In_  HANDLE hEvent
+# );
+def ResetEvent(hEvent):
+    _ResetEvent = windll.kernel32.ResetEvent
+    _ResetEvent.argtypes = [HANDLE]
+    _ResetEvent.restype  = bool
+    _ResetEvent.errcheck = RaiseIfZero
+    _ResetEvent(hEvent)
+
+# BOOL WINAPI PulseEvent(
+#   _In_  HANDLE hEvent
+# );
+def PulseEvent(hEvent):
+    _PulseEvent = windll.kernel32.PulseEvent
+    _PulseEvent.argtypes = [HANDLE]
+    _PulseEvent.restype  = bool
+    _PulseEvent.errcheck = RaiseIfZero
+    _PulseEvent(hEvent)
+
+# BOOL WINAPI ReleaseSemaphore(
+#   _In_       HANDLE hSemaphore,
+#   _In_       LONG lReleaseCount,
+#   _Out_opt_  LPLONG lpPreviousCount
+# );
+
+# TODO
 
 #------------------------------------------------------------------------------
 # Debug API
