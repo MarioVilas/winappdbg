@@ -84,14 +84,23 @@ HWND_TOPMOST    = -1
 HWND_NOTOPMOST  = -2
 HWND_MESSAGE    = -3
 
-# GetWindowLong / SetWindowLong / GetWindowLongPtr / SetWindowLongPtr
+# GetWindowLong / SetWindowLong
 GWL_WNDPROC                          = -4
 GWL_HINSTANCE                        = -6
 GWL_HWNDPARENT                       = -8
+GWL_ID                               = -12
 GWL_STYLE                            = -16
 GWL_EXSTYLE                          = -20
 GWL_USERDATA                         = -21
-GWL_ID                               = -12
+
+# GetWindowLongPtr / SetWindowLongPtr
+GWLP_WNDPROC                         = GWL_WNDPROC
+GWLP_HINSTANCE                       = GWL_HINSTANCE
+GWLP_HWNDPARENT                      = GWL_HWNDPARENT
+GWLP_STYLE                           = GWL_STYLE
+GWLP_EXSTYLE                         = GWL_EXSTYLE
+GWLP_USERDATA                        = GWL_USERDATA
+GWLP_ID                              = GWL_ID
 
 # ShowWindow
 SW_HIDE                             = 0
@@ -868,6 +877,11 @@ def GetWindowLongW(hWnd, nIndex = 0):
 
 GetWindowLong = DefaultStringType(GetWindowLongA, GetWindowLongW)
 
+# LONG_PTR WINAPI GetWindowLongPtr(
+#   _In_  HWND hWnd,
+#   _In_  int nIndex
+# );
+
 if bits == 32:
 
     GetWindowLongPtrA = GetWindowLongA
@@ -903,6 +917,82 @@ else:
         return retval
 
     GetWindowLongPtr = DefaultStringType(GetWindowLongPtrA, GetWindowLongPtrW)
+
+# LONG WINAPI SetWindowLong(
+#   _In_  HWND hWnd,
+#   _In_  int nIndex,
+#   _In_  LONG dwNewLong
+# );
+
+def SetWindowLongA(hWnd, nIndex, dwNewLong):
+    _SetWindowLongA = windll.user32.SetWindowLongA
+    _SetWindowLongA.argtypes = [HWND, ctypes.c_int, DWORD]
+    _SetWindowLongA.restype  = DWORD
+
+    SetLastError(ERROR_SUCCESS)
+    retval = _SetWindowLongA(hWnd, nIndex, dwNewLong)
+    if retval == 0:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return retval
+
+def SetWindowLongW(hWnd, nIndex, dwNewLong):
+    _SetWindowLongW = windll.user32.SetWindowLongW
+    _SetWindowLongW.argtypes = [HWND, ctypes.c_int, DWORD]
+    _SetWindowLongW.restype  = DWORD
+
+    SetLastError(ERROR_SUCCESS)
+    retval = _SetWindowLongW(hWnd, nIndex, dwNewLong)
+    if retval == 0:
+        errcode = GetLastError()
+        if errcode != ERROR_SUCCESS:
+            raise ctypes.WinError(errcode)
+    return retval
+
+SetWindowLong = DefaultStringType(SetWindowLongA, SetWindowLongW)
+
+# LONG_PTR WINAPI SetWindowLongPtr(
+#   _In_  HWND hWnd,
+#   _In_  int nIndex,
+#   _In_  LONG_PTR dwNewLong
+# );
+
+if bits == 32:
+
+    SetWindowLongPtrA = SetWindowLongA
+    SetWindowLongPtrW = SetWindowLongW
+    SetWindowLongPtr  = SetWindowLong
+
+else:
+
+    def SetWindowLongPtrA(hWnd, nIndex, dwNewLong):
+        _SetWindowLongPtrA = windll.user32.SetWindowLongPtrA
+        _SetWindowLongPtrA.argtypes = [HWND, ctypes.c_int, SIZE_T]
+        _SetWindowLongPtrA.restype  = SIZE_T
+
+        SetLastError(ERROR_SUCCESS)
+        retval = _SetWindowLongPtrA(hWnd, nIndex, dwNewLong)
+        if retval == 0:
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
+        return retval
+
+    def SetWindowLongPtrW(hWnd, nIndex, dwNewLong):
+        _SetWindowLongPtrW = windll.user32.SetWindowLongPtrW
+        _SetWindowLongPtrW.argtypes = [HWND, ctypes.c_int, SIZE_T]
+        _SetWindowLongPtrW.restype  = SIZE_T
+
+        SetLastError(ERROR_SUCCESS)
+        retval = _SetWindowLongPtrW(hWnd, nIndex, dwNewLong)
+        if retval == 0:
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
+        return retval
+
+    SetWindowLongPtr = DefaultStringType(SetWindowLongPtrA, SetWindowLongPtrW)
 
 # HWND GetShellWindow(VOID);
 def GetShellWindow():
