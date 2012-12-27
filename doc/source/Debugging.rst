@@ -20,7 +20,7 @@ When you're finished using the *Debug* object, you must either call its *stop()*
    In previous examples we have used a **System.request_debug_privileges()** call to get debug privileges. When using the *Debug* class we don't need to do that - it's taken care of automatically in the constructor.
 
 Example #1: starting a new process and waiting for it to finish
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/01_start.py>`
 
@@ -29,7 +29,7 @@ Example #1: starting a new process and waiting for it to finish
    :end-before: # When invoked from the command line,
 
 Example #2: attaching to a process and waiting for it to finish
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/02_attach.py>`
 
@@ -38,7 +38,7 @@ Example #2: attaching to a process and waiting for it to finish
    :end-before: # When invoked from the command line,
 
 Example #3: attaching to a process by filename
-+++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/03_find_and_attach.py>`
 
@@ -79,7 +79,7 @@ The Event class
 So far we have seen how to attach to or start processes. But a debugger also needs to react to events that happen in the debugee, and this is done by passing a callback function as the **eventHandler** parameter when instancing the *Debug* object. This callback, when called, will receive as parameter an **Event** object which describes the event and contains a reference to the *Debug* object itself.
 
 Example #6: handling debug events
-++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/06_debug_events.py>`
 
@@ -114,7 +114,7 @@ Example #7: saving crash dumps
 .. _the-eventhandler-class:
 
 The EventHandler class
------------------------
+----------------------
 
 Using a callback function is not very flexible when your code is too large. For that reason, the **EventHandler** class is provided.
 
@@ -161,7 +161,7 @@ In addition to all this, the *EventHandler* class provides a simple method for A
     One thing to be careful with when hooking API functions: all pointers should be declared as having the void type. Otherwise ctypes gets too "helpful" and tries to access the memory pointed to by them... and crashes, since those pointers only work in the debugged process.
 
 Example #8: tracing execution
-++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/08_tracing.py>`
 
@@ -170,7 +170,7 @@ Example #8: tracing execution
    :end-before: # When invoked from the command line,
 
 Example #9: intercepting API calls
-+++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/09_api_hook.py>`
 
@@ -186,7 +186,7 @@ If you're debugging more than one process at a time, keeping track of everything
 That way, your *EventHandler* can be written as if only a single process was being debugged, but you can attach to as many processes as you want. Each *EventHandler* will only "see" its own debugee.
 
 Example #10: sifting events per process
-++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/10_event_sifting.py>`
 
@@ -244,7 +244,7 @@ Example #12: hooking a function
    :end-before: def simple_debugger
 
 Example #13: watching a variable
-+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/13_watch_variable.py>`
 
@@ -253,7 +253,7 @@ Example #13: watching a variable
    :end-before: def simple_debugger
 
 Example #14: watching a buffer
-+++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/14_watch_buffer.py>`
 
@@ -275,7 +275,7 @@ In addition to exported functions, debugging symbols are used whenever possible.
 A complete explanation on how labels work can be found at the Advanced Topics section of this document.
 
 Example #15: getting the label for a given memory address
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/15_get_label.py>`
 
@@ -284,7 +284,7 @@ Example #15: getting the label for a given memory address
    :end-before: # When invoked from the command line,
 
 Example #16: resolving a label back into a memory address
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/debugging/16_resolve_label.py>`
 

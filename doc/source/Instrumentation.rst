@@ -113,7 +113,7 @@ Example #9: loading a DLL into the process
    :end-before: # When invoked from the command line,
 
 Example #10: getting the process memory map
-++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/instrumentation/10_memory_map.py>`
 
@@ -149,7 +149,7 @@ A *Thread* object lets you manipulate any thread in any process in the system. Y
 You can manipulate the thread context (read and write to it's registers), perform typical debugger operations (getting stack traces, etc), suspend and resume execution, and more.
 
 Example #13: freeze all threads in a process
-+++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/instrumentation/13_freeze.py>`
 
@@ -158,7 +158,7 @@ Example #13: freeze all threads in a process
    :end-before: # When invoked from the command line,
 
 Example #14: print a thread's context
-++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++
 
 :download:`Download <../../examples/instrumentation/14_registers.py>`
 

@@ -1,7 +1,7 @@
-.. _win32-api-wrappers:
+.. _helper-classes-and-functions:
 
-Input and output helpers
-************************
+Helper classes and functions
+****************************
 
 **WinAppDbg** provides some helper classes and functions, mostly related to input and output, that can come in handy when reading input from users or writing debugging data.
 
@@ -23,16 +23,18 @@ The following functions set the console text color:
  * *yellow*
 
 You can also combine the colors with the brightness settings using the *light* and *dark* functions, to get more variations on colors:
-::
-    Color.red()
-    Color.light()
-    print "This is printed in light red."
-    Color.dark()
-    print "This is printed in dark red."
-    Color.blue()
-    print "This is printed in dark blue."
-    Color.light()
-    print "This is printed in light blue."
+
+.. code-block:: python
+
+   Color.red()
+   Color.light()
+   print "This is printed in light red."
+   Color.dark()
+   print "This is printed in dark red."
+   Color.blue()
+   print "This is printed in dark blue."
+   Color.light()
+   print "This is printed in light blue."
 
 The following functions set the console background color:
  * *bk_black*
@@ -92,31 +94,31 @@ Hexadecimal input
 
 The static class *HexInput* contains a collection of functions to parse input data in various formats.
 
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Function              | Description                                                                                                                                                       |
-+=======================+===================================================================================================================================================================+
-| *integer*             | Convert a string to an integer. Supports decimal, hexadecimal (0x prefix), octal (0o prefix) and binary (0b prefix).                                              |
-|                       | If no prefix is given, this method still does its best to tell if it's hexadecimal or not. If all fails, the number is assumed to be decimal.                     |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *address*             | Read an hexadecimal value from a string. Unlike *integer* no attempt is made to detect other formats.                                                             |
-|                       | This function was conceived for parsing memory addresses, hence the name.                                                                                         |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *hexadecimal*         | Convert a strip of hexadecimal numbers (like OllyDbg's memory view) into binary data.                                                                             |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *pattern*             | Similar to *hexadecimal*, but it also accepts question marks as wildcards for unknown values in fixed positions.                                                  |
-|                       | The return value is a regular expression that can perform a search for the given byte pattern.                                                                    |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *is_pattern*          | Determine if the given argument is a valid hexadecimal pattern to be used with *pattern*.                                                                         |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *integer_list_file*   | Read a list of integers from a file, assuming a specific file format.                                                                                             |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#integer_list_file>`_ for details.  |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *string_list_file*    | Read a list of strings from a file, assuming a specific file format.                                                                                              |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#string_list_file>`_ for details.   |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *mixed_list_file*     | Read a list of integers and strings from a file, assuming a specific file format.                                                                                 |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#mixed_list_file>`_ for details.    |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Function              | Description                                                                                                                                                                           |
++=======================+=======================================================================================================================================================================================+
+| *integer*             | Convert a string to an integer. Supports decimal, hexadecimal (0x prefix), octal (0o prefix) and binary (0b prefix).                                                                  |
+|                       | If no prefix is given, this method still does its best to tell if it's hexadecimal or not. If all fails, the number is assumed to be decimal.                                         |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *address*             | Read an hexadecimal value from a string. Unlike *integer* no attempt is made to detect other formats.                                                                                 |
+|                       | This function was conceived for parsing memory addresses, hence the name.                                                                                                             |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *hexadecimal*         | Convert a strip of hexadecimal numbers (like OllyDbg's memory view) into binary data.                                                                                                 |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *pattern*             | Similar to *hexadecimal*, but it also accepts question marks as wildcards for unknown values in fixed positions.                                                                      |
+|                       | The return value is a regular expression that can perform a search for the given byte pattern.                                                                                        |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *is_pattern*          | Determine if the given argument is a valid hexadecimal pattern to be used with *pattern*.                                                                                             |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *integer_list_file*   | Read a list of integers from a file, assuming a specific file format.                                                                                                                 |
+|                       | Check the documentation for `HexInput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#integer_list_file>`_ for details. |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *string_list_file*    | Read a list of strings from a file, assuming a specific file format.                                                                                                                  |
+|                       | Check the documentation for `HexInput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#string_list_file>`_ for details.   |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *mixed_list_file*     | Read a list of integers and strings from a file, assuming a specific file format.                                                                                                     |
+|                       | Check the documentation for `HexInput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#mixed_list_file>`_ for details.     |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Hexadecimal output
 ------------------
@@ -140,18 +142,18 @@ The following functions are common to both:
 
 The *HexOutput* class also has file output functions to match those in *HexInput*:
 
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Function              | Description                                                                                                                                                       |
-+=======================+===================================================================================================================================================================+
-| *integer_list_file*   | Write a list of integers into a file, assuming a specific file format.                                                                                            |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#integer_list_file>`_ for details.  |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *string_list_file*    | Write a list of strings into a file, assuming a specific file format.                                                                                             |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#string_list_file>`_ for details.   |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *mixed_list_file*     | Write a list of integers and strings into a file, assuming a specific file format.                                                                                |
-|                       | Check the `reference documentation <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#mixed_list_file>`_ for details.    |
-+-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Function              | Description                                                                                                                                                                               |
++=======================+===========================================================================================================================================================================================+
+| *integer_list_file*   | Write a list of integers into a file, assuming a specific file format.                                                                                                                    |
+|                       | Check the documentation for `HexOutput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#integer_list_file>`_ for details.   |
++-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *string_list_file*    | Write a list of strings into a file, assuming a specific file format.                                                                                                                     |
+|                       | Check the documentation for `HexOutput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#string_list_file>`_ for details.     |
++-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| *mixed_list_file*     | Write a list of integers and strings into a file, assuming a specific file format.                                                                                                        |
+|                       | Check the documentation for `HexOutput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#mixed_list_file>`_ for details.       |
++-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 The *HexDump* class has additional methods for showing hex dumps and binary data to the user in a printable manner:
 
