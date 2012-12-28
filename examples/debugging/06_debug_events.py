@@ -30,15 +30,9 @@
 
 # $Id$
 
-from winappdbg import Debug, HexDump
+from winappdbg import Debug, HexDump, win32
 
 def my_event_handler( event ):
-
-    # Get the event name.
-    name = event.get_event_name()
-
-    # Get the event code.
-    code = event.get_event_code()
 
     # Get the process ID where the event occured.
     pid = event.get_pid()
@@ -46,15 +40,51 @@ def my_event_handler( event ):
     # Get the thread ID where the event occured.
     tid = event.get_tid()
 
-    # Get the value of EIP at the thread.
-    pc = event.get_thread().get_pc()
-
-    # Show something to the user.
+    # Find out if it's a 32 or 64 bit process.
     bits = event.get_process().get_bits()
-    format_string = "%s (%s) at address %s, process %d, thread %d"
+
+    # Get the value of EIP at the thread.
+    address = event.get_thread().get_pc()
+
+    # Get the event name.
+    name = event.get_event_name()
+
+    # Get the event code.
+    code = event.get_event_code()
+
+    # If the event is an exception...
+    if code == win32.EXCEPTION_DEBUG_EVENT:
+
+        # Get the exception user-friendly description.
+        name = event.get_exception_description()
+
+        # Get the exception code.
+        code = event.get_exception_code()
+
+        # Get the address where the exception occurred.
+        try:
+            address = event.get_fault_address()
+        except NotImplementedError:
+            address = event.get_exception_address()
+
+    # If the event is a process creation or destruction,
+    # or a DLL being loaded or unloaded...
+    elif code in ( win32.CREATE_PROCESS_DEBUG_EVENT,
+                   win32.EXIT_PROCESS_DEBUG_EVENT,
+                   win32.LOAD_DLL_DEBUG_EVENT,
+                   win32.UNLOAD_DLL_DEBUG_EVENT ):
+
+        # Get the filename.
+        filename = event.get_filename()
+        if filename:
+            name = "%s [%s]" % ( name, filename )
+
+    # Show a descriptive message to the user.
+    print "-" * 79
+    format_string = "%s (0x%s) at address 0x%s, process %d, thread %d"
     message = format_string % ( name,
                                 HexDump.integer(code, bits),
-                                HexDump.address(pc, bits),
+                                HexDump.address(address, bits),
                                 pid,
                                 tid )
     print message

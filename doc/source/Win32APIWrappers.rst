@@ -15,6 +15,8 @@ Except in some rare cases, the rationale to port the API calls to Python was:
  * Default parameter values were added when possible. The default for all optional pointers is *NULL*. The default flags are usually the ones that provide all possible access (for example, the default flags value for *GetThreadContext* is *CONTEXT_ALL*)
  * For APIs with ANSI and Widechar versions, both versions are wrapped. If at least one parameter is a Unicode string en Widechar version is called (and all string parameters are converted to Unicode), otherwise the ANSI version is called. Either ANSI or Widechar versions can be used explicitly (for example, *CreateFile* can be called as *CreateFileA* or *CreateFileW*).
 
+All handles returned by API calls are wrapped around the *Handle* class. This allows you to use the **with** statement to ensure proper cleanup, and causes handles to be closed automatically when they go out of scope, thus preventing handle leaks.
+
 Example #1: finding a DLL in the search path
 ++++++++++++++++++++++++++++++++++++++++++++
 
