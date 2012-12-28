@@ -1834,8 +1834,12 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if nSize > 0:
                     data = win32.ReadProcessMemory(
                                     hProcess, lpBaseAddress, nSize)
-            except WindowsError:
-                pass
+            except WindowsError, e:
+                msg = "Error reading process %d address %s: %s"
+                msg %= (self.get_pid(),
+                        HexDump.address(baseAddress),
+                        e.strerror)
+                warnings.warn(msg)
         return data
 
     def poke(self, lpBaseAddress, lpBuffer):
@@ -2913,8 +2917,11 @@ class Process (_ThreadContainer, _ModuleContainer):
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
             except WindowsError, e:
-##                print str(e)    # XXX DEBUG
-                pass
+                msg = "Can't get mapped file name at address %s in process " \
+                      "%d, reason: %s" % (self.get_pid(),
+                                          HexDump.address(baseAddress),
+                                          e.strerror)
+                warnings.warn(msg, RuntimeWarning)
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
 
@@ -4365,7 +4372,12 @@ class _ProcessContainer (object):
             try:
                 aProcess.close_handle()
             except Exception, e:
-                pass
+                try:
+                    msg = "Cannot close process handle %s, reason: %s"
+                    msg %= (aProcess.hProcess.value, str(e))
+                    warnings.warn(msg)
+                except Exception:
+                    pass
 
     def close_process_and_thread_handles(self):
         """
@@ -4377,7 +4389,12 @@ class _ProcessContainer (object):
             try:
                 aProcess.close_handle()
             except Exception, e:
-                pass
+                try:
+                    msg = "Cannot close process handle %s, reason: %s"
+                    msg %= (aProcess.hProcess.value, str(e))
+                    warnings.warn(msg)
+                except Exception:
+                    pass
 
     def clear_processes(self):
         """

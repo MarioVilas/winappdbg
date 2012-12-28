@@ -45,6 +45,7 @@ from util import DebugRegister
 from window import Window
 
 import struct
+import warnings
 
 # delayed imports
 Process = None
@@ -359,6 +360,9 @@ class Thread (object):
         """
         hThread = self.get_handle(win32.THREAD_TERMINATE)
         win32.TerminateThread(hThread, dwExitCode)
+
+        # Ugliest hack ever, won't work if many pieces of code are injected.
+        # Seriously, what was I thinking? Lame! :(
         if self.pInjectedMemory is not None:
             try:
                 self.get_process().free(self.pInjectedMemory)
@@ -1908,7 +1912,12 @@ class _ThreadContainer (object):
             try:
                 aThread.close_handle()
             except Exception, e:
-                pass
+                try:
+                    msg = "Cannot close thread handle %s, reason: %s"
+                    msg %= (aThread.hThread.value, str(e))
+                    warnings.warn(msg)
+                except Exception:
+                    pass
 
 #------------------------------------------------------------------------------
 

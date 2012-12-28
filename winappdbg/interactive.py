@@ -56,6 +56,7 @@ import os
 import sys
 import code
 import time
+import warnings
 import traceback
 
 # too many variables named "cmd" to have a module by the same name :P
@@ -1110,6 +1111,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             code.interact(banner=banner, local=local)
         except SystemExit:
+            # We need to catch it so it doesn't kill our program.
             pass
 
     def do_python(self, arg):
@@ -2167,9 +2169,10 @@ class ConsoleDebugger (Cmd, EventHandler):
             self.history_file_full_path = os.path.join(folder,
                                                        self.history_file)
         try:
-            readline.read_history_file(self.history_file_full_path)
-        except IOError:
-            pass
+            if os.path.exists(self.history_file_full_path):
+                readline.read_history_file(self.history_file_full_path)
+        except IOError, e:
+            warnings.warn("Cannot load history file, reason: %s" % str(e))
 
     def save_history(self):
         if self.history_file_full_path is not None:
@@ -2182,7 +2185,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             try:
                 readline.write_history_file(self.history_file_full_path)
             except IOError:
-                pass
+                warnings.warn("Cannot save history file, reason: %s" % str(e))
 
 #------------------------------------------------------------------------------
 # Main loop

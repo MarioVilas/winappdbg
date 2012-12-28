@@ -50,6 +50,7 @@ from window import Window
 
 import os
 import ctypes
+import warnings
 
 #==============================================================================
 
@@ -407,8 +408,9 @@ class System (_ProcessContainer):
             if previous is None or force:
                 os.putenv("_NT_SYMBOL_PATH", symbol_store_path)
             return previous
-        except Exception:
-            pass
+        except Exception, e:
+            warnings.warn("Cannot fix symbol path, reason: %s" % str(e),
+                          RuntimeWarning)
 
     @staticmethod
     def read_msr(address):

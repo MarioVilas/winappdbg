@@ -498,8 +498,6 @@ class Window (object):
         @rtype:  L{Window}
         @return: Child window at the requested position, or C{None} if there
             is no window at those coordinates.
-
-        @raise WindowsError: An error occured while processing this request.
         """
         try:
             if bAllowTransparency:

@@ -62,7 +62,6 @@ class MixedBitsWarning (RuntimeWarning):
     """
     This warning is issued when mixing 32 and 64 bit processes.
     """
-    pass
 
 #==============================================================================
 
@@ -181,10 +180,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Compatibility with the "C{with}" Python statement.
         """
-        try:
-            self.stop()
-        except Exception, e:
-            pass
+        self.stop()
 
     def __len__(self):
         """
@@ -1170,8 +1166,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 ptr = pbi.PebBaseAddress + 2
                 if aProcess.peek(ptr, 1) == '\x01':
                     aProcess.poke(ptr, '\x00')
-            except WindowsError:
-                pass
+            except WindowsError, e:
+                warnings.warn(
+                    "Cannot patch PEB->BeingDebugged, reason: %s" % e.strerror)
 
         return retval
 

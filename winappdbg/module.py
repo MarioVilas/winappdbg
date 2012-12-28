@@ -127,7 +127,7 @@ class Module (object):
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
                 except Exception, e:
-                    pass
+                    pass # not all symbols are decorated!
             self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
             return win32.TRUE
 
@@ -262,9 +262,10 @@ class Module (object):
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
                 self.EntryPoint  = mi.EntryPoint
-            except WindowsError:
-##                raise       # XXX DEBUG
-                pass
+            except WindowsError, e:
+                warnings.warn(
+                    "Cannot get size and entry point of module %s, reason: %s"\
+                    % (self.get_name(), e.strerror), RuntimeWarning)
 
     def get_filename(self):
         """
@@ -436,20 +437,24 @@ class Module (object):
                                 win32.SYMOPT_INCLUDE_32BIT_MODULES  | \
                                 win32.SYMOPT_UNDNAME)
             try:
-                win32.SymSetOptions(SymOptions | win32.SYMOPT_ALLOW_ABSOLUTE_SYMBOLS)
+                win32.SymSetOptions(
+                    SymOptions | win32.SYMOPT_ALLOW_ABSOLUTE_SYMBOLS)
             except WindowsError:
                 pass
             try:
                 try:
-                    success = win32.SymLoadModule64(hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
+                    success = win32.SymLoadModule64(
+                        hProcess, hFile, None, None, BaseOfDll, SizeOfDll)
                 except WindowsError:
                     success = 0
                 if not success:
                     ImageName = self.get_filename()
-                    success = win32.SymLoadModule64(hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
+                    success = win32.SymLoadModule64(
+                        hProcess, None, ImageName, None, BaseOfDll, SizeOfDll)
                 if success:
                     try:
-                        win32.SymEnumerateSymbols64(hProcess, BaseOfDll, Enumerator)
+                        win32.SymEnumerateSymbols64(
+                            hProcess, BaseOfDll, Enumerator)
                     finally:
                         win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:

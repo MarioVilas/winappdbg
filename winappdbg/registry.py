@@ -537,8 +537,13 @@ class Registry (_RegistryContainer):
             hive = self._remote_hives.popitem()[1]
             try:
                 hive.close()
-            except Exception:
-                pass
+            except Exception, e:
+                try:
+                    msg = "Cannot close registry hive handle %s, reason: %s"
+                    msg %= (hive.value, str(e))
+                    warnings.warn(msg)
+                except Exception:
+                    pass
 
     def __enter__(self):
         return self
