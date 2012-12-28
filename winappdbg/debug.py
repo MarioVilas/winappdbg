@@ -1001,6 +1001,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def is_debugee(self, dwProcessId):
         """
+        Determine if the debugger is debugging the given process.
+
+        @see: L{is_debugee_attached}, L{is_debugee_started}
+
         @type  dwProcessId: int
         @param dwProcessId: Process global ID.
 
@@ -1013,6 +1017,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def is_debugee_started(self, dwProcessId):
         """
+        Determine if the given process was started by the debugger.
+
+        @see: L{is_debugee}, L{is_debugee_attached}
+
         @type  dwProcessId: int
         @param dwProcessId: Process global ID.
 
@@ -1024,6 +1032,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def is_debugee_attached(self, dwProcessId):
         """
+        Determine if the debugger is attached to the given process.
+
+        @see: L{is_debugee}, L{is_debugee_started}
+
         @type  dwProcessId: int
         @param dwProcessId: Process global ID.
 
