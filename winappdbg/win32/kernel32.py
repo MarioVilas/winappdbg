@@ -2065,7 +2065,7 @@ def SetThreadErrorMode(dwNewMode):
     _SetThreadErrorMode.errcheck = RaiseIfZero
 
     old = DWORD(0)
-    _SetThreadErrorMode(dwErrCode, ctypes.byref(old))
+    _SetThreadErrorMode(dwErrCode, byref(old))
     return old.value
 
 # BOOL WINAPI CloseHandle(
@@ -2500,7 +2500,7 @@ def RtlPcToFileHeader(PcValue):
     _RtlPcToFileHeader.restype  = PRUNTIME_FUNCTION
 
     BaseOfImage = PVOID(0)
-    _RtlPcToFileHeader(PcValue, ctypes.byref(BaseOfImage))
+    _RtlPcToFileHeader(PcValue, byref(BaseOfImage))
     return BaseOfImage.value
 
 #------------------------------------------------------------------------------
@@ -2517,7 +2517,7 @@ def GetHandleInformation(hObject):
     _GetHandleInformation.errcheck = RaiseIfZero
 
     dwFlags = DWORD(0)
-    _GetHandleInformation(hObject, ctypes.byref(dwFlags))
+    _GetHandleInformation(hObject, byref(dwFlags))
     return dwFlags.value
 
 # BOOL WINAPI SetHandleInformation(

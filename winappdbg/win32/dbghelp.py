@@ -1217,7 +1217,7 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame,
     pContextRecord = PCONTEXT(ContextRecord)
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
-    ret = _StackWalk64(MachineType, hProcess, hThread, ctypes.byref(StackFrame),
+    ret = _StackWalk64(MachineType, hProcess, hThread, byref(StackFrame),
                        pContextRecord, pReadMemoryRoutine,
                        pFunctionTableAccessRoutine, pGetModuleBaseRoutine,
                        pTranslateAddress)

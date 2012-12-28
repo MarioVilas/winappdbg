@@ -1311,7 +1311,7 @@ def GetWindowRect(hWnd):
     _GetWindowRect.errcheck = RaiseIfZero
 
     lpRect = RECT()
-    _GetWindowRect(hWnd, ctypes.byref(lpRect))
+    _GetWindowRect(hWnd, byref(lpRect))
     return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)
 
 # BOOL WINAPI GetClientRect(
@@ -1325,7 +1325,7 @@ def GetClientRect(hWnd):
     _GetClientRect.errcheck = RaiseIfZero
 
     lpRect = RECT()
-    _GetClientRect(hWnd, ctypes.byref(lpRect))
+    _GetClientRect(hWnd, byref(lpRect))
     return Rect(lpRect.left, lpRect.top, lpRect.right, lpRect.bottom)
 
 #BOOL MoveWindow(
