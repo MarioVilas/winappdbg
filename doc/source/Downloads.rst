@@ -8,30 +8,30 @@ This is what you need to know to download, install and begin to use *WinAppDbg*:
 Latest version
 --------------
 
-The latest version is **1.5 beta 5** (30 Oct 2012). There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
+The latest version is **1.5 beta 6** (30 Dec 2012). There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
 
 The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version as a source code tarball from the `subversion repository <http://winappdbg.svn.sourceforge.net/viewvc/winappdbg/trunk.tar.gz?view=tar>`_.
 
 **Installer packages**
 
-* `winappdbg-1.5-beta5.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5-beta5.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5-beta6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win32.msi/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5-beta6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
 
 **Source code**
 
-* `winappdbg-1.5-beta5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.zip/download>`_ - Manual install (setup.py)
+* `winappdbg-1.5-beta6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.zip/download>`_ - Manual install (setup.py)
 
 The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.5/reference/>`_, but they're also available for download:
 
 **Windows Help Files**
 
-* `winappdbg-tutorial-1.5-beta5.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta5.chm/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5-beta5.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta5.chm/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.5-beta6.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta6.chm/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.5-beta6.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta6.chm/download>`_ - Complete reference material
 
 **PDF Files (for printing)**
 
-* `winappdbg-tutorial-1.5-beta5.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta5.pdf/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5-beta5.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta5.pdf/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.5-beta6.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta6.pdf/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.5-beta6.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta6.pdf/download>`_ - Complete reference material
 
 .. _older:
 

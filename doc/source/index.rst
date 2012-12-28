@@ -16,9 +16,9 @@ Download
 
 Some quick links for the impatient:
 
-* `winappdbg-1.5-beta5.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5-beta5.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.win-amd64.msi/download>`_ - All supported 64-bit Python versions
-* `winappdbg-1.5-beta5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta5.zip/download>`_ - Manual install (setup.py)
+* `winappdbg-1.5-beta6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win32.msi/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.5-beta6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.5-beta6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.zip/download>`_ - Manual install (setup.py)
 
 For more information, online docs and older versions go to the :ref:`downloads page <download>`.
 
@@ -66,4 +66,4 @@ And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit y
 * `Radare <http://radare.nopcode.org>`_ is a console based multiplatform disassembler, debugger and reverse engineering framework. Python is among the languages supported for plugins and scripting.
 * `uhooker <http://www.coresecurity.com/content/open-source-projects#Uhooker>`_ is a Python library to implement function hooks in other processes. While its functionality overlaps with some of *WinAppDbg*, the hooks implementation of *uhooker* is superior. Unfortunately the last update was in 2007. :(
 
-See also the wonderful `Python Arsenal for RE <http://dsecrg.com/files/pub/pdf/Python%20arsenal%20for%20RE%201.1.pdf>`_ for an up to date reference of security related Python tools.
+See also the wonderful `Python Arsenal for RE <http://pythonarsenal.erpscan.com/>`_ for an up to date reference of security related Python tools (also available in `PDF <http://dsecrg.com/files/pub/pdf/Python%20arsenal%20for%20RE%201.1.pdf>`_ format).
