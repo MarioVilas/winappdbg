@@ -131,6 +131,14 @@ class Marshaller (StaticClass):
 
 #==============================================================================
 
+class CrashWarning (Warning):
+    """
+    An error occurred while gathering crash data.
+    Some data may be incomplete or missing.
+    """
+
+#==============================================================================
+
 # Crash object. Must be serializable.
 class Crash (object):
     """
@@ -515,7 +523,9 @@ class Crash (object):
             try:
                 self.stackTracePretty = thread.get_stack_trace_with_labels()
             except Exception, e:
-                pass
+                warnings.warn(
+                    "Cannot get stack trace with labels, reason: %s" % str(e),
+                    CrashWarning)
             try:
                 self.stackTrace     = thread.get_stack_trace()
                 stackTracePC        = [ ra for (_,ra,_) in self.stackTrace ]
@@ -524,7 +534,8 @@ class Crash (object):
                                              for ra in self.stackTracePC ]
                 self.stackTraceLabels = tuple(stackTraceLabels)
             except Exception, e:
-                pass
+                warnings.warn("Cannot get stack trace, reason: %s" % str(e),
+                              CrashWarning)
 
     def fetch_extra_data(self, event, takeMemorySnapshot = 0):
         """
@@ -556,18 +567,18 @@ class Crash (object):
         # Get the command line for the target process.
         try:
             self.commandLine = process.get_command_line()
-        except Exception:
-##            raise   # XXX DEBUG
-            pass
+        except Exception, e:
+            warnings.warn("Cannot get command line, reason: %s" % str(e),
+                          CrashWarning)
 
         # Get the environment variables for the target process.
         try:
             self.environmentData = process.get_environment_data()
             self.environment     = process.parse_environment_data(
                                                         self.environmentData)
-        except Exception:
-##            raise   # XXX DEBUG
-            pass
+        except Exception, e:
+            warnings.warn("Cannot get environment, reason: %s" % str(e),
+                          CrashWarning)
 
         # Data pointed to by registers.
         self.registersPeek = thread.peek_pointers_in_registers()
@@ -582,7 +593,8 @@ class Crash (object):
         try:
             self.stackRange = thread.get_stack_range()
         except Exception, e:
-            pass
+            warnings.warn("Cannot get stack range, reason: %s" % str(e),
+                          CrashWarning)
         try:
             self.stackFrame = thread.get_stack_frame()
             stackFrame = self.stackFrame
@@ -597,8 +609,8 @@ class Crash (object):
         try:
             self.faultDisasm = thread.disassemble_around_pc(32)
         except Exception, e:
-##            raise   # XXX DEBUG
-            pass
+            warnings.warn("Cannot disassemble, reason: %s" % str(e),
+                          CrashWarning)
 
         # For memory related exceptions, get the memory contents
         # of the location that caused the exception to be raised.
