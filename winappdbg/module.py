@@ -56,7 +56,10 @@ import traceback
 #==============================================================================
 
 class DebugSymbolsWarning (UserWarning):
-    "Warning issued if the debug symbols support isn't working properly."
+    """
+    This warning is issued if the support for debug symbols
+    isn't working properly.
+    """
 
 #==============================================================================
 

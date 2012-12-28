@@ -81,7 +81,7 @@ class BreakpointWarning (UserWarning):
 
 class BreakpointCallbackWarning (RuntimeWarning):
     """
-    This warnings is issued when an uncaught exception was raised by a
+    This warning is issued when an uncaught exception was raised by a
     breakpoint's user-defined callback.
     """
 

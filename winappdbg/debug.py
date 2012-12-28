@@ -60,8 +60,7 @@ import warnings
 # you can stop the debugger from attaching to WOW64 processes.
 class MixedBitsWarning (RuntimeWarning):
     """
-    Mixture of 32 and 64 bits is considered experimental.
-    Use at your own risk!
+    This warning is issued when mixing 32 and 64 bit processes.
     """
     pass
 

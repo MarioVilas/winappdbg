@@ -99,8 +99,13 @@ Blog:    U{http://breakingcode.wordpress.com}
     CrashContainer, CrashTable, CrashTableMSSQL,
     VolatileCrashContainer, DummyCrashContainer
 
+@type version_number: float
+@var  version_number: This WinAppDbg major and minor version,
+    as a floating point number. Use this for compatibility checking.
+
 @type version: str
-@var  version: This WinAppDbg release version.
+@var  version: This WinAppDbg release version,
+    as a printable string. Use this to show to the user.
 """
 
 __revision__ = "$Id$"

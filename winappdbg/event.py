@@ -108,7 +108,7 @@ import traceback
 
 class EventCallbackWarning (RuntimeWarning):
     """
-    This warnings is issued when an uncaught exception was raised by a
+    This warning is issued when an uncaught exception was raised by a
     user-defined event handler.
     """
 

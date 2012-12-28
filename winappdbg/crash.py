@@ -1100,8 +1100,8 @@ class Crash (object):
 
 class CrashContainer (object):
     """
-    Manages a database of persistent Crash objects, trying to avoid duplicates.
-    Uses a DBM database file for persistency.
+    Old crash dump persistencer using a DBM database.
+    Doesn't support duplicate crashes.
 
     @warning:
         DBM database support is provided for backwards compatibility with older
