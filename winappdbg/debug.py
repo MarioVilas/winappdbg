@@ -84,13 +84,15 @@ class Debug (EventDispatcher, _BreakpointContainer):
     The main debugger class.
 
     @group Debugging:
-        attach, detach, detach_from_all, execv, execl, kill, kill_all, clear,
+        interactive, attach, detach, detach_from_all, execv, execl,
+        kill, kill_all, clear,
         get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started, in_hostile_mode,
+        is_debugee, is_debugee_attached, is_debugee_started,
+        in_hostile_mode,
         add_existing_session
 
     @group Debugging loop:
-        interactive, loop, stop, next, wait, dispatch, cont
+        loop, stop, next, wait, dispatch, cont
 
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
@@ -137,6 +139,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         self.system                         = System()
         self.lastEvent                      = None
+        self.__firstDebugee                 = True
         self.__bKillOnExit                  = bKillOnExit
         self.__bHostileCode                 = bHostileCode
         self.__breakOnEP                    = set()     # set of pids
@@ -196,6 +199,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
 #------------------------------------------------------------------------------
 
+    def __setSystemKillOnExitMode(self):
+        # Make sure the default system behavior on detaching from processes
+        # versus killing them matches our preferences. This only affects the
+        # scenario where the Python VM dies unexpectedly without running all
+        # the finally clauses, or the user failed to either instance the Debug
+        # object inside a with block or call the stop() method before quitting.
+        if self.__firstDebugee:
+            try:
+                System.set_kill_on_exit_mode(self.__bKillOnExit)
+                self.__firstDebugee = False
+            except Exception:
+                pass
+
     def attach(self, dwProcessId):
         """
         Attaches to an existing process for debugging.
@@ -210,17 +226,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
             it's best to interact with the process from the event handler.
 
         @raise WindowsError: Raises an exception on error.
+            Depending on the circumstances, the debugger may or may not have
+            attached to the target process.
         """
-
-        # The process has to be registered with the debugger,
-        # otherwise the list of processes may be empty, and the
-        # debugger loop will quit too soon. When the create process
-        # event arrives, the process handle is replaced.
-        if not self.system.has_process(dwProcessId):
-            aProcess = Process(dwProcessId)
-            self.system._add_process(aProcess)
-        else:
-            aProcess = self.system.get_process(dwProcessId)
 
         # Warn when mixing 32 and 64 bits.
         # This also allows the user to stop attaching altogether,
@@ -232,7 +240,20 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         # Attach to the process.
         win32.DebugActiveProcess(dwProcessId)
+
+        # Add the new PID to the set of debugees.
         self.__attachedDebugees.add(dwProcessId)
+
+        # Match the system kill-on-exit flag to our own.
+        self.__setSystemKillOnExitMode()
+
+        # Get the Process object from the snapshot,
+        # if missing create a new one and add it.
+        if not self.system.has_process(dwProcessId):
+            aProcess = Process(dwProcessId)
+            self.system._add_process(aProcess)
+        else:
+            aProcess = self.system.get_process(dwProcessId)
 
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
@@ -240,6 +261,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         aProcess.scan_threads()
         aProcess.scan_modules()
 
+        # Return the Process object, like the execv() and execl() methods.
         return aProcess
 
     def execv(self, argv, **kwargs):
@@ -390,6 +412,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
             aProcess = self.system.start_process(
                 lpCmdLine, dwParentProcessId = dwParentProcessId, **kwargs)
 
+            # Match the system kill-on-exit flag to our own.
+            self.__setSystemKillOnExitMode()
+
             # Warn when mixing 32 and 64 bits.
             # This also allows the user to stop attaching altogether,
             # depending on how the warnings are configured.
@@ -412,10 +437,22 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # On error kill the new process and raise an exception.
         except:
             try:
-                if aProcess is not None:
-                    aProcess.kill()
-            except Exception:
-                pass
+                try:
+                    self.__startedDebugees.remove(dwProcessId)
+                except KeyError:
+                    pass
+            finally:
+                try:
+                    try:
+                        self.__breakOnEP.remove(dwProcessId)
+                    except KeyError:
+                        pass
+                finally:
+                    try:
+                        if aProcess is not None:
+                            aProcess.kill()
+                    except Exception:
+                        pass
             raise
 
     def add_existing_session(self, dwProcessId, bStarted = False):
@@ -434,8 +471,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @param bStarted: C{True} if the process was started by the debugger,
             or C{False} if the process was attached to instead.
 
-        @raise WindowsError: The target process does not exist or the current
-            user doesn't have enough privileges to debug the target.
+        @raise WindowsError: The target process does not exist, is not attached
+            to the debugger anymore.
         """
 
         # Register the process object with the snapshot.
@@ -445,7 +482,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         else:
             aProcess = self.system.get_process(dwProcessId)
 
-        # Test for debug privileges on the target.
+        # Test for debug privileges on the target process.
         # Raises WindowsException on error.
         aProcess.get_handle()
 
@@ -454,6 +491,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
             self.__attachedDebugees.add(dwProcessId)
         else:
             self.__startedDebugees.add(dwProcessId)
+
+        # Match the system kill-on-exit flag to our own.
+        self.__setSystemKillOnExitMode()
 
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
