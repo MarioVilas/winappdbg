@@ -283,12 +283,25 @@ PIMAGEHLP_MODULEW64 = POINTER(IMAGEHLP_MODULEW64)
 
 # XXX the ANSI versions of these functions don't end in "A" as expected!
 
+# BOOL WINAPI MakeSureDirectoryPathExists(
+#   _In_  PCSTR DirPath
+# );
+def MakeSureDirectoryPathExistsA(DirPath):
+    _MakeSureDirectoryPathExists = windll.dbghelp.MakeSureDirectoryPathExists
+    _MakeSureDirectoryPathExists.argtypes = [LPSTR]
+    _MakeSureDirectoryPathExists.restype  = bool
+    _MakeSureDirectoryPathExists.errcheck = RaiseIfZero
+    return _MakeSureDirectoryPathExists(DirPath)
+
+MakeSureDirectoryPathExistsW = MakeWideVersion(MakeSureDirectoryPathExistsA)
+MakeSureDirectoryPathExists = GuessStringType(MakeSureDirectoryPathExistsA, MakeSureDirectoryPathExistsW)
+
 # BOOL WINAPI SymInitialize(
 #   __in      HANDLE hProcess,
 #   __in_opt  PCTSTR UserSearchPath,
 #   __in      BOOL fInvadeProcess
 # );
-def SymInitialize(hProcess, UserSearchPath = None, fInvadeProcess = False):
+def SymInitializeA(hProcess, UserSearchPath = None, fInvadeProcess = False):
     _SymInitialize = windll.dbghelp.SymInitialize
     _SymInitialize.argtypes = [HANDLE, LPSTR, BOOL]
     _SymInitialize.restype  = bool
@@ -296,6 +309,9 @@ def SymInitialize(hProcess, UserSearchPath = None, fInvadeProcess = False):
     if not UserSearchPath:
         UserSearchPath = None
     _SymInitialize(hProcess, UserSearchPath, fInvadeProcess)
+
+SymInitializeW = MakeWideVersion(SymInitializeA)
+SymInitialize = GuessStringType(SymInitializeA, SymInitializeW)
 
 # BOOL WINAPI SymCleanup(
 #   __in  HANDLE hProcess
@@ -352,7 +368,7 @@ def SymGetOptions():
 #   __in      DWORD BaseOfDll,
 #   __in      DWORD SizeOfDll
 # );
-def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
+def SymLoadModuleA(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
     _SymLoadModule = windll.dbghelp.SymLoadModule
     _SymLoadModule.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD, DWORD]
     _SymLoadModule.restype  = DWORD
@@ -373,6 +389,9 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
             raise ctypes.WinError(dwErrorCode)
     return lpBaseAddress
 
+SymLoadModuleW = MakeWideVersion(SymLoadModuleA)
+SymLoadModule = GuessStringType(SymLoadModuleA, SymLoadModuleW)
+
 # DWORD64 WINAPI SymLoadModule64(
 #   __in      HANDLE hProcess,
 #   __in_opt  HANDLE hFile,
@@ -381,7 +400,7 @@ def SymLoadModule(hProcess, hFile = None, ImageName = None, ModuleName = None, B
 #   __in      DWORD64 BaseOfDll,
 #   __in      DWORD SizeOfDll
 # );
-def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
+def SymLoadModule64A(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
     _SymLoadModule64 = windll.dbghelp.SymLoadModule64
     _SymLoadModule64.argtypes = [HANDLE, HANDLE, LPSTR, LPSTR, DWORD64, DWORD]
     _SymLoadModule64.restype  = DWORD64
@@ -401,6 +420,9 @@ def SymLoadModule64(hProcess, hFile = None, ImageName = None, ModuleName = None,
         if dwErrorCode != ERROR_SUCCESS:
             raise ctypes.WinError(dwErrorCode)
     return lpBaseAddress
+
+SymLoadModule64W = MakeWideVersion(SymLoadModule64A)
+SymLoadModule64 = GuessStringType(SymLoadModule64A, SymLoadModule64W)
 
 # BOOL WINAPI SymUnloadModule(
 #   __in  HANDLE hProcess,
