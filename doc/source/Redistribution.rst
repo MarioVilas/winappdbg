@@ -20,12 +20,16 @@ A Latex compiler is used to generate the documentation in PDF format. We're curr
 
 The HTML help can be compiled to a .CHM file using `Microsoft HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_.
 
-Tar and BZip2 utilities are required to compress .tar.bz2 files. We're using the packages from the `GNU Win32 project <http://gnuwin32.sourceforge.net/>`_.
+The Make utility is used to run makefiles, and the Tar, GZip and BZip2 utilities are required to compress .tar.gz and .tar.bz2 files. We're using `Cygwin <http://www.cygwin.com/>`_ because the packages from GnuWin32 suffer from really nasty bugs (most notably the Tar command tries to call fork() on Windows...).
 
 All of these tools must be present in the **PATH** environment variable.
 
+The `decorator <http://packages.python.org/decorator>`_ module is also recommended since it integrates better than the built-in decorators with the autodoc tools we're using. You can install it with easy_install or download it from the `Python Package Index <http://pypi.python.org/pypi/decorator>`_.
+
     +-------------------------------------------------------------------------------------+
     | `Download Sphinx             <http://pypi.python.org/pypi/Sphinx>`_                 |
+    +-------------------------------------------------------------------------------------+
+    | `Download Pygments           <http://pypi.python.org/pypi/Pygments>`_               |
     +-------------------------------------------------------------------------------------+
     | `Download Epydoc             <http://sourceforge.net/projects/epydoc/files/>`_      |
     +-------------------------------------------------------------------------------------+
@@ -35,9 +39,9 @@ All of these tools must be present in the **PATH** environment variable.
     +-------------------------------------------------------------------------------------+
     | `Download HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_      |
     +-------------------------------------------------------------------------------------+
-    | `Download Tar for Windows    <http://gnuwin32.sourceforge.net/packages/gtar.htm>`_  |
+    | `Download Cygwin             <http://cygwin.com/setup.exe>`_                        |
     +-------------------------------------------------------------------------------------+
-    | `Download BZip2 for Windows  <http://gnuwin32.sourceforge.net/packages/bzip2.htm>`_ |
+    | `Download Decorator          <http://pypi.python.org/pypi/decorator>`_              |
     +-------------------------------------------------------------------------------------+
 
 Installation
