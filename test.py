@@ -1,8 +1,6 @@
 #!~/.wine/drive_c/Python25/python.exe
 # -*- coding: utf-8 -*-
 
-# Command line debugger using WinAppDbg
-# Example command
 # Copyright (c) 2009-2012, Mario Vilas
 # All rights reserved.
 #
@@ -30,12 +28,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__revision__ = "$Id$"
+"WinAppDbg test suite"
 
-def do(self, arg):
-    ".example - This is an example plugin for the command line debugger"
-    print "This is an example command."
-    print "%s.do(%r, %r):" % (__name__, self, arg)
-    print "  last event", self.lastEvent
-    print "  prefix", self.cmdprefix
-    print "  arguments", self.split_tokens(arg)
+import traceback
+
+def test(title, fn):
+    title = "Testing %s... " % title
+    print title,
+    try:
+        fn()
+        print "\tOK"
+        return True
+    except Exception, e:
+        print "\tFAIL: %s" % str(e)
+        return False
+
+def test_module_load():
+    import winappdbg
+
+def test_disassembler_load():
+    from winappdbg import Disassembler, win32
+    Disassembler(win32.ARCH_I386)
+    Disassembler(win32.ARCH_AMD64)
+
+def test_sqlalchemy_load():
+    from winappdbg import sql
+
+if __name__ == '__main__':
+    if test("module load", test_module_load):
+        test("disassembler", test_disassembler_load)
+        test("SQL support", test_sqlalchemy_load)

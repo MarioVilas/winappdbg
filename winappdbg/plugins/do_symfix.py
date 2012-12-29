@@ -33,4 +33,5 @@
 __revision__ = "$Id$"
 
 def do(self, arg):
+    ".symfix - Set the default Microsoft Symbol Store settings if missing"
     self.debug.system.fix_symbol_store_path(remote = True, force = False)

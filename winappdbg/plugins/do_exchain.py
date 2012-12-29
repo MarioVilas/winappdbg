@@ -35,6 +35,7 @@ __revision__ = "$Id$"
 from winappdbg import HexDump, Table
 
 def do(self, arg):
+    ".exchain - Show the SEH chain"
     thread = self.get_thread_from_prefix()
     print "Exception handlers for thread %d" % thread.get_tid()
     print

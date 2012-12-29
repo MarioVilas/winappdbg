@@ -106,6 +106,8 @@ Blog:    U{http://breakingcode.wordpress.com}
 @type version: str
 @var  version: This WinAppDbg release version,
     as a printable string. Use this to show to the user.
+
+@undocumented: plugins
 """
 
 __revision__ = "$Id$"

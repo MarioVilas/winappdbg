@@ -45,6 +45,7 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 
 # TODO document this module with docstrings.
 # TODO command to set a last error breakpoint.
+# TODO command to show available plugins.
 
 import win32
 from system import System

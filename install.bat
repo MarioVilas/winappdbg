@@ -1,8 +1,6 @@
 @echo off
 setlocal enableextensions
 
-set TestCode=import winappdbg; from winappdbg import *; from winappdbg import sql; Disassembler(win32.ARCH_I386); Disassembler(win32.ARCH_AMD64)
-
 if not "%2"=="" goto Help
 if "%1"=="" goto Default
 if "%1"=="all" goto All
@@ -33,12 +31,12 @@ goto Exit
 
 :Default
 python setup.py install
-python -c "%TestCode%; print 'Installation successful.'"
+python test.py
 goto Exit
 
 :Specific
 "%1" setup.py install
-"%1" -c "%TestCode%; print 'Installation successful.'"
+"%1" test.py
 goto Exit
 
 :All
@@ -54,7 +52,8 @@ echo.
 echo Testing installation success...
 echo.
 for /f "delims=#" %%P in (install.cfg) do (
-    cmd /c if exist "%%P" "%%P" -c "print 'Interpreter: %%P'; %TestCode%; print 'OK'"
+    cmd /c if exist "%%P" echo Interpreter: %%P
+    cmd /c if exist "%%P" "%%P" test.py
     cmd /c if exist "%%P" echo.
 )
 echo Done.
