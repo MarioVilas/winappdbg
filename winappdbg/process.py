@@ -1866,6 +1866,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             May be less than the number of bytes to write.
         """
         hProcess = self.get_handle( win32.PROCESS_VM_WRITE |
+                                    win32.PROCESS_VM_OPERATION |
                                     win32.PROCESS_VM_OPERATION )
         mbi = self.mquery(lpBaseAddress)
         if not mbi.has_content():
