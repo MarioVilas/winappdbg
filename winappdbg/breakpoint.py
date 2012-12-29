@@ -4623,7 +4623,8 @@ class _BreakpointContainer (object):
         tid = thread.get_tid()
         if tid in self.__tracing:
             self.__tracing.remove(tid)
-            thread.clear_tf()
+            if thread.is_alive():
+                thread.clear_tf()
 
     def is_tracing(self, tid):
         """
