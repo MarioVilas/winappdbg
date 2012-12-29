@@ -15,10 +15,9 @@ The intended audience are QA engineers and software security auditors wishing to
 test / fuzz Windows applications with quickly coded Python scripts. Several
 ready to use utilities are shipped and can be used for this purposes.
 
-Current features also include disassembling x86 native code (using the open
-source diStorm project, see http://ragestorm.net/distorm/), debugging multiple
-processes simultaneously and produce a detailed log of application crashes,
-useful for fuzzing and automated testing.
+Current features also include disassembling x86/x64 native code, debugging
+multiple processes simultaneously and produce a detailed log of application
+crashes, useful for fuzzing and automated testing.
 
 
 Where can I find WinAppDbg?
