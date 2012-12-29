@@ -577,18 +577,22 @@ class Handle (object):
            C{False} if someone else will be calling L{CloseHandle}.
         """
         super(Handle, self).__init__()
-        self.value      = self._normalize(aHandle)
+        self._value     = self._normalize(aHandle)
         self.bOwnership = bOwnership
         if Handle.__bLeakDetection:     # XXX DEBUG
             print "INIT HANDLE (%r) %r" % (self.value, self)
+
+    @property
+    def value(self):
+        return self._value
 
     def __del__(self):
         """
         Closes the Win32 handle when the Python object is destroyed.
         """
-        if Handle.__bLeakDetection:     # XXX DEBUG
-            print "DEL HANDLE %r" % self
         try:
+            if Handle.__bLeakDetection:     # XXX DEBUG
+                print "DEL HANDLE %r" % self
             self.close()
         except Exception:
             pass
@@ -659,7 +663,7 @@ class Handle (object):
             try:
                 self._close()
             finally:
-                self.value = None
+                self._value = None
 
     def _close(self):
         """
@@ -673,21 +677,22 @@ class Handle (object):
         @rtype:  L{Handle}
         @return: A new handle to the same Win32 object.
         """
-        new_value = DuplicateHandle(self.value)
+        if self.value is None:
+            raise ValueError("Closed handles can't be duplicated!")
+        new_handle = DuplicateHandle(self.value)
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "DUP HANDLE (%d -> %d) %r" % (self.value, new_value, self)
-        return new_value
+            print "DUP HANDLE (%d -> %d) %r %r" % \
+                            (self.value, new_handle.value, self, new_handle)
+        return new_handle
 
     @staticmethod
     def _normalize(value):
         """
         Normalize handle values.
         """
-        if value is None:
-            value = 0
-        elif hasattr(value, 'value'):
+        if hasattr(value, 'value'):
             value = value.value
-        else:
+        if value is not None:
             value = long(value)
         return value
 
@@ -699,6 +704,8 @@ class Handle (object):
         @param dwMilliseconds: (Optional) Timeout value in milliseconds.
             Use C{INFINITE} or C{None} for no timeout.
         """
+        if self.value is None:
+            raise ValueError("Handle is already closed!")
         if dwMilliseconds is None:
             dwMilliseconds = INFINITE
         r = WaitForSingleObject(self.value, dwMilliseconds)
@@ -706,21 +713,29 @@ class Handle (object):
             raise ctypes.WinError(r)
 
     def __repr__(self):
-        return '<%s: %d>' % (self.__class__.__name__, self.value)
+        return '<%s: %s>' % (self.__class__.__name__, self.value)
 
     def __get_inherit(self):
+        if self.value is None:
+            raise ValueError("Handle is already closed!")
         return bool( GetHandleInformation(self.value) & HANDLE_FLAG_INHERIT )
 
     def __set_inherit(self, value):
+        if self.value is None:
+            raise ValueError("Handle is already closed!")
         flag = (0, HANDLE_FLAG_INHERIT)[ bool(value) ]
         SetHandleInformation(self.value, flag, flag)
 
     inherit = property(__get_inherit, __set_inherit)
 
     def __get_protectFromClose(self):
+        if self.value is None:
+            raise ValueError("Handle is already closed!")
         return bool( GetHandleInformation(self.value) & HANDLE_FLAG_PROTECT_FROM_CLOSE )
 
     def __set_protectFromClose(self, value):
+        if self.value is None:
+            raise ValueError("Handle is already closed!")
         flag = (0, HANDLE_FLAG_PROTECT_FROM_CLOSE)[ bool(value) ]
         SetHandleInformation(self.value, flag, flag)
 
