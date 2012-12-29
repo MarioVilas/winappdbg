@@ -98,6 +98,9 @@ class Thread (object):
         clear_cf, clear_df, clear_sf, clear_tf, clear_zf,
         Flags
 
+    @group Threads snapshot:
+        clear
+
     @group Miscellaneous:
         read_code_bytes, peek_code_bytes,
         peek_pointers_in_data, peek_pointers_in_registers,
@@ -136,7 +139,7 @@ class Thread (object):
         self.dwThreadId      = dwThreadId
         self.hThread         = hThread
         self.pInjectedMemory = None
-        self.set_name()
+        self.set_name(None)
         self.set_process(process)
 
     # Not really sure if it's a good idea...
@@ -183,7 +186,8 @@ class Thread (object):
         @param process: (Optional) Process object. Use C{None} for no process.
         """
         if process is None:
-            self.__process = None
+            self.dwProcessId = None
+            self.__process   = None
         else:
             self.__load_Process_class()
             if not isinstance(process, Process):
@@ -2012,7 +2016,7 @@ class _ThreadContainer (object):
 ##        if dwThreadId in self.__threadDict:
 ##            msg = "Already have a Thread object with ID %d" % dwThreadId
 ##            raise KeyError(msg)
-        aThread.dwProcessId = self.get_pid()
+        aThread.set_process(self)
         self.__threadDict[dwThreadId] = aThread
 
     def _del_thread(self, dwThreadId):
@@ -2022,11 +2026,15 @@ class _ThreadContainer (object):
         @type  dwThreadId: int
         @param dwThreadId: Global thread ID.
         """
-##        if dwThreadId not in self.__threadDict:
-##            msg = "Unknown thread ID: %d" % dwThreadId
-##            raise KeyError(msg)
-        self.__threadDict[dwThreadId].clear()       # avoid circular references
-        del self.__threadDict[dwThreadId]
+        try:
+            aThread = self.__threadDict[dwThreadId]
+            del self.__threadDict[dwThreadId]
+        except KeyError:
+            aThread = None
+            msg = "Unknown thread ID %d" % dwThreadId
+            warnings.warn(msg, RuntimeWarning)
+        if aThread:
+            aThread.clear()     # remove circular references
 
     def _has_thread_id(self, dwThreadId):
         """

@@ -73,7 +73,10 @@ class Window (object):
         get_handle, get_pid, get_tid,
         get_process, get_thread,
         set_process, set_thread,
-        get_classname, get_text, set_text, get_placement, set_placement,
+        get_classname, get_style, get_extended_style,
+        get_text, set_text,
+        get_placement, set_placement,
+        get_screen_rect, get_client_rect,
         screen_to_client, client_to_screen
 
     @group State:

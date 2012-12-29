@@ -31,8 +31,10 @@
 """
 Binary code disassembly.
 
-@group Disassemblers:
-    Disassembler,
+@group Disassembler loader:
+    Disassembler
+
+@group Disassembler engines:
     BeaEngine, DistormEngine, PyDasmEngine
 """
 

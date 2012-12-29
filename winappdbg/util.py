@@ -43,7 +43,10 @@ Miscellaneous utility classes and functions.
     WriteableAddressIterator,
     ExecutableAndWriteableAddressIterator,
     DebugRegister,
-    Regenerator
+    Regenerator,
+    BannerHelpFormatter,
+    StaticClass,
+    classproperty
 """
 
 __revision__ = "$Id$"

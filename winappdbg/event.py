@@ -1544,6 +1544,11 @@ class EventSift(EventHandler):
     forwarded at all. To prevent this, call the superclass implementation.
 
     Example::
+
+        def we_want_to_forward_this_event(event):
+            "Use whatever logic you want here..."
+            # (...)
+
         class MySift (EventSift):
 
             def event(self, event):
@@ -1555,11 +1560,6 @@ class EventSift(EventHandler):
                     return super(MySift, self).event(event)
 
                 # Otherwise, don't.
-
-        def we_want_to_forward_this_event(event):
-            "Use whatever logic you want here..."
-            # (...)
-
 
     @type cls: class
     @ivar cls:

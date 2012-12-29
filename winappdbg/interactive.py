@@ -164,16 +164,21 @@ class ConsoleDebugger (Cmd, EventHandler):
 # Instance variables
 
     def __init__(self):
+        """
+        Interactive console debugger.
+
+        @see: L{Debug.interactive}
+        """
         Cmd.__init__(self)
         EventHandler.__init__(self)
 
-        # Quit the debugger when True
+        # Quit the debugger when True.
         self.debuggerExit = False
 
         # Full path to the history file.
         self.history_file_full_path = None
 
-        # Last executed command
+        # Last executed command.
         self.__lastcmd = ""
 
 #------------------------------------------------------------------------------

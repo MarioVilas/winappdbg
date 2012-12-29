@@ -4576,11 +4576,15 @@ class _ProcessContainer (object):
         @type  dwProcessId: int
         @param dwProcessId: Global process ID.
         """
-##        if dwProcessId not in self.__processDict:
-##            msg = "Unknown process ID %d" % dwProcessId
-##            raise KeyError(msg)
-        self.__processDict[dwProcessId].clear()     # avoid circular references
-        del self.__processDict[dwProcessId]
+        try:
+            aProcess = self.__processDict[dwProcessId]
+            del self.__processDict[dwProcessId]
+        except KeyError:
+            aProcess = None
+            msg = "Unknown process ID %d" % dwProcessId
+            warnings.warn(msg, RuntimeWarning)
+        if aProcess:
+            aProcess.clear()    # remove circular references
 
     # Notify the creation of a new process.
     def _notify_create_process(self, event):

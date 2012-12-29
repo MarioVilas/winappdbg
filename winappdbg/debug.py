@@ -56,8 +56,9 @@ import warnings
 
 #==============================================================================
 
-# If you set this warning to be considered as an error,
-# you can stop the debugger from attaching to WOW64 processes.
+# If you set this warning to be considered as an error, you can stop the
+# debugger from attaching to 64-bit processes from a 32-bit Python VM and
+# visceversa.
 class MixedBitsWarning (RuntimeWarning):
     """
     This warning is issued when mixing 32 and 64 bit processes.
@@ -92,6 +93,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     @group Debugging loop:
         loop, stop, next, wait, dispatch, cont
+
+    @undocumented: force_garbage_collection
 
     @type system: L{System}
     @ivar system: A System snapshot that is automatically updated for
@@ -511,6 +514,15 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         # If the process is being debugged...
         if self.is_debugee(dwProcessId):
+
+            # Make sure a Process object exists or the following calls fail.
+            if not self.system.has_process(dwProcessId):
+                aProcess = Process(dwProcessId)
+                try:
+                    aProcess.get_handle()
+                except WindowsError:
+                    pass    # fails later on with more specific reason
+                self.system._add_process(aProcess)
 
             # Erase all breakpoints in the process.
             try:

@@ -70,7 +70,7 @@ class Module (object):
     @group Properties:
         get_base, get_filename, get_name, get_size, get_entry_point,
         get_process, set_process, get_pid,
-        get_handle, open_handle, close_handle
+        get_handle, set_handle, open_handle, close_handle
 
     @group Labels:
         get_label, get_label_at_address, is_address_here,
@@ -79,6 +79,9 @@ class Module (object):
     @group Symbols:
         load_symbols, unload_symbols, get_symbols, iter_symbols,
         resolve_symbol, get_symbol_at_address
+
+    @group Modules snapshot:
+        clear
 
     @type unknown: str
     @cvar unknown: Suggested tag for unknown modules.
@@ -155,13 +158,13 @@ class Module (object):
         @param process: (Optional) Process where the module is loaded.
         """
         self.lpBaseOfDll    = lpBaseOfDll
-        self.hFile          = hFile
         self.fileName       = fileName
         self.SizeOfImage    = SizeOfImage
         self.EntryPoint     = EntryPoint
 
         self.__symbols = list()
 
+        self.set_handle(hFile)
         self.set_process(process)
 
     # Not really sure if it's a good idea...
@@ -181,16 +184,34 @@ class Module (object):
 ##               self.get_pid() == aModule.get_pid()   and \
 ##               self.get_base() == aModule.get_base()
 
+    def get_handle(self):
+        """
+        @rtype:  L{Handle}
+        @return: File handle.
+            Returns C{None} if unknown.
+        """
+        # no way to guess!
+        return self.__hFile
+
+    def set_handle(self, hFile):
+        """
+        @type  hFile: L{Handle}
+        @param hFile: File handle. Use C{None} to clear.
+        """
+        if hFile == win32.INVALID_HANDLE_VALUE:
+            hFile = None
+        self.__hFile = hFile
+
+    hFile = property(get_handle, set_handle, doc="")
+
     def get_process(self):
         """
         @rtype:  L{Process}
         @return: Parent Process object.
             Returns C{None} if unknown.
         """
-        if self.__process is not None:
-            return self.__process
         # no way to guess!
-        return None
+        return self.__process
 
     def set_process(self, process = None):
         """
@@ -1867,6 +1888,7 @@ When called as an instance method, the fuzzy syntax mode is used::
 ##        if lpBaseOfDll in self.__moduleDict:
 ##            msg = "Module already exists: %d" % lpBaseOfDll
 ##            raise KeyError(msg)
+        aModule.set_process(self)
         self.__moduleDict[lpBaseOfDll] = aModule
 
     def _del_module(self, lpBaseOfDll):
@@ -1876,12 +1898,15 @@ When called as an instance method, the fuzzy syntax mode is used::
         @type  lpBaseOfDll: int
         @param lpBaseOfDll: Module base address.
         """
-##        if lpBaseOfDll not in self.__moduleDict:
-##            msg = "Unknown base address %d" % lpBaseOfDll
-##            raise KeyError(msg)
-        self.__moduleDict[lpBaseOfDll].hFile   = None    # handle
-        self.__moduleDict[lpBaseOfDll].process = None    # circular reference
-        del self.__moduleDict[lpBaseOfDll]
+        try:
+            aModule = self.__moduleDict[lpBaseOfDll]
+            del self.__moduleDict[lpBaseOfDll]
+        except KeyError:
+            aModule = None
+            msg = "Unknown base address %d" % HexDump.address(lpBaseOfDll)
+            warnings.warn(msg, RuntimeWarning)
+        if aModule:
+            aModule.clear()     # remove circular references
 
     def __add_loaded_module(self, event):
         """
@@ -1907,7 +1932,8 @@ When called as an instance method, the fuzzy syntax mode is used::
             self._add_module(aModule)
         else:
             aModule = self.get_module(lpBaseOfDll)
-            if hFile != win32.INVALID_HANDLE_VALUE:
+            if not aModule.hFile and hFile not in (None, 0,
+                                                   win32.INVALID_HANDLE_VALUE):
                 aModule.hFile = hFile
             if not aModule.process:
                 aModule.process = self

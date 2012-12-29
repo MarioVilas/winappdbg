@@ -40,7 +40,7 @@ Web:     U{http://winappdbg.sourceforge.net/}
 Blog:    U{http://breakingcode.wordpress.com}
 
 @group Debugging:
-    Debug, EventHandler, EventSift, DebugLog, ConsoleDebugger
+    Debug, EventHandler, EventSift, DebugLog
 
 @group Instrumentation:
     System, Process, Thread, Module, Window, Registry
@@ -167,7 +167,7 @@ __all__ =   [
                 'ExceptionEvent',
 
                 # from interactive import *
-                'ConsoleDebugger',
+##                'ConsoleDebugger',
 
                 # from module import *
                 'Module',
