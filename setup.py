@@ -87,7 +87,7 @@ metadata = {
     # Setup instructions
     'requires'          : ['ctypes', 'BeaEnginePython', 'sqlalchemy'],
     'provides'          : ['winappdbg'],
-    'packages'          : ['winappdbg', 'winappdbg.win32'],
+    'packages'          : ['winappdbg', 'winappdbg.win32', 'winappdbg.plugins'],
     'scripts'           : scripts,
 
     # Metadata
