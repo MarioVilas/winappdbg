@@ -2245,13 +2245,17 @@ class ConsoleDebugger (Cmd, EventHandler):
 
             # When the user presses Ctrl-C send a debug break to all debugees.
             except KeyboardInterrupt:
+                success = False
                 try:
                     print "*** User requested debug break"
                     system = debug.system
                     for pid in debug.get_debugee_pids():
                         try:
                             system.get_process(pid).debug_break()
+                            success = True
                         except:
                             traceback.print_exc()
                 except:
                     traceback.print_exc()
+                if not success:
+                    raise   # This should never happen!
