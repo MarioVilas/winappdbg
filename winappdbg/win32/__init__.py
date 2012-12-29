@@ -35,7 +35,6 @@ Debugging API wrappers in ctypes.
 __revision__ = "$Id$"
 
 import defines
-import version
 import kernel32
 import user32
 import advapi32
@@ -47,7 +46,6 @@ import dbghelp
 import ntdll
 
 from defines    import *
-from version    import *
 from kernel32   import *
 from user32     import *
 from advapi32   import *
@@ -61,7 +59,6 @@ from ntdll      import *
 # This calculates the list of exported symbols.
 _all = set()
 _all.update(defines._all)
-_all.update(version._all)
 _all.update(kernel32._all)
 _all.update(user32._all)
 _all.update(advapi32._all)

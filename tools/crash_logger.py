@@ -548,7 +548,12 @@ class LoggingEventHandler(EventHandler):
     # Otherwise we'd get stuck in an infinite loop.
     def _post_exception(self, event):
         if hasattr(event, 'is_last_chance') and event.is_last_chance():
-            event.get_process().kill()
+##            try:
+##                event.get_thread().set_pc(
+##                  event.get_process().resolve_symbol('kernel32!ExitProcess')
+##                )
+##            except Exception:
+                event.get_process().kill()
 
     # Handle all exceptions not handled by the following methods.
     def exception(self, event):

@@ -37,7 +37,6 @@ __revision__ = "$Id$"
 import warnings
 
 from defines import *
-from version import *
 
 import context_i386
 import context_amd64
@@ -46,7 +45,10 @@ import context_amd64
 # This is used later on to calculate the list of exported symbols.
 _all = None
 _all = set(vars().keys())
+_all.add('version')
 #==============================================================================
+
+from version import *
 
 #--- CONTEXT structure and constants ------------------------------------------
 

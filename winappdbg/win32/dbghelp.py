@@ -75,6 +75,10 @@ def _load_latest_dbghelp_dll():
 
 _load_latest_dbghelp_dll()
 
+# Recover the old binding of the "os" symbol.
+# XXX FIXME not sure if I really need to do this!
+##from version import os
+
 #------------------------------------------------------------------------------
 
 #==============================================================================

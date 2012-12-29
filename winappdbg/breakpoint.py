@@ -3523,6 +3523,10 @@ class _BreakpointContainer (object):
             if self.in_hostile_mode():
                 event.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
+            # Single step support is implemented on x86/x64 architectures only.
+            if self.system.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+                return bCallHandler
+
             # In hostile mode, read the last executed bytes to try to detect
             # some antidebug tricks. Skip this check in normal mode because
             # it'd slow things down.

@@ -1867,7 +1867,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         hProcess = self.get_handle( win32.PROCESS_VM_WRITE |
                                     win32.PROCESS_VM_OPERATION |
-                                    win32.PROCESS_VM_OPERATION )
+                                    win32.PROCESS_QUERY_INFORMATION )
         mbi = self.mquery(lpBaseAddress)
         if not mbi.has_content():
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)

@@ -1547,7 +1547,7 @@ class EventSift(EventHandler):
 
         def we_want_to_forward_this_event(event):
             "Use whatever logic you want here..."
-            # (...)
+            # (...return True or False...)
 
         class MySift (EventSift):
 
