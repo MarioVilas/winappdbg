@@ -36,6 +36,12 @@ __revision__ = "$Id$"
 
 from defines import *
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
 
 VER_PLATFORM_WIN32s                 = 0
@@ -784,3 +790,10 @@ wow64 = _get_wow64()
 
 # Current operating system. See L{_get_os} for more details.
 os = _get_os()
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

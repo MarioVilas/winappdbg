@@ -39,10 +39,16 @@ import warnings
 from defines import *
 from version import *
 
-#--- CONTEXT structure and constants ------------------------------------------
-
 import context_i386
 import context_amd64
+
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
+#--- CONTEXT structure and constants ------------------------------------------
 
 ContextArchMask = 0x0FFF0000    # just guessing here! seems to work, though
 
@@ -4752,6 +4758,13 @@ def Wow64RevertWow64FsRedirection(OldValue):
     _Wow64RevertWow64FsRedirection(OldValue)
 
 #==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================
+
+#==============================================================================
 # Mark functions that Psyco cannot compile.
 # In your programs, don't use psyco.full().
 # Call psyco.bind() on your main function instead.
@@ -4765,3 +4778,4 @@ try:
     psyco.cannotcompile(WaitForMultipleObjectsEx)
 except ImportError:
     pass
+#==============================================================================

@@ -60,8 +60,6 @@ try:
 except TypeError:
     byref = ctypes.pointer
 
-#------------------------------------------------------------------------------
-
 # XXX DEBUG
 # The following code can be enabled to make the Win32 API wrappers log to
 # standard output the dll and function names, the parameter values and the
@@ -115,7 +113,11 @@ if WIN32_VERBOSE_MODE:
 
     windll = WinDllHook()
 
-#------------------------------------------------------------------------------
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
 
 def RaiseIfZero(result, func = None, arguments = ()):
     """
@@ -716,3 +718,10 @@ LIST_ENTRY._fields_ = [
         ("Flink",   PVOID),     # POINTER(LIST_ENTRY)
         ("Blink",   PVOID),     # POINTER(LIST_ENTRY)
 ]
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+##__all__ = [_x for _x in _all if not _x.startswith('_')]
+##__all__.sort()
+#==============================================================================

@@ -37,6 +37,13 @@ __revision__ = "$Id$"
 from defines import *
 from peb_teb import *
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+_all.add('peb_teb')
+#==============================================================================
+
 #--- Types --------------------------------------------------------------------
 
 SYSDBG_COMMAND          = DWORD
@@ -522,3 +529,10 @@ def CsrGetProcessId():
     _CsrGetProcessId.argtypes = []
     _CsrGetProcessId.restype = DWORD
     return _CsrGetProcessId()
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

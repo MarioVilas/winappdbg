@@ -39,6 +39,12 @@ from version import bits
 from kernel32 import GetLastError, SetLastError
 from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- Helpers ------------------------------------------------------------------
 
 def MAKE_WPARAM(wParam):
@@ -1698,3 +1704,10 @@ def RemovePropW(hWnd, lpString):
     return _RemovePropW(hWnd, lpString)
 
 RemoveProp = GuessStringType(RemovePropA, RemovePropW)
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

@@ -37,6 +37,12 @@ __revision__ = "$Id$"
 from defines import *
 from version import os
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- PEB and TEB structures, constants and data types -------------------------
 
 # From http://www.nirsoft.net/kernel_struct/vista/CLIENT_ID.html
@@ -3420,3 +3426,10 @@ class TEB(Structure):
     else:
         _fields_ = _TEB_W7_64._fields_
 PTEB = POINTER(TEB)
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

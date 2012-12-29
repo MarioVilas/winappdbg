@@ -41,36 +41,47 @@ from kernel32 import *
 #------------------------------------------------------------------------------
 # Tries to load the newest version of dbghelp.dll if available.
 
-import os
-import os.path
+def _load_latest_dbghelp_dll():
 
-if arch == ARCH_AMD64:
-    if wow64:
-        pathname = os.path.join(
-                            os.getenv("ProgramFiles(x86)",
-                                os.getenv("ProgramFiles")),
+    from os import getenv
+    from os.path import join
+
+    if arch == ARCH_AMD64:
+        if wow64:
+            pathname = join(
+                            getenv("ProgramFiles(x86)",
+                                getenv("ProgramFiles")),
                             "Debugging Tools for Windows (x86)",
                             "dbghelp.dll")
-    else:
-        pathname = os.path.join(
-                            os.getenv("ProgramFiles"),
+        else:
+            pathname = join(
+                            getenv("ProgramFiles"),
                             "Debugging Tools for Windows (x64)",
                             "dbghelp.dll")
-elif arch == ARCH_I386:
-    pathname = os.path.join(
-                    os.getenv("ProgramFiles"),
-                    "Debugging Tools for Windows (x86)",
-                    "dbghelp.dll")
-else:
-    pathname = None
+    elif arch == ARCH_I386:
+        pathname = join(
+                        getenv("ProgramFiles"),
+                        "Debugging Tools for Windows (x86)",
+                        "dbghelp.dll")
+    else:
+        pathname = None
 
-try:
-    _dbghelp = ctypes.windll.LoadLibrary(pathname)
-    ctypes.windll.dbghelp = _dbghelp
-except Exception:
-    pass
+    if pathname:
+        try:
+            _dbghelp = ctypes.windll.LoadLibrary(pathname)
+            ctypes.windll.dbghelp = _dbghelp
+        except Exception:
+            pass
+
+_load_latest_dbghelp_dll()
 
 #------------------------------------------------------------------------------
+
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
 
 # SymGetHomeDirectory "type" values
 hdBase = 0
@@ -1245,3 +1256,10 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame,
                        pTranslateAddress)
 
     return ret
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

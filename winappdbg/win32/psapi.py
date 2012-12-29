@@ -36,6 +36,12 @@ __revision__ = "$Id$"
 
 from defines import *
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- PSAPI structures and constants -------------------------------------------
 
 LIST_MODULES_DEFAULT    = 0x00
@@ -372,3 +378,10 @@ def GetProcessImageFileNameW(hProcess):
     return lpFilename.value
 
 GetProcessImageFileName = GuessStringType(GetProcessImageFileNameA, GetProcessImageFileNameW)
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

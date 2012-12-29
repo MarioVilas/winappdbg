@@ -41,6 +41,12 @@ __revision__ = "$Id$"
 from defines import *
 from kernel32 import LocalFree
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- Constants ----------------------------------------------------------------
 
 SEE_MASK_DEFAULT            = 0x00000000
@@ -358,3 +364,10 @@ def SHGetFolderPathW(nFolder, hToken = None, dwFlags = SHGFP_TYPE_CURRENT):
     return pszPath.value
 
 SHGetFolderPath = DefaultStringType(SHGetFolderPathA, SHGetFolderPathW)
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

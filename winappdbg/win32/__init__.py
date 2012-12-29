@@ -34,7 +34,20 @@ Debugging API wrappers in ctypes.
 
 __revision__ = "$Id$"
 
+import defines
+import version
+import kernel32
+import user32
+import advapi32
+import wtsapi32
+import shell32
+import shlwapi
+import psapi
+import dbghelp
+import ntdll
+
 from defines    import *
+from version    import *
 from kernel32   import *
 from user32     import *
 from advapi32   import *
@@ -44,3 +57,19 @@ from shlwapi    import *
 from psapi      import *
 from dbghelp    import *
 from ntdll      import *
+
+# This calculates the list of exported symbols.
+_all = set()
+_all.update(defines._all)
+_all.update(version._all)
+_all.update(kernel32._all)
+_all.update(user32._all)
+_all.update(advapi32._all)
+_all.update(wtsapi32._all)
+_all.update(shell32._all)
+_all.update(shlwapi._all)
+_all.update(psapi._all)
+_all.update(dbghelp._all)
+_all.update(ntdll._all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()

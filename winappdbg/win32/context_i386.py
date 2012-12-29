@@ -37,6 +37,14 @@ __revision__ = "$Id$"
 from defines import *
 from version import ARCH_I386
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
+#--- CONTEXT structures and constants -----------------------------------------
+
 # The following values specify the type of access in the first parameter
 # of the exception record when the exception code specifies an access
 # violation.
@@ -431,3 +439,10 @@ def SetThreadContext(hThread, lpContext):
     if isinstance(lpContext, dict):
         lpContext = CONTEXT.from_dict(lpContext)
     _SetThreadContext(hThread, byref(lpContext))
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

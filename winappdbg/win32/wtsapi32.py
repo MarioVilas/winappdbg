@@ -37,6 +37,12 @@ __revision__ = "$Id$"
 from defines import *
 from advapi32 import *
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- Constants ----------------------------------------------------------------
 
 WTS_CURRENT_SERVER_HANDLE = 0
@@ -322,3 +328,10 @@ def WTSGetActiveConsoleSessionId():
     _WTSGetActiveConsoleSessionId.restype  = DWORD
     _WTSGetActiveConsoleSessionId.errcheck = RaiseIfZero
     return _WTSGetActiveConsoleSessionId()
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

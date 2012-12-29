@@ -40,6 +40,12 @@ from kernel32 import *
 # XXX TODO
 # + add transacted registry operations
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- Constants ----------------------------------------------------------------
 
 # Privilege constants
@@ -3048,3 +3054,10 @@ EnumServicesStatusEx = DefaultStringType(EnumServicesStatusExA, EnumServicesStat
 # );
 
 # TO DO
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================

@@ -38,6 +38,12 @@ from defines import *
 from version import ARCH_AMD64
 import context_i386
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 #--- CONTEXT structures and constants -----------------------------------------
 
 # The following values specify the type of access in the first parameter
@@ -746,3 +752,10 @@ def Wow64SetThreadContext(hThread, lpContext):
     if isinstance(lpContext, dict):
         lpContext = WOW64_CONTEXT.from_dict(lpContext)
     _Wow64SetThreadContext(hThread, byref(lpContext))
+
+#==============================================================================
+# This calculates the list of exported symbols.
+_all = set(vars().keys()).difference(_all)
+__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__.sort()
+#==============================================================================
