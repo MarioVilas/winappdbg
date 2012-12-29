@@ -390,7 +390,15 @@ class Thread (object):
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
-        return win32.SuspendThread(self.get_handle(win32.THREAD_SUSPEND_RESUME))
+        hThread = self.get_handle(win32.THREAD_SUSPEND_RESUME)
+        if self.is_wow64():
+            # FIXME this will be horribly slow on XP 64
+            # since it'll try to resolve a missing API every time
+            try:
+                return win32.Wow64SuspendThread(hThread)
+            except AttributeError:
+                pass
+        return win32.SuspendThread(hThread)
 
     def resume(self):
         """
@@ -399,7 +407,8 @@ class Thread (object):
         @rtype:  int
         @return: Suspend count. If zero, the thread is running.
         """
-        return win32.ResumeThread(self.get_handle(win32.THREAD_SUSPEND_RESUME))
+        hThread = self.get_handle(win32.THREAD_SUSPEND_RESUME)
+        return win32.ResumeThread(hThread)
 
     def is_alive(self):
         """
@@ -451,7 +460,7 @@ class Thread (object):
 
     # TODO
     # A registers cache could be implemented here.
-    def get_context(self, ContextFlags = None):
+    def get_context(self, ContextFlags = None, bSuspend = False):
         """
         Retrieves the execution context (i.e. the registers values) for this
         thread.
@@ -461,24 +470,50 @@ class Thread (object):
             Defaults to C{win32.CONTEXT_ALL} which retrieves all registes
             for the current platform.
 
+        @type  bSuspend: bool
+        @param bSuspend: C{True} to automatically suspend the thread before
+            getting its context, C{False} otherwise.
+
+            Defaults to C{False} because suspending the thread during some
+            debug events (like thread creation or destruction) may lead to
+            strange errors.
+
+            Note that WinAppDbg 1.4 used to suspend the thread automatically
+            always. This behavior was changed in version 1.5.
+
         @rtype:  dict( str S{->} int )
         @return: Dictionary mapping register names to their values.
 
         @see: L{set_context}
         """
 
-        # Get the thread handle.
-##        hThread = self.get_handle(win32.THREAD_GET_CONTEXT |
-##                                  win32.THREAD_SUSPEND_RESUME)
-        hThread = self.get_handle(win32.THREAD_GET_CONTEXT)
+        # Some words on the "strange errors" that lead to the bSuspend
+        # parameter. Peter Van Eeckhoutte and I were working on a fix
+        # for some bugs he found in the 1.5 betas when we stumbled upon
+        # what seemed to be a deadlock in the debug API that caused the
+        # GetThreadContext() call never to return. Since removing the
+        # call to SuspendThread() solved the problem, and a few Google
+        # searches showed a handful of problems related to these two
+        # APIs and Wow64 environments, I decided to break compatibility.
+        #
+        # Here are some pages about the weird behavior of SuspendThread:
+        # http://zachsaw.blogspot.com.es/2010/11/wow64-bug-getthreadcontext-may-return.html
+        # http://stackoverflow.com/questions/3444190/windows-suspendthread-doesnt-getthreadcontext-fails
 
-        # Threads can't be suspended when the exit process event arrives.
-        # But you can still get the context.
-        try:
-            self.suspend()
-            bSuspended = True
-        except WindowsError:
-            bSuspended = False
+        # Get the thread handle.
+        dwAccess = win32.THREAD_GET_CONTEXT
+        if bSuspend:
+            dwAccess = dwAccess | win32.THREAD_SUSPEND_RESUME
+        hThread = self.get_handle(dwAccess)
+
+        # Suspend the thread if requested.
+        if bSuspend:
+            try:
+                self.suspend()
+            except WindowsError:
+                # Threads can't be suspended when the exit process event
+                # arrives, but you can still get the context.
+                bSuspend = False
 
         # If an exception is raised, make sure the thread execution is resumed.
         try:
@@ -512,11 +547,15 @@ class Thread (object):
                                                  ContextFlags = ContextFlags)
 
         finally:
-            if bSuspended:
+
+            # Resume the thread if we suspended it.
+            if bSuspend:
                 self.resume()
+
+        # Return the context.
         return ctx
 
-    def set_context(self, context):
+    def set_context(self, contextt, bSuspend = False):
         """
         Sets the values of the registers.
 
@@ -524,19 +563,42 @@ class Thread (object):
 
         @type  context:  dict( str S{->} int )
         @param context: Dictionary mapping register names to their values.
+
+        @type  bSuspend: bool
+        @param bSuspend: C{True} to automatically suspend the thread before
+            setting its context, C{False} otherwise.
+
+            Defaults to C{False} because suspending the thread during some
+            debug events (like thread creation or destruction) may lead to
+            strange errors.
+
+            Note that WinAppDbg 1.4 used to suspend the thread automatically
+            always. This behavior was changed in version 1.5.
         """
-        # No fix for the exit process event bug.
-        # Setting the context of a dead thread is pointless anyway.
-        hThread = self.get_handle(win32.THREAD_SET_CONTEXT |
-                                  win32.THREAD_SUSPEND_RESUME)
-        self.suspend()
+
+        # Get the thread handle.
+        dwAccess = win32.THREAD_SET_CONTEXT
+        if bSuspend:
+            dwAccess = dwAccess | win32.THREAD_SUSPEND_RESUME
+        hThread = self.get_handle(dwAccess)
+
+        # Suspend the thread if requested.
+        if bSuspend:
+            self.suspend()
+            # No fix for the exit process event bug.
+            # Setting the context of a dead thread is pointless anyway.
+
+        # Set the thread context.
         try:
             if win32.bits == 64 and self.is_wow64():
                 win32.Wow64SetThreadContext(hThread, context)
             else:
                 win32.SetThreadContext(hThread, context)
+
+        # Resume the thread if we suspended it.
         finally:
-            self.resume()
+            if bSuspend:
+                self.resume()
 
     def get_register(self, register):
         """

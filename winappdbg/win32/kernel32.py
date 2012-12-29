@@ -4697,7 +4697,20 @@ def GlobalDeleteAtom(nAtom):
         raise ctypes.WinError(error)
 
 #------------------------------------------------------------------------------
-# Wow64 file system redirection
+# Wow64
+
+# DWORD WINAPI Wow64SuspendThread(
+#   _In_  HANDLE hThread
+# );
+def Wow64SuspendThread(hThread):
+    _Wow64SuspendThread = windll.kernel32.Wow64SuspendThread
+    _Wow64SuspendThread.argtypes = [HANDLE]
+    _Wow64SuspendThread.restype  = DWORD
+
+    previousCount = _Wow64SuspendThread(hThread)
+    if previousCount == DWORD(-1).value:
+        raise ctypes.WinError()
+    return previousCount
 
 # BOOLEAN WINAPI Wow64EnableWow64FsRedirection(
 #   __in  BOOLEAN Wow64FsEnableRedirection
