@@ -295,8 +295,7 @@ class Thread (object):
 
         @note: Normally you don't need to call this method. All handles
             created by I{WinAppDbg} are automatically closed when the garbage
-            collector claims them. So unless you've been tinkering with it,
-            setting L{hThread} to C{None} should be enough.
+            collector claims them.
         """
         try:
             if hasattr(self.hThread, 'close'):
@@ -335,6 +334,15 @@ class Thread (object):
             if (dwAccess | dwDesiredAccess) != dwAccess:
                 self.open_handle(dwAccess | dwDesiredAccess)
         return self.hThread
+
+    def clear(self):
+        """
+        Clears the resources held by this object.
+        """
+        try:
+            self.set_process(None)
+        finally:
+            self.close_handle()
 
 #------------------------------------------------------------------------------
 
@@ -1632,7 +1640,7 @@ class Thread (object):
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        return self.disassemble_instruction(self.get_pc())
+        return self.disassemble_instruction( self.get_pc() )
 
 #==============================================================================
 
@@ -1902,6 +1910,8 @@ class _ThreadContainer (object):
         """
         Clears the threads snapshot.
         """
+        for aThread in self.__threadDict.itervalues():
+            aThread.clear()
         self.__threadDict = dict()
 
     def close_thread_handles(self):
@@ -1954,8 +1964,7 @@ class _ThreadContainer (object):
 ##        if dwThreadId not in self.__threadDict:
 ##            msg = "Unknown thread ID: %d" % dwThreadId
 ##            raise KeyError(msg)
-        self.__threadDict[dwThreadId].hThread = None    # handle
-        self.__threadDict[dwThreadId].process = None    # circular reference
+        self.__threadDict[dwThreadId].clear()       # avoid circular references
         del self.__threadDict[dwThreadId]
 
     def _has_thread_id(self, dwThreadId):
@@ -1988,10 +1997,10 @@ class _ThreadContainer (object):
             if teb_ptr:
                 aThread._teb_ptr = teb_ptr
             self._add_thread(aThread)
-        else:
-            aThread = self.get_thread(dwThreadId)
-            if hThread != win32.INVALID_HANDLE_VALUE:
-                aThread.hThread = hThread   # may have more privileges
+        #else:
+        #    aThread = self.get_thread(dwThreadId)
+        #    if hThread != win32.INVALID_HANDLE_VALUE:
+        #        aThread.hThread = hThread   # may have more privileges
 
     def _notify_create_process(self, event):
         """

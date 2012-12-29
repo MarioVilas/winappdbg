@@ -407,6 +407,15 @@ class Module (object):
             self.open_handle()
         return self.hFile
 
+    def clear(self):
+        """
+        Clears the resources held by this object.
+        """
+        try:
+            self.set_process(None)
+        finally:
+            self.close_handle()
+
 #------------------------------------------------------------------------------
 
     # XXX FIXME
@@ -1052,6 +1061,8 @@ class _ModuleContainer (object):
         """
         Clears the modules snapshot.
         """
+        for aModule in self.__moduleDict.itervalues():
+            aModule.clear()
         self.__moduleDict = dict()
 
 #------------------------------------------------------------------------------

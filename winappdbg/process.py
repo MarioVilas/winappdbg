@@ -465,8 +465,13 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Clears the snapshot of threads and modules.
         """
-        self.clear_threads()
-        self.clear_modules()
+        try:
+            try:
+                self.clear_threads()
+            finally:
+                self.clear_modules()
+        finally:
+            self.close_handle()
 
 #------------------------------------------------------------------------------
 
@@ -4383,8 +4388,7 @@ class _ProcessContainer (object):
         """
         Closes all open handles to processes and threads in this snapshot.
         """
-        for pid in self.get_process_ids():
-            aProcess = self.get_process(pid)
+        for aProcess in self.iter_processes():
             aProcess.close_thread_handles()
             try:
                 aProcess.close_handle()
@@ -4400,6 +4404,9 @@ class _ProcessContainer (object):
         """
         Removes all L{Process}, L{Thread} and L{Module} objects in this snapshot.
         """
+        #self.close_process_and_thread_handles()
+        for aProcess in self.iter_processes():
+            aProcess.clear()
         self.__processDict = dict()
 
     def clear(self):
@@ -4572,8 +4579,7 @@ class _ProcessContainer (object):
 ##        if dwProcessId not in self.__processDict:
 ##            msg = "Unknown process ID %d" % dwProcessId
 ##            raise KeyError(msg)
-        self.__processDict[dwProcessId].hProcess = None # handle
-        self.__processDict[dwProcessId].clear()         # circular reference
+        self.__processDict[dwProcessId].clear()     # avoid circular references
         del self.__processDict[dwProcessId]
 
     # Notify the creation of a new process.
@@ -4600,8 +4606,8 @@ class _ProcessContainer (object):
             aProcess.fileName = event.get_filename()
         else:
             aProcess = self.get_process(dwProcessId)
-            if hProcess != win32.INVALID_HANDLE_VALUE:
-                aProcess.hProcess = hProcess    # may have more privileges
+            #if hProcess != win32.INVALID_HANDLE_VALUE:
+            #    aProcess.hProcess = hProcess    # may have more privileges
             if not aProcess.fileName:
                 fileName = event.get_filename()
                 if fileName:
