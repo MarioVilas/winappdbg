@@ -561,7 +561,7 @@ class Thread (object):
         # Return the context.
         return ctx
 
-    def set_context(self, contextt, bSuspend = False):
+    def set_context(self, context, bSuspend = False):
         """
         Sets the values of the registers.
 
