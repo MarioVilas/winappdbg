@@ -1171,7 +1171,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         name = 'winappdbg.plugins.do_%s' % name
         try:
             plugin = __import__(name)
-            reload(plugin)
+            components = name.split('.')
+            for comp in components[1:]:
+                plugin = getattr(plugin, comp)
+                reload(plugin)
         except ImportError:
             raise CmdError("plugin not found: %s" % name)
         try:
