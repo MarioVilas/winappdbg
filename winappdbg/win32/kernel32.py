@@ -771,6 +771,16 @@ class UserModeHandle (Handle):
         return self._TYPE(self.value)
 
     # Operation not supported.
+    @property
+    def inherit(self):
+        return False
+
+    # Operation not supported.
+    @property
+    def protectFromClose(self):
+        return False
+
+    # Operation not supported.
     def dup(self):
         raise NotImplementedError()
 
