@@ -423,11 +423,11 @@ SidTypeLabel            = 10
 
 WCT_MAX_NODE_COUNT       = 16
 WCT_OBJNAME_LENGTH       = 128
-WCT_ASYNC_OPEN_FLAG      = 0x1
+WCT_ASYNC_OPEN_FLAG      = 1
 WCTP_OPEN_ALL_FLAGS      = WCT_ASYNC_OPEN_FLAG
-WCT_OUT_OF_PROC_FLAG     = 0x1
-WCT_OUT_OF_PROC_COM_FLAG = 0x2
-WCT_OUT_OF_PROC_CS_FLAG  = 0x4
+WCT_OUT_OF_PROC_FLAG     = 1
+WCT_OUT_OF_PROC_COM_FLAG = 2
+WCT_OUT_OF_PROC_CS_FLAG  = 4
 WCTP_GETINFO_ALL_FLAGS   = WCT_OUT_OF_PROC_FLAG | WCT_OUT_OF_PROC_COM_FLAG | WCT_OUT_OF_PROC_CS_FLAG
 
 HWCT = LPVOID
@@ -537,6 +537,123 @@ class WAITCHAIN_NODE_INFO(Structure):
     ]
 
 PWAITCHAIN_NODE_INFO = POINTER(WAITCHAIN_NODE_INFO)
+
+class WaitChainNodeInfo (object):
+    """
+    Represents a node in the wait chain.
+
+    It's a wrapper on the L{WAITCHAIN_NODE_INFO} structure.
+
+    The following members are defined only
+    if the node is of L{WctThreadType} type:
+     - C{ProcessId}
+     - C{ThreadId}
+     - C{WaitTime}
+     - C{ContextSwitches}
+
+    @see: L{GetThreadWaitChain}
+
+    @type ObjectName: unicode
+    @ivar ObjectName: Object name. May be an empty string.
+
+    @type ObjectType: int
+    @ivar ObjectType: Object type.
+        Should be one of the following values:
+         - L{WctCriticalSectionType}
+         - L{WctSendMessageType}
+         - L{WctMutexType}
+         - L{WctAlpcType}
+         - L{WctComType}
+         - L{WctThreadWaitType}
+         - L{WctProcessWaitType}
+         - L{WctThreadType}
+         - L{WctComActivationType}
+         - L{WctUnknownType}
+
+    @type ObjectStatus: int
+    @ivar ObjectStatus: Wait status.
+        Should be one of the following values:
+         - L{WctStatusNoAccess} I{(ACCESS_DENIED for this object)}
+         - L{WctStatusRunning} I{(Thread status)}
+         - L{WctStatusBlocked} I{(Thread status)}
+         - L{WctStatusPidOnly} I{(Thread status)}
+         - L{WctStatusPidOnlyRpcss} I{(Thread status)}
+         - L{WctStatusOwned} I{(Dispatcher object status)}
+         - L{WctStatusNotOwned} I{(Dispatcher object status)}
+         - L{WctStatusAbandoned} I{(Dispatcher object status)}
+         - L{WctStatusUnknown} I{(All objects)}
+         - L{WctStatusError} I{(All objects)}
+
+    @type ProcessId: int
+    @ivar ProcessId: Process global ID.
+
+    @type ThreadId: int
+    @ivar ThreadId: Thread global ID.
+
+    @type WaitTime: int
+    @ivar WaitTime: Wait time.
+
+    @type ContextSwitches: int
+    @ivar ContextSwitches: Number of context switches.
+    """
+
+    #@type Timeout: int
+    #@ivar Timeout: Currently not documented in MSDN.
+    #
+    #@type Alertable: bool
+    #@ivar Alertable: Currently not documented in MSDN.
+
+    # TODO: __repr__
+
+    def __init__(self, aStructure):
+        self.ObjectType = aStructure.ObjectType
+        self.ObjectStatus = aStructure.ObjectStatus
+        if self.ObjectType == WctThreadType:
+            self.ProcessId = aStructure.u.ThreadObject.ProcessId
+            self.ThreadId = aStructure.u.ThreadObject.ThreadId
+            self.WaitTime = aStructure.u.ThreadObject.WaitTime
+            self.ContextSwitches = aStructure.u.ThreadObject.ContextSwitches
+            self.ObjectName = u''
+        else:
+            self.ObjectName = aStructure.u.LockObject.ObjectName.value
+            #self.Timeout = aStructure.u.LockObject.Timeout
+            #self.Alertable = bool(aStructure.u.LockObject.Alertable)
+
+class ThreadWaitChainSessionHandle (Handle):
+    """
+    Thread wait chain session handle.
+
+    Returned by L{OpenThreadWaitChainSession}.
+
+    @see: L{Handle}
+    """
+
+    def __init__(self, aHandle = None):
+        """
+        @type  aHandle: int
+        @param aHandle: Win32 handle value.
+        """
+        super(ThreadWaitChainSessionHandle, self).__init__(aHandle,
+                                                           bOwnership = True)
+
+    def _close(self):
+        if self.value is None:
+            raise ValueError("Handle was already closed!")
+        CloseThreadWaitChainSession(self.value)
+
+    def dup(self):
+        raise NotImplementedError()
+
+    def wait(self, dwMilliseconds = None):
+        raise NotImplementedError()
+
+    @property
+    def inherit(self):
+        return False
+
+    @property
+    def protectFromClose(self):
+        return False
 
 #--- Privilege dropping -------------------------------------------------------
 
@@ -1548,31 +1665,39 @@ def OpenThreadWaitChainSession(Flags = 0, callback = None):
     _OpenThreadWaitChainSession.argtypes = [DWORD, PVOID]
     _OpenThreadWaitChainSession.restype  = HWCT
     _OpenThreadWaitChainSession.errcheck = RaiseIfZero
+
     if callback is not None:
         callback = PWAITCHAINCALLBACK(callback)
-    return _OpenThreadWaitChainSession(Flags, callback)
+    aHandle = _OpenThreadWaitChainSession(Flags, callback)
+    return ThreadWaitChainSessionHandle(aHandle)
 
 # BOOL WINAPI GetThreadWaitChain(
-#   __in      HWCT WctHandle,
-#   __in_opt  DWORD_PTR Context,
-#   __in      DWORD Flags,
-#   __in      DWORD ThreadId,
-#   __inout   LPDWORD NodeCount,
-#   __out     PWAITCHAIN_NODE_INFO NodeInfoArray,
-#   __out     LPBOOL IsCycle
+#   _In_      HWCT WctHandle,
+#   _In_opt_  DWORD_PTR Context,
+#   _In_      DWORD Flags,
+#   _In_      DWORD ThreadId,
+#   _Inout_   LPDWORD NodeCount,
+#   _Out_     PWAITCHAIN_NODE_INFO NodeInfoArray,
+#   _Out_     LPBOOL IsCycle
 # );
-def GetThreadWaitChain(WctHandle, Context, Flags, ThreadId):
+def GetThreadWaitChain(WctHandle, Context = None, Flags = WCTP_GETINFO_ALL_FLAGS, ThreadId = -1, NodeCount = WCT_MAX_NODE_COUNT):
     _GetThreadWaitChain = windll.advapi32.GetThreadWaitChain
-    _GetThreadWaitChain.argtypes = [HWCT, DWORD_PTR, DWORD, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL]
-    _GetThreadWaitChain.restype  = BOOL
+    _GetThreadWaitChain.argtypes = [HWCT, LPDWORD, DWORD, DWORD, LPDWORD, PWAITCHAIN_NODE_INFO, LPBOOL]
+    _GetThreadWaitChain.restype  = bool
+    _GetThreadWaitChain.errcheck = RaiseIfZero
 
-    NodeCount     = DWORD(WCT_MAX_NODE_COUNT)
-    NodeInfoArray = (WAITCHAIN_NODE_INFO * WCT_MAX_NODE_COUNT)()
-    IsCycle       = BOOL(FALSE)
-    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, byref(NodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), byref(IsCycle))
-    NodeInfoArray = [ NodeInfoArray[index] for index in xrange(0, NodeCount.value) ]
-    IsCycle       = bool(IsCycle)
-    return NodeInfoArray, IsCycle
+    dwNodeCount = DWORD(NodeCount)
+    NodeInfoArray = (WAITCHAIN_NODE_INFO * NodeCount)()
+    IsCycle = BOOL(0)
+    _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, byref(dwNodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), byref(IsCycle))
+    while dwNodeCount.value > NodeCount:
+        NodeCount = dwNodeCount.value
+        NodeInfoArray = (WAITCHAIN_NODE_INFO * NodeCount)()
+        _GetThreadWaitChain(WctHandle, Context, Flags, ThreadId, byref(dwNodeCount), ctypes.cast(ctypes.pointer(NodeInfoArray), PWAITCHAIN_NODE_INFO), byref(IsCycle))
+    return (
+        [ WaitChainNodeInfo(NodeInfoArray[index]) for index in xrange(dwNodeCount.value) ],
+        bool(IsCycle.value)
+    )
 
 # VOID WINAPI CloseThreadWaitChainSession(
 #   __in  HWCT WctHandle

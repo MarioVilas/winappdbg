@@ -35,6 +35,8 @@ Thread instrumentation.
     Thread
 """
 
+from __future__ import with_statement
+
 __revision__ = "$Id$"
 
 __all__ = ['Thread']
@@ -1056,21 +1058,18 @@ class Thread (object):
         """
         @rtype:
             tuple of (
-            list of L{win32.WAITCHAIN_NODE_INFO} structures,
+            list of L{win32.WaitChainNodeInfo} structures,
             bool)
         @return:
             Wait chain for the thread.
-            The boolean indicates if there's a cycle in the chain.
+            The boolean indicates if there's a cycle in the chain (a deadlock).
         @raise AttributeError:
             This method is only suppported in Windows Vista and above.
         @see:
             U{http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx}
         """
-        hWct = win32.OpenThreadWaitChainSession()
-        try:
-            return win32.GetThreadWaitChain(hWct, None, 0, self.get_tid())
-        finally:
-            win32.CloseThreadWaitChainSession(hWct)
+        with win32.OpenThreadWaitChainSession() as hWct:
+            return win32.GetThreadWaitChain(hWct, ThreadId = self.get_tid())
 
     def get_stack_range(self):
         """
