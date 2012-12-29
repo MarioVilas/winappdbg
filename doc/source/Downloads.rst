@@ -28,12 +28,12 @@ The programming manuals can be consulted `online <http://winappdbg.sourceforge.n
 * `winappdbg-tutorial-1.5-beta6.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta6.chm/download>`_ - Introduction and tutorials
 * `winappdbg-reference-1.5-beta6.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta6.chm/download>`_ - Complete reference material
 
-**HTML offline pages**
+**HTML format**
 
 * `winappdbg-tutorial-1.5-beta6.tar.bz2  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta6.tar.bz2/download>`_ - Introduction and tutorials
 * `winappdbg-reference-1.5-beta6.tar.bz2 <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta6.tar.bz2/download>`_ - Complete reference material
 
-**PDF files (for printing)**
+**PDF format (suitable for printing)**
 
 * `winappdbg-tutorial-1.5-beta6.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5-beta6.pdf/download>`_ - Introduction and tutorials
 * `winappdbg-reference-1.5-beta6.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5-beta6.pdf/download>`_ - Complete reference material
