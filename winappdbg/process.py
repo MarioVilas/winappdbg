@@ -1083,7 +1083,10 @@ class Process (_ThreadContainer, _ModuleContainer):
                 break
         if last >= 0:
             data = data[:last]
-        block = data.decode('U16').split(u'\0')
+        buf_a = ctypes.create_string_buffer(data)
+        buf_u = ctypes.create_unicode_buffer(len(data))
+        ctypes.memmove(buf_u, buf_a, len(data))
+        block = buf_u.value.split(u'\0')
 
         # Convert the data to ANSI if requested.
         if fUnicode is None:
@@ -2923,11 +2926,14 @@ class Process (_ThreadContainer, _ModuleContainer):
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
             except WindowsError, e:
-                msg = "Can't get mapped file name at address %s in process " \
-                      "%d, reason: %s" % (self.get_pid(),
-                                          HexDump.address(baseAddress),
-                                          e.strerror)
-                warnings.warn(msg, RuntimeWarning)
+                #try:
+                #    msg = "Can't get mapped file name at address %s in process " \
+                #          "%d, reason: %s" % (HexDump.address(baseAddress),
+                #                              self.get_pid(),
+                #                              e.strerror)
+                #    warnings.warn(msg, Warning)
+                #except Exception:
+                    pass
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
 

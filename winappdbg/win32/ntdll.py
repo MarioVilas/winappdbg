@@ -35,7 +35,6 @@ Wrapper for ntdll.dll in ctypes.
 __revision__ = "$Id$"
 
 from defines import *
-from peb_teb import *
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -43,6 +42,8 @@ _all = None
 _all = set(vars().keys())
 _all.add('peb_teb')
 #==============================================================================
+
+from peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 

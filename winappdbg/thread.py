@@ -1147,7 +1147,7 @@ class Thread (object):
         while win32.StackWalk64(MachineType, hProcess, hThread, StackFrame):
             if depth <= 0:
                 break
-            fp = StackFrame.AddrFrame
+            fp = StackFrame.AddrFrame.Offset
             ra = aProcess.peek_pointer(fp + 4)
             if ra == 0:
                 break
