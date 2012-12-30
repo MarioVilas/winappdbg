@@ -95,9 +95,9 @@ echo WinAppDbg distribution builder
 echo.
 echo Available commands:
 echo    distro all              Build all the packages
-echo    distro clean            Clean up temporary files
+echo    distro clean            Clean up all generated files
 echo.
-echo Subcommands:
+echo Packages:
 echo    distro source           Build the source distribution packages
 echo    distro wininst          Build the Windows installer packages
 :: echo    distro portable         Build the portable packages
@@ -112,6 +112,9 @@ goto Next
 
 
 :Clean
+echo -------------------------------------------------------------------------------
+echo Cleaning up...
+echo -------------------------------------------------------------------------------
 python setup.py clean
 if exist build del /s /q build
 if exist html del /s /q html
@@ -129,6 +132,9 @@ goto Next
 
 
 :Source
+echo -------------------------------------------------------------------------------
+echo Building source distribution packages...
+echo -------------------------------------------------------------------------------
 
 :: Build the source distribution packages
 python setup.py sdist %SDIST_OPT%
@@ -138,6 +144,9 @@ goto Next
 
 
 :WinInst
+echo -------------------------------------------------------------------------------
+echo Building Windows installer packages...
+echo -------------------------------------------------------------------------------
 
 :: Build the Windows installer packages (this requires Python 2.7)
 %PYTHON_x86% setup.py bdist_msi
@@ -148,6 +157,9 @@ goto Next
 
 
 :Portable
+echo -------------------------------------------------------------------------------
+echo Building portable packages...
+echo -------------------------------------------------------------------------------
 echo TODO Portable
 goto Next
 
@@ -160,17 +172,25 @@ if not exist %EPYDOC_SCRIPT% (
 )
 
 :: Generate the HTML documentation
+echo -------------------------------------------------------------------------------
+echo Building HTML reference documentation...
+echo -------------------------------------------------------------------------------
 %EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OPT%
+if not errorlevel 0 goto Next
+if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 
 :: Compile the HTML documentation into a CHM file
-if %errorlevel%==0 hhc winappdbg.hhp
+echo -------------------------------------------------------------------------------
+echo Building Windows Help reference documentation...
+echo -------------------------------------------------------------------------------
+hhc winappdbg.hhp
+if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
 
 :: Generate the PDF documentation
+echo -------------------------------------------------------------------------------
+echo Building PDF reference documentation...
+echo -------------------------------------------------------------------------------
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
-
-:: Move the files to the dist folder
-if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
-if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-%VersionTag%-reference.pdf
 
 goto Next
@@ -185,6 +205,9 @@ if not exist doc (
 if not exist dist mkdir dist
 
 :: Generate the HTML manual
+echo -------------------------------------------------------------------------------
+echo Building HTML tutorial...
+echo -------------------------------------------------------------------------------
 cd doc
 call make.bat html
 cd build
@@ -192,6 +215,9 @@ if exist html tar -cjf ../../dist/winappdbg-%VersionTag%-tutorial.tar.bz2 html
 cd ..\..
 
 :: Generate the CHM manual
+echo -------------------------------------------------------------------------------
+echo Building Windows Help tutorial...
+echo -------------------------------------------------------------------------------
 cd doc
 call make.bat htmlhelp
 cd build\htmlhelp
@@ -200,6 +226,9 @@ cd ..\..\..
 if exist doc\build\htmlhelp\WinAppDbg.chm move doc\build\htmlhelp\WinAppDbg.chm dist\winappdbg-%VersionTag%-tutorial.chm
 
 :: Generate the PDF manual
+echo -------------------------------------------------------------------------------
+echo Building PDF tutorial...
+echo -------------------------------------------------------------------------------
 cd doc
 call make.bat latex
 cd build\latex
