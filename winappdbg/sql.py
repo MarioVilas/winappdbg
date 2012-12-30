@@ -97,9 +97,21 @@ class _SQLitePatch (PoolListener):
 
     @see: U{http://sqlite.org/foreignkeys.html}
     """
-    def connect(dbapi_con, connection_record):
+    def connect(dbapi_connection, connection_record):
+        """
+        Called once by SQLAlchemy for each new SQLite DB-API connection.
+
+        Here is where we issue some PRAGMA statements to configure how we're
+        going to access the SQLite database.
+
+        @param dbapi_connection:
+            A newly connected raw SQLite DB-API connection.
+
+        @param connection_record:
+            Unused by this method.
+        """
         try:
-            cursor = dbapi_con.cursor()
+            cursor = dbapi_connection.cursor()
             try:
                 cursor.execute("PRAGMA foreign_keys = ON;")
                 cursor.execute("PRAGMA foreign_keys;")
@@ -108,7 +120,7 @@ class _SQLitePatch (PoolListener):
             finally:
                 cursor.close()
         except Exception:
-            dbapi_con.close()
+            dbapi_connection.close()
             raise sqlite3.Error()
 
 #------------------------------------------------------------------------------

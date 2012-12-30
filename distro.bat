@@ -167,14 +167,15 @@ goto Next
 
 :Autodoc
 if not exist %EPYDOC_SCRIPT% (
-	echo Error: Epydoc is not installed.
-	goto Next
+    echo Error: Epydoc is not installed.
+    goto Next
 )
 
 :: Generate the HTML documentation
 echo -------------------------------------------------------------------------------
 echo Building HTML reference documentation...
 echo -------------------------------------------------------------------------------
+echo Note: You can safely ignore the paragraph indentation warning on sqlalchemy.
 %EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OPT%
 if not errorlevel 0 goto Next
 if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
@@ -183,10 +184,16 @@ if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 echo -------------------------------------------------------------------------------
 echo Building Windows Help reference documentation...
 echo -------------------------------------------------------------------------------
+hhc >nul 2>nul
+if not errorlevel 24 (
+    echo Error: Microsoft HTML Help Workshop is either not installed or not in PATH.
+    goto Next
+)
 grep --help >nul 2>nul
 if errorlevel 0 (
     hhc winappdbg.hhp | grep -v HHC3004
 ) else (
+    echo Note: You can safely ignore the HHC3004 warnings.
     hhc winappdbg.hhp
 )
 if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
@@ -223,6 +230,11 @@ cd ..\..
 echo -------------------------------------------------------------------------------
 echo Building Windows Help tutorial...
 echo -------------------------------------------------------------------------------
+hhc >nul 2>nul
+if not errorlevel 24 (
+    echo Error: Microsoft HTML Help Workshop is either not installed or not in PATH.
+    goto Next
+)
 cd doc
 call make.bat htmlhelp
 cd build\htmlhelp
