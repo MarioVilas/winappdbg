@@ -1129,7 +1129,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         for chunk in block:
             sep = chunk.find(equals, 1)
             if sep < 0:
-                raise Exception()
+##                raise Exception()
                 continue    # corrupted environment block?
             key, value = chunk[:sep], chunk[sep+1:]
 
@@ -1842,7 +1842,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             except WindowsError, e:
                 msg = "Error reading process %d address %s: %s"
                 msg %= (self.get_pid(),
-                        HexDump.address(baseAddress),
+                        HexDump.address(lpBaseAddress),
                         e.strerror)
                 warnings.warn(msg)
         return data

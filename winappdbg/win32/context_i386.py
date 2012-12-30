@@ -298,8 +298,9 @@ LPCONTEXT = PCONTEXT
 
 class Context(dict):
     """
-    Register context dictionary for the %s architecture.
-    """ % CONTEXT.arch
+    Register context dictionary for the i386 architecture.
+    """
+
     arch = CONTEXT.arch
 
     def __get_pc(self):

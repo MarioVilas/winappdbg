@@ -50,6 +50,25 @@ _all.add('version')
 
 from version import *
 
+#------------------------------------------------------------------------------
+
+# This can't be defined in defines.py because it calls GetLastError().
+def RaiseIfLastError(result, func = None, arguments = ()):
+    """
+    Error checking for Win32 API calls with no error-specific return value.
+
+    Regardless of the return value, the function calls GetLastError(). If the
+    code is not C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
+
+    For this to work, the user MUST call SetLastError(ERROR_SUCCESS) prior to
+    calling the API. Otherwise an exception may be raised even on success,
+    since most API calls don't clear the error status code.
+    """
+    code = GetLastError()
+    if code != ERROR_SUCCESS:
+        raise ctypes.WinError(code)
+    return result
+
 #--- CONTEXT structure and constants ------------------------------------------
 
 ContextArchMask = 0x0FFF0000    # just guessing here! seems to work, though
@@ -2211,19 +2230,6 @@ def SetConsoleOutputCP(wCodePageID):
     _SetConsoleOutputCP.errcheck = RaiseIfZero
     _SetConsoleOutputCP(wCodePageID)
 
-# BOOL WINAPI FlushConsoleInputBuffer(
-#   _In_  HANDLE hConsoleInput
-# );
-def FlushConsoleInputBuffer(hConsoleInput = None):
-    _FlushConsoleInputBuffer = windll.kernel32.FlushConsoleInputBuffer
-    _FlushConsoleInputBuffer.argytpes = [HANDLE]
-    _FlushConsoleInputBuffer.restype  = bool
-    _FlushConsoleInputBuffer.errcheck = RaiseIfZero
-
-    if hConsoleOutput is None:
-        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
-    _FlushConsoleInputBuffer(hConsoleInput)
-
 # HANDLE WINAPI CreateConsoleScreenBuffer(
 #   _In_        DWORD dwDesiredAccess,
 #   _In_        DWORD dwShareMode,
@@ -2237,7 +2243,7 @@ def FlushConsoleInputBuffer(hConsoleInput = None):
 # BOOL WINAPI SetConsoleActiveScreenBuffer(
 #   _In_  HANDLE hConsoleOutput
 # );
-def SetConsoleActiveScreenBuffer(hConsoleInput = None):
+def SetConsoleActiveScreenBuffer(hConsoleOutput = None):
     _SetConsoleActiveScreenBuffer = windll.kernel32.SetConsoleActiveScreenBuffer
     _SetConsoleActiveScreenBuffer.argytpes = [HANDLE]
     _SetConsoleActiveScreenBuffer.restype  = bool
@@ -2245,7 +2251,7 @@ def SetConsoleActiveScreenBuffer(hConsoleInput = None):
 
     if hConsoleOutput is None:
         hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
-    _SetConsoleActiveScreenBuffer(hConsoleInput)
+    _SetConsoleActiveScreenBuffer(hConsoleOutput)
 
 # BOOL WINAPI GetConsoleScreenBufferInfo(
 #   _In_   HANDLE hConsoleOutput,
@@ -2275,7 +2281,7 @@ def GetConsoleScreenBufferInfo(hConsoleOutput = None):
 #   _In_  BOOL bAbsolute,
 #   _In_  const SMALL_RECT *lpConsoleWindow
 # );
-def SetConsoleWindowInfo(hConsoleOutput, bAbsolute, (Left, Top, Right, Bottom)):
+def SetConsoleWindowInfo(hConsoleOutput, bAbsolute, lpConsoleWindow):
     _SetConsoleWindowInfo = windll.kernel32.SetConsoleWindowInfo
     _SetConsoleWindowInfo.argytpes = [HANDLE, BOOL, PSMALL_RECT]
     _SetConsoleWindowInfo.restype  = bool
@@ -2283,7 +2289,10 @@ def SetConsoleWindowInfo(hConsoleOutput, bAbsolute, (Left, Top, Right, Bottom)):
 
     if hConsoleOutput is None:
         hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE)
-    ConsoleWindow = SMALL_RECT(Left, Top, Right, Bottom)
+    if isinstance(lpConsoleWindow, SMALL_RECT):
+        ConsoleWindow = lpConsoleWindow
+    else:
+        ConsoleWindow = SMALL_RECT(*lpConsoleWindow)
     _SetConsoleWindowInfo(hConsoleOutput, bAbsolute, byref(ConsoleWindow))
 
 # BOOL WINAPI SetConsoleTextAttribute(

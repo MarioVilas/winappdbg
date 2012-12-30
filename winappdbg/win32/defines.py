@@ -155,22 +155,6 @@ def RaiseIfNotErrorSuccess(result, func = None, arguments = ()):
         raise ctypes.WinError(result)
     return result
 
-def RaiseIfLastError(result, func = None, arguments = ()):
-    """
-    Error checking for Win32 API calls with no error-specific return value.
-
-    Regardless of the return value, the function calls GetLastError(). If the
-    code is not C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
-
-    For this to work, the user MUST call SetLastError(ERROR_SUCCESS) prior to
-    calling the API. Otherwise an exception may be raised even on success,
-    since most API calls don't clear the error status code.
-    """
-    code = GetLastError()
-    if code != ERROR_SUCCESS:
-        raise ctypes.WinError(code)
-    return result
-
 class GuessStringType(object):
     """
     Decorator that guesses the correct version (A or W) to call
@@ -361,7 +345,7 @@ def MakeWideVersion(fn):
             for key, value in argd.items():
                 if type(value) == t_unicode:
                     argd[key] = t_ansi(value)
-        return self.fn(*argv, **argd)
+        return fn(*argv, **argd)
     return wrapper
 
 #--- Types --------------------------------------------------------------------

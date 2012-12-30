@@ -63,7 +63,7 @@ __all__ = [
     ]
 
 import win32
-from process import Process
+from process import Process, Thread
 from util import DebugRegister, MemoryAddresses
 from textio import HexDump
 
@@ -3550,7 +3550,7 @@ class _BreakpointContainer (object):
                     bLastIsPushFlags = True
                 c = aProcess.peek_char(pc)
                 if c == 0x66:           # the only valid prefix for popf
-                    c = aProcess.peek_char(pc + i)
+                    c = aProcess.peek_char(pc + 1)
                 if c == 0x9D:           # popf
                     if bLastIsPushFlags:
                         bLastIsPushFlags = False  # they cancel each other out

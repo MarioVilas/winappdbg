@@ -47,8 +47,9 @@ from system import System
 from process import Process
 from thread import Thread
 from module import Module
+from window import Window
 from breakpoint import _BreakpointContainer, CodeBreakpoint
-from event import EventHandler, EventDispatcher, EventFactory, ExitProcessEvent
+from event import Event, EventHandler, EventDispatcher, EventFactory
 from interactive import ConsoleDebugger
 
 import warnings
@@ -224,6 +225,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
             attached to the target process.
         """
 
+        # Get the Process object from the snapshot,
+        # if missing create a new one.
+        try:
+            aProcess = self.system.get_process(dwProcessId)
+        except KeyError:
+            aProcess = Process(dwProcessId)
+
         # Warn when mixing 32 and 64 bits.
         # This also allows the user to stop attaching altogether,
         # depending on how the warnings are configured.
@@ -241,13 +249,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Match the system kill-on-exit flag to our own.
         self.__setSystemKillOnExitMode()
 
-        # Get the Process object from the snapshot,
-        # if missing create a new one and add it.
+        # If the Process object was not in the snapshot, add it now.
         if not self.system.has_process(dwProcessId):
-            aProcess = Process(dwProcessId)
             self.system._add_process(aProcess)
-        else:
-            aProcess = self.system.get_process(dwProcessId)
 
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
@@ -1311,7 +1315,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         bCallHandler2 = self.system._notify_exit_process(event)
 
         try:
-            self.detach(dwProcessId)
+            self.detach( event.get_pid() )
         except WindowsError, e:
             if e.winerror != win32.ERROR_INVALID_PARAMETER:
                 warnings.warn(

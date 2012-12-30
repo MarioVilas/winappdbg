@@ -1119,17 +1119,20 @@ class Thread (object):
         @raise WindowsError: Raises an exception on error.
         """
 
-        if win32.arch == win32.ARCH_I386:
+        aProcess = self.get_process()
+        arch = aProcess.get_arch()
+        bits = aProcess.get_bits()
+
+        if arch == win32.ARCH_I386:
             MachineType = win32.IMAGE_FILE_MACHINE_I386
-        elif win32.arch == win32.ARCH_AMD64:
+        elif arch == win32.ARCH_AMD64:
             MachineType = win32.IMAGE_FILE_MACHINE_AMD64
-        elif win32.arch == win32.ARCH_IA64:
+        elif arch == win32.ARCH_IA64:
             MachineType = win32.IMAGE_FILE_MACHINE_IA64
         else:
             msg = "Stack walking is not available for this architecture: %s"
-            raise NotImplementedError(msg % win32.arch)
+            raise NotImplementedError(msg % arch)
 
-        aProcess = self.get_process()
         hProcess = aProcess.get_handle( win32.PROCESS_VM_READ |
                                         win32.PROCESS_QUERY_INFORMATION )
         hThread  = self.get_handle( win32.THREAD_GET_CONTEXT |

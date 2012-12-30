@@ -2193,7 +2193,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                     return
             try:
                 readline.write_history_file(self.history_file_full_path)
-            except IOError:
+            except IOError, e:
                 warnings.warn("Cannot save history file, reason: %s" % str(e))
 
 #------------------------------------------------------------------------------

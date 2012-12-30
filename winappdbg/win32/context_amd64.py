@@ -497,8 +497,9 @@ LPCONTEXT = PCONTEXT
 
 class Context(dict):
     """
-    Register context dictionary for the %s architecture.
-    """ % CONTEXT.arch
+    Register context dictionary for the amd64 architecture.
+    """
+
     arch = CONTEXT.arch
 
     def __get_pc(self):

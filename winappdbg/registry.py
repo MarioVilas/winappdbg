@@ -462,7 +462,7 @@ class Registry (_RegistryContainer):
         """
         handle, path = self._split_path(path)
         if self._machine is not None:
-            handle = self._connect_hive(hive)
+            handle = self._connect_hive(handle)
         return handle, path
 
     def _join_path(self, hive, subkey):
