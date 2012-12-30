@@ -141,7 +141,7 @@ If you prefer to install directly from the **sources** package, extract it to an
 
     install.bat
 
-You can also install WinAppDbg (stable versions only) from its `PyPI repository <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
+You can also install WinAppDbg (stable versions only) from the `Cheese Shop <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
 
 * `PIP Installs Python <http://www.pip-installer.org/>`_ ::
 
