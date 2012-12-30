@@ -76,7 +76,7 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Win32 API wrappers:
     win32, Handle, ProcessHandle, ThreadHandle, FileHandle
 
-@group Miscellaneous:
+@group Helpers:
     HexInput, HexOutput, HexDump, Color, Table, Logger,
     PathOperations,
     MemoryAddresses,
@@ -131,6 +131,7 @@ __all__ =   [
 
                 # from crash import *
                 'Crash',
+                'CrashWarning',
                 'CrashDictionary',
                 'CrashContainer',
                 'CrashTable',

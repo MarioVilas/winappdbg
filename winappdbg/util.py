@@ -31,7 +31,7 @@
 """
 Miscellaneous utility classes and functions.
 
-@group Miscellaneous:
+@group Helpers:
     PathOperations,
     MemoryAddresses,
     CustomAddressIterator,

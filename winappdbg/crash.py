@@ -34,6 +34,9 @@ Crash dump support.
 @group Crash reporting:
     Crash, CrashDictionary
 
+@group Warnings:
+    CrashWarning
+
 @group Deprecated classes:
     CrashContainer, CrashTable, CrashTableMSSQL,
     VolatileCrashContainer, DummyCrashContainer
@@ -49,13 +52,15 @@ __all__ = [
     # Crash storage.
     'CrashDictionary',
 
+    # Warnings.
+    'CrashWarning',
+
     # Backwards compatibility with WinAppDbg 1.4 and before.
     'CrashContainer',
     'CrashTable',
     'CrashTableMSSQL',
     'VolatileCrashContainer',
     'DummyCrashContainer',
-
 ]
 
 import win32

@@ -31,19 +31,15 @@
 """
 Functions for text input, logging or text output.
 
-@group Debugging:
-    DebugLog
-
-@group Crash reporting:
-    CrashDump
-
-@group Miscellaneous:
+@group Helpers:
     HexDump,
     HexInput,
     HexOutput,
     Color,
     Table,
     Logger
+    DebugLog
+    CrashDump
 """
 
 __revision__ = "$Id$"
