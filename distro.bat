@@ -183,7 +183,12 @@ if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 echo -------------------------------------------------------------------------------
 echo Building Windows Help reference documentation...
 echo -------------------------------------------------------------------------------
-hhc winappdbg.hhp
+grep --help >nul 2>nul
+if errorlevel 0 (
+    hhc winappdbg.hhp | grep -v HHC3004
+) else (
+    hhc winappdbg.hhp
+)
 if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\winappdbg-%VersionTag%-reference.chm
 
 :: Generate the PDF documentation
