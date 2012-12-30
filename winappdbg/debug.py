@@ -749,6 +749,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @return: An event that occured in one of the debugees.
 
         @raise WindowsError: Raises an exception on error.
+            If no target processes are left to debug,
+            the error code is L{win32.ERROR_INVALID_HANDLE}.
         """
 
         # Wait for the next debug event.
