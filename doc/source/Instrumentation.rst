@@ -191,6 +191,8 @@ Example #16: resolve an API function in a process
    :start-after: $Id
    :end-before: # When invoked from the command line,
 
+.. _the-window-class:
+
 The Window class
 ----------------
 
@@ -246,6 +248,8 @@ Example #22: kill a program using its window
 .. literalinclude:: ../../examples/instrumentation/22_kill.py
    :start-after: # ...begins just like the previous example...
    :end-before: if __name__ == '__main__':
+
+.. _back-to-the-system-class:
 
 Back to the System class
 ------------------------
