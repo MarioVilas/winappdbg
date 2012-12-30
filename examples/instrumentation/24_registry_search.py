@@ -86,7 +86,6 @@ def reg_search( search ):
 
 # Helper function to print text with a highlighted search string.
 def highlight( search, text ):
-    # ...
     if can_highlight:
         Color.default()
         p = 0

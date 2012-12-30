@@ -3,6 +3,11 @@
 Welcome to WinAppDbg |version|!
 *******************************
 
+.. only:: latex
+
+    Introduction
+    ------------
+
 The *WinAppDbg* python module allows developers to quickly code instrumentation scripts in **Python** under a **Windows** environment.
 
 It uses **ctypes** to wrap many `Win32 API <http://msdn.microsoft.com/en-us/library/ms679304(VS.85).aspx>`_ calls related to debugging, and provides a powerful abstraction layer to manipulate threads, libraries and processes, attach your script as a debugger, trace execution, hook API calls, handle events in your debugee and set breakpoints of different kinds (code, hardware and memory). Additionally it has no native code at all, making it easier to maintain or modify than other debuggers on Windows.
@@ -11,36 +16,38 @@ The intended audience are QA engineers and software security auditors wishing to
 
 Current features also include disassembling x86/x64 native code, debugging multiple processes simultaneously and produce a detailed log of application crashes, useful for fuzzing and automated testing.
 
-Download
---------
+.. only:: html
 
-Some quick links for the impatient:
+    Download
+    --------
 
-* `winappdbg-1.5-beta6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5-beta6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
-* `winappdbg-1.5-beta6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.zip/download>`_ - Manual install (setup.py)
+    Some quick links for the impatient:
 
-For more information, online docs and older versions go to the :ref:`downloads page <download>`.
+    * `winappdbg-1.5-beta6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win32.msi/download>`_ - All supported 32-bit Python versions
+    * `winappdbg-1.5-beta6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+    * `winappdbg-1.5-beta6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-beta6.zip/download>`_ - Manual install (setup.py)
 
-Reference
----------
+    For more information, online docs and older versions go to the :ref:`downloads page <download>`.
 
-`Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
+    Reference
+    ---------
 
-Tutorial
---------
+    `Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
 
-The easy way to learn to use *WinAppDbg*. If this is your first time, it's the right place to start!
+    Tutorial
+    --------
 
-.. toctree::
-   :maxdepth: 2
+    The easy way to learn to use *WinAppDbg*. If this is your first time, it's the right place to start!
 
-   Downloads
-   Tools
-   ProgrammingGuide
+    .. toctree::
+       :maxdepth: 2
 
-Related projects
-----------------
+       Downloads
+       Tools
+       ProgrammingGuide
+
+    Related projects
+    ----------------
 
 Here is a list of software projects that use *WinAppDbg* in alphabetical order:
 
@@ -67,3 +74,20 @@ And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit y
 * `uhooker <http://www.coresecurity.com/content/open-source-projects#Uhooker>`_ is a Python library to implement function hooks in other processes. While its functionality overlaps with some of *WinAppDbg*, the hooks implementation of *uhooker* is superior. Unfortunately the last update was in 2007. :(
 
 See also the wonderful `Python Arsenal for RE <http://pythonarsenal.erpscan.com/>`_ for an up to date reference of security related Python tools (also available in `PDF <http://dsecrg.com/files/pub/pdf/Python%20arsenal%20for%20RE%201.1.pdf>`_ format).
+
+.. only:: latex
+
+    Programming Guide
+    -----------------
+
+    .. toctree::
+       :maxdepth: 3
+
+       Downloads
+       Instrumentation
+       Debugging
+       Helpers
+       Win32APIWrappers
+       MoreExamples
+       AdvancedTopics
+       Tools

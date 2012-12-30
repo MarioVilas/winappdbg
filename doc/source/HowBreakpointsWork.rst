@@ -73,31 +73,60 @@ The **address** is any address in the process memory, even if it's unmapped. Thi
 
 The **triggerFlag** parameter is used to specify exactly what event will trigger this breakpoint. There are four constants available:
 
+.. only:: html
+
     +---------------------------------+---------------------------------------------+
     | *Constant*                      | *Meaning*                                   |
     +=================================+=============================================+
-    | Debug.**BP_BREAK_ON_EXECUTION** | Break when executing on *address*.          |
+    | **Debug.BP_BREAK_ON_EXECUTION** | Break when executing on *address*.          |
     +---------------------------------+---------------------------------------------+
-    | Debug.**BP_BREAK_ON_WRITE**     | Break when writing to *address*.            |
+    | **Debug.BP_BREAK_ON_WRITE**     | Break when writing to *address*.            |
     +---------------------------------+---------------------------------------------+
-    | Debug.**BP_BREAK_ON_ACCESS**    | Break when reading or writing to *address*. |
+    | **Debug.BP_BREAK_ON_ACCESS**    | Break when reading or writing to *address*. |
     +---------------------------------+---------------------------------------------+
-    | Debug.**BP_BREAK_ON_IO_ACCESS** | *(Not currently used by today's hardware.)* |
+    | **Debug.BP_BREAK_ON_IO_ACCESS** | *(Not currently used by today's hardware.)* |
     +---------------------------------+---------------------------------------------+
 
+.. only:: latex
+
+     * **Debug.BP_BREAK_ON_EXECUTION**:
+        Break when executing on *address*.
+
+     * **Debug.BP_BREAK_ON_WRITE**:
+        Break when writing to *address*.
+
+     * **Debug.BP_BREAK_ON_ACCESS**:
+        Break when reading or writing to *address*.
+
 The **sizeFlag** parameter says how large is the memory region to watch. There are again four constants:
+
+.. only:: html
 
     +--------------------------+----------------------------------------------------+
     | *Constant*               | *Meaning*                                          |
     +==========================+====================================================+
-    | Debug.**BP_WATCH_BYTE**  | Applies to 1 byte from *address*.                  |
+    | **Debug.BP_WATCH_BYTE**  | Applies to 1 byte from *address*.                  |
     +--------------------------+----------------------------------------------------+
-    | Debug.**BP_WATCH_WORD**  | Applies to 2 bytes (a word) from *address*.        |
+    | **Debug.BP_WATCH_WORD**  | Applies to 2 bytes (a word) from *address*.        |
     +--------------------------+----------------------------------------------------+
-    | Debug.**BP_WATCH_DWORD** | Applies to 4 bytes (a double word) from *address*. |
+    | **Debug.BP_WATCH_DWORD** | Applies to 4 bytes (a double word) from *address*. |
     +--------------------------+----------------------------------------------------+
-    | Debug.**BP_WATCH_QWORD** | Applies to 8 bytes (a quad word) from *address*.   |
+    | **Debug.BP_WATCH_QWORD** | Applies to 8 bytes (a quad word) from *address*.   |
     +--------------------------+----------------------------------------------------+
+
+.. only:: latex
+
+     * **Debug.BP_WATCH_BYTE**:
+        Applies to 1 byte from *address*.
+
+     * **Debug.BP_WATCH_WORD**:
+        Applies to 2 bytes (a word) from *address*.
+
+     * **Debug.BP_WATCH_DWORD**:
+        Applies to 4 bytes (a double word) from *address*.
+
+     * **Debug.BP_WATCH_QWORD**:
+        Applies to 8 bytes (a quad word) from *address*.
 
 Since x86 processors only have enough room for **four** hardware breakpoints in the debug registers, you can **only enable four of them at a time for a single thread**. You can define as many as you want, though, provided you only keep a maximum of four enabled breakpoints per thread at any time.
 
@@ -199,6 +228,8 @@ Batch operations on breakpoints
 
 The following methods are provided for working on all breakpoints at once:
 
+.. only:: html
+
     +-------------------------------------+-----------------------------------------------------------------+
     | *Method*                            | *Description*                                                   |
     +=====================================+=================================================================+
@@ -211,7 +242,23 @@ The following methods are provided for working on all breakpoints at once:
     | **erase_all_breakpoints**           | Erases all breakpoints in all processes.                        |
     +-------------------------------------+-----------------------------------------------------------------+
 
+.. only:: latex
+
+     * **enable_all_breakpoints**:
+        Enables all disabled breakpoints in all processes.
+
+     * **enable_one_shot_all_breakpoints**:
+        Enables for one shot all disabled breakpoints in all processes.
+
+     * **disable_all_breakpoints**:
+        Disables all breakpoints in all processes.
+
+     * **erase_all_breakpoints**:
+        Erases all breakpoints in all processes.
+
 These methods work with all breakpoints of a single process:
+
+.. only:: html
 
     +-----------------------------------------+----------------------------------------------------------------------+
     | *Method*                                | *Description*                                                        |
@@ -225,12 +272,28 @@ These methods work with all breakpoints of a single process:
     | **erase_process_breakpoints**           | Erases all breakpoints for the given process.                        |
     +-----------------------------------------+----------------------------------------------------------------------+
 
+.. only:: latex
+
+     * **enable_process_breakpoints**:
+        Enables all disabled breakpoints for the given process.
+
+     * **enable_one_shot_process_breakpoints**:
+        Enables for one shot all disabled breakpoints for the given process.
+
+     * **disable_process_breakpoints**:
+        Disables all breakpoints for the given process.
+
+     * **erase_process_breakpoints**:
+        Erases all breakpoints for the given process.
+
 Accessing the breakpoint objects
 --------------------------------
 
 For even more fine-tuning you might also want to access the *Breakpoint* objects directly. The **get_code_breakpoint** method retrieves a code breakpoint in a process, **get_page_breakpoint** works for page breakpoints in a process, and **get_hardware_breakpoint** gets the hardware breakpoint in a thread.
 
 While it's always safe to request information from a *Breakpoint* object, it may not be so when modifying it, so be careful what methods you call. The following methods are safe to call:
+
+.. only:: html
 
     +---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
     | *Method*                        | *Description*                                                                                                                                    |
@@ -272,6 +335,62 @@ While it's always safe to request information from a *Breakpoint* object, it may
     | **get_buffer_size_in_pages**    | *(Static, for page breakpoints only)* Get the number of pages in use by the given buffer.                                                        |
     +---------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------+
 
+.. only:: latex
+
+     * **is_disabled**:
+        If *True*, breakpoint is disabled.
+
+     * **is_running**:
+        If *True*, breakpoint was recently hit.
+
+     * **is_here**:
+        Returns *True* if the breakpoint is within the given address range.
+
+     * **get_address**:
+        Returns the breakpoint location.
+
+     * **get_size**:
+        Returns the breakpoint size in bytes.
+
+     * **is_conditional**:
+        If True, the breakpoint is conditional.
+
+     * **get_condition**:
+        Returns the breakpoint *condition* parameter.
+
+     * **set_condition**:
+        Changes the breakpoint *condition* parameter.
+
+     * **is_automatic**:
+        If True, the breakpoint is automatic.
+
+     * **get_action**:
+        Returns the breakpoint *action* parameter.
+
+     * **set_action**:
+        Changes the breakpoint *action* parameter.
+
+     * **get_slot**:
+        *(For hardware breakpoints only)* Returns the debug register number used by this breakpoint, or *None* if the breakpoint is disabled or running.
+
+     * **get_trigger**:
+        *(For hardware breakpoints only)* Returns the *trigger* parameter.
+
+     * **get_watch**:
+        *(For hardware breakpoints only)* Returns the *watch* parameter.
+
+     * **get_size_in_pages**:
+        *(For page breakpoints only)* Get the number of pages covered by the breakpoint.
+
+     * **align_address_to_page_start**:
+        *(Static, for page breakpoints only)* Align the given address to the start of the page it occupies.
+
+     * **align_address_to_page_end**:
+        *(Static, for page breakpoints only)* Align the given address to the end of the page it occupies.
+
+     * **get_buffer_size_in_pages**:
+        *(Static, for page breakpoints only)* Get the number of pages in use by the given buffer.
+
 Listing the breakpoints
 -----------------------
 
@@ -279,8 +398,10 @@ Listing the breakpoints
 
 The following table describes the listing methods and what they return, where **pid** is a process ID, **tid** is a thread ID and **bp** is a *Breakpoint* object.
 
+.. only:: html
+
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
-    | *Method*                             | *Description*                                                                                        |
+    | Method                               | Description                                                                                          |
     +======================================+======================================================================================================+
     | **get_all_code_breakpoints**         | Returns all code breakpoints as a list of tuples (pid, bp).                                          |
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
@@ -296,3 +417,26 @@ The following table describes the listing methods and what they return, where **
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
     | **get_process_hardware_breakpoints** | Returns all hardware breakpoints for each thread in the given process as a list of tuples (tid, bp). |
     +--------------------------------------+------------------------------------------------------------------------------------------------------+
+
+.. only:: latex
+
+     * **get_all_code_breakpoints**:
+        Returns all code breakpoints as a list of tuples (pid, bp).
+
+     * **get_all_page_breakpoints**:
+        Returns all page breakpoints as a list of tuples (pid, bp).
+
+     * **get_all_hardware_breakpoints**:
+        Returns all hardware breakpoints as a list of tuples (tid, bp).
+
+     * **get_process_code_breakpoints**:
+        Returns all code breakpoints for the given process.
+
+     * **get_process_page_breakpoints**:
+        Returns all page breakpoints for the given process.
+
+     * **get_thread_hardware_breakpoints**:
+        Returns all hardware breakpoints for the given thread.
+
+     * **get_process_hardware_breakpoints**:
+        Returns all hardware breakpoints for each thread in the given process as a list of tuples (tid, bp).

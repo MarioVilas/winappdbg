@@ -47,7 +47,7 @@ The `decorator <http://packages.python.org/decorator>`_ module is also recommend
 Installation
 ------------
 
-Both the source code and Windows installer packages are generated with the Distutils standard package, which is already shipped with your Python distribution. The :download:`setup.py <../../setup.py>` file is the installer script that contains the package metadata and the list of files to include.
+Both the source code and Windows installer packages are generated with Distutils, which is already shipped with your Python distribution. The :download:`setup.py <../../setup.py>` file is the installer script that contains the package metadata and the list of files to include.
 
 You can find more information on Distutils installer scripts `here <http://docs.python.org/distutils/setupscript.html>`_.
 

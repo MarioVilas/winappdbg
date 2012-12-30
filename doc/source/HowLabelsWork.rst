@@ -27,12 +27,12 @@ If debugging symbols are available, they are used automatically in addition to e
 
 Integer numbers in labels may be expressed in any format supported by HexInput.integer(), but by default they are in hexadecimal format (for example *0x1234*).
 
-If only the **module** or the **function** are specified, but not both, the exclamation mark (**!**) may be omitted in fuzzy mode (explained later in this document). However, resolving the label may be a little slower, as all module names have to be checked to resolve the ambiguity.
+If only the *module* or the *function* are specified, but not both, the exclamation mark (**!**) may be omitted in fuzzy mode (explained later in this document). However, resolving the label may be a little slower, as all module names have to be checked to resolve the ambiguity.
 
 Generating labels
 -----------------
 
-To create a new label, use the **parse_label** static method of the **Process** class:
+To create a new label, use the **parse_label** static method of the *Process* class:
 
 >>> import winappdbg
 >>> winappdbg.Process.parse_label()                                 # no arguments

@@ -1,21 +1,21 @@
 ﻿.. _tools:
 
-Tools
-*****
+Command line tools
+******************
 
-The *WinAppDbg* package comes with a collection of tools useful for common tasks when debugging or fuzzing a program. The most important tool, the :ref:`Crash logger <crash-logger>`, attaches to any number of target processes and collects crash dump information in a SQL database. It can also apply :ref:`heuristics <signature>` to discard multiple occurrences of the same crash.
+*WinAppDbg* comes with a collection of tools useful for common tasks when debugging or fuzzing a program. The most important tool, the :ref:`Crash logger <crash-logger>`, attaches to any number of target processes and collects crash dump information in a SQL database. It can also apply :ref:`heuristics <signature>` to discard multiple occurrences of the same crash.
 
 The source code of these tools can also be read for more examples on programming using *WinAppDbg*.
-
-The following tools are shipped with the *WinAppDbg* package:
 
 .. _crash-logger:
 
 Crash logger
 ++++++++++++
 
-.. figure:: _static/crash_logger.png
-   :align:  right
+.. only:: html
+
+    .. figure:: _static/crash_logger.png
+       :align:  right
 
 * :download:`crash_logger.py <../../tools/crash_logger.py>` :
 

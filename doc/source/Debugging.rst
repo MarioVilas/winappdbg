@@ -80,50 +80,125 @@ So far we have seen how to attach to or start processes. But a debugger also nee
 
 Every *Event* object has the following set of common methods to get information from them:
 
-+---------------------------+---------------------------------------------------------------+
-| *Method*                  | *Description*                                                 |
-+===========================+===============================================================+
-| *get_event_name*          | Returns the name of the event.                                |
-+---------------------------+---------------------------------------------------------------+
-| *get_event_description*   | Returns a user-friendly description of the event.             |
-+---------------------------+---------------------------------------------------------------+
-| *get_event_code*          | Returns the event code constant, as defined by the Win32 API. |
-+---------------------------+---------------------------------------------------------------+
-| *get_pid*                 | Returns the ID of the process where the event occurred.       |
-+---------------------------+---------------------------------------------------------------+
-| *get_tid*                 | Returns the ID of the thread where the event occurred.        |
-+---------------------------+---------------------------------------------------------------+
-| *get_process*             | Returns the Process object.                                   |
-+---------------------------+---------------------------------------------------------------+
-| *get_thread*              | Returns the Thread object.                                    |
-+---------------------------+---------------------------------------------------------------+
+.. only:: html
+
+    +---------------------------+---------------------------------------------------------------+
+    | Method                    | Description                                                   |
+    +===========================+===============================================================+
+    | **get_event_name**        | Returns the name of the event.                                |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_event_description** | Returns a user-friendly description of the event.             |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_event_code**        | Returns the event code constant, as defined by the Win32 API. |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_pid**               | Returns the ID of the process where the event occurred.       |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_tid**               | Returns the ID of the thread where the event occurred.        |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_process**           | Returns the Process object.                                   |
+    +---------------------------+---------------------------------------------------------------+
+    | **get_thread**            | Returns the Thread object.                                    |
+    +---------------------------+---------------------------------------------------------------+
+
+.. only:: latex
+
+     * **get_event_name**: Returns the name of the event.
+
+     * **get_event_description**: Returns a user-friendly description of the event.
+
+     * **get_event_code**: Returns the event code constant, as defined by the Win32 API.
+
+     * **get_pid**: Returns the ID of the process where the event occurred.
+
+     * **get_tid**: Returns the ID of the thread where the event occurred.
+
+     * **get_process**: Returns the Process object.
+
+     * **get_thread**: Returns the Thread object.
 
 Then depending on the event type, you can get more information that's specific to each type.
 
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *Method*                          | *Applicable events*                           | *Description*                                                                                                                                                                                     |
-+===================================+===============================================+===================================================================================================================================================================================================+
-| **get_filename**                  | Process creation and destruction,             | Returns the filename of the EXE or DLL.                                                                                                                                                           |
-|                                   | DLL library load and unload.                  |                                                                                                                                                                                                   |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **get_exit_code**                 | Process and thread destruction.               | Returns the exit code of the process or thread.                                                                                                                                                   |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **get_exception_name**            | Exceptions.                                   | Returns the Win32 API constant name for the exception code.                                                                                                                                       |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **get_exception_code**            | Exceptions.                                   | Returns the Win32 API constant value for the exception code.                                                                                                                                      |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **get_exception_address**         | Exceptions.                                   | Returns the memory address where the exception has occurred. For exceptions not involving memory operations, the current execution pointer is returned.                                           |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **is_system_defined_exception**   | Exceptions.                                   | Returns **True** if the exception was caused by the operating system rather than the application code.                                                                                            |
-|                                   |                                               | Most notably, one such exception is always raised when attaching to a process, and then running a process from the debugger (right after process initialization is complete).                     |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **is_first_chance**               | Exceptions.                                   | If **True**, the exception hasn't been passed yet to the exception handlers of the debuggee. If **False**, the exception was passed to the exception handlers but none of them could handle it.   |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **is_nested**                     | Exceptions.                                   | If **True**, the exception was raised when handing at least one more exception. Many exceptions can be nested that way.                                                                           |
-|                                   |                                               | Call *get_nexted_exceptions* to get a list of those nested exceptions.                                                                                                                            |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **get_fault_address**             | Exceptions caused by invalid memory access.   | Returns the memory address where the invalid access has occurred.                                                                                                                                 |
-+-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+.. only:: html
+
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Method                            | Applicable events                             | Description                                                                                                                                                                                       |
+    +===================================+===============================================+===================================================================================================================================================================================================+
+    | **get_filename**                  | Process creation and destruction,             | Returns the filename of the EXE or DLL.                                                                                                                                                           |
+    |                                   | DLL library load and unload.                  |                                                                                                                                                                                                   |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **get_exit_code**                 | Process and thread destruction.               | Returns the exit code of the process or thread.                                                                                                                                                   |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **get_exception_name**            | Exceptions.                                   | Returns the Win32 API constant name for the exception code.                                                                                                                                       |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **get_exception_code**            | Exceptions.                                   | Returns the Win32 API constant value for the exception code.                                                                                                                                      |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **get_exception_address**         | Exceptions.                                   | Returns the memory address where the exception has occurred. For exceptions not involving memory operations, the current execution pointer is returned.                                           |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **is_system_defined_exception**   | Exceptions.                                   | Returns *True* if the exception was caused by the operating system rather than the application code.                                                                                              |
+    |                                   |                                               | Most notably, one such exception is always raised when attaching to a process, and then running a process from the debugger (right after process initialization is complete).                     |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **is_first_chance**               | Exceptions.                                   | If *True*, the exception hasn't been passed yet to the exception handlers of the debuggee. If *False*, the exception was passed to the exception handlers but none of them could handle it.       |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **is_nested**                     | Exceptions.                                   | If *True*, the exception was raised when handing at least one more exception.                                                                                                                     |
+    |                                   |                                               | Many exceptions can be nested that way. Call **get_nexted_exceptions** to get a list of those nested exceptions.                                                                                  |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **get_fault_address**             | Exceptions caused by invalid memory access.   | Returns the memory address where the invalid access has occurred.                                                                                                                                 |
+    +-----------------------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. only:: latex
+
+     * **get_filename**:
+        Returns the filename of the EXE or DLL.
+
+        **Applicable events:** Process creation and destruction, DLL library load and unload.
+
+     * **get_exit_code**:
+        Returns the exit code of the process or thread.
+
+        **Applicable events:** Process and thread destruction.
+
+     * **get_exception_name**:
+        Returns the Win32 API constant name for the exception code.
+
+        **Applicable events:** Exceptions.
+
+     * **get_exception_code**:
+        Returns the Win32 API constant value for the exception code.
+
+        **Applicable events:** Exceptions.
+
+     * **get_exception_address**:
+        Returns the memory address where the exception has occurred.
+
+        For exceptions not involving memory operations, the current execution pointer is returned.
+
+        **Applicable events:** Exceptions.
+
+     * **is_system_defined_exception**:
+        Returns *True* if the exception was caused by the operating system rather than the application code.
+
+        Most notably, one such exception is always raised when attaching to a process, and then running a process from the debugger (right after process initialization is complete).
+
+        **Applicable events:** Exceptions.
+
+     * **is_first_chance**:
+        If *True*, the exception hasn't been passed yet to the exception handlers of the debuggee.
+
+        If *False*, the exception was passed to the exception handlers but none of them could handle it.
+
+        **Applicable events:** Exceptions.
+
+     * *is_nested**:
+        If *True*, the exception was raised when handing at least one more exception.
+
+        Many exceptions can be nested that way. Call **get_nexted_exceptions** to get a list of those nested exceptions.
+
+        **Applicable events:** Exceptions.
+
+     * **get_fault_address**:
+        Returns the memory address where the invalid access has occurred.
+
+        **Applicable events:** Exceptions caused by invalid memory access.
 
 Example #6: handling debug events
 +++++++++++++++++++++++++++++++++
@@ -142,6 +217,8 @@ The Crash and CrashDAO classes
 Crashes are exceptions a program can't recover from (also known as second-chance exceptions or last chance exceptions). A **crash dump** is a collection of information from a crash in a program that can (hopefully!) help you reproduce or fix the bug that caused it in the first place.
 
 **WinAppDbg** provides the *Crash* class to generate and manipulate crash dumps. When instancing a *Crash* object only the most basic information is collected, you have to call the *fetch_extra_data* method to collect more data. This lets you control which information to gather and when - for example you may be interested in gathering more information only under certain conditions, or for certain kinds of exceptions.
+
+*Crash* objects also support :ref:`heuristic signatures <signature>` that can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
 
 Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard `pickle <http://docs.python.org/2/library/pickle.html>`_ module, or similar modules like `cerealizer <http://home.gna.org/oomadness/en/cerealizer/index.html>`_. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
 
@@ -169,43 +246,129 @@ Instead of a function, you can define a subclass of *EventHandler* where each me
 
 These are the most important event notification methods:
 
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *Notification name* | *What does it mean?*                                  | *When is it received*                                                                                                                                      |
-+=====================+=======================================================+============================================================================================================================================================+
-| **create_process**  | The debugger has attached to a new process.           | When attaching to a process, when starting a new process for debugging, or when the debugee starts a new process and the *bFollow* flag was set to *True*. |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **exit_process**    | A debugee process has finished executing.             | When a process terminates by itself or when the *Process.kill* method is called.                                                                           |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **create_thread**   | A debugee process has started a new thread.           | When the process creates a new thread or when the _Process.start_thread_ method is called.                                                                 |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **exit_thread**     | A thread in a debugee process has finished executing. | When a thread terminates by itself or when the *Thread.kill* method is called.                                                                             |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **load_dll**        | A module in a debugee process was loaded.             | When a process loads a DLL module by itself or when the *Process.inject_dll* method is called.                                                             |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **unload_dll**      | A module in a debugee process was unloaded.           | When a process unloads a DLL module by itself.                                                                                                             |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **exception**       | An exception was raised by the debugee.               | When a hardware fault is triggered or when the process calls `RaiseException() <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>`_.           |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **output_string**   | The debuggee has sent a debug string.                 | When the process calls `OutputDebugString() <http://msdn.microsoft.com/en-us/library/windows/desktop/aa363362(v=vs.85).aspx>`_.                            |
-+---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+.. only:: html
+
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Notification name   | What does it mean?                                    | When is it received?                                                                                                                                       |
+    +=====================+=======================================================+============================================================================================================================================================+
+    | **create_process**  | The debugger has attached to a new process.           | When attaching to a process, when starting a new process for debugging, or when the debugee starts a new process and the *bFollow* flag was set to *True*. |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **exit_process**    | A debugee process has finished executing.             | When a process terminates by itself or when the *Process.kill* method is called.                                                                           |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **create_thread**   | A debugee process has started a new thread.           | When the process creates a new thread or when the *Process.start_thread* method is called.                                                                 |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **exit_thread**     | A thread in a debugee process has finished executing. | When a thread terminates by itself or when the *Thread.kill* method is called.                                                                             |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **load_dll**        | A module in a debugee process was loaded.             | When a process loads a DLL module by itself or when the *Process.inject_dll* method is called.                                                             |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **unload_dll**      | A module in a debugee process was unloaded.           | When a process unloads a DLL module by itself.                                                                                                             |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **exception**       | An exception was raised by the debugee.               | When a hardware fault is triggered or when the process calls `RaiseException() <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>`_.           |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **output_string**   | The debuggee has sent a debug string.                 | When the process calls `OutputDebugString() <http://msdn.microsoft.com/en-us/library/windows/desktop/aa363362(v=vs.85).aspx>`_.                            |
+    +---------------------+-------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. only:: latex
+
+     * **create_process**:
+
+        *What does it mean?*: The debugger has attached to a new process.
+
+        *When is it received?*: When attaching to a process, when starting a new process for debugging, or when the debugee starts a new process and the *bFollow* flag was set to *True*.
+
+     * **exit_process**:
+
+        *What does it mean?*: A debugee process has finished executing.
+
+        *When is it received?*: When a process terminates by itself or when the *Process.kill* method is called.
+
+     * **create_thread**:
+
+        *What does it mean?*: A debugee process has started a new thread.
+
+        *When is it received?*: When the process creates a new thread or when the *Process.start_thread* method is called.
+
+     * **exit_thread**:
+
+        *What does it mean?*: A thread in a debugee process has finished executing.
+
+        *When is it received?*: When a thread terminates by itself or when the *Thread.kill* method is called.
+
+     * **load_dll**:
+
+        *What does it mean?*: A module in a debugee process was loaded.
+
+        *When is it received?*: When a process loads a DLL module by itself or when the *Process.inject_dll* method is called.
+
+     * **unload_dll**:
+
+        *What does it mean?*: A module in a debugee process was unloaded.
+
+        *When is it received?*: When a process unloads a DLL module by itself.
+
+     * **exception**:
+
+        *What does it mean?*: An exception was raised by the debugee.
+
+        *When is it received?*: When a hardware fault is triggered or when the process calls `RaiseException() <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>`_.
+
+     * **output_string**:
+
+        *What does it mean?*: The debuggee has sent a debug string.
+
+        *When is it received?*: When the process calls `OutputDebugString() <http://msdn.microsoft.com/en-us/library/windows/desktop/aa363362(v=vs.85).aspx>`_.
 
 The event handler can also receive notifications for specific exceptions as a different event. When you define the method for that exception, it takes precedence over the more generic *exception* method.
 
 These are the most important exception notification methods:
 
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| *Notification name*  | *What does it mean?*                                     | *When is it received*                                                                                                                                                                                                                                                                   |
-+======================+==========================================================+=========================================================================================================================================================================================================================================================================================+
-| **access_violation** | An access violation exception was raised by the debugee. | When the debuggee tries to access invalid memory.                                                                                                                                                                                                                                       |
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **ms_vc_exception**  | A C++ exception was raised by the debugee.               | When the debuggee calls RaiseException() with a custom exception code. This is what the implementation of throw() of the Visual Studio runtime does.                                                                                                                                    |
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **breakpoint**       | A breakpoint exception was raised by the debugee.        | When a hardware fault is triggered by the `int3 opcode <http://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered. |
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **single_step**      | A single step exception was raised by the debugee.       | When a hardware fault is triggered by the `trap flag <http://maven.smith.edu/~thiebaut/ArtOfAssembly/CH17/CH17-2.html#HEADING2-10>`_ or the `icebp opcode <http://www.rcollins.org/secrets/opcodes/ICEBP.html>`_, or when a hardware breakpoint set by your program is triggered.       |
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| **guard_page**       | A guard page exception was raised by the debugee.        | When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.                                                                                                                                  |
-+----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+.. only:: html
+
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Notification name    | What does it mean?                                       | When is it received                                                                                                                                                                                                                                                                     |
+    +======================+==========================================================+=========================================================================================================================================================================================================================================================================================+
+    | **access_violation** | An access violation exception was raised by the debugee. | When the debuggee tries to access invalid memory.                                                                                                                                                                                                                                       |
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **ms_vc_exception**  | A C++ exception was raised by the debugee.               | When the debuggee calls RaiseException() with a custom exception code. This is what the implementation of throw() of the Visual Studio runtime does.                                                                                                                                    |
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **breakpoint**       | A breakpoint exception was raised by the debugee.        | When a hardware fault is triggered by the `int3 opcode <http://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered. |
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **single_step**      | A single step exception was raised by the debugee.       | When a hardware fault is triggered by the `trap flag <http://maven.smith.edu/~thiebaut/ArtOfAssembly/CH17/CH17-2.html#HEADING2-10>`_ or the `icebp opcode <http://www.rcollins.org/secrets/opcodes/ICEBP.html>`_, or when a hardware breakpoint set by your program is triggered.       |
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | **guard_page**       | A guard page exception was raised by the debugee.        | When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.                                                                                                                                  |
+    +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. only:: latex
+
+    **access_violation**:
+
+        *What does it mean?*: An access violation exception was raised by the debugee.
+
+        *When is it received?*: When the debuggee tries to access invalid memory.
+
+    **ms_vc_exception**:
+
+        *What does it mean?*: A C++ exception was raised by the debugee.
+
+        *When is it received?*: When the debuggee calls RaiseException() with a custom exception code. This is what the implementation of throw() of the Visual Studio runtime does.
+
+    **breakpoint**:
+
+        *What does it mean?*: A breakpoint exception was raised by the debugee.
+
+        *When is it received?*: When a hardware fault is triggered by the `int3 opcode <http://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered.
+
+    **single_step**:
+
+        *What does it mean?*: A single step exception was raised by the debugee.
+
+        *When is it received?*: When a hardware fault is triggered by the `trap flag <http://maven.smith.edu/~thiebaut/ArtOfAssembly/CH17/CH17-2.html#HEADING2-10>`_ or the `icebp opcode <http://www.rcollins.org/secrets/opcodes/ICEBP.html>`_, or when a hardware breakpoint set by your program is triggered.
+
+    **guard_page**:
+
+        *What does it mean?*: A guard page exception was raised by the debugee.
+
+        *When is it received?*: When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.
 
 In addition to all this, the *EventHandler* class provides a simple method for API hooking: the **apiHooks** class property. This property is a dictionary of tuples, specifying which API calls to hook on what DLL libraries, and what parameters does each call take (using ctypes definitions). That's it! The *EventHandler* class will automatically hooks this APIs for you when the corresponding library is loaded, and a method of your subclass will be called when entering and leaving the API function.
 
@@ -266,17 +429,17 @@ Finally, the **watch_buffer** method sets a page breakpoint at the given address
 
 The stalking methods and their equivalents are the following:
 
-+--------------------+-----------------+
-| *Stalking method*  | *Equivalent to* |
-+====================+=================+
-| **stalk_at**       | break_at        |
-+--------------------+-----------------+
-| **stalk_function** | hook_function   |
-+--------------------+-----------------+
-| **stalk_variable** | watch_variable  |
-+--------------------+-----------------+
-| **stalk_buffer**   | watch_buffer    |
-+--------------------+-----------------+
++--------------------+------------------+
+| Stalking method    | Equivalent to    |
++====================+==================+
+| *stalk_at*         | *break_at*       |
++--------------------+------------------+
+| *stalk_function*   | *hook_function*  |
++--------------------+------------------+
+| *stalk_variable*   | *watch_variable* |
++--------------------+------------------+
+| *stalk_buffer*     | *watch_buffer*   |
++--------------------+------------------+
 
 Example #11: setting a breakpoint
 +++++++++++++++++++++++++++++++++

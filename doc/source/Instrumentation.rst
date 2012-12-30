@@ -3,11 +3,11 @@
 Instrumentation
 ***************
 
-You can implement process instrumentation in your Python scripts by using the provided set of classes: :ref:`System <the-system-class>`, :ref:`Process <the-process-class>`, :ref:`Thread <the-thread-class>` and :ref:`Module <the-module-class>`. Each one acts as a snapshot of the processes, threads and DLL modules in the system.
+You can implement process instrumentation in your Python scripts by using the provided set of classes: :ref:`System <the-system-class>`, :ref:`Process <the-process-class>`, :ref:`Thread <the-thread-class>`, :ref:`Module <the-module-class>` and :ref:`Window <the-window-class>`. Each one acts as a snapshot of the processes, threads and DLL modules in the system.
 
-A *System* object is a snapshot of all running processes. It contains *Process* objects, which in turn are snapshots of threads and modules, containing *Thread* and *Module* objects.
+A **System** object is a snapshot of all running processes. It contains **Process** objects, which in turn are snapshots of threads and modules, containing **Thread** and **Module** objects.
 
-*System* objects also contain *Windows* objects, representing the windows in the current desktop.
+*System* objects also contain **Window** objects, representing the windows in the current desktop.
 
 .. note::
 
@@ -18,7 +18,7 @@ A *System* object is a snapshot of all running processes. It contains *Process* 
 The System class
 ----------------
 
-The *System* class groups functionality that lets you instrument some global aspects of the machine where you installed **WinAppDbg**. It also behaves like a snapshot of the running processes. It can enumerate processes and perform operations on a batch of processes.
+The **System** class groups functionality that lets you instrument some global aspects of the machine where you installed *WinAppDbg*. It also behaves like a snapshot of the running processes. It can enumerate processes and perform operations on a batch of processes.
 
 Example #1: knowing on which platform we're running
 +++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -54,7 +54,7 @@ The *System* class has many more features, so we'll be coming back to it later o
 The Process class
 -----------------
 
-The *Process* class lets you manipulate any process in the system. You can get a *Process* instance by enumerating a *System* snapshot, or instancing one directly by providing the process ID.
+The **Process** class lets you manipulate any process in the system. You can get a *Process* instance by enumerating a *System* snapshot, or instancing one directly by providing the process ID.
 
 A *Process* object allows you to manipulate the process memory (read, write, allocate and free operations), create new threads in the process, and more. It also acts as a snapshot of it's threads and DLL modules.
 
@@ -144,7 +144,7 @@ Example #12: dumping ASCII strings from the process memory
 The Thread class
 ----------------
 
-A *Thread* object lets you manipulate any thread in any process in the system. You can get a *Thread* instance by enumerating a *Process* snapshot, or instancing one manually by providing the thread ID.
+A **Thread** object lets you manipulate any thread in any process in the system. You can get a *Thread* instance by enumerating a *Process* snapshot, or instancing one manually by providing the thread ID.
 
 You can manipulate the thread context (read and write to it's registers), perform typical debugger operations (getting stack traces, etc), suspend and resume execution, and more.
 
@@ -180,7 +180,7 @@ Example #15: print a thread's code disassembly
 The Module class
 ----------------
 
-A *Module* object lets you manipulate any thread in any process in the system. You can get a *Module* instance by enumerating a *Process* snapshot. *Module* objects can be used to resolve the addresses of exported functions in the process address space.
+A **Module** object lets you manipulate any thread in any process in the system. You can get a *Module* instance by enumerating a *Process* snapshot. *Module* objects can be used to resolve the addresses of exported functions in the process address space.
 
 Example #16: resolve an API function in a process
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -194,7 +194,7 @@ Example #16: resolve an API function in a process
 The Window class
 ----------------
 
-A *Window* object lets you manipulate any window in the current desktop. You can get a *Window* instance by querying a *System* object.
+A **Window** object lets you manipulate any window in the current desktop. You can get a *Window* instance by querying a *System* object.
 
 Example #17: enumerate the top-level windows
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -250,7 +250,7 @@ Example #22: kill a program using its window
 Back to the System class
 ------------------------
 
-As promised, we're back on the *System* class to see more of its features. We'll now see how to access the Windows Registry and work with system services.
+As promised, we're back on the **System** class to see more of its features. We'll now see how to access the Windows Registry and work with system services.
 
 Example #23: exporting a Registry key
 +++++++++++++++++++++++++++++++++++++
@@ -268,7 +268,7 @@ Example #24: searching the Registry
 
 .. literalinclude:: ../../examples/instrumentation/24_registry_search.py
    :start-after: $Id
-   :end-before: # ...
+   :end-before: # When invoked from the command line,
 
 Example #25: listing system services
 ++++++++++++++++++++++++++++++++++++
