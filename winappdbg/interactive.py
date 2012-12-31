@@ -536,7 +536,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         tid   = event.get_tid()
         start = event.get_start_address()
         if start:
-            start = event.get_process().get_label_at_address(start)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                start = event.get_process().get_label_at_address(start)
             print "Started thread %d at %s" % (tid, start)
         else:
             print "Attached to thread %d" % tid
