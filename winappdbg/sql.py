@@ -52,6 +52,7 @@ from sqlalchemy.orm import sessionmaker, deferred
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
                              LargeBinary, Enum, VARCHAR
+from sqlalchemy.sql.expression import asc, desc
 
 from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
 from textio import CrashDump
@@ -873,19 +874,19 @@ class CrashDAO (BaseDAO):
             query = query.filter(CrashDTO.timestamp >= since)
         if until:
             query = query.filter(CrashDTO.timestamp < until)
+        if order:
+            if order > 0:
+                query = query.order_by(asc(CrashDTO.timestamp))
+            else:
+                query = query.order_by(desc(CrashDTO.timestamp))
+        else:
+            # Default ordering is by row ID, to get consistent results.
+            # Also some database engines require ordering when using offsets.
+            query = query.order_by(asc(CrashDTO.id))
         if offset:
             query = query.offset(offset)
         if limit:
             query = query.limit(limit)
-        if order:
-            if order > 0:
-                query = query.asc(CrashDTO.timestamp)
-            else:
-                query = query.desc(CrashDTO.timestamp)
-        else:
-            # Default ordering is by row ID, to get consistent results.
-            # Also some database engines require ordering when using offsets.
-            query = query.asc(CrashDTO.id)
 
         # Execute the SQL query and convert the results.
         try:
