@@ -45,7 +45,7 @@ def main():
     print "by Mario Vilas (mvilas at gmail.com)"
     print
 
-    if len(sys.argv) not in (1, 2):
+    if len(sys.argv) != 2:
         script = os.path.basename(sys.argv[0])
         print "  %s <pid>" % script
         print "  %s <process.exe>" % script
