@@ -148,6 +148,7 @@ def main(argv):
         filenames[pid] = fileName
 
     # Get the window captions if requested.
+    # TODO: show window handles too if possible
     captions = dict()
     if options.windows:
         for w in s.get_windows():
