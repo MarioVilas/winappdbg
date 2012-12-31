@@ -1014,15 +1014,14 @@ class CrashLogger (object):
         print winappdbg.version
         print
 
+        # TODO: use optparse for this!
+        # TODO: move crash_report.py here
+        # TODO: implement a GUI
+
         try:
 
             # Help message
             if len(args) >= 2 and args[1].strip().lower() in ('-h', '--help', '/?'):
-                self.show_help_banner()
-
-            # GUI mode
-            elif len(args) == 0:
-                # XXX TODO
                 self.show_help_banner()
 
             # Debugger mode
