@@ -86,7 +86,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
         get_command_line_block,
-        get_environment_block, get_environment_data, parse_environment_data,
+        get_environment_block, get_environment_variables,
         get_handle, open_handle, close_handle
 
     @group Instrumentation:
@@ -131,6 +131,9 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__
+
+    @group Deprecated:
+        get_environment_data, parse_environment_data
 
     @type dwProcessId: int
     @ivar dwProcessId: Global process ID. Use L{get_pid} instead.
@@ -1050,12 +1053,105 @@ class Process (_ThreadContainer, _ModuleContainer):
                                                             fUnicode=True)
         gst = win32.GuessStringType
         if gst.t_default == gst.t_ansi:
-            CommandLine = CommandLine.encode('latin-1')
+            CommandLine = CommandLine.encode('cp1252')
         return CommandLine
+
+    def get_environment_variables(self):
+        """
+        Retrieves the environment variables with wich the program is running.
+
+        @rtype:  list of tuple(unicode, unicode)
+        @return: Environment keys and values as found in the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+
+        # Note: the first bytes are garbage and must be skipped. Then the first
+        # two environment entries are the current drive and directory as key
+        # and value pairs, followed by the ExitCode variable (it's what batch
+        # files know as "errorlevel"). After that, the real environment vars
+        # are there in alphabetical order. In theory that's where it stops,
+        # but I've always seen one more "variable" tucked at the end which
+        # may be another environment block but in ANSI. I haven't examined it
+        # yet, I'm just skipping it because if it's parsed as Unicode it just
+        # renders garbage.
+
+        # Read the environment block contents.
+        data = self.peek( *self.get_environment_block() )
+
+        # Put them into a Unicode buffer.
+        tmp = ctypes.create_string_buffer(data)
+        buffer = ctypes.create_unicode_buffer(len(data))
+        ctypes.memmove(buffer, tmp, len(data))
+        del tmp
+
+        # Skip until the first Unicode null char is found.
+        pos = 0
+        while buffer[pos] != u'\0':
+            pos += 1
+        pos += 1
+
+        # Loop for each environment variable...
+        environment = []
+        while buffer[pos] != u'\0':
+
+            # Until we find a null char...
+            env_name_pos = pos
+            env_name = u''
+            found_name = False
+            while buffer[pos] != u'\0':
+
+                # Get the current char.
+                char = buffer[pos]
+
+                # Is it an equal sign?
+                if char == u'=':
+
+                    # Skip leading equal signs.
+                    if env_name_pos == pos:
+                        env_name_pos += 1
+                        pos += 1
+                        continue
+
+                    # Otherwise we found the separator equal sign.
+                    pos += 1
+                    found_name = True
+                    break
+
+                # Add the char to the variable name.
+                env_name += char
+
+                # Next char.
+                pos += 1
+
+            # If the name was not parsed properly, stop.
+            if not found_name:
+                break
+
+            # Read the variable value until we find a null char.
+            env_value = u''
+            while buffer[pos] != u'\0':
+                env_value += buffer[pos]
+                pos += 1
+
+            # Skip the null char.
+            pos += 1
+
+            # Add to the list of environment variables found.
+            environment.append( (env_name, env_value) )
+
+        # Remove the last entry, it's garbage.
+        if environment:
+            environment.pop()
+
+        # Return the environment variables.
+        return environment
 
     def get_environment_data(self, fUnicode = None):
         """
         Retrieves the environment block data with wich the program is running.
+
+        @warn: Deprecated since WinAppDbg 1.5.
 
         @see: L{win32.GuessStringType}
 
@@ -1071,29 +1167,22 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: On error an exception is raised.
         """
 
-        # Read the environment block contents.
-        data = self.peek( *self.get_environment_block() )
+        # Issue a deprecation warning.
+        warnings.warn(
+            "Process.get_environment_data() is deprecated" \
+            " since WinAppDbg 1.5.",
+            DeprecationWarning)
 
-        # Parse the block into a list of Unicode strings.
-        block = list()
-        last = -1
-        while 1:
-            last = data.find('\0\0\0\0', last + 1)
-            if last < 0 or last & 1 == 0:
-                break
-        if last >= 0:
-            data = data[:last]
-        buf_a = ctypes.create_string_buffer(data)
-        buf_u = ctypes.create_unicode_buffer(len(data))
-        ctypes.memmove(buf_u, buf_a, len(data))
-        block = buf_u.value.split(u'\0')
+        # Get the environment variables.
+        block = [ key + u'=' + value for (key, value) \
+                                     in self.get_environment_variables() ]
 
         # Convert the data to ANSI if requested.
         if fUnicode is None:
             gst = win32.GuessStringType
             fUnicode = gst.t_default == gst.t_unicode
         if not fUnicode:
-            block = [x.encode('latin-1', 'replace') for x in block]
+            block = [x.encode('cp1252') for x in block]
 
         # Return the environment data.
         return block
@@ -1103,6 +1192,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Parse the environment block into a Python dictionary.
 
+        @warn: Deprecated since WinAppDbg 1.5.
+
         @note: Values of duplicated keys are joined using null characters.
 
         @type  block: list of str
@@ -1111,6 +1202,12 @@ class Process (_ThreadContainer, _ModuleContainer):
         @rtype:  dict(str S{->} str)
         @return: Dictionary of environment keys and values.
         """
+
+        # Issue a deprecation warning.
+        warnings.warn(
+            "Process.parse_environment_data() is deprecated" \
+            " since WinAppDbg 1.5.",
+            DeprecationWarning)
 
         # Create an empty environment dictionary.
         environment = dict()
@@ -1151,6 +1248,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         Retrieves the environment with wich the program is running.
 
         @note: Duplicated keys are joined using null characters.
+            To avoid this behavior, call L{get_environment_variables} instead
+            and convert the results to a dictionary directly, like this:
+            C{dict(process.get_environment_variables())}
 
         @see: L{win32.GuessStringType}
 
@@ -1164,9 +1264,28 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return self.parse_environment_data(
-            self.get_environment_data(fUnicode)
-        )
+
+        # Get the environment variables.
+        variables = self.get_environment_variables()
+
+        # Convert the strings to ANSI if requested.
+        if fUnicode is None:
+            gst = win32.GuessStringType
+            fUnicode = gst.t_default == gst.t_unicode
+        if not fUnicode:
+            variables = [ ( key.encode('cp1252'), value.encode('cp1252') ) \
+                        for (key, value) in variables ]
+
+        # Add the variables to a dictionary, concatenating duplicates.
+        environment = dict()
+        for key, value in variables:
+            if environment.has_key(key):
+                environment[key] = environment[key] + u'\0' + value
+            else:
+                environment[key] = value
+
+        # Return the dictionary.
+        return environment
 
 #------------------------------------------------------------------------------
 

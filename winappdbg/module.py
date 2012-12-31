@@ -339,7 +339,7 @@ class Module (object):
             modName = self.__filename_to_modname(pathname)
             if isinstance(modName, unicode):
                 try:
-                    modName = modName.encode('latin-1')
+                    modName = modName.encode('cp1252')
                 except UnicodeEncodeError, e:
                     warnings.warn(str(e))
         else:

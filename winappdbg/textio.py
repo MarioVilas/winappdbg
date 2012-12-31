@@ -1821,7 +1821,7 @@ class Logger(object):
         @param text: Text to print.
         """
         if isinstance(text, unicode):
-            text = text.encode('latin-1')
+            text = text.encode('cp1252')
         if self.verbose:
             print text
         if self.logfile:
