@@ -214,15 +214,20 @@ def parse_cmdline( argv ):
     tracing.add_option("--trace", action="store_const", const="trace",
                                                                dest="mode",
                       help="Set the single step mode [default]")
-    tracing.add_option("--branch", action="store_const", const="branch",
-                                                               dest="mode",
-                      help="Set the step-on-branch mode (doesn't work on virtual machines)")
-    tracing.add_option("--syscall", action="store_const", const="syscall",
-                                                               dest="mode",
-                      help="Set the syscall trap mode (requires Windows XP and above)")
-##    tracing.add_options("--module", action="append", metavar="MODULE",
+    if System.arch == win32.ARCH_I386:
+        tracing.add_option("--branch", action="store_const", const="branch",
+                                                                   dest="mode",
+                          help="Set the step-on-branch mode (doesn't work on virtual machines)")
+        tracing.add_option("--syscall", action="store_const", const="syscall",
+                                                                   dest="mode",
+                          help="Set the syscall trap mode")
+##    tracing.add_options("--module", action="append", metavar="MODULES",
 ##                                                            dest="modules",
-##                   help="only trace into the modules specified by this switch")
+##                   help="only trace into these modules (comma-separated)")
+##    debugging.add_option("--from-start", action="store_true",
+##                  help="start tracing when the process is created [default]")
+##    debugging.add_option("--from-entry", action="store_true",
+##                  help="start tracing when the entry point is reached")
     parser.add_option_group(tracing)
 
     # Debugging options
