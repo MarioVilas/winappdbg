@@ -8,6 +8,14 @@ Welcome to WinAppDbg |version|!
     Introduction
     ------------
 
+.. only:: html
+
+    .. image:: _images/screenshot.png
+       :width: 30%
+       :align: right
+       :target: Screenshots.html
+       :alt: Click for more screenshots
+
 The *WinAppDbg* python module allows developers to quickly code instrumentation scripts in **Python** under a **Windows** environment.
 
 It uses **ctypes** to wrap many `Win32 API <http://msdn.microsoft.com/en-us/library/ms679304(VS.85).aspx>`_ calls related to debugging, and provides a powerful abstraction layer to manipulate threads, libraries and processes, attach your script as a debugger, trace execution, hook API calls, handle events in your debugee and set breakpoints of different kinds (code, hardware and memory). Additionally it has no native code at all, making it easier to maintain or modify than other debuggers on Windows.
