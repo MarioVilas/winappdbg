@@ -84,7 +84,6 @@ if "%1"=="all" goto All
 if "%1"=="clean" goto Clean
 if "%1"=="source" goto Source
 if "%1"=="wininst" goto WinInst
-if "%1"=="portable" goto Portable
 if "%1"=="autodoc" goto Autodoc
 if "%1"=="manuals" goto Manuals
 echo Error: Unknown command: %1
@@ -100,13 +99,12 @@ echo.
 echo Packages:
 echo    distro source           Build the source distribution packages
 echo    distro wininst          Build the Windows installer packages
-:: echo    distro portable         Build the portable packages
 echo    distro autodoc          Build the reference docs
 echo    distro manuals          Build the manuals
 goto Exit
 
 :All
-call %BatchFile% source portable wininst autodoc manuals
+call %BatchFile% source wininst autodoc manuals
 goto Next
 
 
@@ -152,15 +150,6 @@ echo ---------------------------------------------------------------------------
 %PYTHON_x86% setup.py bdist_msi
 %PYTHON_x64% setup.py bdist_msi
 
-goto Next
-
-
-
-:Portable
-echo -------------------------------------------------------------------------------
-echo Building portable packages...
-echo -------------------------------------------------------------------------------
-echo TODO Portable
 goto Next
 
 
