@@ -41,7 +41,7 @@ from struct import pack
 from winappdbg import System, Process, HexDump
 
 # Iterator of alphanumeric executable addresses.
-def iterate_alnum_jump_addresses(memory_snapshot):
+def iterate_alnum_jump_addresses(process):
 
     # Determine the size of a pointer in the current architecture.
     if System.bits == 32:
@@ -52,20 +52,26 @@ def iterate_alnum_jump_addresses(memory_snapshot):
     else:
         raise NotImplementedError
 
+    # Get an iterator for the target process memory.
+    iterator = process.generate_memory_snapshot()
+
     # Iterate the memory regions of the target process.
-    for mbi in memory_snapshot:
+    for mbi in iterator:
 
         # Discard non executable memory.
         if not mbi.is_executable():
             continue
 
+        # Get the module that owns this memory region, if any.
+        address = mbi.BaseAddress
+        module  = process.get_module_at_address(address)
+
         # Yield each alphanumeric address in this memory region.
-        address     = mbi.BaseAddress
         max_address = address + mbi.RegionSize
         while address < max_address:
             packed = pack(fmt, address)
             if packed.isalnum():
-                yield address, packed
+                yield address, packed, module
             address = address + 1
 
 # Iterate and print alphanumeric executable addresses.
@@ -79,15 +85,18 @@ def print_alnum_jump_addresses(pid):
     process.suspend()
     try:
 
-        # Get an iterator for the target process memory.
-        iterator = process.generate_memory_snapshot()
-
         # For each executable alphanumeric address...
-        for address, packed in iterate_alnum_jump_addresses(iterator):
+        for address, packed, module in iterate_alnum_jump_addresses(process):
 
             # Format the address for printing.
             numeric = HexDump.address(address, process.get_bits())
             ascii   = repr(packed)
+
+            # Format the module name for printing.
+            if module:
+                modname = module.get_name()
+            else:
+                modname = ""
 
             # Try to disassemble the code at this location.
             try:
@@ -96,7 +105,7 @@ def print_alnum_jump_addresses(pid):
                 code = ""
 
             # Print it.
-            print numeric, ascii, code
+            print numeric, ascii, modname, code
 
     # Resume the process when we're done.
     # This is inside a "finally" block, so if the program is interrupted
