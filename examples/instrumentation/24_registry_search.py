@@ -87,21 +87,24 @@ def reg_search( search ):
 # Helper function to print text with a highlighted search string.
 def highlight( search, text ):
     if can_highlight:
-        Color.default()
-        p = 0
-        t = len( text )
-        s = len( search )
-        while p < t:
-            q = text.find( search )
-            if q < p:
-                q = t
-            sys.stdout.write( text[ p : q ] )
-            Color.red()
-            Color.bright()
-            sys.stdout.write( text[ q : q + s ] )
+        try:
             Color.default()
-            sys.stdout.write("\r\n")
-            p = q + s
+            p = 0
+            t = len( text )
+            s = len( search )
+            while p < t:
+                q = text.find( search )
+                if q < p:
+                    q = t
+                sys.stdout.write( text[ p : q ] )
+                Color.red()
+                Color.light()
+                sys.stdout.write( text[ q : q + s ] )
+                Color.default()
+                sys.stdout.write("\r\n")
+                p = q + s
+        finally:
+            Color.default()
     else:
         print text
 
