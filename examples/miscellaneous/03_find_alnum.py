@@ -82,9 +82,21 @@ def print_alnum_jump_addresses(pid):
         # Get an iterator for the target process memory.
         iterator = process.generate_memory_snapshot()
 
-        # Print each executable alphanumeric address.
+        # For each executable alphanumeric address...
         for address, packed in iterate_alnum_jump_addresses(iterator):
-            print HexDump.address(address, process.get_bits()), repr(packed)
+
+            # Format the address for printing.
+            numeric = HexDump.address(address, process.get_bits())
+            ascii   = repr(packed)
+
+            # Try to disassemble the code at this location.
+            try:
+                code = process.disassemble(address, 16)[0][2]
+            except NotImplementedError:
+                code = ""
+
+            # Print it.
+            print numeric, ascii, code
 
     # Resume the process when we're done.
     # This is inside a "finally" block, so if the program is interrupted
