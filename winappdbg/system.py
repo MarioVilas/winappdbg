@@ -35,6 +35,8 @@ System settings.
     System
 """
 
+from __future__ import with_statement
+
 __revision__ = "$Id$"
 
 __all__ = ['System']
