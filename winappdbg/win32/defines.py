@@ -697,8 +697,7 @@ class GUID(Structure):
 #     struct _LIST_ENTRY *Blink;
 # } LIST_ENTRY, *PLIST_ENTRY, *RESTRICTED_POINTER PRLIST_ENTRY;
 class LIST_ENTRY(Structure):
-    pass
-LIST_ENTRY._fields_ = [
+    _fields_ = [
         ("Flink",   PVOID),     # POINTER(LIST_ENTRY)
         ("Blink",   PVOID),     # POINTER(LIST_ENTRY)
 ]
