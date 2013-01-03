@@ -2044,7 +2044,7 @@ class _ThreadContainer (object):
         Private method to test for a thread in the snapshot without triggering
         an automatic scan.
         """
-        return self.__threadDict.has_key(dwThreadId)
+        return dwThreadId in self.__threadDict
 
     def _get_thread_ids(self):
         """

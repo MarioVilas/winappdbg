@@ -1057,7 +1057,7 @@ class _ModuleContainer (object):
                     fileName = PathOperations.native_to_win32_pathname(fileName)
                 found_bases.add(lpBaseAddress)
 ##                if not self.has_module(lpBaseAddress): # XXX triggers a scan
-                if not self.__moduleDict.has_key(lpBaseAddress):
+                if lpBaseAddress not in self.__moduleDict:
                     aModule = Module(lpBaseAddress, fileName = fileName,
                                            SizeOfImage = me.modBaseSize,
                                            process = self)
@@ -1918,7 +1918,7 @@ When called as an instance method, the fuzzy syntax mode is used::
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
 ##        if not self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
-        if not self.__moduleDict.has_key(lpBaseOfDll):
+        if lpBaseOfDll not in self.__moduleDict:
             fileName = event.get_filename()
             if not fileName:
                 fileName = None
@@ -1992,6 +1992,6 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         lpBaseOfDll = event.get_module_base()
 ##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan
-        if self.__moduleDict.has_key(lpBaseOfDll):
+        if lpBaseOfDll in self.__moduleDict:
             self._del_module(lpBaseOfDll)
         return True

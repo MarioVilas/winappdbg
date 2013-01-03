@@ -1278,7 +1278,7 @@ class Hook (object):
         # I suppose this check will fail under some weird conditions...
         #
         tid = event.get_tid()
-        if not self.__paramStack.has_key(tid):
+        if tid not in self.__paramStack:
             return True
 
         # Remove the code breakpoint at the return address.
@@ -3743,7 +3743,7 @@ class _BreakpointContainer (object):
                 except KeyError:
                     deferred = dict()
                     self.__deferredBP[pid] = deferred
-                if deferred.has_key(label):
+                if label in deferred:
                     msg = "Redefined deferred code breakpoint at %s in process ID %d"
                     msg = msg % (label, pid)
                     warnings.warn(msg, BreakpointWarning)
@@ -4578,11 +4578,11 @@ class _BreakpointContainer (object):
         else:
             argv = list(argv)
             argv.insert(0, bw)
-            if argd.has_key('pid'):
+            if 'pid' in argd:
                 argv.insert(0, argd.pop('pid'))
-            if argd.has_key('address'):
+            if 'address' in argd:
                 argv.insert(1, argd.pop('address'))
-            if argd.has_key('size'):
+            if 'size' in argd:
                 argv.insert(2, argd.pop('size'))
             if argd:
                 raise TypeError("Wrong arguments for dont_watch_buffer()")

@@ -437,14 +437,15 @@ class ConsoleDebugger (Cmd, EventHandler):
         ctx = thread.get_context()
 
         token = token.lower()
+        title = token.title()
 
-        if ctx.has_key( token.title() ):
-            return ctx.get( token.title() )     # eax -> Eax
+        if title in ctx:
+            return ctx.get(title)   # eax -> Eax
 
         if ctx.arch == 'i386':
 
             if token in self.segment_names:
-                return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
+                return ctx.get( 'Seg%s' % title )   # cs -> SegCs
 
             if token in self.register_alias_32_to_16.keys():
                 return ctx.get( self.register_alias_32_to_16[token] ) & 0xFFFF
@@ -458,7 +459,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         elif ctx.arch == 'amd64':
 
             if token in self.segment_names:
-                return ctx.get( 'Seg%s' % token.title() )   # cs -> SegCs
+                return ctx.get( 'Seg%s' % title )   # cs -> SegCs
 
             if token in self.register_alias_64_to_32.keys():
                 return ctx.get( self.register_alias_64_to_32[token] ) & 0xFFFFFFFF

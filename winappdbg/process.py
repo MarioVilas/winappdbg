@@ -1235,7 +1235,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
             # For duplicated keys, append the value.
             # Values are separated using null terminators.
-            if not environment.has_key(key):
+            if key not in environment:
                 environment[key] = value
             else:
                 environment[key] += terminator + value
@@ -1279,7 +1279,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Add the variables to a dictionary, concatenating duplicates.
         environment = dict()
         for key, value in variables:
-            if environment.has_key(key):
+            if key in environment:
                 environment[key] = environment[key] + u'\0' + value
             else:
                 environment[key] = value
@@ -4254,7 +4254,7 @@ class _ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-                    if not self.__processDict.has_key(dwProcessId):
+                    if dwProcessId not in self.__processDict:
                         aProcess = Process(dwProcessId, fileName=pe.szExeFile)
                         self._add_process(aProcess)
                     elif pe.szExeFile:
@@ -4270,7 +4270,7 @@ class _ProcessContainer (object):
                 if dwProcessId != our_pid:
                     if dwProcessId in dead_pids:
                         dead_pids.remove(dwProcessId)
-                    if self.__processDict.has_key(dwProcessId):
+                    if dwProcessId in self.__processDict:
                         aProcess = self.get_process(dwProcessId)
                     else:
                         aProcess = Process(dwProcessId)
@@ -4378,7 +4378,7 @@ class _ProcessContainer (object):
                 fileName = sProcessInfo.pProcessName
 
                 # If the process is new, add a new Process object.
-                if not self.__processDict.has_key(pid):
+                if pid not in self.__processDict:
                     aProcess = Process(pid, fileName = fileName)
                     self._add_process(aProcess)
 
@@ -4730,7 +4730,7 @@ class _ProcessContainer (object):
         dwThreadId  = event.get_tid()
         hProcess    = event.get_process_handle()
 ##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
-        if not self.__processDict.has_key(dwProcessId):
+        if dwProcessId not in self.__processDict:
             aProcess = Process(dwProcessId, hProcess)
             self._add_process(aProcess)
             aProcess.fileName = event.get_filename()
@@ -4759,6 +4759,6 @@ class _ProcessContainer (object):
         """
         dwProcessId = event.get_pid()
 ##        if self.has_process(dwProcessId): # XXX this would trigger a scan
-        if self.__processDict.has_key(dwProcessId):
+        if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True

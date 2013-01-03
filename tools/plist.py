@@ -191,7 +191,7 @@ def main(argv):
         table = Table()
         table.addRow(*headers)
         for pid in pid_list:
-            if filenames.has_key(pid):
+            if pid in filenames:
                 fileName = filenames[pid]
                 caplist = sorted( captions.get(pid, set()) )
                 srvlist = sorted( services.get(pid, set()) )
@@ -235,7 +235,7 @@ def main(argv):
         need_empty_row = False
         table = Table()
         for pid in pid_list:
-            if filenames.has_key(pid):
+            if pid in filenames:
                 if need_empty_row:
                     table.addRow()
                 else:
