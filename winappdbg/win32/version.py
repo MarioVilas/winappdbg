@@ -42,6 +42,33 @@ _all = None
 _all = set(vars().keys())
 #==============================================================================
 
+#--- NTDDI version ------------------------------------------------------------
+
+NTDDI_WIN8      = 0x06020000
+NTDDI_WIN7SP1   = 0x06010100
+NTDDI_WIN7      = 0x06010000
+NTDDI_WS08      = 0x06000100
+NTDDI_VISTASP1  = 0x06000100
+NTDDI_VISTA     = 0x06000000
+NTDDI_LONGHORN  = NTDDI_VISTA
+NTDDI_WS03SP2   = 0x05020200
+NTDDI_WS03SP1   = 0x05020100
+NTDDI_WS03      = 0x05020000
+NTDDI_WINXPSP3  = 0x05010300
+NTDDI_WINXPSP2  = 0x05010200
+NTDDI_WINXPSP1  = 0x05010100
+NTDDI_WINXP     = 0x05010000
+NTDDI_WIN2KSP4  = 0x05000400
+NTDDI_WIN2KSP3  = 0x05000300
+NTDDI_WIN2KSP2  = 0x05000200
+NTDDI_WIN2KSP1  = 0x05000100
+NTDDI_WIN2K     = 0x05000000
+NTDDI_WINNT4    = 0x04000000
+
+OSVERSION_MASK  = 0xFFFF0000
+SPVERSION_MASK  = 0x0000FF00
+SUBVERSION_MASK = 0x000000FF
+
 #--- OSVERSIONINFO and OSVERSIONINFOEX structures and constants ---------------
 
 VER_PLATFORM_WIN32s                 = 0
@@ -699,16 +726,21 @@ def _get_wow64():
             wow64 = False
     return wow64
 
-def _get_os():
+def _get_os(osvi = None):
     """
     Determines the current operating system.
 
     This function allows you to quickly tell apart major OS differences.
-    For more detailed information call L{kernel32.GetVersionEx} instead.
+    For more detailed information call L{GetVersionEx} instead.
 
     @note:
-        Wine reports itself as Windows XP 32 bits (even if the Linux host is 64 bits).
-        ReactOS reports itself as Windows 2000.
+        Wine reports itself as Windows XP 32 bits
+        (even if the Linux host is 64 bits).
+        ReactOS may report itself as Windows 2000 or Windows XP,
+        depending on the version of ReactOS.
+
+    @type  osvi: L{OSVERSIONINFOEX}
+    @param osvi: Optional. The return value from L{GetVersionEx}.
 
     @rtype: str
     @return:
@@ -732,7 +764,8 @@ def _get_os():
          - L{OS_W7_64} (C{"Windows 7 (64 bits)"})
     """
     # rough port of http://msdn.microsoft.com/en-us/library/ms724429%28VS.85%29.aspx
-    osvi = GetVersionExA()
+    if not osvi:
+        osvi = GetVersionEx()
     if osvi.dwPlatformId == VER_PLATFORM_WIN32_NT and osvi.dwMajorVersion > 4:
         if osvi.dwMajorVersion == 6:
             if osvi.dwMinorVersion == 0:
@@ -777,6 +810,34 @@ def _get_os():
             return 'Windows NT'
     return 'Unknown'
 
+def _get_ntddi(osvi):
+    """
+    Determines the current operating system.
+
+    This function allows you to quickly tell apart major OS differences.
+    For more detailed information call L{kernel32.GetVersionEx} instead.
+
+    @note:
+        Wine reports itself as Windows XP 32 bits
+        (even if the Linux host is 64 bits).
+        ReactOS may report itself as Windows 2000 or Windows XP,
+        depending on the version of ReactOS.
+
+    @type  osvi: L{OSVERSIONINFOEX}
+    @param osvi: Optional. The return value from L{kernel32.GetVersionEx}.
+
+    @rtype:  int
+    @return: NTDDI version number.
+    """
+    if not osvi:
+        osvi = GetVersionEx()
+    ntddi = 0
+    ntddi += (osvi.dwMajorVersion & 0xFF)    << 24
+    ntddi += (osvi.dwMinorVersion & 0xFF)    << 16
+    ntddi += (osvi.wServicePackMajor & 0xFF) << 8
+    ntddi += (osvi.wServicePackMinor & 0xFF)
+    return ntddi
+
 # The order of the following definitions DOES matter!
 
 # Current integer size in bits. See L{_get_bits} for more details.
@@ -788,8 +849,16 @@ arch = _get_arch()
 # Set to C{True} if the current process is running in WOW64. See L{_get_wow64} for more details.
 wow64 = _get_wow64()
 
+_osvi = GetVersionEx()
+
 # Current operating system. See L{_get_os} for more details.
-os = _get_os()
+os = _get_os(_osvi)
+
+# Current operating system as an NTDDI constant. See L{_get_ntddi} for more details.
+NTDDI_VERSION = _get_ntddi(_osvi)
+
+# Upper word of L{NTDDI_VERSION}, contains the OS major and minor version number.
+WINVER = NTDDI_VERSION >> 16
 
 #==============================================================================
 # This calculates the list of exported symbols.
