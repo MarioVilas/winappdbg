@@ -29,9 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Compatibility with Python 2.5.
+from __future__ import with_statement
+
 __revision__ = "$Id$"
 
 from winappdbg import HexDump
+
+# Compatibility with Python 2.6 and earlier.
+if hasattr(int, "bit_length"):
+    def bit_length(num):
+        return num.bit_length()
+else:
+    import math
+    def bit_length(num):
+        return int(math.log(num, 2))
 
 def main(argv):
     print "Hex dumper using WinAppDbg"
@@ -40,10 +52,23 @@ def main(argv):
     if len(argv) != 2:
         import os
         script = os.path.basename(argv[0])
-        print "  %s <filename>"
+        print "  %s <filename>" % script
         return
-    data = open(argv[1], 'rb').read()
-    print HexDump.hexblock(data, 0)
+    with open(argv[1], 'rb') as fd:
+        fd.seek(0, 2)
+        size = fd.tell()
+        fd.seek(0, 0)
+        if bit_length(size) > 32:
+            width = 8
+        else:
+            width = 16
+        address = 0
+        while 1:
+            data = fd.read(16)
+            if not data:
+                break
+            print HexDump.hexblock(data, address = address, width = width),
+            address = address + len(data)
 
 if __name__ == '__main__':
     import sys
