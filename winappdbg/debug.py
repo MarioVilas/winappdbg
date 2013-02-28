@@ -409,6 +409,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         try:
             aProcess = self.system.start_process(
                 lpCmdLine, dwParentProcessId = dwParentProcessId, **kwargs)
+            dwProcessId = aProcess.get_pid()
 
             # Match the system kill-on-exit flag to our own.
             self.__setSystemKillOnExitMode()
@@ -422,7 +423,6 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 warnings.warn(msg, MixedBitsWarning)
 
             # Add the new PID to the set of debugees.
-            dwProcessId = aProcess.get_pid()
             self.__startedDebugees.add(dwProcessId)
 
             # Add the new PID to the set of "break on EP" debugees if needed.
@@ -434,23 +434,23 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         # On error kill the new process and raise an exception.
         except:
-            try:
-                try:
-                    self.__startedDebugees.remove(dwProcessId)
-                except KeyError:
-                    pass
-            finally:
+            if aProcess is not None:
                 try:
                     try:
-                        self.__breakOnEP.remove(dwProcessId)
+                        self.__startedDebugees.remove(aProcess.get_pid())
                     except KeyError:
                         pass
                 finally:
                     try:
-                        if aProcess is not None:
+                        try:
+                            self.__breakOnEP.remove(aProcess.get_pid())
+                        except KeyError:
+                            pass
+                    finally:
+                        try:
                             aProcess.kill()
-                    except Exception:
-                        pass
+                        except Exception:
+                            pass
             raise
 
     def add_existing_session(self, dwProcessId, bStarted = False):
