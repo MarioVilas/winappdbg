@@ -309,6 +309,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
+        if type(argv) in (str, unicode):
+            raise TypeError("Debug.execv expects a list, not a string")
         lpCmdLine = self.system.argv_to_cmdline(argv)
         return self.execl(lpCmdLine, **kwargs)
 
@@ -363,6 +365,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
+        if type(argv) not in (str, unicode):
+            warnings.warn("Debug.execl expects a string")
 
         # Set the "debug" flag to True.
         kwargs['bDebug'] = True
