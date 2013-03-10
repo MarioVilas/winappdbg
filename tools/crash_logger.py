@@ -999,9 +999,9 @@ class CrashLogger (object):
 
     def _parse_boolean(self, value):
         value = value.strip().lower()
-        if value == 'true' or value == 'yes' or value == 'y' or value == '1':
+        if value == 'true' or value == 'yes' or value == 'y':
             return True
-        if value == 'false' or value == 'no' or value == 'n' or value == '0':
+        if value == 'false' or value == 'no' or value == 'n':
             return False
         return bool(int(value))
 
