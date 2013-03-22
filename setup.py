@@ -113,6 +113,7 @@ metadata = {
                         'Topic :: Security',
                         'Topic :: Software Development :: Debuggers',
                         'Topic :: Software Development :: Libraries :: Python Modules',
+                        'Topic :: Software Development :: Quality Assurance',
                         ],
     }
 
