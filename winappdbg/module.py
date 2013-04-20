@@ -1000,10 +1000,10 @@ class _ModuleContainer (object):
         """
         bases = self.get_module_bases()
         bases.sort()
-        bases.append(0x1000000000000000)    # max. 64 bit address + 1
+        bases.append(0x10000000000000000L)  # max. 64 bit address + 1
         if address >= bases[0]:
             i = 0
-            max_i = len(bases)
+            max_i = len(bases) - 1
             while i < max_i:
                 begin, end = bases[i:i+2]
                 if begin <= address < end:
