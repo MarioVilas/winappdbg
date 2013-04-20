@@ -365,7 +365,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if type(argv) not in (str, unicode):
+        if type(lpCmdLine) not in (str, unicode):
             warnings.warn("Debug.execl expects a string")
 
         # Set the "debug" flag to True.
@@ -373,7 +373,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         # Pop the "break on EP" and "parent pid" flags.
         bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
-        dwParentProcessId = kwargs.pop('dwParentProcessId', None)
+        dwParentProcessId  = kwargs.pop('dwParentProcessId',  None)
 
         # In hostile mode the default parent process is explorer.exe.
         # Only supported for Windows Vista and above.
