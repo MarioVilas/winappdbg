@@ -1381,7 +1381,7 @@ class CrashDump (StaticClass):
         for offset in pointers:
             dumped  = HexDump.hexline(data[offset], separator, width)
             address = HexDump.address(base + offset, bits)
-            result += '%s -> %s' % (address, dumped)
+            result += '%s -> %s\n' % (address, dumped)
         return result
 
     @staticmethod
