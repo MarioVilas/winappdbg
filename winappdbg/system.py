@@ -304,29 +304,59 @@ class System (_ProcessContainer):
 
         @raise WindowsError: An error occured while processing this request.
         """
+        # TO DO: Refactor this into a more generic approach.
+        #        Unfortunately, Microsoft started bundling WinDbg with the
+        #        platform SDK, so the install directories may vary across
+        #        versions and platforms.
         if not pathname:
             if win32.arch == win32.ARCH_AMD64:
                 if win32.wow64:
                     pathname = os.path.join(
-                                        os.getenv("ProgramFiles(x86)",
-                                            os.getenv("ProgramFiles")),
-                                        "Debugging Tools for Windows (x86)",
+                                        os.getenv("ProgramW6432"),
+                                        "Windows Kits",
+                                        "8.0",
+                                        "Debuggers",
+                                        "x86",
                                         "dbghelp.dll")
+                    if not os.path.exists(pathname):
+                        pathname = os.path.join(
+                                            os.getenv("ProgramFiles"),
+                                            "Debugging Tools for Windows (x86)",
+                                            "dbghelp.dll")
                 else:
                     pathname = os.path.join(
                                         os.getenv("ProgramFiles"),
-                                        "Debugging Tools for Windows (x64)",
+                                        "Windows Kits",
+                                        "8.0",
+                                        "Debuggers",
+                                        "x64",
                                         "dbghelp.dll")
+                    if not os.path.exists(pathname):
+                        pathname = os.path.join(
+                                            os.getenv("ProgramFiles"),
+                                            "Debugging Tools for Windows (x64)",
+                                            "dbghelp.dll")
             elif win32.arch == win32.ARCH_I386:
                 pathname = os.path.join(
                                     os.getenv("ProgramFiles"),
-                                    "Debugging Tools for Windows (x86)",
+                                    "Windows Kits",
+                                    "8.0",
+                                    "Debuggers",
+                                    "x86",
                                     "dbghelp.dll")
+                if not os.path.exists(pathname):
+                    pathname = os.path.join(
+                                        os.getenv("ProgramFiles"),
+                                        "Debugging Tools for Windows (x86)",
+                                        "dbghelp.dll")
             else:
                 msg = "Architecture %s is not currently supported."
                 raise NotImplementedError(msg  % win32.arch)
+        if not os.path.exists(pathname):
+            pathname = "dbghelp.dll"
         dbghelp = ctypes.windll.LoadLibrary(pathname)
         ctypes.windll.dbghelp = dbghelp
+        return dbghelp
 
     @staticmethod
     def fix_symbol_store_path(symbol_store_path = None,

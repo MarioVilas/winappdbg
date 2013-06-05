@@ -30,6 +30,8 @@
 
 "WinAppDbg test suite"
 
+import os
+import os.path
 import traceback
 
 def test(title, fn):
@@ -54,7 +56,19 @@ def test_disassembler_load():
 def test_sqlalchemy_load():
     from winappdbg import sql
 
+def test_windbg_version():
+    from winappdbg import System, win32
+    dbghelp = System.load_dbghelp()
+    pathname = win32.GetModuleFileNameEx(-1, dbghelp._handle)
+    sysroot = os.getenv("SystemRoot")
+    system = os.path.join(sysroot, "System32")
+    syswow = os.path.join(sysroot, "SysWoW64")
+    if (pathname.lower().startswith(system.lower()) or
+        pathname.lower().startswith(syswow.lower())
+    ):  raise RuntimeError("WinDbg not installed")
+
 if __name__ == '__main__':
     if test("module load", test_module_load):
         test("disassembler", test_disassembler_load)
         test("SQL support", test_sqlalchemy_load)
+        test("WinDbg integration", test_windbg_version)
