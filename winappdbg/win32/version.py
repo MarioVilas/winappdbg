@@ -823,7 +823,7 @@ def _get_ntddi(osvi):
         ReactOS may report itself as Windows 2000 or Windows XP,
         depending on the version of ReactOS.
 
-    @type  osvi: L{OSVERSIONINFOEX}
+    @type  osvi: L{OSVERSIONINFOEXA}
     @param osvi: Optional. The return value from L{kernel32.GetVersionEx}.
 
     @rtype:  int
