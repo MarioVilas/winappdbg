@@ -104,7 +104,7 @@ echo    distro manuals          Build the manuals
 goto Exit
 
 :All
-call %BatchFile% source wininst autodoc manuals
+call %BatchFile% source wininst manuals autodoc
 goto Next
 
 
