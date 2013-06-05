@@ -125,6 +125,7 @@ if exist pdf rmdir /s /q pdf
 if exist dist rmdir /s /q dist
 if exist doc\build rmdir /s /q doc\build
 if exist MANIFEST del MANIFEST
+del /s *.pyc 2> nul
 goto Next
 
 
