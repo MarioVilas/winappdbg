@@ -1725,8 +1725,8 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         return self.__get_system_breakpoint("ntdll!DbgUserBreakPoint")
 
-    # This breakpoint can only be resolved when the
-    # debugging symbols for ntdll.dll are loaded.
+    # On some platforms, this breakpoint can only be resolved
+    # when the debugging symbols for ntdll.dll are loaded.
     def get_breakin_breakpoint(self):
         """
         @rtype:  int or None
