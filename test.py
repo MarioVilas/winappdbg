@@ -65,7 +65,7 @@ def test_windbg_version():
     syswow = os.path.join(sysroot, "SysWoW64")
     if (pathname.lower().startswith(system.lower()) or
         pathname.lower().startswith(syswow.lower())
-    ):  raise RuntimeError("WinDbg not installed, or couldn't be detected")
+    ):  raise RuntimeError("WinDbg not found")
 
 if __name__ == '__main__':
     if test("module load", test_module_load):
