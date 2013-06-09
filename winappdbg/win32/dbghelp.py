@@ -38,6 +38,9 @@ from defines import *
 from version import *
 from kernel32 import *
 
+# DbgHelp versions and features list:
+# http://msdn.microsoft.com/en-us/library/windows/desktop/ms679294(v=vs.85).aspx
+
 #------------------------------------------------------------------------------
 # Tries to load the newest version of dbghelp.dll if available.
 
