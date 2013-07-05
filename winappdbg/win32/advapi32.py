@@ -1613,7 +1613,7 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
     return ProcessInformation(lpProcessInformation)
 
 CreateProcessWithLogonA = MakeANSIVersion(CreateProcessWithLogonW)
-CreateProcessWithLogon = CreateProcessWithLogonA
+CreateProcessWithLogon = DefaultStringType(CreateProcessWithLogonA, CreateProcessWithLogonW)
 
 # BOOL WINAPI CreateProcessWithTokenW(
 #   __in         HANDLE hToken,
@@ -1650,7 +1650,7 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
     return ProcessInformation(lpProcessInformation)
 
 CreateProcessWithTokenA = MakeANSIVersion(CreateProcessWithTokenW)
-CreateProcessWithToken = CreateProcessWithTokenA
+CreateProcessWithToken = DefaultStringType(CreateProcessWithTokenA, CreateProcessWithTokenW)
 
 # VOID CALLBACK WaitChainCallback(
 #     HWCT WctHandle,
