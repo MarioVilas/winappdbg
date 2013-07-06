@@ -303,6 +303,20 @@ class Debug (EventDispatcher, _BreakpointContainer):
             In hostile mode, the default is not the debugger process but the
             process ID for "explorer.exe".
 
+        @type    iTrustLevel: int or None
+        @keyword iTrustLevel: Trust level.
+            Must be one of the following values:
+             - 0: B{No trust}. May not access certain resources, such as
+                  cryptographic keys and credentials. Only available since
+                  Windows XP and 2003, desktop editions. This is the default
+                  in hostile mode.
+             - 1: B{Normal trust}. Run with the same privileges as a normal
+                  user, that is, one that doesn't have the I{Administrator} or
+                  I{Power User} user rights. Only available since Windows XP
+                  and 2003, desktop editions.
+             - 2: B{Full trust}. Run with the exact same privileges as the
+                  current user. This is the default in normal mode.
+
         @rtype:  L{Process}
         @return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
