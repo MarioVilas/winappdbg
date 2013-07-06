@@ -4271,9 +4271,7 @@ class _ProcessContainer (object):
                         try:
                             hShell = shell.get_handle(
                                             win32.PROCESS_QUERY_INFORMATION)
-                            with win32.OpenProcessToken(hShell,
-                                win32.TOKEN_DUPLICATE | win32.TOKEN_IMPERSONATE
-                            ) as hShellToken:
+                            with win32.OpenProcessToken(hShell) as hShellToken:
                                 hToken = win32.DuplicateTokenEx(hShellToken)
                         finally:
                             shell.close_handle()
@@ -4296,6 +4294,7 @@ class _ProcessContainer (object):
                             hToken = hSaferToken
 
                     # If we have a computed token, call CreateProcessAsUser().
+                    # TODO: maybe call CreateProcessWithLogonW() instead?
                     if bAllowElevation:
                         pi = win32.CreateProcessAsUser(
                                     hToken          = hToken,

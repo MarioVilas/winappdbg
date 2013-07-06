@@ -1341,7 +1341,7 @@ def FreeSid(pSid):
 #   __in   DWORD DesiredAccess,
 #   __out  PHANDLE TokenHandle
 # );
-def OpenProcessToken(ProcessHandle, DesiredAccess):
+def OpenProcessToken(ProcessHandle, DesiredAccess = TOKEN_ALL_ACCESS):
     _OpenProcessToken = windll.advapi32.OpenProcessToken
     _OpenProcessToken.argtypes = [HANDLE, DWORD, PHANDLE]
     _OpenProcessToken.restype  = bool
