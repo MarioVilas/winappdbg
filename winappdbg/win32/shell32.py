@@ -365,6 +365,15 @@ def SHGetFolderPathW(nFolder, hToken = None, dwFlags = SHGFP_TYPE_CURRENT):
 
 SHGetFolderPath = DefaultStringType(SHGetFolderPathA, SHGetFolderPathW)
 
+# BOOL IsUserAnAdmin(void);
+def IsUserAnAdmin():
+    # Supposedly, IsUserAnAdmin() is deprecated in Vista.
+    # But I tried it on Windows 7 and it works just fine.
+    _IsUserAnAdmin = windll.shell32.IsUserAnAdmin
+    _IsUserAnAdmin.argtypes = []
+    _IsUserAnAdmin.restype  = bool
+    return _IsUserAnAdmin()
+
 #==============================================================================
 # This calculates the list of exported symbols.
 _all = set(vars().keys()).difference(_all)
