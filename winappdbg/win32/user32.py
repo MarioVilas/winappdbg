@@ -1610,6 +1610,20 @@ def SendDlgItemMessageW(hDlg, nIDDlgItem, Msg, wParam = 0, lParam = 0):
 
 SendDlgItemMessage = GuessStringType(SendDlgItemMessageA, SendDlgItemMessageW)
 
+# DWORD WINAPI WaitForInputIdle(
+#   _In_  HANDLE hProcess,
+#   _In_  DWORD dwMilliseconds
+# );
+def WaitForInputIdle(hProcess, dwMilliseconds = INFINITE):
+    _WaitForInputIdle = windll.user32.WaitForInputIdle
+    _WaitForInputIdle.argtypes = [HANDLE, DWORD]
+    _WaitForInputIdle.restype  = DWORD
+
+    r = _WaitForInputIdle(hProcess, dwMilliseconds)
+    if r == WAIT_FAILED:
+        raise ctypes.WinError()
+    return r
+
 # UINT RegisterWindowMessage(
 #     LPCTSTR lpString
 # );
