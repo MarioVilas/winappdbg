@@ -4171,8 +4171,14 @@ class _ProcessContainer (object):
         if iTrustLevel is None:
             iTrustLevel = 2
 
-        # The UAC elevation flag is only meaningful is we're Admin.
-        bAllowElevation = bAllowElevation or not self.is_admin()
+        # The UAC elevation flag is only meaningful if we're running elevated.
+        try:
+            bAllowElevation = bAllowElevation or not self.is_admin()
+        except AttributeError:
+            bAllowElevation = True
+            warnings.warn(
+                "UAC elevation is only available in Windows Vista and above",
+                RuntimeWarning)
 
         # Calculate the process creation flags.
         dwCreationFlags  = 0
@@ -4255,6 +4261,7 @@ class _ProcessContainer (object):
                             win32.SE_IMPERSONATE_NAME,
                             win32.SE_INCREASE_QUOTA_NAME,
                             win32.SE_TCB_NAME,
+                            #"SeBatchLogonRight",  # not working :(
                         )
                         try:
                             hWnd = self.get_shell_window()
