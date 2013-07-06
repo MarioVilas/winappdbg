@@ -4187,6 +4187,7 @@ class _ProcessContainer (object):
         ##dwCreationFlags |= win32.CREATE_UNICODE_ENVIRONMENT
         if not bConsole:
             dwCreationFlags |= win32.DETACHED_PROCESS
+            #dwCreationFlags |= win32.CREATE_NO_WINDOW   # weird stuff happens
         if bSuspended:
             dwCreationFlags |= win32.CREATE_SUSPENDED
         if bDebug:
@@ -4245,24 +4246,20 @@ class _ProcessContainer (object):
                 try:
                     if not bAllowElevation:
                         if bFollow:
-                            raise NotImplementedError(
+                            msg = (
                                 "Child processes can't be autofollowed"
                                 " when dropping UAC elevation.")
+                            raise NotImplementedError(msg)
                         if bConsole:
-                            raise NotImplementedError(
+                            msg = (
                                 "Child processes can't inherit the debugger's"
                                 " console when dropping UAC elevation.")
+                            raise NotImplementedError(msg)
                         if bInheritHandles:
-                            raise NotImplementedError(
+                            msg = (
                                 "Child processes can't inherit the debugger's"
                                 " handles when dropping UAC elevation.")
-                        self.request_privileges(
-                            win32.SE_ASSIGNPRIMARYTOKEN_NAME,
-                            win32.SE_IMPERSONATE_NAME,
-                            win32.SE_INCREASE_QUOTA_NAME,
-                            win32.SE_TCB_NAME,
-                            #"SeBatchLogonRight",  # not working :(
-                        )
+                            raise NotImplementedError(msg)
                         try:
                             hWnd = self.get_shell_window()
                         except WindowsError:
