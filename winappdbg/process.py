@@ -4291,7 +4291,6 @@ class _ProcessContainer (object):
                             hToken = hSaferToken
 
                     # If we have a computed token, call CreateProcessAsUser().
-                    # TODO: maybe call CreateProcessWithLogonW() instead?
                     if bAllowElevation:
                         pi = win32.CreateProcessAsUser(
                                     hToken          = hToken,
@@ -4301,9 +4300,10 @@ class _ProcessContainer (object):
                                     lpStartupInfo   = lpStartupInfo)
 
                     # If we have a primary token call CreateProcessWithToken().
-                    # The problem is, there's a Windows bug that won't let us
-                    # use the DEBUG_PROCESS flag with it, so we have to get
-                    # around it.
+                    # The problem is, there are many flags CreateProcess() and
+                    # CreateProcessAsUser() accept but CreateProcessWithToken()
+                    # and CreateProcessWithLogonW() don't, so we need to work
+                    # around them.
                     else:
 
                         # Remove the debug flags.
