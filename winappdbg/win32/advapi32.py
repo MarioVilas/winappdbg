@@ -1768,7 +1768,7 @@ def CloseThreadWaitChainSession(WctHandle):
 #   __out       SAFER_LEVEL_HANDLE *pLevelHandle,
 #   __reserved  LPVOID lpReserved
 # );
-def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMALUSER, OpenFlags=SAFER_LEVEL_OPEN):
+def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMALUSER, OpenFlags=0):
     _SaferCreateLevel = windll.advapi32.SaferCreateLevel
     _SaferCreateLevel.argtypes = [DWORD, DWORD, DWORD, POINTER(SAFER_LEVEL_HANDLE), LPVOID]
     _SaferCreateLevel.restype  = BOOL
@@ -1795,14 +1795,13 @@ def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMA
 #   __inout_opt  LPVOID lpReserved
 # );
 def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0):
-    _SaferComputeTokenFromLevel = windll.advapi32.SaferCreateLevel
-    _SaferComputeTokenFromLevel.argtypes = [SAFER_LEVEL_HANDLE, HANDLE, PHANDLE, DWORD, LPVOID]
+    _SaferComputeTokenFromLevel = windll.advapi32.SaferComputeTokenFromLevel
+    _SaferComputeTokenFromLevel.argtypes = [SAFER_LEVEL_HANDLE, HANDLE, PHANDLE, DWORD, LPDWORD]
     _SaferComputeTokenFromLevel.restype  = BOOL
     _SaferComputeTokenFromLevel.errcheck = RaiseIfZero
 
     OutAccessToken = HANDLE(INVALID_HANDLE_VALUE)
     lpReserved = DWORD(0)
-    SetLastError(ERROR_NOT_SUPPORTED)  # SaferComputeTokenFromLevel doesn't seem to ever set the error code!
     _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, byref(lpReserved))
     return TokenHandle(OutAccessToken.value), lpReserved.value
 
