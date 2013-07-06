@@ -35,6 +35,8 @@ Process instrumentation.
     Process
 """
 
+from __future__ import with_statement
+
 # FIXME
 # I've been told the host process for the latest versions of VMWare
 # can't be instrumented, because they try to stop code injection into the VMs.
@@ -4331,8 +4333,7 @@ class _ProcessContainer (object):
 
         # Take a snapshot of all processes and threads
         dwFlags   = win32.TH32CS_SNAPPROCESS | win32.TH32CS_SNAPTHREAD
-        hSnapshot = win32.CreateToolhelp32Snapshot(dwFlags)
-        try:
+        with win32.CreateToolhelp32Snapshot(dwFlags) as hSnapshot:
 
             # Add all the processes (excluding our own)
             pe = win32.Process32First(hSnapshot)
@@ -4368,10 +4369,6 @@ class _ProcessContainer (object):
                         aThread = Thread(dwThreadId, process = aProcess)
                         aProcess._add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
-
-        # Always close the snapshot handle before returning
-        finally:
-            win32.CloseHandle(hSnapshot)
 
         # Remove dead processes
         for pid in dead_pids:

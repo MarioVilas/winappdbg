@@ -202,17 +202,22 @@ class System (_ProcessContainer):
 
         This may be needed to debug processes running as SYSTEM
         (such as services) since Windows XP.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when requesting debug privileges.
+
+        @rtype:  bool
+        @return: C{True} on success, C{False} on failure.
+
+        @raise WindowsError: Raises an exception on error, unless
+            C{bIgnoreExceptions} is C{True}.
         """
         try:
-            privs  = (
-                        (win32.SE_DEBUG_NAME, True),
-                     )
-            hToken = win32.OpenProcessToken(win32.GetCurrentProcess(),
-                                                 win32.TOKEN_ADJUST_PRIVILEGES)
-            try:
+            with win32.OpenProcessToken(win32.GetCurrentProcess(),
+                                    win32.TOKEN_ADJUST_PRIVILEGES) as hToken:
+                privs = ( (win32.SE_DEBUG_NAME, True), )
                 win32.AdjustTokenPrivileges(hToken, privs)
-            finally:
-                win32.CloseHandle(hToken)
             return True
         except Exception, e:
             if not bIgnoreExceptions:

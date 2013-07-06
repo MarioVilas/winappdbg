@@ -38,6 +38,8 @@ Module instrumentation.
     DebugSymbolsWarning
 """
 
+from __future__ import with_statement
+
 __revision__ = "$Id$"
 
 __all__ = ['Module', 'DebugSymbolsWarning']
@@ -1042,9 +1044,8 @@ class _ModuleContainer (object):
         # It would seem easier to clear the snapshot first.
         # But then all open handles would be closed.
         found_bases = set()
-        hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPMODULE, \
-                                                                   dwProcessId)
-        try:
+        with win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPMODULE,
+                                            dwProcessId) as hSnapshot:
             me = win32.Module32First(hSnapshot)
             while me is not None:
                 lpBaseAddress = me.modBaseAddr
@@ -1071,8 +1072,6 @@ class _ModuleContainer (object):
                     if not aModule.process:
                         aModule.process     = self
                 me = win32.Module32Next(hSnapshot)
-        finally:
-            win32.CloseHandle(hSnapshot)
 ##        for base in self.get_module_bases(): # XXX triggers a scan
         for base in self.__moduleDict.keys():
             if base not in found_bases:

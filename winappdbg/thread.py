@@ -227,16 +227,13 @@ class Thread (object):
         'Internally used by get_pid().'
         dwProcessId = None
         dwThreadId = self.get_tid()
-        hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD)
-        try:
+        with win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD) as hSnapshot:
             te = win32.Thread32First(hSnapshot)
             while te is not None:
                 if te.th32ThreadID == dwThreadId:
                     dwProcessId = te.th32OwnerProcessID
                     break
                 te = win32.Thread32Next(hSnapshot)
-        finally:
-            win32.CloseHandle(hSnapshot)
         if dwProcessId is None:
             msg = "Cannot find thread ID %d in any process" % dwThreadId
             raise RuntimeError(msg)
