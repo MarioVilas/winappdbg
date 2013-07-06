@@ -3789,7 +3789,7 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine)
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -3832,7 +3832,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -3890,7 +3890,7 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine)
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -3933,7 +3933,7 @@ def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProces
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine)
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -4579,14 +4579,6 @@ def GetProcessTimes(hProcess = None):
     UserTime     = FILETIME()
 
     _GetProcessTimes(hProcess, byref(CreationTime), byref(ExitTime), byref(KernelTime), byref(UserTime))
-
-##    CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
-##    ExitTime     = ExitTime.dwLowDateTime     + (ExitTime.dwHighDateTime     << 32)
-    KernelTime   = KernelTime.dwLowDateTime   + (KernelTime.dwHighDateTime   << 32)
-    UserTime     = UserTime.dwLowDateTime     + (UserTime.dwHighDateTime     << 32)
-
-    CreationTime = FileTimeToSystemTime(CreationTime)
-    ExitTime     = FileTimeToSystemTime(ExitTime)
 
     return (CreationTime, ExitTime, KernelTime, UserTime)
 

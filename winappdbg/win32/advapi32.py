@@ -1595,6 +1595,32 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
     _CreateProcessWithLogonW.restype = bool
     _CreateProcessWithLogonW.errcheck = RaiseIfZero
 
+    if not lpUsername:
+        lpUsername          = None
+    if not lpDomain:
+        lpDomain            = None
+    if not lpPassword:
+        lpPassword          = None
+    if not lpApplicationName:
+        lpApplicationName   = None
+    if not lpCommandLine:
+        lpCommandLine       = None
+    else:
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+    if not lpEnvironment:
+        lpEnvironment       = None
+    else:
+        lpEnvironment       = ctypes.create_unicode_buffer(lpEnvironment)
+    if not lpCurrentDirectory:
+        lpCurrentDirectory  = None
+    if not lpProcessAttributes:
+        lpProcessAttributes = None
+    else:
+        lpProcessAttributes = byref(lpProcessAttributes)
+    if not lpThreadAttributes:
+        lpThreadAttributes = None
+    else:
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -1632,6 +1658,28 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
     _CreateProcessWithTokenW.restype = bool
     _CreateProcessWithTokenW.errcheck = RaiseIfZero
 
+    if not hToken:
+        hToken              = None
+    if not lpApplicationName:
+        lpApplicationName   = None
+    if not lpCommandLine:
+        lpCommandLine       = None
+    else:
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+    if not lpEnvironment:
+        lpEnvironment       = None
+    else:
+        lpEnvironment       = ctypes.create_unicode_buffer(lpEnvironment)
+    if not lpCurrentDirectory:
+        lpCurrentDirectory  = None
+    if not lpProcessAttributes:
+        lpProcessAttributes = None
+    else:
+        lpProcessAttributes = byref(lpProcessAttributes)
+    if not lpThreadAttributes:
+        lpThreadAttributes = None
+    else:
+        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
         lpStartupInfo              = STARTUPINFO()
         lpStartupInfo.cb           = sizeof(STARTUPINFO)
@@ -1746,57 +1794,17 @@ def SaferCreateLevel(dwScopeId=SAFER_SCOPEID_USER, dwLevelId=SAFER_LEVELID_NORMA
 #   __in         DWORD dwFlags,
 #   __inout_opt  LPVOID lpReserved
 # );
-def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0, lpReserved=None):
+def SaferComputeTokenFromLevel(LevelHandle, InAccessToken=None, dwFlags=0):
     _SaferComputeTokenFromLevel = windll.advapi32.SaferCreateLevel
     _SaferComputeTokenFromLevel.argtypes = [SAFER_LEVEL_HANDLE, HANDLE, PHANDLE, DWORD, LPVOID]
     _SaferComputeTokenFromLevel.restype  = BOOL
     _SaferComputeTokenFromLevel.errcheck = RaiseIfZero
 
-    # This is probably one of the ugliest Win32 API interfaces ever! :(
-    # That's why, depending on the dwFlags argument, we may have to use a
-    # pointer for the lpReserved argument.
-    #
-    # The most usual case, however, is to pass only the LevelHandle and the
-    # InAccessToken parameters, leaving all the rest with default values.
-    # Then the return value is the new token (a TokenHandle instance).
-    #
-    # For example, if hToken is a token to be restricted...
-    #
-    #   with SaferCreateLevel( dwLevelId = SAFER_LEVELID_UNTRUSTED ) as LevelHandle:
-    #       hRestrictedToken = SaferComputeTokenFromLevel(LevelHandle, hToken)
-    #
-    # would produce the restricted token as hRestrictedToken.
-
     OutAccessToken = HANDLE(INVALID_HANDLE_VALUE)
-
-    # Low-level access, for unknown flags.
-    # Returns a ctypes object. No handle wrapping is done.
-    # The lpReserved argument should be a ctypes object too, or None.
-    if (dwFlags & SAFER_TOKEN_MASK) != dwFlags:
-        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, lpReserved)
-        return TokenHandle(OutAccessToken.value)
-
-    # Extra flags.
-    if dwFlags | SAFER_TOKEN_WANT_FLAGS:
-        if lpReserved is not None:
-            raise ValueError("SaferComputeTokenFromLevel: lpReserved shouldn't be NULL for SAFER_TOKEN_WANT_FLAGS")
-        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, lpReserved)
-        return TokenHandle(OutAccessToken.value)
-
-    # Only compare the token.
-    if dwFlags | SAFER_TOKEN_COMPARE_ONLY:
-        if lpReserved is None:
-            lpReserved = LPVOID(None)
-            _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, byref(lpReserved))
-            return lpReserved.value
-        _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, None, dwFlags, lpReserved)
-        return None
-
-    # Every other known flag.
-    if lpReserved is not None:
-        raise ValueError("SaferComputeTokenFromLevel: lpReserved must be NULL for these flags")
-    _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, None)
-    return TokenHandle(OutAccessToken.value)
+    lpReserved = DWORD(0)
+    SetLastError(ERROR_NOT_SUPPORTED)  # SaferComputeTokenFromLevel doesn't seem to ever set the error code!
+    _SaferComputeTokenFromLevel(LevelHandle, InAccessToken, byref(OutAccessToken), dwFlags, byref(lpReserved))
+    return TokenHandle(OutAccessToken.value), lpReserved.value
 
 # BOOL WINAPI SaferCloseLevel(
 #   __in  SAFER_LEVEL_HANDLE hLevelHandle
