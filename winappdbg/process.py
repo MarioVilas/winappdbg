@@ -4115,6 +4115,19 @@ class _ProcessContainer (object):
             the parent process (default), or a process ID to forcefully set as
             the debugee's parent (only available for Windows Vista and above).
 
+        @type    iTrustLevel: int
+        @keyword iTrustLevel: Trust level.
+            Must be one of the following values:
+             - 0: B{No trust}. May not access certain resources, such as
+                  cryptographic keys and credentials. Only available since
+                  Windows XP and 2003, desktop editions.
+             - 1: B{Normal trust}. Run with the same privileges as a normal
+                  user, that is, one that doesn't have the I{Administrator} or
+                  I{Power User} user rights. Only available since Windows XP
+                  and 2003, desktop editions.
+             - 2: B{Full trust}. Run with the exact same privileges as the
+                  current user. This is the default value.
+
         @rtype:  L{Process}
         @return: Process object.
         """
@@ -4125,6 +4138,7 @@ class _ProcessContainer (object):
         bSuspended          = kwargs.pop('bSuspended', False)
         bInheritHandles     = kwargs.pop('bInheritHandles', False)
         dwParentProcessId   = kwargs.pop('dwParentProcessId', None)
+        iTrustLevel         = kwargs.pop('iTrustLevel', 2)
         if kwargs:
             raise TypeError("Unknown keyword arguments: %s" % kwargs.keys())
         if not lpCmdLine:
@@ -4176,10 +4190,27 @@ class _ProcessContainer (object):
 
         pi = None
         try:
-            pi = win32.CreateProcess(win32.NULL, lpCmdLine,
-                                        bInheritHandles = bInheritHandles,
-                                        dwCreationFlags = dwCreationFlags,
-                                        lpStartupInfo   = lpStartupInfo)
+            if iTrustLevel >= 2:
+                pi = win32.CreateProcess(None, lpCmdLine,
+                                            bInheritHandles = bInheritHandles,
+                                            dwCreationFlags = dwCreationFlags,
+                                            lpStartupInfo   = lpStartupInfo)
+            else:
+                if iTrustLevel > 0:
+                    dwLevelId = win32.SAFER_LEVELID_NORMALUSER
+                else:
+                    dwLevelId = win32.SAFER_LEVELID_UNTRUSTED
+                with win32.SaferCreateLevel(dwLevelId = dwLevelId) as hSafer:
+                    hToken = win32.SaferComputeTokenFromLevel(hSafer)[0]
+                try:
+                    pi = win32.CreateProcessAsUser(
+                                    hToken, None, lpCmdLine,
+                                    bInheritHandles = bInheritHandles,
+                                    dwCreationFlags = dwCreationFlags,
+                                    lpStartupInfo   = lpStartupInfo)
+                finally:
+                    hToken.close()
+
             aProcess = Process(pi.dwProcessId, pi.hProcess)
             aThread  = Thread (pi.dwThreadId,  pi.hThread)
             aProcess._add_thread(aThread)
