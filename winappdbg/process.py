@@ -4265,7 +4265,7 @@ class _ProcessContainer (object):
                             hShell = shell.get_handle(
                                             win32.PROCESS_QUERY_INFORMATION)
                             with win32.OpenProcessToken(hShell,
-                                                        win32.TOKEN_DUPLICATE
+                                win32.TOKEN_DUPLICATE | win32.TOKEN_IMPERSONATE
                             ) as hShellToken:
                                 hToken = win32.DuplicateTokenEx(hShellToken)
                         finally:
