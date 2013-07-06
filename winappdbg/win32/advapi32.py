@@ -90,6 +90,22 @@ TOKEN_ADJUST_PRIVILEGES         = 0x00000020
 LOGON_WITH_PROFILE              = 0x00000001
 LOGON_NETCREDENTIALS_ONLY       = 0x00000002
 
+# Token access rights
+TOKEN_ASSIGN_PRIMARY    = 0x0001
+TOKEN_DUPLICATE         = 0x0002
+TOKEN_IMPERSONATE       = 0x0004
+TOKEN_QUERY             = 0x0008
+TOKEN_QUERY_SOURCE      = 0x0010
+TOKEN_ADJUST_PRIVILEGES = 0x0020
+TOKEN_ADJUST_GROUPS     = 0x0040
+TOKEN_ADJUST_DEFAULT    = 0x0080
+TOKEN_ADJUST_SESSIONID  = 0x0100
+TOKEN_READ = (STANDARD_RIGHTS_READ | TOKEN_QUERY)
+TOKEN_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED | TOKEN_ASSIGN_PRIMARY |
+        TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_QUERY_SOURCE |
+        TOKEN_ADJUST_PRIVILEGES | TOKEN_ADJUST_GROUPS | TOKEN_ADJUST_DEFAULT |
+        TOKEN_ADJUST_SESSIONID)
+
 # Predefined HKEY values
 HKEY_CLASSES_ROOT       = 0x80000000
 HKEY_CURRENT_USER       = 0x80000001
@@ -1326,9 +1342,9 @@ def OpenProcessToken(ProcessHandle, DesiredAccess):
     _OpenProcessToken.restype  = bool
     _OpenProcessToken.errcheck = RaiseIfZero
 
-    tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenProcessToken(ProcessHandle, DesiredAccess, byref(tokenHandle))
-    return TokenHandle(tokenHandle.value)
+    NewTokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenProcessToken(ProcessHandle, DesiredAccess, byref(NewTokenHandle))
+    return TokenHandle(NewTokenHandle.value)
 
 # BOOL WINAPI OpenThreadToken(
 #   __in   HANDLE ThreadHandle,
@@ -1342,9 +1358,42 @@ def OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf = True):
     _OpenThreadToken.restype  = bool
     _OpenThreadToken.errcheck = RaiseIfZero
 
-    tokenHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, byref(tokenHandle))
-    return TokenHandle(tokenHandle.value)
+    NewTokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _OpenThreadToken(ThreadHandle, DesiredAccess, OpenAsSelf, byref(NewTokenHandle))
+    return TokenHandle(NewTokenHandle.value)
+
+# BOOL WINAPI DuplicateToken(
+#   _In_   HANDLE ExistingTokenHandle,
+#   _In_   SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+#   _Out_  PHANDLE DuplicateTokenHandle
+# );
+def DuplicateToken(ExistingTokenHandle, ImpersonationLevel = SecurityImpersonation):
+    _DuplicateToken = windll.advapi32.DuplicateToken
+    _DuplicateToken.argtypes = [HANDLE, SECURITY_IMPERSONATION_LEVEL, PHANDLE]
+    _DuplicateToken.restype  = bool
+    _DuplicateToken.errcheck = RaiseIfZero
+
+    DuplicateTokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _DuplicateToken(ExistingTokenHandle, ImpersonationLevel, byref(DuplicateTokenHandle))
+    return TokenHandle(DuplicateTokenHandle.value)
+
+# BOOL WINAPI DuplicateTokenEx(
+#   _In_      HANDLE hExistingToken,
+#   _In_      DWORD dwDesiredAccess,
+#   _In_opt_  LPSECURITY_ATTRIBUTES lpTokenAttributes,
+#   _In_      SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+#   _In_      TOKEN_TYPE TokenType,
+#   _Out_     PHANDLE phNewToken
+# );
+def DuplicateTokenEx(hExistingToken, dwDesiredAccess = TOKEN_ALL_ACCESS, lpTokenAttributes = None, ImpersonationLevel = SecurityImpersonation, TokenType = TokenPrimary):
+    _DuplicateTokenEx = windll.advapi32.DuplicateTokenEx
+    _DuplicateTokenEx.argtypes = [HANDLE, DWORD, LPSECURITY_ATTRIBUTES, SECURITY_IMPERSONATION_LEVEL, TOKEN_TYPE, PHANDLE]
+    _DuplicateTokenEx.restype  = bool
+    _DuplicateTokenEx.errcheck = RaiseIfZero
+
+    DuplicateTokenHandle = HANDLE(INVALID_HANDLE_VALUE)
+    _DuplicateTokenEx(hExistingToken, dwDesiredAccess, lpTokenAttributes, ImpersonationLevel, TokenType, byref(DuplicateTokenHandle))
+    return TokenHandle(DuplicateTokenHandle.value)
 
 # BOOL WINAPI IsTokenRestricted(
 #   __in  HANDLE TokenHandle
@@ -1591,7 +1640,7 @@ def _internal_GetTokenInformation(hTokenHandle, TokenInformationClass, TokenInfo
 # );
 def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
     _CreateProcessWithLogonW = windll.advapi32.CreateProcessWithLogonW
-    _CreateProcessWithLogonW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
+    _CreateProcessWithLogonW.argtypes = [LPWSTR, LPWSTR, LPWSTR, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPVOID, LPPROCESS_INFORMATION]
     _CreateProcessWithLogonW.restype = bool
     _CreateProcessWithLogonW.errcheck = RaiseIfZero
 
@@ -1613,17 +1662,9 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
         lpEnvironment       = ctypes.create_unicode_buffer(lpEnvironment)
     if not lpCurrentDirectory:
         lpCurrentDirectory  = None
-    if not lpProcessAttributes:
-        lpProcessAttributes = None
-    else:
-        lpProcessAttributes = byref(lpProcessAttributes)
-    if not lpThreadAttributes:
-        lpThreadAttributes = None
-    else:
-        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
-        lpStartupInfo              = STARTUPINFO()
-        lpStartupInfo.cb           = sizeof(STARTUPINFO)
+        lpStartupInfo              = STARTUPINFOW()
+        lpStartupInfo.cb           = sizeof(STARTUPINFOW)
         lpStartupInfo.lpReserved   = 0
         lpStartupInfo.lpDesktop    = 0
         lpStartupInfo.lpTitle      = 0
@@ -1654,7 +1695,7 @@ CreateProcessWithLogon = DefaultStringType(CreateProcessWithLogonA, CreateProces
 # );
 def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName = None, lpCommandLine = None, dwCreationFlags = 0, lpEnvironment = None, lpCurrentDirectory = None, lpStartupInfo = None):
     _CreateProcessWithTokenW = windll.advapi32.CreateProcessWithTokenW
-    _CreateProcessWithTokenW.argtypes = [HANDLE, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION]
+    _CreateProcessWithTokenW.argtypes = [HANDLE, DWORD, LPWSTR, LPWSTR, DWORD, LPVOID, LPWSTR, LPVOID, LPPROCESS_INFORMATION]
     _CreateProcessWithTokenW.restype = bool
     _CreateProcessWithTokenW.errcheck = RaiseIfZero
 
@@ -1672,17 +1713,9 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
         lpEnvironment       = ctypes.create_unicode_buffer(lpEnvironment)
     if not lpCurrentDirectory:
         lpCurrentDirectory  = None
-    if not lpProcessAttributes:
-        lpProcessAttributes = None
-    else:
-        lpProcessAttributes = byref(lpProcessAttributes)
-    if not lpThreadAttributes:
-        lpThreadAttributes = None
-    else:
-        lpThreadAttributes = byref(lpThreadAttributes)
     if not lpStartupInfo:
-        lpStartupInfo              = STARTUPINFO()
-        lpStartupInfo.cb           = sizeof(STARTUPINFO)
+        lpStartupInfo              = STARTUPINFOW()
+        lpStartupInfo.cb           = sizeof(STARTUPINFOW)
         lpStartupInfo.lpReserved   = 0
         lpStartupInfo.lpDesktop    = 0
         lpStartupInfo.lpTitle      = 0
@@ -1713,7 +1746,7 @@ CreateProcessWithToken = DefaultStringType(CreateProcessWithTokenA, CreateProces
 #   __in         LPSTARTUPINFO lpStartupInfo,
 #   __out        LPPROCESS_INFORMATION lpProcessInformation
 # );
-def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
+def CreateProcessAsUserA(hToken = None, lpApplicationName = None, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessAsUserA = windll.advapi32.CreateProcessAsUserA
     _CreateProcessAsUserA.argtypes = [HANDLE, LPSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPSTR, LPVOID, LPPROCESS_INFORMATION]
     _CreateProcessAsUserA.restype  = bool
@@ -1756,7 +1789,7 @@ def CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine=None, lpProces
     _CreateProcessAsUserA(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bool(bInheritHandles), dwCreationFlags, lpEnvironment, lpCurrentDirectory, byref(lpStartupInfo), byref(lpProcessInformation))
     return ProcessInformation(lpProcessInformation)
 
-def CreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
+def CreateProcessAsUserW(hToken = None, lpApplicationName = None, lpCommandLine=None, lpProcessAttributes=None, lpThreadAttributes=None, bInheritHandles=False, dwCreationFlags=0, lpEnvironment=None, lpCurrentDirectory=None, lpStartupInfo=None):
     _CreateProcessAsUserW = windll.advapi32.CreateProcessAsUserW
     _CreateProcessAsUserW.argtypes = [HANDLE, LPWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPWSTR, LPVOID, LPPROCESS_INFORMATION]
     _CreateProcessAsUserW.restype  = bool

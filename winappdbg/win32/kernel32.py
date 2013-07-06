@@ -1602,6 +1602,36 @@ class STARTUPINFOEX(Structure):
     ]
 LPSTARTUPINFOEX = POINTER(STARTUPINFOEX)
 
+class STARTUPINFOW(Structure):
+    _fields_ = [
+        ('cb',              DWORD),
+        ('lpReserved',      LPWSTR),
+        ('lpDesktop',       LPWSTR),
+        ('lpTitle',         LPWSTR),
+        ('dwX',             DWORD),
+        ('dwY',             DWORD),
+        ('dwXSize',         DWORD),
+        ('dwYSize',         DWORD),
+        ('dwXCountChars',   DWORD),
+        ('dwYCountChars',   DWORD),
+        ('dwFillAttribute', DWORD),
+        ('dwFlags',         DWORD),
+        ('wShowWindow',     WORD),
+        ('cbReserved2',     WORD),
+        ('lpReserved2',     LPVOID),    # LPBYTE
+        ('hStdInput',       HANDLE),
+        ('hStdOutput',      HANDLE),
+        ('hStdError',       HANDLE),
+    ]
+LPSTARTUPINFOW = POINTER(STARTUPINFOW)
+
+class STARTUPINFOEXW(Structure):
+    _fields_ = [
+        ('StartupInfo',     STARTUPINFOW),
+        ('lpAttributeList', PPROC_THREAD_ATTRIBUTE_LIST),
+    ]
+LPSTARTUPINFOEXW = POINTER(STARTUPINFOEXW)
+
 #--- JIT_DEBUG_INFO structure -------------------------------------------------
 
 # typedef struct _JIT_DEBUG_INFO {

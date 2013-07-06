@@ -317,6 +317,24 @@ class Debug (EventDispatcher, _BreakpointContainer):
              - 2: B{Full trust}. Run with the exact same privileges as the
                   current user. This is the default in normal mode.
 
+        @type    bAllowElevation: bool
+        @keyword bAllowElevation: C{True} to allow the child process to keep
+            UAC elevation, if the debugger itself is running elevated. C{False}
+            to ensure the child process doesn't run with elevation. Defaults to
+            C{True}.
+
+            This flag is only meaningful on Windows Vista and above, and if the
+            debugger itself is running with elevation. It can be used to make
+            sure the child processes don't run elevated as well.
+
+            This flag DOES NOT force an elevation prompt when the debugger is
+            not running with elevation.
+
+            Note that running the debugger with elevation (or the Python
+            interpreter at all for that matter) is not normally required.
+            You should only need to if the target program requires elevation
+            to work properly (for example if you try to debug an installer).
+
         @rtype:  L{Process}
         @return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
@@ -373,7 +391,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             In hostile mode, the default is not the debugger process but the
             process ID for "explorer.exe".
 
-        @type    iTrustLevel: int or None
+        @type    iTrustLevel: int
         @keyword iTrustLevel: Trust level.
             Must be one of the following values:
              - 0: B{No trust}. May not access certain resources, such as
@@ -387,6 +405,24 @@ class Debug (EventDispatcher, _BreakpointContainer):
              - 2: B{Full trust}. Run with the exact same privileges as the
                   current user. This is the default in normal mode.
 
+        @type    bAllowElevation: bool
+        @keyword bAllowElevation: C{True} to allow the child process to keep
+            UAC elevation, if the debugger itself is running elevated. C{False}
+            to ensure the child process doesn't run with elevation. Defaults to
+            C{True} in normal mode and C{False} in hostile mode.
+
+            This flag is only meaningful on Windows Vista and above, and if the
+            debugger itself is running with elevation. It can be used to make
+            sure the child processes don't run elevated as well.
+
+            This flag DOES NOT force an elevation prompt when the debugger is
+            not running with elevation.
+
+            Note that running the debugger with elevation (or the Python
+            interpreter at all for that matter) is not normally required.
+            You should only need to if the target program requires elevation
+            to work properly (for example if you try to debug an installer).
+
         @rtype:  L{Process}
         @return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
@@ -399,22 +435,23 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Set the "debug" flag to True.
         kwargs['bDebug'] = True
 
-        # Pop the "break on EP" and "parent pid" flags.
+        # Pop the "break on entry point" flag.
         bBreakOnEntryPoint = kwargs.pop('bBreakOnEntryPoint', False)
-        dwParentProcessId  = kwargs.pop('dwParentProcessId',  None)
 
         # Set the default trust level if requested.
-        iTrustLevel = kwargs.get('iTrustLevel', None)
-        if iTrustLevel is None:
+        if 'iTrustLevel' not in kwargs:
             if self.__bHostileCode:
-                iTrustLevel = 0
+                kwargs['iTrustLevel'] = 0
             else:
-                iTrustLevel = 2
-            kwargs['iTrustLevel'] = iTrustLevel
+                kwargs['iTrustLevel'] = 2
+
+        # Set the default UAC elevation flag if requested.
+        if 'bAllowElevation' not in kwargs:
+            kwargs['bAllowElevation'] = not self.__bHostileCode
 
         # In hostile mode the default parent process is explorer.exe.
         # Only supported for Windows Vista and above.
-        if self.__bHostileCode and not dwParentProcessId:
+        if self.__bHostileCode and not kwargs.get('dwParentProcessId', None):
             try:
                 vista_and_above = self.__vista_and_above
             except AttributeError:
@@ -440,7 +477,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 self.__vista_and_above = vista_and_above
             if vista_and_above:
                 dwParentProcessId = self.system.get_explorer_pid()
-                if not dwParentProcessId:
+                if dwParentProcessId:
+                    kwargs['dwParentProcessId'] = dwParentProcessId
+                else:
                     msg = ("Failed to find \"explorer.exe\"!"
                            " Using the debugger as parent process.")
                     warnings.warn(msg, RuntimeWarning)
@@ -448,8 +487,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Start the new process.
         aProcess = None
         try:
-            aProcess = self.system.start_process(
-                lpCmdLine, dwParentProcessId = dwParentProcessId, **kwargs)
+            aProcess = self.system.start_process(lpCmdLine, **kwargs)
             dwProcessId = aProcess.get_pid()
 
             # Match the system kill-on-exit flag to our own.

@@ -65,10 +65,12 @@ class System (_ProcessContainer):
         arch, bits, os, wow64, pageSize
 
     @group Instrumentation:
-        find_window, get_window_at, get_desktop_window, get_foreground_window
+        find_window, get_window_at, get_foreground_window,
+        get_desktop_window, get_shell_window
 
     @group Debugging:
-        load_dbghelp, fix_symbol_store_path, request_debug_privileges
+        load_dbghelp, fix_symbol_store_path,
+        request_debug_privileges, drop_debug_privileges
 
     @group Postmortem debugging:
         get_postmortem_debugger, set_postmortem_debugger,
@@ -80,6 +82,9 @@ class System (_ProcessContainer):
         start_service, stop_service,
         pause_service, resume_service,
         get_service_display_name, get_service_from_display_name
+
+    @group Permissions and privileges:
+        request_privileges, drop_privileges, adjust_privileges, is_admin
 
     @group Miscellaneous global settings:
         set_kill_on_exit_mode, read_msr, write_msr, enable_step_on_branch_mode,
@@ -176,6 +181,15 @@ class System (_ProcessContainer):
         return Window( win32.WindowFromPoint( (x, y) ) )
 
     @staticmethod
+    def get_foreground_window():
+        """
+        @rtype:  L{Window}
+        @return: Returns the foreground window.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return Window( win32.GetForegroundWindow() )
+
+    @staticmethod
     def get_desktop_window():
         """
         @rtype:  L{Window}
@@ -185,18 +199,18 @@ class System (_ProcessContainer):
         return Window( win32.GetDesktopWindow() )
 
     @staticmethod
-    def get_foreground_window():
+    def get_shell_window():
         """
         @rtype:  L{Window}
-        @return: Returns the foreground window.
+        @return: Returns the shell window.
         @raise WindowsError: An error occured while processing this request.
         """
-        return Window( win32.GetForegroundWindow() )
+        return Window( win32.GetShellWindow() )
 
 #------------------------------------------------------------------------------
 
-    @staticmethod
-    def request_debug_privileges(bIgnoreExceptions = False):
+    @classmethod
+    def request_debug_privileges(cls, bIgnoreExceptions = False):
         """
         Requests debug privileges.
 
@@ -214,15 +228,90 @@ class System (_ProcessContainer):
             C{bIgnoreExceptions} is C{True}.
         """
         try:
-            with win32.OpenProcessToken(win32.GetCurrentProcess(),
-                                    win32.TOKEN_ADJUST_PRIVILEGES) as hToken:
-                privs = ( (win32.SE_DEBUG_NAME, True), )
-                win32.AdjustTokenPrivileges(hToken, privs)
+            cls.request_privileges(win32.SE_DEBUG_NAME)
             return True
         except Exception, e:
             if not bIgnoreExceptions:
                 raise
         return False
+
+    @classmethod
+    def drop_debug_privileges(cls, bIgnoreExceptions = False):
+        """
+        Drops debug privileges.
+
+        This may be needed to avoid being detected
+        by certain anti-debug tricks.
+
+        @type  bIgnoreExceptions: bool
+        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+            raised when dropping debug privileges.
+
+        @rtype:  bool
+        @return: C{True} on success, C{False} on failure.
+
+        @raise WindowsError: Raises an exception on error, unless
+            C{bIgnoreExceptions} is C{True}.
+        """
+        try:
+            cls.drop_privileges(win32.SE_DEBUG_NAME)
+            return True
+        except Exception, e:
+            if not bIgnoreExceptions:
+                raise
+        return False
+
+    @classmethod
+    def request_privileges(cls, *privileges):
+        """
+        Requests privileges.
+
+        @type  privileges: int...
+        @param privileges: Privileges to request.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+        cls.adjust_privileges(True, privileges)
+
+    @classmethod
+    def drop_privileges(cls, *privileges):
+        """
+        Drops privileges.
+
+        @type  privileges: int...
+        @param privileges: Privileges to drop.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+        cls.adjust_privileges(False, privileges)
+
+    @staticmethod
+    def adjust_privileges(state, privileges):
+        """
+        Requests or drops privileges.
+
+        @type  state: bool
+        @param state: C{True} to request, C{False} to drop.
+
+        @type  privileges: list(int)
+        @param privileges: Privileges to request or drop.
+
+        @raise WindowsError: Raises an exception on error.
+        """
+        with win32.OpenProcessToken(win32.GetCurrentProcess(),
+                                win32.TOKEN_ADJUST_PRIVILEGES) as hToken:
+            NewState = ( (priv, state) for priv in privileges )
+            win32.AdjustTokenPrivileges(hToken, NewState)
+
+    @staticmethod
+    def is_admin():
+        """
+        @rtype:  bool
+        @return: C{True} if the current user as Administrator privileges,
+            C{False} otherwise. Since Windows Vista and above this means if
+            the current process is running with UAC elevation or not.
+        """
+        return win32.IsUserAnAdmin()
 
     @staticmethod
     def set_kill_on_exit_mode(bKillOnExit = False):

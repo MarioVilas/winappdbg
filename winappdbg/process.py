@@ -82,8 +82,9 @@ class Process (_ThreadContainer, _ModuleContainer):
     Interface to a process. Contains threads and modules snapshots.
 
     @group Properties:
-        get_pid, get_filename, get_exit_code,
-        is_alive, is_debugged, is_wow64, get_arch, get_bits,
+        get_pid, is_alive, is_debugged, is_wow64, get_arch, get_bits,
+        get_filename, get_exit_code,
+        get_start_time, get_exit_time, get_running_time,
         get_services, get_dep_policy, get_peb, get_peb_address,
         get_entry_point, get_main_module, get_image_base, get_image_name,
         get_command_line, get_environment,
@@ -4130,10 +4131,29 @@ class _ProcessContainer (object):
              - 2: B{Full trust}. Run with the exact same privileges as the
                   current user. This is the default value.
 
+        @type    bAllowElevation: bool
+        @keyword bAllowElevation: C{True} to allow the child process to keep
+            UAC elevation, if the debugger itself is running elevated. C{False}
+            to ensure the child process doesn't run with elevation. Defaults to
+            C{True}.
+
+            This flag is only meaningful on Windows Vista and above, and if the
+            debugger itself is running with elevation. It can be used to make
+            sure the child processes don't run elevated as well.
+
+            This flag DOES NOT force an elevation prompt when the debugger is
+            not running with elevation.
+
+            Note that running the debugger with elevation (or the Python
+            interpreter at all for that matter) is not normally required.
+            You should only need to if the target program requires elevation
+            to work properly (for example if you try to debug an installer).
+
         @rtype:  L{Process}
         @return: Process object.
         """
 
+        # Get the flags.
         bConsole            = kwargs.pop('bConsole', False)
         bDebug              = kwargs.pop('bDebug', False)
         bFollow             = kwargs.pop('bFollow', False)
@@ -4141,15 +4161,23 @@ class _ProcessContainer (object):
         bInheritHandles     = kwargs.pop('bInheritHandles', False)
         dwParentProcessId   = kwargs.pop('dwParentProcessId', None)
         iTrustLevel         = kwargs.pop('iTrustLevel', 2)
+        bAllowElevation     = kwargs.pop('bAllowElevation', True)
         if kwargs:
             raise TypeError("Unknown keyword arguments: %s" % kwargs.keys())
         if not lpCmdLine:
             raise ValueError("Missing command line to execute!")
 
+        # Sanitize the trust level flag.
+        if iTrustLevel is None:
+            iTrustLevel = 2
+
+        # The UAC elevation flag is only meaningful is we're Admin.
+        bAllowElevation = bAllowElevation or not self.is_admin()
+
+        # Calculate the process creation flags.
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
-        dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         ##dwCreationFlags |= win32.CREATE_UNICODE_ENVIRONMENT
         if not bConsole:
             dwCreationFlags |= win32.DETACHED_PROCESS
@@ -4159,8 +4187,10 @@ class _ProcessContainer (object):
             dwCreationFlags |= win32.DEBUG_PROCESS
             if not bFollow:
                 dwCreationFlags |= win32.DEBUG_ONLY_THIS_PROCESS
-        lpStartupInfo = None
 
+        # Change the parent process if requested.
+        # May fail on old versions of Windows.
+        lpStartupInfo = None
         if dwParentProcessId is not None:
             myPID = win32.GetCurrentProcessId()
             if dwParentProcessId != myPID:
@@ -4192,31 +4222,131 @@ class _ProcessContainer (object):
 
         pi = None
         try:
-            if iTrustLevel >= 2:
+
+            # Create the process the easy way.
+            if iTrustLevel >= 2 and bAllowElevation:
                 pi = win32.CreateProcess(None, lpCmdLine,
                                             bInheritHandles = bInheritHandles,
                                             dwCreationFlags = dwCreationFlags,
                                             lpStartupInfo   = lpStartupInfo)
+
+            # Create the process the hard way...
             else:
-                if iTrustLevel > 0:
-                    dwLevelId = win32.SAFER_LEVELID_NORMALUSER
-                else:
-                    dwLevelId = win32.SAFER_LEVELID_UNTRUSTED
-                with win32.SaferCreateLevel(dwLevelId = dwLevelId) as hSafer:
-                    hToken = win32.SaferComputeTokenFromLevel(hSafer)[0]
+
+                # If we allow elevation, use the current process token.
+                # If not, get the token from the current shell process.
+                hToken = None
                 try:
-                    pi = win32.CreateProcessAsUser(
-                                    hToken, None, lpCmdLine,
+                    if not bAllowElevation:
+                        if bInheritHandles:
+                            raise NotImplementedError(
+                                "System.start_process: unsupported: "
+                                "bAllowElevation=False and "
+                                "bInheritHandles=True")
+                        self.request_privileges(
+                            win32.SE_ASSIGNPRIMARYTOKEN_NAME,
+                            win32.SE_IMPERSONATE_NAME,
+                            win32.SE_INCREASE_QUOTA_NAME,
+                            win32.SE_TCB_NAME,
+                        )
+                        try:
+                            hWnd = self.get_shell_window()
+                        except WindowsError:
+                            hWnd = self.get_desktop_window()
+                        shell = hWnd.get_process()
+                        try:
+                            hShell = shell.get_handle(
+                                            win32.PROCESS_QUERY_INFORMATION)
+                            with win32.OpenProcessToken(hShell,
+                                                        win32.TOKEN_DUPLICATE
+                            ) as hShellToken:
+                                hToken = win32.DuplicateTokenEx(hShellToken)
+                        finally:
+                            shell.close_handle()
+
+                    # Lower trust level if requested.
+                    if iTrustLevel < 2:
+                        if iTrustLevel > 0:
+                            dwLevelId = win32.SAFER_LEVELID_NORMALUSER
+                        else:
+                            dwLevelId = win32.SAFER_LEVELID_UNTRUSTED
+                        with win32.SaferCreateLevel(dwLevelId = dwLevelId) as hSafer:
+                            hSaferToken = win32.SaferComputeTokenFromLevel(
+                                                            hSafer, hToken)[0]
+                            try:
+                                if hToken is not None:
+                                    hToken.close()
+                            except:
+                                hSaferToken.close()
+                                raise
+                            hToken = hSaferToken
+
+                    # If we have a computed token, call CreateProcessAsUser().
+                    if bAllowElevation:
+                        pi = win32.CreateProcessAsUser(
+                                    hToken          = hToken,
+                                    lpCommandLine   = lpCmdLine,
                                     bInheritHandles = bInheritHandles,
                                     dwCreationFlags = dwCreationFlags,
                                     lpStartupInfo   = lpStartupInfo)
-                finally:
-                    hToken.close()
 
+                    # If we have a primary token call CreateProcessWithToken().
+                    # The problem is, there's a Windows bug that won't let us
+                    # use the DEBUG_PROCESS flag with it, so we have to get
+                    # around it.
+                    else:
+
+                        # Our workaround won't support bFollow or bConsole. :(
+                        if bFollow:
+                            warnings.warn(
+                                "Child processes can't be autofollowed"
+                                " when dropping UAC elevation.",
+                                RuntimeWarning)
+                        if bConsole:
+                            warnings.warn(
+                                "Child processes can't inherit the debugger's"
+                                " console when dropping UAC elevation.",
+                                RuntimeWarning)
+
+                        # Remove the debug flags.
+                        dwCreationFlags &= ~win32.DEBUG_PROCESS
+                        dwCreationFlags &= ~win32.DEBUG_ONLY_THIS_PROCESS
+
+                        # Remove the console flags.
+                        dwCreationFlags &= ~win32.DETACHED_PROCESS
+
+                        # The process will be created suspended.
+                        dwCreationFlags |= win32.CREATE_SUSPENDED
+
+                        # Create the process using the new primary token.
+                        pi = win32.CreateProcessWithToken(
+                                    hToken          = hToken,
+                                    dwLogonFlags    = win32.LOGON_WITH_PROFILE,
+                                    lpCommandLine   = lpCmdLine,
+                                    dwCreationFlags = dwCreationFlags,
+                                    lpStartupInfo   = lpStartupInfo)
+
+                        # Attach as a debugger, if requested.
+                        if bDebug:
+                            win32.DebugActiveProcess(pi.dwProcessId)
+
+                        # Resume execution, if requested.
+                        if not bSuspended:
+                            win32.ResumeThread(pi.hThread)
+
+                # Close the token when we're done with it.
+                finally:
+                    if hToken is not None:
+                        hToken.close()
+
+            # Wrap the new process and thread in Process and Thread objects,
+            # and add them to the corresponding snapshots.
             aProcess = Process(pi.dwProcessId, pi.hProcess)
             aThread  = Thread (pi.dwThreadId,  pi.hThread)
             aProcess._add_thread(aThread)
             self._add_process(aProcess)
+
+        # Clean up on error.
         except:
             if pi is not None:
                 try:
@@ -4227,6 +4357,7 @@ class _ProcessContainer (object):
                 pi.hProcess.close()
             raise
 
+        # Return the new Process object.
         return aProcess
 
     def get_explorer_pid(self):
