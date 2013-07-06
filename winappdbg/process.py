@@ -4238,11 +4238,18 @@ class _ProcessContainer (object):
                 hToken = None
                 try:
                     if not bAllowElevation:
+                        if bFollow:
+                            raise NotImplementedError(
+                                "Child processes can't be autofollowed"
+                                " when dropping UAC elevation.")
+                        if bConsole:
+                            raise NotImplementedError(
+                                "Child processes can't inherit the debugger's"
+                                " console when dropping UAC elevation.")
                         if bInheritHandles:
                             raise NotImplementedError(
-                                "System.start_process: unsupported: "
-                                "bAllowElevation=False and "
-                                "bInheritHandles=True")
+                                "Child processes can't inherit the debugger's"
+                                " handles when dropping UAC elevation.")
                         self.request_privileges(
                             win32.SE_ASSIGNPRIMARYTOKEN_NAME,
                             win32.SE_IMPERSONATE_NAME,
@@ -4295,18 +4302,6 @@ class _ProcessContainer (object):
                     # use the DEBUG_PROCESS flag with it, so we have to get
                     # around it.
                     else:
-
-                        # Our workaround won't support bFollow or bConsole. :(
-                        if bFollow:
-                            warnings.warn(
-                                "Child processes can't be autofollowed"
-                                " when dropping UAC elevation.",
-                                RuntimeWarning)
-                        if bConsole:
-                            warnings.warn(
-                                "Child processes can't inherit the debugger's"
-                                " console when dropping UAC elevation.",
-                                RuntimeWarning)
 
                         # Remove the debug flags.
                         dwCreationFlags &= ~win32.DEBUG_PROCESS
