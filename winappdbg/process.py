@@ -770,6 +770,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         return 64
 
     # TODO: get_os, to test compatibility run
+    # See: http://msdn.microsoft.com/en-us/library/windows/desktop/ms683224(v=vs.85).aspx
 
 #------------------------------------------------------------------------------
 
