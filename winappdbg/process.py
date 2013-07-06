@@ -770,6 +770,60 @@ class Process (_ThreadContainer, _ModuleContainer):
 
 #------------------------------------------------------------------------------
 
+    def get_start_time(self):
+        """
+        Determines when has this process started running.
+
+        @rtype:  win32.SYSTEMTIME
+        @return: Process start time.
+        """
+        try:
+            hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
+        except WindowsError:
+            hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        CreationTime = win32.GetProcessTimes(hProcess)[0]
+        return win32.FileTimeToSystemTime(CreationTime)
+
+    def get_exit_time(self):
+        """
+        Determines when has this process finished running.
+        If the process is still alive, the current time is returned instead.
+
+        @rtype:  win32.SYSTEMTIME
+        @return: Process exit time.
+        """
+        if self.is_alive():
+            ExitTime = win32.GetSystemTimeAsFileTime()
+        else:
+            try:
+                hProcess = self.get_handle(
+                                       win32.PROCESS_QUERY_LIMITED_INFORMATION)
+            except WindowsError:
+                hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+            ExitTime = win32.GetProcessTimes(hProcess)[1]
+        return win32.FileTimeToSystemTime(ExitTime)
+
+    def get_running_time(self):
+        """
+        Determines how long has this process been running.
+
+        @rtype:  long
+        @return: Process running time in milliseconds.
+        """
+        try:
+            hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
+        except WindowsError:
+            hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        (CreationTime, ExitTime, _, _) = win32.GetProcessTimes(hProcess)
+        if self.is_alive():
+            ExitTime = win32.GetSystemTimeAsFileTime()
+        CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
+        ExitTime     =     ExitTime.dwLowDateTime + (    ExitTime.dwHighDateTime << 32)
+        RunningTime  = ExitTime - CreationTime
+        return RunningTime / 10000 # 100 nanoseconds steps => milliseconds
+
+#------------------------------------------------------------------------------
+
     def __load_System_class(self):
         global System      # delayed import
         if System is None:
@@ -4079,6 +4133,8 @@ class _ProcessContainer (object):
         dwCreationFlags  = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
+        dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
+        ##dwCreationFlags |= win32.CREATE_UNICODE_ENVIRONMENT
         if not bConsole:
             dwCreationFlags |= win32.DETACHED_PROCESS
         if bSuspended:
