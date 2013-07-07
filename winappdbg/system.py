@@ -54,6 +54,8 @@ import os
 import ctypes
 import warnings
 
+from os import path, getenv
+
 #==============================================================================
 
 class System (_ProcessContainer):
@@ -313,44 +315,238 @@ class System (_ProcessContainer):
         """
         return win32.IsUserAnAdmin()
 
-    @staticmethod
-    def set_kill_on_exit_mode(bKillOnExit = False):
+#------------------------------------------------------------------------------
+
+    __binary_types = {
+        win32.VFT_APP:        "application",
+        win32.VFT_DLL:        "dynamic link library",
+        win32.VFT_STATIC_LIB: "static link library",
+        win32.VFT_FONT:       "font",
+        win32.VFT_DRV:        "driver",
+        win32.VFT_VXD:        "legacy driver",
+    }
+
+    __driver_types = {
+        win32.VFT2_DRV_COMM:                "communications driver",
+        win32.VFT2_DRV_DISPLAY:             "display driver",
+        win32.VFT2_DRV_INSTALLABLE:         "installable driver",
+        win32.VFT2_DRV_KEYBOARD:            "keyboard driver",
+        win32.VFT2_DRV_LANGUAGE:            "language driver",
+        win32.VFT2_DRV_MOUSE:               "mouse driver",
+        win32.VFT2_DRV_NETWORK:             "network driver",
+        win32.VFT2_DRV_PRINTER:             "printer driver",
+        win32.VFT2_DRV_SOUND:               "sound driver",
+        win32.VFT2_DRV_SYSTEM:              "system driver",
+        win32.VFT2_DRV_VERSIONED_PRINTER:   "versioned printer driver",
+    }
+
+    __font_types = {
+        win32.VFT2_FONT_RASTER:   "raster font",
+        win32.VFT2_FONT_TRUETYPE: "TrueType font",
+        win32.VFT2_FONT_VECTOR:   "vector font",
+    }
+
+    __months = (
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    )
+
+    __days_of_the_week = (
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    )
+
+    @classmethod
+    def get_file_version_info(cls, filename):
         """
-        Defines the behavior of the debugged processes when the debugging
-        thread dies. This method only affects the calling thread.
+        Get the program version from an executable file, if available.
 
-        Works on the following platforms:
+        @type  filename: str
+        @param filename: Pathname to the executable file to query.
 
-         - Microsoft Windows XP and above.
-         - Wine (Windows Emulator).
+        @rtype: tuple(str, str, bool, bool, str, str)
+        @return: Tuple with version information extracted from the executable
+            file metadata, containing the following:
+             - File version number (C{"major.minor"}).
+             - Product version number (C{"major.minor"}).
+             - C{True} for debug builds, C{False} for production builds.
+             - C{True} for legacy OS builds (DOS, OS/2, Win16),
+               C{False} for modern OS builds.
+             - Binary file type.
+               May be one of the following values:
+                - "application"
+                - "dynamic link library"
+                - "static link library"
+                - "font"
+                - "raster font"
+                - "TrueType font"
+                - "vector font"
+                - "driver"
+                - "communications driver"
+                - "display driver"
+                - "installable driver"
+                - "keyboard driver"
+                - "language driver"
+                - "legacy driver"
+                - "mouse driver"
+                - "network driver"
+                - "printer driver"
+                - "sound driver"
+                - "system driver"
+                - "versioned printer driver"
+             - Binary creation timestamp.
+            Any of the fields may be C{None} if not available.
 
-        Fails on the following platforms:
-
-         - Microsoft Windows 2000 and below.
-         - ReactOS.
-
-        @type  bKillOnExit: bool
-        @param bKillOnExit: C{True} to automatically kill processes when the
-            debugger thread dies. C{False} to automatically detach from
-            processes when the debugger thread dies.
-
-        @rtype:  bool
-        @return: C{True} on success, C{False} on error.
-
-        @note:
-            This call will fail if a debug port was not created. That is, if
-            the debugger isn't attached to at least one process. For more info
-            see: U{http://msdn.microsoft.com/en-us/library/ms679307.aspx}
+        @raise WindowsError: Raises an exception on error.
         """
-        try:
-            # won't work before calling CreateProcess or DebugActiveProcess
-            win32.DebugSetProcessKillOnExit(bKillOnExit)
-        except (AttributeError, WindowsError):
-            return False
-        return True
 
-    @staticmethod
-    def load_dbghelp(pathname = None):
+        # Get the file version info structure.
+        pBlock = win32.GetFileVersionInfo(filename)
+        pBuffer, dwLen = win32.VerQueryValue(pBlock, "\\")
+        if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
+            raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
+        pVersionInfo = ctypes.cast(pBuffer,
+                                   ctypes.POINTER(win32.VS_FIXEDFILEINFO))
+        VersionInfo = pVersionInfo.contents
+        if VersionInfo.dwSignature != 0xFEEF04BD:
+            raise ctypes.WinError(win32.ERROR_BAD_ARGUMENTS)
+
+        # File and product versions.
+        FileVersion = "%d.%d" % (VersionInfo.dwFileVersionMS,
+                                 VersionInfo.dwFileVersionLS)
+        ProductVersion = "%d.%d" % (VersionInfo.dwProductVersionMS,
+                                    VersionInfo.dwProductVersionLS)
+
+        # Debug build?
+        if VersionInfo.dwFileFlagsMask & win32.VS_FF_DEBUG:
+            DebugBuild = (VersionInfo.dwFileFlags & win32.VS_FF_DEBUG) != 0
+        else:
+            DebugBuild = None
+
+        # Legacy OS build?
+        LegacyBuild = (VersionInfo.dwFileOS != win32.VOS_NT_WINDOWS32)
+
+        # File type.
+        FileType = cls.__binary_types.get(VersionInfo.dwFileType)
+        if VersionInfo.dwFileType == win32.VFT_DRV:
+            FileType = cls.__driver_types.get(VersionInfo.dwFileSubtype)
+        elif VersionInfo.dwFileType == win32.VFT_FONT:
+            FileType = cls.__font_types.get(VersionInfo.dwFileSubtype)
+
+        # Timestamp, ex: "Monday, July 7, 2013 (12:20:50.126)".
+        # FIXME: how do we know the time zone?
+        FileDate = (VersionInfo.dwFileDateMS << 32) + VersionInfo.dwFileDateLS
+        if FileDate:
+            CreationTime = win32.FileTimeToSystemTime(FileDate)
+            CreationTimestamp = "%s, %s %d, %d (%d:%d:%d.%d)" % (
+                cls.__days_of_the_week[CreationTime.wDayOfWeek],
+                cls.__months[CreationTime.wMonth],
+                CreationTime.wDay,
+                CreationTime.wYear,
+                CreationTime.wHour,
+                CreationTime.wMinute,
+                CreationTime.wSecond,
+                CreationTime.wMilliseconds,
+            )
+        else:
+            CreationTimestamp = None
+
+        # Return the file version info.
+        return (
+            FileVersion,
+            ProductVersion,
+            DebugBuild,
+            LegacyBuild,
+            FileType,
+            CreationTimestamp,
+        )
+
+#------------------------------------------------------------------------------
+
+    # Locations for dbghelp.dll.
+    #  Unfortunately, Microsoft started bundling WinDbg with the
+    #  platform SDK, so the install directories may vary across
+    #  versions and platforms.
+    __dbghelp_locations = {
+
+        # Intel 64 bits.
+        win32.ARCH_AMD64: set([
+
+            # WinDbg bundled with the SDK, version 8.0.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Windows Kits",
+                "8.0",
+                "Debuggers",
+                "x64",
+                "dbghelp.dll"),
+            path.join(
+                getenv("ProgramW6432", getenv("ProgramFiles",
+                                              "C:\\Program Files")),
+                "Windows Kits",
+                "8.0",
+                "Debuggers",
+                "x64",
+                "dbghelp.dll"),
+
+            # Old standalone versions of WinDbg.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Debugging Tools for Windows (x64)",
+                "dbghelp.dll"),
+        ]),
+
+        # Intel 32 bits.
+        win32.ARCH_I386 : set([
+
+            # WinDbg bundled with the SDK, version 8.0.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Windows Kits",
+                "8.0",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
+            path.join(
+                getenv("ProgramW6432", getenv("ProgramFiles",
+                                              "C:\\Program Files")),
+                "Windows Kits",
+                "8.0",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
+
+            # Old standalone versions of WinDbg.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Debugging Tools for Windows (x86)",
+                "dbghelp.dll"),
+
+            # Version shipped with Windows.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Debugging Tools for Windows (x86)",
+                "dbghelp.dll"),
+        ]),
+    }
+
+    @classmethod
+    def load_dbghelp(cls, pathname = None):
         """
         Load the specified version of the C{dbghelp.dll} library.
 
@@ -398,58 +594,51 @@ class System (_ProcessContainer):
 
         @raise WindowsError: An error occured while processing this request.
         """
-        # TO DO: Refactor this into a more generic approach.
-        #        Unfortunately, Microsoft started bundling WinDbg with the
-        #        platform SDK, so the install directories may vary across
-        #        versions and platforms.
+
+        # If an explicit pathname was not given, search for the library.
         if not pathname:
-            if win32.arch == win32.ARCH_AMD64:
-                if win32.wow64:
-                    pathname = os.path.join(
-                                        os.getenv("ProgramW6432"),
-                                        "Windows Kits",
-                                        "8.0",
-                                        "Debuggers",
-                                        "x86",
-                                        "dbghelp.dll")
-                    if not os.path.exists(pathname):
-                        pathname = os.path.join(
-                                            os.getenv("ProgramFiles"),
-                                            "Debugging Tools for Windows (x86)",
-                                            "dbghelp.dll")
-                else:
-                    pathname = os.path.join(
-                                        os.getenv("ProgramFiles"),
-                                        "Windows Kits",
-                                        "8.0",
-                                        "Debuggers",
-                                        "x64",
-                                        "dbghelp.dll")
-                    if not os.path.exists(pathname):
-                        pathname = os.path.join(
-                                            os.getenv("ProgramFiles"),
-                                            "Debugging Tools for Windows (x64)",
-                                            "dbghelp.dll")
-            elif win32.arch == win32.ARCH_I386:
-                pathname = os.path.join(
-                                    os.getenv("ProgramFiles"),
-                                    "Windows Kits",
-                                    "8.0",
-                                    "Debuggers",
-                                    "x86",
-                                    "dbghelp.dll")
-                if not os.path.exists(pathname):
-                    pathname = os.path.join(
-                                        os.getenv("ProgramFiles"),
-                                        "Debugging Tools for Windows (x86)",
-                                        "dbghelp.dll")
-            else:
+
+            # Under WOW64 we'll treat AMD64 as I386.
+            arch = win32.arch
+            if arch == win32.ARCH_AMD64 and win32.bits == 32:
+                arch = win32.ARCH_I386
+
+            # Check if the architecture is supported.
+            if not arch in cls.__dbghelp_locations:
                 msg = "Architecture %s is not currently supported."
-                raise NotImplementedError(msg  % win32.arch)
-        if not os.path.exists(pathname):
-            pathname = "dbghelp.dll"
+                raise NotImplementedError(msg  % arch)
+
+            # Grab all versions of the library we can find.
+            found = []
+            for pathname in cls.__dbghelp_locations[arch]:
+                if path.isfile(pathname):
+                    try:
+                        f_ver, p_ver = cls.get_file_version_info(pathname)[:2]
+                    except WindowsError:
+                        msg = "Failed to parse file version metadata for: %s"
+                        warnings.warn(msg % pathname)
+                    if not f_ver:
+                        f_ver = p_ver
+                    elif p_ver and p_ver > f_ver:
+                        f_ver = p_ver
+                    found.append( (f_ver, pathname) )
+
+            # If we found any, use the newest version.
+            if found:
+                found.sort()
+                pathname = found.pop()[1]
+
+            # If we didn't find any, trust the default DLL search algorithm.
+            else:
+                pathname = "dbghelp.dll"
+
+        # Load the library.
         dbghelp = ctypes.windll.LoadLibrary(pathname)
+
+        # Set it globally as the library to be used.
         ctypes.windll.dbghelp = dbghelp
+
+        # Return the library.
         return dbghelp
 
     @staticmethod
@@ -537,6 +726,44 @@ class System (_ProcessContainer):
         except Exception, e:
             warnings.warn("Cannot fix symbol path, reason: %s" % str(e),
                           RuntimeWarning)
+
+#------------------------------------------------------------------------------
+
+    @staticmethod
+    def set_kill_on_exit_mode(bKillOnExit = False):
+        """
+        Defines the behavior of the debugged processes when the debugging
+        thread dies. This method only affects the calling thread.
+
+        Works on the following platforms:
+
+         - Microsoft Windows XP and above.
+         - Wine (Windows Emulator).
+
+        Fails on the following platforms:
+
+         - Microsoft Windows 2000 and below.
+         - ReactOS.
+
+        @type  bKillOnExit: bool
+        @param bKillOnExit: C{True} to automatically kill processes when the
+            debugger thread dies. C{False} to automatically detach from
+            processes when the debugger thread dies.
+
+        @rtype:  bool
+        @return: C{True} on success, C{False} on error.
+
+        @note:
+            This call will fail if a debug port was not created. That is, if
+            the debugger isn't attached to at least one process. For more info
+            see: U{http://msdn.microsoft.com/en-us/library/ms679307.aspx}
+        """
+        try:
+            # won't work before calling CreateProcess or DebugActiveProcess
+            win32.DebugSetProcessKillOnExit(bKillOnExit)
+        except (AttributeError, WindowsError):
+            return False
+        return True
 
     @staticmethod
     def read_msr(address):
@@ -652,6 +879,8 @@ class System (_ProcessContainer):
         LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
         LastBranchToIP   = cls.read_msr(DebugRegister.LastBranchToIP)
         return ( LastBranchFromIP, LastBranchToIP )
+
+#------------------------------------------------------------------------------
 
     @classmethod
     def get_postmortem_debugger(cls, bits = None):
