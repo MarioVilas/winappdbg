@@ -462,12 +462,20 @@ class Module (object):
         try:
             win32.SymInitialize(hProcess)
             SymOptions = win32.SymGetOptions()
-            win32.SymSetOptions(SymOptions                          | \
-                                win32.SYMOPT_ALLOW_ZERO_ADDRESS     | \
-                                win32.SYMOPT_CASE_INSENSITIVE       | \
-                                win32.SYMOPT_FAVOR_COMPRESSED       | \
-                                win32.SYMOPT_INCLUDE_32BIT_MODULES  | \
-                                win32.SYMOPT_UNDNAME)
+            SymOptions |= (
+                win32.SYMOPT_ALLOW_ZERO_ADDRESS     |
+                win32.SYMOPT_CASE_INSENSITIVE       |
+                win32.SYMOPT_FAVOR_COMPRESSED       |
+                win32.SYMOPT_INCLUDE_32BIT_MODULES  |
+                win32.SYMOPT_UNDNAME
+            )
+            SymOptions &= ~(
+                win32.SYMOPT_LOAD_LINES         |
+                win32.SYMOPT_NO_IMAGE_SEARCH    |
+                win32.SYMOPT_NO_CPP             |
+                win32.SYMOPT_IGNORE_NT_SYMPATH
+            )
+            win32.SymSetOptions(SymOptions)
             try:
                 win32.SymSetOptions(
                     SymOptions | win32.SYMOPT_ALLOW_ABSOLUTE_SYMBOLS)

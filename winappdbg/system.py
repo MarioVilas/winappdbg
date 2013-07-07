@@ -710,18 +710,23 @@ class System (_ProcessContainer):
         """
         try:
             if symbol_store_path is None:
+                local_path = "C:\\SYMBOLS"
+                if not path.isdir(local_path):
+                    local_path = "C:\\Windows\\Symbols"
+                    if not path.isdir(local_path):
+                        local_path = path.abspath(".")
                 if remote:
                     symbol_store_path = (
                         "cache*;SRV*"
-                        "C:\SYMBOLS"
+                        + local_path +
                         "*"
                         "http://msdl.microsoft.com/download/symbols"
                     )
                 else:
-                    symbol_store_path = "cache*;SRV*C:\SYMBOLS"
-            previous = os.getenv("_NT_SYMBOL_PATH", None)
-            if previous is None or force:
-                os.putenv("_NT_SYMBOL_PATH", symbol_store_path)
+                    symbol_store_path = "cache*;SRV*" + local_path
+            previous = os.environ.get("_NT_SYMBOL_PATH", None)
+            if not previous or force:
+                os.environ["_NT_SYMBOL_PATH"] = symbol_store_path
             return previous
         except Exception, e:
             warnings.warn("Cannot fix symbol path, reason: %s" % str(e),
