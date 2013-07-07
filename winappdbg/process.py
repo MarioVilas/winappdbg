@@ -781,10 +781,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         @rtype:  win32.SYSTEMTIME
         @return: Process start time.
         """
-        try:
-            hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
-        except WindowsError:
-            hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+            dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+        else:
+            dwAccess = win32.PROCESS_QUERY_INFORMATION
+        hProcess = self.get_handle(dwAccess)
         CreationTime = win32.GetProcessTimes(hProcess)[0]
         return win32.FileTimeToSystemTime(CreationTime)
 
@@ -799,11 +800,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         if self.is_alive():
             ExitTime = win32.GetSystemTimeAsFileTime()
         else:
-            try:
-                hProcess = self.get_handle(
-                                       win32.PROCESS_QUERY_LIMITED_INFORMATION)
-            except WindowsError:
-                hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+            if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+                dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+            else:
+                dwAccess = win32.PROCESS_QUERY_INFORMATION
+            hProcess = self.get_handle(dwAccess)
             ExitTime = win32.GetProcessTimes(hProcess)[1]
         return win32.FileTimeToSystemTime(ExitTime)
 
@@ -814,10 +815,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         @rtype:  long
         @return: Process running time in milliseconds.
         """
-        try:
-            hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
-        except WindowsError:
-            hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
+        if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
+            dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+        else:
+            dwAccess = win32.PROCESS_QUERY_INFORMATION
+        hProcess = self.get_handle(dwAccess)
         (CreationTime, ExitTime, _, _) = win32.GetProcessTimes(hProcess)
         if self.is_alive():
             ExitTime = win32.GetSystemTimeAsFileTime()
