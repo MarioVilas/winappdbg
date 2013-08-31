@@ -4016,7 +4016,7 @@ class _ProcessContainer (object):
                 hThread = win32.OpenThread(
                     win32.THREAD_QUERY_INFORMATION, False, dwThreadId)
             try:
-                dwProcessId = win32.GetProcessIdOfThread(hThread)
+                return win32.GetProcessIdOfThread(hThread)
             finally:
                 hThread.close()
 
