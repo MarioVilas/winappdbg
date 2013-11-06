@@ -3753,7 +3753,16 @@ class Process (_ThreadContainer, _ModuleContainer):
                 self.write(pbuffer, dllname)
 
                 # Create a new thread to load the library.
-                aThread = self.start_thread(pllib, pbuffer)
+                try:
+                    aThread = self.start_thread(pllib, pbuffer)
+                except WindowsError, e:
+                    if e.winerror != win32.ERROR_NOT_ENOUGH_MEMORY:
+                        raise
+
+                    # This specific error is caused by trying to spawn a new
+                    # thread in a process belonging to a different Terminal
+                    # Services session (for example a service).
+                    raise NotImplementedError()
 
                 # Remember the buffer address.
                 #  It will be freed ONLY by the Thread.kill() method
