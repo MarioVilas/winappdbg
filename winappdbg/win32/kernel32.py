@@ -3789,7 +3789,7 @@ def CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress
         lpThreadAttributes = byref(lpThreadAttributes)
     dwThreadId = DWORD(0)
     hThread = _CreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, byref(dwThreadId))
-    if hThread == INVALID_HANDLE_VALUE:
+    if not hThread:
         raise ctypes.WinError()
     return ThreadHandle(hThread), dwThreadId.value
 
@@ -3967,10 +3967,10 @@ def OpenThread(dwDesiredAccess, bInheritHandle, dwThreadId):
     _OpenThread.argtypes = [DWORD, BOOL, DWORD]
     _OpenThread.restype  = HANDLE
 
-    hProcess = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId)
-    if hProcess == NULL:
+    hThread = _OpenThread(dwDesiredAccess, bool(bInheritHandle), dwThreadId)
+    if hThread == NULL:
         raise ctypes.WinError()
-    return ThreadHandle(hProcess, dwAccess = dwDesiredAccess)
+    return ThreadHandle(hThread, dwAccess = dwDesiredAccess)
 
 # DWORD WINAPI SuspendThread(
 #   __in  HANDLE hThread
