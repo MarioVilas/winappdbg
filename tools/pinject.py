@@ -75,6 +75,13 @@ def main():
     print "Using DLL %s" % dll
 
     p = Process(pid)
+    b = p.get_bits()
+    if b != System.bits:
+        print (
+            "Cannot inject into a %d bit process from a %d bit Python VM!"
+            % (b, System.bits)
+        )
+        return
     p.scan_modules()
     p.inject_dll(dll)
 

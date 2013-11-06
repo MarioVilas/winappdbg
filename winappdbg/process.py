@@ -3762,7 +3762,10 @@ class Process (_ThreadContainer, _ModuleContainer):
                     # This specific error is caused by trying to spawn a new
                     # thread in a process belonging to a different Terminal
                     # Services session (for example a service).
-                    raise NotImplementedError()
+                    raise NotImplementedError(
+                        "Target process belongs to a different"
+                        " Terminal Services session, cannot inject!"
+                    )
 
                 # Remember the buffer address.
                 #  It will be freed ONLY by the Thread.kill() method
