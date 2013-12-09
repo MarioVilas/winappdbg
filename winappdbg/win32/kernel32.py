@@ -2179,12 +2179,15 @@ def DuplicateHandle(hSourceHandle, hSourceProcessHandle = None, hTargetProcessHa
     _DuplicateHandle.restype  = bool
     _DuplicateHandle.errcheck = RaiseIfZero
 
+    # NOTE: the arguments to this function are in a different order,
+    # so we can set default values for all of them but one (hSourceHandle).
+
     if hSourceProcessHandle is None:
         hSourceProcessHandle = GetCurrentProcess()
     if hTargetProcessHandle is None:
         hTargetProcessHandle = hSourceProcessHandle
     lpTargetHandle = HANDLE(INVALID_HANDLE_VALUE)
-    _DuplicateHandle(hSourceHandle, hSourceProcessHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
+    _DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, byref(lpTargetHandle), dwDesiredAccess, bool(bInheritHandle), dwOptions)
     if isinstance(hSourceHandle, Handle):
         HandleClass = hSourceHandle.__class__
     else:
