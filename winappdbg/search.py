@@ -351,6 +351,8 @@ class RegExpPattern (Pattern):
         return self.maxLength
 
     def find(self, buffer, pos = None):
+        if not pos:   # make sure pos is an int
+            pos = 0
         match = self.regexp.search(buffer, pos)
         if match:
             start, end = match.span()
@@ -618,7 +620,7 @@ class Search (StaticClass):
                     break;
 
                 # Read the whole memory region.
-                buffer = process.read(process, address, block_size)
+                buffer = process.read(address, block_size)
 
                 # Search for the pattern in this region.
                 pos, length = find(buffer)
