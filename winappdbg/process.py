@@ -1985,7 +1985,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         return struct.unpack(format, packed)[0]
 
     def __poke_c_type(self, address, format, unpacked):
-        packed = struct.poke('@L', unpacked)
+        packed = struct.pack('@L', unpacked)
         return self.poke(address, packed)
 
     def peek(self, lpBaseAddress, nSize):
