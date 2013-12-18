@@ -55,6 +55,7 @@ BeaEnginePython = None
 distorm3 = None
 pydasm = None
 libdisassemble = None
+capstone = None
 
 #==============================================================================
 
@@ -451,6 +452,116 @@ class LibdisassembleEngine (Engine):
 
 #==============================================================================
 
+class CapstoneEngine (Engine):
+    """
+    Integration with the Capstone disassembler by Nguyen Anh Quynh.
+
+    @see: U{http://www.capstone-engine.org/}
+    """
+
+    name = "Capstone"
+    desc = "Capstone disassembler by Nguyen Anh Quynh"
+    url  = "http://www.capstone-engine.org/"
+
+    supported = set((
+        win32.ARCH_I386,
+        win32.ARCH_AMD64,
+        ##win32.ARCH_ARM,
+        ##win32.ARCH_ARM64,
+        ##win32.ARCH_MIPS,
+    ))
+
+    BYTES_TO_SKIP = {
+        win32.ARCH_I386:  1,
+        win32.ARCH_AMD64: 1,
+        ##win32.ARCH_ARM:   4,
+        ##win32.ARCH_ARM64: 8,
+        ##win32.ARCH_MIPS:  4,
+    }
+
+    def _import_dependencies(self):
+
+        # Load the Capstone bindings.
+        global capstone
+        if capstone is None:
+            import capstone
+
+        # Load the constants for the requested architecture.
+        self.__constants = {
+            win32.ARCH_I386:  (capstone.CS_ARCH_X86,   capstone.CS_MODE_32),
+            win32.ARCH_AMD64: (capstone.CS_ARCH_X86,   capstone.CS_MODE_64),
+            ##win32.ARCH_ARM:   (capstone.CS_ARCH_ARM,   capstone.CS_MODE_ARM),
+            ##win32.ARCH_ARM64: (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
+            ##win32.ARCH_MIPS:  (capstone.CS_ARCH_MIPS,  0),
+        }
+
+        # Load the decoder function.
+        self.__decoder = capstone.cs_disasm_quick
+
+
+    def decode(self, address, code):
+
+        # Get the constants for the requested architecture.
+        arch, mode = self.__constants[self.arch]
+
+        # For each instruction...
+        result = []
+        offset = 0
+        while offset < len(code):
+
+            # Disassemble a single instruction, because disassembling multiple
+            # instructions causes segmentation faults sometimes. We also need
+            # to catch all exceptions broadly because of a syntax error in
+            # capstone.py when trying to raise CsError.
+            try:
+                instr = self.__decoder(
+                    arch, mode, code[offset:offset+16], address+offset, 1)[0]
+            except Exception:
+                instr = None
+
+            # On success add the decoded instruction.
+            if instr is not None:
+
+                # Get the instruction size.
+                length = instr.size
+
+                # Get the mnemonic and operands as a human readable string.
+                disasm = "%s %s" % (instr.mnemonic, instr.op_str)
+
+                # Get the instruction bytes as a hexadecimal dump.
+                hexdump = HexDump.hexadecimal( code[offset:offset+length] )
+
+            # On error add a "db" instruction.
+            else:
+
+                # The number of bytes to skip depends on the architecture.
+                length = self.BYTES_TO_SKIP[self.arch]
+
+                # Build the "db" instruction.
+                bytes = []
+                for i in xrange(offset, offset + length):
+                    bytes.append("0x%.2x" % ord(code[i:i+1]))
+                disasm = "db " + ", ".join(bytes)
+
+                # Get the skipped bytes as a hexadecimal dump.
+                hexdump = HexDump.hexadecimal( code[offset:offset+length] )
+
+            # Add the decoded instruction to the list.
+            result.append((
+                address + offset,
+                length,
+                disasm,
+                hexdump,
+            ))
+
+            # Update the offset.
+            offset += length
+
+        # Return the list of decoded instructions.
+        return result
+
+#==============================================================================
+
 # TODO: use a lock to access __decoder
 
 class Disassembler (object):
@@ -468,6 +579,7 @@ class Disassembler (object):
         BeaEngine,
         PyDasmEngine,
         LibdisassembleEngine,
+        CapstoneEngine,
     )
 
     # Cache of already loaded disassemblers.
