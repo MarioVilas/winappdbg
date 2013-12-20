@@ -564,6 +564,7 @@ class CapstoneEngine (Engine):
 #==============================================================================
 
 # TODO: use a lock to access __decoder
+# TODO: look in sys.modules for whichever disassembler is already loaded
 
 class Disassembler (object):
     """
