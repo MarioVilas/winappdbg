@@ -260,4 +260,4 @@ except ImportError:
 
 # Library version
 version_number = 1.5
-version = "Version %s (beta 6)" % version_number
+version = "Version %s" % version_number
