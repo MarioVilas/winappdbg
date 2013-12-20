@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2012, Mario Vilas
+# Copyright (c) 2009-2014, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
