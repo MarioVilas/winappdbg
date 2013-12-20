@@ -168,6 +168,7 @@ echo ---------------------------------------------------------------------------
 echo Note: You can safely ignore the paragraph indentation warning on sqlalchemy.
 %EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OPT%
 if not errorlevel 0 goto Next
+if not exist dist mkdir dist
 if exist html tar -cjf dist/winappdbg-%VersionTag%-reference.tar.bz2 html
 
 :: Compile the HTML documentation into a CHM file
@@ -210,6 +211,7 @@ if not exist dist mkdir dist
 echo -------------------------------------------------------------------------------
 echo Building HTML tutorial...
 echo -------------------------------------------------------------------------------
+if not exist dist mkdir dist
 cd doc
 call make.bat html
 cd build
