@@ -475,18 +475,10 @@ class CapstoneEngine (Engine):
     supported = set((
         win32.ARCH_I386,
         win32.ARCH_AMD64,
-        ##win32.ARCH_ARM,
-        ##win32.ARCH_ARM64,
-        ##win32.ARCH_MIPS,
+        win32.ARCH_THUMB,
+        win32.ARCH_ARM,
+        win32.ARCH_ARM64,
     ))
-
-    BYTES_TO_SKIP = {
-        win32.ARCH_I386:  1,
-        win32.ARCH_AMD64: 1,
-        ##win32.ARCH_ARM:   4,
-        ##win32.ARCH_ARM64: 8,
-        ##win32.ARCH_MIPS:  4,
-    }
 
     def _import_dependencies(self):
 
@@ -497,15 +489,32 @@ class CapstoneEngine (Engine):
 
         # Load the constants for the requested architecture.
         self.__constants = {
-            win32.ARCH_I386:  (capstone.CS_ARCH_X86,   capstone.CS_MODE_32),
-            win32.ARCH_AMD64: (capstone.CS_ARCH_X86,   capstone.CS_MODE_64),
-            ##win32.ARCH_ARM:   (capstone.CS_ARCH_ARM,   capstone.CS_MODE_ARM),
-            ##win32.ARCH_ARM64: (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
-            ##win32.ARCH_MIPS:  (capstone.CS_ARCH_MIPS,  0),
+            win32.ARCH_I386:
+                (capstone.CS_ARCH_X86,   capstone.CS_MODE_32),
+            win32.ARCH_AMD64:
+                (capstone.CS_ARCH_X86,   capstone.CS_MODE_64),
+            win32.ARCH_THUMB:
+                (capstone.CS_ARCH_ARM,   capstone.CS_MODE_THUMB),
+            win32.ARCH_ARM:
+                (capstone.CS_ARCH_ARM,   capstone.CS_MODE_ARM),
+            win32.ARCH_ARM64:
+                (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
         }
 
-        # Load the decoder function.
-        self.__decoder = capstone.cs_disasm_quick
+        # Test for the bug in early versions of Capstone.
+        # If found, warn the user about it.
+        try:
+            self.__bug = not isinstance(
+                capstone.cs_disasm_quick(
+                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, "\x90", 1)[0],
+                capstone.capstone.CsInsn)
+        except AttributeError:
+            self.__bug = False
+        if self.__bug:
+            warnings.warn(
+                "This version of the Capstone bindings is unstable,"
+                " please upgrade to a newer one!",
+                RuntimeWarning, stacklevel=4)
 
 
     def decode(self, address, code):
@@ -513,48 +522,92 @@ class CapstoneEngine (Engine):
         # Get the constants for the requested architecture.
         arch, mode = self.__constants[self.arch]
 
+        # Get the decoder function outside the loop.
+        decoder = capstone.cs_disasm_quick
+
+        # If the buggy version of the bindings are being used, we need to catch
+        # all exceptions broadly. If not, we only need to catch CsError.
+        if self.__bug:
+            CsError = Exception
+        else:
+            CsError = capstone.CsError
+
+        # Create the variables for the instruction length, mnemonic and
+        # operands. That way they won't be created within the loop,
+        # minimizing the chances data might be overwritten.
+        # This only makes sense for the buggy vesion of the bindings, normally
+        # memory accesses are safe).
+        length = mnemonic = op_str = None
+
         # For each instruction...
         result = []
         offset = 0
         while offset < len(code):
 
             # Disassemble a single instruction, because disassembling multiple
-            # instructions causes segmentation faults sometimes in the first
-            # published version of Capstone's bindings. We also need to catch
-            # all exceptions broadly because of a syntax error in capstone.py
-            # (same version of the bindings) when trying to raise CsError.
+            # instructions may cause excessive memory usage (Capstone allocates
+            # approximately 1K of metadata per each decoded instruction).
+            instr = None
             try:
-                instr = self.__decoder(
+                instr = decoder(
                     arch, mode, code[offset:offset+16], address+offset, 1)[0]
-            except Exception:
-                instr = None
+            except IndexError:
+                pass   # No instructions decoded.
+            except CsError:
+                pass   # Any other error.
 
             # On success add the decoded instruction.
             if instr is not None:
 
-                # Get the instruction size.
-                length = instr.size
+                # Get the instruction length, mnemonic and operands.
+                # Copy the values quickly before someone overwrites them,
+                # if using the buggy version of the bindings (otherwise it's
+                # irrelevant in which order we access the properties).
+                length   = instr.size
+                mnemonic = instr.mnemonic
+                op_str   = instr.op_str
 
-                # Get the mnemonic and operands as a human readable string.
-                disasm = "%s %s" % (instr.mnemonic, instr.op_str)
+                # Concatenate the mnemonic and the operands.
+                if op_str:
+                    disasm = "%s %s" % (mnemonic, op_str)
+                else:
+                    disasm = mnemonic
 
                 # Get the instruction bytes as a hexadecimal dump.
                 hexdump = HexDump.hexadecimal( code[offset:offset+length] )
 
-            # On error add a "db" instruction.
+            # On error add a "define constant" instruction.
+            # The exact instruction depends on the architecture.
             else:
 
                 # The number of bytes to skip depends on the architecture.
-                length = self.BYTES_TO_SKIP[self.arch]
-
-                # Build the "db" instruction.
-                bytes = []
-                for i in xrange(offset, offset + length):
-                    bytes.append("0x%.2x" % ord(code[i:i+1]))
-                disasm = "db " + ", ".join(bytes)
+                # On Intel processors we'll skip one byte, since we can't
+                # really know the instruction length. On the rest of the
+                # architectures we always know the instruction length.
+                if self.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+                    length = 1
+                else:
+                    length = 4
 
                 # Get the skipped bytes as a hexadecimal dump.
-                hexdump = HexDump.hexadecimal( code[offset:offset+length] )
+                skipped = code[offset:offset+length]
+                hexdump = HexDump.hexadecimal(skipped)
+
+                # Build the "define constant" instruction.
+                # On Intel processors it's "db".
+                # On ARM processors it's "dcb".
+                if self.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+                    mnemonic = "db "
+                else:
+                    mnemonic = "dcb "
+                bytes = []
+                for b in skipped:
+                    if b.isalpha():
+                        bytes.append("'%s'" % b)
+                    else:
+                        bytes.append("0x%x" % ord(b))
+                op_str = ", ".join(bytes)
+                disasm = mnemonic + op_str
 
             # Add the decoded instruction to the list.
             result.append((
@@ -589,9 +642,9 @@ class Disassembler (object):
     engines = (
         DistormEngine,  # diStorm engine goes first for backwards compatibility
         BeaEngine,
-        PyDasmEngine,
-        LibdisassembleEngine,
         CapstoneEngine,
+        LibdisassembleEngine,
+        PyDasmEngine,
     )
 
     # Add the list of supported disassemblers to the docstring.

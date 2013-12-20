@@ -580,24 +580,30 @@ def VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask):
 
 #--- get_bits, get_arch and get_os --------------------------------------------
 
-ARCH_UNKNOWN = "unknown"
-ARCH_I386    = "i386"
-ARCH_MIPS    = "mips"
-ARCH_ALPHA   = "alpha"
-ARCH_PPC     = "ppc"
-ARCH_SHX     = "shx"
-ARCH_ARM     = "arm"
-ARCH_ARM64   = "arm64"
-ARCH_IA64    = "ia64"
-ARCH_ALPHA64 = "alpha64"
-ARCH_MSIL    = "msil"
-ARCH_AMD64   = "amd64"
-ARCH_SPARC   = "sparc"
+ARCH_UNKNOWN     = "unknown"
+ARCH_I386        = "i386"
+ARCH_MIPS        = "mips"
+ARCH_ALPHA       = "alpha"
+ARCH_PPC         = "ppc"
+ARCH_SHX         = "shx"
+ARCH_ARM         = "arm"
+ARCH_ARM64       = "arm64"
+ARCH_THUMB       = "thumb"
+ARCH_IA64        = "ia64"
+ARCH_ALPHA64     = "alpha64"
+ARCH_MSIL        = "msil"
+ARCH_AMD64       = "amd64"
+ARCH_SPARC       = "sparc"
 
 # aliases
 ARCH_IA32    = ARCH_I386
 ARCH_X86     = ARCH_I386
 ARCH_X64     = ARCH_AMD64
+ARCH_ARM7    = ARCH_ARM
+ARCH_ARM8    = ARCH_ARM64
+ARCH_T32     = ARCH_THUMB
+ARCH_AARCH32 = ARCH_ARM7
+ARCH_AARCH64 = ARCH_ARM8
 ARCH_POWERPC = ARCH_PPC
 ARCH_HITACHI = ARCH_SHX
 ARCH_ITANIUM = ARCH_IA64
