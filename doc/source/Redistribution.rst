@@ -39,7 +39,7 @@ The `decorator <http://packages.python.org/decorator>`_ module is also recommend
     +-------------------------------------------------------------------------------------+
     | `Download HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_      |
     +-------------------------------------------------------------------------------------+
-    | `Download Cygwin             <http://cygwin.com/setup.exe>`_                        |
+    | `Download Cygwin             <http://cygwin.com/>`_                                 |
     +-------------------------------------------------------------------------------------+
     | `Download Decorator          <http://pypi.python.org/pypi/decorator>`_              |
     +-------------------------------------------------------------------------------------+
