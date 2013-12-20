@@ -32,7 +32,7 @@
 Binary code disassembly.
 
 @group Disassembler loader:
-    Disassembler
+    Disassembler, Engine
 
 @group Disassembler engines:
     BeaEngine, CapstoneEngine, DistormEngine,
@@ -45,6 +45,7 @@ __revision__ = "$Id$"
 
 __all__ = [
     'Disassembler',
+    'Engine',
     'BeaEngine',
     'CapstoneEngine',
     'DistormEngine',
@@ -67,7 +68,7 @@ capstone = None
 
 #==============================================================================
 
-class _Engine (object):
+class Engine (object):
     """
     Base class for disassembly engine adaptors.
 
@@ -172,7 +173,7 @@ class _Engine (object):
 
 #==============================================================================
 
-class BeaEngine (_Engine):
+class BeaEngine (Engine):
     """
     Integration with the BeaEngine disassembler by Beatrix.
 
@@ -291,7 +292,7 @@ class BeaEngine (_Engine):
 
 #==============================================================================
 
-class DistormEngine (_Engine):
+class DistormEngine (Engine):
     """
     Integration with the diStorm disassembler by Gil Dabah.
 
@@ -331,7 +332,7 @@ class DistormEngine (_Engine):
 
 #==============================================================================
 
-class PyDasmEngine (_Engine):
+class PyDasmEngine (Engine):
     """
     Integration with PyDasm: Python bindings to libdasm.
 
@@ -397,7 +398,7 @@ class PyDasmEngine (_Engine):
 
 #==============================================================================
 
-class LibdisassembleEngine (_Engine):
+class LibdisassembleEngine (Engine):
     """
     Integration with Immunity libdisassemble.
 
@@ -460,7 +461,7 @@ class LibdisassembleEngine (_Engine):
 
 #==============================================================================
 
-class CapstoneEngine (_Engine):
+class CapstoneEngine (Engine):
     """
     Integration with the Capstone disassembler by Nguyen Anh Quynh.
 
@@ -582,6 +583,7 @@ class Disassembler (object):
     @type engines: tuple( L{Engine} )
     @cvar engines: Set of supported engines. If you implement your own adapter
         you can add its class here to make it available to L{Disassembler}.
+        Supported disassemblers are:
     """
 
     engines = (
@@ -591,6 +593,12 @@ class Disassembler (object):
         LibdisassembleEngine,
         CapstoneEngine,
     )
+
+    # Add the list of supported disassemblers to the docstring.
+    __doc__ += "\n"
+    for e in engines:
+        __doc__ += "         - %s - %s (U{%s})\n" % (e.name, e.desc, e.url)
+    del e
 
     # Cache of already loaded disassemblers.
     __decoder = {}
