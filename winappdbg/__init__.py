@@ -93,7 +93,7 @@ Blog:    U{http://breakingcode.wordpress.com}
 
 @group Warnings:
     MixedBitsWarning, BreakpointWarning, BreakpointCallbackWarning,
-    EventCallbackWarning, DebugSymbolsWarning
+    EventCallbackWarning, DebugSymbolsWarning, CrashWarning
 
 @group Deprecated classes:
     CrashContainer, CrashTable, CrashTableMSSQL,

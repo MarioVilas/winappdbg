@@ -37,6 +37,9 @@ Interactive debugging console.
 
 @group Debugging:
     ConsoleDebugger
+
+@group Exceptions:
+    CmdError
 """
 
 from __future__ import with_statement

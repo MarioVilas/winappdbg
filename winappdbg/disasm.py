@@ -35,14 +35,22 @@ Binary code disassembly.
     Disassembler
 
 @group Disassembler engines:
-    BeaEngine, DistormEngine, PyDasmEngine
+    BeaEngine, CapstoneEngine, DistormEngine,
+    LibdisassembleEngine, PyDasmEngine
 """
 
 from __future__ import with_statement
 
 __revision__ = "$Id$"
 
-__all__ = ['Disassembler', 'BeaEngine', 'DistormEngine', 'PyDasmEngine']
+__all__ = [
+    'Disassembler',
+    'BeaEngine',
+    'CapstoneEngine',
+    'DistormEngine',
+    'LibdisassembleEngine',
+    'PyDasmEngine',
+]
 
 from textio import HexDump
 import win32
@@ -59,7 +67,7 @@ capstone = None
 
 #==============================================================================
 
-class Engine (object):
+class _Engine (object):
     """
     Base class for disassembly engine adaptors.
 
@@ -164,7 +172,7 @@ class Engine (object):
 
 #==============================================================================
 
-class BeaEngine (Engine):
+class BeaEngine (_Engine):
     """
     Integration with the BeaEngine disassembler by Beatrix.
 
@@ -283,7 +291,7 @@ class BeaEngine (Engine):
 
 #==============================================================================
 
-class DistormEngine (Engine):
+class DistormEngine (_Engine):
     """
     Integration with the diStorm disassembler by Gil Dabah.
 
@@ -323,7 +331,7 @@ class DistormEngine (Engine):
 
 #==============================================================================
 
-class PyDasmEngine (Engine):
+class PyDasmEngine (_Engine):
     """
     Integration with PyDasm: Python bindings to libdasm.
 
@@ -389,7 +397,7 @@ class PyDasmEngine (Engine):
 
 #==============================================================================
 
-class LibdisassembleEngine (Engine):
+class LibdisassembleEngine (_Engine):
     """
     Integration with Immunity libdisassemble.
 
@@ -452,7 +460,7 @@ class LibdisassembleEngine (Engine):
 
 #==============================================================================
 
-class CapstoneEngine (Engine):
+class CapstoneEngine (_Engine):
     """
     Integration with the Capstone disassembler by Nguyen Anh Quynh.
 
