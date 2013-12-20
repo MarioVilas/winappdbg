@@ -96,7 +96,7 @@ The following packages provide extra features and performance improvements, they
 Disassembler
 ++++++++++++
 
-*WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed.
+*WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed, but you can also decide which one to use.
 
 * The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
 
@@ -109,6 +109,13 @@ Disassembler
 
   * `BeaEngine 3.1.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_
   * `BeaEngine 3.1.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_
+
+* The `Capstone <http://capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh:
+
+  * `Capstone 1.0 bindings for Python 2.6 (Windows, 32 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python26-win32.exe>`_
+  * `Capstone 1.0 bindings for Python 2.6 (Windows, 64 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python26-win64.exe>`_
+  * `Capstone 1.0 bindings for Python 2.7 (Windows, 32 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python27-win32.exe>`_
+  * `Capstone 1.0 bindings for Python 2.7 (Windows, 64 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python27-win64.exe>`_
 
 * The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
 
