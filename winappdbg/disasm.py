@@ -510,9 +510,10 @@ class CapstoneEngine (Engine):
         while offset < len(code):
 
             # Disassemble a single instruction, because disassembling multiple
-            # instructions causes segmentation faults sometimes. We also need
-            # to catch all exceptions broadly because of a syntax error in
-            # capstone.py when trying to raise CsError.
+            # instructions causes segmentation faults sometimes in the first
+            # published version of Capstone's bindings. We also need to catch
+            # all exceptions broadly because of a syntax error in capstone.py
+            # (same version of the bindings) when trying to raise CsError.
             try:
                 instr = self.__decoder(
                     arch, mode, code[offset:offset+16], address+offset, 1)[0]
