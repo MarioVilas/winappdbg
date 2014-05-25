@@ -39,19 +39,21 @@ Documentation:
 --------------
 
 Online
-++++++
 
  * [Tutorial](http://winappdbg.sourceforge.net/doc/v1.5/tutorial)
  * [Reference](http://winappdbg.sourceforge.net/doc/v1.5/reference)
 
  Windows Help
+ 
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
 
  HTML format (offline)
+ 
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
 
  PDF format (suitable for printing)
+ 
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.pdf/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.pdf/download)
