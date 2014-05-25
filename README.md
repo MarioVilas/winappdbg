@@ -19,41 +19,41 @@ Current features also include disassembling x86/x64 native code, debugging
 multiple processes simultaneously and produce a detailed log of application
 crashes, useful for fuzzing and automated testing.
 
-
 Where can I find WinAppDbg?
 ===========================
 
-Project homepage:
------------------
-
  * [Homepage](http://winappdbg.sourceforge.net/)
 
-Download links:
----------------
+Download links
+==============
 
  * [Windows installer (32 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.msi/download)
  * [Windows installer (64 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.msi/download)
  * [Source code](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download)
 
-Documentation:
---------------
+Documentation
+=============
 
 Online
+------
 
  * [Tutorial](http://winappdbg.sourceforge.net/doc/v1.5/tutorial)
  * [Reference](http://winappdbg.sourceforge.net/doc/v1.5/reference)
 
  Windows Help
+ ------------
  
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
 
  HTML format (offline)
+ ---------------------
  
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
 
  PDF format (suitable for printing)
+ ----------------------------------
  
  * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.pdf/download)
  * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.pdf/download)
