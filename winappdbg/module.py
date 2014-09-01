@@ -1867,12 +1867,19 @@ When called as an instance method, the fuzzy syntax mode is used::
         # no easy way to optimize this. I guess we're stuck with brute force.
         found = None
         for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
-            if SymbolAddress <= address:
-                if SymbolAddress + SymbolSize > address:
-                    if not found or found[1] < SymbolAddress:
-                        found = (SymbolName, SymbolAddress, SymbolSize)
-        return found
+            if SymbolAddress > address:
+                continue
 
+            if SymbolAddress == address:
+                found = (SymbolName, SymbolAddress, SymbolSize)
+                break
+
+            if SymbolAddress < address:
+                if found and (address - found[1]) < (address - SymbolAddress):
+                    continue
+                else:
+                    found = (SymbolName, SymbolAddress, SymbolSize)
+        return found
 #------------------------------------------------------------------------------
 
     # XXX _notify_* methods should not trigger a scan
