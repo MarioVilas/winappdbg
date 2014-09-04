@@ -34,9 +34,9 @@ Wrapper for dbghelp.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from version import *
-from kernel32 import *
+from winappdbg.win32.defines import *
+from winappdbg.win32.version import *
+from winappdbg.win32.kernel32 import *
 
 # DbgHelp versions and features list:
 # http://msdn.microsoft.com/en-us/library/windows/desktop/ms679294(v=vs.85).aspx

@@ -34,8 +34,8 @@ Wrapper for wtsapi32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from advapi32 import *
+from winappdbg.win32.defines import *
+from winappdbg.win32.advapi32 import *
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

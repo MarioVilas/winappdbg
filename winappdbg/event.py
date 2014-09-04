@@ -91,15 +91,17 @@ __all__ = [
             'ExceptionEvent'
           ]
 
-import win32
-from win32 import FileHandle, ProcessHandle, ThreadHandle
-from breakpoint import ApiHook
-from module import Module
-from thread import Thread
-from process import Process
-from textio import HexDump
-from util import StaticClass, PathOperations
+from winappdbg import win32
+from winappdbg import compat
+from winappdbg.win32 import FileHandle, ProcessHandle, ThreadHandle
+from winappdbg.breakpoint import ApiHook
+from winappdbg.module import Module
+from winappdbg.thread import Thread
+from winappdbg.process import Process
+from winappdbg.textio import HexDump
+from winappdbg.util import StaticClass, PathOperations
 
+import sys
 import ctypes
 import warnings
 import traceback
@@ -546,7 +548,7 @@ class ExceptionEvent (Event):
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         data = list()
-        for index in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
+        for index in compat.xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
             value = info[index]
             if value is None:
                 value = 0
@@ -1097,7 +1099,7 @@ class OutputDebugStringEvent (Event):
 
     def get_debug_string(self):
         """
-        @rtype:  str, unicode
+        @rtype:  str, compat.unicode
         @return: String sent by the debugee.
             It may be ANSI or Unicode and may end with a null character.
         """
@@ -1397,7 +1399,7 @@ class EventHandler (object):
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
         apiHooks = dict()
-        for lib, hooks in self.apiHooks.iteritems():
+        for lib, hooks in compat.iteritems(self.apiHooks):
             hook_objs = []
             for proc, args in hooks:
                 if type(args) in (int, long):
@@ -1419,7 +1421,7 @@ class EventHandler (object):
             path = event.get_module().get_filename()
             if path:
                 lib_name = PathOperations.pathname_to_filename(path).lower()
-                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
+                for hook_lib, hook_api_list in compat.iteritems(self.__apiHooks):
                     if hook_lib == lib_name:
                         result.extend(hook_api_list)
         return result
@@ -1848,7 +1850,8 @@ class EventDispatcher (object):
             if bCallHandler and self.__eventHandler is not None:
                 try:
                     returnValue = self.__eventHandler(event)
-                except Exception, e:
+                except Exception:
+                    e = sys.exc_info()[1]
                     msg = ("Event handler pre-callback %r"
                            " raised an exception: %s")
                     msg = msg % (self.__eventHandler, traceback.format_exc(e))

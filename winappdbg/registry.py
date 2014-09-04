@@ -41,7 +41,9 @@ __revision__ = "$Id$"
 
 __all__ = ['Registry']
 
-import win32
+import sys
+from winappdbg import win32
+from winappdbg import compat
 import collections
 import warnings
 
@@ -75,7 +77,7 @@ class _RegistryContainer (object):
         self.__default = default
 
     def __iter__(self):
-        return self.iterkeys()
+        return compat.iterkeys(self)
 
 #==============================================================================
 
@@ -148,7 +150,8 @@ class RegistryKey (_RegistryContainer):
         try:
             win32.RegQueryValueEx(self.handle, name, False)
             return True
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 return False
             raise
@@ -156,7 +159,8 @@ class RegistryKey (_RegistryContainer):
     def __getitem__(self, name):
         try:
             return win32.RegQueryValueEx(self.handle, name)[0]
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(name)
             raise
@@ -262,7 +266,8 @@ class RegistryKey (_RegistryContainer):
         """
         try:
             return win32.RegQueryValueEx(self.handle, name)[1]
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(name)
             raise
@@ -281,7 +286,7 @@ class RegistryKey (_RegistryContainer):
 
     def __unicode__(self):
         default = self[u'']
-        return unicode(default)
+        return compat.unicode(default)
 
     def __repr__(self):
         return '<Registry key: "%s">' % self._path
@@ -404,7 +409,7 @@ class Registry (_RegistryContainer):
         win32.HKEY_CURRENT_CONFIG   : 'HKEY_CURRENT_CONFIG',
     }
 
-    _hives = sorted(_hives_by_value.itervalues())
+    _hives = sorted(compat.itervalues(_hives_by_value))
 
     def __init__(self, machine = None):
         """
@@ -537,8 +542,9 @@ class Registry (_RegistryContainer):
             hive = self._remote_hives.popitem()[1]
             try:
                 hive.close()
-            except Exception, e:
+            except Exception:
                 try:
+                    e = sys.exc_info()[1]
                     msg = "Cannot close registry hive handle %s, reason: %s"
                     msg %= (hive.value, str(e))
                     warnings.warn(msg)
@@ -561,7 +567,8 @@ class Registry (_RegistryContainer):
         try:
             with win32.RegOpenKey(hive, subpath):
                 return True
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 return False
             raise
@@ -571,7 +578,8 @@ class Registry (_RegistryContainer):
         hive, subpath = self._parse_path(path)
         try:
             handle = win32.RegOpenKey(hive, subpath)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(path)
             raise
@@ -580,7 +588,7 @@ class Registry (_RegistryContainer):
     def __setitem__(self, path, value):
         do_copy = isinstance(value, RegistryKey)
         if not do_copy and not isinstance(value, str)    \
-                       and not isinstance(value, unicode):
+                       and not isinstance(value, compat.unicode):
             if isinstance(value, object):
                 t = value.__class__.__name__
             else:
@@ -603,7 +611,8 @@ class Registry (_RegistryContainer):
                 " Call win32.RegDeleteTree() directly if you must...")
         try:
             win32.RegDeleteTree(hive, subpath)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_FILE_NOT_FOUND:
                 raise KeyError(path)
             raise

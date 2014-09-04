@@ -74,11 +74,13 @@ __all__ = [
     'Regenerator',
     ]
 
+import sys
 import os
 import ctypes
 import optparse
 
-import win32
+from winappdbg import win32
+from winappdbg import compat
 
 #==============================================================================
 
@@ -291,28 +293,29 @@ class PathOperations (StaticClass):
         # XXX TODO
         # There are probably some native paths that
         # won't be converted by this naive approach.
-        if name.startswith("\\"):
-            if name.startswith("\\??\\"):
+        if name.startswith(compat.b("\\")):
+            if name.startswith(compat.b("\\??\\")):
                 name = name[4:]
-            elif name.startswith("\\SystemRoot\\"):
+            elif name.startswith(compat.b("\\SystemRoot\\")):
                 system_root_path = os.environ['SYSTEMROOT']
                 if system_root_path.endswith('\\'):
                     system_root_path = system_root_path[:-1]
                 name = system_root_path + name[11:]
             else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                for drive_number in compat.xrange(ord('A'), ord('Z') + 1):
                     drive_letter = '%c:' % drive_number
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
+                    except WindowsError:
+                        e = sys.exc_info()[1]
                         if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
                                                  win32.ERROR_PATH_NOT_FOUND):
                             continue
                         raise
-                    if not device_native_path.endswith('\\'):
-                        device_native_path += '\\'
+                    if not device_native_path.endswith(compat.b('\\')):
+                        device_native_path += compat.b('\\')
                     if name.startswith(device_native_path):
-                        name = drive_letter + '\\' + \
+                        name = drive_letter + compat.b('\\') + \
                                               name[ len(device_native_path) : ]
                         break
         return name
@@ -599,6 +602,15 @@ def ExecutableAndWriteableAddressIterator(memory_map):
                       win32.MemoryBasicInformation.is_executable_and_writeable)
 
 #==============================================================================
+try:
+    _registerMask = win32.SIZE_T(-1).value
+except TypeError:
+    if win32.SIZEOF(win32.SIZE_T) == 4:
+        _registerMask = 0xFFFFFFFF
+    elif win32.SIZEOF(win32.SIZE_T) == 8:
+        _registerMask = 0xFFFFFFFFFFFFFFFF
+    else:
+        raise
 
 class DebugRegister (StaticClass):
     """
@@ -718,15 +730,7 @@ class DebugRegister (StaticClass):
     WATCH_DWORD = 3
     WATCH_QWORD = 2
 
-    try:
-        registerMask = win32.SIZE_T(-1).value
-    except TypeError:
-        if win32.SIZEOF(win32.SIZE_T) == 4:
-            registerMask = 0xFFFFFFFF
-        elif win32.SIZEOF(win32.SIZE_T) == 8:
-            registerMask = 0xFFFFFFFFFFFFFFFF
-        else:
-            raise
+    registerMask = _registerMask
 
 #------------------------------------------------------------------------------
 
@@ -762,8 +766,11 @@ class DebugRegister (StaticClass):
     )
 
     # Dr7 &= disableMask[register]
-    disableMask = tuple( [registerMask ^ x for x in enableMask] )
-    del x
+    disableMask = tuple( [_registerMask ^ x for x in enableMask] ) # The registerMask from the class is not there in py3
+    try:
+        del x # It's not there in py3
+    except:
+        pass
 
     # orMask, andMask = triggerMask[register][trigger]
     # Dr7 = (Dr7 & andMask) | orMask    # to set

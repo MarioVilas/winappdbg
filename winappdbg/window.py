@@ -39,7 +39,7 @@ __revision__ = "$Id$"
 
 __all__ = ['Window']
 
-import win32
+from winappdbg import win32
 
 # delayed imports
 Process = None
@@ -183,12 +183,12 @@ class Window (object):
     def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
-            from process import Process
+            from winappdbg.process import Process
 
     def __load_Thread_class(self):
         global Thread       # delayed import
         if Thread is None:
-            from thread import Thread
+            from winappdbg.thread import Thread
 
     def get_process(self):
         """

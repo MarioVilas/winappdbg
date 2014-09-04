@@ -36,10 +36,10 @@ __revision__ = "$Id$"
 
 import warnings
 
-from defines import *
+from winappdbg.win32.defines import *
 
-import context_i386
-import context_amd64
+from winappdbg.win32 import context_i386
+from winappdbg.win32 import context_amd64
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -48,7 +48,7 @@ _all = set(vars().keys())
 _all.add('version')
 #==============================================================================
 
-from version import *
+from winappdbg.win32.version import *
 
 #------------------------------------------------------------------------------
 
@@ -74,12 +74,12 @@ def RaiseIfLastError(result, func = None, arguments = ()):
 ContextArchMask = 0x0FFF0000    # just guessing here! seems to work, though
 
 if   arch == ARCH_I386:
-    from context_i386 import *
+    from winappdbg.win32.context_i386 import *
 elif arch == ARCH_AMD64:
     if bits == 64:
-        from context_amd64 import *
+        from winappdbg.win32.context_amd64 import *
     else:
-        from context_i386 import *
+        from winappdbg.win32.context_i386 import *
 else:
     warnings.warn("Unknown or unsupported architecture: %s" % arch)
 
@@ -140,17 +140,17 @@ HEAP_ZERO_MEMORY            = 0x00000008
 HEAP_CREATE_ENABLE_EXECUTE  = 0x00040000
 
 # Standard access rights
-DELETE                      = (0x00010000L)
-READ_CONTROL                = (0x00020000L)
-WRITE_DAC                   = (0x00040000L)
-WRITE_OWNER                 = (0x00080000L)
-SYNCHRONIZE                 = (0x00100000L)
-STANDARD_RIGHTS_REQUIRED    = (0x000F0000L)
+DELETE                      = long(0x00010000)
+READ_CONTROL                = long(0x00020000)
+WRITE_DAC                   = long(0x00040000)
+WRITE_OWNER                 = long(0x00080000)
+SYNCHRONIZE                 = long(0x00100000)
+STANDARD_RIGHTS_REQUIRED    = long(0x000F0000)
 STANDARD_RIGHTS_READ        = (READ_CONTROL)
 STANDARD_RIGHTS_WRITE       = (READ_CONTROL)
 STANDARD_RIGHTS_EXECUTE     = (READ_CONTROL)
-STANDARD_RIGHTS_ALL         = (0x001F0000L)
-SPECIFIC_RIGHTS_ALL         = (0x0000FFFFL)
+STANDARD_RIGHTS_ALL         = long(0x001F0000)
+SPECIFIC_RIGHTS_ALL         = long(0x0000FFFF)
 
 # Mutex access rights
 MUTEX_ALL_ACCESS   = 0x1F0001
@@ -268,7 +268,7 @@ THREAD_PRIORITY_BELOW_NORMAL    = (THREAD_PRIORITY_LOWEST+1)
 THREAD_PRIORITY_NORMAL          = 0
 THREAD_PRIORITY_HIGHEST         = THREAD_BASE_PRIORITY_MAX
 THREAD_PRIORITY_ABOVE_NORMAL    = (THREAD_PRIORITY_HIGHEST-1)
-THREAD_PRIORITY_ERROR_RETURN    = (0xFFFFFFFFL)
+THREAD_PRIORITY_ERROR_RETURN    = long(0xFFFFFFFF)
 
 THREAD_PRIORITY_TIME_CRITICAL   = THREAD_BASE_PRIORITY_LOWRT
 THREAD_PRIORITY_IDLE            = THREAD_BASE_PRIORITY_IDLE
@@ -386,66 +386,66 @@ OUTPUT_DEBUG_STRING_EVENT   = 8
 RIP_EVENT                   = 9
 
 # Debug status codes (ContinueDebugEvent)
-DBG_EXCEPTION_HANDLED           = 0x00010001L
-DBG_CONTINUE                    = 0x00010002L
-DBG_REPLY_LATER                 = 0x40010001L
-DBG_UNABLE_TO_PROVIDE_HANDLE    = 0x40010002L
-DBG_TERMINATE_THREAD            = 0x40010003L
-DBG_TERMINATE_PROCESS           = 0x40010004L
-DBG_CONTROL_C                   = 0x40010005L
-DBG_PRINTEXCEPTION_C            = 0x40010006L
-DBG_RIPEXCEPTION                = 0x40010007L
-DBG_CONTROL_BREAK               = 0x40010008L
-DBG_COMMAND_EXCEPTION           = 0x40010009L
-DBG_EXCEPTION_NOT_HANDLED       = 0x80010001L
-DBG_NO_STATE_CHANGE             = 0xC0010001L
-DBG_APP_NOT_IDLE                = 0xC0010002L
+DBG_EXCEPTION_HANDLED           = long(0x00010001)
+DBG_CONTINUE                    = long(0x00010002)
+DBG_REPLY_LATER                 = long(0x40010001)
+DBG_UNABLE_TO_PROVIDE_HANDLE    = long(0x40010002)
+DBG_TERMINATE_THREAD            = long(0x40010003)
+DBG_TERMINATE_PROCESS           = long(0x40010004)
+DBG_CONTROL_C                   = long(0x40010005)
+DBG_PRINTEXCEPTION_C            = long(0x40010006)
+DBG_RIPEXCEPTION                = long(0x40010007)
+DBG_CONTROL_BREAK               = long(0x40010008)
+DBG_COMMAND_EXCEPTION           = long(0x40010009)
+DBG_EXCEPTION_NOT_HANDLED       = long(0x80010001)
+DBG_NO_STATE_CHANGE             = long(0xC0010001)
+DBG_APP_NOT_IDLE                = long(0xC0010002)
 
 # Status codes
-STATUS_WAIT_0                   = 0x00000000L
-STATUS_ABANDONED_WAIT_0         = 0x00000080L
-STATUS_USER_APC                 = 0x000000C0L
-STATUS_TIMEOUT                  = 0x00000102L
-STATUS_PENDING                  = 0x00000103L
-STATUS_SEGMENT_NOTIFICATION     = 0x40000005L
-STATUS_GUARD_PAGE_VIOLATION     = 0x80000001L
-STATUS_DATATYPE_MISALIGNMENT    = 0x80000002L
-STATUS_BREAKPOINT               = 0x80000003L
-STATUS_SINGLE_STEP              = 0x80000004L
-STATUS_INVALID_INFO_CLASS       = 0xC0000003L
-STATUS_ACCESS_VIOLATION         = 0xC0000005L
-STATUS_IN_PAGE_ERROR            = 0xC0000006L
-STATUS_INVALID_HANDLE           = 0xC0000008L
-STATUS_NO_MEMORY                = 0xC0000017L
-STATUS_ILLEGAL_INSTRUCTION      = 0xC000001DL
-STATUS_NONCONTINUABLE_EXCEPTION = 0xC0000025L
-STATUS_INVALID_DISPOSITION      = 0xC0000026L
-STATUS_ARRAY_BOUNDS_EXCEEDED    = 0xC000008CL
-STATUS_FLOAT_DENORMAL_OPERAND   = 0xC000008DL
-STATUS_FLOAT_DIVIDE_BY_ZERO     = 0xC000008EL
-STATUS_FLOAT_INEXACT_RESULT     = 0xC000008FL
-STATUS_FLOAT_INVALID_OPERATION  = 0xC0000090L
-STATUS_FLOAT_OVERFLOW           = 0xC0000091L
-STATUS_FLOAT_STACK_CHECK        = 0xC0000092L
-STATUS_FLOAT_UNDERFLOW          = 0xC0000093L
-STATUS_INTEGER_DIVIDE_BY_ZERO   = 0xC0000094L
-STATUS_INTEGER_OVERFLOW         = 0xC0000095L
-STATUS_PRIVILEGED_INSTRUCTION   = 0xC0000096L
-STATUS_STACK_OVERFLOW           = 0xC00000FDL
-STATUS_CONTROL_C_EXIT           = 0xC000013AL
-STATUS_FLOAT_MULTIPLE_FAULTS    = 0xC00002B4L
-STATUS_FLOAT_MULTIPLE_TRAPS     = 0xC00002B5L
-STATUS_REG_NAT_CONSUMPTION      = 0xC00002C9L
-STATUS_SXS_EARLY_DEACTIVATION   = 0xC015000FL
-STATUS_SXS_INVALID_DEACTIVATION = 0xC0150010L
+STATUS_WAIT_0                   = long(0x00000000)
+STATUS_ABANDONED_WAIT_0         = long(0x00000080)
+STATUS_USER_APC                 = long(0x000000C0)
+STATUS_TIMEOUT                  = long(0x00000102)
+STATUS_PENDING                  = long(0x00000103)
+STATUS_SEGMENT_NOTIFICATION     = long(0x40000005)
+STATUS_GUARD_PAGE_VIOLATION     = long(0x80000001)
+STATUS_DATATYPE_MISALIGNMENT    = long(0x80000002)
+STATUS_BREAKPOINT               = long(0x80000003)
+STATUS_SINGLE_STEP              = long(0x80000004)
+STATUS_INVALID_INFO_CLASS       = long(0xC0000003)
+STATUS_ACCESS_VIOLATION         = long(0xC0000005)
+STATUS_IN_PAGE_ERROR            = long(0xC0000006)
+STATUS_INVALID_HANDLE           = long(0xC0000008)
+STATUS_NO_MEMORY                = long(0xC0000017)
+STATUS_ILLEGAL_INSTRUCTION      = long(0xC000001D)
+STATUS_NONCONTINUABLE_EXCEPTION = long(0xC0000025)
+STATUS_INVALID_DISPOSITION      = long(0xC0000026)
+STATUS_ARRAY_BOUNDS_EXCEEDED    = long(0xC000008C)
+STATUS_FLOAT_DENORMAL_OPERAND   = long(0xC000008D)
+STATUS_FLOAT_DIVIDE_BY_ZERO     = long(0xC000008E)
+STATUS_FLOAT_INEXACT_RESULT     = long(0xC000008F)
+STATUS_FLOAT_INVALID_OPERATION  = long(0xC0000090)
+STATUS_FLOAT_OVERFLOW           = long(0xC0000091)
+STATUS_FLOAT_STACK_CHECK        = long(0xC0000092)
+STATUS_FLOAT_UNDERFLOW          = long(0xC0000093)
+STATUS_INTEGER_DIVIDE_BY_ZERO   = long(0xC0000094)
+STATUS_INTEGER_OVERFLOW         = long(0xC0000095)
+STATUS_PRIVILEGED_INSTRUCTION   = long(0xC0000096)
+STATUS_STACK_OVERFLOW           = long(0xC00000FD)
+STATUS_CONTROL_C_EXIT           = long(0xC000013A)
+STATUS_FLOAT_MULTIPLE_FAULTS    = long(0xC00002B4)
+STATUS_FLOAT_MULTIPLE_TRAPS     = long(0xC00002B5)
+STATUS_REG_NAT_CONSUMPTION      = long(0xC00002C9)
+STATUS_SXS_EARLY_DEACTIVATION   = long(0xC015000F)
+STATUS_SXS_INVALID_DEACTIVATION = long(0xC0150010)
 
-STATUS_STACK_BUFFER_OVERRUN     = 0xC0000409L
-STATUS_WX86_BREAKPOINT          = 0x4000001FL
-STATUS_HEAP_CORRUPTION          = 0xC0000374L
+STATUS_STACK_BUFFER_OVERRUN     = long(0xC0000409)
+STATUS_WX86_BREAKPOINT          = long(0x4000001F)
+STATUS_HEAP_CORRUPTION          = long(0xC0000374)
 
-STATUS_POSSIBLE_DEADLOCK        = 0xC0000194L
+STATUS_POSSIBLE_DEADLOCK        = long(0xC0000194)
 
-STATUS_UNWIND_CONSOLIDATE       = 0x80000029L
+STATUS_UNWIND_CONSOLIDATE       = long(0x80000029)
 
 # Exception codes
 
@@ -477,8 +477,8 @@ EXCEPTION_WX86_BREAKPOINT           = STATUS_WX86_BREAKPOINT
 
 CONTROL_C_EXIT                      = STATUS_CONTROL_C_EXIT
 
-DBG_CONTROL_C                       = 0x40010005L
-MS_VC_EXCEPTION                     = 0x406D1388L
+DBG_CONTROL_C                       = long(0x40010005)
+MS_VC_EXCEPTION                     = long(0x406D1388)
 
 # Access violation types
 ACCESS_VIOLATION_TYPE_READ      = EXCEPTION_READ_FAULT
@@ -607,7 +607,7 @@ class Handle (object):
         self._value     = self._normalize(aHandle)
         self.bOwnership = bOwnership
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "INIT HANDLE (%r) %r" % (self.value, self)
+            print("INIT HANDLE (%r) %r" % (self.value, self))
 
     @property
     def value(self):
@@ -619,7 +619,7 @@ class Handle (object):
         """
         try:
             if Handle.__bLeakDetection:     # XXX DEBUG
-                print "DEL HANDLE %r" % self
+                print("DEL HANDLE %r" % self)
             self.close()
         except Exception:
             pass
@@ -629,7 +629,7 @@ class Handle (object):
         Compatibility with the "C{with}" Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "ENTER HANDLE %r" % self
+            print("ENTER HANDLE %r" % self)
         return self
 
     def __exit__(self, type, value, traceback):
@@ -637,7 +637,7 @@ class Handle (object):
         Compatibility with the "C{with}" Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "EXIT HANDLE %r" % self
+            print("EXIT HANDLE %r" % self)
         try:
             self.close()
         except Exception:
@@ -686,7 +686,7 @@ class Handle (object):
         """
         if self.bOwnership and self.value not in (None, INVALID_HANDLE_VALUE):
             if Handle.__bLeakDetection:     # XXX DEBUG
-                print "CLOSE HANDLE (%d) %r" % (self.value, self)
+                print("CLOSE HANDLE (%d) %r" % (self.value, self))
             try:
                 self._close()
             finally:
@@ -708,8 +708,8 @@ class Handle (object):
             raise ValueError("Closed handles can't be duplicated!")
         new_handle = DuplicateHandle(self.value)
         if Handle.__bLeakDetection:     # XXX DEBUG
-            print "DUP HANDLE (%d -> %d) %r %r" % \
-                            (self.value, new_handle.value, self, new_handle)
+            print("DUP HANDLE (%d -> %d) %r %r" % \
+                            (self.value, new_handle.value, self, new_handle))
         return new_handle
 
     @staticmethod
@@ -932,14 +932,14 @@ class FileHandle (Handle):
                                         FILE_INFO_BY_HANDLE_CLASS.FileNameInfo,
                                         lpFileInformation, dwBufferSize)
         except AttributeError:
-            from ntdll import NtQueryInformationFile, \
+            from winappdbg.win32.ntdll import NtQueryInformationFile, \
                               FileNameInformation, \
                               FILE_NAME_INFORMATION
             NtQueryInformationFile(self.value,
                                    FileNameInformation,
                                    lpFileInformation,
                                    dwBufferSize)
-        FileName = unicode(lpFileInformation.raw[sizeof(DWORD):], 'U16')
+        FileName = compat.unicode(lpFileInformation.raw[sizeof(DWORD):], 'U16')
         FileName = ctypes.create_unicode_buffer(FileName).value
         if not FileName:
             FileName = None
@@ -2542,11 +2542,11 @@ def GetProcAddressA(hModule, lpProcName):
     _GetProcAddress.argtypes = [HMODULE, LPVOID]
     _GetProcAddress.restype  = LPVOID
 
-    if type(lpProcName) in (type(0), type(0L)):
+    if type(lpProcName) in (type(0), type(long(0))):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
             raise ValueError('Ordinal number too large: %d' % lpProcName.value)
-    elif type(lpProcName) == type(""):
+    elif type(lpProcName) == type(compat.b("")):
         lpProcName = ctypes.c_char_p(lpProcName)
     else:
         raise TypeError(str(type(lpProcName)))
@@ -3680,12 +3680,12 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
     _ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
     _ReadProcessMemory.restype  = bool
 
-    lpBuffer            = ctypes.create_string_buffer('', nSize)
+    lpBuffer            = ctypes.create_string_buffer(compat.b(''), nSize)
     lpNumberOfBytesRead = SIZE_T(0)
     success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, byref(lpNumberOfBytesRead))
     if not success and GetLastError() != ERROR_PARTIAL_COPY:
         raise ctypes.WinError()
-    return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
+    return compat.b(lpBuffer.raw)[:lpNumberOfBytesRead.value]
 
 # BOOL WINAPI WriteProcessMemory(
 #   __in   HANDLE hProcess,

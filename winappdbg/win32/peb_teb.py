@@ -34,8 +34,8 @@ PEB and TEB structures, constants and data types.
 
 __revision__ = "$Id$"
 
-from defines import *
-from version import os
+from winappdbg.win32.defines import *
+from winappdbg.win32.version import os
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

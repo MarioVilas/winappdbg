@@ -231,24 +231,24 @@ __all__ =   [
             ]
 
 # Import all public symbols
-from breakpoint import *
-from crash import *
-from debug import *
-from disasm import *
-from event import *
-from interactive import *
-from module import *
-from process import *
-from registry import *
-from system import *
-from search import *
-from textio import *
-from thread import *
-from util import *
-from window import *
+from winappdbg.breakpoint import *
+from winappdbg.crash import *
+from winappdbg.debug import *
+from winappdbg.disasm import *
+from winappdbg.event import *
+from winappdbg.interactive import *
+from winappdbg.module import *
+from winappdbg.process import *
+from winappdbg.registry import *
+from winappdbg.system import *
+from winappdbg.search import *
+from winappdbg.textio import *
+from winappdbg.thread import *
+from winappdbg.util import *
+from winappdbg.window import *
 
-import win32
-from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+import winappdbg.win32
+from winappdbg.win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 try:
     from sql import *

@@ -34,7 +34,7 @@ Wrapper for psapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
+from winappdbg.win32.defines import *
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -85,7 +85,7 @@ def EnumDeviceDrivers():
         if needed <= size:
             break
         size = needed
-    return [ lpImageBase[index] for index in xrange(0, (needed // unit)) ]
+    return [ lpImageBase[index] for index in compat.xrange(0, (needed // unit)) ]
 
 # BOOL WINAPI EnumProcesses(
 #   __out  DWORD *pProcessIds,
@@ -138,7 +138,7 @@ def EnumProcessModules(hProcess):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, int(needed // unit)) ]
+    return [ lphModule[index] for index in compat.xrange(0, int(needed // unit)) ]
 
 # BOOL WINAPI EnumProcessModulesEx(
 #   __in   HANDLE hProcess,
@@ -163,7 +163,7 @@ def EnumProcessModulesEx(hProcess, dwFilterFlag = LIST_MODULES_DEFAULT):
         if needed <= size:
             break
         size = needed
-    return [ lphModule[index] for index in xrange(0, (needed // unit)) ]
+    return [ lphModule[index] for index in compat.xrange(0, (needed // unit)) ]
 
 # DWORD WINAPI GetDeviceDriverBaseName(
 #   __in   LPVOID ImageBase,

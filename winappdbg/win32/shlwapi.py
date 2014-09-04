@@ -34,8 +34,8 @@ Wrapper for shlwapi.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import *
+from winappdbg.win32.defines import *
+from winappdbg.win32.kernel32 import *
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

@@ -44,9 +44,11 @@ __revision__ = "$Id$"
 
 __all__ = ['Module', 'DebugSymbolsWarning']
 
-import win32
-from textio import HexInput, HexDump
-from util import PathOperations
+import sys
+from winappdbg import win32
+from winappdbg import compat
+from winappdbg.textio import HexInput, HexDump
+from winappdbg.util import PathOperations
 
 # delayed imports
 Process = None
@@ -131,7 +133,7 @@ class Module (object):
             if self.undecorate:
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     pass # not all symbols are decorated!
             self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
             return win32.TRUE
@@ -227,7 +229,7 @@ class Module (object):
         else:
             global Process      # delayed import
             if Process is None:
-                from process import Process
+                from winappdbg.process import Process
             if not isinstance(process, Process):
                 msg  = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
@@ -285,7 +287,8 @@ class Module (object):
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
                 self.EntryPoint  = mi.EntryPoint
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 warnings.warn(
                     "Cannot get size and entry point of module %s, reason: %s"\
                     % (self.get_name(), e.strerror), RuntimeWarning)
@@ -339,10 +342,11 @@ class Module (object):
         pathname = self.get_filename()
         if pathname:
             modName = self.__filename_to_modname(pathname)
-            if isinstance(modName, unicode):
+            if isinstance(modName, compat.unicode):
                 try:
                     modName = modName.encode('cp1252')
-                except UnicodeEncodeError, e:
+                except UnicodeEncodeError:
+                    e = sys.exc_info()[1]
                     warnings.warn(str(e))
         else:
             modName = "0x%x" % self.get_base()
@@ -499,7 +503,8 @@ class Module (object):
                         win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             msg = "Cannot load debug symbols for process ID %d, reason:\n%s"
             msg = msg % (self.get_pid(), traceback.format_exc(e))
             warnings.warn(msg, DebugSymbolsWarning)
@@ -565,7 +570,7 @@ class Module (object):
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     continue
                 if symbol == SymbolName:
                     return SymbolAddress
@@ -577,7 +582,7 @@ class Module (object):
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     continue
                 if symbol == SymbolName.lower():
                     return SymbolAddress
@@ -666,7 +671,7 @@ class Module (object):
                 if new_offset <= offset:
                     function    = SymbolName
                     offset      = new_offset
-        except WindowsError, e:
+        except WindowsError:
             pass
 
         # Parse the label and return it.
@@ -713,7 +718,7 @@ class Module (object):
         try:
             hlib    = win32.GetModuleHandle(filename)
             address = win32.GetProcAddress(hlib, function)
-        except WindowsError, e:
+        except WindowsError:
 
             # Load the DLL locally, resolve the function and unload it.
             try:
@@ -723,7 +728,7 @@ class Module (object):
                     address = win32.GetProcAddress(hlib, function)
                 finally:
                     win32.FreeLibrary(hlib)
-            except WindowsError, e:
+            except WindowsError:
                 return None
 
         # A NULL pointer means the function was not found.
@@ -914,7 +919,7 @@ class _ModuleContainer (object):
         @return: Iterator of DLL base addresses in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.iterkeys()
+        return compat.iterkeys(self.__moduleDict)
 
     def iter_modules(self):
         """
@@ -923,7 +928,7 @@ class _ModuleContainer (object):
         @return: Iterator of L{Module} objects in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.itervalues()
+        return compat.itervalues(self.__moduleDict)
 
     def get_module_bases(self):
         """
@@ -932,7 +937,7 @@ class _ModuleContainer (object):
         @return: List of DLL base addresses in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.keys()
+        return compat.keys(self.__moduleDict)
 
     def get_module_count(self):
         """
@@ -1010,7 +1015,7 @@ class _ModuleContainer (object):
         """
         bases = self.get_module_bases()
         bases.sort()
-        bases.append(0x10000000000000000L)  # max. 64 bit address + 1
+        bases.append(long(0x10000000000000000))  # max. 64 bit address + 1
         if address >= bases[0]:
             i = 0
             max_i = len(bases) - 1
@@ -1081,7 +1086,7 @@ class _ModuleContainer (object):
                         aModule.process     = self
                 me = win32.Module32Next(hSnapshot)
 ##        for base in self.get_module_bases(): # XXX triggers a scan
-        for base in self.__moduleDict.keys():
+        for base in compat.keys(self.__moduleDict):
             if base not in found_bases:
                 self._del_module(base)
 
@@ -1089,7 +1094,7 @@ class _ModuleContainer (object):
         """
         Clears the modules snapshot.
         """
-        for aModule in self.__moduleDict.itervalues():
+        for aModule in compat.itervalues(self.__moduleDict):
             aModule.clear()
         self.__moduleDict = dict()
 
@@ -1345,21 +1350,21 @@ class _ModuleContainer (object):
 
         # Special case: None
         if not label:
-            label = "0x0"
+            label = compat.b("0x0")
         else:
 
             # Remove all blanks.
-            label = label.replace(' ', '')
-            label = label.replace('\t', '')
-            label = label.replace('\r', '')
-            label = label.replace('\n', '')
+            label = label.replace(compat.b(' '), compat.b(''))
+            label = label.replace(compat.b('\t'), compat.b(''))
+            label = label.replace(compat.b('\r'), compat.b(''))
+            label = label.replace(compat.b('\n'), compat.b(''))
 
             # Special case: empty label.
             if not label:
-                label = "0x0"
+                label = compat.b("0x0")
 
         # If an exclamation sign is present, we know we can parse it strictly.
-        if '!' in label:
+        if compat.b('!') in label:
             return self.split_label_strict(label)
 
 ##        # Try to parse it strictly, on error do it the fuzzy way.
@@ -1369,9 +1374,9 @@ class _ModuleContainer (object):
 ##            pass
 
         # * + offset
-        if '+' in label:
+        if compat.b('+') in label:
             try:
-                prefix, offset = label.split('+')
+                prefix, offset = label.split(compat.b('+'))
             except ValueError:
                 raise ValueError("Malformed label: %s" % label)
             try:
@@ -1432,7 +1437,7 @@ class _ModuleContainer (object):
                 function = label
 
         # Convert function ordinal strings into integers.
-        if function and function.startswith('#'):
+        if function and function.startswith(compat.b('#')):
             try:
                 function = HexInput.integer(function[1:])
             except ValueError:

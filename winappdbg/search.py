@@ -52,9 +52,9 @@ __all__ =   [
                 'HexPattern',
             ]
 
-from textio import HexInput
-from util import StaticClass, MemoryAddresses
-import win32
+from winappdbg.textio import HexInput
+from winappdbg.util import StaticClass, MemoryAddresses
+from winappdbg import win32
 
 import warnings
 
@@ -203,14 +203,14 @@ class BytePattern (Pattern):
 
 #------------------------------------------------------------------------------
 
-# FIXME: case insensitive unicode searches are probably buggy!
+# FIXME: case insensitive compat.unicode searches are probably buggy!
 
 class TextPattern (BytePattern):
     """
     Text pattern.
 
     @type isUnicode: bool
-    @ivar isUnicode: C{True} if the text to search for is a unicode string,
+    @ivar isUnicode: C{True} if the text to search for is a compat.unicode string,
         C{False} otherwise.
 
     @type encoding: str
@@ -225,7 +225,7 @@ class TextPattern (BytePattern):
 
     def __init__(self, text, encoding = "utf-16le", caseSensitive = False):
         """
-        @type  text: str or unicode
+        @type  text: str or compat.unicode
         @param text: Text to search for.
 
         @type  encoding: str
@@ -237,7 +237,7 @@ class TextPattern (BytePattern):
         @param caseSensitive: C{True} of the search is case sensitive,
             C{False} otherwise.
         """
-        self.isUnicode = isinstance(text, unicode)
+        self.isUnicode = isinstance(text, compat.unicode)
         self.encoding = encoding
         self.caseSensitive = caseSensitive
         if not self.caseSensitive:
@@ -268,9 +268,9 @@ class TextPattern (BytePattern):
     def found(self, address, size, data):
         if self.isUnicode:
             try:
-                data = unicode(data, self.encoding)
-            except Exception, e:
-##                traceback.print_exc(e)    # XXX DEBUG
+                data = compat.unicode(data, self.encoding)
+            except Exception:
+##                traceback.print_exc()    # XXX DEBUG
                 return None
         return (address, size, data)
 

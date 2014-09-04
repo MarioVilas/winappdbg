@@ -34,27 +34,27 @@ Debugging API wrappers in ctypes.
 
 __revision__ = "$Id$"
 
-import defines
-import kernel32
-import user32
-import advapi32
-import wtsapi32
-import shell32
-import shlwapi
-import psapi
-import dbghelp
-import ntdll
+from winappdbg.win32 import defines
+from winappdbg.win32 import kernel32
+from winappdbg.win32 import user32
+from winappdbg.win32 import advapi32
+from winappdbg.win32 import wtsapi32
+from winappdbg.win32 import shell32
+from winappdbg.win32 import shlwapi
+from winappdbg.win32 import psapi
+from winappdbg.win32 import dbghelp
+from winappdbg.win32 import ntdll
 
-from defines    import *
-from kernel32   import *
-from user32     import *
-from advapi32   import *
-from wtsapi32   import *
-from shell32    import *
-from shlwapi    import *
-from psapi      import *
-from dbghelp    import *
-from ntdll      import *
+from winappdbg.win32.defines    import *
+from winappdbg.win32.kernel32   import *
+from winappdbg.win32.user32     import *
+from winappdbg.win32.advapi32   import *
+from winappdbg.win32.wtsapi32   import *
+from winappdbg.win32.shell32    import *
+from winappdbg.win32.shlwapi    import *
+from winappdbg.win32.psapi      import *
+from winappdbg.win32.dbghelp    import *
+from winappdbg.win32.ntdll      import *
 
 # This calculates the list of exported symbols.
 _all = set()

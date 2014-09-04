@@ -38,8 +38,8 @@ Wrapper for shell32.dll in ctypes.
 
 __revision__ = "$Id$"
 
-from defines import *
-from kernel32 import LocalFree
+from winappdbg.win32.defines import *
+from winappdbg.win32.kernel32 import LocalFree
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -225,7 +225,7 @@ def CommandLineToArgvW(lpCmdLine):
         if argc <= 0:
             raise ctypes.WinError()
         argv = ctypes.cast(argv, ctypes.POINTER(LPWSTR * argc) )
-        argv = [ argv.contents[i] for i in xrange(0, argc) ]
+        argv = [ argv.contents[i] for i in compat.xrange(0, argc) ]
     finally:
         if vptr is not None:
             LocalFree(vptr)

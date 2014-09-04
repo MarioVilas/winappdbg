@@ -53,8 +53,8 @@ __all__ = [
     'PyDasmEngine',
 ]
 
-from textio import HexDump
-import win32
+from winappdbg.textio import HexDump
+from winappdbg import win32
 
 import ctypes
 import warnings
@@ -695,7 +695,7 @@ class Disassembler (object):
                             decoder = clazz(arch)
                             cls.__decoder[selected] = decoder
                         return decoder
-                except NotImplementedError, e:
+                except NotImplementedError:
                     pass
             msg = "No disassembler engine available for %s code." % arch
             raise NotImplementedError(msg)

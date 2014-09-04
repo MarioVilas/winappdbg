@@ -62,10 +62,12 @@ __all__ = [
 
     ]
 
-import win32
-from process import Process, Thread
-from util import DebugRegister, MemoryAddresses
-from textio import HexDump
+from winappdbg import win32
+from winappdbg import compat
+import sys
+from winappdbg.process import Process, Thread
+from winappdbg.util import DebugRegister, MemoryAddresses
+from winappdbg.textio import HexDump
 
 import ctypes
 import warnings
@@ -343,7 +345,8 @@ class Breakpoint (object):
         if callable(condition):
             try:
                 return bool( condition(event) )
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 msg = ("Breakpoint condition callback %r"
                        " raised an exception: %s")
                 msg = msg % (condition, traceback.format_exc(e))
@@ -396,7 +399,8 @@ class Breakpoint (object):
         if action is not None:
             try:
                 return bool( action(event) )
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 msg = ("Breakpoint action callback %r"
                        " raised an exception: %s")
                 msg = msg % (action, traceback.format_exc(e))
@@ -1141,7 +1145,7 @@ class Hook (object):
         c_wchar_p = ctypes.c_wchar_p
         _Pointer  = ctypes._Pointer
         cast      = ctypes.cast
-        for i in xrange(len(signature)):
+        for i in compat.xrange(len(signature)):
             t = signature[i]
             if t is not c_void_p and (issubclass(t, _Pointer) \
                                             or t in [c_char_p, c_wchar_p]):
@@ -1213,7 +1217,8 @@ class Hook (object):
                         )
                     debug.enable_one_shot_hardware_breakpoint(dwThreadId, ra)
                     bHookedReturn = True
-                except Exception, e:
+                except Exception:
+                    e = sys.exc_info()[1]
                     useHardwareBreakpoints = False
                     msg = ("Failed to set hardware breakpoint"
                            " at address %s for thread ID %d")
@@ -1226,7 +1231,8 @@ class Hook (object):
                     debug.break_at(dwProcessId, ra,
                                    self.__postCallAction_codebp)
                     bHookedReturn = True
-                except Exception, e:
+                except Exception:
+                    e = sys.exc_info()[1]
                     msg = ("Failed to set code breakpoint"
                            " at address %s for process ID %d")
                     msg = msg % (HexDump.address(ra), dwProcessId)
@@ -1436,7 +1442,7 @@ class _Hook_i386 (Hook):
         self._cast_signature_pointers_to_void(signature)
         class Arguments (ctypes.Structure):
             _fields_ = [ ("arg_%s" % i, signature[i]) \
-                         for i in xrange(len(signature) - 1, -1, -1) ]
+                         for i in compat.xrange(len(signature) - 1, -1, -1) ]
         return Arguments
 
     def _get_return_address(self, aProcess, aThread):
@@ -1487,7 +1493,7 @@ class _Hook_amd64 (Hook):
         reg_float_sig = []
         stack_sig     = []
 
-        for i in xrange(len(signature)):
+        for i in compat.xrange(len(signature)):
             arg  = signature[i]
             name = "arg_%d" % i
             stack_sig.insert( 0, (name, arg) )
@@ -1562,7 +1568,7 @@ class _Hook_amd64 (Hook):
                                                             FloatArguments)
                     arguments.update(float_args)
             params = tuple( [ arguments["arg_%d" % i]
-                              for i in xrange(args_count) ] )
+                              for i in compat.xrange(args_count) ] )
         else:
             params = ()
         return params
@@ -1907,7 +1913,8 @@ class _BufferWatchCondition (object):
                 if bMatched and action is not None:
                     try:
                         action(event)
-                    except Exception, e:
+                    except Exception:
+                        e = sys.exc_info()[1]
                         msg = ("Breakpoint action callback %r"
                                " raised an exception: %s")
                         msg = msg % (action, traceback.format_exc(e))
@@ -2080,7 +2087,7 @@ class _BreakpointContainer (object):
 
     def __del_running_bp_from_all_threads(self, bp):
         "Auxiliary method."
-        for (tid, bpset) in self.__runningBP.iteritems():
+        for (tid, bpset) in compat.iteritems(self.__runningBP):
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
@@ -2137,14 +2144,14 @@ class _BreakpointContainer (object):
         process = event.get_process()
 
         # Cleanup code breakpoints
-        for (bp_pid, bp_address) in self.__codeBP.keys():
+        for (bp_pid, bp_address) in compat.keys(self.__codeBP):
             if bp_pid == pid:
                 bp = self.__codeBP[ (bp_pid, bp_address) ]
                 self.__cleanup_breakpoint(event, bp)
                 del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints
-        for (bp_pid, bp_address) in self.__pageBP.keys():
+        for (bp_pid, bp_address) in compat.keys(self.__pageBP):
             if bp_pid == pid:
                 bp = self.__pageBP[ (bp_pid, bp_address) ]
                 self.__cleanup_breakpoint(event, bp)
@@ -2187,7 +2194,7 @@ class _BreakpointContainer (object):
                         self.__hardwareBP[tid].remove(bp)
 
         # Cleanup code breakpoints on this module
-        for (bp_pid, bp_address) in self.__codeBP.keys():
+        for (bp_pid, bp_address) in compat.keys(self.__codeBP):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     bp = self.__codeBP[ (bp_pid, bp_address) ]
@@ -2195,7 +2202,7 @@ class _BreakpointContainer (object):
                     del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints on this module
-        for (bp_pid, bp_address) in self.__pageBP.keys():
+        for (bp_pid, bp_address) in compat.keys(self.__pageBP):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     bp = self.__pageBP[ (bp_pid, bp_address) ]
@@ -2987,16 +2994,16 @@ class _BreakpointContainer (object):
         @rtype:  list of tuple( int, L{CodeBreakpoint} )
         @return: All code breakpoints as a list of tuples (pid, bp).
         """
-        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.iteritems() ]
+        return [ (pid, bp) for ((pid, address), bp) in compat.iteritems(self.__codeBP) ]
 
     def get_all_page_breakpoints(self):
         """
         @rtype:  list of tuple( int, L{PageBreakpoint} )
         @return: All page breakpoints as a list of tuples (pid, bp).
         """
-##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.iteritems() ] ) )
+##        return list( set( [ (pid, bp) for ((pid, address), bp) in compat.iteritems(self.__pageBP) ] ) )
         result = set()
-        for ((pid, address), bp) in self.__pageBP.iteritems():
+        for ((pid, address), bp) in compat.iteritems(self.__pageBP):
             result.add( (pid, bp) )
         return list(result)
 
@@ -3006,7 +3013,7 @@ class _BreakpointContainer (object):
         @return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in compat.iteritems(self.__hardwareBP):
             for bp in bplist:
                 result.append( (tid, bp) )
         return result
@@ -3063,7 +3070,7 @@ class _BreakpointContainer (object):
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__codeBP.iteritems() \
+        return [ bp for ((pid, address), bp) in compat.iteritems(self.__codeBP) \
                 if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
@@ -3074,7 +3081,7 @@ class _BreakpointContainer (object):
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__pageBP.iteritems() \
+        return [ bp for ((pid, address), bp) in compat.iteritems(self.__pageBP) \
                 if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
@@ -3088,7 +3095,7 @@ class _BreakpointContainer (object):
         @return: All hardware breakpoints for the given thread.
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in compat.iteritems(self.__hardwareBP):
             if tid == dwThreadId:
                 for bp in bplist:
                     result.append(bp)
@@ -3587,7 +3594,8 @@ class _BreakpointContainer (object):
                 while running:
                     try:
                         running.pop().hit(event)
-                    except Exception, e:
+                    except Exception:
+                        e = sys.exc_info()[1]
                         warnings.warn(str(e), BreakpointWarning)
 
             # Handle hardware breakpoints.
@@ -3845,8 +3853,8 @@ class _BreakpointContainer (object):
              - C{True} of the breakpoint is one-shot, C{False} otherwise.
         """
         result = []
-        for pid, deferred in self.__deferredBP.iteritems():
-            for (label, (action, oneshot)) in deferred.iteritems():
+        for pid, deferred in compat.iteritems(self.__deferredBP):
+            for (label, (action, oneshot)) in compat.iteritems(deferred):
                 result.add( (pid, label, action, oneshot) )
         return result
 
@@ -3865,7 +3873,7 @@ class _BreakpointContainer (object):
         """
         return [ (label, action, oneshot)
                   for (label, (action, oneshot))
-                  in self.__deferredBP.get(dwProcessId, {}).iteritems() ]
+                  in compat.iteritems(self.__deferredBP.get(dwProcessId, {})) ]
 
     def stalk_at(self, pid, address, action = None):
         """

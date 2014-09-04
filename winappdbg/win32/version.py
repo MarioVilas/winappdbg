@@ -36,7 +36,7 @@ Some functions here are really from kernel32.dll, others from version.dll.
 
 __revision__ = "$Id$"
 
-from defines import *
+from winappdbg.win32.defines import *
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

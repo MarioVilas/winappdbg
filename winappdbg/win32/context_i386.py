@@ -34,8 +34,8 @@ CONTEXT structure for i386.
 
 __revision__ = "$Id$"
 
-from defines import *
-from version import ARCH_I386
+from winappdbg.win32.defines import *
+from winappdbg.win32.version import ARCH_I386
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -55,12 +55,12 @@ EXCEPTION_EXECUTE_FAULT     = 8     # exception caused by an instruction fetch
 CONTEXT_i386                = 0x00010000    # this assumes that i386 and
 CONTEXT_i486                = 0x00010000    # i486 have identical context records
 
-CONTEXT_CONTROL             = (CONTEXT_i386 | 0x00000001L) # SS:SP, CS:IP, FLAGS, BP
-CONTEXT_INTEGER             = (CONTEXT_i386 | 0x00000002L) # AX, BX, CX, DX, SI, DI
-CONTEXT_SEGMENTS            = (CONTEXT_i386 | 0x00000004L) # DS, ES, FS, GS
-CONTEXT_FLOATING_POINT      = (CONTEXT_i386 | 0x00000008L) # 387 state
-CONTEXT_DEBUG_REGISTERS     = (CONTEXT_i386 | 0x00000010L) # DB 0-3,6,7
-CONTEXT_EXTENDED_REGISTERS  = (CONTEXT_i386 | 0x00000020L) # cpu specific extensions
+CONTEXT_CONTROL             = (CONTEXT_i386 | long(0x00000001)) # SS:SP, CS:IP, FLAGS, BP
+CONTEXT_INTEGER             = (CONTEXT_i386 | long(0x00000002)) # AX, BX, CX, DX, SI, DI
+CONTEXT_SEGMENTS            = (CONTEXT_i386 | long(0x00000004)) # DS, ES, FS, GS
+CONTEXT_FLOATING_POINT      = (CONTEXT_i386 | long(0x00000008)) # 387 state
+CONTEXT_DEBUG_REGISTERS     = (CONTEXT_i386 | long(0x00000010)) # DB 0-3,6,7
+CONTEXT_EXTENDED_REGISTERS  = (CONTEXT_i386 | long(0x00000020)) # cpu specific extensions
 
 CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS)
 
@@ -107,7 +107,7 @@ class FLOATING_SAVE_AREA(Structure):
             setattr(s, key, fsa.get(key))
         ra = fsa.get('RegisterArea', None)
         if ra is not None:
-            for index in xrange(0, SIZE_OF_80387_REGISTERS):
+            for index in compat.xrange(0, SIZE_OF_80387_REGISTERS):
                 s.RegisterArea[index] = ra[index]
         return s
 
@@ -116,7 +116,7 @@ class FLOATING_SAVE_AREA(Structure):
         fsa = dict()
         for key in self._integer_members:
             fsa[key] = getattr(self, key)
-        ra = [ self.RegisterArea[index] for index in xrange(0, SIZE_OF_80387_REGISTERS) ]
+        ra = [ self.RegisterArea[index] for index in compat.xrange(0, SIZE_OF_80387_REGISTERS) ]
         ra = tuple(ra)
         fsa['RegisterArea'] = ra
         return fsa
@@ -264,7 +264,7 @@ class CONTEXT(Structure):
                 setattr(s, key, ctx[key])
         if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
             er = ctx['ExtendedRegisters']
-            for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION):
+            for index in compat.xrange(0, MAXIMUM_SUPPORTED_EXTENSION):
                 s.ExtendedRegisters[index] = er[index]
         return s
 
@@ -288,7 +288,7 @@ class CONTEXT(Structure):
             for key in self._ctx_ctrl:
                 ctx[key] = getattr(self, key)
         if (ContextFlags & CONTEXT_EXTENDED_REGISTERS) == CONTEXT_EXTENDED_REGISTERS:
-            er = [ self.ExtendedRegisters[index] for index in xrange(0, MAXIMUM_SUPPORTED_EXTENSION) ]
+            er = [ self.ExtendedRegisters[index] for index in compat.xrange(0, MAXIMUM_SUPPORTED_EXTENSION) ]
             er = tuple(er)
             ctx['ExtendedRegisters'] = er
         return ctx

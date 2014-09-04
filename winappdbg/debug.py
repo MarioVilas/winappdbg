@@ -42,15 +42,16 @@ __revision__ = "$Id$"
 
 __all__ = [ 'Debug', 'MixedBitsWarning' ]
 
-import win32
-from system import System
-from process import Process
-from thread import Thread
-from module import Module
-from window import Window
-from breakpoint import _BreakpointContainer, CodeBreakpoint
-from event import Event, EventHandler, EventDispatcher, EventFactory
-from interactive import ConsoleDebugger
+import sys
+from winappdbg import win32
+from winappdbg.system import System
+from winappdbg.process import Process
+from winappdbg.thread import Thread
+from winappdbg.module import Module
+from winappdbg.window import Window
+from winappdbg.breakpoint import _BreakpointContainer, CodeBreakpoint
+from winappdbg.event import Event, EventHandler, EventDispatcher, EventFactory
+from winappdbg.interactive import ConsoleDebugger
 
 import warnings
 ##import traceback
@@ -341,7 +342,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if type(argv) in (str, unicode):
+        if type(argv) in (str, compat.unicode):
             raise TypeError("Debug.execv expects a list, not a string")
         lpCmdLine = self.system.argv_to_cmdline(argv)
         return self.execl(lpCmdLine, **kwargs)
@@ -429,7 +430,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if type(lpCmdLine) not in (str, unicode):
+        if type(lpCmdLine) not in (str, compat.unicode):
             warnings.warn("Debug.execl expects a string")
 
         # Set the "debug" flag to True.
@@ -610,17 +611,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
             # Erase all breakpoints in the process.
             try:
                 self.erase_process_breakpoints(dwProcessId)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
             # Stop tracing all threads in the process.
             try:
                 self.stop_tracing_process(dwProcessId)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
             # The process is no longer a debugee.
@@ -629,9 +632,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
                     self.__attachedDebugees.remove(dwProcessId)
                 if dwProcessId in self.__startedDebugees:
                     self.__startedDebugees.remove(dwProcessId)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
         # Clear and remove the process from the snapshot.
@@ -643,18 +647,20 @@ class Debug (EventDispatcher, _BreakpointContainer):
                     self.system.get_process(dwProcessId).clear()
                 finally:
                     self.system._del_process(dwProcessId)
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
         # If the last debugging event is related to this process, forget it.
         try:
             if self.lastEvent and self.lastEvent.get_pid() == dwProcessId:
                 self.lastEvent = None
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
     def kill(self, dwProcessId, bIgnoreExceptions = False):
@@ -696,17 +702,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
                                     bIgnoreExceptions = bIgnoreExceptions)
             finally:
                 aProcess.kill()
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
         # Cleanup what remains of the process data.
         try:
             aProcess.clear()
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
     def kill_all(self, bIgnoreExceptions = False):
@@ -764,9 +772,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
             if can_detach and self.lastEvent and \
                                     self.lastEvent.get_pid() == dwProcessId:
                 self.cont(self.lastEvent)
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
         # Cleanup all data referring to the process.
@@ -779,16 +788,18 @@ class Debug (EventDispatcher, _BreakpointContainer):
             if can_detach:
                 try:
                     win32.DebugActiveProcessStop(dwProcessId)
-                except Exception, e:
+                except Exception:
                     if not bIgnoreExceptions:
                         raise
+                    e = sys.exc_info()[1]
                     warnings.warn(str(e), RuntimeWarning)
             else:
                 try:
                     aProcess.kill()
-                except Exception, e:
+                except Exception:
                     if not bIgnoreExceptions:
                         raise
+                    e = sys.exc_info()[1]
                     warnings.warn(str(e), RuntimeWarning)
 
         finally:
@@ -996,9 +1007,10 @@ class Debug (EventDispatcher, _BreakpointContainer):
         try:
             event = self.lastEvent
             has_event = bool(event)
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
             has_event = False
 
@@ -1009,27 +1021,30 @@ class Debug (EventDispatcher, _BreakpointContainer):
             try:
                 pid = event.get_pid()
                 self.disable_process_breakpoints(pid)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
             # Disable all breakpoints in the thread before resuming execution.
             try:
                 tid = event.get_tid()
                 self.disable_thread_breakpoints(tid)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
             # Resume execution.
             try:
                 event.continueDebugEvent = win32.DBG_CONTINUE
                 self.cont(event)
-            except Exception, e:
+            except Exception:
                 if not bIgnoreExceptions:
                     raise
+                e = sys.exc_info()[1]
                 warnings.warn(str(e), RuntimeWarning)
 
         # Detach from or kill all debuggees.
@@ -1038,17 +1053,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 self.kill_all(bIgnoreExceptions)
             else:
                 self.detach_from_all(bIgnoreExceptions)
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
         # Cleanup the process snapshots.
         try:
             self.system.clear()
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
         # Close all Win32 handles the Python garbage collector failed to close.
@@ -1200,14 +1217,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         This method returns when the user closes the session.
         """
-        print
-        print "-" * 79
-        print "Interactive debugging session started."
-        print "Use the \"help\" command to list all available commands."
-        print "Use the \"quit\" command to close this session."
-        print "-" * 79
+        print('')
+        print("-" * 79)
+        print("Interactive debugging session started.")
+        print("Use the \"help\" command to list all available commands.")
+        print("Use the \"quit\" command to close this session.")
+        print("-" * 79)
         if self.lastEvent is None:
-            print
+            print('')
         console = ConsoleDebugger()
         console.confirm_quit = bConfirmQuit
         console.load_history()
@@ -1217,11 +1234,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
         finally:
             console.stop_using_debugger()
             console.save_history()
-        print
-        print "-" * 79
-        print "Interactive debugging session closed."
-        print "-" * 79
-        print
+        print('')
+        print("-" * 79)
+        print("Interactive debugging session closed.")
+        print("-" * 79)
+        print('')
 
 #------------------------------------------------------------------------------
 
@@ -1258,15 +1275,17 @@ class Debug (EventDispatcher, _BreakpointContainer):
                     gc.garbage.remove(obj)
                     del obj
                     bRecollect = True
-                except Exception, e:
+                except Exception:
                     if not bIgnoreExceptions:
                         raise
+                    e = sys.exc_info()[1]
                     warnings.warn(str(e), RuntimeWarning)
             if bRecollect:
                 gc.collect()
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
+            e = sys.exc_info()[1]
             warnings.warn(str(e), RuntimeWarning)
 
 #------------------------------------------------------------------------------
@@ -1319,7 +1338,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 ptr = pbi.PebBaseAddress + 2
                 if aProcess.peek(ptr, 1) == '\x01':
                     aProcess.poke(ptr, '\x00')
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 warnings.warn(
                     "Cannot patch PEB->BeingDebugged, reason: %s" % e.strerror)
 
@@ -1397,12 +1417,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         try:
             self.detach( event.get_pid() )
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror != win32.ERROR_INVALID_PARAMETER:
                 warnings.warn(
                     "Failed to detach from dead process, reason: %s" % str(e),
                     RuntimeWarning)
-        except Exception, e:
+        except Exception:
+            e = sys.exc_info()[1]
             warnings.warn(
                 "Failed to detach from dead process, reason: %s" % str(e),
                 RuntimeWarning)

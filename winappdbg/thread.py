@@ -41,11 +41,13 @@ __revision__ = "$Id$"
 
 __all__ = ['Thread']
 
-import win32
-from textio import HexDump
-from util import DebugRegister
-from window import Window
+from winappdbg import win32
+from winappdbg import compat
+from winappdbg.textio import HexDump
+from winappdbg.util import DebugRegister
+from winappdbg.window import Window
 
+import sys
 import struct
 import warnings
 
@@ -164,7 +166,7 @@ class Thread (object):
     def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
-            from process import Process
+            from winappdbg.process import Process
 
     def get_process(self):
         """
@@ -422,7 +424,8 @@ class Thread (object):
         """
         try:
             self.wait(0)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             error = e.winerror
             if error == win32.ERROR_ACCESS_DENIED:
                 raise
@@ -1051,7 +1054,7 @@ class Thread (object):
                 seh_func = process.read_pointer( seh + 4 )
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_pointer( seh )
-        except WindowsError, e:
+        except WindowsError:
             seh_chain.append( (seh, None) )
         return seh_chain
 
@@ -1244,9 +1247,9 @@ class Thread (object):
         """
         try:
             trace = self.__get_stack_trace(depth, False)
-        except Exception, e:
+        except Exception:
             import traceback
-            traceback.print_exc(e)
+            traceback.print_exc()
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, False)
@@ -1276,7 +1279,7 @@ class Thread (object):
         """
         try:
             trace = self.__get_stack_trace(depth, True, bMakePretty)
-        except Exception, e:
+        except Exception:
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, True, bMakePretty)
@@ -1547,7 +1550,7 @@ class Thread (object):
                                        win32.CONTEXT_INTEGER)
         aProcess    = self.get_process()
         data        = dict()
-        for (reg_name, reg_value) in context.iteritems():
+        for (reg_name, reg_value) in compat.iteritems(context):
             if reg_name not in peekable_registers:
                 continue
 ##            if reg_name == 'Ebp':
@@ -1800,7 +1803,7 @@ class _ThreadContainer (object):
         @return: Iterator of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.iterkeys()
+        return compat.iterkeys(self.__threadDict)
 
     def iter_threads(self):
         """
@@ -1809,7 +1812,7 @@ class _ThreadContainer (object):
         @return: Iterator of L{Thread} objects in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.itervalues()
+        return compat.itervalues(self.__threadDict)
 
     def get_thread_ids(self):
         """
@@ -1817,7 +1820,7 @@ class _ThreadContainer (object):
         @return: List of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.keys()
+        return compat.keys(self.__threadDict)
 
     def get_thread_count(self):
         """
@@ -1975,7 +1978,7 @@ class _ThreadContainer (object):
         """
         Clears the threads snapshot.
         """
-        for aThread in self.__threadDict.itervalues():
+        for aThread in compat.itervalues(self.__threadDict):
             aThread.clear()
         self.__threadDict = dict()
 
@@ -1986,8 +1989,9 @@ class _ThreadContainer (object):
         for aThread in self.iter_threads():
             try:
                 aThread.close_handle()
-            except Exception, e:
+            except Exception:
                 try:
+                    e = sys.exc_info()[1]
                     msg = "Cannot close thread handle %s, reason: %s"
                     msg %= (aThread.hThread.value, str(e))
                     warnings.warn(msg)
@@ -2048,7 +2052,7 @@ class _ThreadContainer (object):
         Private method to get the list of thread IDs currently in the snapshot
         without triggering an automatic scan.
         """
-        return self.__threadDict.keys()
+        return compat.keys(self.__threadDict)
 
     def __add_created_thread(self, event):
         """

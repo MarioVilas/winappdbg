@@ -39,6 +39,7 @@ __revision__ = "$Id$"
 
 import ctypes
 import functools
+from winappdbg import compat
 
 #------------------------------------------------------------------------------
 
@@ -105,10 +106,10 @@ if WIN32_VERBOSE_MODE:
             self.__copy_attribute('argtypes')
             self.__copy_attribute('restype')
             self.__copy_attribute('errcheck')
-            print "-"*10
-            print "%s ! %s %r" % (self.__dllname, self.__funcname, argv)
+            print("-"*10)
+            print("%s ! %s %r" % (self.__dllname, self.__funcname, argv))
             retval = self.__func(*argv)
-            print "== %r" % (retval,)
+            print("== %r" % (retval,))
             return retval
 
     windll = WinDllHook()
@@ -217,7 +218,7 @@ class GuessStringType(object):
 
         # Get the types of all arguments for the function
         v_types   = [ type(item) for item in argv ]
-        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
+        v_types.extend( [ type(value) for (key, value) in compat.iteritems(argd) ] )
 
         # Get the appropriate function for the default type
         if self.t_default == t_ansi:
@@ -232,12 +233,12 @@ class GuessStringType(object):
             # convert all ANSI strings to Unicode
             if t_ansi in v_types:
                 argv = list(argv)
-                for index in xrange(len(argv)):
+                for index in compat.xrange(len(argv)):
                     if v_types[index] == t_ansi:
-                        argv[index] = unicode(argv[index])
+                        argv[index] = compat.unicode(argv[index])
                 for (key, value) in argd.items():
                     if type(value) == t_ansi:
-                        argd[key] = unicode(value)
+                        argd[key] = compat.unicode(value)
 
             # Use the W version
             fn = self.fn_unicode
@@ -312,10 +313,10 @@ def MakeANSIVersion(fn):
         t_ansi    = GuessStringType.t_ansi
         t_unicode = GuessStringType.t_unicode
         v_types   = [ type(item) for item in argv ]
-        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
+        v_types.extend( [ type(value) for (key, value) in compat.iteritems(argd) ] )
         if t_ansi in v_types:
             argv = list(argv)
-            for index in xrange(len(argv)):
+            for index in compat.xrange(len(argv)):
                 if v_types[index] == t_ansi:
                     argv[index] = t_unicode(argv[index])
             for key, value in argd.items():
@@ -336,10 +337,10 @@ def MakeWideVersion(fn):
         t_ansi    = GuessStringType.t_ansi
         t_unicode = GuessStringType.t_unicode
         v_types   = [ type(item) for item in argv ]
-        v_types.extend( [ type(value) for (key, value) in argd.iteritems() ] )
+        v_types.extend( [ type(value) for (key, value) in compat.iteritems(argd) ] )
         if t_unicode in v_types:
             argv = list(argv)
-            for index in xrange(len(argv)):
+            for index in compat.xrange(len(argv)):
                 if v_types[index] == t_unicode:
                     argv[index] = t_ansi(argv[index])
             for key, value in argd.items():
@@ -648,17 +649,21 @@ ERROR_NONE_MAPPED                   = 1332
 RPC_S_SERVER_UNAVAILABLE            = 1722
 
 # Standard access rights
-DELETE                           = 0x00010000L
-READ_CONTROL                     = 0x00020000L
-WRITE_DAC                        = 0x00040000L
-WRITE_OWNER                      = 0x00080000L
-SYNCHRONIZE                      = 0x00100000L
-STANDARD_RIGHTS_REQUIRED         = 0x000F0000L
+import sys
+if sys.version_info[0] >= 3:
+    long = int
+
+DELETE                           = long(0x00010000)
+READ_CONTROL                     = long(0x00020000)
+WRITE_DAC                        = long(0x00040000)
+WRITE_OWNER                      = long(0x00080000)
+SYNCHRONIZE                      = long(0x00100000)
+STANDARD_RIGHTS_REQUIRED         = long(0x000F0000)
 STANDARD_RIGHTS_READ             = READ_CONTROL
 STANDARD_RIGHTS_WRITE            = READ_CONTROL
 STANDARD_RIGHTS_EXECUTE          = READ_CONTROL
-STANDARD_RIGHTS_ALL              = 0x001F0000L
-SPECIFIC_RIGHTS_ALL              = 0x0000FFFFL
+STANDARD_RIGHTS_ALL              = long(0x001F0000)
+SPECIFIC_RIGHTS_ALL              = long(0x0000FFFF)
 
 #--- Structures ---------------------------------------------------------------
 

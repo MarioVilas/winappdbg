@@ -41,15 +41,15 @@ __revision__ = "$Id$"
 
 __all__ = ['System']
 
-import win32
-import win32.version
-from registry import Registry
-from textio import HexInput, HexDump
-from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister, \
+from winappdbg import win32
+from winappdbg.registry import Registry
+from winappdbg.textio import HexInput, HexDump
+from winappdbg.util import Regenerator, PathOperations, MemoryAddresses, DebugRegister, \
                  classproperty
-from process import _ProcessContainer
-from window import Window
+from winappdbg.process import _ProcessContainer
+from winappdbg.window import Window
 
+import sys
 import os
 import ctypes
 import warnings
@@ -232,7 +232,7 @@ class System (_ProcessContainer):
         try:
             cls.request_privileges(win32.SE_DEBUG_NAME)
             return True
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
         return False
@@ -258,7 +258,7 @@ class System (_ProcessContainer):
         try:
             cls.drop_privileges(win32.SE_DEBUG_NAME)
             return True
-        except Exception, e:
+        except Exception:
             if not bIgnoreExceptions:
                 raise
         return False
@@ -728,7 +728,8 @@ class System (_ProcessContainer):
             if not previous or force:
                 os.environ["_NT_SYMBOL_PATH"] = symbol_store_path
             return previous
-        except Exception, e:
+        except Exception:
+            e = sys.exc_info()[1]
             warnings.warn("Cannot fix symbol path, reason: %s" % str(e),
                           RuntimeWarning)
 

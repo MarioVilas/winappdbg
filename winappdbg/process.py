@@ -47,15 +47,17 @@ __revision__ = "$Id$"
 
 __all__ = ['Process']
 
-import win32
-from textio import HexDump, HexInput
-from util import Regenerator, PathOperations, MemoryAddresses
-from module import Module, _ModuleContainer
-from thread import Thread, _ThreadContainer
-from window import Window
-from search import Search, \
+import sys
+from winappdbg import win32
+from winappdbg import compat
+from winappdbg.textio import HexDump, HexInput
+from winappdbg.util import Regenerator, PathOperations, MemoryAddresses
+from winappdbg.module import Module, _ModuleContainer
+from winappdbg.thread import Thread, _ThreadContainer
+from winappdbg.window import Window
+from winappdbg.search import Search, \
                    Pattern, BytePattern, TextPattern, RegExpPattern, HexPattern
-from disasm import Disassembler
+from winappdbg.disasm import Disassembler
 
 import re
 import os
@@ -205,7 +207,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         try:
             self.close_handle()
-        except Exception, e:
+        except Exception:
             warnings.warn(
                 "Failed to close process handle: %s" % traceback.format_exc())
 
@@ -436,7 +438,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             self.wait(0)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             return e.winerror == win32.WAIT_TIMEOUT
         return False
 
@@ -494,7 +497,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  disasm: list of tuple(int, int, str, str)
         @param disasm: Output of one of the dissassembly functions.
         """
-        for index in xrange(len(disasm)):
+        for index in compat.xrange(len(disasm)):
             (address, size, text, dump) = disasm[index]
             m = self.__hexa_parameter.search(text)
             while m:
@@ -1120,7 +1123,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Retrieves the environment variables with wich the program is running.
 
-        @rtype:  list of tuple(unicode, unicode)
+        @rtype:  list of tuple(compat.unicode, compat.unicode)
         @return: Environment keys and values as found in the process memory.
 
         @raise WindowsError: On error an exception is raised.
@@ -1353,7 +1356,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Search for the given pattern within the process memory.
 
-        @type  pattern: str, unicode or L{Pattern}
+        @type  pattern: str, compat.unicode or L{Pattern}
         @param pattern: Pattern to search for.
             It may be a byte string, a Unicode string, or an instance of
             L{Pattern}.
@@ -1384,7 +1387,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         if isinstance(pattern, str):
             return self.search_bytes(pattern, minAddr, maxAddr)
-        if isinstance(pattern, unicode):
+        if isinstance(pattern, compat.unicode):
             return self.search_bytes(pattern.encode("utf-16le"),
                                      minAddr, maxAddr)
         if isinstance(pattern, Pattern):
@@ -1422,7 +1425,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         Search for the given text within the process memory.
 
-        @type  text: str or unicode
+        @type  text: str or compat.unicode
         @param text: Text to search for.
 
         @type  encoding: str
@@ -1667,7 +1670,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@l', ctypes.c_int)
+        return self.__read_c_type(lpBaseAddress, compat.b('@l'), ctypes.c_int)
 
     def write_int(self, lpBaseAddress, unpackedValue):
         """
@@ -1909,7 +1912,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if type(lpBaseAddress) not in (type(0), type(0L)):
+        if type(lpBaseAddress) not in (type(0), type(long(0))):
             lpBaseAddress = ctypes.cast(lpBaseAddress, ctypes.c_void_p)
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
@@ -1960,7 +1963,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @param fUnicode: C{True} is the string is expected to be Unicode,
             C{False} if it's expected to be ANSI.
 
-        @rtype:  str, unicode
+        @rtype:  str, compat.unicode
         @return: String read from the process memory space.
 
         @raise WindowsError: On error an exception is raised.
@@ -1969,7 +1972,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             nChars = nChars * 2
         szString = self.read(lpBaseAddress, nChars)
         if fUnicode:
-            szString = unicode(szString, 'U16', 'ignore')
+            szString = compat.unicode(szString, 'U16', 'ignore')
         return szString
 
 #------------------------------------------------------------------------------
@@ -2021,7 +2024,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if nSize > 0:
                     data = win32.ReadProcessMemory(
                                     hProcess, lpBaseAddress, nSize)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 msg = "Error reading process %d address %s: %s"
                 msg %= (self.get_pid(),
                         HexDump.address(lpBaseAddress),
@@ -2047,6 +2051,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: Number of bytes written.
             May be less than the number of bytes to write.
         """
+        assert isinstance(lpBuffer, compat.bytes)
         hProcess = self.get_handle( win32.PROCESS_VM_WRITE |
                                     win32.PROCESS_VM_OPERATION |
                                     win32.PROCESS_QUERY_INFORMATION )
@@ -2379,7 +2384,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  dwMaxSize: int
         @param dwMaxSize: Maximum allowed string length to read, in bytes.
 
-        @rtype:  str, unicode
+        @rtype:  str, compat.unicode
         @return: String read from the process memory space.
             It B{doesn't} include the terminating null character.
             Returns an empty string on failure.
@@ -2400,9 +2405,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         if fUnicode:
 
             # Decode the string.
-            szString = unicode(szString, 'U16', 'replace')
+            szString = compat.unicode(szString, 'U16', 'replace')
 ##            try:
-##                szString = unicode(szString, 'U16')
+##                szString = compat.unicode(szString, 'U16')
 ##            except UnicodeDecodeError:
 ##                szString = struct.unpack('H' * (len(szString) / 2), szString)
 ##                szString = [ unichr(c) for c in szString ]
@@ -2451,7 +2456,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         else:
             ptrFmt = '<Q'
         if len(data) > 0:
-            for i in xrange(0, len(data), peekStep):
+            for i in compat.xrange(0, len(data), peekStep):
                 packed          = data[i:i+ptrSize]
                 if len(packed) == ptrSize:
                     address     = struct.unpack(ptrFmt, packed)[0]
@@ -2561,7 +2566,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2581,7 +2587,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2603,7 +2610,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2625,7 +2633,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2647,7 +2656,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2669,7 +2679,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2693,7 +2704,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2717,7 +2729,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2741,7 +2754,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2765,7 +2779,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2793,7 +2808,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         try:
             mbi = self.mquery(address)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
             raise
@@ -2825,7 +2841,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -2859,7 +2876,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -2893,7 +2911,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -2928,7 +2947,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -2962,7 +2982,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -3000,7 +3021,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while size > 0:
             try:
                 mbi = self.mquery(address)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     return False
                 raise
@@ -3071,7 +3093,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         while prevAddr < currentAddr < maxAddr:
             try:
                 mbi = self.mquery(currentAddr)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror == win32.ERROR_INVALID_PARAMETER:
                     break
                 raise
@@ -3104,7 +3127,8 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
-            except WindowsError, e:
+            except WindowsError:
+                #e = sys.exc_info()[1]
                 #try:
                 #    msg = "Can't get mapped file name at address %s in process " \
                 #          "%d, reason: %s" % (HexDump.address(baseAddress),
@@ -3112,7 +3136,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 #                              e.strerror)
                 #    warnings.warn(msg, Warning)
                 #except Exception:
-                    pass
+                pass
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
 
@@ -3222,7 +3246,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Don't fail on access denied errors.
         try:
             filenames = self.get_mapped_filenames(memory)
-        except WindowsError, e:
+        except WindowsError:
+            e = sys.exc_info()[1]
             if e.winerror != win32.ERROR_ACCESS_DENIED:
                 raise
             filenames = dict()
@@ -3558,7 +3583,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             aThread.pInjectedMemory = lpStartAddress
 
         # Free the memory on error.
-        except Exception, e:
+        except Exception:
             self.free(lpStartAddress)
             raise
 
@@ -3627,10 +3652,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
 
         # Resolve kernel32.dll
-        aModule = self.get_module_by_name('kernel32.dll')
+        aModule = self.get_module_by_name(compat.b('kernel32.dll'))
         if aModule is None:
             self.scan_modules()
-            aModule = self.get_module_by_name('kernel32.dll')
+            aModule = self.get_module_by_name(compat.b('kernel32.dll'))
         if aModule is None:
             raise RuntimeError(
                 "Cannot resolve kernel32.dll in the remote process")
@@ -3639,91 +3664,91 @@ class Process (_ThreadContainer, _ModuleContainer):
         if procname:
             if self.get_arch() != win32.ARCH_I386:
                 raise NotImplementedError()
-            dllname = str(dllname)
+            dllname = compat.b(dllname)
 
             # Resolve kernel32.dll!LoadLibraryA
-            pllib = aModule.resolve('LoadLibraryA')
+            pllib = aModule.resolve(compat.b('LoadLibraryA'))
             if not pllib:
                 raise RuntimeError(
                     "Cannot resolve kernel32.dll!LoadLibraryA"
                     " in the remote process")
 
             # Resolve kernel32.dll!GetProcAddress
-            pgpad = aModule.resolve('GetProcAddress')
+            pgpad = aModule.resolve(compat.b('GetProcAddress'))
             if not pgpad:
                 raise RuntimeError(
                     "Cannot resolve kernel32.dll!GetProcAddress"
                     " in the remote process")
 
             # Resolve kernel32.dll!VirtualFree
-            pvf = aModule.resolve('VirtualFree')
+            pvf = aModule.resolve(compat.b('VirtualFree'))
             if not pvf:
                 raise RuntimeError(
                     "Cannot resolve kernel32.dll!VirtualFree"
                     " in the remote process")
 
             # Shellcode follows...
-            code  = ''.encode('latin1')
+            code  = compat.b('')
 
             # push dllname
-            code += '\xe8' + struct.pack('<L', len(dllname) + 1) + dllname + '\0'
+            code += compat.b('\xe8') + struct.pack('<L', len(dllname) + 1) + dllname + compat.b('\0')
 
             # mov eax, LoadLibraryA
-            code += '\xb8' + struct.pack('<L', pllib)
+            code += compat.b('\xb8') + struct.pack('<L', pllib)
 
             # call eax
-            code += '\xff\xd0'
+            code += compat.b('\xff\xd0')
 
             if procname:
 
                 # push procname
-                code += '\xe8' + struct.pack('<L', len(procname) + 1)
-                code += procname + '\0'
+                code += compat.b('\xe8') + struct.pack('<L', len(procname) + 1)
+                code += procname + compat.b('\0')
 
                 # push eax
-                code += '\x50'
+                code += compat.b('\x50')
 
                 # mov eax, GetProcAddress
-                code += '\xb8' + struct.pack('<L', pgpad)
+                code += compat.b('\xb8') + struct.pack('<L', pgpad)
 
                 # call eax
-                code += '\xff\xd0'
+                code += compat.b('\xff\xd0')
 
                 # mov ebp, esp      ; preserve stack pointer
-                code += '\x8b\xec'
+                code += compat.b('\x8b\xec')
 
                 # push lpParameter
-                code += '\x68' + struct.pack('<L', lpParameter)
+                code += compat.b('\x68') + struct.pack('<L', lpParameter)
 
                 # call eax
-                code += '\xff\xd0'
+                code += compat.b('\xff\xd0')
 
                 # mov esp, ebp      ; restore stack pointer
-                code += '\x8b\xe5'
+                code += compat.b('\x8b\xe5')
 
             # pop edx       ; our own return address
-            code += '\x5a'
+            code += compat.b('\x5a')
 
             # push MEM_RELEASE  ; dwFreeType
-            code += '\x68' + struct.pack('<L', win32.MEM_RELEASE)
+            code += compat.b('\x68') + struct.pack('<L', win32.MEM_RELEASE)
 
             # push 0x1000       ; dwSize, shellcode max size 4096 bytes
-            code += '\x68' + struct.pack('<L', 0x1000)
+            code += compat.b('\x68') + struct.pack('<L', 0x1000)
 
             # call $+5
-            code += '\xe8\x00\x00\x00\x00'
+            code += compat.b('\xe8\x00\x00\x00\x00')
 
             # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
-            code += '\x81\x24\x24\x00\xf0\xff\xff'
+            code += compat.b('\x81\x24\x24\x00\xf0\xff\xff')
 
             # mov eax, VirtualFree
-            code += '\xb8' + struct.pack('<L', pvf)
+            code += compat.b('\xb8') + struct.pack('<L', pvf)
 
             # push edx      ; our own return address
-            code += '\x52'
+            code += compat.b('\x52')
 
             # jmp eax   ; VirtualFree will return to our own return address
-            code += '\xff\xe0'
+            code += compat.b('\xff\xe0')
 
             # Inject the shellcode.
             # There's no need to free the memory,
@@ -3735,12 +3760,12 @@ class Process (_ThreadContainer, _ModuleContainer):
 
             # Resolve kernel32.dll!LoadLibrary (A/W)
             if type(dllname) == type(u''):
-                pllibname = 'LoadLibraryW'
+                pllibname = compat.b('LoadLibraryW')
                 bufferlen = (len(dllname) + 1) * 2
                 dllname = win32.ctypes.create_unicode_buffer(dllname).raw[:bufferlen + 1]
             else:
-                pllibname = 'LoadLibraryA'
-                dllname   = str(dllname) + '\x00'
+                pllibname = compat.b('LoadLibraryA')
+                dllname   = compat.b(dllname) + compat.b('\x00')
                 bufferlen = len(dllname)
             pllib = aModule.resolve(pllibname)
             if not pllib:
@@ -3755,7 +3780,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                 # Create a new thread to load the library.
                 try:
                     aThread = self.start_thread(pllib, pbuffer)
-                except WindowsError, e:
+                except WindowsError:
+                    e = sys.exc_info()[1]
                     if e.winerror != win32.ERROR_NOT_ENOUGH_MEMORY:
                         raise
 
@@ -3955,7 +3981,7 @@ class _ProcessContainer (object):
         @return: Iterator of global process IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__processDict.iterkeys()
+        return compat.iterkeys(self.__processDict)
 
     def iter_processes(self):
         """
@@ -3964,7 +3990,7 @@ class _ProcessContainer (object):
         @return: Iterator of L{Process} objects in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__processDict.itervalues()
+        return compat.itervalues(self.__processDict)
 
     def get_process_ids(self):
         """
@@ -3973,7 +3999,7 @@ class _ProcessContainer (object):
         @return: List of global process IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__processDict.keys()
+        return compat.keys(self.__processDict)
 
     def get_process_count(self):
         """
@@ -4022,7 +4048,8 @@ class _ProcessContainer (object):
             try:
                 hThread = win32.OpenThread(
                     win32.THREAD_QUERY_LIMITED_INFORMATION, False, dwThreadId)
-            except WindowsError, e:
+            except WindowsError:
+                e = sys.exc_info()[1]
                 if e.winerror != win32.ERROR_ACCESS_DENIED:
                     raise
                 hThread = win32.OpenThread(
@@ -4178,7 +4205,7 @@ class _ProcessContainer (object):
         iTrustLevel         = kwargs.pop('iTrustLevel', 2)
         bAllowElevation     = kwargs.pop('bAllowElevation', True)
         if kwargs:
-            raise TypeError("Unknown keyword arguments: %s" % kwargs.keys())
+            raise TypeError("Unknown keyword arguments: %s" % compat.keys(kwargs))
         if not lpCmdLine:
             raise ValueError("Missing command line to execute!")
 
@@ -4468,7 +4495,7 @@ class _ProcessContainer (object):
         # See: http://www.ragestorm.net/blogs/?p=163
 
         our_pid    = win32.GetCurrentProcessId()
-        dead_pids  = set( self.__processDict.keys() )
+        dead_pids  = set( compat.iterkeys(self.__processDict) )
         found_tids = set()
 
         # Ignore our own process if it's in the snapshot for some reason
@@ -4519,7 +4546,7 @@ class _ProcessContainer (object):
             self._del_process(pid)
 
         # Remove dead threads
-        for aProcess in self.__processDict.itervalues():
+        for aProcess in compat.itervalues(self.__processDict):
             dead_tids = set( aProcess._get_thread_ids() )
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
@@ -4542,10 +4569,10 @@ class _ProcessContainer (object):
             snapshot is complete for all processes the debugger has access to.
         """
         complete = True
-        for aProcess in self.__processDict.itervalues():
+        for aProcess in compat.itervalues(self.__processDict):
             try:
                 aProcess.scan_modules()
-            except WindowsError, e:
+            except WindowsError:
                 complete = False
         return complete
 
@@ -4571,7 +4598,7 @@ class _ProcessContainer (object):
         # Get the previous list of PIDs.
         # We'll be removing live PIDs from it as we find them.
         our_pid   = win32.GetCurrentProcessId()
-        dead_pids  = set( self.__processDict.keys() )
+        dead_pids  = set( compat.iterkeys(self.__processDict) )
 
         # Ignore our own PID.
         if our_pid in dead_pids:
@@ -4584,7 +4611,7 @@ class _ProcessContainer (object):
                                             win32.WTS_CURRENT_SERVER_HANDLE)
 
             # For each process found...
-            for index in xrange(dwCount):
+            for index in compat.xrange(dwCount):
                 sProcessInfo = pProcessInfo[index]
 
 ##                # Ignore processes belonging to other sessions.
@@ -4648,7 +4675,7 @@ class _ProcessContainer (object):
 
         # Get the new and old list of pids
         new_pids = set( win32.EnumProcesses() )
-        old_pids = set( self.__processDict.keys() )
+        old_pids = set( compat.iterkeys(self.__processDict) )
 
         # Ignore our own pid
         our_pid  = win32.GetCurrentProcessId()
@@ -4730,7 +4757,8 @@ class _ProcessContainer (object):
             aProcess = self.get_process(pid)
             try:
                 aProcess.close_handle()
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 try:
                     msg = "Cannot close process handle %s, reason: %s"
                     msg %= (aProcess.hProcess.value, str(e))
@@ -4746,7 +4774,8 @@ class _ProcessContainer (object):
             aProcess.close_thread_handles()
             try:
                 aProcess.close_handle()
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 try:
                     msg = "Cannot close process handle %s, reason: %s"
                     msg %= (aProcess.hProcess.value, str(e))
