@@ -722,7 +722,7 @@ def Wow64SuspendThread(hThread):
 #   __in     HANDLE hThread,
 #   __inout  PWOW64_CONTEXT lpContext
 # );
-def Wow64GetThreadContext(hThread, ContextFlags = None):
+def Wow64GetThreadContext(hThread, ContextFlags = None, raw = False):
     _Wow64GetThreadContext = windll.kernel32.Wow64GetThreadContext
     _Wow64GetThreadContext.argtypes = [HANDLE, PWOW64_CONTEXT]
     _Wow64GetThreadContext.restype  = bool
@@ -736,6 +736,8 @@ def Wow64GetThreadContext(hThread, ContextFlags = None):
     else:
         Context.ContextFlags = ContextFlags
     _Wow64GetThreadContext(hThread, byref(Context))
+    if raw:
+        return Context
     return Context.to_dict()
 
 # BOOL WINAPI Wow64SetThreadContext(

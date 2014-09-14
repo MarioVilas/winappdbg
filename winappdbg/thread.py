@@ -463,7 +463,7 @@ class Thread (object):
 
     # TODO
     # A registers cache could be implemented here.
-    def get_context(self, ContextFlags = None, bSuspend = False):
+    def get_context(self, ContextFlags = None, bSuspend = False, bRaw = False):
         """
         Retrieves the execution context (i.e. the registers values) for this
         thread.
@@ -483,6 +483,12 @@ class Thread (object):
 
             Note that WinAppDbg 1.4 used to suspend the thread automatically
             always. This behavior was changed in version 1.5.
+
+        @type bRaw: bool
+        @param bRaw: C{True} to return a raw ctypes CONTEXT structure,
+            C{False} to get Python dictionary mapping register names
+            to their values. Defaults to {False} because in most cases
+            you never need the ctypes structure.
 
         @rtype:  dict( str S{->} int )
         @return: Dictionary mapping register names to their values.
@@ -525,8 +531,7 @@ class Thread (object):
 
                 # 64 bit debugger attached to 64 bit process, or
                 # 32 bit debugger attached to 32 bit process.
-                ctx = win32.GetThreadContext(hThread,
-                                             ContextFlags = ContextFlags)
+                ctx = win32.GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
             else:
                 if self.is_wow64():
@@ -535,7 +540,8 @@ class Thread (object):
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
                         ContextFlags |=  win32.WOW64_CONTEXT_i386
-                    ctx = win32.Wow64GetThreadContext(hThread, ContextFlags)
+                    ctx = win32.Wow64GetThreadContext(
+                        hThread, ContextFlags, raw = bRaw)
 
                 else:
 
@@ -546,8 +552,8 @@ class Thread (object):
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
                         ContextFlags |=  win32.context_amd64.CONTEXT_AMD64
-                    ctx = win32.context_amd64.GetThreadContext(hThread,
-                                                 ContextFlags = ContextFlags)
+                    ctx = win32.context_amd64.GetThreadContext(
+                        hThread, ContextFlags, raw = bRaw)
 
         finally:
 
@@ -1132,8 +1138,9 @@ class Thread (object):
 
         hProcess = aProcess.get_handle( win32.PROCESS_VM_READ |
                                         win32.PROCESS_QUERY_INFORMATION )
-        hThread  = self.get_handle( win32.THREAD_GET_CONTEXT |
-                                    win32.THREAD_QUERY_INFORMATION )
+        hThread = self.get_handle( win32.THREAD_GET_CONTEXT |
+                                   win32.THREAD_QUERY_INFORMATION )
+        ContextRecord = self.get_context( bRaw = True )
 
         StackFrame = win32.STACKFRAME64()
         StackFrame.AddrPC    = win32.ADDRESS64( self.get_pc() )
@@ -1141,7 +1148,7 @@ class Thread (object):
         StackFrame.AddrStack = win32.ADDRESS64( self.get_sp() )
 
         trace = list()
-        while win32.StackWalk64(MachineType, hProcess, hThread, StackFrame):
+        while win32.StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord):
             if depth <= 0:
                 break
             fp = StackFrame.AddrFrame.Offset

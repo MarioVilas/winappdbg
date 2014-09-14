@@ -1214,8 +1214,8 @@ IMAGE_FILE_MACHINE_AMD64 = 0x8664   #x64 (AMD64 or EM64T)
 #  __in_opt  PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
 # );
 #===============================================================================
-def StackWalk64(MachineType, hProcess, hThread, StackFrame,
-                ContextRecord = None, ReadMemoryRoutine = None,
+def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
+                ReadMemoryRoutine = None,
                 FunctionTableAccessRoutine = None, GetModuleBaseRoutine = None,
                 TranslateAddress = None):
 
@@ -1251,9 +1251,8 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame,
     else:
         pTranslateAddress = ctypes.cast(None, PTRANSLATE_ADDRESS_ROUTINE64)
 
-    pContextRecord = None
     if ContextRecord is None:
-        ContextRecord = GetThreadContext(hThread, raw=True)
+        raise ValueError("ContextRecord cannot be None")
     pContextRecord = PCONTEXT(ContextRecord)
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
