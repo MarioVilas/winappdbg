@@ -1014,14 +1014,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
                     raise
                 warnings.warn(str(e), RuntimeWarning)
 
-            # Disable all breakpoints in the thread before resuming execution.
-            try:
-                tid = event.get_tid()
-                self.disable_thread_breakpoints(tid)
-            except Exception, e:
-                if not bIgnoreExceptions:
-                    raise
-                warnings.warn(str(e), RuntimeWarning)
+                # Disable all breakpoints in the thread before resuming execution.
+                try:
+                    tid = event.get_tid()
+                    self.disable_thread_breakpoints(tid)
+                except Exception, e:
+                    if not bIgnoreExceptions:
+                        raise
+                    warnings.warn(str(e), RuntimeWarning)
 
             # Resume execution.
             try:
