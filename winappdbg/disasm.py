@@ -505,9 +505,11 @@ class CapstoneEngine (Engine):
         # If found, warn the user about it.
         try:
             self.__bug = not isinstance(
-                capstone.cs_disasm_quick(
-                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, "\x90", 1)[0],
-                capstone.capstone.CsInsn)
+                list(capstone.cs_disasm_quick(
+                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, "\x90", 1
+                ))[0],
+                capstone.capstone.CsInsn
+            )
         except AttributeError:
             self.__bug = False
         if self.__bug:
@@ -549,8 +551,9 @@ class CapstoneEngine (Engine):
             # approximately 1K of metadata per each decoded instruction).
             instr = None
             try:
-                instr = decoder(
-                    arch, mode, code[offset:offset+16], address+offset, 1)[0]
+                instr = list(decoder(
+                    arch, mode, code[offset:offset+16], address+offset, 1
+                ))[0]
             except IndexError:
                 pass   # No instructions decoded.
             except CsError:
