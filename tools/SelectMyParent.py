@@ -6,7 +6,7 @@
 #  http://blog.didierstevens.com/2009/11/22/quickpost-selectmyparent-or-playing-with-the-windows-process-tree/
 
 # SelectMyParent: Start a program with a selected parent process.
-# Copyright (c) 2009-2014, Mario Vilas
+# Copyright (c) 2009-2015, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

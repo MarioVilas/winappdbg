@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Crash logger report (see crash_logger.py)
-# Copyright (c) 2009-2014, Mario Vilas
+# Copyright (c) 2009-2015, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
