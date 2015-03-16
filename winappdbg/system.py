@@ -487,6 +487,23 @@ class System (_ProcessContainer):
         # Intel 64 bits.
         win32.ARCH_AMD64: set([
 
+            # WinDbg bundled with the SDK, version 8.1.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Windows Kits",
+                "8.1",
+                "Debuggers",
+                "x64",
+                "dbghelp.dll"),
+            path.join(
+                getenv("ProgramW6432", getenv("ProgramFiles",
+                                              "C:\\Program Files")),
+                "Windows Kits",
+                "8.1",
+                "Debuggers",
+                "x64",
+                "dbghelp.dll"),
+
             # WinDbg bundled with the SDK, version 8.0.
             path.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
@@ -514,6 +531,23 @@ class System (_ProcessContainer):
         # Intel 32 bits.
         win32.ARCH_I386 : set([
 
+            # WinDbg bundled with the SDK, version 8.1.
+            path.join(
+                getenv("ProgramFiles", "C:\\Program Files"),
+                "Windows Kits",
+                "8.1",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
+            path.join(
+                getenv("ProgramW6432", getenv("ProgramFiles",
+                                              "C:\\Program Files")),
+                "Windows Kits",
+                "8.1",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
+
             # WinDbg bundled with the SDK, version 8.0.
             path.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
@@ -530,6 +564,7 @@ class System (_ProcessContainer):
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
+
 
             # Old standalone versions of WinDbg.
             path.join(
