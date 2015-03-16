@@ -1,2 +1,7 @@
 *.pyc
 .idea
+build
+dist
+html
+pdf
+MANIFEST

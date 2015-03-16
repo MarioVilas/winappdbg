@@ -38,7 +38,6 @@ from warnings import warn
 
 import re
 import os
-import sys
 import glob
 
 # Get the base directory
@@ -48,7 +47,7 @@ if not here:
 
 # Text describing the module (reStructured text)
 try:
-    readme = os.path.join(here, 'README')
+    readme = os.path.join(here, 'README.md')
     long_description = open(readme, 'r').read()
 except Exception:
     warn("README file not found or unreadable!")
