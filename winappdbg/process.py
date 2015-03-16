@@ -43,8 +43,6 @@ from __future__ import with_statement
 # The solution appears to be to run the debugger from a user account that
 # belongs to the VMware group. I haven't confirmed this yet.
 
-__revision__ = "$Id$"
-
 __all__ = ['Process']
 
 import win32

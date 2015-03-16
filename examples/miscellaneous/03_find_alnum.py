@@ -35,8 +35,6 @@
     # precalculate the lower 16 bits of all possible alphanumeric addresses,
     # then only test the higher 16 bits of the address for each memory region.
 
-# $Id$
-
 from struct import pack
 from winappdbg import System, Process, HexDump
 

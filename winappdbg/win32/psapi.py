@@ -32,8 +32,6 @@
 Wrapper for psapi.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 
 #==============================================================================

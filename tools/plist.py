@@ -33,8 +33,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__revision__ = "$Id$"
-
 # TODO
 # Show more info on processes, for example the user that spawned them, or if
 # they're being debugged or not.

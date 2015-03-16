@@ -23,7 +23,7 @@ Example #1: finding a DLL in the search path
 :download:`Download <../../examples/win32_api_wrappers/01_search_path.py>`
 
 .. literalinclude:: ../../examples/win32_api_wrappers/01_search_path.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #2: killing a process by attaching to it
@@ -32,7 +32,7 @@ Example #2: killing a process by attaching to it
 :download:`Download <../../examples/win32_api_wrappers/02_kill.py>`
 
 .. literalinclude:: ../../examples/win32_api_wrappers/02_kill.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #3: enumerating heap blocks using the Toolhelp library
@@ -41,7 +41,7 @@ Example #3: enumerating heap blocks using the Toolhelp library
 :download:`Download <../../examples/win32_api_wrappers/03_heap_walking.py>`
 
 .. literalinclude:: ../../examples/win32_api_wrappers/03_heap_walking.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #4: enumerating modules using the Toolhelp library
@@ -50,7 +50,7 @@ Example #4: enumerating modules using the Toolhelp library
 :download:`Download <../../examples/win32_api_wrappers/04_show_dlls.py>`
 
 .. literalinclude:: ../../examples/win32_api_wrappers/04_show_dlls.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #5: enumerating device drivers
@@ -59,5 +59,5 @@ Example #5: enumerating device drivers
 :download:`Download <../../examples/win32_api_wrappers/05_show_drivers.py>`
 
 .. literalinclude:: ../../examples/win32_api_wrappers/05_show_drivers.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,

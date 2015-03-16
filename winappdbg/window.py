@@ -35,8 +35,6 @@ Window instrumentation.
     Window
 """
 
-__revision__ = "$Id$"
-
 __all__ = ['Window']
 
 import win32

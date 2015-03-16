@@ -32,8 +32,6 @@
 Wrapper for gdi32.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from kernel32 import GetLastError, SetLastError
 

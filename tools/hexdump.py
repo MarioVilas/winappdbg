@@ -32,8 +32,6 @@
 # Compatibility with Python 2.5.
 from __future__ import with_statement
 
-__revision__ = "$Id$"
-
 from winappdbg import HexDump
 
 # Compatibility with Python 2.6 and earlier.

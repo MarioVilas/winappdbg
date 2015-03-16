@@ -49,8 +49,6 @@ Miscellaneous utility classes and functions.
     classproperty
 """
 
-__revision__ = "$Id$"
-
 __all__ = [
 
     # Filename and pathname manipulation

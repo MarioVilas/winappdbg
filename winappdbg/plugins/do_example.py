@@ -30,8 +30,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__revision__ = "$Id$"
-
 def do(self, arg):
     ".example - This is an example plugin for the command line debugger"
     print "This is an example command."

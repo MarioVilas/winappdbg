@@ -42,8 +42,6 @@ Functions for text input, logging or text output.
     CrashDump
 """
 
-__revision__ = "$Id$"
-
 __all__ =   [
                 'HexDump',
                 'HexInput',

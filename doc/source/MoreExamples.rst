@@ -13,7 +13,7 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
 :download:`Download <../../examples/miscellaneous/01_debug_timeout.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/01_debug_timeout.py
-   :start-after: # $Id
+   :start-after: from __future__ import with_statement
    :end-before: # When invoked from the command line,
 
 .. _memory-dump:
@@ -26,7 +26,7 @@ This is an example on how to dump the memory map and contents of a process into 
 :download:`Download <../../examples/miscellaneous/02_memory_dump.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/02_memory_dump.py
-   :start-after: # $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _find-alnum:
@@ -41,7 +41,7 @@ Note that in 64 bit processors most memory addresses are not alphanumeric, so th
 :download:`Download <../../examples/miscellaneous/03_find_alnum.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/03_find_alnum.py
-   :start-after: # $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _enum-dep:
@@ -56,7 +56,7 @@ This example shows all 32 bits processes the current user has permission to acce
 :download:`Download <../../examples/miscellaneous/04_dep.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/04_dep.py
-   :start-after: # $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _disassembler:
@@ -71,7 +71,7 @@ This example shows you how to list the supported disassembler engines for the de
 :download:`Download <../../examples/miscellaneous/05_disasm.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/05_disasm.py
-   :start-after: # $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _atoms:
@@ -84,5 +84,5 @@ Global atoms are WORD numeric values that can be associated to arbitrary strings
 :download:`Download <../../examples/miscellaneous/06_atoms.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/06_atoms.py
-   :start-after: # $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,

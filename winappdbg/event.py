@@ -55,8 +55,6 @@ Event handling module.
     EventCallbackWarning
 """
 
-__revision__ = "$Id$"
-
 __all__ = [
             # Factory of Event objects and all of it's subclasses.
             # Users should not need to instance Event objects directly.

@@ -32,8 +32,6 @@
 CONTEXT structure for amd64.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from version import ARCH_AMD64
 import context_i386

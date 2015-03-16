@@ -32,8 +32,6 @@
 Wrapper for wtsapi32.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from advapi32 import *
 

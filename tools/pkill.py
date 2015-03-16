@@ -33,8 +33,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__revision__ = "$Id$"
-
 from winappdbg import win32, Process, System, HexInput
 
 import os

@@ -26,7 +26,7 @@ Example #1: knowing on which platform we're running
 :download:`Download <../../examples/instrumentation/01_platform.py>`
 
 .. literalinclude:: ../../examples/instrumentation/01_platform.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #2: enumerating running processes
@@ -35,7 +35,7 @@ Example #2: enumerating running processes
 :download:`Download <../../examples/instrumentation/02_show_processes.py>`
 
 .. literalinclude:: ../../examples/instrumentation/02_show_processes.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #3: starting a new process
@@ -44,7 +44,7 @@ Example #3: starting a new process
 :download:`Download <../../examples/instrumentation/03_start.py>`
 
 .. literalinclude:: ../../examples/instrumentation/03_start.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 The *System* class has many more features, so we'll be coming back to it later on in the tutorial.
@@ -64,7 +64,7 @@ Example #4: enumerating threads and DLL modules in a process
 :download:`Download <../../examples/instrumentation/04_show_threads_and_modules.py>`
 
 .. literalinclude:: ../../examples/instrumentation/04_show_threads_and_modules.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #5: killing a process
@@ -73,7 +73,7 @@ Example #5: killing a process
 :download:`Download <../../examples/instrumentation/05_kill.py>`
 
 .. literalinclude:: ../../examples/instrumentation/05_kill.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #6: reading the process memory
@@ -82,7 +82,7 @@ Example #6: reading the process memory
 :download:`Download <../../examples/instrumentation/06_read_memory.py>`
 
 .. literalinclude:: ../../examples/instrumentation/06_read_memory.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #7: getting the command line for a process
@@ -91,7 +91,7 @@ Example #7: getting the command line for a process
 :download:`Download <../../examples/instrumentation/07_command_line.py>`
 
 .. literalinclude:: ../../examples/instrumentation/07_command_line.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #8: getting the environment variables for a process
@@ -100,7 +100,7 @@ Example #8: getting the environment variables for a process
 :download:`Download <../../examples/instrumentation/08_environment.py>`
 
 .. literalinclude:: ../../examples/instrumentation/08_environment.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #9: loading a DLL into the process
@@ -109,7 +109,7 @@ Example #9: loading a DLL into the process
 :download:`Download <../../examples/instrumentation/09_inject_dll.py>`
 
 .. literalinclude:: ../../examples/instrumentation/09_inject_dll.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #10: getting the process memory map
@@ -118,7 +118,7 @@ Example #10: getting the process memory map
 :download:`Download <../../examples/instrumentation/10_memory_map.py>`
 
 .. literalinclude:: ../../examples/instrumentation/10_memory_map.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #11: searching the process memory
@@ -127,7 +127,7 @@ Example #11: searching the process memory
 :download:`Download <../../examples/instrumentation/11_memory_search.py>`
 
 .. literalinclude:: ../../examples/instrumentation/11_memory_search.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #12: dumping ASCII strings from the process memory
@@ -136,7 +136,7 @@ Example #12: dumping ASCII strings from the process memory
 :download:`Download <../../examples/instrumentation/12_strings.py>`
 
 .. literalinclude:: ../../examples/instrumentation/12_strings.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-thread-class:
@@ -154,7 +154,7 @@ Example #13: freeze all threads in a process
 :download:`Download <../../examples/instrumentation/13_freeze.py>`
 
 .. literalinclude:: ../../examples/instrumentation/13_freeze.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #14: print a thread's context
@@ -163,7 +163,7 @@ Example #14: print a thread's context
 :download:`Download <../../examples/instrumentation/14_registers.py>`
 
 .. literalinclude:: ../../examples/instrumentation/14_registers.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #15: print a thread's code disassembly
@@ -172,7 +172,7 @@ Example #15: print a thread's code disassembly
 :download:`Download <../../examples/instrumentation/15_disassemble.py>`
 
 .. literalinclude:: ../../examples/instrumentation/15_disassemble.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-module-class:
@@ -188,7 +188,7 @@ Example #16: resolve an API function in a process
 :download:`Download <../../examples/instrumentation/16_resolve_api.py>`
 
 .. literalinclude:: ../../examples/instrumentation/16_resolve_api.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-window-class:
@@ -204,7 +204,7 @@ Example #17: enumerate the top-level windows
 :download:`Download <../../examples/instrumentation/17_list_windows.py>`
 
 .. literalinclude:: ../../examples/instrumentation/17_list_windows.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 Example #18: minimize all top-level windows
 +++++++++++++++++++++++++++++++++++++++++++
@@ -212,7 +212,7 @@ Example #18: minimize all top-level windows
 :download:`Download <../../examples/instrumentation/18_minimize_all.py>`
 
 .. literalinclude:: ../../examples/instrumentation/18_minimize_all.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 Example #19: traverse the windows tree
 ++++++++++++++++++++++++++++++++++++++
@@ -220,7 +220,7 @@ Example #19: traverse the windows tree
 :download:`Download <../../examples/instrumentation/19_show_window_tree.py>`
 
 .. literalinclude:: ../../examples/instrumentation/19_show_window_tree.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: if __name__ == '__main__':
 
 Example #20: get windows by screen position
@@ -229,7 +229,7 @@ Example #20: get windows by screen position
 :download:`Download <../../examples/instrumentation/20_get_window_at.py>`
 
 .. literalinclude:: ../../examples/instrumentation/20_get_window_at.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 Example #21: find windows by class and caption
 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -237,7 +237,7 @@ Example #21: find windows by class and caption
 :download:`Download <../../examples/instrumentation/21_find_window.py>`
 
 .. literalinclude:: ../../examples/instrumentation/21_find_window.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: if __name__ == '__main__':
 
 Example #22: kill a program using its window
@@ -262,7 +262,7 @@ Example #23: exporting a Registry key
 :download:`Download <../../examples/instrumentation/23_registry_export.py>`
 
 .. literalinclude:: ../../examples/instrumentation/23_registry_export.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #24: searching the Registry
@@ -271,7 +271,7 @@ Example #24: searching the Registry
 :download:`Download <../../examples/instrumentation/24_registry_search.py>`
 
 .. literalinclude:: ../../examples/instrumentation/24_registry_search.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #25: listing system services
@@ -280,7 +280,7 @@ Example #25: listing system services
 :download:`Download <../../examples/instrumentation/25_services.py>`
 
 .. literalinclude:: ../../examples/instrumentation/25_services.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: if __name__ == "__main__":
 
 Example #26: stopping and starting a system service
@@ -289,5 +289,5 @@ Example #26: stopping and starting a system service
 :download:`Download <../../examples/instrumentation/26_service_restart.py>`
 
 .. literalinclude:: ../../examples/instrumentation/26_service_restart.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,

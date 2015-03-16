@@ -35,8 +35,6 @@ Common definitions.
 # TODO
 # + add TCHAR and related types?
 
-__revision__ = "$Id$"
-
 import ctypes
 import functools
 

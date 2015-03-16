@@ -110,8 +110,6 @@ Blog:    U{http://breakingcode.wordpress.com}
 @undocumented: plugins
 """
 
-__revision__ = "$Id$"
-
 # List of all public symbols
 __all__ =   [
                 # Library version

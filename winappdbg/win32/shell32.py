@@ -36,8 +36,6 @@ Wrapper for shell32.dll in ctypes.
 # * Add a class wrapper to SHELLEXECUTEINFO
 # * More logic into ShellExecuteEx
 
-__revision__ = "$Id$"
-
 from defines import *
 from kernel32 import LocalFree
 

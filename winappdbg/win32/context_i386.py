@@ -32,8 +32,6 @@
 CONTEXT structure for i386.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from version import ARCH_I386
 

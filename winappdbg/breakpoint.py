@@ -39,8 +39,6 @@ Breakpoints.
     BreakpointWarning, BreakpointCallbackWarning
 """
 
-__revision__ = "$Id$"
-
 __all__ = [
 
     # Base class for breakpoints

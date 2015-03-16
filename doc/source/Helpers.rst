@@ -58,7 +58,7 @@ Example #1: printing text with colors
 :download:`Download <../../examples/helpers/01_colors.py>`
 
 .. literalinclude:: ../../examples/helpers/01_colors.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 Text output in tables
 ---------------------
@@ -73,7 +73,7 @@ Example #2: printing a text table
 :download:`Download <../../examples/helpers/02_table.py>`
 
 .. literalinclude:: ../../examples/helpers/02_table.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 Logging
 -------
@@ -88,7 +88,7 @@ Example #3: logging debug events
 :download:`Download <../../examples/helpers/03_debug_log.py>`
 
 .. literalinclude:: ../../examples/helpers/03_debug_log.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Hexadecimal input
@@ -336,7 +336,7 @@ Example #4: dumping code, stack and registers
 :download:`Download <../../examples/helpers/04_dump.py>`
 
 .. literalinclude:: ../../examples/helpers/04_dump.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Pathname and filename handling
@@ -403,5 +403,5 @@ Example #5: pathname and filename handling
 :download:`Download <../../examples/helpers/05_path.py>`
 
 .. literalinclude:: ../../examples/helpers/05_path.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,

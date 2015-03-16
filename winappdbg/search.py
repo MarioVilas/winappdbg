@@ -41,8 +41,6 @@ Process memory search.
     HexPattern
 """
 
-__revision__ = "$Id$"
-
 __all__ =   [
                 'Search',
                 'Pattern',

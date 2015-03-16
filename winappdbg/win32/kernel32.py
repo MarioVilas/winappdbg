@@ -32,8 +32,6 @@
 Wrapper for kernel32.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 import warnings
 
 from defines import *

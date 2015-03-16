@@ -32,8 +32,6 @@
 Wrapper for ntdll.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 
 #==============================================================================

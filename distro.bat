@@ -166,6 +166,9 @@ echo ---------------------------------------------------------------------------
 echo Building HTML reference documentation...
 echo -------------------------------------------------------------------------------
 echo Note: You can safely ignore the paragraph indentation warning on sqlalchemy.
+echo       If you get missing parameter errors try installing the decorator module:
+echo         pip install -U decorator
+echo -------------------------------------------------------------------------------
 %EPYDOC_CMD% %EPYDOC_HTML_OPT% %EPYDOC_OPT%
 if not errorlevel 0 goto Next
 if not exist dist mkdir dist
@@ -192,6 +195,10 @@ if exist html\winappdbg-reference.chm move html\winappdbg-reference.chm dist\win
 :: Generate the PDF documentation
 echo -------------------------------------------------------------------------------
 echo Building PDF reference documentation...
+echo -------------------------------------------------------------------------------
+echo Note: You can safely ignore the paragraph indentation warning on sqlalchemy.
+echo       If you get missing parameter errors try installing the decorator module:
+echo         pip install -U decorator
 echo -------------------------------------------------------------------------------
 %EPYDOC_CMD% %EPYDOC_PDF_OPT% %EPYDOC_OPT%
 if exist pdf\api.pdf move pdf\api.pdf dist\winappdbg-%VersionTag%-reference.pdf

@@ -32,8 +32,6 @@
 Wrapper for user32.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from version import bits
 from kernel32 import GetLastError, SetLastError

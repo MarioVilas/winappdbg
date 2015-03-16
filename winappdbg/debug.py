@@ -38,8 +38,6 @@ Debugging.
     MixedBitsWarning
 """
 
-__revision__ = "$Id$"
-
 __all__ = [ 'Debug', 'MixedBitsWarning' ]
 
 import win32

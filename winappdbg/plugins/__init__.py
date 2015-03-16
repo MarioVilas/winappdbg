@@ -31,5 +31,3 @@
 """
 Plugins folder for the WinAppDbg interactive debugger.
 """
-
-__revision__ = "$Id: __init__.py 1125 2012-10-22 14:54:39Z qvasimodo $"

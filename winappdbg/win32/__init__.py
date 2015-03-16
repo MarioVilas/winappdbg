@@ -32,8 +32,6 @@
 Debugging API wrappers in ctypes.
 """
 
-__revision__ = "$Id$"
-
 import defines
 import kernel32
 import user32

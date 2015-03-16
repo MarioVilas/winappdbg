@@ -32,8 +32,6 @@
 Wrapper for dbghelp.dll in ctypes.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from version import *
 from kernel32 import *

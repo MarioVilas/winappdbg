@@ -41,8 +41,6 @@ Binary code disassembly.
 
 from __future__ import with_statement
 
-__revision__ = "$Id$"
-
 __all__ = [
     'Disassembler',
     'Engine',

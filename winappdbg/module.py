@@ -40,8 +40,6 @@ Module instrumentation.
 
 from __future__ import with_statement
 
-__revision__ = "$Id$"
-
 __all__ = ['Module', 'DebugSymbolsWarning']
 
 import win32

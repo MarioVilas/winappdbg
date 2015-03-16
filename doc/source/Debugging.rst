@@ -25,7 +25,7 @@ Example #1: starting a new process and waiting for it to finish
 :download:`Download <../../examples/debugging/01_start.py>`
 
 .. literalinclude:: ../../examples/debugging/01_start.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #2: attaching to a process and waiting for it to finish
@@ -34,7 +34,7 @@ Example #2: attaching to a process and waiting for it to finish
 :download:`Download <../../examples/debugging/02_attach.py>`
 
 .. literalinclude:: ../../examples/debugging/02_attach.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #3: attaching to a process by filename
@@ -43,7 +43,7 @@ Example #3: attaching to a process by filename
 :download:`Download <../../examples/debugging/03_find_and_attach.py>`
 
 .. literalinclude:: ../../examples/debugging/03_find_and_attach.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #4: killing the debugged process when the debugger is closed
@@ -52,7 +52,7 @@ Example #4: killing the debugged process when the debugger is closed
 :download:`Download <../../examples/debugging/04_kill_on_exit.py>`
 
 .. literalinclude:: ../../examples/debugging/04_kill_on_exit.py
-   :start-after: $Id
+   :start-after: from __future__ import with_statement
    :end-before: # When invoked from the command line,
 
 .. _the-interactive-debugger:
@@ -68,7 +68,7 @@ Example #5: running an interactive debugger session
 :download:`Download <../../examples/debugging/05_interactive.py>`
 
 .. literalinclude:: ../../examples/debugging/05_interactive.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-event-class:
@@ -206,7 +206,7 @@ Example #6: handling debug events
 :download:`Download <../../examples/debugging/06_debug_events.py>`
 
 .. literalinclude:: ../../examples/debugging/06_debug_events.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-crash-and-crashdao-classes:
@@ -232,7 +232,7 @@ Example #7: saving crash dumps
 :download:`Download <../../examples/debugging/07_crash_dump.py>`
 
 .. literalinclude:: ../../examples/debugging/07_crash_dump.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 .. _the-eventhandler-class:
@@ -382,7 +382,7 @@ Example #8: tracing execution
 :download:`Download <../../examples/debugging/08_tracing.py>`
 
 .. literalinclude:: ../../examples/debugging/08_tracing.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #9: intercepting API calls
@@ -496,7 +496,7 @@ Example #15: getting the label for a given memory address
 :download:`Download <../../examples/debugging/15_get_label.py>`
 
 .. literalinclude:: ../../examples/debugging/15_get_label.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
 
 Example #16: resolving a label back into a memory address
@@ -505,5 +505,5 @@ Example #16: resolving a label back into a memory address
 :download:`Download <../../examples/debugging/16_resolve_label.py>`
 
 .. literalinclude:: ../../examples/debugging/16_resolve_label.py
-   :start-after: $Id
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,

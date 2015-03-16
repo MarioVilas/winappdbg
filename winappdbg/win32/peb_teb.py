@@ -32,8 +32,6 @@
 PEB and TEB structures, constants and data types.
 """
 
-__revision__ = "$Id$"
-
 from defines import *
 from version import os
 

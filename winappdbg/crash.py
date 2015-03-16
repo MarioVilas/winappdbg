@@ -42,8 +42,6 @@ Crash dump support.
     VolatileCrashContainer, DummyCrashContainer
 """
 
-__revision__ = "$Id$"
-
 __all__ = [
 
     # Object that represents a crash in the debugee.
