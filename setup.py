@@ -42,6 +42,7 @@ import glob
 here = os.path.dirname(__file__)
 if not here:
     here = os.path.curdir
+here = os.path.abspath(here)
 
 # Text describing the module (reStructured text)
 try:
@@ -122,4 +123,9 @@ if __name__ == '__main__':
 
 # Execute the setup script
 if __name__ == '__main__':
-    setup(**metadata)
+    cwd = os.getcwd()
+    os.chdir(here)
+    try:
+        setup(**metadata)
+    finally:
+        os.chdir(cwd)
