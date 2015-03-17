@@ -47,6 +47,7 @@ from process import _ProcessContainer
 from window import Window
 
 import os
+import sys
 import ctypes
 import ntpath
 import warnings
@@ -57,7 +58,7 @@ from os import getenv
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from winappdbg.win32 import WindowsError, getenv
 
 #==============================================================================
 
@@ -499,8 +500,7 @@ class System (_ProcessContainer):
                 "x64",
                 "dbghelp.dll"),
             ntpath.join(
-                getenv("ProgramW6432", getenv("ProgramFiles",
-                                              "C:\\Program Files")),
+                getenv("ProgramFiles(x86)", "C:\\Program Files (x86)"),
                 "Windows Kits",
                 "8.1",
                 "Debuggers",
@@ -516,8 +516,7 @@ class System (_ProcessContainer):
                 "x64",
                 "dbghelp.dll"),
             ntpath.join(
-                getenv("ProgramW6432", getenv("ProgramFiles",
-                                              "C:\\Program Files")),
+                getenv("ProgramFiles(x86)", "C:\\Program Files (x86)"),
                 "Windows Kits",
                 "8.0",
                 "Debuggers",
@@ -542,10 +541,26 @@ class System (_ProcessContainer):
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
+            ntpath.join(
+                getenv("ProgramW6432",
+                       getenv("ProgramFiles", "C:\\Program Files")),
+                "Windows Kits",
+                "8.1",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
 
             # WinDbg bundled with the SDK, version 8.0.
             ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
+                "Windows Kits",
+                "8.0",
+                "Debuggers",
+                "x86",
+                "dbghelp.dll"),
+            ntpath.join(
+                getenv("ProgramW6432",
+                       getenv("ProgramFiles", "C:\\Program Files")),
                 "Windows Kits",
                 "8.0",
                 "Debuggers",

@@ -31,6 +31,7 @@
 import os
 import sys
 import zlib
+import ntpath
 import winappdbg
 from winappdbg import win32
 
@@ -54,11 +55,11 @@ for filename in sys.argv[1:]:
 
         # Parse the database filename.
         dbfile   = '%d.db' % pid
-        if os.path.exists(dbfile):
+        if ntpath.exists(dbfile):
             counter = 1
             while 1:
                 dbfile = '%d_%.3d.db' % (pid, counter)
-                if not os.path.exists(dbfile):
+                if not ntpath.exists(dbfile):
                     break
                 counter += 1
             del counter

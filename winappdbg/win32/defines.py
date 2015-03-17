@@ -51,6 +51,13 @@ except NameError:
                 from kernel32 import GetLastError as _gle
             self.winerror = _gle()
 
+    from os import getenv as _real_getenv
+    def getenv(key, default=None):
+        value = _real_getenv(key, None)
+        if value is None:
+            value = _real_getenv(key.upper(), default)
+        return value
+
 #------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.

@@ -56,18 +56,19 @@ from search import Search, \
 from disasm import Disassembler
 
 import re
-import os
 import ctypes
 import ntpath
 import struct
 import warnings
 import traceback
 
+from os import getenv
+
 # Cygwin compatibility.
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from winappdbg.win32 import WindowsError, getenv
 
 # delayed import
 System = None
@@ -4389,7 +4390,7 @@ class _ProcessContainer (object):
         except Exception:
             exp = None
         if not exp:
-            exp = os.getenv('SystemRoot')
+            exp = getenv('SystemRoot')
         if exp:
             exp = ntpath.join(exp, 'explorer.exe')
             exp_list = self.find_processes_by_filename(exp)

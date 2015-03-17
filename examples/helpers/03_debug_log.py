@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from os.path import basename, splitext
+from ntpath import basename, splitext
 
 from winappdbg import Debug, EventHandler, Logger, DebugLog
 

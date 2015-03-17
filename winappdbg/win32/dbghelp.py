@@ -39,48 +39,6 @@ from kernel32 import *
 # DbgHelp versions and features list:
 # http://msdn.microsoft.com/en-us/library/windows/desktop/ms679294(v=vs.85).aspx
 
-#------------------------------------------------------------------------------
-# Tries to load the newest version of dbghelp.dll if available.
-
-import sys
-if sys.platform != "cygwin":
-
-    def _load_latest_dbghelp_dll():
-
-        from os import getenv
-        from os.path import join
-
-        if arch == ARCH_AMD64:
-            if wow64:
-                pathname = join(
-                                getenv("ProgramFiles(x86)",
-                                    getenv("ProgramFiles")),
-                                "Debugging Tools for Windows (x86)",
-                                "dbghelp.dll")
-            else:
-                pathname = join(
-                                getenv("ProgramFiles"),
-                                "Debugging Tools for Windows (x64)",
-                                "dbghelp.dll")
-        elif arch == ARCH_I386:
-            pathname = join(
-                            getenv("ProgramFiles"),
-                            "Debugging Tools for Windows (x86)",
-                            "dbghelp.dll")
-        else:
-            pathname = None
-
-        if pathname:
-            try:
-                _dbghelp = ctypes.windll.LoadLibrary(pathname)
-                ctypes.windll.dbghelp = _dbghelp
-            except Exception:
-                pass
-
-    _load_latest_dbghelp_dll()
-
-#------------------------------------------------------------------------------
-
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
 _all = None

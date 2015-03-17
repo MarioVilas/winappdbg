@@ -161,6 +161,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
             # so passive debuggers don't get detected because of this.
             self.system.request_debug_privileges(bIgnoreExceptions = False)
 
+            # Try to load the latest version of dbghelp.dll if found.
+            # This means loading the one from the Windows SDK rather than
+            # the one shipped with Windows by default.
+            self.system.load_dbghelp()
+
             # Try to fix the symbol store path if it wasn't set.
             # But don't enable symbol downloading by default, since it may
             # degrade performance severely.

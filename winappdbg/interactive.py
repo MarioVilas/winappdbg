@@ -62,6 +62,8 @@ import ntpath
 import warnings
 import traceback
 
+from os import getenv
+
 # too many variables named "cmd" to have a module by the same name :P
 from cmd import Cmd
 
@@ -69,7 +71,7 @@ from cmd import Cmd
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from winappdbg.win32 import WindowsError, getenv
 
 # lazy imports
 readline = None
@@ -1086,7 +1088,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         # If not found, it's usually OK to just use the filename,
         # since cmd.exe is one of those "magic" programs that
         # can be automatically found by CreateProcess.
-        shell = os.getenv('ComSpec', 'cmd.exe')
+        shell = getenv('ComSpec', 'cmd.exe')
 
         # When given a command, run it and return.
         # When no command is given, spawn a shell.
