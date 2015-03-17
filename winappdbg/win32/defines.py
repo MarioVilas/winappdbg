@@ -65,13 +65,17 @@ addressof   = ctypes.addressof
 sizeof      = ctypes.sizeof
 SIZEOF      = ctypes.sizeof
 POINTER     = ctypes.POINTER
-Structure   = ctypes.Structure
-Union       = ctypes.Union
 WINFUNCTYPE = ctypes.WINFUNCTYPE
 windll      = ctypes.windll
 
-# The IronPython implementation of byref() was giving me problems,
-# so I'm replacing it with the slower pointer() function.
+class Structure(ctypes.Structure):
+    _pack_ = 1
+
+class Union(ctypes.Union):
+    _pack_ = 1
+
+# The IronPython implementation of byref() was giving some problems,
+# so it's best to replace it with the slower pointer() function.
 try:
     ctypes.c_void_p(ctypes.byref(ctypes.c_char()))  # this fails in IronPython
     byref = ctypes.byref
@@ -381,12 +385,12 @@ DWORD       = ctypes.c_uint32
 SDWORD      = ctypes.c_int32
 QWORD       = ctypes.c_uint64
 SQWORD      = ctypes.c_int64
-SHORT       = ctypes.c_short
-USHORT      = ctypes.c_ushort
-INT         = ctypes.c_int
-UINT        = ctypes.c_uint
-LONG        = ctypes.c_long
-ULONG       = ctypes.c_ulong
+SHORT       = ctypes.c_int16
+USHORT      = ctypes.c_uint16
+INT         = ctypes.c_int32
+UINT        = ctypes.c_uint32
+LONG        = ctypes.c_int32
+ULONG       = ctypes.c_uint32
 LONGLONG    = ctypes.c_int64        # c_longlong
 ULONGLONG   = ctypes.c_uint64       # c_ulonglong
 LPSTR       = ctypes.c_char_p
@@ -405,8 +409,9 @@ ULONG32     = ctypes.c_uint32
 ULONG64     = ctypes.c_uint64
 DWORD32     = ctypes.c_uint32
 DWORD64     = ctypes.c_uint64
-BOOL        = ctypes.c_int
-FLOAT       = ctypes.c_float
+BOOL        = ctypes.c_int32
+FLOAT       = ctypes.c_float        # not sure on cygwin
+DOUBLE      = ctypes.c_double       # not sure on cygwin
 
 # Map size_t to SIZE_T
 try:
