@@ -1,4 +1,4 @@
-#!~/.wine/drive_c/Python25/python.exe
+#!/bin/env python
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
