@@ -37,13 +37,9 @@ from winappdbg import win32, System, HexInput
 
 import os
 import sys
+import ntpath
 
 # Cygwin compatibility.
-import posixpath
-if posixpath is os.path:
-    import ntpath
-else:
-    ntpath = os.path
 try:
     WindowsError
 except NameError:

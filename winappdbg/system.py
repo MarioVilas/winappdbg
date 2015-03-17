@@ -48,16 +48,12 @@ from window import Window
 
 import os
 import ctypes
+import ntpath
 import warnings
 
 from os import getenv
 
 # Cygwin compatibility.
-import ntpath
-if ntpath is not os.path:
-    path = ntpath
-else:
-    path = os.path
 try:
     WindowsError
 except NameError:
@@ -495,14 +491,14 @@ class System (_ProcessContainer):
         win32.ARCH_AMD64: set([
 
             # WinDbg bundled with the SDK, version 8.1.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Windows Kits",
                 "8.1",
                 "Debuggers",
                 "x64",
                 "dbghelp.dll"),
-            path.join(
+            ntpath.join(
                 getenv("ProgramW6432", getenv("ProgramFiles",
                                               "C:\\Program Files")),
                 "Windows Kits",
@@ -512,14 +508,14 @@ class System (_ProcessContainer):
                 "dbghelp.dll"),
 
             # WinDbg bundled with the SDK, version 8.0.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Windows Kits",
                 "8.0",
                 "Debuggers",
                 "x64",
                 "dbghelp.dll"),
-            path.join(
+            ntpath.join(
                 getenv("ProgramW6432", getenv("ProgramFiles",
                                               "C:\\Program Files")),
                 "Windows Kits",
@@ -529,7 +525,7 @@ class System (_ProcessContainer):
                 "dbghelp.dll"),
 
             # Old standalone versions of WinDbg.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Debugging Tools for Windows (x64)",
                 "dbghelp.dll"),
@@ -539,14 +535,14 @@ class System (_ProcessContainer):
         win32.ARCH_I386 : set([
 
             # WinDbg bundled with the SDK, version 8.1.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Windows Kits",
                 "8.1",
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
-            path.join(
+            ntpath.join(
                 getenv("ProgramW6432", getenv("ProgramFiles",
                                               "C:\\Program Files")),
                 "Windows Kits",
@@ -556,14 +552,14 @@ class System (_ProcessContainer):
                 "dbghelp.dll"),
 
             # WinDbg bundled with the SDK, version 8.0.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Windows Kits",
                 "8.0",
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
-            path.join(
+            ntpath.join(
                 getenv("ProgramW6432", getenv("ProgramFiles",
                                               "C:\\Program Files")),
                 "Windows Kits",
@@ -574,13 +570,13 @@ class System (_ProcessContainer):
 
 
             # Old standalone versions of WinDbg.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Debugging Tools for Windows (x86)",
                 "dbghelp.dll"),
 
             # Version shipped with Windows.
-            path.join(
+            ntpath.join(
                 getenv("ProgramFiles", "C:\\Program Files"),
                 "Debugging Tools for Windows (x86)",
                 "dbghelp.dll"),
@@ -653,7 +649,7 @@ class System (_ProcessContainer):
             # Grab all versions of the library we can find.
             found = []
             for pathname in cls.__dbghelp_locations[arch]:
-                if path.isfile(pathname):
+                if ntpath.isfile(pathname):
                     try:
                         f_ver, p_ver = cls.get_file_version_info(pathname)[:2]
                     except WindowsError:
@@ -753,10 +749,10 @@ class System (_ProcessContainer):
         try:
             if symbol_store_path is None:
                 local_path = "C:\\SYMBOLS"
-                if not path.isdir(local_path):
+                if not ntpath.isdir(local_path):
                     local_path = "C:\\Windows\\Symbols"
-                    if not path.isdir(local_path):
-                        local_path = path.abspath(".")
+                    if not ntpath.isdir(local_path):
+                        local_path = ntpath.abspath(".")
                 if remote:
                     symbol_store_path = (
                         "cache*;SRV*"

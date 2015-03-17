@@ -42,14 +42,10 @@ import re
 import os
 import sys
 import time
+import ntpath
 import traceback
 
 # Cygwin compatibility.
-import posixpath
-if posixpath is os.path:
-    import ntpath
-else:
-    ntpath = os.path
 try:
     WindowsError
 except NameError:

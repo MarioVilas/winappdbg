@@ -38,16 +38,11 @@ from winappdbg import win32
 from winappdbg import Debug, EventHandler, System, Process
 from winappdbg import HexInput, CrashDump
 
-import os
 import sys
+import ntpath
 import optparse
 
 # Cygwin compatibility.
-import posixpath
-if posixpath is os.path:
-    import ntpath
-else:
-    ntpath = os.path
 try:
     WindowsError
 except NameError:

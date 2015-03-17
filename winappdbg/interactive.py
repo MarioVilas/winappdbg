@@ -58,6 +58,7 @@ from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
 import os
 import sys
 import code
+import ntpath
 import warnings
 import traceback
 

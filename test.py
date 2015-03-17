@@ -31,7 +31,7 @@
 "WinAppDbg test suite"
 
 import os
-import os.path
+import ntpath
 
 def test(title, fn):
     title = "Testing %s... " % title
@@ -60,8 +60,8 @@ def test_windbg_version():
     dbghelp = System.load_dbghelp()
     pathname = win32.GetModuleFileNameEx(-1, dbghelp._handle)
     sysroot = os.getenv("SystemRoot")
-    system = os.path.join(sysroot, "System32")
-    syswow = os.path.join(sysroot, "SysWoW64")
+    system = ntpath.join(sysroot, "System32")
+    syswow = ntpath.join(sysroot, "SysWoW64")
     if (pathname.lower().startswith(system.lower()) or
         pathname.lower().startswith(syswow.lower())
     ):

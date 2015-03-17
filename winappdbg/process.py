@@ -58,16 +58,12 @@ from disasm import Disassembler
 import re
 import os
 import ctypes
+import ntpath
 import struct
 import warnings
 import traceback
 
 # Cygwin compatibility.
-import posixpath
-if posixpath is os.path:
-    import ntpath
-else:
-    ntpath = os.path
 try:
     WindowsError
 except NameError:
