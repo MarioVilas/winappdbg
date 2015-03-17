@@ -49,9 +49,14 @@ from util import PathOperations
 # delayed imports
 Process = None
 
-import os
 import warnings
 import traceback
+
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 #==============================================================================
 

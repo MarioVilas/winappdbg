@@ -33,7 +33,6 @@ Wrapper for gdi32.dll in ctypes.
 """
 
 from defines import *
-from kernel32 import GetLastError, SetLastError
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

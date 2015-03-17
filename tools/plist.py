@@ -57,6 +57,12 @@ from winappdbg import System, PathOperations, Table
 
 import optparse
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 def parse_cmdline(argv):
     'Parse the command line options.'
     parser = optparse.OptionParser()

@@ -38,6 +38,19 @@ Common definitions.
 import ctypes
 import functools
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    _gle = None
+    class WindowsError(OSError):
+        def __init__(self, *args, **kwargs):
+            OSError.__init__(self, *args, **kwargs)
+            global _gle
+            if _gle is None:
+                from kernel32 import GetLastError as _gle
+            self.winerror = _gle()
+
 #------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.

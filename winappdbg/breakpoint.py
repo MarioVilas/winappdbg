@@ -69,6 +69,12 @@ import ctypes
 import warnings
 import traceback
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 #==============================================================================
 
 class BreakpointWarning (UserWarning):

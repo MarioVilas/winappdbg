@@ -51,7 +51,6 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 # TODO command to show available plugins.
 
 import win32
-from system import System
 from util import PathOperations
 from event import EventHandler, NoEvent
 from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
@@ -59,12 +58,17 @@ from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
 import os
 import sys
 import code
-import time
 import warnings
 import traceback
 
 # too many variables named "cmd" to have a module by the same name :P
 from cmd import Cmd
+
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 # lazy imports
 readline = None
@@ -331,7 +335,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not argv:
             raise CmdError("missing command line to execute")
         fname = argv[0]
-        if not os.path.exists(fname):
+        if not ntpath.exists(fname):
             try:
                 fname, _ = win32.SearchPath(None, fname, '.exe')
             except WindowsError:

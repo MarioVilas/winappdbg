@@ -42,43 +42,42 @@ from kernel32 import *
 #------------------------------------------------------------------------------
 # Tries to load the newest version of dbghelp.dll if available.
 
-def _load_latest_dbghelp_dll():
+import sys
+if sys.platform != "cygwin":
 
-    from os import getenv
-    from os.path import join
+    def _load_latest_dbghelp_dll():
 
-    if arch == ARCH_AMD64:
-        if wow64:
+        from os import getenv
+        from os.path import join
+
+        if arch == ARCH_AMD64:
+            if wow64:
+                pathname = join(
+                                getenv("ProgramFiles(x86)",
+                                    getenv("ProgramFiles")),
+                                "Debugging Tools for Windows (x86)",
+                                "dbghelp.dll")
+            else:
+                pathname = join(
+                                getenv("ProgramFiles"),
+                                "Debugging Tools for Windows (x64)",
+                                "dbghelp.dll")
+        elif arch == ARCH_I386:
             pathname = join(
-                            getenv("ProgramFiles(x86)",
-                                getenv("ProgramFiles")),
+                            getenv("ProgramFiles"),
                             "Debugging Tools for Windows (x86)",
                             "dbghelp.dll")
         else:
-            pathname = join(
-                            getenv("ProgramFiles"),
-                            "Debugging Tools for Windows (x64)",
-                            "dbghelp.dll")
-    elif arch == ARCH_I386:
-        pathname = join(
-                        getenv("ProgramFiles"),
-                        "Debugging Tools for Windows (x86)",
-                        "dbghelp.dll")
-    else:
-        pathname = None
+            pathname = None
 
-    if pathname:
-        try:
-            _dbghelp = ctypes.windll.LoadLibrary(pathname)
-            ctypes.windll.dbghelp = _dbghelp
-        except Exception:
-            pass
+        if pathname:
+            try:
+                _dbghelp = ctypes.windll.LoadLibrary(pathname)
+                ctypes.windll.dbghelp = _dbghelp
+            except Exception:
+                pass
 
-_load_latest_dbghelp_dll()
-
-# Recover the old binding of the "os" symbol.
-# XXX FIXME not sure if I really need to do this!
-##from version import os
+    _load_latest_dbghelp_dll()
 
 #------------------------------------------------------------------------------
 

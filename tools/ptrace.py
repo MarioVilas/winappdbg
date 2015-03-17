@@ -33,14 +33,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import winappdbg
+from winappdbg import win32
+from winappdbg import Debug, EventHandler, System, Process
+from winappdbg import HexInput, CrashDump
+
 import os
 import sys
 import optparse
 
-import winappdbg
-from winappdbg import win32
-from winappdbg import Debug, EventHandler, System, Process
-from winappdbg import HexInput, HexDump, CrashDump
+# Cygwin compatibility.
+import posixpath
+if posixpath is os.path:
+    import ntpath
+else:
+    ntpath = os.path
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 #------------------------------------------------------------------------------
 
@@ -312,7 +323,7 @@ def parse_cmdline( argv ):
         if not vector:
             parser.error("bad use of --console")
         filename = vector[0]
-        if not os.path.exists(filename):
+        if not ntpath.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
             except WindowsError, e:
@@ -327,7 +338,7 @@ def parse_cmdline( argv ):
         if not vector:
             parser.error("bad use of --windowed")
         filename = vector[0]
-        if not os.path.exists(filename):
+        if not ntpath.exists(filename):
             try:
                 filename = win32.SearchPath(None, filename, '.exe')[0]
             except WindowsError, e:

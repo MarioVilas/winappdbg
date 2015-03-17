@@ -41,11 +41,16 @@ __all__ = ['Thread']
 
 import win32
 from textio import HexDump
-from util import DebugRegister
 from window import Window
 
 import struct
 import warnings
+
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 # delayed imports
 Process = None

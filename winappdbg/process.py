@@ -57,11 +57,21 @@ from disasm import Disassembler
 
 import re
 import os
-import os.path
 import ctypes
 import struct
 import warnings
 import traceback
+
+# Cygwin compatibility.
+import posixpath
+if posixpath is os.path:
+    import ntpath
+else:
+    ntpath = os.path
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 # delayed import
 System = None
@@ -4385,7 +4395,7 @@ class _ProcessContainer (object):
         if not exp:
             exp = os.getenv('SystemRoot')
         if exp:
-            exp = os.path.join(exp, 'explorer.exe')
+            exp = ntpath.join(exp, 'explorer.exe')
             exp_list = self.find_processes_by_filename(exp)
             if exp_list:
                 return exp_list[0][0].get_pid()

@@ -39,6 +39,12 @@ __all__ = ['Window']
 
 import win32
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 # delayed imports
 Process = None
 Thread  = None

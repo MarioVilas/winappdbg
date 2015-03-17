@@ -44,6 +44,17 @@ import sys
 import time
 import traceback
 
+# Cygwin compatibility.
+import posixpath
+if posixpath is os.path:
+    import ntpath
+else:
+    ntpath = os.path
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 try:
     import cerealizer
     cerealizer.freeze_configuration()
@@ -900,7 +911,7 @@ class CrashLogger (object):
                 continue
             vector = System.cmdline_to_argv(token)
             filename = vector[0]
-            if not os.path.exists(filename):
+            if not ntpath.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
@@ -917,7 +928,7 @@ class CrashLogger (object):
                 continue
             vector = System.cmdline_to_argv(token)
             filename = vector[0]
-            if not os.path.exists(filename):
+            if not ntpath.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
                 except WindowsError, e:
@@ -1059,6 +1070,11 @@ class CrashLogger (object):
 
     def install_as_jit(self, config):
 
+        # Not yet compatible with Cygwin.
+        if sys.platform == "cygwin":
+            raise NotImplementedError(
+                "This feature is not available on Cygwin")
+
         # Calculate the command line to run in JIT mode
         # TODO maybe fix this so it works with py2exe?
         interpreter = os.path.abspath(sys.executable)
@@ -1088,7 +1104,7 @@ class CrashLogger (object):
         System.remove_postmortem_debugger()
 
     def show_help_banner(self):
-        script = os.path.split(__file__)[1]
+        script = ntpath.split(__file__)[1]
         print "Usage:"
         print "\t%s <configuration file>" % script
         print

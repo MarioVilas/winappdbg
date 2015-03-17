@@ -42,9 +42,7 @@ __all__ = ['System']
 import win32
 import win32.version
 from registry import Registry
-from textio import HexInput, HexDump
-from util import Regenerator, PathOperations, MemoryAddresses, DebugRegister, \
-                 classproperty
+from util import MemoryAddresses, DebugRegister, classproperty
 from process import _ProcessContainer
 from window import Window
 
@@ -52,7 +50,18 @@ import os
 import ctypes
 import warnings
 
-from os import path, getenv
+from os import getenv
+
+# Cygwin compatibility.
+import ntpath
+if ntpath is not os.path:
+    path = ntpath
+else:
+    path = os.path
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 #==============================================================================
 

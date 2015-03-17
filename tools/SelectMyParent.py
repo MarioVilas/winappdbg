@@ -33,10 +33,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from winappdbg import win32, System, HexInput
+
 import os
 import sys
 
-from winappdbg import win32, System, HexInput
+# Cygwin compatibility.
+import posixpath
+if posixpath is os.path:
+    import ntpath
+else:
+    ntpath = os.path
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 def main(argv):
 
@@ -83,7 +94,7 @@ def main(argv):
 
     # Parse the target process argument.
     filename = argv[2]
-    if not os.path.exists(filename):
+    if not ntpath.exists(filename):
         try:
             filename = win32.SearchPath(None, filename, '.exe')[0]
         except WindowsError, e:

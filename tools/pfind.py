@@ -36,9 +36,14 @@
 from winappdbg import Process, System, HexDump, HexInput, win32
 
 import re
-import os
 import sys
 import optparse
+
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 #==============================================================================
 

@@ -53,6 +53,12 @@ from interactive import ConsoleDebugger
 import warnings
 ##import traceback
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 #==============================================================================
 
 # If you set this warning to be considered as an error, you can stop the

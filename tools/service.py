@@ -33,6 +33,12 @@ from winappdbg import System, PathOperations, Table, win32
 
 import optparse, time
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+   from winappdbg.win32 import WindowsError
+
 def main(argv):
     'Main function.'
 

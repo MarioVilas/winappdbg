@@ -43,6 +43,12 @@ import win32
 import collections
 import warnings
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 #==============================================================================
 
 class _RegistryContainer (object):

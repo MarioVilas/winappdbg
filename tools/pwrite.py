@@ -33,11 +33,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from winappdbg import Process, System, HexInput, HexDump
+
 import os
 import sys
-import struct
-
-from winappdbg import Process, System, HexInput, HexDump
 
 def main():
     print "Process memory writer"

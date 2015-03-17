@@ -39,6 +39,12 @@ import os
 import sys
 from thread import exit
 
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
+
 def main(argv):
     script = os.path.basename(argv[0])
     params = argv[1:]

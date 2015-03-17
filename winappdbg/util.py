@@ -73,10 +73,15 @@ __all__ = [
     ]
 
 import os
-import ctypes
 import optparse
 
 import win32
+
+# Cygwin compatibility.
+try:
+    WindowsError
+except NameError:
+    from winappdbg.win32 import WindowsError
 
 #==============================================================================
 
