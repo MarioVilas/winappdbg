@@ -542,14 +542,6 @@ class System (_ProcessContainer):
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
-            ntpath.join(
-                getenv("ProgramW6432", getenv("ProgramFiles",
-                                              "C:\\Program Files")),
-                "Windows Kits",
-                "8.1",
-                "Debuggers",
-                "x86",
-                "dbghelp.dll"),
 
             # WinDbg bundled with the SDK, version 8.0.
             ntpath.join(
@@ -559,15 +551,6 @@ class System (_ProcessContainer):
                 "Debuggers",
                 "x86",
                 "dbghelp.dll"),
-            ntpath.join(
-                getenv("ProgramW6432", getenv("ProgramFiles",
-                                              "C:\\Program Files")),
-                "Windows Kits",
-                "8.0",
-                "Debuggers",
-                "x86",
-                "dbghelp.dll"),
-
 
             # Old standalone versions of WinDbg.
             ntpath.join(

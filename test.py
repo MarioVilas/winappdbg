@@ -60,6 +60,8 @@ def test_windbg_version():
     dbghelp = System.load_dbghelp()
     pathname = win32.GetModuleFileNameEx(-1, dbghelp._handle)
     sysroot = os.getenv("SystemRoot")
+    if not sysroot:
+        sysroot = os.getenv("SYSTEMROOT")
     system = ntpath.join(sysroot, "System32")
     syswow = ntpath.join(sysroot, "SysWoW64")
     if (pathname.lower().startswith(system.lower()) or
