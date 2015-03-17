@@ -245,8 +245,7 @@ Operating systems
 +--------------------------+-----------------+----------------------------------------------------------------+
 | Linux (using Wine 1.3)   |   *untested*    | Reported to work on Ubuntu.                                    |
 +--------------------------+-----------------+----------------------------------------------------------------+
-| Windows + Cygwin         | *not supported* | Ctypes under Cygwin doesn't fully support                      |
-|                          |                 | calling Win32 API functions.                                   |
+| Windows + Cygwin         |   *untested*    | Seems to work, but more testing is needed.                     |
 +--------------------------+-----------------+----------------------------------------------------------------+
 | Windows Phone            | *not supported* | Planned for WinAppDbg 2.0.                                     |
 +--------------------------+-----------------+----------------------------------------------------------------+
