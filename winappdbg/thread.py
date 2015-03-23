@@ -1949,11 +1949,10 @@ class _ThreadContainer (object):
         if dwProcessId in (0, 4, 8):
             return
 
-##        dead_tids   = set( self.get_thread_ids() ) # XXX triggers a scan
-        dead_tids   = self._get_thread_ids()
-        dwProcessId = self.get_pid()
-        hSnapshot   = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD,
-                                                                 dwProcessId)
+##        dead_tids = set( self.get_thread_ids() ) # XXX triggers a scan
+        dead_tids = self._get_thread_ids()
+        hSnapshot = win32.CreateToolhelp32Snapshot(
+                                        win32.TH32CS_SNAPTHREAD, dwProcessId)
         try:
             te = win32.Thread32First(hSnapshot)
             while te is not None:

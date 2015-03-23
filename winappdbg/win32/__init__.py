@@ -50,7 +50,7 @@ except ImportError:
     ctypes.FUNCFLAG_STDCALL = FUNCFLAG_STDCALL = _FUNCFLAG_STDCALL = 0
 
     # Fix WINFUNCTYPE.
-    _win_functype_cache = {}
+    ctypes._win_functype_cache = {}
     def WINFUNCTYPE(restype, *argtypes, **kw):
         flags = _FUNCFLAG_STDCALL
         if kw.pop("use_errno", False):
@@ -60,13 +60,13 @@ except ImportError:
         if kw:
             raise ValueError("unexpected keyword argument(s) %s" % kw.keys())
         try:
-            return _win_functype_cache[(restype, argtypes, flags)]
+            return ctypes._win_functype_cache[(restype, argtypes, flags)]
         except KeyError:
             class WinFunctionType(ctypes._CFuncPtr):
                 _argtypes_ = argtypes
                 _restype_ = restype
                 _flags_ = flags
-            _win_functype_cache[(restype, argtypes, flags)] = WinFunctionType
+            ctypes._win_functype_cache[(restype, argtypes, flags)] = WinFunctionType
             return WinFunctionType
     if WINFUNCTYPE.__doc__:
         WINFUNCTYPE.__doc__ = ctypes.CFUNCTYPE.__doc__.replace(
