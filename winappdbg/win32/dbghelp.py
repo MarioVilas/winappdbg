@@ -976,6 +976,48 @@ def SymGetSymFromAddr64(hProcess, Address):
 
 #TODO: check for the 'W' version of SymGetSymFromAddr64()
 
+#===============================================================================
+# typedef struct _IMAGEHLP_LINE64 {
+#  DWORD   SizeOfStruct;
+#  PVOID   Key;
+#  DWORD   LineNumber;
+#  PSTR    FileName;
+#  DWORD64 Address;
+# } IMAGEHLP_LINE64, *PIMAGEHLP_LINE64;
+#===============================================================================
+class IMAGEHLP_LINE64 (Structure):
+    _fields_ = [
+        ("SizeOfStruct",    DWORD),
+        ("Key",             PVOID),
+        ("LineNumber",      DWORD),
+        ("FileName",        PSTR),
+        ("Address",         DWORD64),
+    ]
+PIMAGEHLP_LINE64 = POINTER(IMAGEHLP_LINE64)
+
+#===============================================================================
+# BOOL WINAPI SymGetLineFromAddr64(
+#  __in  HANDLE           hProcess,
+#  __in  DWORD64          dwAddr,
+#  __out PDWORD           pdwDisplacement,
+#  __out PIMAGEHLP_LINE64 Line
+# );
+#===============================================================================
+def SymGetLineFromAddr64(hProcess, dwAddr):
+    _SymGetLineFromAddr64 = windll.dbghelp.SymGetLineFromAddr64
+    _SymGetLineFromAddr64.argtypes = [HANDLE, DWORD64, PDWORD, PIMAGEHLP_LINE64]
+    _SymGetLineFromAddr64.restype = bool
+    _SymGetLineFromAddr64.errcheck = RaiseIfZero
+
+    imagehlp_line64 = IMAGEHLP_LINE64()
+    imagehlp_line64.SizeOfStruct = 32 # *don't modify*: sizeof(IMAGEHLP_LINE64) in C.
+
+    pdwDisplacement = DWORD(0)
+    _SymGetLineFromAddr64(hProcess, dwAddr, byref(pdwDisplacement), byref(imagehlp_line64))
+
+    return (pdwDisplacement.value, imagehlp_line64)
+
+#TODO: check for the 'W' version of SymGetLineFromAddr64()
 
 #===============================================================================
 # typedef struct API_VERSION {
