@@ -1439,8 +1439,9 @@ class _Hook_i386 (Hook):
     def _calc_signature(self, signature):
         self._cast_signature_pointers_to_void(signature)
         class Arguments (ctypes.Structure):
-            _fields_ = [ ("arg_%s" % i, signature[i]) \
-                         for i in xrange(len(signature) - 1, -1, -1) ]
+            # pack structures, don't align 64 bit values to 64 bit boundaries
+            _pack_ = ctypes.sizeof(ctypes.c_void_p)
+            _fields_ = [ ("arg_%s" % i, t) for (i, t) in enumerate(signature)]
         return Arguments
 
     def _get_return_address(self, aProcess, aThread):
