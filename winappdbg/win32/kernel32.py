@@ -3163,7 +3163,7 @@ def GetTempPathW():
         raise ctypes.WinError()
     return lpBuffer.value
 
-GetTempPath = GuessStringType(GetTempPathA, GetTempPathW)
+GetTempPath = DefaultStringType(GetTempPathA, GetTempPathW)
 
 # UINT WINAPI GetTempFileName(
 #   __in   LPCTSTR lpPathName,
@@ -3231,7 +3231,41 @@ def GetCurrentDirectoryW():
         raise ctypes.WinError()
     return lpBuffer.value
 
-GetCurrentDirectory = GuessStringType(GetCurrentDirectoryA, GetCurrentDirectoryW)
+GetCurrentDirectory = DefaultStringType(GetCurrentDirectoryA, GetCurrentDirectoryW)
+
+# UINT WINAPI GetSystemDirectory(
+#   _Out_ LPTSTR lpBuffer,
+#   _In_  UINT   uSize
+# );
+def GetSystemDirectoryA():
+    _GetSystemDirectoryA = windll.kernel32.GetSystemDirectoryA
+    _GetSystemDirectoryA.argtypes = [LPSTR, UINT]
+    _GetSystemDirectoryA.restype  = UINT
+
+    nBufferLength = _GetSystemDirectoryA(0, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    nCopied = _GetSystemDirectoryA(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+def GetSystemDirectoryW():
+    _GetSystemDirectoryW = windll.kernel32.GetSystemDirectoryW
+    _GetSystemDirectoryW.argtypes = [LPWSTR, UINT]
+    _GetSystemDirectoryW.restype  = UINT
+
+    nBufferLength = _GetSystemDirectoryW(0, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    nCopied = _GetSystemDirectoryW(nBufferLength, lpBuffer)
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value
+
+GetSystemDirectory = DefaultStringType(GetSystemDirectoryA, GetSystemDirectoryW)
 
 #------------------------------------------------------------------------------
 # Contrl-C handler
