@@ -3355,7 +3355,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if new_mbi.BaseAddress == old_mbi.BaseAddress and \
                                     new_mbi.RegionSize == old_mbi.RegionSize:
                     self.__restore_mbi(hProcess, new_mbi, old_mbi,
-                                       bSkipMappedFiles)
+                                       bSkipMappedFiles, bSkipOnError)
 
                 # If the region doesn't match, restore it page by page.
                 else:
