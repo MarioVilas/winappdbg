@@ -818,7 +818,7 @@ def GetWindowTextW(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(CHAR)
     while 1:
-        lpString = ctypes.create_string_buffer("", nMaxCount)
+        lpString = ctypes.create_unicode_buffer("", nMaxCount)
         nCount = _GetWindowTextW(hWnd, lpString, nMaxCount)
         if nCount == 0:
             raise ctypes.WinError()

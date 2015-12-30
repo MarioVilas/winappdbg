@@ -263,7 +263,13 @@ class GuessStringType(object):
 
             # Use the W version
             fn = self.fn_unicode
+        
+        # If there is only one argument typed int
+        elif len(v_types) == 1 and type(1) in v_types:
 
+            # Use the W version
+            fn = self.fn_unicode
+            
         # If at least one argument is an ANSI string,
         # but there are no Unicode strings...
         elif t_ansi in v_types:
