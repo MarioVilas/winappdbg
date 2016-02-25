@@ -1167,8 +1167,47 @@ GetUserName = DefaultStringType(GetUserNameA, GetUserNameW)
 #   __inout    LPDWORD cchReferencedDomainName,
 #   __out      PSID_NAME_USE peUse
 # );
+def LookupAccountNameA(lpSystemName, lpAccountName):
+    _LookupAccountNameA = windll.advapi32.LookupAccountNameA
+    _LookupAccountNameA.argtypes = [LPSTR, LPSTR, PSID, LPDWORD, LPSTR, LPDWORD, LPDWORD]
+    _LookupAccountNameA.restype  = BOOL
 
-# XXX TO DO
+    cbSid = DWORD(0)
+    cchReferencedDomainName = DWORD(0)
+    peUse = DWORD(0)
+    _LookupAccountNameA(lpSystemName, lpAccountName, None, byref(cbSid), None, byref(cchReferencedDomainName), byref(peUse))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise(ctypes.WinError(error))
+    sid = ctypes.create_string_buffer('', cbSid.value)
+    psid = ctypes.cast(ctypes.pointer(sid), PSID)
+    lpReferencedDomainName = ctypes.create_string_buffer('', cchReferencedDomainName.value + 1)
+    success = _LookupAccountNameA(lpSystemName, lpAccountName, psid, byref(cbSid), lpReferencedDomainName, byref(cchReferencedDomainName), byref(peUse))
+    if not success:
+        raise ctypes.WinError()
+    return psid, lpReferencedDomainName.value, peUse.value
+
+def LookupAccountNameW(lpSystemName, lpAccountName):
+    _LookupAccountNameW = windll.advapi32.LookupAccountNameW
+    _LookupAccountNameW.argtypes = [LPWSTR, LPWSTR, PSID, LPDWORD, LPWSTR, LPDWORD, LPDWORD]
+    _LookupAccountNameW.restype  = BOOL
+
+    cbSid = DWORD(0)
+    cchReferencedDomainName = DWORD(0)
+    peUse = DWORD(0)
+    _LookupAccountNameW(lpSystemName, lpAccountName, None, byref(cbSid), None, byref(cchReferencedDomainName), byref(peUse))
+    error = GetLastError()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise(ctypes.WinError(error))
+    sid = ctypes.create_string_buffer('', cbSid.value)
+    psid = ctypes.cast(ctypes.pointer(sid), PSID)
+    lpReferencedDomainName = ctypes.create_unicode_buffer(u'', cchReferencedDomainName.value + 1)
+    success = _LookupAccountNameW(lpSystemName, lpAccountName, psid, byref(cbSid), lpReferencedDomainName, byref(cchReferencedDomainName), byref(peUse))
+    if not success:
+        raise ctypes.WinError()
+    return psid, lpReferencedDomainName.value, peUse.value
+
+LookupAccountName = GuessStringType(LookupAccountNameA, LookupAccountNameW)
 
 # BOOL WINAPI LookupAccountSid(
 #   __in_opt   LPCTSTR lpSystemName,
@@ -1199,7 +1238,7 @@ def LookupAccountSidA(lpSystemName, lpSid):
     return lpName.value, lpReferencedDomainName.value, peUse.value
 
 def LookupAccountSidW(lpSystemName, lpSid):
-    _LookupAccountSidW = windll.advapi32.LookupAccountSidA
+    _LookupAccountSidW = windll.advapi32.LookupAccountSidW
     _LookupAccountSidW.argtypes = [LPSTR, PSID, LPWSTR, LPDWORD, LPWSTR, LPDWORD, LPDWORD]
     _LookupAccountSidW.restype  = bool
 
@@ -1225,7 +1264,7 @@ LookupAccountSid = GuessStringType(LookupAccountSidA, LookupAccountSidW)
 # );
 def ConvertSidToStringSidA(Sid):
     _ConvertSidToStringSidA = windll.advapi32.ConvertSidToStringSidA
-    _ConvertSidToStringSidA.argtypes = [PSID, LPSTR]
+    _ConvertSidToStringSidA.argtypes = [PSID, POINTER(LPSTR)]
     _ConvertSidToStringSidA.restype  = bool
     _ConvertSidToStringSidA.errcheck = RaiseIfZero
 
@@ -1239,7 +1278,7 @@ def ConvertSidToStringSidA(Sid):
 
 def ConvertSidToStringSidW(Sid):
     _ConvertSidToStringSidW = windll.advapi32.ConvertSidToStringSidW
-    _ConvertSidToStringSidW.argtypes = [PSID, LPWSTR]
+    _ConvertSidToStringSidW.argtypes = [PSID, POINTER(LPWSTR)]
     _ConvertSidToStringSidW.restype  = bool
     _ConvertSidToStringSidW.errcheck = RaiseIfZero
 
