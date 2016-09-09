@@ -8,35 +8,35 @@ This is what you need to know to download, install and begin to use *WinAppDbg*:
 Latest version
 --------------
 
-The latest version is **1.5** (20 Dec 2013). There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
+The latest version is **1.6**. There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
 
 The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version from the `Github repository <https://github.com/MarioVilas/winappdbg>`_.
 
 **Installer packages**
 
-* `winappdbg-1.5.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.5.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.msi/download>`_ - All supported 64-bit Python versions
+* `winappdbg-1.6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win32.msi/download>`_ - All supported 32-bit Python versions
+* `winappdbg-1.6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
 
 **Source code**
 
-* `winappdbg-1.5.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download>`_ - Manual install (setup.py)
+* `winappdbg-1.6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.zip/download>`_ - Manual install (setup.py)
 
-The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.5/reference/>`_, but they're also available for download:
+The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.6/reference/>`_, but they're also available for download:
 
 **Windows Help Files**
 
-* `winappdbg-tutorial-1.5.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5.chm/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5.chm/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.6.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.chm/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.6.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.chm/download>`_ - Complete reference material
 
 **HTML format**
 
-* `winappdbg-tutorial-1.5.tar.bz2  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5.tar.bz2/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5.tar.bz2 <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5.tar.bz2/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.6.tar.bz2  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.tar.bz2/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.6.tar.bz2 <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.tar.bz2/download>`_ - Complete reference material
 
 **PDF format (suitable for printing)**
 
-* `winappdbg-tutorial-1.5.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-tutorial-1.5.pdf/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.5.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-reference-1.5.pdf/download>`_ - Complete reference material
+* `winappdbg-tutorial-1.6.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.pdf/download>`_ - Introduction and tutorials
+* `winappdbg-reference-1.6.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.pdf/download>`_ - Complete reference material
 
 .. _older:
 
@@ -45,6 +45,10 @@ Older versions
 
 Older versions are still available for download as well:
 
++-----------------+-------------------+
+| Version **1.5** | * `Downloads`__   |
+| *(20 Dec 2013)* | * `Online help`__ |
+|                 | * `Tutorial`__    |
 +-----------------+-------------------+
 | Version **1.4** | * `Downloads`__   |
 | *(10 Dec 2010)* | * `Online help`__ |
@@ -62,6 +66,11 @@ Older versions are still available for download as well:
 | Version **1.0** | * `Downloads`__   |
 | *(22 Apr 2009)* | * `Online help`__ |
 +-----------------+-------------------+
+
+.. WinAppDbg 1.5 links
+.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/
+.. __: http://winappdbg.sourceforge.net/doc/v1.5/reference/
+.. __: http://winappdbg.sourceforge.net/doc/v1.5/tutorial/
 
 .. WinAppDbg 1.4 links
 .. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/

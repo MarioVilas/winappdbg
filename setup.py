@@ -68,13 +68,13 @@ metadata = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.5',
+    'version'           : '1.6',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
     'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
     'url'               : 'http://winappdbg.sourceforge.net/',
-    'download_url'      : 'http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/',
+    'download_url'      : 'http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/',
     'platforms'         : ['win32', 'win64'],
     'classifiers'       : [
                         'License :: OSI Approved :: BSD License',

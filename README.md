@@ -27,9 +27,9 @@ Where can I find WinAppDbg?
 Download links
 ==============
 
- * [Windows installer (32 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win32.msi/download)
- * [Windows installer (64 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.win-amd64.msi/download)
- * [Source code](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5.zip/download)
+ * [Windows installer (32 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win32.msi/download)
+ * [Windows installer (64 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win-amd64.msi/download)
+ * [Source code](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.zip/download)
 
 Documentation
 =============
@@ -37,23 +37,23 @@ Documentation
 Online
 ------
 
- * [Tutorial](http://winappdbg.sourceforge.net/doc/v1.5/tutorial)
- * [Reference](http://winappdbg.sourceforge.net/doc/v1.5/reference)
+ * [Tutorial](http://winappdbg.sourceforge.net/doc/v1.6/tutorial)
+ * [Reference](http://winappdbg.sourceforge.net/doc/v1.6/reference)
 
 Windows Help
 ------------
  
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
+ * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.chm/download)
+ * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.chm/download)
 
 HTML format (offline)
 ---------------------
  
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.chm/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.chm/download)
+ * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.chm/download)
+ * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.chm/download)
 
 PDF format (suitable for printing)
 ----------------------------------
  
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-tutorial.pdf/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/winappdbg-1.5-reference.pdf/download)
+ * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.pdf/download)
+ * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.pdf/download)
