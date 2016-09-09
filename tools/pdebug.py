@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Command line debugger using WinAppDbg
-# Copyright (c) 2009-2015, Mario Vilas
+# Copyright (c) 2009-2016, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
