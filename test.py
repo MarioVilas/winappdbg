@@ -32,6 +32,7 @@
 
 import os
 import ntpath
+import warnings
 
 def test(title, fn):
     title = "Testing %s... " % title
@@ -53,7 +54,9 @@ def test_disassembler_load():
     Disassembler(win32.ARCH_AMD64)
 
 def test_sqlalchemy_load():
-    from winappdbg import sql
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        from winappdbg import sql
 
 def test_windbg_version():
     from winappdbg import System, win32

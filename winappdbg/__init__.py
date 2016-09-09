@@ -249,7 +249,12 @@ import win32
 from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 try:
-    from sql import *
+    # We need to ignore all warnings from this module because SQLAlchemy
+    # became really picky in its latest versions regarding what we send it.
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        from sql import *
     __all__.append('CrashDAO')
 except ImportError:
     import warnings
