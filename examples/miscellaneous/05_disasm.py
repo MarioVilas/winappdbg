@@ -43,10 +43,12 @@ if len( argv ) == 1:
     print
     print "Supported disassembler engines:"
     print "-------------------------------"
-    for engine in Disassembler.engines:
+    available = Disassembler.get_available_engines()
+    for engine in Disassembler.get_all_engines():
         print
         print "Name: %s" % engine.name
         print "Description: %s" % engine.desc
+        print "Available: %s" % ("YES" if engine in available else "NO")
         print "Supported architectures: %s" % ", ".join( engine.supported )
 
 # If there are command line arguments...

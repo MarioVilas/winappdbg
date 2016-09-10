@@ -139,7 +139,8 @@ class Engine (object):
         # Return the architecture.
         return arch
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
         """
         Loads the dependencies for this disassembler.
 
@@ -187,7 +188,8 @@ class BeaEngine (Engine):
         win32.ARCH_AMD64,
     ))
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
 
         # Load the BeaEngine ctypes wrapper.
         global BeaEnginePython
@@ -306,7 +308,8 @@ class DistormEngine (Engine):
         win32.ARCH_AMD64,
     ))
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
 
         # Load the distorm bindings.
         global distorm3
@@ -315,6 +318,9 @@ class DistormEngine (Engine):
                 import distorm3
             except ImportError:
                 import distorm as distorm3
+
+    def __init__(self, arch = None):
+        super(DistormEngine, self).__init__(arch)
 
         # Load the decoder function.
         self.__decode = distorm3.Decode
@@ -345,7 +351,8 @@ class PyDasmEngine (Engine):
         win32.ARCH_I386,
     ))
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
 
         # Load the libdasm bindings.
         global pydasm
@@ -411,7 +418,8 @@ class LibdisassembleEngine (Engine):
         win32.ARCH_I386,
     ))
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
 
         # Load the libdisassemble module.
         # Since it doesn't come with an installer or an __init__.py file
@@ -478,12 +486,16 @@ class CapstoneEngine (Engine):
         win32.ARCH_ARM64,
     ))
 
-    def _import_dependencies(self):
+    @classmethod
+    def _import_dependencies(cls):
 
         # Load the Capstone bindings.
         global capstone
         if capstone is None:
             import capstone
+
+    def __init__(self, arch = None):
+        super(CapstoneEngine, self).__init__(arch)
 
         # Load the constants for the requested architecture.
         self.__constants = {
@@ -648,7 +660,7 @@ class Disassembler (object):
         PyDasmEngine,
     )
 
-    # Add the list of supported disassemblers to the docstring.
+    # Add the list of implemented disassembler adaptors to the docstring.
     __doc__ += "\n"
     for e in engines:
         __doc__ += "         - %s - %s (U{%s})\n" % (e.name, e.desc, e.url)
@@ -721,3 +733,40 @@ class Disassembler (object):
             decoder = clazz(arch)
             cls.__decoder[selected] = decoder
         return decoder
+
+    @classmethod
+    def get_all_engines(cls):
+        """
+        Get the full list of available disassembly engines
+        for this version of WinAppDbg.
+
+        To get the disassembly engines that can actually be used, call
+        L{get_supported_engines} instead.
+
+        @rtype:  tuple( Engine )
+        @return: Tuple of Engine objects.
+        """
+        return cls.engines
+
+    @classmethod
+    def get_available_engines(cls):
+        """
+        Get the list of supported disassembly engines on this machine.
+
+        To get the full list of disassembly engines supported by this version
+        of WinAppDbg, call L{get_all_engines} instead.
+
+        @warning: This call will internally load all the required dependencies
+            for all disassembly engines! This is to ensure they are available.
+
+        @rtype:  tuple( Engine )
+        @return: Tuple of Engine objects.
+        """
+        supported = []
+        for e in cls.engines:
+            try:
+                e._import_dependencies()
+                supported.append(e)
+            except Exception:
+                pass
+        return tuple(supported)
