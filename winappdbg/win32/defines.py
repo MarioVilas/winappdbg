@@ -38,6 +38,12 @@ Common definitions.
 import ctypes
 import functools
 
+#==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+#==============================================================================
+
 # Cygwin compatibility.
 try:
     WindowsError
@@ -137,11 +143,7 @@ if WIN32_VERBOSE_MODE:
 
     windll = WinDllHook()
 
-#==============================================================================
-# This is used later on to calculate the list of exported symbols.
-_all = None
-_all = set(vars().keys())
-#==============================================================================
+#------------------------------------------------------------------------------
 
 def RaiseIfZero(result, func = None, arguments = ()):
     """
