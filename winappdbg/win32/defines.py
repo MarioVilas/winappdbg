@@ -68,11 +68,13 @@ POINTER     = ctypes.POINTER
 WINFUNCTYPE = ctypes.WINFUNCTYPE
 windll      = ctypes.windll
 
+# Automatically disable padding of structs and unions on 32 bits.
 class Structure(ctypes.Structure):
-    _pack_ = 1
-
+    if sizeof(ctypes.c_void_p) == 4:
+        _pack_ = 1
 class Union(ctypes.Union):
-    _pack_ = 1
+    if sizeof(ctypes.c_void_p) == 4:
+        _pack_ = 1
 
 # The IronPython implementation of byref() was giving some problems,
 # so it's best to replace it with the slower pointer() function.
