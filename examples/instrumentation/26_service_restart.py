@@ -75,7 +75,10 @@ def restart_service( service ):
 
     # On error, show an error message.
     except WindowsError, e:
-        print str(e)
+        if e.winerror == win32.ERROR_ACCESS_DENIED:
+            print "Access denied! Is this an UAC elevated prompt?"
+        else:
+            print str(e)
 
 
 # Helper function to wait for the service to change its state.
