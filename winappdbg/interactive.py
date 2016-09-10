@@ -49,6 +49,9 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 # TODO document this module with docstrings.
 # TODO command to set a last error breakpoint.
 # TODO command to show available plugins.
+# TODO an option to automatically remove all breakpoints when quitting.
+#      should only work on breakpoints created during the interactive
+#      session, and *not* on any breakpoints set before that!
 
 import win32
 from util import PathOperations
@@ -221,7 +224,9 @@ class ConsoleDebugger (Cmd, EventHandler):
     def destroy_debugger(self, autodetach = True):
         debug = self.stop_using_debugger()
         if debug is not None:
-            if not autodetach:
+            if autodetach:
+                debug.erase_all_breakpoints()
+            else:
                 debug.kill_all(bIgnoreExceptions=True)
                 debug.lastEvent = None
             debug.stop()
