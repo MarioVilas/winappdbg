@@ -280,12 +280,16 @@ class RegistryKey (_RegistryContainer):
             win32.RegDeleteValue(handle, resp[0])
 
     def __str__(self):
-        default = self['']
-        return str(default)
+        try:
+            return str(self[''])
+        except KeyError:
+            return ''
 
     def __unicode__(self):
-        default = self[u'']
-        return unicode(default)
+        try:
+            return str(self[u''])
+        except KeyError:
+            return u''
 
     def __repr__(self):
         return '<Registry key: "%s">' % self._path
