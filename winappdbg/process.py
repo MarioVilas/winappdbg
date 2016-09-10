@@ -4942,7 +4942,7 @@ class _ProcessContainer (object):
             aProcess = None
             msg = "Unknown process ID %d" % dwProcessId
             warnings.warn(msg, RuntimeWarning)
-        if aProcess:
+        if aProcess is not None:
             aProcess.clear()    # remove circular references
 
     # Notify the creation of a new process.
