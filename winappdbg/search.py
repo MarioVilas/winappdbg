@@ -502,7 +502,7 @@ class Search (StaticClass):
         # Do some namespace lookups of symbols we'll be using frequently.
         MEM_COMMIT = win32.MEM_COMMIT
         PAGE_GUARD = win32.PAGE_GUARD
-        page = MemoryAddresses.pageSize
+        pageSize = MemoryAddresses.pageSize
         read = pattern.read
         find = pattern.find
 
@@ -516,11 +516,11 @@ class Search (StaticClass):
         if bufferPages is None:
             try:
                 size = MemoryAddresses.\
-                            align_address_to_page_end(len(pattern)) + page
+                            align_address_to_page_end(len(pattern)) + pageSize
             except NotImplementedError:
                 size = None
         elif bufferPages > 0:
-                size = page * (bufferPages + 1)
+                size = pageSize * (bufferPages + 1)
         else:
                 size = None
 
@@ -534,7 +534,6 @@ class Search (StaticClass):
             buffer     = "" # buffer to hold the memory data
             prev_addr  = 0  # previous memory block address
             last       = 0  # position of the last match
-            delta      = 0  # delta of last read address and start of buffer
             for mbi in memory_map:
 
                 # Skip blocks with no data to search on.
@@ -550,14 +549,13 @@ class Search (StaticClass):
 
                 # If the block is contiguous to the previous block,
                 # coalesce the new data in the buffer.
-                if delta and address == prev_addr:
-                    buffer += read(process, address, page)
+                if address == prev_addr:
+                    buffer += read(process, address, pageSize)
 
                 # If not, clear the buffer and read new data.
                 else:
                     buffer = read(process, address, min(size, block_size))
                     last   = 0
-                    delta  = 0
 
                 # Search for the pattern in this block.
                 while 1:
@@ -565,7 +563,7 @@ class Search (StaticClass):
                     # Yield each match of the pattern in the buffer.
                     pos, length = find(buffer, last)
                     while pos >= last:
-                        match_addr = address + pos - delta
+                        match_addr = address + pos
                         if minAddr <= match_addr < maxAddr:
                             result = pattern.found(
                                             match_addr, length,
@@ -579,23 +577,22 @@ class Search (StaticClass):
                         pos, length = find(buffer, last)
 
                     # Advance to the next page.
-                    address    = address + page
-                    block_size = block_size - page
+                    address    = address + pageSize
+                    block_size = block_size - pageSize
                     prev_addr  = address
 
                     # Fix the position of the last match.
-                    last = last - page
+                    last = last - pageSize
                     if last < 0:
                         last = 0
 
                     # Remove the first page in the buffer.
-                    buffer = buffer[ page : ]
-                    delta  = page
+                    buffer = buffer[ pageSize : ]
 
                     # If we haven't reached the end of the block yet,
                     # read the next page in the block and keep seaching.
                     if address < end:
-                        buffer = buffer + read(process, address, page)
+                        buffer = buffer + read(process, address, pageSize)
 
                     # Otherwise, we're done searching this block.
                     else:
