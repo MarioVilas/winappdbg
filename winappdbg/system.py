@@ -73,7 +73,7 @@ class System (_ProcessContainer):
 
     @group Instrumentation:
         find_window, get_window_at, get_foreground_window,
-        get_desktop_window, get_shell_window
+        get_desktop_window, get_shell_window, get_top_level_windows
 
     @group Debugging:
         load_dbghelp, fix_symbol_store_path,
@@ -213,6 +213,15 @@ class System (_ProcessContainer):
         @raise WindowsError: An error occured while processing this request.
         """
         return Window( win32.GetShellWindow() )
+
+    @staticmethod
+    def get_top_level_windows():
+        """
+        @rtype:  L{Window}
+        @return: Returns the top-level windows in the current desktop.
+        @raise WindowsError: An error occured while processing this request.
+        """
+        return [ Window( hWnd ) for hWnd in win32.EnumWindows() ]
 
 #------------------------------------------------------------------------------
 

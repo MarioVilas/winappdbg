@@ -34,10 +34,10 @@ from winappdbg import System, HexDump
 system = System()
 
 # Enumerate the top-level windows.
-for window in system.get_windows():
+for window in system.get_top_level_windows():
 
     # Minimize the window.
-    if not window.is_minimized():
+    if window.is_visible() and not window.is_minimized():
         window.minimize()
 
     # You could also maximize, restore, show, hide, enable and disable.
