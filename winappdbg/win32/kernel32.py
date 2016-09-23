@@ -3379,12 +3379,12 @@ def WaitForMultipleObjects(handles, bWaitAll = False, dwMilliseconds = INFINITE)
     lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if dwMilliseconds != INFINITE:
-        r = _WaitForMultipleObjects(byref(lpHandles), bool(bWaitAll), dwMilliseconds)
+        r = _WaitForMultipleObjects(nCount, byref(lpHandles), bool(bWaitAll), dwMilliseconds)
         if r == WAIT_FAILED:
             raise ctypes.WinError()
     else:
         while 1:
-            r = _WaitForMultipleObjects(byref(lpHandles), bool(bWaitAll), 100)
+            r = _WaitForMultipleObjects(nCount, byref(lpHandles), bool(bWaitAll), 100)
             if r == WAIT_FAILED:
                 raise ctypes.WinError()
             if r != WAIT_TIMEOUT:
@@ -3409,12 +3409,12 @@ def WaitForMultipleObjectsEx(handles, bWaitAll = False, dwMilliseconds = INFINIT
     lpHandlesType   = HANDLE * nCount
     lpHandles       = lpHandlesType(*handles)
     if dwMilliseconds != INFINITE:
-        r = _WaitForMultipleObjectsEx(byref(lpHandles), bool(bWaitAll), dwMilliseconds, bool(bAlertable))
+        r = _WaitForMultipleObjectsEx(nCount, byref(lpHandles), bool(bWaitAll), dwMilliseconds, bool(bAlertable))
         if r == WAIT_FAILED:
             raise ctypes.WinError()
     else:
         while 1:
-            r = _WaitForMultipleObjectsEx(byref(lpHandles), bool(bWaitAll), 100, bool(bAlertable))
+            r = _WaitForMultipleObjectsEx(nCount, byref(lpHandles), bool(bWaitAll), 100, bool(bAlertable))
             if r == WAIT_FAILED:
                 raise ctypes.WinError()
             if r != WAIT_TIMEOUT:
