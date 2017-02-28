@@ -1697,7 +1697,7 @@ def CreateProcessWithLogonW(lpUsername = None, lpDomain = None, lpPassword = Non
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -1748,7 +1748,7 @@ def CreateProcessWithTokenW(hToken = None, dwLogonFlags = 0, lpApplicationName =
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -1799,7 +1799,7 @@ def CreateProcessAsUserA(hToken = None, lpApplicationName = None, lpCommandLine=
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -1842,7 +1842,7 @@ def CreateProcessAsUserW(hToken = None, lpApplicationName = None, lpCommandLine=
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:

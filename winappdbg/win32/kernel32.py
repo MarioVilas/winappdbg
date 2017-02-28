@@ -3854,7 +3854,7 @@ def CreateProcessA(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_string_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
@@ -3897,7 +3897,7 @@ def CreateProcessW(lpApplicationName, lpCommandLine=None, lpProcessAttributes=No
     if not lpCommandLine:
         lpCommandLine       = None
     else:
-        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine)))
+        lpCommandLine       = ctypes.create_unicode_buffer(lpCommandLine, max(MAX_PATH, len(lpCommandLine) + 1))
     if not lpEnvironment:
         lpEnvironment       = None
     else:
