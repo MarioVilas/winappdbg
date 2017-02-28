@@ -175,13 +175,11 @@ class Engine (object):
 class BeaEngine (Engine):
     """
     Integration with the BeaEngine disassembler by Beatrix.
-
-    @see: U{https://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/}
     """
 
     name = "BeaEngine"
     desc = "BeaEngine disassembler by Beatrix"
-    url  = "https://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/"
+    url  = "https://github.com/BeaEngine/beaengine"
 
     supported = set((
         win32.ARCH_I386,
@@ -295,13 +293,11 @@ class BeaEngine (Engine):
 class DistormEngine (Engine):
     """
     Integration with the diStorm disassembler by Gil Dabah.
-
-    @see: U{https://code.google.com/p/distorm3}
     """
 
     name = "diStorm"
     desc = "diStorm disassembler by Gil Dabah"
-    url  = "https://code.google.com/p/distorm3"
+    url  = "https://github.com/gdabah/distorm"
 
     supported = set((
         win32.ARCH_I386,
@@ -339,13 +335,11 @@ class DistormEngine (Engine):
 class PyDasmEngine (Engine):
     """
     Integration with PyDasm: Python bindings to libdasm.
-
-    @see: U{https://code.google.com/p/libdasm/}
     """
 
     name = "PyDasm"
     desc = "PyDasm: Python bindings to libdasm"
-    url  = "https://code.google.com/p/libdasm/"
+    url  = "https://github.com/alexeevdv/libdasm"
 
     supported = set((
         win32.ARCH_I386,
@@ -406,8 +400,6 @@ class PyDasmEngine (Engine):
 class LibdisassembleEngine (Engine):
     """
     Integration with Immunity libdisassemble.
-
-    @see: U{http://www.immunitysec.com/resources-freesoftware.shtml}
     """
 
     name = "Libdisassemble"
@@ -470,8 +462,6 @@ class LibdisassembleEngine (Engine):
 class CapstoneEngine (Engine):
     """
     Integration with the Capstone disassembler by Nguyen Anh Quynh.
-
-    @see: U{http://www.capstone-engine.org/}
     """
 
     name = "Capstone"

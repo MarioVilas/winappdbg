@@ -10,7 +10,7 @@ Full-text search=Yes
 Language=0x409 English (United States)
 
 [WINDOWS]
-WinAppDbg Reference="WinAppDbg Reference","html\index.html","html\index.html","html\index.html","html\index.html","http://winappdbg.sourceforge.net","Project homepage","http://winappdbg.sourceforge.net/doc","View this help online",0x2421,,0xc304e,,0x11830000,,,1,,,0
+WinAppDbg Reference="WinAppDbg Reference","html\index.html","html\index.html","html\index.html","html\index.html","https://github.com/MarioVilas/winappdbg/","Project homepage","http://winappdbg.readthedocs.io/en/latest/","View this help online",0x2421,,0xc304e,,0x11830000,,,1,,,0
 
 [FILES]
 html\index.html

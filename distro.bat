@@ -3,7 +3,7 @@
 :: ###############################################################################
 :: #                                                                             #
 :: #                          For more information see:                          #
-:: #            http://winappdbg.sourceforge.net/Redistribution.html             #
+:: #        http://winappdbg.readthedocs.io/en/latest/Redistribution.html        #
 :: #                                                                             #
 :: ###############################################################################
 

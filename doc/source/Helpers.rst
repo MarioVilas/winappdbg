@@ -115,13 +115,10 @@ The static class **HexInput** contains a collection of functions to parse input 
     | *is_pattern*          | Determine if the given argument is a valid hexadecimal pattern to be used with *pattern*.                                                                                             |
     +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | *integer_list_file*   | Read a list of integers from a file, assuming a specific file format.                                                                                                                 |
-    |                       | Check the documentation for `HexInput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#integer_list_file>`_ for details. |
     +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | *string_list_file*    | Read a list of strings from a file, assuming a specific file format.                                                                                                                  |
-    |                       | Check the documentation for `HexInput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#string_list_file>`_ for details.   |
     +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | *mixed_list_file*     | Read a list of integers and strings from a file, assuming a specific file format.                                                                                                     |
-    |                       | Check the documentation for `HexInput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#mixed_list_file>`_ for details.     |
     +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. only:: latex
@@ -146,17 +143,11 @@ The static class **HexInput** contains a collection of functions to parse input 
      * **integer_list_file**:
         Read a list of integers from a file, assuming a specific file format.
 
-        Check the documentation for `HexInput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#integer_list_file>`_ for details.
-
      * **string_list_file**:
         Read a list of strings from a file, assuming a specific file format.
 
-        Check the documentation for `HexInput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#string_list_file>`_ for details.
-
      * **mixed_list_file**:
         Read a list of integers and strings from a file, assuming a specific file format.
-
-        Check the documentation for `HexInput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexInput-class.html#mixed_list_file>`_ for details.
 
 Hexadecimal output
 ------------------
@@ -205,13 +196,10 @@ The *HexOutput* class also has file output functions to match those in *HexInput
     | Function              | Description                                                                                                                                                                               |
     +=======================+===========================================================================================================================================================================================+
     | **integer_list_file** | Write a list of integers into a file, assuming a specific file format.                                                                                                                    |
-    |                       | Check the documentation for `HexOutput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#integer_list_file>`_ for details.   |
     +-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | **string_list_file**  | Write a list of strings into a file, assuming a specific file format.                                                                                                                     |
-    |                       | Check the documentation for `HexOutput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#string_list_file>`_ for details.     |
     +-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | **mixed_list_file**   | Write a list of integers and strings into a file, assuming a specific file format.                                                                                                        |
-    |                       | Check the documentation for `HexOutput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#mixed_list_file>`_ for details.       |
     +-----------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. only:: latex
@@ -219,17 +207,11 @@ The *HexOutput* class also has file output functions to match those in *HexInput
      * **integer_list_file**:
         Write a list of integers into a file, assuming a specific file format.
 
-        Check the documentation for `HexOutput.integer_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#integer_list_file>`_ for details.
-
      * **string_list_file**:
         Write a list of strings into a file, assuming a specific file format.
 
-        Check the documentation for `HexOutput.string_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#string_list_file>`_ for details.
-
      * **mixed_list_file**:
         Write a list of integers and strings into a file, assuming a specific file format.
-
-        Check the documentation for `HexOutput.mixed_list_file <http://winappdbg.sourceforge.net/doc/latest/reference/winappdbg.textio.HexOutput-class.html#mixed_list_file>`_ for details.
 
 The *HexDump* class has additional methods for showing hex dumps and binary data to the user in a printable manner:
 

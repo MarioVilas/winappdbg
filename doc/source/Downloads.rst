@@ -8,42 +8,14 @@ This is what you need to know to download, install and begin to use *WinAppDbg*:
 Latest version
 --------------
 
-The latest version is **1.6**. There are different installers depending on your Python version (32 and 64 bits) and the source code can be installer via the setup.py script. All of them work in all supported Windows versions - by 32-bit or 64-bit it means the Python interpreter, not the OS itself.
-
-The Sourceforge project's `download page <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/>`_ contains all versions. You can also get the bleeding-edge version from the `Github repository <https://github.com/MarioVilas/winappdbg>`_.
-
-**Installer packages**
-
-* `winappdbg-1.6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win32.msi/download>`_ - All supported 32-bit Python versions
-* `winappdbg-1.6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
-
-**Source code**
-
-* `winappdbg-1.6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.zip/download>`_ - Manual install (setup.py)
-
-The programming manuals can be consulted `online <http://winappdbg.sourceforge.net/doc/v1.6/reference/>`_, but they're also available for download:
-
-**Windows Help Files**
-
-* `winappdbg-tutorial-1.6.chm  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.chm/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.6.chm <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.chm/download>`_ - Complete reference material
-
-**HTML format**
-
-* `winappdbg-tutorial-1.6.tar.bz2  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.tar.bz2/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.6.tar.bz2 <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.tar.bz2/download>`_ - Complete reference material
-
-**PDF format (suitable for printing)**
-
-* `winappdbg-tutorial-1.6.pdf  <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-tutorial-1.6.pdf/download>`_ - Introduction and tutorials
-* `winappdbg-reference-1.6.pdf <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-reference-1.6.pdf/download>`_ - Complete reference material
+The latest version is **1.6**. The project's `download page <https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v1.6>`_ has this version. You can also get the bleeding-edge version from the `Github repository <https://github.com/MarioVilas/winappdbg>`_.
 
 .. _older:
 
 Older versions
 --------------
 
-Older versions are still available for download as well:
+Older versions are still available for download as well at the old `Sourceforge site <http://winappdbg.sourceforge.net/dist/>`_.
 
 +-----------------+-------------------+
 | Version **1.5** | * `Downloads`__   |
@@ -67,32 +39,6 @@ Older versions are still available for download as well:
 | *(22 Apr 2009)* | * `Online help`__ |
 +-----------------+-------------------+
 
-.. WinAppDbg 1.5 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.5/
-.. __: http://winappdbg.sourceforge.net/doc/v1.5/reference/
-.. __: http://winappdbg.sourceforge.net/doc/v1.5/tutorial/
-
-.. WinAppDbg 1.4 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.4/
-.. __: http://winappdbg.sourceforge.net/doc/v1.4/reference/
-.. __: http://winappdbg.sourceforge.net/doc/v1.4/tutorial/
-
-.. WinAppDbg 1.3 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.3/
-.. __: http://winappdbg.sourceforge.net/doc/v1.3/
-
-.. WinAppDbg 1.2 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.2/
-.. __: http://winappdbg.sourceforge.net/doc/v1.2/
-
-.. WinAppDbg 1.1 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.1/
-.. __: http://winappdbg.sourceforge.net/doc/v1.1/
-
-.. WinAppDbg 1.0 links
-.. __: http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.0/
-.. __: http://winappdbg.sourceforge.net/doc/v1.0/
-
 Dependencies
 ------------
 
@@ -107,34 +53,11 @@ Disassembler
 
 *WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed, but you can also decide which one to use.
 
-* The `diStorm <https://code.google.com/p/distorm/downloads/list>`_ disassembler by Gil Dabah:
-
-  * `Distorm 3.3, 32 bits <https://distorm.googlecode.com/files/distorm3-3.win32.exe>`_ (GPL v3)
-  * `Distorm 3.3, 64 bits <https://distorm.googlecode.com/files/distorm3-3.win-amd64.exe>`_ (GPL v3)
-  * `Distorm 1.7.30, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win32.exe/download>`_ (old version, BSD license)
-  * `Distorm 1.7.30, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/diStorm/diStorm%201.7.30%20for%20Python%202/distorm-1.7.30.win-amd64.exe/download>`_ (old version, BSD license)
-
-* The `BeaEngine <http://www.beaengine.org/>`_ disassembler by BeatriX:
-
-  * `BeaEngine 3.1.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win32.exe/download>`_
-  * `BeaEngine 3.1.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/BeaEngine/BeaEnginePython-3.1.0.win-amd64.exe/download>`_
-
-* The `Capstone <http://capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh:
-
-  * `Capstone 1.0 bindings for Python 2.6 (Windows, 32 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python26-win32.exe>`_
-  * `Capstone 1.0 bindings for Python 2.6 (Windows, 64 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python26-win64.exe>`_
-  * `Capstone 1.0 bindings for Python 2.7 (Windows, 32 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python27-win32.exe>`_
-  * `Capstone 1.0 bindings for Python 2.7 (Windows, 64 bits) <http://capstone-engine.org/download/1.0/capstone-1.0-python27-win64.exe>`_
-
-* The `PyDasm <https://code.google.com/p/libdasm/>`_ Python bindings to libdasm by Ero Carrera:
-
-  * `PyDasm 1.5, 32 and 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/PyDasm/PyDasm-1.5-precompiled.zip/download>`_
-
-* The `Libdisassemble <http://www.immunitysec.com/resources-freesoftware.shtml>`_ module from Immunity:
-
-  * `Libdisassemble 2.0, 32 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win32.msi/download>`_
-  * `Libdisassemble 2.0, 64 bits <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.win-amd64.msi/download>`_
-  * `Libdisassemble 2.0, source install <http://sourceforge.net/projects/winappdbg/files/additional%20packages/Libdisassemble/libdisassemble-2.0.zip/download>`_
+* The `Capstone <http://capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh.
+* The `diStorm <hhttps://github.com/gdabah/distorm>`_ disassembler by Gil Dabah.
+* The `BeaEngine <https://github.com/BeaEngine/beaengine>`_ disassembler by BeatriX.
+* The `PyDasm <https://github.com/alexeevdv/libdasm>`_ Python bindings to libdasm.
+* The `Libdisassemble <http://www.immunitysec.com/resources-freesoftware.shtml>`_ module from Immunity.
 
 Database storage
 ++++++++++++++++
@@ -144,16 +67,14 @@ The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the
 Other goodies
 +++++++++++++
 
-With the Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_, *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download the sources and some old precompiled binaries from the `official site <http://psyco.sourceforge.net/download.html>`_ and newer but unofficial builds from `Voidspace <http://www.voidspace.org.uk/python/modules.shtml#psyco>`_.
+Running WinAppDbg under Python interpreters other than CPython is considered experimental, but you may experience performance gains by using them. Also, in older versions of CPython, with the Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_, *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download the sources and some old precompiled binaries from the `official site <http://psyco.sourceforge.net/download.html>`_ and newer but unofficial builds from `Voidspace <http://www.voidspace.org.uk/python/modules.shtml#psyco>`_.
 
 Also `PyReadline <http://pypi.python.org/pypi/pyreadline>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
 
 Install
 -------
 
-Simply run the **Windows installer** package and follow the wizard.
-
-If you prefer to install directly from the **sources** package, extract it to any temporary folder and run the following command: ::
+You can install directly from the **sources** package, extract it to any temporary folder and run the following command: ::
 
     install.bat
 
@@ -192,7 +113,7 @@ Python 3 support was experimental up to *WinAppDbg 1.4*, and was dropped with *W
 
 While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <https://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
 
-If you find a bug or have a feature suggestion, don't hesitate to send an email to the `winappdbg-users <https://lists.sourceforge.net/lists/listinfo/winappdbg-users>`_ mailing list. Both comments and complaints are welcome! :)
+If you find a bug or have a feature suggestion, don't hesitate to  `open a new issue <https://github.com/MarioVilas/winappdbg/issues>`_. Both comments and complaints are welcome! :)
 
 The following tables show which Python interpreters, operating systems and processor architectures are currently supported. **Full** means all features are fully functional. **Partial** means some features may be broken and/or untested. **Untested** means that though no testing was performed it should probably work. **Experimental** means it's not expected to work and although it might, you can encounter many bugs.
 
@@ -247,6 +168,8 @@ Operating systems
 | Windows 8                |   *untested*    | Probably similar to Windows 7.                                 |
 +--------------------------+-----------------+----------------------------------------------------------------+
 | Windows Server 2012      |   *untested*    | Probably similar to Windows Server 2008 R2.                    |
++--------------------------+-----------------+----------------------------------------------------------------+
+| Windows 10               |   *untested*    | Probably similar to Windows 7.                                 |
 +--------------------------+-----------------+----------------------------------------------------------------+
 | ReactOS                  |   *untested*    | Probably similar to Windows 2000.                              |
 +--------------------------+-----------------+----------------------------------------------------------------+

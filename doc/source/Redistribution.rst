@@ -76,10 +76,6 @@ Building each component
 
   Builds only the source code packages in *zip* and *tar.bz2* format.
 
-.. * **distro portable**
-..
-..   Builds only the portable packages in *zip* and *tar.bz2* format.
-
 * **distro wininst**
 
   Builds only the Windows installer packages (that is, the *exe* and *msi* files) for all supported platforms and architectures.

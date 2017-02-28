@@ -33,9 +33,9 @@ Windows application debugging engine for Python.
 
 by Mario Vilas (mvilas at gmail.com)
 
-Project: U{http://sourceforge.net/projects/winappdbg/}
+Project: U{https://github.com/MarioVilas/winappdbg/}
 
-Web:     U{http://winappdbg.sourceforge.net/}
+Web:     U{http://winappdbg.readthedocs.io/en/latest/}
 
 Blog:    U{http://breakingcode.wordpress.com}
 

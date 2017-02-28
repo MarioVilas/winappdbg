@@ -31,7 +31,7 @@
 """
 Event handling module.
 
-@see: U{http://apps.sourceforge.net/trac/winappdbg/wiki/Debugging}
+@see: U{http://winappdbg.readthedocs.io/en/latest/Debugging.html}
 
 @group Debugging:
     EventHandler, EventSift

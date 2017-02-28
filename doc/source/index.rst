@@ -31,16 +31,9 @@ Current features also include disassembling x86/x64 native code, debugging multi
 
     Some quick links for the impatient:
 
-    * `winappdbg-1.6.win32.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win32.msi/download>`_ - All supported 32-bit Python versions
-    * `winappdbg-1.6.win-amd64.msi <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win-amd64.msi/download>`_ - All supported 64-bit Python versions
-    * `winappdbg-1.6.zip <http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.zip/download>`_ - Manual install (setup.py)
-
-    For more information, online docs and older versions go to the :ref:`downloads page <download>`.
-
-    Reference
-    ---------
-
-    `Click here <http://winappdbg.sourceforge.net/doc/latest/reference/>`_ for a full reference page of all classes and methods in *WinAppDbg*.
+    * `Homepage <https://github.com/MarioVilas/winappdbg/>`_
+    * `Source code <https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v1.6>`_
+    * `Documentation <http://winappdbg.readthedocs.io/en/latest/>`_
 
     Tutorial
     --------

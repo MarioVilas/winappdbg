@@ -12,7 +12,8 @@ hardware and memory). Additionally it has no native code at all, making it
 easier to maintain or modify than other debuggers on Windows.
 
 The intended audience are QA engineers and software security auditors wishing to
-test / fuzz Windows applications with quickly coded Python scripts. Several
+test / fuzz Windows applications with quickly coded Python scripts, as well as malware
+analysts and researchers wishing to instrument and test Windows binaries. Several
 ready to use utilities are shipped and can be used for this purposes.
 
 Current features also include disassembling x86/x64 native code, debugging
@@ -22,38 +23,7 @@ crashes, useful for fuzzing and automated testing.
 Where can I find WinAppDbg?
 ===========================
 
- * [Homepage](http://winappdbg.sourceforge.net/)
+ * [Homepage](https://github.com/MarioVilas/winappdbg/)
+ * [Source code](https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v1.6)
+ * [Documentation](http://winappdbg.readthedocs.io/en/latest/)
 
-Download links
-==============
-
- * [Windows installer (32 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win32.msi/download)
- * [Windows installer (64 bits)](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.win-amd64.msi/download)
- * [Source code](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6.zip/download)
-
-Documentation
-=============
-
-Online
-------
-
- * [Tutorial](http://winappdbg.sourceforge.net/doc/v1.6/tutorial)
- * [Reference](http://winappdbg.sourceforge.net/doc/v1.6/reference)
-
-Windows Help
-------------
- 
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.chm/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.chm/download)
-
-HTML format (offline)
----------------------
- 
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.chm/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.chm/download)
-
-PDF format (suitable for printing)
-----------------------------------
- 
- * [Tutorial](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-tutorial.pdf/download)
- * [Reference](http://sourceforge.net/projects/winappdbg/files/WinAppDbg/1.6/winappdbg-1.6-reference.pdf/download)

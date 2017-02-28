@@ -85,7 +85,7 @@ class LoggingEventHandler(EventHandler):
         Crash collector class. Tipically L{Crash} or a custom subclass of it.
 
         Most users don't ever need to change this.
-        See: U{http://winappdbg.sourceforge.net/Signature.html}
+        See: U{http://winappdbg.readthedocs.io/en/latest/Signature.html}
     """
 
     # Default crash collector is our good old Crash class.
