@@ -685,6 +685,37 @@ def SetLastErrorEx(dwErrCode, dwType = 0):
     _SetLastErrorEx.restype  = None
     _SetLastErrorEx(dwErrCode, dwType)
 
+# HDC GetDC(
+#   __in  HWND hWnd
+# );
+def GetDC(hWnd):
+    _GetDC = windll.user32.GetDC
+    _GetDC.argtypes = [HWND]
+    _GetDC.restype  = HDC
+    _GetDC.errcheck = RaiseIfZero
+    return _GetDC(hWnd)
+
+# HDC GetWindowDC(
+#   __in  HWND hWnd
+# );
+def GetWindowDC(hWnd):
+    _GetWindowDC = windll.user32.GetWindowDC
+    _GetWindowDC.argtypes = [HWND]
+    _GetWindowDC.restype  = HDC
+    _GetWindowDC.errcheck = RaiseIfZero
+    return _GetWindowDC(hWnd)
+
+# int ReleaseDC(
+#   __in  HWND hWnd,
+#   __in  HDC hDC
+# );
+def ReleaseDC(hWnd, hDC):
+    _ReleaseDC = windll.user32.ReleaseDC
+    _ReleaseDC.argtypes = [HWND, HDC]
+    _ReleaseDC.restype  = ctypes.c_int
+    _ReleaseDC.errcheck = RaiseIfZero
+    _ReleaseDC(hWnd, hDC)
+
 # HWND FindWindow(
 #     LPCTSTR lpClassName,
 #     LPCTSTR lpWindowName
