@@ -17,27 +17,36 @@ Older versions
 
 Older versions are still available for download as well at the old `Sourceforge site <http://winappdbg.sourceforge.net/dist/>`_.
 
-+-----------------+-------------------+
-| Version **1.5** | * `Downloads`__   |
-| *(20 Dec 2013)* | * `Online help`__ |
-|                 | * `Tutorial`__    |
-+-----------------+-------------------+
-| Version **1.4** | * `Downloads`__   |
-| *(10 Dec 2010)* | * `Online help`__ |
-|                 | * `Tutorial`__    |
-+-----------------+-------------------+
-| Version **1.3** | * `Downloads`__   |
-| *(12 Feb 2010)* | * `Online help`__ |
-+-----------------+-------------------+
-| Version **1.2** | * `Downloads`__   |
-| *(16 Jun 2009)* | * `Online help`__ |
-+-----------------+-------------------+
-| Version **1.1** | * `Downloads`__   |
-| *(18 May 2009)* | * `Online help`__ |
-+-----------------+-------------------+
-| Version **1.0** | * `Downloads`__   |
-| *(22 Apr 2009)* | * `Online help`__ |
-+-----------------+-------------------+
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.5** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.5.win32.msi>`_     |
+| *(20 Dec 2013)* | * `64-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.5.win-amd64.msi>`_ |
+|                 | * `Tutorial <http://winappdbg.sourceforge.net/dist/winappdbg-1.5-tutorial.pdf>`_          |
+|                 | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-1.5-reference.pdf>`_    |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.5.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.4** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.4.win32.exe>`_     |
+| *(10 Dec 2010)* | * `64-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.4.win-amd64.exe>`_ |
+|                 | * `Tutorial <http://winappdbg.sourceforge.net/dist/winappdbg-tutorial-1.4.pdf>`_          |
+|                 | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-reference-1.4.pdf>`_    |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.4.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.3** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.3.win32.exe>`_     |
+| *(12 Feb 2010)* | * `64-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.3.win-amd64.exe>`_ |
+|                 | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-1.3.pdf>`_              |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.3.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.2** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.2.win32.exe>`_     |
+| *(16 Jun 2009)* | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-1.2.pdf>`_              |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.2.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.1** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.1.win32.exe>`_     |
+| *(18 May 2009)* | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-1.1.pdf>`_              |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.1.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
+| Version **1.0** | * `32-bit installer <http://winappdbg.sourceforge.net/dist/winappdbg-1.0.win32.exe>`_     |
+| *(22 Apr 2009)* | * `Documentation <http://winappdbg.sourceforge.net/dist/winappdbg-1.0.pdf>`_              |
+|                 | * `Source code <http://winappdbg.sourceforge.net/dist/winappdbg-1.0.zip>`_                |
++-----------------+-------------------------------------------------------------------------------------------+
 
 Dependencies
 ------------
