@@ -1437,7 +1437,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                     except CmdError:
                         try:
                             tid = self.input_process(token)
-                            target_pids.add(pid)
+                            target_tids.add(tid)
                         except CmdError:
                             msg = "unknown process or thread (%s)" % token
                             raise CmdError(msg)
