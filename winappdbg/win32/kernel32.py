@@ -4111,7 +4111,7 @@ def GetProcessIdOfThread(hThread):
 # );
 def GetExitCodeProcess(hProcess):
     _GetExitCodeProcess = windll.kernel32.GetExitCodeProcess
-    _GetExitCodeProcess.argtypes = [HANDLE]
+    _GetExitCodeProcess.argtypes = [HANDLE, PDWORD]
     _GetExitCodeProcess.restype  = bool
     _GetExitCodeProcess.errcheck = RaiseIfZero
 
@@ -4125,7 +4125,7 @@ def GetExitCodeProcess(hProcess):
 # );
 def GetExitCodeThread(hThread):
     _GetExitCodeThread = windll.kernel32.GetExitCodeThread
-    _GetExitCodeThread.argtypes = [HANDLE]
+    _GetExitCodeThread.argtypes = [HANDLE, PDWORD]
     _GetExitCodeThread.restype  = bool
     _GetExitCodeThread.errcheck = RaiseIfZero
 
