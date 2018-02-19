@@ -1495,7 +1495,7 @@ class _Hook_amd64 (Hook):
         for i in xrange(len(signature)):
             arg  = signature[i]
             name = "arg_%d" % i
-            stack_sig.insert( 0, (name, arg) )
+            stack_sig.append( (name, arg) )
             if i < 4:
                 if type(arg) in float_types:
                     reg_float_sig.append( (name, arg) )
