@@ -173,7 +173,7 @@ CSIDL_FLAG_MASK                 = 0xff00
 #   HANDLE    hProcess;
 # } SHELLEXECUTEINFO, *LPSHELLEXECUTEINFO;
 
-class SHELLEXECUTEINFO(Structure):
+class SHELLEXECUTEINFOA(Structure):
     _fields_ = [
         ("cbSize",       DWORD),
         ("fMask",        ULONG),
@@ -198,7 +198,33 @@ class SHELLEXECUTEINFO(Structure):
         self.hIcon = hMonitor
     hMonitor = property(__get_hMonitor, __set_hMonitor)
 
-LPSHELLEXECUTEINFO = POINTER(SHELLEXECUTEINFO)
+class SHELLEXECUTEINFOW(Structure):
+    _fields_ = [
+        ("cbSize",       DWORD),
+        ("fMask",        ULONG),
+        ("hwnd",         HWND),
+        ("lpVerb",       LPWSTR),
+        ("lpFile",       LPWSTR),
+        ("lpParameters", LPWSTR),
+        ("lpDirectory",  LPWSTR),
+        ("nShow",        ctypes.c_int),
+        ("hInstApp",     HINSTANCE),
+        ("lpIDList",     LPVOID),
+        ("lpClass",      LPWSTR),
+        ("hkeyClass",    HKEY),
+        ("dwHotKey",     DWORD),
+        ("hIcon",        HANDLE),
+        ("hProcess",     HANDLE),
+    ]
+
+    def __get_hMonitor(self):
+        return self.hIcon
+    def __set_hMonitor(self, hMonitor):
+        self.hIcon = hMonitor
+    hMonitor = property(__get_hMonitor, __set_hMonitor)
+
+LPSHELLEXECUTEINFOA = POINTER(SHELLEXECUTEINFOA)
+LPSHELLEXECUTEINFOW = POINTER(SHELLEXECUTEINFOW)
 
 #--- shell32.dll --------------------------------------------------------------
 
