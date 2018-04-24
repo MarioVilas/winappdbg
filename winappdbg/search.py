@@ -245,7 +245,7 @@ class TextPattern (BytePattern):
         super(TextPattern, self).__init__(pattern)
 
     def read(self, process, address, size):
-        data = super(TextPattern, self).read(address, size)
+        data = super(TextPattern, self).read(process, address, size)
         if not self.caseSensitive:
             if self.isUnicode:
                 try:
