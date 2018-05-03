@@ -2024,6 +2024,35 @@ class PROCESSENTRY32(Structure):
     ]
 LPPROCESSENTRY32 = POINTER(PROCESSENTRY32)
 
+# typedef struct tagPROCESSENTRY32W {
+#    DWORD dwSize;
+#    DWORD cntUsage;
+#    DWORD th32ProcessID;
+#    ULONG_PTR th32DefaultHeapID;
+#    DWORD th32ModuleID;
+#    DWORD cntThreads;
+#    DWORD th32ParentProcessID;
+#    LONG pcPriClassBase;
+#    DWORD dwFlags;
+#    WCHAR szExeFile[MAX_PATH];
+# } PROCESSENTRY32W,  *PPROCESSENTRY32W;
+class PROCESSENTRY32W(Structure):
+    _fields_ = [
+        ('dwSize',              DWORD),
+        ('cntUsage',            DWORD),
+        ('th32ProcessID',       DWORD),
+        ('th32DefaultHeapID',   ULONG_PTR),
+        ('th32ModuleID',        DWORD),
+        ('cntThreads',          DWORD),
+        ('th32ParentProcessID', DWORD),
+        ('pcPriClassBase',      LONG),
+        ('dwFlags',             DWORD),
+        ('szExeFile',           WCHAR * 260),
+    ]
+LPPROCESSENTRY32W = POINTER(PROCESSENTRY32W)
+
+
+
 # typedef struct tagMODULEENTRY32 {
 #   DWORD dwSize;
 #   DWORD th32ModuleID;
