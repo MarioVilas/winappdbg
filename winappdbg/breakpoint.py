@@ -3736,8 +3736,8 @@ class _BreakpointContainer (object):
             couldn't be resolved and the breakpoint was deferred. Deferred
             breakpoints are set when the DLL they point to is loaded.
         """
+        label = address
         if type(address) not in (int, long):
-            label = address
             try:
                 address = self.system.get_process(pid).resolve_label(address)
                 if not address:
