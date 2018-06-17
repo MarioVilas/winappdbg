@@ -570,20 +570,10 @@ class System (_ProcessContainer):
             # For now we'll just fail for other architectures.
             sysdrive = getenv("SystemDrive", "C:")
             if win32.bits == 64:
-                if win32.arch == "i386":
-                    basedir = getenv("ProgramFiles", "%s\\Program Files" % sysdrive)
-                elif win32.arch == "amd64":
-                    basedir = getenv("ProgramFiles(x86)", "%s\\Program Files (x86)" % sysdrive)
-                else:
-                    raise NotImplementedError("Architecture not supported: %s" % win32.arch)
+                basedir = getenv("ProgramFiles(x86)", "%s\\Program Files (x86)" % sysdrive)
             elif win32.bits == 32:
-                if win32.arch == "i386":
-                    basedir = getenv("ProgramFiles", "%s\\Program Files" % sysdrive)
-                elif win32.arch == "amd64":
-                    basedir = getenv(
-                        "ProgramW6432", getenv("ProgramFiles", "%s\\Program Files" % sysdrive))
-                else:
-                    raise NotImplementedError("Architecture not supported: %s" % win32.arch)
+                basedir = getenv(
+                    "ProgramW6432", getenv("ProgramFiles", "%s\\Program Files" % sysdrive))
             else:
                 raise NotImplementedError(
                     "Architecture not supported: %s (%d bits)" % (win32.arch, win32.bits))
