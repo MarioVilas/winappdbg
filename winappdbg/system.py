@@ -430,12 +430,16 @@ class System (_ProcessContainer):
         """
 
         # Get the file version info structure.
-        pBlock = win32.GetFileVersionInfo(filename)
-        pBuffer, dwLen = win32.VerQueryValue(pBlock, "\\")
+        if type(filename) is str:
+            pBlock = win32.GetFileVersionInfoA(filename)
+            pBuffer, dwLen = win32.VerQueryValueA(pBlock, "\\")
+        else:
+            pBlock = win32.GetFileVersionInfoW(filename)
+            pBuffer, dwLen = win32.VerQueryValueW(pBlock, u"\\")
         if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
             raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
-        pVersionInfo = ctypes.cast(pBuffer,
-                                   ctypes.POINTER(win32.VS_FIXEDFILEINFO))
+        pVersionInfo = ctypes.cast(
+            pBuffer, ctypes.POINTER(win32.VS_FIXEDFILEINFO))
         VersionInfo = pVersionInfo.contents
         if VersionInfo.dwSignature != 0xFEEF04BD:
             raise ctypes.WinError(win32.ERROR_BAD_ARGUMENTS)
@@ -492,72 +496,6 @@ class System (_ProcessContainer):
 
 #------------------------------------------------------------------------------
 
-    # Locations for dbghelp.dll.
-    #  Unfortunately, Microsoft started bundling WinDbg with the
-    #  platform SDK, so the install directories may vary across
-    #  versions and platforms.
-    __dbghelp_locations = {
-
-        # Intel 64 bits.
-        win32.ARCH_AMD64: set([
-
-            # WinDbg bundled with the SDK.
-            ntpath.join(
-                getenv("ProgramFiles", "C:\\Program Files"),
-                "Windows Kits",
-                "*",
-                "Debuggers",
-                "x64",
-                "dbghelp.dll"),
-            ntpath.join(
-                getenv("ProgramFiles(x86)", "C:\\Program Files (x86)"),
-                "Windows Kits",
-                "8.0",
-                "Debuggers",
-                "x64",
-                "dbghelp.dll"),
-
-            # Old standalone versions of WinDbg.
-            ntpath.join(
-                getenv("ProgramFiles", "C:\\Program Files"),
-                "Debugging Tools for Windows (x64)",
-                "dbghelp.dll"),
-        ]),
-
-        # Intel 32 bits.
-        win32.ARCH_I386 : set([
-
-            # WinDbg bundled with the SDK.
-            ntpath.join(
-                getenv("ProgramFiles", "C:\\Program Files"),
-                "Windows Kits",
-                "*",
-                "Debuggers",
-                "x86",
-                "dbghelp.dll"),
-            ntpath.join(
-                getenv("ProgramW6432",
-                       getenv("ProgramFiles", "C:\\Program Files")),
-                "Windows Kits",
-                "8.0",
-                "Debuggers",
-                "x86",
-                "dbghelp.dll"),
-
-            # Old standalone versions of WinDbg.
-            ntpath.join(
-                getenv("ProgramFiles", "C:\\Program Files"),
-                "Debugging Tools for Windows (x86)",
-                "dbghelp.dll"),
-
-            # Version shipped with Windows.
-            ntpath.join(
-                getenv("ProgramFiles", "C:\\Program Files"),
-                "Debugging Tools for Windows (x86)",
-                "dbghelp.dll"),
-        ]),
-    }
-
     @classmethod
     def load_dbghelp(cls, pathname = None):
         """
@@ -566,9 +504,12 @@ class System (_ProcessContainer):
         This library is shipped with the Debugging Tools for Windows, and it's
         required to load debug symbols.
 
-        Normally you don't need to call this method, as WinAppDbg already tries
-        to load the latest version automatically - but it may come in handy if
-        the Debugging Tools are installed in a non standard folder.
+        If you don't specify the pathname, this method will try to find the
+        location of the dbghelp.dll library despite Microsoft's efforts to
+        keep us from using it, since they keep moving it around...
+
+        This method can be useful for bundling dbghelp.dll in your scripts, so
+        users won't need to have the Microsoft SDK installed.
 
         Example::
             from winappdbg import Debug
@@ -580,7 +521,7 @@ class System (_ProcessContainer):
                 try:
 
                     # Load a specific dbghelp.dll file
-                    debug.system.load_dbghelp("C:\Some folder\dbghelp.dll")
+                    debug.system.load_dbghelp("C:\Custom install path\dbghelp.dll")
 
                     # Start a new process for debugging
                     debug.execv( argv )
@@ -608,53 +549,137 @@ class System (_ProcessContainer):
         @raise WindowsError: An error occured while processing this request.
         """
 
-        # If an explicit pathname was not given, search for the library.
-        if not pathname:
+        # If a pathname was given, just load the library and return.
+        # Raise an exception on error.
+        if pathname:
+            dbghelp = ctypes.windll.LoadLibrary(pathname)
 
-            # Under WOW64 we'll treat AMD64 as I386.
-            arch = win32.arch
-            if arch == win32.ARCH_AMD64 and win32.bits == 32:
-                arch = win32.ARCH_I386
+        # If no pathname was provided, we try to autodetect the install path for the SDK.
+        else:
 
-            # Check if the architecture is supported.
-            if not arch in cls.__dbghelp_locations:
-                msg = "Architecture %s is not currently supported."
-                raise NotImplementedError(msg  % arch)
+            # This is where we'll keep all the candidate libraries.
+            # There may be more than one, so we'll sort out later which one to load.
+            candidates = []
 
-            # Grab all versions of the library we can find.
-            # Since some of the possible paths are dependent on the exact
-            # version of the Windows SDK, we use wildcards instead.
-            possible = []
-            for pathname in cls.__dbghelp_locations[arch]:
-                if "*" in pathname:
-                    possible.extend(glob.glob(pathname))
+            # We'll try the "Program Files" folders for both 32 and 64 bits.
+            # We need to find the "Program Files" folder for 32 bits.
+            # This changes depending on whether:
+            #   1) We are in a 32 bit machine.
+            #   2) We are in a 64 bit machine, in a 32 bit Python.
+            #   3) We are in a 64 bit machine, in a 64 bit Python.
+            # For now we'll just fail for other architectures.
+            sysdrive = getenv("SystemDrive", "C:")
+            if win32.bits == 64:
+                if win32.arch == "i386":
+                    basedir = getenv("ProgramFiles", "%s\\Program Files" % sysdrive)
+                elif win32.arch == "amd64":
+                    basedir = getenv("ProgramFiles(x86)", "%s\\Program Files (x86)" % sysdrive)
                 else:
-                    possible.append(pathname)
-            found = []
-            for pathname in possible:
-                if ntpath.isfile(pathname):
-                    try:
-                        f_ver, p_ver = cls.get_file_version_info(pathname)[:2]
-                    except WindowsError:
-                        msg = "Failed to parse file version metadata for: %s"
-                        warnings.warn(msg % pathname)
-                    if not f_ver:
-                        f_ver = p_ver
-                    elif p_ver and p_ver > f_ver:
-                        f_ver = p_ver
-                    found.append( (f_ver, pathname) )
-
-            # If we found any, use the newest version.
-            if found:
-                found.sort()
-                pathname = found.pop()[1]
-
-            # If we didn't find any, trust the default DLL search algorithm.
+                    raise NotImplementedError("Architecture not supported: %s" % win32.arch)
+            elif win32.bits == 32:
+                if win32.arch == "i386":
+                    basedir = getenv("ProgramFiles", "%s\\Program Files" % sysdrive)
+                elif win32.arch == "amd64":
+                    basedir = getenv(
+                        "ProgramW6432", getenv("ProgramFiles", "%s\\Program Files" % sysdrive))
+                else:
+                    raise NotImplementedError("Architecture not supported: %s" % win32.arch)
             else:
-                pathname = "dbghelp.dll"
+                raise NotImplementedError(
+                    "Architecture not supported: %s (%d bits)" % (win32.arch, win32.bits))
 
-        # Load the library.
-        dbghelp = ctypes.windll.LoadLibrary(pathname)
+            # Older versions of Windows had dbghelp.dll integrated with the system.
+            # That version never got updated in years, but it's better than nothing.
+            candidates.append(
+                ntpath.join(getenv("WINDIR", "C:\WINDOWS"), "System32", "dbghelp.dll"))
+
+            # Let's try the oldest known location for dbghelp.dll.
+            # Oh, those were the days, when this was the same across all versions.
+            candidates.append(
+                ntpath.join(basedir, "Debugging Tools for Windows (x86)", "dbghelp.dll"))
+
+            # Then the debugger got embedded into the SDK. This path is different for each version.
+            # The format is different too. And they bundled 32 and 64 bits together.
+            # Then on later versions there's also binaries for other, incompatible architectures too???
+            # I gave up on trying to make sense of it, let's just try all combinations to be safe.
+            # (We only support x86 and x64 though. In the future we may have to update this.)
+            # This StackOverflow answer helped me a lot: https://stackoverflow.com/a/24478856
+            if win32.bits == 32:
+                candidates.extend(glob.glob(
+                    ntpath.join(basedir, "Windows Kits", "*", "Debuggers", "x86", "dbghelp.dll")))
+            else:
+                candidates.extend(glob.glob(
+                    ntpath.join(basedir, "Windows Kits", "*", "Debuggers", "x64", "dbghelp.dll")))
+            if win32.bits == 32:
+                candidates.extend(glob.glob(
+                    ntpath.join(
+                        basedir, "Microsoft SDKs", "Windows", "*", "Debuggers", "x86", "dbghelp.dll")))
+            else:
+                candidates.extend(glob.glob(
+                    ntpath.join(
+                        basedir, "Microsoft SDKs", "Windows", "*", "Debuggers", "x64", "dbghelp.dll")))
+            if win32.bits == 32:
+                candidates.extend(glob.glob(
+                    ntpath.join(
+                        basedir, "Microsoft", "Microsoft SDKs", "Windows", "*", "Debuggers", "x86", "dbghelp.dll")))
+            else:
+                candidates.extend(glob.glob(
+                    ntpath.join(
+                        basedir, "Microsoft", "Microsoft SDKs", "Windows", "*", "Debuggers", "x64", "dbghelp.dll")))
+
+            # All of the above only works for the scenario where the SDK was installed globally.
+            # But after who knows what version they also allow installing the SDK on a user's home.
+            # So we need to check the Windows Registry for that.
+            # ...unfortunately the registry keys are just as chaotic and inconsistent as the default paths. :(
+
+            # TODO: I feel too tired and angry to implement this right now. Will do it later. Pinky promise.
+
+            # Now that we have a list of potential locations for dbghelp.dll, let's check them out.
+            # The idea here is 1) test if the file exists, 2) read the metadata, 3) pick the best one.
+
+            # Sort the list and remove duplicates (there shouldn't be any, but why not, it's fast anyway).
+            candidates = sorted(set(candidates))
+
+            # Discard any pathnames where the file cannot be found.
+            candidates = [ x for x in candidates if ntpath.exists(x) ]
+
+            # Get the metadata for each file found. Sort them by version, newer first.
+            by_version = []
+            for pathname in candidates:
+                pBlock = win32.GetFileVersionInfoA(pathname)
+                pBuffer, dwLen = win32.VerQueryValueA(pBlock, "\\")
+                if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
+                    #raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
+                    continue
+                pVersionInfo = ctypes.cast(pBuffer,
+                                        ctypes.POINTER(win32.VS_FIXEDFILEINFO))
+                VersionInfo = pVersionInfo.contents
+                if VersionInfo.dwSignature != 0xFEEF04BD:
+                    #raise ctypes.WinError(win32.ERROR_BAD_ARGUMENTS)
+                    continue
+                FileVersion = (VersionInfo.dwFileVersionMS, VersionInfo.dwFileVersionLS)
+                ProductVersion = (VersionInfo.dwProductVersionMS, VersionInfo.dwProductVersionLS)
+                if FileVersion > ProductVersion:
+                    by_version.append( (FileVersion, pathname) )
+                else:
+                    by_version.append( (ProductVersion, pathname) )
+            by_version.sort()
+            by_version = by_version[::-1]
+
+            # Try loading them all, starting with the newer versions.
+            # Stop once we got one to load successfully.
+            dbghelp = None
+            for _, pathname in by_version:
+                try:
+                    dbghelp = ctypes.windll.LoadLibrary(pathname)
+                    break
+                except Exception:
+                    continue
+
+            # If no library could be loaded, fail with an exception.
+            if dbghelp is None:
+                raise NotImplementedError(
+                    "Could not find a compatible dbghelp.dll in the system. Tried the following: %r" % (candidates,))
 
         # Set it globally as the library to be used.
         ctypes.windll.dbghelp = dbghelp
