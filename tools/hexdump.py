@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hex dumper
-# Copyright (c) 2009-2016, Mario Vilas
+# Copyright (c) 2009-2018, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
