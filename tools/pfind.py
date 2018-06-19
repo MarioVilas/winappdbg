@@ -158,26 +158,7 @@ class HexSearch (StringSearch):
 
 #------------------------------------------------------------------------------
 
-class RegExpSearch (Search):
-
-    name    = "regexp"
-    desc    = "regular expression"
-    showfmt = "Matched regexp #%(count)d at process %(pid)d," \
-              " address %(where)s (%(size)d bytes)"
-
-    def initialize_pattern(self):
-        self.regexp = re.compile(self.pattern)
-
-    def search(self, data):
-        match = self.regexp.search(data, self.end)
-        if match is None:
-            self.update(-1, 0)
-        else:
-            self.update( * match.span() )
-
-#------------------------------------------------------------------------------
-
-class PatternSearch (RegExpSearch):
+class PatternSearch (Search):
     name    = "pattern"
     desc    = "hexadecimal pattern"
     showfmt = "Found pattern #%(count)d at process %(pid)d," \
@@ -185,6 +166,13 @@ class PatternSearch (RegExpSearch):
 
     def initialize_pattern(self):
         self.regexp = re.compile( HexInput.pattern(self.pattern) )
+
+    def search(self, data):
+        match = self.regexp.search(data, self.end)
+        if match is None:
+            self.update(-1, 0)
+        else:
+            self.update( * match.span() )
 
 #==============================================================================
 
@@ -214,8 +202,6 @@ class Main (object):
                           help="where VALUE is hexadecimal data")
         search.add_option("-p", "--pattern", action="append", metavar="VALUE",
                           help="where VALUE is an hexadecimal pattern")
-        search.add_option("-r", "--regexp", action="append", metavar="VALUE",
-                          help="where VALUE is a POSIX regular expression")
         self.parser.add_option_group(search)
 
         # Options to control the search internals
@@ -234,8 +220,6 @@ class Main (object):
                           help="verbose output")
         output.add_option("-q", "--quiet", action="store_false", dest="verbose",
                           help="brief output [default]")
-##        output.add_option("-c", "--color", action="store_true",
-##                          help="Colorful output")
         self.parser.add_option_group(output)
 
         # Default values
@@ -247,7 +231,6 @@ class Main (object):
                    regexp = [],
              memory_pages = 2,
                   verbose = False,
-                    color = False,
             )
 
         # Parse the command line and check for validity
@@ -260,13 +243,8 @@ class Main (object):
         if not self.options.string  and \
            not self.options.istring and \
            not self.options.hexa    and \
-           not self.options.pattern and \
-           not self.options.regexp:
+           not self.options.pattern:
                self.parser.error("at least one search switch must be used")
-
-##        # Disable the --color switch if the output is not a console.
-##        if self.options.color and not Color.can_use_colors():
-##            self.options.color = False
 
     def prepare_input(self):
 
@@ -275,7 +253,6 @@ class Main (object):
         self.build_searchers_list(TextSearch)
         self.build_searchers_list(HexSearch)
         self.build_searchers_list(PatternSearch)
-        self.build_searchers_list(RegExpSearch)
 
         # Build the list of target pids
         self.build_targets_list()
@@ -391,7 +368,6 @@ class Main (object):
         self.search_block_with(self.options.istring, data, address, shift)
         self.search_block_with(self.options.hexa,    data, address, shift)
         self.search_block_with(self.options.pattern, data, address, shift)
-        self.search_block_with(self.options.regexp,  data, address, shift)
 
     def search_block_with(self, searchers_list, data, address, shift):
         for searcher in searchers_list:
