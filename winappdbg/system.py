@@ -561,17 +561,11 @@ class System (_ProcessContainer):
             # There may be more than one, so we'll sort out later which one to load.
             candidates = []
 
-            # We'll try the "Program Files" folders for both 32 and 64 bits.
-            # We need to find the "Program Files" folder for 32 bits.
-            # This changes depending on whether:
-            #   1) We are in a 32 bit machine.
-            #   2) We are in a 64 bit machine, in a 32 bit Python.
-            #   3) We are in a 64 bit machine, in a 64 bit Python.
-            # For now we'll just fail for other architectures.
+            # The Microsoft SDK always seems to be installed in the "Program Files (x86)" folder on
+            # Intel 64 bit machines, and "Program Files" on every other platform.
             sysdrive = getenv("SystemDrive", "C:")
             if win32.arch == win32.ARCH_AMD64:
                 basedir = "%s\\Program Files (x86)" % sysdrive
-                basedir = getenv("ProgramW6432", basedir)
                 basedir = getenv("ProgramFiles(x86)", basedir)
             else:
                 basedir = "%s\\Program Files" % sysdrive
