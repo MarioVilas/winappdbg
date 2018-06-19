@@ -569,19 +569,13 @@ class System (_ProcessContainer):
             #   3) We are in a 64 bit machine, in a 64 bit Python.
             # For now we'll just fail for other architectures.
             sysdrive = getenv("SystemDrive", "C:")
-            if win32.bits == 64:
-                basedir = getenv("ProgramFiles(x86)", "%s\\Program Files (x86)" % sysdrive)
-            elif win32.bits == 32:
-                basedir = getenv(
-                    "ProgramW6432", getenv("ProgramFiles", "%s\\Program Files" % sysdrive))
+            if win32.arch == win32.ARCH_AMD64:
+                basedir = "%s\\Program Files (x86)" % sysdrive
+                basedir = getenv("ProgramW6432", basedir)
+                basedir = getenv("ProgramFiles(x86)", basedir)
             else:
-                raise NotImplementedError(
-                    "Architecture not supported: %s (%d bits)" % (win32.arch, win32.bits))
-
-            # Older versions of Windows had dbghelp.dll integrated with the system.
-            # That version never got updated in years, but it's better than nothing.
-            candidates.append(
-                ntpath.join(getenv("WINDIR", "C:\WINDOWS"), "System32", "dbghelp.dll"))
+                basedir = "%s\\Program Files" % sysdrive
+                basedir = getenv("ProgramFiles", basedir)
 
             # Let's try the oldest known location for dbghelp.dll.
             # Oh, those were the days, when this was the same across all versions.
@@ -666,10 +660,24 @@ class System (_ProcessContainer):
                 except Exception:
                     continue
 
-            # If no library could be loaded, fail with an exception.
+            # If we couldn't load the SDK library, try the system default one.
+            # It's an outdated version generally, but still better than nothing.
+            # Issue a warning to let the user know they should install the SDK.
             if dbghelp is None:
-                raise NotImplementedError(
-                    "Could not find a compatible dbghelp.dll in the system. Tried the following: %r" % (candidates,))
+                pathname = ntpath.join(getenv("WINDIR", "C:\WINDOWS"), "System32", "dbghelp.dll")
+                try:
+                    dbghelp = ctypes.windll.LoadLibrary(pathname)
+                except Exception:
+                    dbghelp = None
+
+                # If no library could be loaded, fail with an exception.
+                if dbghelp is None:
+                    msg = "Could not find a compatible dbghelp.dll in the system. Tried the following: %r"
+                    msg = msg % (candidates + [pathname],)
+                    raise NotImplementedError(msg)
+
+                # If we loaded the system default, issue a warning.
+                warnings.warn("Microsoft SDK not found, using the system default dbghelp.dll.")
 
         # Set it globally as the library to be used.
         ctypes.windll.dbghelp = dbghelp

@@ -60,7 +60,9 @@ def test_sqlalchemy_load():
 
 def test_windbg_version():
     from winappdbg import System, win32
-    dbghelp = System.load_dbghelp()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        dbghelp = System.load_dbghelp()
     if dbghelp is None:
         raise RuntimeError("WinDbg not found")
     pathname = win32.GetModuleFileNameEx(-1, dbghelp._handle)
