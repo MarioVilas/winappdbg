@@ -55,9 +55,8 @@ Blog:    U{http://breakingcode.wordpress.com}
 @group Memory search:
     Search,
     Pattern,
-    BytePattern,
-    TextPattern,
-    RegExpPattern,
+    StringPattern,
+    IStringPattern,
     HexPattern
 
 @group Debug events:
@@ -181,9 +180,8 @@ __all__ =   [
                 # from search import *
                 'Search',
                 'Pattern',
-                'BytePattern',
-                'TextPattern',
-                'RegExpPattern',
+                'StringPattern',
+                'IStringPAttern',
                 'HexPattern',
 
                 # from registry import *

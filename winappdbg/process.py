@@ -52,7 +52,7 @@ from module import Module, _ModuleContainer
 from thread import Thread, _ThreadContainer
 from window import Window
 from search import Search, \
-                   Pattern, BytePattern, TextPattern, RegExpPattern, HexPattern
+                   Pattern, StringPattern, IStringPattern, HexPattern
 from disasm import Disassembler
 
 import re
@@ -135,7 +135,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         poke_dword, poke_qword, poke_pointer
 
     @group Memory search:
-        search, search_bytes, search_hexa, search_text, search_regexp, strings
+        search, search_bytes, search_hexa, search_text
 
     @group Processes snapshot:
         scan, clear, __contains__, __iter__, __len__
@@ -1356,21 +1356,12 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     def search(self, pattern, minAddr = None, maxAddr = None):
         """
-        Search for the given pattern within the process memory.
+        Search for the given string or pattern within the process memory.
 
-        @type  pattern: str, unicode or L{Pattern}
-        @param pattern: Pattern to search for.
-            It may be a byte string, a Unicode string, or an instance of
-            L{Pattern}.
+        @note: This is a more limited version of L{Search.search_process}.
 
-            The following L{Pattern} subclasses are provided by WinAppDbg:
-             - L{BytePattern}
-             - L{TextPattern}
-             - L{RegExpPattern}
-             - L{HexPattern}
-
-            You can also write your own subclass of L{Pattern} for customized
-            searches.
+        @type  pattern: C{str} or L{Pattern}
+        @param pattern: String or hexadecimal pattern to search for.
 
         @type  minAddr: int
         @param minAddr: (Optional) Start the search at this memory address.
@@ -1378,27 +1369,32 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  maxAddr: int
         @param maxAddr: (Optional) Stop the search at this memory address.
 
-        @rtype:  iterator of tuple( int, int, str )
+        @rtype:  iterator of tuple( int, str )
         @return: An iterator of tuples. Each tuple contains the following:
              - The memory address where the pattern was found.
-             - The size of the data that matches the pattern.
              - The data that matches the pattern.
 
         @raise WindowsError: An error occurred when querying or reading the
             process memory.
         """
         if isinstance(pattern, str):
+            if HexInput.is_pattern(pattern):
+                return Search.search_process(
+                    self, [pattern], minAddr, maxAddr)
             return self.search_bytes(pattern, minAddr, maxAddr)
         if isinstance(pattern, unicode):
-            return self.search_bytes(pattern.encode("utf-16le"),
-                                     minAddr, maxAddr)
+            return self.search_bytes(
+                pattern.encode("utf-16le"), minAddr, maxAddr)
         if isinstance(pattern, Pattern):
-            return Search.search_process(self, pattern, minAddr, maxAddr)
+            return Search.search_process(
+                self, [pattern], minAddr, maxAddr)
         raise TypeError("Unknown pattern type: %r" % type(pattern))
 
     def search_bytes(self, bytes, minAddr = None, maxAddr = None):
         """
         Search for the given byte pattern within the process memory.
+
+        @note: This is a more limited version of L{Search.search_process}.
 
         @type  bytes: str
         @param bytes: Bytes to search for.
@@ -1409,16 +1405,16 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  maxAddr: int
         @param maxAddr: (Optional) Stop the search at this memory address.
 
-        @rtype:  iterator of int
-        @return: An iterator of memory addresses where the pattern was found.
+        @rtype:  iterator of tuple( int, str )
+        @return: An iterator of tuples. Each tuple contains the following:
+             - The memory address where the pattern was found.
+             - The text that matches the pattern.
 
         @raise WindowsError: An error occurred when querying or reading the
             process memory.
         """
-        pattern = BytePattern(bytes)
-        matches = Search.search_process(self, pattern, minAddr, maxAddr)
-        for addr, size, data in matches:
-            yield addr
+        pattern = StringPattern(bytes)
+        return Search.search_process(self, [pattern], minAddr, maxAddr)
 
     def search_text(self, text, encoding = "utf-16le",
                                 caseSensitive = False,
@@ -1426,6 +1422,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                                 maxAddr = None):
         """
         Search for the given text within the process memory.
+
+        @note: This is a more limited version of L{Search.search_process}.
 
         @type  text: str or unicode
         @param text: Text to search for.
@@ -1453,62 +1451,18 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: An error occurred when querying or reading the
             process memory.
         """
-        pattern = TextPattern(text, encoding, caseSensitive)
-        matches = Search.search_process(self, pattern, minAddr, maxAddr)
-        for addr, size, data in matches:
-            yield addr, data
-
-    def search_regexp(self, regexp, flags = 0,
-                                    minAddr = None,
-                                    maxAddr = None,
-                                    bufferPages = -1):
-        """
-        Search for the given regular expression within the process memory.
-
-        @type  regexp: str
-        @param regexp: Regular expression string.
-
-        @type  flags: int
-        @param flags: Regular expression flags.
-
-        @type  minAddr: int
-        @param minAddr: (Optional) Start the search at this memory address.
-
-        @type  maxAddr: int
-        @param maxAddr: (Optional) Stop the search at this memory address.
-
-        @type  bufferPages: int
-        @param bufferPages: (Optional) Number of memory pages to buffer when
-            performing the search. Valid values are:
-             - C{0} or C{None}:
-               Automatically determine the required buffer size. May not give
-               complete results for regular expressions that match variable
-               sized strings.
-             - C{> 0}: Set the buffer size, in memory pages.
-             - C{< 0}: Disable buffering entirely. This may give you a little
-               speed gain at the cost of an increased memory usage. If the
-               target process has very large contiguous memory regions it may
-               actually be slower or even fail. It's also the only way to
-               guarantee complete results for regular expressions that match
-               variable sized strings.
-
-        @rtype:  iterator of tuple( int, int, str )
-        @return: An iterator of tuples. Each tuple contains the following:
-             - The memory address where the pattern was found.
-             - The size of the data that matches the pattern.
-             - The data that matches the pattern.
-
-        @raise WindowsError: An error occurred when querying or reading the
-            process memory.
-        """
-        pattern = RegExpPattern(regexp, flags)
-        return Search.search_process(self, pattern,
-                                     minAddr, maxAddr,
-                                     bufferPages)
+        bytes = text.encode(encoding)
+        if caseSensitive:
+            pattern = StringPattern(bytes)
+        else:
+            pattern = IStringPattern(bytes)
+        return Search.search_process(self, [pattern], minAddr, maxAddr)
 
     def search_hexa(self, hexa, minAddr = None, maxAddr = None):
         """
         Search for the given hexadecimal pattern within the process memory.
+
+        @note: This is a more limited version of L{Search.search_process}.
 
         Hex patterns must be in this form::
             "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
@@ -1539,29 +1493,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             process memory.
         """
         pattern = HexPattern(hexa)
-        matches = Search.search_process(self, pattern, minAddr, maxAddr)
-        for addr, size, data in matches:
-            yield addr, data
-
-    def strings(self, minSize = 4, maxSize = 1024):
-        """
-        Extract ASCII strings from the process memory.
-
-        @type  minSize: int
-        @param minSize: (Optional) Minimum size of the strings to search for.
-
-        @type  maxSize: int
-        @param maxSize: (Optional) Maximum size of the strings to search for.
-
-        @rtype:  iterator of tuple(int, int, str)
-        @return: Iterator of strings extracted from the process memory.
-            Each tuple contains the following:
-             - The memory address where the string was found.
-             - The size of the string.
-             - The string.
-        """
-        return Search.extract_ascii_strings(self, minSize = minSize,
-                                                  maxSize = maxSize)
+        return Search.search_process(self, [pattern], minAddr, maxAddr)
 
 #------------------------------------------------------------------------------
 

@@ -35,18 +35,16 @@ Process memory search.
 @group Memory search:
     Search,
     Pattern,
-    BytePattern,
-    TextPattern,
-    RegExpPattern,
+    StringPattern,
+    IStringPattern,
     HexPattern
 """
 
 __all__ =   [
                 'Search',
                 'Pattern',
-                'BytePattern',
-                'TextPattern',
-                'RegExpPattern',
+                'StringPattern',
+                'IStringPattern',
                 'HexPattern',
             ]
 
@@ -64,304 +62,146 @@ except ImportError:
 
 #==============================================================================
 
-class Pattern (object):
+class Pattern(object):
     """
-    Base class for search patterns.
+    Base class to code your own search mechanism.
 
-    The following L{Pattern} subclasses are provided by WinAppDbg:
-     - L{BytePattern}
-     - L{TextPattern}
-     - L{RegExpPattern}
-     - L{HexPattern}
-
-    @see: L{Search.search_process}
+    Normally you only need to reimplement the following methods:
+     - C{__len__}()
+     - C{next_match}().
     """
 
     def __init__(self, pattern):
         """
         Class constructor.
 
-        The only mandatory argument should be the pattern string.
-
-        This method B{MUST} be reimplemented by subclasses of L{Pattern}.
+        @type  pattern: str
+        @param pattern: Pattern string.
+            Its exact meaning and format depends on the subclass.
         """
-        raise NotImplementedError()
+        self.pattern = pattern
+        self.start   = None
+        self.end     = None
+        self.data    = None
+        self.result  = None
+        self.pos     = 0
+
+    def reset(self):
+        """
+        Used internally to reset the internal state of the search engine.
+        Subclasses don't normally need to reimplement this method.
+        """
+        self.start   = None
+        self.end     = None
+        self.data    = None
+        self.result  = None
+        self.pos     = 0
+
+    def shift(self, delta):
+        """
+        Used internally to adjust offsets when doing buffered searches.
+        Subclasses don't normally need to reimplement this method.
+
+        @type  delta: int
+        @param delta: Delta offset.
+        """
+        self.start   = None
+        self.end     = None
+        self.data    = None
+        self.result  = None
+        self.pos     = self.pos - delta
+        if self.pos < 0:
+            self.pos = 0
+
+    def search(self, address, data, overlapping):
+        """
+        Searches for the pattern in the given data buffer.
+        Subclasses don't normally need to reimplement this method.
+
+        @type  address: long
+        @param address: Memory address where the data was read from.
+            Used to calculate the results tuple.
+
+        @type  data: str
+        @param data: Data buffer to search in.
+
+        @type  overlapping: bool
+        @param overlapping: C{True} for overlapped searches,
+            C{False} otherwise.
+        """
+        self.data = data
+        self.start = self.next_match()
+        if self.start < 0:
+            self.reset()
+        else:
+            self.end = self.start + len(self)
+            self.result = (address + self.start, data[ self.start : self.end ])
+            if overlapping:
+                self.pos = self.start + 1
+            else:
+                self.pos = self.end
 
     def __len__(self):
         """
-        Returns the maximum expected length of the strings matched by this
-        pattern. Exact behavior is implementation dependent.
+        @rtype:  int
+        @return: maximum length of a string
+            that can be matched by the pattern.
+        """
+        return len(self.pattern)
 
-        Ideally it should be an exact value, but in some cases it's not
-        possible to calculate so an upper limit should be returned instead.
+    def next_match(self):
+        """
+        This method B{MUST} be reimplemented by subclasses.
+        The data buffer can be found in C{self.data}.
 
-        If that's not possible either an exception must be raised.
-
-        This value will be used to calculate the required buffer size when
-        doing buffered searches.
-
-        This method B{MUST} be reimplemented by subclasses of L{Pattern}.
+        @rtype:  int
+        @return: Position in the buffer where the pattern was found.
         """
         raise NotImplementedError()
-
-    def read(self, process, address, size):
-        """
-        Reads the requested number of bytes from the process memory at the
-        given address.
-
-        Subclasses of L{Pattern} tipically don't need to reimplement this
-        method.
-        """
-        return process.read(address, size)
-
-    def find(self, buffer, pos = None):
-        """
-        Searches for the pattern in the given buffer, optionally starting at
-        the given position within the buffer.
-
-        This method B{MUST} be reimplemented by subclasses of L{Pattern}.
-
-        @type  buffer: str
-        @param buffer: Buffer to search on.
-
-        @type  pos: int
-        @param pos:
-            (Optional) Position within the buffer to start searching from.
-
-        @rtype:  tuple( int, int )
-        @return: Tuple containing the following:
-             - Position within the buffer where a match is found, or C{-1} if
-               no match was found.
-             - Length of the matched data if a match is found, or undefined if
-               no match was found.
-        """
-        raise NotImplementedError()
-
-    def found(self, address, size, data):
-        """
-        This method gets called when a match is found.
-
-        This allows subclasses of L{Pattern} to filter out unwanted results,
-        or modify the results before giving them to the caller of
-        L{Search.search_process}.
-
-        If the return value is C{None} the result is skipped.
-
-        Subclasses of L{Pattern} don't need to reimplement this method unless
-        filtering is needed.
-
-        @type  address: int
-        @param address: The memory address where the pattern was found.
-
-        @type  size: int
-        @param size: The size of the data that matches the pattern.
-
-        @type  data: str
-        @param data: The data that matches the pattern.
-
-        @rtype:  tuple( int, int, str )
-        @return: Tuple containing the following:
-             * The memory address where the pattern was found.
-             * The size of the data that matches the pattern.
-             * The data that matches the pattern.
-        """
-        return (address, size, data)
 
 #------------------------------------------------------------------------------
 
-class BytePattern (Pattern):
+class StringPattern(Pattern):
     """
-    Fixed byte pattern.
-
-    @type pattern: str
-    @ivar pattern: Byte string to search for.
-
-    @type length: int
-    @ivar length: Length of the byte pattern.
+    Pattern matching for static strings (case sensitive).
     """
 
     def __init__(self, pattern):
         """
+        Class constructor.
+
         @type  pattern: str
-        @param pattern: Byte string to search for.
+        @param pattern: Static string to search for, case sensitive.
         """
-        self.pattern = str(pattern)
-        self.length  = len(pattern)
+        super(StringPattern, self).__init__(pattern)
 
-    def __len__(self):
-        """
-        Returns the exact length of the pattern.
-
-        @see: L{Pattern.__len__}
-        """
-        return self.length
-
-    def find(self, buffer, pos = None):
-        return buffer.find(self.pattern, pos), self.length
+    def next_match(self):
+        return self.data.find(self.pattern, self.pos)
 
 #------------------------------------------------------------------------------
 
-# FIXME: case insensitive unicode searches are probably buggy!
-
-class TextPattern (BytePattern):
+class IStringPattern(Pattern):
     """
-    Text pattern.
-
-    @type isUnicode: bool
-    @ivar isUnicode: C{True} if the text to search for is a unicode string,
-        C{False} otherwise.
-
-    @type encoding: str
-    @ivar encoding: Encoding for the text parameter.
-        Only used when the text to search for is a Unicode string.
-        Don't change unless you know what you're doing!
-
-    @type caseSensitive: bool
-    @ivar caseSensitive: C{True} of the search is case sensitive,
-        C{False} otherwise.
+    Pattern matching for static strings (case insensitive).
     """
 
-    def __init__(self, text, encoding = "utf-16le", caseSensitive = False):
+    def __init__(self, pattern):
         """
-        @type  text: str or unicode
-        @param text: Text to search for.
+        Class constructor.
 
-        @type  encoding: str
-        @param encoding: (Optional) Encoding for the text parameter.
-            Only used when the text to search for is a Unicode string.
-            Don't change unless you know what you're doing!
-
-        @type  caseSensitive: bool
-        @param caseSensitive: C{True} of the search is case sensitive,
-            C{False} otherwise.
+        @type  pattern: str
+        @param pattern: Static string to search for, case insensitive.
         """
-        self.isUnicode = isinstance(text, unicode)
-        self.encoding = encoding
-        self.caseSensitive = caseSensitive
-        if not self.caseSensitive:
-            pattern = text.lower()
-        if self.isUnicode:
-            pattern = text.encode(encoding)
-        super(TextPattern, self).__init__(pattern)
+        super(IStringPattern, self).__init__(pattern.lower())
 
-    def read(self, process, address, size):
-        data = super(TextPattern, self).read(process, address, size)
-        if not self.caseSensitive:
-            if self.isUnicode:
-                try:
-                    encoding = self.encoding
-                    text = data.decode(encoding, "replace")
-                    text = text.lower()
-                    new_data = text.encode(encoding, "replace")
-                    if len(data) == len(new_data):
-                        data = new_data
-                    else:
-                        data = data.lower()
-                except Exception:
-                    data = data.lower()
-            else:
-                data = data.lower()
-        return data
-
-    def found(self, address, size, data):
-        if self.isUnicode:
-            try:
-                data = unicode(data, self.encoding)
-            except Exception, e:
-##                traceback.print_exc(e)    # XXX DEBUG
-                return None
-        return (address, size, data)
+    def next_match(self):
+        return self.data.lower().find(self.pattern, self.pos)
 
 #------------------------------------------------------------------------------
 
-class RegExpPattern (Pattern):
+class HexPattern(Pattern):
     """
-    Regular expression pattern.
-
-    @type pattern: str
-    @ivar pattern: Regular expression in text form.
-
-    @type flags: int
-    @ivar flags: Regular expression flags.
-
-    @type regexp: re.compile
-    @ivar regexp: Regular expression in compiled form.
-
-    @type maxLength: int
-    @ivar maxLength:
-        Maximum expected length of the strings matched by this regular
-        expression.
-
-        This value will be used to calculate the required buffer size when
-        doing buffered searches.
-
-        Ideally it should be an exact value, but in some cases it's not
-        possible to calculate so an upper limit should be given instead.
-
-        If that's not possible either, C{None} should be used. That will
-        cause an exception to be raised if this pattern is used in a
-        buffered search.
-    """
-
-    def __init__(self, regexp, flags = 0, maxLength = None):
-        """
-        @type  regexp: str
-        @param regexp: Regular expression string.
-
-        @type  flags: int
-        @param flags: Regular expression flags.
-
-        @type  maxLength: int
-        @param maxLength: Maximum expected length of the strings matched by
-            this regular expression.
-
-            This value will be used to calculate the required buffer size when
-            doing buffered searches.
-
-            Ideally it should be an exact value, but in some cases it's not
-            possible to calculate so an upper limit should be given instead.
-
-            If that's not possible either, C{None} should be used. That will
-            cause an exception to be raised if this pattern is used in a
-            buffered search.
-        """
-        self.pattern   = regexp
-        self.flags     = flags
-        self.regexp    = re.compile(regexp, flags)
-        self.maxLength = maxLength
-
-    def __len__(self):
-        """
-        Returns the maximum expected length of the strings matched by this
-        pattern. This value is taken from the C{maxLength} argument of the
-        constructor if this class.
-
-        Ideally it should be an exact value, but in some cases it's not
-        possible to calculate so an upper limit should be returned instead.
-
-        If that's not possible either an exception must be raised.
-
-        This value will be used to calculate the required buffer size when
-        doing buffered searches.
-        """
-        if self.maxLength is None:
-            raise NotImplementedError()
-        return self.maxLength
-
-    def find(self, buffer, pos = None):
-        if not pos:   # make sure pos is an int
-            pos = 0
-        match = self.regexp.search(buffer, pos)
-        if match:
-            start, end = match.span()
-            return start, end - start
-        return -1, 0
-
-#------------------------------------------------------------------------------
-
-class HexPattern (RegExpPattern):
-    """
-    Hexadecimal pattern.
+    Hexadecimal pattern matching with wildcards.
 
     Hex patterns must be in this form::
         "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
@@ -373,41 +213,41 @@ class HexPattern (RegExpPattern):
     Wildcards are allowed, in the form of a C{?} sign in any hex digit::
         "5? 5? c3"          # pop register / pop register / ret
         "b8 ?? ?? ?? ??"    # mov eax, immediate value
-
-    @type pattern: str
-    @ivar pattern: Hexadecimal pattern.
     """
 
-    def __new__(cls, pattern):
+    def __init__(self, pattern):
         """
-        If the pattern is completely static (no wildcards are present) a
-        L{BytePattern} is created instead. That's because searching for a
-        fixed byte pattern is faster than searching for a regular expression.
+        Class constructor.
+
+        @type  pattern: str
+        @param pattern:
+            Hexadecimal pattern matching with wildcards. 
+
+            Hex patterns must be in this form::
+                "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
+
+            Spaces are optional. Capitalization of hex digits doesn't matter.
+            This is exactly equivalent to the previous example::
+                "68656C6C6F20776F726C64"            # "hello world"
+
+            Wildcards are allowed, in the form of a C{?} sign in any hex digit::
+                "5? 5? c3"          # pop register / pop register / ret
+                "b8 ?? ?? ?? ??"    # mov eax, immediate value
         """
-        if '?' not in pattern:
-            return BytePattern( HexInput.hexadecimal(pattern) )
-        return object.__new__(cls, pattern)
+        super(HexPattern, self).__init__(pattern)
+        if not HexInput.is_pattern(pattern):
+            raise ValueError("Invalid hexadecimal pattern: %r" % pattern)
+        self.length   = HexInput.get_pattern_length(pattern)
+        self.compiled = re.compile( HexInput.pattern(pattern), re.DOTALL )
 
-    def __init__(self, hexa):
-        """
-        Hex patterns must be in this form::
-            "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
+    def __len__(self):
+        return self.length
 
-        Spaces are optional. Capitalization of hex digits doesn't matter.
-        This is exactly equivalent to the previous example::
-            "68656C6C6F20776F726C64"            # "hello world"
-
-        Wildcards are allowed, in the form of a C{?} sign in any hex digit::
-            "5? 5? c3"          # pop register / pop register / ret
-            "b8 ?? ?? ?? ??"    # mov eax, immediate value
-
-        @type  hexa: str
-        @param hexa: Pattern to search for.
-        """
-        maxLength = len([x for x in hexa
-                            if x in "?0123456789ABCDEFabcdef"]) / 2
-        super(HexPattern, self).__init__(HexInput.pattern(hexa),
-                                         maxLength = maxLength)
+    def next_match(self):
+        match = self.compiled.search( self.data[ self.pos : ] )
+        if match is not None:
+            return match.start() + self.pos
+        return -1
 
 #==============================================================================
 
@@ -418,34 +258,28 @@ class Search (StaticClass):
     Do not instance this class! Use its static methods instead.
     """
 
-    # TODO: aligned searches
-    # TODO: method to coalesce search results
-    # TODO: search memory dumps
-    # TODO: search non-ascii C strings
-
-    @staticmethod
-    def search_process(process, pattern, minAddr = None,
-                                         maxAddr = None,
-                                         bufferPages = None,
-                                         overlapping = False):
+    @classmethod
+    def search_process(cls, process, patterns, minAddr = None,
+                                               maxAddr = None,
+                                               bufferPages = None,
+                                               overlapping = True):
         """
-        Search for the given pattern within the process memory.
+        Search for the given string or pattern within the process memory.
 
         @type  process: L{Process}
         @param process: Process to search.
 
-        @type  pattern: L{Pattern}
-        @param pattern: Pattern to search for.
+        @type  patterns: L{list of Pattern}
+        @param patterns: List of strings or wildcard patterns to search for.
             It must be an instance of a subclass of L{Pattern}.
 
             The following L{Pattern} subclasses are provided by WinAppDbg:
-             - L{BytePattern}
-             - L{TextPattern}
-             - L{RegExpPattern}
-             - L{HexPattern}
+             - L{StringPattern} (case sensitive string search)
+             - L{IStringPattern} (case insensitive string search)
+             - L{HexPattern} (hexadecimal pattern with wildcards)
 
-            You can also write your own subclass of L{Pattern} for customized
-            searches.
+            You can also write your own subclass of L{Pattern}
+            for customized searches.
 
         @type  minAddr: int
         @param minAddr: (Optional) Start the search at this memory address.
@@ -456,17 +290,13 @@ class Search (StaticClass):
         @type  bufferPages: int
         @param bufferPages: (Optional) Number of memory pages to buffer when
             performing the search. Valid values are:
-             - C{0} or C{None}:
-               Automatically determine the required buffer size. May not give
-               complete results for regular expressions that match variable
-               sized strings.
-             - C{> 0}: Set the buffer size, in memory pages.
+             - C{0} or C{None}: Automatically determine the required buffer size.
+               This is the default.
+             - C{> 0}: Set the buffer size in memory pages.
              - C{< 0}: Disable buffering entirely. This may give you a little
                speed gain at the cost of an increased memory usage. If the
                target process has very large contiguous memory regions it may
-               actually be slower or even fail. It's also the only way to
-               guarantee complete results for regular expressions that match
-               variable sized strings.
+               actually be slower or even fail.
 
         @type  overlapping: bool
         @param overlapping: C{True} to allow overlapping results, C{False}
@@ -499,162 +329,84 @@ class Search (StaticClass):
             process memory.
         """
 
-        # Do some namespace lookups of symbols we'll be using frequently.
-        MEM_COMMIT = win32.MEM_COMMIT
-        PAGE_GUARD = win32.PAGE_GUARD
-        pageSize = MemoryAddresses.pageSize
-        read = pattern.read
-        find = pattern.find
+        # Quit early if we have no list of patterns.
+        if not patterns:
+            return
 
-        # Calculate the address range.
-        if minAddr is None:
-            minAddr = 0
-        if maxAddr is None:
-            maxAddr = win32.LPVOID(-1).value  # XXX HACK
+        # Reset all patterns.
+        for searcher in patterns:
+            searcher.reset()
 
-        # Calculate the buffer size from the number of pages.
-        if bufferPages is None:
-            try:
-                size = MemoryAddresses.\
-                            align_address_to_page_end(len(pattern)) + pageSize
-            except NotImplementedError:
-                size = None
-        elif bufferPages > 0:
-                size = pageSize * (bufferPages + 1)
-        else:
-                size = None
+        # Get a list of allocated memory regions.
+        memory = list()
+        for mbi in process.get_memory_map(minAddr, maxAddr):
+            if mbi.State == win32.MEM_COMMIT and \
+                                        not mbi.Protect & win32.PAGE_GUARD:
+                memory.append( (mbi.BaseAddress, mbi.RegionSize) )
 
-        # Get the memory map of the process.
-        memory_map = process.iter_memory_map(minAddr, maxAddr)
+        # If default buffer allocation is requested, calculate it.
+        # We want one more page than the minimum required to allocate the
+        # target string to find. Tipically this will be 2 pages, since
+        # most searches will not be looking for strings over 4k.
+        # (We can't do it with 1 page - the target may be between pages!)
+        if bufferPages is None or bufferPages == 0:
+            bufferPages = MemoryAddresses.get_buffer_size_in_pages(
+                0, sorted(map(len, patterns))[-1] + 1)
 
-        # Perform search with buffering enabled.
-        if size:
-
-            # Loop through all memory blocks containing data.
-            buffer     = "" # buffer to hold the memory data
-            prev_addr  = 0  # previous memory block address
-            last       = 0  # position of the last match
-            for mbi in memory_map:
-
-                # Skip blocks with no data to search on.
-                if not mbi.has_content():
+        # If no allocation limit is set,
+        # read entire regions and search on them.
+        if bufferPages <= 0:
+            for (address, size) in memory:
+                try:
+                    data = process.read(address, size)
+                except WindowsError, e:
+                    begin = HexDump.address(address)
+                    end   = HexDump.address(address + size)
+                    msg   = "Error reading %s-%s: %s"
+                    msg   = msg % (begin, end, str(e))
+                    warnings.warn(msg, RuntimeWarning)
                     continue
+                for result in cls._search_block(
+                            process, patterns, data, address, 0, overlapping):
+                    yield result
 
-                # Get the address and size of this block.
-                address    = mbi.BaseAddress    # current address to search on
-                block_size = mbi.RegionSize     # total size of the block
-                if address >= maxAddr:
-                    break
-                end = address + block_size      # end address of the block
-
-                # If the block is contiguous to the previous block,
-                # coalesce the new data in the buffer.
-                if address == prev_addr:
-                    buffer += read(process, address, pageSize)
-
-                # If not, clear the buffer and read new data.
-                else:
-                    buffer = read(process, address, min(size, block_size))
-                    last   = 0
-
-                # Search for the pattern in this block.
-                while 1:
-
-                    # Yield each match of the pattern in the buffer.
-                    pos, length = find(buffer, last)
-                    while pos >= last:
-                        match_addr = address + pos
-                        if minAddr <= match_addr < maxAddr:
-                            result = pattern.found(
-                                            match_addr, length,
-                                            buffer [ pos : pos + length ] )
-                            if result is not None:
-                                yield result
-                        if overlapping:
-                            last = pos + 1
-                        else:
-                            last = pos + length
-                        pos, length = find(buffer, last)
-
-                    # Advance to the next page.
-                    address    = address + pageSize
-                    block_size = block_size - pageSize
-                    prev_addr  = address
-
-                    # Fix the position of the last match.
-                    last = last - pageSize
-                    if last < 0:
-                        last = 0
-
-                    # Remove the first page in the buffer.
-                    buffer = buffer[ pageSize : ]
-
-                    # If we haven't reached the end of the block yet,
-                    # read the next page in the block and keep seaching.
-                    if address < end:
-                        buffer = buffer + read(process, address, pageSize)
-
-                    # Otherwise, we're done searching this block.
-                    else:
-                        break
-
-        # Perform search with buffering disabled.
+        # If an allocation limit is set,
+        # read blocks within regions to search.
         else:
-
-            # Loop through all memory blocks containing data.
-            for mbi in memory_map:
-
-                # Skip blocks with no data to search on.
-                if not mbi.has_content():
-                    continue
-
-                # Get the address and size of this block.
-                address    = mbi.BaseAddress
-                block_size = mbi.RegionSize
-                if address >= maxAddr:
-                    break;
-
-                # Read the whole memory region.
-                buffer = process.read(address, block_size)
-
-                # Search for the pattern in this region.
-                pos, length = find(buffer)
-                last = 0
-                while pos >= last:
-                    match_addr = address + pos
-                    if minAddr <= match_addr < maxAddr:
-                        result = pattern.found(
-                                        match_addr, length,
-                                        buffer [ pos : pos + length ] )
-                        if result is not None:
+            step = MemoryAddresses.pageSize
+            size = step * bufferPages
+            for (address, total_size) in memory:
+                try:
+                    end    = address + total_size
+                    shift  = 0
+                    buffer = process.read(address, min(size, total_size))
+                    while 1:
+                        for result in cls._search_block(
+                                    process, patterns, buffer,
+                                    address, shift, overlapping):
                             yield result
-                    if overlapping:
-                        last = pos + 1
-                    else:
-                        last = pos + length
-                    pos, length = find(buffer, last)
+                        shift   = step
+                        address = address + step
+                        if address >= end:
+                            break
+                        buffer  = buffer[step:]
+                        buffer  = buffer + process.read(address, step)
+                except WindowsError, e:
+                    begin = HexDump.address(address)
+                    end   = HexDump.address(address + total_size)
+                    msg   = "Error reading %s-%s: %s"
+                    msg   = msg % (begin, end, str(e))
+                    warnings.warn(msg, RuntimeWarning)
 
-    @classmethod
-    def extract_ascii_strings(cls, process, minSize = 4, maxSize = 1024):
-        """
-        Extract ASCII strings from the process memory.
-
-        @type  process: L{Process}
-        @param process: Process to search.
-
-        @type  minSize: int
-        @param minSize: (Optional) Minimum size of the strings to search for.
-
-        @type  maxSize: int
-        @param maxSize: (Optional) Maximum size of the strings to search for.
-
-        @rtype:  iterator of tuple(int, int, str)
-        @return: Iterator of strings extracted from the process memory.
-            Each tuple contains the following:
-             - The memory address where the string was found.
-             - The size of the string.
-             - The string.
-        """
-        regexp = r"[\s\w\!\@\#\$\%%\^\&\*\(\)\{\}\[\]\~\`\'\"\:\;\.\,\\\/\-\+\=\_\<\>]{%d,%d}\0" % (minSize, maxSize)
-        pattern = RegExpPattern(regexp, 0, maxSize)
-        return cls.search_process(process, pattern, overlapping = False)
+    @staticmethod
+    def _search_block(process, patterns, data, address, shift, overlapping):
+        for searcher in patterns:
+            if shift == 0:
+                searcher.reset()
+            else:
+                searcher.shift(shift)
+            while 1:
+                searcher.search(address, data, overlapping)
+                if searcher.result is None:
+                    break
+                yield searcher.result

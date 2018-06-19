@@ -189,6 +189,23 @@ class HexInput (StaticClass):
         """
         return re.match(r"^(?:[\?A-Fa-f0-9][\?A-Fa-f0-9]\s*)+$", token)
 
+    @staticmethod
+    def get_pattern_length(token):
+        """
+        Determine the byte length of the given hexadecimal pattern to be
+        used with L{pattern}.
+
+        @type  token: str
+        @param token: String to parse.
+
+        @rtype:  int
+        @return: Length in bytes.
+        """
+        token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
+        if len(token) % 2 != 0:
+            raise ValueError("Missing characters in hex data")
+        return len(token) / 2
+
     @classmethod
     def integer_list_file(cls, filename):
         """
