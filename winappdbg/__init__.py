@@ -181,7 +181,7 @@ __all__ =   [
                 'Search',
                 'Pattern',
                 'StringPattern',
-                'IStringPAttern',
+                'IStringPattern',
                 'HexPattern',
 
                 # from registry import *
