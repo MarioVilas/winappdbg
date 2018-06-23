@@ -346,7 +346,7 @@ class Search (StaticClass):
 
         # If default buffer allocation is requested, calculate it.
         # We want one more page than the minimum required to allocate the
-        # target string to find. Tipically this will be 2 pages, since
+        # target string to find. Typically this will be 2 pages, since
         # most searches will not be looking for strings over 4k.
         # (We can't do it with 1 page - the target may be between pages!)
         if bufferPages is None or bufferPages == 0:

@@ -10,7 +10,7 @@ Console output with colors
 
 The functions from the **Color** static class allow your scripts to write colored text to the console.
 
-Tipically you'll make a call to the **can_use_colors** function to determine if it's possible to write text with colors. This is necessary because color output only works with a real console - if the user has redirected the output to a file or a pipe, trying to use colors will cause an exception to be raised.
+Typically you'll make a call to the **can_use_colors** function to determine if it's possible to write text with colors. This is necessary because color output only works with a real console - if the user has redirected the output to a file or a pipe, trying to use colors will cause an exception to be raised.
 
 The following functions set the console text color:
 
@@ -279,7 +279,7 @@ The *HexDump* class has additional methods for showing hex dumps and binary data
 Dumping code, stack and registers
 ---------------------------------
 
-The **CrashDump** static class has functions tipically used from the event handlers to show debug data like the disassembler output, the register contents or the stack trace. Crash dump objects use this class for text output, and pretty many examples in the :ref:`Debugging <Debugging>` section of the tutorial use functions from here too.
+The **CrashDump** static class has functions typically used from the event handlers to show debug data like the disassembler output, the register contents or the stack trace. Crash dump objects use this class for text output, and pretty many examples in the :ref:`Debugging <Debugging>` section of the tutorial use functions from here too.
 
 All functions return a string with the text to print. Here are the most commonly used ones:
 

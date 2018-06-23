@@ -282,7 +282,7 @@ class Thread (object):
             See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx}
 
         @raise WindowsError: It's not possible to open a handle to the thread
-            with the requested access rights. This tipically happens because
+            with the requested access rights. This typically happens because
             the target thread belongs to system process and the debugger is not
             runnning with administrative rights.
         """
@@ -329,7 +329,7 @@ class Thread (object):
         @return: Handle to the thread.
 
         @raise WindowsError: It's not possible to open a handle to the thread
-            with the requested access rights. This tipically happens because
+            with the requested access rights. This typically happens because
             the target thread belongs to system process and the debugger is not
             runnning with administrative rights.
         """
@@ -1586,7 +1586,7 @@ class Thread (object):
 
         @type  peekStep: int
         @param peekStep: Expected data alignment.
-            Tipically you specify 1 when data alignment is unknown,
+            Typically you specify 1 when data alignment is unknown,
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
 

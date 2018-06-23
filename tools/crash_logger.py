@@ -82,7 +82,7 @@ class LoggingEventHandler(EventHandler):
 
     @type crashCollector: class
     @cvar crashCollector:
-        Crash collector class. Tipically L{Crash} or a custom subclass of it.
+        Crash collector class. Typically L{Crash} or a custom subclass of it.
 
         Most users don't ever need to change this.
         See: U{http://winappdbg.readthedocs.io/en/latest/Signature.html}

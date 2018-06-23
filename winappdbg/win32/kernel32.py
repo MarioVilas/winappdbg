@@ -1138,7 +1138,7 @@ class MemoryBasicInformation (object):
             copy-on-write. This means the pages are writeable, but changes
             are not propagated to disk.
         @note:
-            Tipically data sections in executable images are marked like this.
+            Typically data sections in executable images are marked like this.
         """
         return self.has_content() and bool(self.Protect & self.COPY_ON_WRITE)
 

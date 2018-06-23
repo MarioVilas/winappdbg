@@ -202,7 +202,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms684880(v=vs.85).aspx}
 
         @raise WindowsError: It's not possible to open a handle to the process
-            with the requested access rights. This tipically happens because
+            with the requested access rights. This typically happens because
             the target process is a system process and the debugger is not
             runnning with administrative rights.
         """
@@ -252,7 +252,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @return: Handle to the process.
 
         @raise WindowsError: It's not possible to open a handle to the process
-            with the requested access rights. This tipically happens because
+            with the requested access rights. This typically happens because
             the target process is a system process and the debugger is not
             runnning with administrative rights.
         """
@@ -2374,7 +2374,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @type  peekStep: int
         @param peekStep: Expected data alignment.
-            Tipically you specify 1 when data alignment is unknown,
+            Typically you specify 1 when data alignment is unknown,
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
 
@@ -4339,7 +4339,7 @@ class _ProcessContainer (object):
         Populates the snapshot with running processes and threads,
         and loaded modules.
 
-        Tipically this is the first method called after instantiating a
+        Typically this is the first method called after instantiating a
         L{System} object, as it makes a best effort approach to gathering
         information on running processes.
 
@@ -4389,7 +4389,7 @@ class _ProcessContainer (object):
         """
         Populates the snapshot with running processes and threads.
 
-        Tipically you don't need to call this method directly, if unsure use
+        Typically you don't need to call this method directly, if unsure use
         L{scan} instead.
 
         @note: This method uses the Toolhelp API.
@@ -4466,7 +4466,7 @@ class _ProcessContainer (object):
         """
         Populates the snapshot with loaded modules.
 
-        Tipically you don't need to call this method directly, if unsure use
+        Typically you don't need to call this method directly, if unsure use
         L{scan} instead.
 
         @note: This method uses the Toolhelp API.
@@ -4490,7 +4490,7 @@ class _ProcessContainer (object):
         """
         Populates the snapshot with running processes.
 
-        Tipically you don't need to call this method directly, if unsure use
+        Typically you don't need to call this method directly, if unsure use
         L{scan} instead.
 
         @note: This method uses the Remote Desktop API instead of the Toolhelp
@@ -4575,7 +4575,7 @@ class _ProcessContainer (object):
         Dead processes are removed.
         Threads and modules of living processes are ignored.
 
-        Tipically you don't need to call this method directly, if unsure use
+        Typically you don't need to call this method directly, if unsure use
         L{scan} instead.
 
         @note: This method uses the PSAPI. It may be faster for scanning,
@@ -4606,7 +4606,7 @@ class _ProcessContainer (object):
         """
         Update the filename for each process in the snapshot when possible.
 
-        @note: Tipically you don't need to call this method. It's called
+        @note: Typically you don't need to call this method. It's called
             automatically by L{scan} to get the full pathname for each process
             when possible, since some scan methods only get filenames without
             the path component.
