@@ -42,6 +42,167 @@ _all = None
 _all = set(vars().keys())
 #==============================================================================
 
+#--- version.dll --------------------------------------------------------------
+
+VS_FF_DEBUG         = 0x00000001
+VS_FF_PRERELEASE    = 0x00000002
+VS_FF_PATCHED       = 0x00000004
+VS_FF_PRIVATEBUILD  = 0x00000008
+VS_FF_INFOINFERRED  = 0x00000010
+VS_FF_SPECIALBUILD  = 0x00000020
+
+VOS_UNKNOWN     = 0x00000000
+VOS__WINDOWS16  = 0x00000001
+VOS__PM16       = 0x00000002
+VOS__PM32       = 0x00000003
+VOS__WINDOWS32  = 0x00000004
+VOS_DOS         = 0x00010000
+VOS_OS216       = 0x00020000
+VOS_OS232       = 0x00030000
+VOS_NT          = 0x00040000
+
+VOS_DOS_WINDOWS16   = 0x00010001
+VOS_DOS_WINDOWS32   = 0x00010004
+VOS_NT_WINDOWS32    = 0x00040004
+VOS_OS216_PM16      = 0x00020002
+VOS_OS232_PM32      = 0x00030003
+
+VFT_UNKNOWN     = 0x00000000
+VFT_APP         = 0x00000001
+VFT_DLL         = 0x00000002
+VFT_DRV         = 0x00000003
+VFT_FONT        = 0x00000004
+VFT_VXD         = 0x00000005
+VFT_RESERVED    = 0x00000006   # undocumented
+VFT_STATIC_LIB  = 0x00000007
+
+VFT2_UNKNOWN                = 0x00000000
+
+VFT2_DRV_PRINTER            = 0x00000001
+VFT2_DRV_KEYBOARD           = 0x00000002
+VFT2_DRV_LANGUAGE           = 0x00000003
+VFT2_DRV_DISPLAY            = 0x00000004
+VFT2_DRV_MOUSE              = 0x00000005
+VFT2_DRV_NETWORK            = 0x00000006
+VFT2_DRV_SYSTEM             = 0x00000007
+VFT2_DRV_INSTALLABLE        = 0x00000008
+VFT2_DRV_SOUND              = 0x00000009
+VFT2_DRV_COMM               = 0x0000000A
+VFT2_DRV_RESERVED           = 0x0000000B    # undocumented
+VFT2_DRV_VERSIONED_PRINTER  = 0x0000000C
+
+VFT2_FONT_RASTER            = 0x00000001
+VFT2_FONT_VECTOR            = 0x00000002
+VFT2_FONT_TRUETYPE          = 0x00000003
+
+# typedef struct tagVS_FIXEDFILEINFO {
+#   DWORD dwSignature;
+#   DWORD dwStrucVersion;
+#   DWORD dwFileVersionMS;
+#   DWORD dwFileVersionLS;
+#   DWORD dwProductVersionMS;
+#   DWORD dwProductVersionLS;
+#   DWORD dwFileFlagsMask;
+#   DWORD dwFileFlags;
+#   DWORD dwFileOS;
+#   DWORD dwFileType;
+#   DWORD dwFileSubtype;
+#   DWORD dwFileDateMS;
+#   DWORD dwFileDateLS;
+# } VS_FIXEDFILEINFO;
+class VS_FIXEDFILEINFO(Structure):
+    _fields_ = [
+        ("dwSignature",         DWORD),
+        ("dwStrucVersion",      DWORD),
+        ("dwFileVersionMS",     DWORD),
+        ("dwFileVersionLS",     DWORD),
+        ("dwProductVersionMS",  DWORD),
+        ("dwProductVersionLS",  DWORD),
+        ("dwFileFlagsMask",     DWORD),
+        ("dwFileFlags",         DWORD),
+        ("dwFileOS",            DWORD),
+        ("dwFileType",          DWORD),
+        ("dwFileSubtype",       DWORD),
+        ("dwFileDateMS",        DWORD),
+        ("dwFileDateLS",        DWORD),
+]
+PVS_FIXEDFILEINFO = POINTER(VS_FIXEDFILEINFO)
+LPVS_FIXEDFILEINFO = PVS_FIXEDFILEINFO
+
+# BOOL WINAPI GetFileVersionInfo(
+#   _In_        LPCTSTR lptstrFilename,
+#   _Reserved_  DWORD dwHandle,
+#   _In_        DWORD dwLen,
+#   _Out_       LPVOID lpData
+# );
+# DWORD WINAPI GetFileVersionInfoSize(
+#   _In_       LPCTSTR lptstrFilename,
+#   _Out_opt_  LPDWORD lpdwHandle
+# );
+def GetFileVersionInfoA(lptstrFilename):
+    _GetFileVersionInfoA = windll.version.GetFileVersionInfoA
+    _GetFileVersionInfoA.argtypes = [LPSTR, DWORD, DWORD, LPVOID]
+    _GetFileVersionInfoA.restype  = bool
+    _GetFileVersionInfoA.errcheck = RaiseIfZero
+
+    _GetFileVersionInfoSizeA = windll.version.GetFileVersionInfoSizeA
+    _GetFileVersionInfoSizeA.argtypes = [LPSTR, LPVOID]
+    _GetFileVersionInfoSizeA.restype  = DWORD
+    _GetFileVersionInfoSizeA.errcheck = RaiseIfZero
+
+    dwLen = _GetFileVersionInfoSizeA(lptstrFilename, None)
+    lpData = ctypes.create_string_buffer(dwLen)
+    _GetFileVersionInfoA(lptstrFilename, 0, dwLen, byref(lpData))
+    return lpData
+
+def GetFileVersionInfoW(lptstrFilename):
+    _GetFileVersionInfoW = windll.version.GetFileVersionInfoW
+    _GetFileVersionInfoW.argtypes = [LPWSTR, DWORD, DWORD, LPVOID]
+    _GetFileVersionInfoW.restype  = bool
+    _GetFileVersionInfoW.errcheck = RaiseIfZero
+
+    _GetFileVersionInfoSizeW = windll.version.GetFileVersionInfoSizeW
+    _GetFileVersionInfoSizeW.argtypes = [LPWSTR, LPVOID]
+    _GetFileVersionInfoSizeW.restype  = DWORD
+    _GetFileVersionInfoSizeW.errcheck = RaiseIfZero
+
+    dwLen = _GetFileVersionInfoSizeW(lptstrFilename, None)
+    lpData = ctypes.create_string_buffer(dwLen)  # not a string!
+    _GetFileVersionInfoW(lptstrFilename, 0, dwLen, byref(lpData))
+    return lpData
+
+GetFileVersionInfo = GuessStringType(GetFileVersionInfoA, GetFileVersionInfoW)
+
+# BOOL WINAPI VerQueryValue(
+#   _In_   LPCVOID pBlock,
+#   _In_   LPCTSTR lpSubBlock,
+#   _Out_  LPVOID *lplpBuffer,
+#   _Out_  PUINT puLen
+# );
+def VerQueryValueA(pBlock, lpSubBlock):
+    _VerQueryValueA = windll.version.VerQueryValueA
+    _VerQueryValueA.argtypes = [LPVOID, LPSTR, LPVOID, POINTER(UINT)]
+    _VerQueryValueA.restype  = bool
+    _VerQueryValueA.errcheck = RaiseIfZero
+
+    lpBuffer = LPVOID(0)
+    uLen = UINT(0)
+    _VerQueryValueA(pBlock, lpSubBlock, byref(lpBuffer), byref(uLen))
+    return lpBuffer, uLen.value
+
+def VerQueryValueW(pBlock, lpSubBlock):
+    _VerQueryValueW = windll.version.VerQueryValueW
+    _VerQueryValueW.argtypes = [LPVOID, LPWSTR, LPVOID, POINTER(UINT)]
+    _VerQueryValueW.restype  = bool
+    _VerQueryValueW.errcheck = RaiseIfZero
+
+    lpBuffer = LPVOID(0)
+    uLen = UINT(0)
+    _VerQueryValueW(pBlock, lpSubBlock, byref(lpBuffer), byref(uLen))
+    return lpBuffer, uLen.value
+
+VerQueryValue = GuessStringType(VerQueryValueA, VerQueryValueW)
+
 #--- NTDDI version ------------------------------------------------------------
 
 NTDDI_WIN8      = 0x06020000
@@ -576,6 +737,100 @@ def VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask):
     _VerSetConditionMask.restype  = ULONGLONG
     return _VerSetConditionMask(dwlConditionMask, dwTypeBitMask, dwConditionMask)
 
+# HMODULE WINAPI GetModuleHandle(
+#   _In_opt_ LPCTSTR lpModuleName
+# );
+def GetModuleHandleA(lpModuleName = None):
+    _GetModuleHandleA = windll.kernel32.GetModuleHandleA
+    _GetModuleHandleA.argtypes = [LPSTR]
+    _GetModuleHandleA.restype  = HMODULE
+    return _GetModuleHandleA(lpModuleName)
+
+def GetModuleHandleW(lpModuleName = None):
+    _GetModuleHandleW = windll.kernel32.GetModuleHandleW
+    _GetModuleHandleW.argtypes = [LPWSTR]
+    _GetModuleHandleW.restype  = HMODULE
+    return _GetModuleHandleW(lpModuleName)
+
+GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
+
+# DWORD WINAPI GetModuleFileName(
+#   _In_opt_ HMODULE hModule,
+#   _Out_    LPTSTR  lpFilename,
+#   _In_     DWORD   nSize
+# );
+def GetModuleFileNameA(hModule = None):
+    _GetModuleFileNameA = ctypes.windll.kernel32.GetModuleFileNameA
+    _GetModuleFileNameA.argtypes = [HMODULE, LPSTR, DWORD]
+    _GetModuleFileNameA.restype = DWORD
+
+    nSize = MAX_PATH
+    while 1:
+        lpFilename = ctypes.create_string_buffer("", nSize)
+        nCopied = _GetModuleFileNameA(hModule, lpFilename, nSize)
+        if nCopied == 0:
+            raise ctypes.WinError()
+        if nCopied < (nSize - 1):
+            break
+        nSize = nSize + MAX_PATH
+    return lpFilename.value
+
+def GetModuleFileNameW(hProcess, hModule = None):
+    _GetModuleFileNameW = ctypes.windll.kernel32.GetModuleFileNameW
+    _GetModuleFileNameW.argtypes = [HMODULE, LPWSTR, DWORD]
+    _GetModuleFileNameW.restype = DWORD
+
+    nSize = MAX_PATH
+    while 1:
+        lpFilename = ctypes.create_unicode_buffer(u"", nSize)
+        nCopied = _GetModuleFileNameW(hModule, lpFilename, nSize)
+        if nCopied == 0:
+            raise ctypes.WinError()
+        if nCopied < (nSize - 1):
+            break
+        nSize = nSize + MAX_PATH
+    return lpFilename.value
+
+GetModuleFileName = GuessStringType(GetModuleFileNameA, GetModuleFileNameW)
+
+# DWORD GetFullPathName(
+#   LPCTSTR lpFileName,
+#   DWORD nBufferLength,
+#   LPTSTR lpBuffer,
+#   LPTSTR* lpFilePart
+# );
+def GetFullPathNameA(lpFileName):
+    _GetFullPathNameA = windll.kernel32.GetFullPathNameA
+    _GetFullPathNameA.argtypes = [LPSTR, DWORD, LPSTR, POINTER(LPSTR)]
+    _GetFullPathNameA.restype  = DWORD
+
+    nBufferLength = _GetFullPathNameA(lpFileName, 0, None, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer   = ctypes.create_string_buffer('', nBufferLength + 1)
+    lpFilePart = LPSTR()
+    nCopied = _GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value, lpFilePart.value
+
+def GetFullPathNameW(lpFileName):
+    _GetFullPathNameW = windll.kernel32.GetFullPathNameW
+    _GetFullPathNameW.argtypes = [LPWSTR, DWORD, LPWSTR, POINTER(LPWSTR)]
+    _GetFullPathNameW.restype  = DWORD
+
+    nBufferLength = _GetFullPathNameW(lpFileName, 0, None, None)
+    if nBufferLength <= 0:
+        raise ctypes.WinError()
+    lpBuffer   = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
+    lpFilePart = LPWSTR()
+    nCopied = _GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
+    if nCopied > nBufferLength or nCopied == 0:
+        raise ctypes.WinError()
+    return lpBuffer.value, lpFilePart.value
+
+GetFullPathName = GuessStringType(GetFullPathNameA, GetFullPathNameW)
+
 #--- get_bits, get_arch and get_os --------------------------------------------
 
 ARCH_UNKNOWN     = "unknown"
@@ -621,43 +876,69 @@ _arch_map = {
     PROCESSOR_ARCHITECTURE_SPARC          : ARCH_SPARC,
 }
 
-OS_UNKNOWN   = "Unknown"
-OS_NT        = "Windows NT"
-OS_W2K       = "Windows 2000"
-OS_XP        = "Windows XP"
-OS_XP_64     = "Windows XP (64 bits)"
-OS_W2K3      = "Windows 2003"
-OS_W2K3_64   = "Windows 2003 (64 bits)"
-OS_W2K3R2    = "Windows 2003 R2"
-OS_W2K3R2_64 = "Windows 2003 R2 (64 bits)"
-OS_W2K8      = "Windows 2008"
-OS_W2K8_64   = "Windows 2008 (64 bits)"
-OS_W2K8R2    = "Windows 2008 R2"
-OS_W2K8R2_64 = "Windows 2008 R2 (64 bits)"
-OS_VISTA     = "Windows Vista"
-OS_VISTA_64  = "Windows Vista (64 bits)"
-OS_W7        = "Windows 7"
-OS_W7_64     = "Windows 7 (64 bits)"
+OS_UNKNOWN    = "Unknown"
+
+OS_NT         = "Windows NT"
+OS_W2K        = "Windows 2000"
+OS_XP         = "Windows XP"
+OS_XP_64      = "Windows XP (64 bits)"
+OS_VISTA      = "Windows Vista"
+OS_VISTA_64   = "Windows Vista (64 bits)"
+OS_W7         = "Windows 7"
+OS_W7_64      = "Windows 7 (64 bits)"
+OS_W8         = "Windows 8"
+OS_W8_64      = "Windows 8 (64 bits)"
+OS_W81        = "Windows 8.1"
+OS_W81_64     = "Windows 8.1 (64 bits)"
+OS_W10        = "Windows 10"
+OS_W10_64     = "Windows 10 (64 bits)"
+
+OS_W2K3       = "Windows Server 2003"
+OS_W2K3_64    = "Windows Server 2003 (64 bits)"
+OS_W2K3R2     = "Windows Server 2003 R2"
+OS_W2K3R2_64  = "Windows Server 2003 R2 (64 bits)"
+OS_W2K8       = "Windows Server 2008"
+OS_W2K8_64    = "Windows Server 2008 (64 bits)"
+OS_W2K8R2     = "Windows Server 2008 R2"
+OS_W2K8R2_64  = "Windows Server 2008 R2 (64 bits)"
+OS_W2K12      = "Windows Server 2012"
+OS_W2K12_64   = "Windows Server 2012 (64 bits)"
+OS_W2K12R2    = "Windows Server 2012 R2"
+OS_W2K12R2_64 = "Windows Server 2012 R2 (64 bits)"
+OS_W2K16      = "Windows Server 2016"
+OS_W2K16_64   = "Windows Server 2016 (64 bits)"
 
 OS_SEVEN    = OS_W7
 OS_SEVEN_64 = OS_W7_64
 
-OS_WINDOWS_NT         = OS_NT
-OS_WINDOWS_2000       = OS_W2K
-OS_WINDOWS_XP         = OS_XP
-OS_WINDOWS_XP_64      = OS_XP_64
-OS_WINDOWS_2003       = OS_W2K3
-OS_WINDOWS_2003_64    = OS_W2K3_64
-OS_WINDOWS_2003_R2    = OS_W2K3R2
-OS_WINDOWS_2003_R2_64 = OS_W2K3R2_64
-OS_WINDOWS_2008       = OS_W2K8
-OS_WINDOWS_2008_64    = OS_W2K8_64
-OS_WINDOWS_2008_R2    = OS_W2K8R2
-OS_WINDOWS_2008_R2_64 = OS_W2K8R2_64
-OS_WINDOWS_VISTA      = OS_VISTA
-OS_WINDOWS_VISTA_64   = OS_VISTA_64
-OS_WINDOWS_SEVEN      = OS_W7
-OS_WINDOWS_SEVEN_64   = OS_W7_64
+OS_WINDOWS_NT           = OS_NT
+OS_WINDOWS_2000         = OS_W2K
+OS_WINDOWS_XP           = OS_XP
+OS_WINDOWS_XP_64        = OS_XP_64
+OS_WINDOWS_VISTA        = OS_VISTA
+OS_WINDOWS_VISTA_64     = OS_VISTA_64
+OS_WINDOWS_SEVEN        = OS_W7
+OS_WINDOWS_SEVEN_64     = OS_W7_64
+OS_WINDOWS_EIGHT        = OS_W8
+OS_WINDOWS_EIGHT_64     = OS_W8_64
+OS_WINDOWS_EIGHT_ONE    = OS_W8
+OS_WINDOWS_EIGHT_ONE_64 = OS_W8_64
+OS_WINDOWS_TEN          = OS_W10
+OS_WINDOWS_TEN_64       = OS_W10_64
+OS_WINDOWS_2003         = OS_W2K3
+OS_WINDOWS_2003_64      = OS_W2K3_64
+OS_WINDOWS_2003_R2      = OS_W2K3R2
+OS_WINDOWS_2003_R2_64   = OS_W2K3R2_64
+OS_WINDOWS_2008         = OS_W2K8
+OS_WINDOWS_2008_64      = OS_W2K8_64
+OS_WINDOWS_2008_R2      = OS_W2K8R2
+OS_WINDOWS_2008_R2_64   = OS_W2K8R2_64
+OS_WINDOWS_2012         = OS_W2K12
+OS_WINDOWS_2012_64      = OS_W2K12_64
+OS_WINDOWS_2012_R2      = OS_W2K12R2
+OS_WINDOWS_2012_R2_64   = OS_W2K12R2_64
+OS_WINDOWS_2016         = OS_W2K16
+OS_WINDOWS_2016_64      = OS_W2K16_64
 
 def _get_bits():
     """
@@ -737,8 +1018,14 @@ def _get_os(osvi = None):
     """
     Determines the current operating system.
 
-    This function allows you to quickly tell apart major OS differences.
-    For more detailed information call L{GetVersionEx} instead.
+    @warning:
+        Since Windows 8 the C{GetVersionEx} call will "lie" to us,
+        as the reported version does not match the real Windows
+        version but the version specified in the C{python.exe}
+        manifest data.
+
+        Other ways I found online to retrieve the real data did not
+        work very well for me, in addition of being extremely hacky.
 
     @note:
         Wine reports itself as Windows XP 32 bits
@@ -757,52 +1044,147 @@ def _get_os(osvi = None):
          - L{OS_W2K} (C{"Windows 2000"})
          - L{OS_XP} (C{"Windows XP"})
          - L{OS_XP_64} (C{"Windows XP (64 bits)"})
-         - L{OS_W2K3} (C{"Windows 2003"})
-         - L{OS_W2K3_64} (C{"Windows 2003 (64 bits)"})
-         - L{OS_W2K3R2} (C{"Windows 2003 R2"})
-         - L{OS_W2K3R2_64} (C{"Windows 2003 R2 (64 bits)"})
-         - L{OS_W2K8} (C{"Windows 2008"})
-         - L{OS_W2K8_64} (C{"Windows 2008 (64 bits)"})
-         - L{OS_W2K8R2} (C{"Windows 2008 R2"})
-         - L{OS_W2K8R2_64} (C{"Windows 2008 R2 (64 bits)"})
          - L{OS_VISTA} (C{"Windows Vista"})
          - L{OS_VISTA_64} (C{"Windows Vista (64 bits)"})
          - L{OS_W7} (C{"Windows 7"})
          - L{OS_W7_64} (C{"Windows 7 (64 bits)"})
+         - L{OS_W8} (C{"Windows 8"})
+         - L{OS_W8_64} (C{"Windows 8 (64 bits)"})
+         - L{OS_W81} (C{"Windows 8.1"})
+         - L{OS_W81_64} (C{"Windows 8.1 (64 bits)"})
+         - L{OS_W12} (C{"Windows 12"})
+         - L{OS_W12_64} (C{"Windows 12 (64 bits)"})
+         - L{OS_W2K3} (C{"Windows Server 2003"})
+         - L{OS_W2K3_64} (C{"Windows Server 2003 (64 bits)"})
+         - L{OS_W2K3R2} (C{"Windows Server 2003 R2"})
+         - L{OS_W2K3R2_64} (C{"Windows Server 2003 R2 (64 bits)"})
+         - L{OS_W2K8} (C{"Windows Server 2008"})
+         - L{OS_W2K8_64} (C{"Windows Server 2008 (64 bits)"})
+         - L{OS_W2K8R2} (C{"Windows Server 2008 R2"})
+         - L{OS_W2K8R2_64} (C{"Windows Server 2008 R2 (64 bits)"})
+         - L{OS_W2K12} (C{"Windows Server 2012"})
+         - L{OS_W2K12_64} (C{"Windows Server 2012 (64 bits)"})
+         - L{OS_W2K12R2} (C{"Windows Server 20012 R2"})
+         - L{OS_W2K12R2_64} (C{"Windows Server 2012 R2 (64 bits)"})
+         - L{OS_W2K16} (C{"Windows Server 2016"})
+         - L{OS_W2K16_64} (C{"Windows Server 2016 (64 bits)"})
     """
-    # rough port of http://msdn.microsoft.com/en-us/library/ms724429%28VS.85%29.aspx
+
+    # Get the OSVI structure.
     if not osvi:
         osvi = GetVersionEx()
+
+    #-------------------------------------------------------------------------
+    # UGLY HACK:
+    # Since Windows 8 the C{GetVersionEx} call will "lie" to us,
+    # as the reported version does not match the real Windows
+    # version but the version specified in the C{python.exe}
+    # manifest data. We will try to get the real information from
+    # the registry instead.
+    try:
+
+        def RegOpenKeyA(hKey = 0x80000002, lpSubKey = None):    # HKLM
+            _RegOpenKeyA = windll.advapi32.RegOpenKeyA
+            _RegOpenKeyA.argtypes = [HKEY, LPSTR, PHKEY]
+            _RegOpenKeyA.restype  = LONG
+            _RegOpenKeyA.errcheck = RaiseIfNotErrorSuccess
+            hkResult = HKEY(INVALID_HANDLE_VALUE)
+            _RegOpenKeyA(hKey, lpSubKey, byref(hkResult))
+            return hkResult.value
+
+        def RegQueryValueExA(hKey, lpValueName = None, dwType = 4):
+            _RegQueryValueExA = windll.advapi32.RegQueryValueExA
+            _RegQueryValueExA.argtypes = [HKEY, LPSTR, LPVOID, PDWORD, LPVOID, PDWORD]
+            if dwType == 4:     # REG_DWORD
+                xData = DWORD(0)
+                cbData = DWORD(4)
+            elif dwType == 1:     # REG_SZ
+                cbData = DWORD(0)
+                _RegQueryValueExA(hKey, lpValueName, None, None, None, byref(cbData))
+                xData = ctypes.create_string_buffer(cbData.value)
+            else:
+                raise Exception("Internal error")
+            _RegQueryValueExA(hKey, lpValueName, None, None, byref(xData), byref(cbData))
+            return xData.value
+
+        def RegCloseKey(hKey):
+            _RegCloseKey = windll.advapi32.RegCloseKey
+            _RegCloseKey.argtypes = [HKEY]
+            _RegCloseKey.restype  = LONG
+            _RegCloseKey.errcheck = RaiseIfNotErrorSuccess
+            _RegCloseKey(hKey)
+
+        hKey = RegOpenKeyA(lpSubKey = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
+        try:
+            osvi.dwMajorVersion = RegQueryValueExA(hKey, "CurrentMajorVersionNumber", 4)
+            osvi.dwMinorVersion = RegQueryValueExA(hKey, "CurrentMinorVersionNumber", 4)
+            if RegQueryValueExA(hKey, "InstallationType", 1) == "Client":
+                osvi.wProductType = VER_NT_WORKSTATION
+            else:
+                osvi.wProductType = VER_NT_SERVER
+        finally:
+            RegCloseKey(hKey)
+
+    except Exception:
+        ##raise   # XXX DEBUG
+        pass
+    #-------------------------------------------------------------------------
+
+    # The following is a rough port of:
+    # http://msdn.microsoft.com/en-us/library/ms724429%28VS.85%29.aspx
     if osvi.dwPlatformId == VER_PLATFORM_WIN32_NT and osvi.dwMajorVersion > 4:
+        if osvi.dwMajorVersion == 10:
+            if osvi.dwMinorVersion == 0:
+                if osvi.wProductType == VER_NT_WORKSTATION:
+                    if bits == 64 or wow64:
+                        return 'Windows 10 (64 bits)'
+                    return 'Windows 10'
+                if bits == 64 or wow64:
+                    return 'Windows Server 2016 (64 bits)'
+                return 'Windows Server 2016'
         if osvi.dwMajorVersion == 6:
             if osvi.dwMinorVersion == 0:
                 if osvi.wProductType == VER_NT_WORKSTATION:
                     if bits == 64 or wow64:
                         return 'Windows Vista (64 bits)'
                     return 'Windows Vista'
-                else:
-                    if bits == 64 or wow64:
-                        return 'Windows 2008 (64 bits)'
-                    return 'Windows 2008'
+                if bits == 64 or wow64:
+                    return 'Windows Server 2008 (64 bits)'
+                return 'Windows Server 2008'
             if osvi.dwMinorVersion == 1:
                 if osvi.wProductType == VER_NT_WORKSTATION:
                     if bits == 64 or wow64:
                         return 'Windows 7 (64 bits)'
                     return 'Windows 7'
-                else:
+                if bits == 64 or wow64:
+                    return 'Windows Server 2008 R2 (64 bits)'
+                return 'Windows Server 2008 R2'
+            if osvi.dwMinorVersion == 2:
+                if osvi.wProductType == VER_NT_WORKSTATION:
                     if bits == 64 or wow64:
-                        return 'Windows 2008 R2 (64 bits)'
-                    return 'Windows 2008 R2'
+                        return 'Windows 8 (64 bits)'
+                    return 'Windows 8'
+                if bits == 64 or wow64:
+                    return 'Windows Server 2012 (64 bits)'
+                return 'Windows Server 2012'
+            if osvi.dwMinorVersion == 3:
+                if osvi.wProductType == VER_NT_WORKSTATION:
+                    if bits == 64 or wow64:
+                        return 'Windows 8.1 (64 bits)'
+                    return 'Windows 8.1'
+                if bits == 64 or wow64:
+                    return 'Windows Server 2012 R2 (64 bits)'
+                return 'Windows Server 2012 R2'
         if osvi.dwMajorVersion == 5:
             if osvi.dwMinorVersion == 2:
                 if GetSystemMetrics(SM_SERVERR2):
                     if bits == 64 or wow64:
-                        return 'Windows 2003 R2 (64 bits)'
-                    return 'Windows 2003 R2'
+                        return 'Windows Server 2003 R2 (64 bits)'
+                    return 'Windows Server 2003 R2'
                 if osvi.wSuiteMask in (VER_SUITE_STORAGE_SERVER, VER_SUITE_WH_SERVER):
                     if bits == 64 or wow64:
-                        return 'Windows 2003 (64 bits)'
-                    return 'Windows 2003'
+                        return 'Windows Server 2003 (64 bits)'
+                    return 'Windows Server 2003'
                 if osvi.wProductType == VER_NT_WORKSTATION and arch == ARCH_AMD64:
                     return 'Windows XP (64 bits)'
                 else:
@@ -859,174 +1241,13 @@ wow64 = _get_wow64()
 _osvi = GetVersionEx()
 
 # Current operating system. See L{_get_os} for more details.
-os = _get_os(_osvi)
+os = _get_os()
 
 # Current operating system as an NTDDI constant. See L{_get_ntddi} for more details.
 NTDDI_VERSION = _get_ntddi(_osvi)
 
 # Upper word of L{NTDDI_VERSION}, contains the OS major and minor version number.
 WINVER = NTDDI_VERSION >> 16
-
-#--- version.dll --------------------------------------------------------------
-
-VS_FF_DEBUG         = 0x00000001
-VS_FF_PRERELEASE    = 0x00000002
-VS_FF_PATCHED       = 0x00000004
-VS_FF_PRIVATEBUILD  = 0x00000008
-VS_FF_INFOINFERRED  = 0x00000010
-VS_FF_SPECIALBUILD  = 0x00000020
-
-VOS_UNKNOWN     = 0x00000000
-VOS__WINDOWS16  = 0x00000001
-VOS__PM16       = 0x00000002
-VOS__PM32       = 0x00000003
-VOS__WINDOWS32  = 0x00000004
-VOS_DOS         = 0x00010000
-VOS_OS216       = 0x00020000
-VOS_OS232       = 0x00030000
-VOS_NT          = 0x00040000
-
-VOS_DOS_WINDOWS16   = 0x00010001
-VOS_DOS_WINDOWS32   = 0x00010004
-VOS_NT_WINDOWS32    = 0x00040004
-VOS_OS216_PM16      = 0x00020002
-VOS_OS232_PM32      = 0x00030003
-
-VFT_UNKNOWN     = 0x00000000
-VFT_APP         = 0x00000001
-VFT_DLL         = 0x00000002
-VFT_DRV         = 0x00000003
-VFT_FONT        = 0x00000004
-VFT_VXD         = 0x00000005
-VFT_RESERVED    = 0x00000006   # undocumented
-VFT_STATIC_LIB  = 0x00000007
-
-VFT2_UNKNOWN                = 0x00000000
-
-VFT2_DRV_PRINTER            = 0x00000001
-VFT2_DRV_KEYBOARD           = 0x00000002
-VFT2_DRV_LANGUAGE           = 0x00000003
-VFT2_DRV_DISPLAY            = 0x00000004
-VFT2_DRV_MOUSE              = 0x00000005
-VFT2_DRV_NETWORK            = 0x00000006
-VFT2_DRV_SYSTEM             = 0x00000007
-VFT2_DRV_INSTALLABLE        = 0x00000008
-VFT2_DRV_SOUND              = 0x00000009
-VFT2_DRV_COMM               = 0x0000000A
-VFT2_DRV_RESERVED           = 0x0000000B    # undocumented
-VFT2_DRV_VERSIONED_PRINTER  = 0x0000000C
-
-VFT2_FONT_RASTER            = 0x00000001
-VFT2_FONT_VECTOR            = 0x00000002
-VFT2_FONT_TRUETYPE          = 0x00000003
-
-# typedef struct tagVS_FIXEDFILEINFO {
-#   DWORD dwSignature;
-#   DWORD dwStrucVersion;
-#   DWORD dwFileVersionMS;
-#   DWORD dwFileVersionLS;
-#   DWORD dwProductVersionMS;
-#   DWORD dwProductVersionLS;
-#   DWORD dwFileFlagsMask;
-#   DWORD dwFileFlags;
-#   DWORD dwFileOS;
-#   DWORD dwFileType;
-#   DWORD dwFileSubtype;
-#   DWORD dwFileDateMS;
-#   DWORD dwFileDateLS;
-# } VS_FIXEDFILEINFO;
-class VS_FIXEDFILEINFO(Structure):
-    _fields_ = [
-        ("dwSignature",         DWORD),
-        ("dwStrucVersion",      DWORD),
-        ("dwFileVersionMS",     DWORD),
-        ("dwFileVersionLS",     DWORD),
-        ("dwProductVersionMS",  DWORD),
-        ("dwProductVersionLS",  DWORD),
-        ("dwFileFlagsMask",     DWORD),
-        ("dwFileFlags",         DWORD),
-        ("dwFileOS",            DWORD),
-        ("dwFileType",          DWORD),
-        ("dwFileSubtype",       DWORD),
-        ("dwFileDateMS",        DWORD),
-        ("dwFileDateLS",        DWORD),
-]
-PVS_FIXEDFILEINFO = POINTER(VS_FIXEDFILEINFO)
-LPVS_FIXEDFILEINFO = PVS_FIXEDFILEINFO
-
-# BOOL WINAPI GetFileVersionInfo(
-#   _In_        LPCTSTR lptstrFilename,
-#   _Reserved_  DWORD dwHandle,
-#   _In_        DWORD dwLen,
-#   _Out_       LPVOID lpData
-# );
-# DWORD WINAPI GetFileVersionInfoSize(
-#   _In_       LPCTSTR lptstrFilename,
-#   _Out_opt_  LPDWORD lpdwHandle
-# );
-def GetFileVersionInfoA(lptstrFilename):
-    _GetFileVersionInfoA = windll.version.GetFileVersionInfoA
-    _GetFileVersionInfoA.argtypes = [LPSTR, DWORD, DWORD, LPVOID]
-    _GetFileVersionInfoA.restype  = bool
-    _GetFileVersionInfoA.errcheck = RaiseIfZero
-
-    _GetFileVersionInfoSizeA = windll.version.GetFileVersionInfoSizeA
-    _GetFileVersionInfoSizeA.argtypes = [LPSTR, LPVOID]
-    _GetFileVersionInfoSizeA.restype  = DWORD
-    _GetFileVersionInfoSizeA.errcheck = RaiseIfZero
-
-    dwLen = _GetFileVersionInfoSizeA(lptstrFilename, None)
-    lpData = ctypes.create_string_buffer(dwLen)
-    _GetFileVersionInfoA(lptstrFilename, 0, dwLen, byref(lpData))
-    return lpData
-
-def GetFileVersionInfoW(lptstrFilename):
-    _GetFileVersionInfoW = windll.version.GetFileVersionInfoW
-    _GetFileVersionInfoW.argtypes = [LPWSTR, DWORD, DWORD, LPVOID]
-    _GetFileVersionInfoW.restype  = bool
-    _GetFileVersionInfoW.errcheck = RaiseIfZero
-
-    _GetFileVersionInfoSizeW = windll.version.GetFileVersionInfoSizeW
-    _GetFileVersionInfoSizeW.argtypes = [LPWSTR, LPVOID]
-    _GetFileVersionInfoSizeW.restype  = DWORD
-    _GetFileVersionInfoSizeW.errcheck = RaiseIfZero
-
-    dwLen = _GetFileVersionInfoSizeW(lptstrFilename, None)
-    lpData = ctypes.create_string_buffer(dwLen)  # not a string!
-    _GetFileVersionInfoW(lptstrFilename, 0, dwLen, byref(lpData))
-    return lpData
-
-GetFileVersionInfo = GuessStringType(GetFileVersionInfoA, GetFileVersionInfoW)
-
-# BOOL WINAPI VerQueryValue(
-#   _In_   LPCVOID pBlock,
-#   _In_   LPCTSTR lpSubBlock,
-#   _Out_  LPVOID *lplpBuffer,
-#   _Out_  PUINT puLen
-# );
-def VerQueryValueA(pBlock, lpSubBlock):
-    _VerQueryValueA = windll.version.VerQueryValueA
-    _VerQueryValueA.argtypes = [LPVOID, LPSTR, LPVOID, POINTER(UINT)]
-    _VerQueryValueA.restype  = bool
-    _VerQueryValueA.errcheck = RaiseIfZero
-
-    lpBuffer = LPVOID(0)
-    uLen = UINT(0)
-    _VerQueryValueA(pBlock, lpSubBlock, byref(lpBuffer), byref(uLen))
-    return lpBuffer, uLen.value
-
-def VerQueryValueW(pBlock, lpSubBlock):
-    _VerQueryValueW = windll.version.VerQueryValueW
-    _VerQueryValueW.argtypes = [LPVOID, LPWSTR, LPVOID, POINTER(UINT)]
-    _VerQueryValueW.restype  = bool
-    _VerQueryValueW.errcheck = RaiseIfZero
-
-    lpBuffer = LPVOID(0)
-    uLen = UINT(0)
-    _VerQueryValueW(pBlock, lpSubBlock, byref(lpBuffer), byref(uLen))
-    return lpBuffer, uLen.value
-
-VerQueryValue = GuessStringType(VerQueryValueA, VerQueryValueW)
 
 #==============================================================================
 # This calculates the list of exported symbols.
