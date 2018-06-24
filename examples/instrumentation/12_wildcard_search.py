@@ -28,22 +28,42 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# The WinAppDbg search engine will issue a warning if there is some part of
+# the process memory that cannot be read. We will ignore them for now.
+import warnings
+warnings.simplefilter("ignore")
+
 from winappdbg import Process, HexDump
 
-def strings( pid ):
+def wildcard_search( pid, pattern ):
+
+    #
+    # Hex patterns must be in this form:
+    #     "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
+    #
+    # Spaces are optional. Capitalization of hex digits doesn't matter.
+    # This is exactly equivalent to the previous example:
+    #     "68656C6C6F20776F726C64"            # "hello world"
+    #
+    # Wildcards are allowed, in the form of a "?" sign in any hex digit:
+    #     "5? 5? c3"          # pop register / pop register / ret
+    #     "b8 ?? ?? ?? ??"    # mov eax, immediate value
+    #
 
     # Instance a Process object.
     process = Process( pid )
 
-    # For each ASCII string found in the process memory...
-    for address, size, data in process.strings():
+    # Search for the hexadecimal pattern in the process memory.
+    for address, data in process.search_hexa( pattern ):
 
-        # Print the string and the memory address where it was found.
-        print "%s: %s" % ( HexDump.address(address), data )
+        # Print a hex dump for each memory location found.
+        print HexDump.hexblock(data, address = address)
 
 # When invoked from the command line,
-# the first argument is a process ID.
+# the first argument is a process ID,
+# the second argument is a DLL filename.
 if __name__ == "__main__":
     import sys
     pid   = int( sys.argv[1] )
-    strings( pid )
+    pattern = sys.argv[2]
+    wildcard_search( pid, pattern )

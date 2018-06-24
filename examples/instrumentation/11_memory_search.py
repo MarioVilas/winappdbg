@@ -29,7 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # The WinAppDbg search engine will issue a warning if there is some part of
-# the process memory that cannot be read. We will ignore them now.
+# the process memory that cannot be read. We will ignore them for now.
 import warnings
 warnings.simplefilter("ignore")
 
@@ -45,10 +45,6 @@ def memory_search( pid, bytes ):
 
         # Print the memory address where it was found.
         print HexDump.address( address )
-
-    # You could also use process.search_regexp to use regular expressions,
-    # or process.search_text for Unicode strings,
-    # or process.search_hexa for raw bytes represented in hexa.
 
 # When invoked from the command line,
 # the first argument is a process ID,

@@ -127,16 +127,16 @@ Example #11: searching the process memory
 :download:`Download <../../examples/instrumentation/11_memory_search.py>`
 
 .. literalinclude:: ../../examples/instrumentation/11_memory_search.py
-   :start-after: # POSSIBILITY OF SUCH DAMAGE.
+   :start-after: warnings.simplefilter("ignore")
    :end-before: # When invoked from the command line,
 
-Example #12: dumping ASCII strings from the process memory
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example #12: searching the process memory using wildcards
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-:download:`Download <../../examples/instrumentation/12_strings.py>`
+:download:`Download <../../examples/instrumentation/12_wildcard_search.py>`
 
-.. literalinclude:: ../../examples/instrumentation/12_strings.py
-   :start-after: # POSSIBILITY OF SUCH DAMAGE.
+.. literalinclude:: ../../examples/instrumentation/12_wildcard_search.py
+   :start-after: warnings.simplefilter("ignore")
    :end-before: # When invoked from the command line,
 
 .. _the-thread-class:
