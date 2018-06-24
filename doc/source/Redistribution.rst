@@ -16,40 +16,40 @@ This documentation was generated using `Sphinx <http://sphinx-doc.org/>`_. The r
 
 The `Epydoc <http://epydoc.sourceforge.net/>`_ package is required to autogenerate the reference documentation. `GraphViz <http://www.graphviz.org/>`_ is used by Epydoc to generate UML graphs for the documentation.
 
-A Latex compiler is used to generate the documentation in PDF format. We're currently using `MikTex 2.7 <http://miktex.org/>`_ on Windows.
+A Latex compiler is used to generate the documentation in PDF format. We're currently using `MikTex 2.7 <https://miktex.org/>`_ on Windows.
 
-The HTML help can be compiled to a .CHM file using `Microsoft HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_.
+The HTML help can be compiled to a .CHM file using `Microsoft HTML Help Workshop <http://www.microsoft.com/en-us/download/details.aspx?id=21138>`_.
 
 The Make utility is used to run makefiles, and the Tar, GZip and BZip2 utilities are required to compress .tar.gz and .tar.bz2 files. We're using `Cygwin <http://www.cygwin.com/>`_ because the packages from GnuWin32 suffer from really nasty bugs (most notably the Tar command tries to call fork() on Windows...).
 
 All of these tools must be present in the **PATH** environment variable.
 
-The `decorator <http://packages.python.org/decorator>`_ module is also recommended since it integrates better than the built-in decorators with the autodoc tools we're using. You can install it with easy_install or download it from the `Python Package Index <http://pypi.python.org/pypi/decorator>`_.
+The `decorator <https://pypi.org/project/decorator>`_ module is also recommended since it integrates better than the built-in decorators with the autodoc tools we're using. You can install it with easy_install or download it from the `Python Package Index <https://pypi.org/project/decorator>`_.
 
-    +-------------------------------------------------------------------------------------+
-    | `Download Sphinx             <http://pypi.python.org/pypi/Sphinx>`_                 |
-    +-------------------------------------------------------------------------------------+
-    | `Download Pygments           <http://pypi.python.org/pypi/Pygments>`_               |
-    +-------------------------------------------------------------------------------------+
-    | `Download Epydoc             <http://sourceforge.net/projects/epydoc/files/>`_      |
-    +-------------------------------------------------------------------------------------+
-    | `Download GraphViz           <http://www.graphviz.org/Download.php>`_               |
-    +-------------------------------------------------------------------------------------+
-    | `Download MikTex 2.7         <http://miktex.org/2.7/setup>`_                        |
-    +-------------------------------------------------------------------------------------+
-    | `Download HTML Help Workshop <http://go.microsoft.com/fwlink/?LinkId=154968>`_      |
-    +-------------------------------------------------------------------------------------+
-    | `Download Cygwin             <http://cygwin.com/>`_                                 |
-    +-------------------------------------------------------------------------------------+
-    | `Download Decorator          <http://pypi.python.org/pypi/decorator>`_              |
-    +-------------------------------------------------------------------------------------+
+    +------------------------------------------------------------------------------------------------+
+    | `Download Sphinx             <https://pypi.org/project/Sphinx>`_                               |
+    +------------------------------------------------------------------------------------------------+
+    | `Download Pygments           <https://pypi.org/project/Pygments>`_                             |
+    +------------------------------------------------------------------------------------------------+
+    | `Download Epydoc             <https://sourceforge.net/projects/epydoc/files/>`_                |
+    +------------------------------------------------------------------------------------------------+
+    | `Download GraphViz           <http://www.graphviz.org/Download.php>`_                          |
+    +------------------------------------------------------------------------------------------------+
+    | `Download MikTex 2.7         <https://miktex.org/2.7/setup>`_                                  |
+    +------------------------------------------------------------------------------------------------+
+    | `Download HTML Help Workshop <http://www.microsoft.com/en-us/download/details.aspx?id=21138>`_ |
+    +------------------------------------------------------------------------------------------------+
+    | `Download Cygwin             <http://cygwin.com/>`_                                            |
+    +------------------------------------------------------------------------------------------------+
+    | `Download Decorator          <https://pypi.org/project/decorator>`_                            |
+    +------------------------------------------------------------------------------------------------+
 
 Installation
 ------------
 
 Both the source code and Windows installer packages are generated with Distutils, which is already shipped with your Python distribution. The :download:`setup.py <../../setup.py>` file is the installer script that contains the package metadata and the list of files to include.
 
-You can find more information on Distutils installer scripts `here <http://docs.python.org/distutils/setupscript.html>`_.
+You can find more information on Distutils installer scripts `here <https://docs.python.org/2/distutils/setupscript.html>`_.
 
 An install batch file (:download:`install.bat <../../install.bat>`) is provided for convenience when installing WinAppDbg in multiple versions of Python coexisting in the same machine.
 

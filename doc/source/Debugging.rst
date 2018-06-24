@@ -218,9 +218,9 @@ Crashes are exceptions a program can't recover from (also known as second-chance
 
 **WinAppDbg** provides the *Crash* class to generate and manipulate crash dumps. When instancing a *Crash* object only the most basic information is collected, you have to call the *fetch_extra_data* method to collect more data. This lets you control which information to gather and when - for example you may be interested in gathering more information only under certain conditions, or for certain kinds of exceptions.
 
-*Crash* objects also support :ref:`heuristic signatures <signature>` that can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
+*Crash* objects also support :ref:`heuristic signatures <signature>` that can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <https://archive.codeplex.com/?p=msecdbg>`_.
 
-Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard `pickle <http://docs.python.org/2/library/pickle.html>`_ module, or similar modules like `cerealizer <http://home.gna.org/oomadness/en/cerealizer/index.html>`_. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
+Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard `pickle <https://docs.python.org/2/library/pickle.html>`_ module, or similar modules like `cerealizer <https://pypi.org/project/Cerealizer/>`_. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
 
 A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <http://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
 
@@ -425,7 +425,7 @@ The **watch_variable** method sets a hardware breakpoint at the given address. E
 
 Finally, the **watch_buffer** method sets a page breakpoint at the given address range. Every time a read or write access is made to that part of the memory a callback function is called. It's similar to *watch_variable* but it works for the entire process, not just a single thread, and it allows any range to be specified (*watch_variable* only works for small address ranges, from 1 to 8 bytes).
 
-*Debug* objects also allow *stalking*. Stalking basically means to set one-shot breakpoints - that is, breakpoints that are automatically disabled after they're hit for the first time. The term was originally coined by **Pedram Amini** for his `Process Stalker <https://www.openrce.org/downloads/details/171>`_ tool, and this technique is key to `differential debugging <http://www.zynamics.com/binnavi.html>`_.
+*Debug* objects also allow *stalking*. Stalking basically means to set one-shot breakpoints - that is, breakpoints that are automatically disabled after they're hit for the first time. The term was originally coined by **Pedram Amini** for his `Process Stalker <http://www.openrce.org/downloads/details/171>`_ tool, and this technique is key to `differential debugging <https://www.zynamics.com/binnavi.html>`_.
 
 The stalking methods and their equivalents are the following:
 

@@ -51,9 +51,7 @@ Older versions are still available for download as well at the old `Sourceforge 
 Dependencies
 ------------
 
-Naturally you need the `Python interpreter <http://www.python.org/download/>`_. It's recommended to use Python 2.7. You'll have to install the 32 bit VM to debug 32 bit targets and the 64 bit VM for 64 bit targets. Both VMs can be installed on the same machine.
-
-If you're still using Python 2.5 64-bit, you'll need to install `ctypes <http://python.net/crew/theller/ctypes/>`_ as well. This is needed to interface with the Win32 API, and *WinAppDbg* won't work without it. Newer versions of Python already have this module.
+Naturally you need the `Python interpreter <https://www.python.org/downloads/>`_. It's recommended to use Python 2.7. You'll have to install the 32 bit VM to debug 32 bit targets and the 64 bit VM for 64 bit targets. Both VMs can be installed on the same machine.
 
 The following packages provide extra features and performance improvements, they are very recommended but not mandatory.
 
@@ -62,11 +60,15 @@ Disassembler
 
 *WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed, but you can also decide which one to use.
 
-* The `Capstone <http://capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh.
-* The `diStorm <hhttps://github.com/gdabah/distorm>`_ disassembler by Gil Dabah.
+* The `diStorm <https://github.com/gdabah/distorm>`_ disassembler by Gil Dabah.
+* The `Capstone <http://www.capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh.
 * The `BeaEngine <https://github.com/BeaEngine/beaengine>`_ disassembler by BeatriX.
-* The `PyDasm <https://github.com/alexeevdv/libdasm>`_ Python bindings to libdasm.
-* The `Libdisassemble <http://www.immunitysec.com/resources-freesoftware.shtml>`_ module from Immunity.
+* The `PyDasm <https://github.com/axcheron/pydasm>`_ Python bindings to libdasm.
+
+Debugging Symbols
++++++++++++++++++
+
+*WinAppDbg* has the capability to download debugging symbols from the Microsoft Debugging Symbols server. For best results, install the `Microsoft SDK <https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk>`_. 
 
 Database storage
 ++++++++++++++++
@@ -76,9 +78,9 @@ The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the
 Other goodies
 +++++++++++++
 
-Running WinAppDbg under Python interpreters other than CPython is considered experimental, but you may experience performance gains by using them. Also, in older versions of CPython, with the Python specializing compiler, `Psyco <http://psyco.sourceforge.net/>`_, *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download the sources and some old precompiled binaries from the `official site <http://psyco.sourceforge.net/download.html>`_ and newer but unofficial builds from `Voidspace <http://www.voidspace.org.uk/python/modules.shtml#psyco>`_.
+Running WinAppDbg under Python interpreters other than CPython is considered experimental, but you may experience performance gains by using them. Also, in older versions of CPython (up until Python 2.5), with the Python specializing compiler `Psyco <http://psyco.sourceforge.net/>`_, *WinAppDbg* will experience a performance gain just by installing it, no additional steps are needed. You can download the sources and some old precompiled binaries from the `official site <http://psyco.sourceforge.net/download.html>`_ and newer but unofficial builds from `Voidspace <http://www.voidspace.org.uk/python/modules.shtml#psyco>`_.
 
-Also `PyReadline <http://pypi.python.org/pypi/pyreadline>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
+Also `PyReadline <https://pypi.org/project/pyreadline>`_ is useful when using the console tools shipped with *WinAppDbg*, but they'll work without it. Basically what it does is provide autocomplete and history for console applications.
 
 Install
 -------
@@ -87,19 +89,19 @@ You can install directly from the **sources** package, extract it to any tempora
 
     install.bat
 
-You can also install WinAppDbg (stable versions only) from the `Cheese Shop <http://pypi.python.org/pypi/winappdbg/>`_ using any of the compatible **package managers**:
+You can also install WinAppDbg (stable versions only) from the `Cheese Shop <https://pypi.org/project/winappdbg/>`_ using any of the compatible **package managers**:
 
-* `PIP Installs Python <http://www.pip-installer.org/>`_ ::
+* `PIP Installs Python <https://pip.pypa.io/en/stable/>`_ ::
 
     pip install winappdbg
 
-* `PyPM <http://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <http://www.activestate.com/activepython>`_)
+* `PyPM <https://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <https://www.activestate.com/activepython>`_)
 
-* Easy Install (formerly from `Setuptools <http://pypi.python.org/pypi/setuptools>`_, now from `Distribute <http://packages.python.org/distribute/>`_) ::
+* Easy Install (formerly from `Setuptools <https://pypi.org/project/setuptools>`_, now from `Distribute <https://pypi.org/project/distribute/>`_) ::
 
     easy_install winappdbg
 
-* `Python Package Manager <http://sourceforge.net/projects/pythonpkgmgr/>`_ (it's a GUI installer)
+* `Python Package Manager <https://sourceforge.net/projects/pythonpkgmgr/>`_ (it's a GUI installer)
 
 Support
 -------
@@ -207,7 +209,7 @@ Architectures
 Known issues
 ------------
 
-* Python strings default encoding is 'ascii' since Python 2.5. While I did my best to prevent encoding errors when manipulating binary data, I recommend setting the default to 'latin-1' (ISO 8859-1) instead. You can do this by adding a `sitecustomize.py <http://docs.python.org/faq/programming.html?highlight=sitecustomize#what-does-unicodeerror-ascii-decoding-encoding-error-ordinal-not-in-range-128-mean>`_ script to your Python installation.
+* Python strings default encoding is 'ascii' since Python 2.5. While I did my best to prevent encoding errors when manipulating binary data, I recommend setting the default to 'latin-1' (ISO 8859-1) instead. You can do this by adding a `sitecustomize.py <https://docs.python.org/2/faq/programming.html#what-does-unicodeerror-ascii-decoding-encoding-error-ordinal-not-in-range-128-mean>`_ script to your Python installation.
 
 * Step-on-branch mode stopped working since Windows Vista. This is due to a change in the Windows kernel. The next major version of WinAppDbg (2.0) will support this.
 
@@ -218,4 +220,4 @@ Known issues
 License
 -------
 
-This software is released under the `BSD license <http://en.wikipedia.org/wiki/BSD_license>`_, so as a user you are entitled to create derivative work and :ref:`redistribute <redistribution>` it if you wish. A makefile is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using `Epydoc <http://epydoc.sourceforge.net/>`_. The sources to this documentation are also provided and can be compiled with `Sphinx <http://sphinx-doc.org/>`_.
+This software is released under the `BSD license <https://en.wikipedia.org/wiki/BSD_license>`_, so as a user you are entitled to create derivative work and :ref:`redistribute <redistribution>` it if you wish. A makefile is provided to automatically generate the source distribution package and the Windows installer, and can also generate the documentation for all the modules using `Epydoc <http://epydoc.sourceforge.net/>`_. The sources to this documentation are also provided and can be compiled with `Sphinx <http://www.sphinx-doc.org/>`_.

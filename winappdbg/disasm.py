@@ -400,6 +400,9 @@ class PyDasmEngine (Engine):
 class LibdisassembleEngine (Engine):
     """
     Integration with Immunity libdisassemble.
+
+    @warn: The libdisassemble project appears to be abandoned.
+        We recommend switching to another disassembly engine.
     """
 
     name = "Libdisassemble"

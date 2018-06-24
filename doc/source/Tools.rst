@@ -21,7 +21,7 @@ Crash logger
 
    Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database (SQLite, MySQL, SQL Server, etc.) and/or log it through standard output.
 
-   A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <http://msecdbg.codeplex.com/>`_.
+   A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <https://archive.codeplex.com/?p=msecdbg>`_.
 
    Additional features allow attaching to system services, setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
 
@@ -34,7 +34,7 @@ Crash logger
 Process tools
 +++++++++++++
 
-These tools were inspired by the **ptools** suite by `Nicolás Economou <http://tinyurl.com/nicolaseconomou>`_.
+These tools were inspired by the **ptools** suite by `Nicolás Economou <https://twitter.com/nicoeconomou>`_.
 
 * :download:`pdebug.py <../../tools/pdebug.py>` :
 
@@ -81,7 +81,7 @@ Miscellaneous
 
 * :download:`SelectMyParent.py <../../tools/SelectMyParent.py>` :
 
-   Allows you to create a new process specifying any other process as it's parent, and inherit it's handles. See the `blog post by Didier Stevens <http://blog.didierstevens.com/2009/11/22/quickpost-selectmyparent-or-playing-with-the-windows-process-tree/>`_ for the original C version.
+   Allows you to create a new process specifying any other process as it's parent, and inherit it's handles. See the `blog post by Didier Stevens <https://blog.didierstevens.com/2009/11/22/quickpost-selectmyparent-or-playing-with-the-windows-process-tree/>`_ for the original C version.
 
 * :download:`hexdump.py <../../tools/hexdump.py>` :
 

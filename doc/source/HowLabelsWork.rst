@@ -23,7 +23,7 @@ Where all components are optional and blank spaces are ignored.
  * The **ordinal** is an integer with an exported function ordinal.
  * The **offset** is an integer number. It may be an offset from the module base address, or the function address. If not specified, the default is *0*.
 
-If debugging symbols are available, they are used automatically in addition to exported functions. To get the debugging symbols you need to first install the `Microsoft Debugging Tools <http://msdn.microsoft.com/en-us/windows/hardware/gg463009>`_, and then either install the debugging symbols for your version of Windows or set up your system to connect to the `Microsoft Symbol Server <http://support.microsoft.com/kb/311503>`_.
+If debugging symbols are available, they are used automatically in addition to exported functions. To get the debugging symbols you need to first install the `Microsoft Debugging Tools <https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/>`_, and then either install the debugging symbols for your version of Windows or set up your system to connect to the `Microsoft Symbol Server <https://msdn.microsoft.com/en-us/library/windows/desktop/ee416588(v=vs.85).aspx#using_the_microsoft_symbol_server>`_.
 
 Integer numbers in labels may be expressed in any format supported by HexInput.integer(), but by default they are in hexadecimal format (for example *0x1234*).
 
