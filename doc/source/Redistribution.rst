@@ -33,7 +33,7 @@ The `decorator <https://pypi.org/project/decorator>`_ module is also recommended
     +------------------------------------------------------------------------------------------------+
     | `Download Epydoc             <https://sourceforge.net/projects/epydoc/files/>`_                |
     +------------------------------------------------------------------------------------------------+
-    | `Download GraphViz           <http://www.graphviz.org/Download.php>`_                          |
+    | `Download GraphViz           <http://www.graphviz.org/download/>`_                             |
     +------------------------------------------------------------------------------------------------+
     | `Download MikTex 2.7         <https://miktex.org/2.7/setup>`_                                  |
     +------------------------------------------------------------------------------------------------+

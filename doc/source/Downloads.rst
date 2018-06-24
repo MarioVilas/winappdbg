@@ -209,7 +209,7 @@ Architectures
 Known issues
 ------------
 
-* Python strings default encoding is 'ascii' since Python 2.5. While I did my best to prevent encoding errors when manipulating binary data, I recommend setting the default to 'latin-1' (ISO 8859-1) instead. You can do this by adding a `sitecustomize.py <https://docs.python.org/2/faq/programming.html#what-does-unicodeerror-ascii-decoding-encoding-error-ordinal-not-in-range-128-mean>`_ script to your Python installation.
+* Python strings default encoding is 'ascii' since Python 2.5. While we did our best to prevent encoding errors when manipulating binary data, we recommend setting the default to 'latin-1' (ISO 8859-1) instead. You can do this by adding a `sitecustomize.py <https://docs.python.org/2/faq/programming.html#what-does-unicodeerror-ascii-decoding-encoding-error-ordinal-not-in-range-128-mean>`_ script to your Python installation.
 
 * Step-on-branch mode stopped working since Windows Vista. This is due to a change in the Windows kernel. The next major version of WinAppDbg (2.0) will support this.
 

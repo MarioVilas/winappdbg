@@ -646,11 +646,15 @@ class Disassembler (object):
     """
 
     engines = (
+
+        # These are the recommended disassembly engines.
         DistormEngine,  # diStorm engine goes first for backwards compatibility
-        BeaEngine,
-        CapstoneEngine,
-        LibdisassembleEngine,
-        PyDasmEngine,
+        CapstoneEngine, # most likely to be up to date along with diStorm
+
+        # These are kept for backwards compatibility only.
+        BeaEngine,      # unmaintained in a long time
+        PyDasmEngine,   # same
+        LibdisassembleEngine,   # entirely abandoned by Immunity
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.
