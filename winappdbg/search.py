@@ -37,7 +37,8 @@ Process memory search.
     Pattern,
     StringPattern,
     IStringPattern,
-    HexPattern
+    HexPattern,
+    MemoryAccessWarning
 """
 
 __all__ =   [
@@ -46,9 +47,10 @@ __all__ =   [
                 'StringPattern',
                 'IStringPattern',
                 'HexPattern',
+                'MemoryAccessWarning',
             ]
 
-from textio import HexInput
+from textio import HexInput, HexDump
 from util import StaticClass, MemoryAddresses
 import win32
 
@@ -59,6 +61,14 @@ try:
     import regex as re
 except ImportError:
     import re
+
+#==============================================================================
+
+class MemoryAccessWarning(RuntimeWarning):
+    """
+    This warning is issued when a memory access error has occurred, but it can
+    be safely ignored in most cases.
+    """
 
 #==============================================================================
 
@@ -364,7 +374,7 @@ class Search (StaticClass):
                     end   = HexDump.address(address + size)
                     msg   = "Error reading %s-%s: %s"
                     msg   = msg % (begin, end, str(e))
-                    warnings.warn(msg, RuntimeWarning)
+                    warnings.warn(msg, MemoryAccessWarning)
                     continue
                 for result in cls._search_block(
                             process, patterns, data, address, 0, overlapping):
@@ -396,7 +406,7 @@ class Search (StaticClass):
                     end   = HexDump.address(address + total_size)
                     msg   = "Error reading %s-%s: %s"
                     msg   = msg % (begin, end, str(e))
-                    warnings.warn(msg, RuntimeWarning)
+                    warnings.warn(msg, MemoryAccessWarning)
 
     @staticmethod
     def _search_block(process, patterns, data, address, shift, overlapping):

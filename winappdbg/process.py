@@ -52,7 +52,8 @@ from module import Module, _ModuleContainer
 from thread import Thread, _ThreadContainer
 from window import Window
 from search import Search, \
-                   Pattern, StringPattern, IStringPattern, HexPattern
+                   Pattern, StringPattern, IStringPattern, HexPattern, \
+                   MemoryAccessWarning
 from disasm import Disassembler
 
 import re
@@ -1405,16 +1406,14 @@ class Process (_ThreadContainer, _ModuleContainer):
         @type  maxAddr: int
         @param maxAddr: (Optional) Stop the search at this memory address.
 
-        @rtype:  iterator of tuple( int, str )
-        @return: An iterator of tuples. Each tuple contains the following:
-             - The memory address where the pattern was found.
-             - The text that matches the pattern.
+        @rtype:  iterator of int
+        @return: An iterator of memory addresses where the pattern was found.
 
         @raise WindowsError: An error occurred when querying or reading the
             process memory.
         """
         pattern = StringPattern(bytes)
-        return Search.search_process(self, [pattern], minAddr, maxAddr)
+        return (x[0] for x in Search.search_process(self, [pattern], minAddr, maxAddr))
 
     def search_text(self, text, encoding = "utf-16le",
                                 caseSensitive = False,

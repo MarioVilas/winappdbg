@@ -28,6 +28,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# The WinAppDbg search engine will issue a warning if there is some part of
+# the process memory that cannot be read. We will ignore them now.
+import warnings
+warnings.simplefilter("ignore")
+
 from winappdbg import Process, HexDump
 
 def memory_search( pid, bytes ):
