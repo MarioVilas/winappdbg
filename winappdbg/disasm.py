@@ -528,7 +528,8 @@ class CapstoneEngine (Engine):
         arch, mode = self.__constants[self.arch]
 
         # Get the decoder function outside the loop.
-        decoder = capstone.cs_disasm_quick
+        md = capstone.Cs(arch, mode)
+        decoder = md.disasm_lite
 
         # If the buggy version of the bindings are being used, we need to catch
         # all exceptions broadly. If not, we only need to catch CsError.
@@ -555,7 +556,7 @@ class CapstoneEngine (Engine):
             instr = None
             try:
                 instr = list(decoder(
-                    arch, mode, code[offset:offset+16], address+offset, 1
+                    code[offset:offset+16], address+offset, 1
                 ))[0]
             except IndexError:
                 pass   # No instructions decoded.
@@ -569,9 +570,9 @@ class CapstoneEngine (Engine):
                 # Copy the values quickly before someone overwrites them,
                 # if using the buggy version of the bindings (otherwise it's
                 # irrelevant in which order we access the properties).
-                length   = instr.size
-                mnemonic = instr.mnemonic
-                op_str   = instr.op_str
+                length   = instr[1]
+                mnemonic = instr[2]
+                op_str   = instr[3]
 
                 # Concatenate the mnemonic and the operands.
                 if op_str:
