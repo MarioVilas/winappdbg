@@ -4045,7 +4045,7 @@ def GetProcessId(hProcess):
 #   __in  HANDLE hThread
 # );
 def GetThreadId(hThread):
-    _GetThreadId = windll.kernel32._GetThreadId
+    _GetThreadId = windll.kernel32.GetThreadId
     _GetThreadId.argtypes = [HANDLE]
     _GetThreadId.restype  = DWORD
 
