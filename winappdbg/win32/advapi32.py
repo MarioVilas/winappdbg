@@ -32,8 +32,8 @@
 Wrapper for advapi32.dll in ctypes.
 """
 
-from defines import *
-from kernel32 import *
+from defines import *  # NOQA
+from kernel32 import *  # NOQA
 
 # XXX TODO
 # + add transacted registry operations

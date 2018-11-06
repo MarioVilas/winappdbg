@@ -30,7 +30,7 @@
 
 import traceback
 
-from winappdbg import Debug, EventHandler, System, HexDump, win32
+from winappdbg import Debug, EventHandler, HexDump
 
 
 # This function will be called when the breakpoint is hit.

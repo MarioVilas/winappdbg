@@ -31,7 +31,7 @@
 # This line is needed in Python 2.5 to use the "with" statement.
 from __future__ import with_statement
 
-from winappdbg import *
+from winappdbg import *  # NOQA
 from time import time
 
 # Using the Debug object in a "with" context ensures proper cleanup.

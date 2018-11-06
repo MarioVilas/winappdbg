@@ -192,16 +192,16 @@ import ntdll
 
 # Import all symbols from submodules into this namespace.
 # Required for compatibility with older versions of WinAppDbg.
-from defines    import *
-from kernel32   import *
-from user32     import *
-from advapi32   import *
-from wtsapi32   import *
-from shell32    import *
-from shlwapi    import *
-from psapi      import *
-from dbghelp    import *
-from ntdll      import *
+from defines    import *  # NOQA
+from kernel32   import *  # NOQA
+from user32     import *  # NOQA
+from advapi32   import *  # NOQA
+from wtsapi32   import *  # NOQA
+from shell32    import *  # NOQA
+from shlwapi    import *  # NOQA
+from psapi      import *  # NOQA
+from dbghelp    import *  # NOQA
+from ntdll      import *  # NOQA
 
 # This calculates the list of exported symbols.
 _all = set()

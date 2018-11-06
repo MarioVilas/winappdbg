@@ -32,7 +32,7 @@
 CONTEXT structure for amd64.
 """
 
-from defines import *
+from defines import *  # NOQA
 from version import ARCH_AMD64
 import context_i386
 

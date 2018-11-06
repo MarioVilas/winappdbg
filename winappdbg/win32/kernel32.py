@@ -34,7 +34,7 @@ Wrapper for kernel32.dll in ctypes.
 
 import warnings
 
-from defines import *
+from defines import *  # NOQA
 
 import context_i386
 import context_amd64

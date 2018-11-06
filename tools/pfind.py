@@ -87,16 +87,16 @@ class Search (object):
 
     @classmethod
     def init_error_msg(cls, count, pattern, text):
-        desc = cls.desc
+        desc = cls.desc  # NOQA
         return cls.errfmt % vars()
 
     def message(self, pid, address, data = None):
         if self.start < 0:
             raise StopIteration
-        count   = self.count + 1
+        count   = self.count + 1  # NOQA
         address = address + self.start
-        where   = HexDump.address(address)
-        size    = self.end - self.start
+        where   = HexDump.address(address)  # NOQA
+        size    = self.end - self.start  # NOQA
         msg     = self.showfmt % vars()
         if data is not None:
             msg += "\n"

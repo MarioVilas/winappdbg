@@ -56,7 +56,7 @@ def main(argv):
     if len(params) == 0 or '-h' in params or '--help' in params or \
                                                      '/?' in params:
         print "Usage:"
-        print "    %s <process ID or name> [process ID or name...]"
+        print "    %s <process ID or name> [process ID or name...]" % script
         print
         print "If a process name is given instead of an ID all matching processes are killed."
         exit()

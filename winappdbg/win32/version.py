@@ -34,7 +34,7 @@ Detect the current architecture and operating system.
 Some functions here are really from kernel32.dll, others from version.dll.
 """
 
-from defines import *
+from defines import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

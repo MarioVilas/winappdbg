@@ -32,7 +32,7 @@
 Wrapper for user32.dll in ctypes.
 """
 
-from defines import *
+from defines import *  # NOQA
 from version import bits
 from kernel32 import GetLastError, SetLastError
 from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT

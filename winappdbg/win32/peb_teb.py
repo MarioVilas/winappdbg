@@ -32,7 +32,7 @@
 PEB and TEB structures, constants and data types.
 """
 
-from defines import *
+from defines import *  # NOQA
 from version import os
 
 #==============================================================================

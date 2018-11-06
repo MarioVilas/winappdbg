@@ -34,7 +34,7 @@ import sys
 import time
 import optparse
 
-from winappdbg import Crash, CrashContainer, CrashDictionary, win32
+from winappdbg import CrashContainer, CrashDictionary
 
 from crash_logger import CrashLogger
 

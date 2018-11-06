@@ -32,8 +32,8 @@
 Wrapper for shlwapi.dll in ctypes.
 """
 
-from defines import *
-from kernel32 import *
+from defines import *  # NOQA
+from kernel32 import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

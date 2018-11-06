@@ -29,6 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from time import sleep
+
 from winappdbg import System, win32
 
 
@@ -87,7 +88,7 @@ def wait_for_service( service, wait_state, timeout = 20 ):
     while descriptor.CurrentState == wait_state:
         timeout -= 1
         if timeout <= 0:
-            raise RuntimeException( "Error: timed out." )
+            raise RuntimeError( "Error: timed out." )
         sleep( 0.5 )
         descriptor = System.get_service( service )
 

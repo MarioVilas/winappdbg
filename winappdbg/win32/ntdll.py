@@ -32,7 +32,7 @@
 Wrapper for ntdll.dll in ctypes.
 """
 
-from defines import *
+from defines import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

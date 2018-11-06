@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Debug, EventHandler, HexDump, CrashDump, win32
+from winappdbg import Debug, EventHandler, HexDump
 
 
 class MyEventHandler( EventHandler ):

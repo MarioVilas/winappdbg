@@ -36,7 +36,7 @@ Wrapper for shell32.dll in ctypes.
 # * Add a class wrapper to SHELLEXECUTEINFO
 # * More logic into ShellExecuteEx
 
-from defines import *
+from defines import *  # NOQA
 from kernel32 import LocalFree
 
 #==============================================================================

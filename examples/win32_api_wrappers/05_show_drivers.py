@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.win32 import *
+from winappdbg.win32 import *  # NOQA
 
 def print_drivers( fFullPath = False ):
 

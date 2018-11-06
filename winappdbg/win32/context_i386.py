@@ -32,7 +32,7 @@
 CONTEXT structure for i386.
 """
 
-from defines import *
+from defines import *  # NOQA
 from version import ARCH_I386
 
 #==============================================================================

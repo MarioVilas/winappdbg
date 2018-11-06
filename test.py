@@ -46,7 +46,7 @@ def test(title, fn):
         return False
 
 def test_module_load():
-    import winappdbg
+    import winappdbg  # NOQA
 
 def test_disassembler_load():
     from winappdbg import Disassembler, win32
@@ -56,7 +56,7 @@ def test_disassembler_load():
 def test_sqlalchemy_load():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        from winappdbg import sql
+        from winappdbg import sql  # NOQA
 
 def test_windbg_version():
     from winappdbg import System, win32

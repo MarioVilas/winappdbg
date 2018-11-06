@@ -36,7 +36,7 @@ __all__ =   [
             ]
 
 import winappdbg
-from winappdbg import *
+from winappdbg import *  # NOQA
 
 import re
 import os

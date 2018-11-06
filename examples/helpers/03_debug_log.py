@@ -30,7 +30,7 @@
 
 from ntpath import basename, splitext
 
-from winappdbg import Debug, EventHandler, Logger, DebugLog
+from winappdbg import Debug, Logger
 
 def main( argv ):
 
