@@ -667,7 +667,7 @@ class Registry (_RegistryContainer):
         """
         if path.endswith('\\'):
             path = path[:-1]
-        if not self.has_key(path):
+        if not self.has_key(path):  # NOQA
             raise KeyError(path)
         stack = collections.deque()
         stack.appendleft(path)

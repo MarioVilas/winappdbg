@@ -1060,7 +1060,7 @@ class Thread (object):
                 seh_func = process.read_pointer( seh + 4 )
                 seh_chain.append( (seh, seh_func) )
                 seh = process.read_pointer( seh )
-        except WindowsError, e:
+        except WindowsError:
             seh_chain.append( (seh, None) )
         return seh_chain
 
@@ -1286,7 +1286,7 @@ class Thread (object):
         """
         try:
             trace = self.__get_stack_trace(depth, True, bMakePretty)
-        except Exception, e:
+        except Exception:
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, True, bMakePretty)
@@ -1307,10 +1307,9 @@ class Thread (object):
 
         @raise WindowsError: An error occured when getting the thread context.
         """
-        st, sb   = self.get_stack_range()   # top, bottom
-        sp       = self.get_sp()
-        fp       = self.get_fp()
-        size     = fp - sp
+        st, sb = self.get_stack_range()   # top, bottom
+        sp     = self.get_sp()
+        fp     = self.get_fp()
         if not st <= sp < sb:
             raise RuntimeError('Stack pointer lies outside the stack')
         if not st <= fp < sb:

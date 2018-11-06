@@ -56,7 +56,7 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 import win32
 from util import PathOperations
 from event import EventHandler, NoEvent
-from textio import HexInput, HexOutput, HexDump, CrashDump, DebugLog
+from textio import HexInput, HexOutput, HexDump, CrashDump
 
 import os
 import sys
@@ -74,7 +74,7 @@ from cmd import Cmd
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError, getenv
+    from winappdbg.win32 import WindowsError, getenv  # NOQA
 
 # lazy imports
 readline = None
@@ -339,7 +339,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Token is a command line to execute.
     def input_command_line(self, command_line):
-        argv  = self.debug.system.cmdline_to_argv(command_line)
+        argv = self.debug.system.cmdline_to_argv(command_line)
         if not argv:
             raise CmdError("missing command line to execute")
         fname = argv[0]
@@ -391,7 +391,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                         raise CmdError("process not found (%d)" % pid)
                 try:
                     address = process.resolve_label(token)
-                except Exception, e:
+                except Exception:
                     raise CmdError("unknown address (%s)" % token)
         return address
 
@@ -766,7 +766,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         process = self.get_process(pid)
         try:
             data = process.peek(address, size)
-        except WindowsError, e:
+        except WindowsError:
             orig_address = HexOutput.integer(address)
             next_address = HexOutput.integer(address + size)
             msg = "error reading process %d, from %s to %s (%d bytes)"
@@ -779,7 +779,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         process = self.get_process(pid)
         try:
             process.write(address, data)
-        except WindowsError, e:
+        except WindowsError:
             size = len(data)
             orig_address = HexOutput.integer(address)
             next_address = HexOutput.integer(address + size)
@@ -886,7 +886,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if self.debug.is_debugee(pid):
                 self.debug.detach(pid)
             print "Killed process (%d)" % pid
-        except Exception, e:
+        except Exception:
             print "Error trying to kill process (%d)" % pid
 
     # Kill a thread.
@@ -899,7 +899,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if self.debug.is_debugee(pid) and not process.is_alive():
                 self.debug.detach(pid)
             print "Killed thread (%d)" % tid
-        except Exception, e:
+        except Exception:
             print "Error trying to kill thread (%d)" % tid
 
 #------------------------------------------------------------------------------
@@ -1247,7 +1247,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                 try:
                     debug.attach(pid)
                     print "Attached to process (%d)" % pid
-                except Exception, e:
+                except Exception:
                     print "Error: can't attach to process (%d)" % pid
 
     def do_detach(self, arg):
@@ -1269,7 +1269,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             try:
                 debug.detach(pid)
                 print "Detached from process (%d)" % pid
-            except Exception, e:
+            except Exception:
                 print "Error: can't detach from process (%d)" % pid
 
     def do_windowed(self, arg):
@@ -1278,13 +1278,13 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
-        cmdline = self.input_command_line(arg)
+        self.input_command_line(arg)
         try:
             process = self.debug.execl(arg,
                                                 bConsole = False,
                                                  bFollow = self.options.follow)
             print "Spawned process (%d)" % process.get_pid()
-        except Exception, e:
+        except Exception:
             raise CmdError("can't execute")
         self.set_fake_last_event(process)
 
@@ -1294,13 +1294,13 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
-        cmdline = self.input_command_line(arg)
+        self.input_command_line(arg)
         try:
             process = self.debug.execl(arg,
                                                 bConsole = True,
                                                  bFollow = self.options.follow)
             print "Spawned process (%d)" % process.get_pid()
-        except Exception, e:
+        except Exception:
             raise CmdError("can't execute")
         self.set_fake_last_event(process)
 
@@ -1506,7 +1506,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                 print CrashDump.dump_stack_trace_with_labels(stack_trace),
             else:
                 print "No stack trace available for thread (%d)" % tid
-        except WindowsError, e:
+        except WindowsError:
             print "Can't get stack trace for thread (%d)" % tid
 
     do_k = do_stack
@@ -1531,8 +1531,8 @@ class ConsoleDebugger (Cmd, EventHandler):
                 process = system.get_process(pid)
                 try:
                     process.debug_break()
-                except WindowsError, e:
-                    print "Can't force a debug break on process (%d)"
+                except WindowsError:
+                    print "Can't force a debug break on process (%d)" % pid
 
     def do_step(self, arg):
         """
@@ -1585,8 +1585,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         pid = self.get_process_id_from_prefix()
         if not self.debug.is_debugee(pid):
             raise CmdError("target process is not being debugged")
-        process     = self.get_process(pid)
-        token_list  = self.split_tokens(arg, 1, 1)
+        token_list = self.split_tokens(arg, 1, 1)
         try:
             address = self.input_address(token_list[0], pid)
             deferred = False
@@ -1652,7 +1651,6 @@ class ConsoleDebugger (Cmd, EventHandler):
         pid = self.get_process_id_from_prefix()
         if not self.debug.is_debugee(pid):
             raise CmdError("target process is not being debugged")
-        process       = self.get_process(pid)
         token_list    = self.split_tokens(arg, 1, 2)
         address, size = self.input_address_range(token_list[0], pid)
         self.debug.watch_buffer(pid, address, size)
@@ -1668,7 +1666,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if arg == '*':
             if self.cmdprefix:
                 raise CmdError("prefix not supported")
-            breakpoints = debug.get_debugee_pids()
+            targets = debug.get_debugee_pids()
         else:
             targets = self.input_process_list( self.split_tokens(arg) )
             if self.cmdprefix:
@@ -1840,7 +1838,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         address         = self.input_address(token_list[0], pid, tid)
         try:
             code = process.disassemble(address, 15*8)[:8]
-        except Exception, e:
+        except Exception:
             msg = "can't disassemble address %s"
             msg = msg % HexDump.address(address)
             raise CmdError(msg)
@@ -2097,7 +2095,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             mappedFilenames = process.get_mapped_filenames()
             print
             print CrashDump.dump_memory_map(memoryMap, mappedFilenames)
-        except WindowsError, e:
+        except WindowsError:
             msg = "can't get memory information for process (%d)"
             raise CmdError(msg % process.get_pid())
 

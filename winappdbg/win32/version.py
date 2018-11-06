@@ -1114,7 +1114,7 @@ def _get_os(osvi = None):
             _RegCloseKey.errcheck = RaiseIfNotErrorSuccess
             _RegCloseKey(hKey)
 
-        hKey = RegOpenKeyA(lpSubKey = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
+        hKey = RegOpenKeyA(lpSubKey = 'SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion')
         try:
             osvi.dwMajorVersion = RegQueryValueExA(hKey, "CurrentMajorVersionNumber", 4)
             osvi.dwMinorVersion = RegQueryValueExA(hKey, "CurrentMinorVersionNumber", 4)

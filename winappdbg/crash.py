@@ -66,7 +66,6 @@ from system import System
 from textio import HexDump, CrashDump
 from util import StaticClass, MemoryAddresses, PathOperations
 
-import os
 import time
 import zlib
 import warnings
@@ -1347,7 +1346,7 @@ class CrashContainer (object):
         @return:
             C{True} if a Crash object with the same key is in the container.
         """
-        return self.has_key( crash.key() )
+        return self.has_key( crash.key() )  # NOQA
 
     def has_key(self, key):
         """
@@ -1823,7 +1822,7 @@ class DummyCrashContainer(object):
         @rtype:  bool
         @return: C{True} if a matching L{Crash} object is in the container.
         """
-        return self.__keys.has_key( key )
+        return self.__keys.has_key( key )  # NOQA
 
     def iterkeys(self):
         """

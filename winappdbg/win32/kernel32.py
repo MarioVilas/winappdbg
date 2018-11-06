@@ -36,8 +36,8 @@ import warnings
 
 from defines import *  # NOQA
 
-import context_i386
-import context_amd64
+import context_i386  # NOQA
+import context_amd64  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -931,8 +931,7 @@ class FileHandle (Handle):
                                         lpFileInformation, dwBufferSize)
         except AttributeError:
             from ntdll import NtQueryInformationFile, \
-                              FileNameInformation, \
-                              FILE_NAME_INFORMATION
+                              FileNameInformation
             NtQueryInformationFile(self.value,
                                    FileNameInformation,
                                    lpFileInformation,

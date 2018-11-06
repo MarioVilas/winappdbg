@@ -134,7 +134,7 @@ class Module (object):
             if self.undecorate:
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     pass # not all symbols are decorated!
             self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
             return win32.TRUE
@@ -568,7 +568,7 @@ class Module (object):
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     continue
                 if symbol == SymbolName:
                     return SymbolAddress
@@ -580,7 +580,7 @@ class Module (object):
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
                 try:
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
-                except Exception, e:
+                except Exception:
                     continue
                 if symbol == SymbolName.lower():
                     return SymbolAddress
@@ -669,7 +669,7 @@ class Module (object):
                 if new_offset <= offset:
                     function    = SymbolName
                     offset      = new_offset
-        except WindowsError, e:
+        except WindowsError:
             pass
 
         # Parse the label and return it.
@@ -716,7 +716,7 @@ class Module (object):
         try:
             hlib    = win32.GetModuleHandle(filename)
             address = win32.GetProcAddress(hlib, function)
-        except WindowsError, e:
+        except WindowsError:
 
             # Load the DLL locally, resolve the function and unload it.
             try:
@@ -726,7 +726,7 @@ class Module (object):
                     address = win32.GetProcAddress(hlib, function)
                 finally:
                     win32.FreeLibrary(hlib)
-            except WindowsError, e:
+            except WindowsError:
                 return None
 
         # A NULL pointer means the function was not found.

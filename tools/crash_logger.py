@@ -322,11 +322,11 @@ class LoggingEventHandler(EventHandler):
             if label not in self.labelsCache[dwProcessId]:
                 try:
                     address = aModule.resolve_label(label)
-                except ValueError, e:
+                except ValueError:
                     address = None
-                except RuntimeError, e:
+                except RuntimeError:
                     address = None
-                except WindowsError, e:
+                except WindowsError:
                     address = None
                 if address is not None:
                     self.labelsCache[dwProcessId][label] = address
@@ -1110,9 +1110,8 @@ class CrashLogger (object):
     def run(self, config, options):
 
         # Create the event handler
-        oldCrashCount = 0
-        eventHandler  = LoggingEventHandler(options, config)
-        logger        = eventHandler.logger
+        eventHandler = LoggingEventHandler(options, config)
+        logger       = eventHandler.logger
 
         # Log the time we begin this run
         if options.verbose:

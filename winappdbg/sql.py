@@ -47,12 +47,12 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.interfaces import PoolListener
 from sqlalchemy.orm import sessionmaker, deferred
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
                              LargeBinary, Enum, VARCHAR
 from sqlalchemy.sql.expression import asc, desc
 
-from crash import Crash, Marshaller, pickle, HIGHEST_PROTOCOL
+from crash import Crash, Marshaller, pickle
 from textio import CrashDump
 import win32
 
@@ -955,7 +955,7 @@ class CrashDAO (BaseDAO):
 
         # Execute the SQL query and convert the results.
         try:
-            return [dto.toCrash() for dto in query.all()]
+            return [_dto.toCrash() for _dto in query.all()]
         except NoResultFound:
             return []
 

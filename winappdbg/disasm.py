@@ -706,7 +706,7 @@ class Disassembler (object):
                             decoder = clazz(arch)
                             cls.__decoder[selected] = decoder
                         return decoder
-                except NotImplementedError, e:
+                except NotImplementedError:
                     pass
             msg = "No disassembler engine available for %s code." % arch
             raise NotImplementedError(msg)

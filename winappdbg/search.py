@@ -231,7 +231,7 @@ class HexPattern(Pattern):
 
         @type  pattern: str
         @param pattern:
-            Hexadecimal pattern matching with wildcards. 
+            Hexadecimal pattern matching with wildcards.
 
             Hex patterns must be in this form::
                 "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"

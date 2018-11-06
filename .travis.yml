@@ -10,11 +10,11 @@ python:
 sudo: false
 
 install:
- - pip install pyflakes
+ - pip install flake8
 
 script:
  # Static analysis
- - pyflakes .
+ - flake8 --ignore=E,F403,F405,W503,W504 .
 
 matrix:
   fast_finish: true

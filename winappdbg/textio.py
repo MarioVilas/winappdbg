@@ -310,7 +310,7 @@ class HexInput (StaticClass):
             if line:
                 try:
                     value = cls.integer(line)
-                except ValueError, e:
+                except ValueError:
                     value = line
                 result.append(value)
         return result

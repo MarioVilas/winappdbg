@@ -35,7 +35,7 @@ Wrapper for user32.dll in ctypes.
 from defines import *  # NOQA
 from version import bits
 from kernel32 import GetLastError, SetLastError
-from gdi32 import POINT, PPOINT, LPPOINT, RECT, PRECT, LPRECT
+from gdi32 import POINT, LPPOINT, RECT, LPRECT
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -545,7 +545,7 @@ class Rect(object):
         elif index == 3:
             self.bottom = value
         else:
-            raise IndexError, "index out of range"
+            raise IndexError("index out of range")
 
     @property
     def _as_parameter_(self):

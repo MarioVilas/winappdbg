@@ -48,12 +48,10 @@ __all__ = ['Process']
 import win32
 from textio import HexDump, HexInput
 from util import Regenerator, PathOperations, MemoryAddresses
-from module import Module, _ModuleContainer
+from module import _ModuleContainer
 from thread import Thread, _ThreadContainer
-from window import Window
 from search import Search, \
-                   Pattern, StringPattern, IStringPattern, HexPattern, \
-                   MemoryAccessWarning
+                   Pattern, StringPattern, IStringPattern, HexPattern
 from disasm import Disassembler
 
 import re
@@ -69,7 +67,7 @@ from os import getenv
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError, getenv
+    from winappdbg.win32 import WindowsError, getenv  # NOQA
 
 # delayed import
 System = None
@@ -211,7 +209,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         try:
             self.close_handle()
-        except Exception, e:
+        except Exception:
             warnings.warn(
                 "Failed to close process handle: %s" % traceback.format_exc())
 
@@ -2516,7 +2514,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: An exception is raised on error.
         """
         try:
-            mbi = self.mquery(address)
+            self.mquery(address)
         except WindowsError, e:
             if e.winerror == win32.ERROR_INVALID_PARAMETER:
                 return False
@@ -3040,7 +3038,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             try:
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
-            except WindowsError, e:
+            except WindowsError, e:  # NOQA
                 #try:
                 #    msg = "Can't get mapped file name at address %s in process " \
                 #          "%d, reason: %s" % (HexDump.address(baseAddress),
@@ -3494,7 +3492,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             aThread.pInjectedMemory = lpStartAddress
 
         # Free the memory on error.
-        except Exception, e:
+        except Exception:
             self.free(lpStartAddress)
             raise
 
@@ -4481,7 +4479,7 @@ class _ProcessContainer (object):
         for aProcess in self.__processDict.itervalues():
             try:
                 aProcess.scan_modules()
-            except WindowsError, e:
+            except WindowsError:
                 complete = False
         return complete
 
@@ -4891,7 +4889,6 @@ class _ProcessContainer (object):
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwProcessId = event.get_pid()
-        dwThreadId  = event.get_tid()
         hProcess    = event.get_process_handle()
 ##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
         if dwProcessId not in self.__processDict:
