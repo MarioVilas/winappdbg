@@ -499,7 +499,7 @@ class HexDump (StaticClass):
             integer_size = cls.integer_size
         else:
             integer_size = bits / 4
-        return ('%%.%dX' % integer_size) % integer
+        return ('%%.%dX' % integer_size) % (integer,)
 
     @classmethod
     def address(cls, address, bits = None):
@@ -522,7 +522,7 @@ class HexDump (StaticClass):
             address_size = bits / 4
         if address < 0:
             address = ((2 ** bits) - 1) ^ ~address
-        return ('%%.%dX' % address_size) % address
+        return ('%%.%dX' % address_size) % (address,)
 
     @staticmethod
     def printable(data):
