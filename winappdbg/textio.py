@@ -1135,7 +1135,7 @@ class Table (object):
         width   = self.__width
         len_old = len(width)
         len_new = len(row)
-        known   = min(len_old, len_new)
+        #known   = min(len_old, len_new)
         missing = len_new - len_old
         if missing > 0:
             width.extend( len_row[ -missing : ] )

@@ -1872,7 +1872,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             addr, size = self.input_address_range(token_list[:-1], pid, tid)
             minAddr = addr
             maxAddr = addr + size
-        iter = process.search_bytes(pattern)
+        iter = process.search_bytes(
+                pattern, minAddr = minAddr, maxAddr = maxAddr)
         if process.get_bits() == 32:
             addr_width = 8
         else:
@@ -1900,7 +1901,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             addr, size = self.input_address_range(token_list[:-1], pid, tid)
             minAddr = addr
             maxAddr = addr + size
-        iter = process.search_hexa(pattern)
+        iter = process.search_hexa(
+                pattern, minAddr = minAddr, maxAddr = maxAddr)
         if process.get_bits() == 32:
             addr_width = 8
         else:
