@@ -2592,7 +2592,7 @@ class _BreakpointContainer (object):
         key = (dwProcessId, address)
         if key not in self.__pageBP:
             msg = "No breakpoint at process %d, address %s"
-            address = HexDump.addresS(address)
+            address = HexDump.address(address)
             raise KeyError(msg % (dwProcessId, address))
         return self.__pageBP[key]
 
