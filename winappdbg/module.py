@@ -620,7 +620,7 @@ class Module (object):
         """
         found = None
         for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
-           
+
             if SymbolAddress > address:
                 continue
             if SymbolAddress + SymbolSize > address:
