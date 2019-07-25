@@ -602,8 +602,6 @@ class Module (object):
         found = (SymbolStartName, SymbolStartAddress, 0)
         return found
 
-        
-
     def get_symbol_at_address(self, address):
         """
         Tries to find the closest matching symbol for the given address.
@@ -629,6 +627,7 @@ class Module (object):
         if found == None:
             found = self.get_symbol_from_list(address)
         return found
+
 #------------------------------------------------------------------------------
 
     def get_label(self, function = None, offset = None):
