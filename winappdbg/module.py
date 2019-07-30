@@ -594,11 +594,11 @@ class Module (object):
             SymList[SymbolAddress] = SymbolName
         SortedSymList = sorted(SymList.items())
         for SymbolAddress,SymbolName in SortedSymList:
-            if SymbolAddress < address:
+            if SymbolAddress <= address:
                 SymbolStartAddress = SymbolAddress
                 SymbolStartName = SymbolName
             else:
-                continue
+                break
         found = (SymbolStartName, SymbolStartAddress, 0)
         return found
 
