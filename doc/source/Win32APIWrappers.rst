@@ -24,7 +24,6 @@ Example #1: finding a DLL in the search path
 
 .. literalinclude:: ../../examples/win32_api_wrappers/01_search_path.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #2: killing a process by attaching to it
 ++++++++++++++++++++++++++++++++++++++++++++++++

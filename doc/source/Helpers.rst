@@ -386,4 +386,4 @@ Example #5: pathname and filename handling
 
 .. literalinclude:: ../../examples/helpers/05_path.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
+

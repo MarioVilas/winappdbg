@@ -18,7 +18,7 @@ Welcome to WinAppDbg |version|!
 
 The *WinAppDbg* python module allows developers to quickly code instrumentation scripts in **Python** under a **Windows** environment.
 
-It uses **ctypes** to wrap many `Win32 API <https://msdn.microsoft.com/en-us/library/ms679304(VS.85).aspx>`_ calls related to debugging, and provides a powerful abstraction layer to manipulate threads, libraries and processes, attach your script as a debugger, trace execution, hook API calls, handle events in your debugee and set breakpoints of different kinds (code, hardware and memory). Additionally it has no native code at all, making it easier to maintain or modify than other debuggers on Windows.
+It uses **ctypes** to wrap many `Win32 API <https://docs.microsoft.com/en-us/windows/win32/debug/debugging-reference>`_ calls related to debugging, and provides a powerful abstraction layer to manipulate threads, libraries and processes, attach your script as a debugger, trace execution, hook API calls, handle events in your debugee and set breakpoints of different kinds (code, hardware and memory). Additionally it has no native code at all, making it easier to maintain or modify than other debuggers on Windows.
 
 The intended audience are QA engineers and software security auditors wishing to test or fuzz Windows applications with quickly coded Python scripts. Several :ref:`ready to use tools <tools>` are shipped and can be used for this purposes.
 
@@ -61,6 +61,7 @@ Here is a list of software projects that use *WinAppDbg* in alphabetical order:
 
 And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit your needs, also in alphabetical order:
 
+* `InfinityHook <https://github.com/everdox/InfinityHook>`_ lets you hook system calls, context switches, page faults, DPCs and more. *InfinityHook* works along side Patchguard and VBS/Hyperguard to subtly hook various kernel events. It works in Windows 7 and above. Sadly it does not have a Python wrapper at the time of writing this but if you write one and combine this tool with *WinAppDbg* please let me know! :)
 * `ImmLib <http://debugger.immunityinc.com/>`_ is a Python library to integrate your custom scripts into *Immunity Debugger*. It can only function inside the debugger, but it's the best solution if you aim at writing plugins for that debugger instead of standalone tools.
 * `OllyPython <https://code.google.com/archive/ollypython/>`_ is an *OllyDbg* plugin that integrates a Python debugger. Naturally it only works within OllyDbg and is not suitable for standalone projects.
 * `PyDbg <https://code.google.com/archive/paimei/>`_ is another debugging library for Python that is part of the *Paimei* framework, but may work separately as well. It works on Windows and OSX. It predates *WinAppDbg* by quite some time but it's also been unmaintained for long, and it only works in Python versions 2.4 and 2.5. A newer branch called `PyDbg64 <https://github.com/gdbinit/pydbg64>`_ implements 64 bit support for both platforms.
@@ -73,9 +74,9 @@ And this is a list of some alternatives to *WinAppDbg* in case it doesn't suit y
 * `PythonGdb <http://sourceware.org/gdb/wiki/PythonGdb>`_ is an embedded Python interpreter for the GNU debugger. It's already included in GDB 7.
 * `Radare <http://radare.nopcode.org>`_ is a console based multiplatform disassembler, debugger and reverse engineering framework. Python is among the languages supported for plugins and scripting.
 * `Universal Hooker (uhooker) <https://www.coresecurity.com/corelabs-research/open-source-tools/uhooker>`_ is a Python library to implement function hooks in other processes. While its functionality overlaps with some of *WinAppDbg*, the hooks implementation of *uhooker* is superior. Unfortunately the last update was in 2007. :(
-* `Vivisect <https://github.com/vivisect/vivisect>`_ (previously known as Kenshoto's vtrace debugger) is a full fledged multiplatform debugger written in Python, and a personal favorite of mine. I took a few ideas from it when designing *WinAppDbg* and, while I feel mine is more complete when it comes to Windows-specific features, this is what I'd definitely recommend for multi-OS projects.
+* `Vivisect <https://github.com/vivisect/vivisect>`_ (previously known as Kenshoto's vtrace debugger) is a full fledged multiplatform debugger written in Python, and a personal favorite of mine. I took a few ideas from it when designing *WinAppDbg* and, while I feel mine is more complete when it comes to Windows-specific features, this is what I'd definitely recommend for cross-platform projects.
 
-See also the wonderful `Python Arsenal for RE <https://erpscan.com/wp-content/uploads/2012/06/Python-arsenal-for-RE-1.1.pdf>`_ for another reference of security related Python tools.
+See also the wonderful `Python Arsenal for RE <http://pythonarsenal.com/>`_ for another reference of security related Python tools.
 
 .. only:: latex
 

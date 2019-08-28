@@ -14,7 +14,6 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
 
 .. literalinclude:: ../../examples/miscellaneous/01_debug_timeout.py
    :start-after: from __future__ import with_statement
-   :end-before: # When invoked from the command line,
 
 .. _memory-dump:
 
@@ -27,7 +26,6 @@ This is an example on how to dump the memory map and contents of a process into 
 
 .. literalinclude:: ../../examples/miscellaneous/02_memory_dump.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 .. _find-alnum:
 
@@ -57,7 +55,6 @@ This example shows all 32 bits processes the current user has permission to acce
 
 .. literalinclude:: ../../examples/miscellaneous/04_dep.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 .. _disassembler:
 
@@ -72,7 +69,6 @@ This example shows you how to list the supported disassembler engines for the de
 
 .. literalinclude:: ../../examples/miscellaneous/05_disasm.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 .. _atoms:
 

@@ -72,10 +72,6 @@ These tools were inspired by the **ptools** suite by `Nicolás Economou <https:/
 
    Terminates a process or a batch of processes.
 
-* :download:`pstrings.py <../../tools/pstrings.py>` :
-
-   Dumps all ASCII strings from a live process.
-
 Miscellaneous
 +++++++++++++
 

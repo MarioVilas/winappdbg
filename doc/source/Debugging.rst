@@ -26,7 +26,6 @@ Example #1: starting a new process and waiting for it to finish
 
 .. literalinclude:: ../../examples/debugging/01_start.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #2: attaching to a process and waiting for it to finish
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -35,7 +34,6 @@ Example #2: attaching to a process and waiting for it to finish
 
 .. literalinclude:: ../../examples/debugging/02_attach.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #3: attaching to a process by filename
 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -44,7 +42,6 @@ Example #3: attaching to a process by filename
 
 .. literalinclude:: ../../examples/debugging/03_find_and_attach.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #4: killing the debugged process when the debugger is closed
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -53,7 +50,6 @@ Example #4: killing the debugged process when the debugger is closed
 
 .. literalinclude:: ../../examples/debugging/04_kill_on_exit.py
    :start-after: from __future__ import with_statement
-   :end-before: # When invoked from the command line,
 
 .. _the-interactive-debugger:
 
@@ -222,7 +218,7 @@ Crashes are exceptions a program can't recover from (also known as second-chance
 
 Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard `pickle <https://docs.python.org/2/library/pickle.html>`_ module, or similar modules like `cerealizer <https://pypi.org/project/Cerealizer/>`_. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
 
-A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <http://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
+A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <https://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
 
 Old versions of **WinAppDbg** (1.4 and older) supported DBM databases through the *CrashContainer* class, SQLite databases with the *CrashTable* class, and SQL Server databases with the *CrashTableMSSQL* class. They are now deprecated and, while still present for backwards compatibility (for the time being) its use is not recommended.
 
@@ -331,11 +327,11 @@ These are the most important exception notification methods:
     +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | **ms_vc_exception**  | A C++ exception was raised by the debugee.               | When the debuggee calls RaiseException() with a custom exception code. This is what the implementation of throw() of the Visual Studio runtime does.                                                                                                                                    |
     +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | **breakpoint**       | A breakpoint exception was raised by the debugee.        | When a hardware fault is triggered by the `int3 opcode <http://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered. |
+    | **breakpoint**       | A breakpoint exception was raised by the debugee.        | When a hardware fault is triggered by the `int3 opcode <https://en.wikipedia.org/wiki/INT_(x86_instruction)#INT3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered. |
     +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | **single_step**      | A single step exception was raised by the debugee.       | When a hardware fault is triggered by the `trap flag <http://maven.smith.edu/~thiebaut/ArtOfAssembly/CH17/CH17-2.html#HEADING2-10>`_ or the `icebp opcode <http://www.rcollins.org/secrets/opcodes/ICEBP.html>`_, or when a hardware breakpoint set by your program is triggered.       |
     +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | **guard_page**       | A guard page exception was raised by the debugee.        | When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.                                                                                                                                  |
+    | **guard_page**       | A guard page exception was raised by the debugee.        | When a `guard page <https://docs.microsoft.com/es-es/windows/win32/memory/creating-guard-pages>`_ is hit or when a page breakpoint set by your program is triggered.                                                                                                                    |
     +----------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. only:: latex
@@ -356,7 +352,7 @@ These are the most important exception notification methods:
 
         *What does it mean?*: A breakpoint exception was raised by the debugee.
 
-        *When is it received?*: When a hardware fault is triggered by the `int3 opcode <http://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered.
+        *When is it received?*: When a hardware fault is triggered by the `int3 opcode <https://en.wikipedia.org/wiki/INT_(x86_instruction)#INT3>`_, when the process calls `DebugBreak() <http://msdn.microsoft.com/en-us/library/ms679297(VS.85).aspx>`_, or when a code breakpoint set by your program is triggered.
 
     **single_step**:
 
@@ -368,7 +364,7 @@ These are the most important exception notification methods:
 
         *What does it mean?*: A guard page exception was raised by the debugee.
 
-        *When is it received?*: When a `guard page <http://msdn.microsoft.com/en-us/library/aa366549(VS.85).aspx>`_ is hit or when a page breakpoint set by your program is triggered.
+        *When is it received?*: When a `guard page <https://docs.microsoft.com/es-es/windows/win32/memory/creating-guard-pages>`_ is hit or when a page breakpoint set by your program is triggered.
 
 In addition to all this, the *EventHandler* class provides a simple method for API hooking: the **apiHooks** class property. This property is a dictionary of tuples, specifying which API calls to hook on what DLL libraries, and what parameters does each call take (using ctypes definitions). That's it! The *EventHandler* class will automatically hooks this APIs for you when the corresponding library is loaded, and a method of your subclass will be called when entering and leaving the API function.
 

@@ -27,7 +27,6 @@ Example #1: knowing on which platform we're running
 
 .. literalinclude:: ../../examples/instrumentation/01_platform.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #2: enumerating running processes
 +++++++++++++++++++++++++++++++++++++++++
@@ -36,7 +35,6 @@ Example #2: enumerating running processes
 
 .. literalinclude:: ../../examples/instrumentation/02_show_processes.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 Example #3: starting a new process
 ++++++++++++++++++++++++++++++++++
@@ -45,7 +43,6 @@ Example #3: starting a new process
 
 .. literalinclude:: ../../examples/instrumentation/03_start.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
 
 The *System* class has many more features, so we'll be coming back to it later on in the tutorial.
 

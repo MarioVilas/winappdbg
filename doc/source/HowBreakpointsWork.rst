@@ -21,7 +21,7 @@ Similarly, page breakpoints are defined by **define_page_breakpoint**, hardware 
 Code breakpoints
 ++++++++++++++++
 
-*Code* breakpoints are implemented by inserting an `int3 instruction <https://en.wikipedia.org/wiki/INT_(x86_instruction)#INT_3>`_ (\xCC) at the address specified. When a thread tries to execute this instruction, a breakpoint exception is generated. It's global to the process because it overwrites the code to break at.
+*Code* breakpoints are implemented by inserting an `int3 instruction <https://en.wikipedia.org/wiki/INT_(x86_instruction)#INT3>`_ (\xCC) at the address specified. When a thread tries to execute this instruction, a breakpoint exception is generated. It's global to the process because it overwrites the code to break at.
 
 When hit, code breakpoints trigger a **breakpoint** event at your :ref:`event handler <the-eventhandler-class>`.
 
@@ -38,7 +38,7 @@ Where **dwProcessId** is the Id of the process where we want to set the breakpoi
 Page breakpoints
 ++++++++++++++++
 
-*Page* breakpoints are implemented by changing the `access permissions <https://msdn.microsoft.com/en-us/library/aa366899(VS.85).aspx>`_ of a given memory page. This causes a guard page exception to be generated when the given page is accessed anywhere in the code of the process.
+*Page* breakpoints are implemented by changing the `access permissions <https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ of a given memory page. This causes a guard page exception to be generated when the given page is accessed anywhere in the code of the process.
 
 When hit, page breakpoints trigger a **guard_page** event at your :ref:`event handler <the-eventhandler-class>`.
 
@@ -48,7 +48,7 @@ Let's see the signature of *define_page_breakpoint*:
    :start-after: # Page breakpoints.
    :end-before: """
 
-Where **dwProcessId** is the same. But now **address** needs to be page-aligned and **pages** is the number of pages covered by the breakpoint. This is because `VirtualProtectEx() <https://msdn.microsoft.com/en-us/library/aa366899(VS.85).aspx>`_ works only with entire pages, you can't change the access permissions on individual bytes.
+Where **dwProcessId** is the same. But now **address** needs to be page-aligned and **pages** is the number of pages covered by the breakpoint. This is because `VirtualProtectEx() <https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ works only with entire pages, you can't change the access permissions on individual bytes.
 
 .. _hardware-breakpoints:
 

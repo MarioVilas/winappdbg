@@ -73,7 +73,7 @@ Debugging Symbols
 Database storage
 ++++++++++++++++
 
-The `SQL Alchemy <http://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the ability to use a SQL database to store and find crash dumps. Most major database engines are supported.
+The `SQL Alchemy <https://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the ability to use a SQL database to store and find crash dumps. Most major database engines are supported.
 
 Other goodies
 +++++++++++++
@@ -95,7 +95,7 @@ You can also install WinAppDbg (stable versions only) from the `Cheese Shop <htt
 
     pip install winappdbg
 
-* `PyPM <https://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <https://www.activestate.com/activepython>`_)
+* `PyPM <https://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <https://www.activestate.com/products/activepython/>`_)
 
 * Easy Install (formerly from `Setuptools <https://pypi.org/project/setuptools>`_, now from `Distribute <https://pypi.org/project/distribute/>`_) ::
 
@@ -122,7 +122,7 @@ It might work, but was not tested, under *Windows 2000*, *Wine* and *ReactOS*, a
 
 Python 3 support was experimental up to *WinAppDbg 1.4*, and was dropped with *WinAppDbg 1.5*. There are currently no plans to support Python 3 in the near future - backwards compatibility would be broken and plenty of code would need to be refactored just to port it.
 
-While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <https://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <http://ironpython.net/download/>`_.
+While there are still some issues that need ironing out, it may be worth trying out faster Python interpreters such as `PyPy <https://bitbucket.org/pypy/pypy/downloads/>`_ and `IronPython <https://ironpython.net/download/>`_.
 
 If you find a bug or have a feature suggestion, don't hesitate to  `open a new issue <https://github.com/MarioVilas/winappdbg/issues>`_. Both comments and complaints are welcome! :)
 
@@ -150,7 +150,7 @@ Python interpreters
 | IronPython 2.0 and newer | *experimental*  | Some compatibility issues need fixing.                         |
 +--------------------------+-----------------+----------------------------------------------------------------+
 | Jython 2.5 and earlier   | *not supported* | Support for ctypes is                                          |
-|                          |                 | `incomplete <http://bugs.jython.org/issue1328>`_               |
+|                          |                 | `incomplete <https://bugs.jython.org/issue2148>`_              |
 |                          |                 | in this platform.                                              |
 +--------------------------+-----------------+----------------------------------------------------------------+
 
