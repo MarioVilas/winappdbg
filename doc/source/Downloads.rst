@@ -95,7 +95,7 @@ You can also install WinAppDbg (stable versions only) from the `Cheese Shop <htt
 
     pip install winappdbg
 
-* `PyPM <https://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <https://www.activestate.com/products/activepython/>`_)
+* `PyPM <https://code.activestate.com/pypm/search%3Awinappdbg/>`_ (only when using `ActivePython <https://www.activestate.com/products/python/>`_)
 
 * Easy Install (formerly from `Setuptools <https://pypi.org/project/setuptools>`_, now from `Distribute <https://pypi.org/project/distribute/>`_) ::
 
