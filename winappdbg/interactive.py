@@ -5,7 +5,7 @@
 #  Nicolas Economou, for his command line debugger on which this is inspired.
 #  http://tinyurl.com/nicolaseconomou
 
-# Copyright (c) 2009-2018, Mario Vilas
+# Copyright (c) 2009-2020, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
