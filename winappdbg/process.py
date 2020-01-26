@@ -1556,12 +1556,12 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     def read_char(self, lpBaseAddress):
         """
-        Reads a single character to the memory of the process.
+        Reads a single character from the memory of the process.
 
         @see: L{peek_char}
 
         @type  lpBaseAddress: int
-        @param lpBaseAddress: Memory address to begin writing.
+        @param lpBaseAddress: Memory address to begin reading.
 
         @rtype:  int
         @return: Character value read from the process memory.
@@ -1757,6 +1757,40 @@ class Process (_ThreadContainer, _ModuleContainer):
         @raise WindowsError: On error an exception is raised.
         """
         self.__write_c_type(lpBaseAddress, '@P', unpackedValue)
+
+    def read_word(self, lpBaseAddress):
+        """
+        Reads a WORD from the memory of the process.
+
+        @see: L{peek_word}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin reading.
+
+        @rtype:  WORD
+        @return: Integer value read from the process memory.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        return self.__read_c_type(lpBaseAddress, '=H', win32.WORD)
+
+    def write_word(self, lpBaseAddress, unpackedValue):
+        """
+        Writes a WORD to the memory of the process.
+
+        @note: Page permissions may be changed temporarily while writing.
+
+        @see: L{poke_word}
+
+        @type  lpBaseAddress: int
+        @param lpBaseAddress: Memory address to begin writing.
+
+        @type  unpackedValue: WORD
+        @param unpackedValue: Value to write.
+
+        @raise WindowsError: On error an exception is raised.
+        """
+        self.__write_c_type(lpBaseAddress, '=H', unpackedValue)
 
     def read_dword(self, lpBaseAddress):
         """
