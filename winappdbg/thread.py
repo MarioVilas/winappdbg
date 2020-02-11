@@ -960,8 +960,8 @@ class Thread (object):
         Linear addresses can be used to access a process memory,
         calling L{Process.read} and L{Process.write}.
 
-        @type  segment: str
-        @param segment: Segment register name.
+        @type  segment: str or long
+        @param segment: Segment register name or DWORD descriptor table index.
 
         @type  address: int
         @param address: Segment relative memory address.
@@ -975,8 +975,22 @@ class Thread (object):
             The current architecture does not support selectors.
             Selectors only exist in x86-based systems.
         """
+
+        selector = None
+
+        if isinstance(segment, str):
+            selector = self.get_register(segment)
+        elif isinstance(segment, long):
+            if segment < 0 or segment > 0xFFFFFFFF:
+                msg = "Descriptor table index %d is an invalid DWORD."
+                msg = msg % segment
+                raise ValueError(msg)
+
+            selector = segment
+        else:
+            raise ValueError("Argument 'segment' must be a string or a DWORD.")
+
         hThread  = self.get_handle(win32.THREAD_QUERY_INFORMATION)
-        selector = self.get_register(segment)
         ldt      = win32.GetThreadSelectorEntry(hThread, selector)
         BaseLow  = ldt.BaseLow
         BaseMid  = ldt.HighWord.Bytes.BaseMid << 16
