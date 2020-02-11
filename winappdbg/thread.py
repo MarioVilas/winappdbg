@@ -960,7 +960,7 @@ class Thread (object):
         Linear addresses can be used to access a process memory,
         calling L{Process.read} and L{Process.write}.
 
-        @type  segment: str or long
+        @type  segment: str, int or long
         @param segment: Segment register name or DWORD descriptor table index.
 
         @type  address: int
@@ -980,8 +980,10 @@ class Thread (object):
 
         if isinstance(segment, str):
             selector = self.get_register(segment)
-        elif isinstance(segment, long):
-            if segment < 0 or segment > 0xFFFFFFFF:
+        elif isinstance(segment, (int, long)):
+            segment = long(segment)
+
+            if segment < 0L or segment > 0xFFFFFFFFL:
                 msg = "Descriptor table index %d is an invalid DWORD."
                 msg = msg % segment
                 raise ValueError(msg)
