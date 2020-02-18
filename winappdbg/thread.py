@@ -1002,9 +1002,17 @@ class Thread (object):
         LimitHi  = ldt.HighWord.Bits.LimitHi  << 16
         Limit    = LimitLow | LimitHi
         if address > Limit:
-            msg = "Address %s too large for segment %s (selector %d)"
-            msg = msg % (HexDump.address(address, self.get_bits()),
-                         segment, selector)
+            msg = None
+
+            if isinstance(segment, str):
+                msg = "Address %s too large for segment %s (selector %d)"
+                msg = msg % (HexDump.address(address, self.get_bits()),
+                            segment, selector)
+            else:
+                msg = "Address %s too large for segment with selector %d"
+                msg = msg % (HexDump.address(address, self.get_bits()),
+                            selector)
+
             raise ValueError(msg)
         return Base + address
 
