@@ -15,6 +15,7 @@ install:
 script:
  # Static analysis
  - flake8 --ignore=E,F403,F405,W503,W504 .
+ - python -m unittest discover
 
 matrix:
   fast_finish: true
