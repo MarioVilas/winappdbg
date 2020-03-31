@@ -585,23 +585,6 @@ class Module (object):
                 if symbol == SymbolName.lower():
                     return SymbolAddress
 
-    def get_symbol_from_list(self,address):
-        found = None
-        SymList = {}
-        SortedSymList = {}
-
-        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
-            SymList[SymbolAddress] = SymbolName
-        SortedSymList = sorted(SymList.items())
-        for SymbolAddress,SymbolName in SortedSymList:
-            if SymbolAddress <= address:
-                SymbolStartAddress = SymbolAddress
-                SymbolStartName = SymbolName
-            else:
-                break
-        found = (SymbolStartName, SymbolStartAddress, 0)
-        return found
-
     def get_symbol_at_address(self, address):
         """
         Tries to find the closest matching symbol for the given address.
@@ -616,17 +599,22 @@ class Module (object):
              - Size (in bytes)
             Returns C{None} if no symbol could be matched.
         """
-        found = None
-        for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
 
-            if SymbolAddress > address:
-                continue
-            if SymbolAddress + SymbolSize > address:
-                if not found or found[1] < SymbolAddress:
-                    found = (SymbolName, SymbolAddress, SymbolSize)
-        if found == None:
-            found = self.get_symbol_from_list(address)
-        return found
+        res = None
+
+        for Symbol in self.iter_symbols():
+            SymbolName, SymbolAddress, SymbolSize = Symbol
+
+            if SymbolAddress <= address:
+                symBeginsAfterMatch = res and SymbolAddress > res[1]
+                symIncludesAddr = SymbolAddress + SymbolSize > address
+
+                if (not res
+                    or not res[2] and (symBeginsAfterMatch or symIncludesAddr)
+                    or res[2] and symBeginsAfterMatch and symIncludesAddr):
+                    res = Symbol
+
+            return res
 
 #------------------------------------------------------------------------------
 
