@@ -56,4 +56,3 @@ class ModuleTests(unittest.TestCase):
         self.assertSymbolAtAddressEqual(0x0142, ("__jj_49", 0x0140, 0))
         self.assertSymbolAtAddressEqual(0x493F, ("__ref_thesaurus", 0x1000, 0))
         self.assertSymbolAtAddressEqual(0xFF7A, ("isMatched", 0xFF42, 0x0090))
-
