@@ -40,6 +40,11 @@ class ModuleTests(unittest.TestCase):
 
     @mock.patch('winappdbg.Module.iter_symbols')
     def test_get_symbol_at_address(self, mock_iter_symbols):
+
+        mock_iter_symbols.return_value = []
+
+        self.assertSymbolAtAddressEqual(0x1234, None)
+
         mock_iter_symbols.return_value = [("matchPattern", 0x002A, 0x10),
                                         ("isMatched", 0xFF42, 0x0090),
                                         ("__ii_95", 0x0102, 0),
@@ -50,9 +55,11 @@ class ModuleTests(unittest.TestCase):
                                         ("numGroups", 0x001F, 0),
                                         ("__comp_state", 0x003C, 0x0004)]
 
+        self.assertSymbolAtAddressEqual(0x0009, None)
         self.assertSymbolAtAddressEqual(0x000A, ("groupSize", 0x000A, 0))
         self.assertSymbolAtAddressEqual(0x0029, ("numGroups", 0x001F, 0))
         self.assertSymbolAtAddressEqual(0x0141, ("iter_int32", 0x009E, 0x00A4))
         self.assertSymbolAtAddressEqual(0x0142, ("__jj_49", 0x0140, 0))
-        self.assertSymbolAtAddressEqual(0x493F, ("__ref_thesaurus", 0x1000, 0))
+        self.assertSymbolAtAddressEqual(0x493F,
+                                        ("__ref_thesaurus", 0x1000, 0x07F0))
         self.assertSymbolAtAddressEqual(0xFF7A, ("isMatched", 0xFF42, 0x0090))
