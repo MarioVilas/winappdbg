@@ -600,21 +600,24 @@ class Module (object):
             Returns C{None} if no symbol could be matched.
         """
 
-        res = None
+        match = None
 
         for Symbol in self.iter_symbols():
             SymbolName, SymbolAddress, SymbolSize = Symbol
 
             if SymbolAddress <= address:
-                symBeginsAfterMatch = res and SymbolAddress > res[1]
+                symBeginsAfterMatch = match and SymbolAddress > match[1]
                 symIncludesAddr = SymbolAddress + SymbolSize > address
+                matchIncludesAddr = match and match[1] + match[2] > address
 
-                if (not res
-                    or not res[2] and (symBeginsAfterMatch or symIncludesAddr)
-                    or res[2] and symBeginsAfterMatch and symIncludesAddr):
-                    res = symbol
+                if (not match
+                    or not matchIncludesAddr
+                        and (symBeginsAfterMatch or symIncludesAddr)
+                    or matchIncludesAddr
+                        and (symBeginsAfterMatch and symIncludesAddr)):
+                    match = Symbol
 
-            return res
+        return match
 
 #------------------------------------------------------------------------------
 
