@@ -600,15 +600,12 @@ class Module (object):
             Returns C{None} if no symbol could be matched.
         """
         result = None
-        symbols = [
-            (SymbolAddress, SymbolName)
-            for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols()
-            ]
+        symbols = self.get_symbols()
         symbols.sort()
-        for SymbolAddress, SymbolName in symbols:
+        for SymbolAddress, SymbolName, SymbolSize in symbols:
             if SymbolAddress > address:
                 break
-            result = (SymbolName, SymbolAddress, 0)
+            result = (SymbolName, SymbolAddress, SymbolSize)
         return result
 
 #------------------------------------------------------------------------------
