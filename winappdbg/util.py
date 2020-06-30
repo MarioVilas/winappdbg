@@ -75,7 +75,7 @@ __all__ = [
 import os
 import optparse
 
-import win32
+from . import win32
 
 # Cygwin compatibility.
 try:
@@ -294,6 +294,9 @@ class PathOperations (StaticClass):
         # XXX TODO
         # There are probably some native paths that
         # won't be converted by this naive approach.
+        if isinstance(name, bytes):
+            name = name.decode()
+
         if name.startswith("\\"):
             if name.startswith("\\??\\"):
                 name = name[4:]
@@ -303,11 +306,11 @@ class PathOperations (StaticClass):
                     system_root_path = system_root_path[:-1]
                 name = system_root_path + name[11:]
             else:
-                for drive_number in xrange(ord('A'), ord('Z') + 1):
+                for drive_number in range(ord('A'), ord('Z') + 1):
                     drive_letter = '%c:' % drive_number
                     try:
                         device_native_path = win32.QueryDosDevice(drive_letter)
-                    except WindowsError, e:
+                    except WindowsError as e:
                         if e.winerror in (win32.ERROR_FILE_NOT_FOUND, \
                                                  win32.ERROR_PATH_NOT_FOUND):
                             continue
@@ -723,7 +726,7 @@ class DebugRegister (StaticClass):
 
     try:
         registerMask = win32.SIZE_T(-1).value
-    except TypeError:
+    except TypeError as e:
         if win32.SIZEOF(win32.SIZE_T) == 4:
             registerMask = 0xFFFFFFFF
         elif win32.SIZEOF(win32.SIZE_T) == 8:
@@ -765,7 +768,10 @@ class DebugRegister (StaticClass):
     )
 
     # Dr7 &= disableMask[register]
-    disableMask = tuple( [registerMask ^ x for x in enableMask] )
+    disableMask = []
+    for x in enableMask:
+        disableMask.append(registerMask ^ x)
+    disableMask = tuple(disableMask)
     del x
 
     # orMask, andMask = triggerMask[register][trigger]

@@ -806,8 +806,8 @@ class CrashLogger (object):
 
                     # Warn about duplicated options
                     if key in opt_history:
-                        print "Warning: duplicated option %s in line %d" \
-                              " of config file %s" % (key, number, config)
+                        print("Warning: duplicated option %s in line %d" \
+                              " of config file %s" % (key, number, config))
                         print
                     else:
                         opt_history.add(key)
@@ -882,7 +882,7 @@ class CrashLogger (object):
                     process = Process(dwProcessId)
                     process.open_handle()
                     process.close_handle()
-                except WindowsError, e:
+                except WindowsError as e:
                     raise ValueError("can't open process %d: %s" % (dwProcessId, e))
                 attach_targets.append(dwProcessId)
             else:
@@ -895,7 +895,7 @@ class CrashLogger (object):
                         process = Process(dwProcessId)
                         process.open_handle()
                         process.close_handle()
-                    except WindowsError, e:
+                    except WindowsError as e:
                         raise ValueError("can't open process %d: %s" % (dwProcessId, e))
                     attach_targets.append(dwProcessId)
         options.attach = attach_targets
@@ -910,7 +910,7 @@ class CrashLogger (object):
             if not ntpath.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
-                except WindowsError, e:
+                except WindowsError as e:
                     raise ValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
             token = System.argv_to_cmdline(vector)
@@ -927,7 +927,7 @@ class CrashLogger (object):
             if not ntpath.exists(filename):
                 try:
                     filename = win32.SearchPath(None, filename, '.exe')[0]
-                except WindowsError, e:
+                except WindowsError as e:
                     raise ValueError("error searching for %s: %s" % (filename, str(e)))
                 vector[0] = filename
             token = System.argv_to_cmdline(vector)
@@ -945,7 +945,7 @@ class CrashLogger (object):
                 try:
                     token  = System.get_service_from_display_name(token)
                     status = System.get_service(token)
-                except WindowsError, e:
+                except WindowsError as e:
                     raise ValueError("error searching for service %s: %s" % (token, str(e)))
             if not hasattr(status, 'ProcessId'):
                 raise ValueError("service targets not supported by the current platform")
@@ -961,15 +961,15 @@ class CrashLogger (object):
         # Warn or fail about inconsistent use of DBM databases
         if options.database and options.database.startswith('dbm://'):
             if options.memory and options.memory > 1:
-                print "Warning: using options 'dbm' and 'memory' in combination can have a severe"
-                print "  performance penalty."
+                print("Warning: using options 'dbm' and 'memory' in combination can have a severe")
+                print("  performance penalty.")
                 print
             if options.duplicates:
                 if options.verbose:
-                    print "Warning: inconsistent use of 'duplicates'"
-                    print "  DBM databases do not allow duplicate entries with the same key."
-                    print "  This means that when the same crash is found more than once it will be logged"
-                    print "  to standard output each time, but will only be saved once into the database."
+                    print("Warning: inconsistent use of 'duplicates'")
+                    print("  DBM databases do not allow duplicate entries with the same key.")
+                    print("  This means that when the same crash is found more than once it will be logged")
+                    print("  to standard output each time, but will only be saved once into the database.")
                     print
                 else:
                     msg  = "inconsistent use of 'duplicates': "
@@ -981,18 +981,18 @@ class CrashLogger (object):
                                     and (options.windowed or options.console):
             count = len(options.windowed) + len(options.console)
             print
-            print "Warning: inconsistent use of 'time_limit'"
+            print("Warning: inconsistent use of 'time_limit'")
             if count == 1:
-                print "  An execution time limit was set, but the launched process won't be killed."
+                print("  An execution time limit was set, but the launched process won't be killed.")
             else:
-                print "  An execution time limit was set, but %d launched processes won't be killed." % count
-            print "  Set 'autodetach' to false to make sure debugees are killed on exit."
-            print "  Alternatively use 'attach' instead of launching new processes."
+                print("  An execution time limit was set, but %d launched processes won't be killed." % count)
+            print("  Set 'autodetach' to false to make sure debugees are killed on exit.")
+            print("  Alternatively use 'attach' instead of launching new processes.")
             print
 
         # Warn about inconsistent use of pause and interactive
         if options.pause and options.interactive:
-            print "Warning: the 'pause' option is ignored when 'interactive' is set."
+            print("Warning: the 'pause' option is ignored when 'interactive' is set.")
             print
 
     def _parse_list(self, value):
@@ -1014,9 +1014,9 @@ class CrashLogger (object):
     def run_from_cmdline(self, args):
 
         # Show the banner
-        print "WinAppDbg crash logger"
-        print "by Mario Vilas (mvilas at gmail.com)"
-        print winappdbg.version
+        print("WinAppDbg crash logger")
+        print("by Mario Vilas (mvilas at gmail.com)")
+        print(winappdbg.version)
         print
 
         # TODO: use optparse for this!
@@ -1059,8 +1059,8 @@ class CrashLogger (object):
                 self.show_help_banner()
 
         # Catch errors and show them on screen
-        except Exception, e:
-            print "Runtime error: %s" % str(e)
+        except Exception as e:
+            print("Runtime error: %s" % str(e))
             traceback.print_exc()
             return
 
@@ -1087,7 +1087,7 @@ class CrashLogger (object):
         # TODO check if it's us already
         # TODO maybe keep a backup?
         previous = System.get_postmortem_debugger()
-        print "Previous JIT debugger was: %s" % previous
+        print("Previous JIT debugger was: %s" % previous)
 
         # Install as JIT debugger
         System.set_postmortem_debugger(cmdline)
@@ -1101,10 +1101,10 @@ class CrashLogger (object):
 
     def show_help_banner(self):
         script = ntpath.split(__file__)[1]
-        print "Usage:"
-        print "\t%s <configuration file>" % script
+        print("Usage:")
+        print("\t%s <configuration file>" % script)
         print
-        print "See example.cfg for details on the config file format."
+        print("See example.cfg for details on the config file format.")
 
     # Run the crash logger
     def run(self, config, options):
@@ -1187,7 +1187,7 @@ class CrashLogger (object):
             name = System.get_service_display_name(service)
         except WindowsError:
             name = service
-        print "Starting service \"%s\"..." % name
+        print("Starting service \"%s\"..." % name)
         # TODO: maybe add support for starting services with arguments?
         System.start_service(service)
 
@@ -1230,7 +1230,7 @@ class CrashLogger (object):
                 try:
                     debug.wait(100)
                     break
-                except WindowsError, e:
+                except WindowsError as e:
                     if e.winerror not in (win32.ERROR_SEM_TIMEOUT,
                                           win32.WAIT_TIMEOUT):
                         logger.log_exc()
@@ -1287,7 +1287,7 @@ def main(argv):
         cl = CrashLogger()
         return cl.run_from_cmdline(argv)
     except KeyboardInterrupt:
-        print "Interrupted by the user!"
+        print("Interrupted by the user!")
 
 if __name__ == '__main__':
     try:

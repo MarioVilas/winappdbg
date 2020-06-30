@@ -171,7 +171,7 @@ __all__ =   [
                 'Module',
                 'DebugSymbolsWarning',
 
-                # from process import *
+                # from .process import *
                 'Process',
 
                 # from system import *
@@ -227,24 +227,24 @@ __all__ =   [
             ]
 
 # Import all public symbols
-from breakpoint import *  # NOQA
-from crash import *  # NOQA
-from debug import *  # NOQA
-from disasm import *  # NOQA
-from event import *  # NOQA
-from interactive import *  # NOQA
-from module import *  # NOQA
-from process import *  # NOQA
-from registry import *  # NOQA
-from system import *  # NOQA
-from search import *  # NOQA
-from textio import *  # NOQA
-from thread import *  # NOQA
-from util import *  # NOQA
-from window import *  # NOQA
+from .breakpoint import *  # NOQA
+from .crash import *  # NOQA
+from .debug import *  # NOQA
+from .disasm import *  # NOQA
+from .event import *  # NOQA
+from .interactive import *  # NOQA
+from .module import *  # NOQA
+from .process import *  # NOQA
+from .registry import *  # NOQA
+from .system import *  # NOQA
+from .search import *  # NOQA
+from .textio import *  # NOQA
+from .thread import *  # NOQA
+from .util import *  # NOQA
+from .window import *  # NOQA
 
-import win32
-from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+from . import win32
+from .win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
 try:
     # We need to ignore all warnings from this module because SQLAlchemy

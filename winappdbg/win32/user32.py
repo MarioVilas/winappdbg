@@ -32,10 +32,10 @@
 Wrapper for user32.dll in ctypes.
 """
 
-from defines import *  # NOQA
-from version import bits
-from kernel32 import GetLastError, SetLastError
-from gdi32 import POINT, LPPOINT, RECT, LPRECT
+from .defines import *  # NOQA
+from .version import bits
+from .kernel32 import GetLastError, SetLastError
+from .gdi32 import POINT, LPPOINT, RECT, LPRECT
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -71,7 +71,7 @@ class __WindowEnumerator (object):
     def __init__(self):
         self.hwnd = list()
     def __call__(self, hwnd, lParam):
-##        print hwnd  # XXX DEBUG
+##        print(hwnd  # XXX DEBUG)
         self.hwnd.append(hwnd)
         return TRUE
 
@@ -333,7 +333,7 @@ WM_QUERYNEWPALETTE                   = 0x30F
 WM_PALETTEISCHANGING                 = 0x310
 WM_PALETTECHANGED                    = 0x311
 WM_HOTKEY                            = 0x312
-WM_PRINT                        	 = 0x317
+WM_print                       	     = 0x317
 WM_PRINTCLIENT                       = 0x318
 WM_PENWINFIRST                       = 0x380
 WM_PENWINLAST                        = 0x38F
@@ -791,7 +791,7 @@ def GetClassNameA(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(CHAR)
     while 1:
-        lpClassName = ctypes.create_string_buffer("", nMaxCount)
+        lpClassName = ctypes.create_string_buffer(b"", nMaxCount)
         nCount = _GetClassNameA(hWnd, lpClassName, nMaxCount)
         if nCount == 0:
             raise ctypes.WinError()
@@ -832,7 +832,7 @@ def GetWindowTextA(hWnd):
     nMaxCount = 0x1000
     dwCharSize = sizeof(CHAR)
     while 1:
-        lpString = ctypes.create_string_buffer("", nMaxCount)
+        lpString = ctypes.create_string_buffer(b"", nMaxCount)
         nCount = _GetWindowTextA(hWnd, lpString, nMaxCount)
         if nCount == 0:
             raise ctypes.WinError()

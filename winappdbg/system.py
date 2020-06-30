@@ -39,12 +39,12 @@ from __future__ import with_statement
 
 __all__ = ['System']
 
-import win32
-import win32.version
-from registry import Registry
-from util import MemoryAddresses, DebugRegister, classproperty
-from process import _ProcessContainer
-from window import Window
+from . import win32
+from .win32 import version
+from .registry import Registry
+from .util import MemoryAddresses, DebugRegister, classproperty
+from .process import _ProcessContainer
+from .window import Window
 
 import os
 import glob
@@ -493,6 +493,8 @@ class System (_ProcessContainer):
             CreationTimestamp,
         )
 
+    def __iter__(self):
+        yield from super().__iter__()
 #------------------------------------------------------------------------------
 
     @classmethod
@@ -624,7 +626,7 @@ class System (_ProcessContainer):
             by_version = []
             for pathname in candidates:
                 pBlock = win32.GetFileVersionInfoA(pathname)
-                pBuffer, dwLen = win32.VerQueryValueA(pBlock, "\\")
+                pBuffer, dwLen = win32.VerQueryValueA(pBlock, b"\\")
                 if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
                     #raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
                     continue
@@ -765,7 +767,7 @@ class System (_ProcessContainer):
             if not previous or force:
                 os.environ["_NT_SYMBOL_PATH"] = symbol_store_path
             return previous
-        except Exception, e:
+        except Exception as e:
             warnings.warn("Cannot fix symbol path, reason: %s" % str(e),
                           RuntimeWarning)
 

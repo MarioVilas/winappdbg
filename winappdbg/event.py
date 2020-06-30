@@ -89,14 +89,14 @@ __all__ = [
             'ExceptionEvent'
           ]
 
-import win32
-from win32 import FileHandle, ProcessHandle, ThreadHandle
-from breakpoint import ApiHook
-from module import Module
-from thread import Thread
-from process import Process
-from textio import HexDump
-from util import StaticClass, PathOperations
+from . import win32
+from .win32 import FileHandle, ProcessHandle, ThreadHandle
+from .breakpoint import ApiHook
+from .module import Module
+from .thread import Thread
+from .process import Process
+from .textio import HexDump
+from .util import StaticClass, PathOperations
 
 import ctypes
 import warnings
@@ -544,7 +544,7 @@ class ExceptionEvent (Event):
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         data = list()
-        for index in xrange(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
+        for index in range(0, win32.EXCEPTION_MAXIMUM_PARAMETERS):
             value = info[index]
             if value is None:
                 value = 0
@@ -1395,7 +1395,7 @@ class EventHandler (object):
         # A new dictionary must be instanced, otherwise we could also be
         #  affecting all other instances of the EventHandler.
         apiHooks = dict()
-        for lib, hooks in self.apiHooks.iteritems():
+        for lib, hooks in self.apiHooks.items():
             hook_objs = []
             for proc, args in hooks:
                 if type(args) in (int, long):
@@ -1417,7 +1417,7 @@ class EventHandler (object):
             path = event.get_module().get_filename()
             if path:
                 lib_name = PathOperations.pathname_to_filename(path).lower()
-                for hook_lib, hook_api_list in self.__apiHooks.iteritems():
+                for hook_lib, hook_api_list in self.__apiHooks.items():
                     if hook_lib == lib_name:
                         result.extend(hook_api_list)
         return result
@@ -1493,15 +1493,15 @@ class EventSift(EventHandler):
             def create_process(self, event):
                 self.first = True
                 self.name = event.get_process().get_filename()
-                print "Attached to %s" % self.name
+                print("Attached to %s" % self.name)
 
             def breakpoint(self, event):
                 if self.first:
                     self.first = False
-                    print "First breakpoint reached at %s" % self.name
+                    print("First breakpoint reached at %s" % self.name)
 
             def exit_process(self, event):
-                print "Detached from %s" % self.name
+                print("Detached from %s" % self.name)
 
         # Now when debugging we use the EventSift to be able to work with
         # multiple processes while keeping our code simple. :)
@@ -1529,11 +1529,11 @@ class EventSift(EventHandler):
 
             # Handle this event globally without forwarding it.
             def output_string(self, event):
-                print "Debug string: %s" % event.get_debug_string()
+                print("Debug string: %s" % event.get_debug_string())
 
             # Handle this event globally and then forward it.
             def create_process(self, event):
-                print "New process created, PID: %d" % event.get_pid()
+                print("New process created, PID: %d" % event.get_pid())
                 return self.event(event)
 
             # All other events will be forwarded.
@@ -1846,7 +1846,7 @@ class EventDispatcher (object):
             if bCallHandler and self.__eventHandler is not None:
                 try:
                     returnValue = self.__eventHandler(event)
-                except Exception, e:
+                except Exception as e:
                     msg = ("Event handler pre-callback %r"
                            " raised an exception: %s")
                     msg = msg % (self.__eventHandler, traceback.format_exc(e))

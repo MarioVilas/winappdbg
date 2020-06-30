@@ -44,13 +44,13 @@ else:
         return int(math.log(num, 2))
 
 def main(argv):
-    print "Hex dumper using WinAppDbg"
-    print "by Mario Vilas (mvilas at gmail.com)"
+    print("Hex dumper using WinAppDbg")
+    print("by Mario Vilas (mvilas at gmail.com)")
     print
     if len(argv) != 2:
         import os
         script = os.path.basename(argv[0])
-        print "  %s <filename>" % script
+        print("  %s <filename>" % script)
         return
     with open(argv[1], 'rb') as fd:
         fd.seek(0, 2)
@@ -65,7 +65,7 @@ def main(argv):
             data = fd.read(16)
             if not data:
                 break
-            print HexDump.hexblock(data, address = address, width = width),
+            print(HexDump.hexblock(data, address = address, width = width),)
             address = address + len(data)
 
 if __name__ == '__main__':

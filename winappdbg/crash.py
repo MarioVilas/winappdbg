@@ -61,10 +61,10 @@ __all__ = [
     'DummyCrashContainer',
 ]
 
-import win32
-from system import System
-from textio import HexDump, CrashDump
-from util import StaticClass, MemoryAddresses, PathOperations
+from . import win32
+from .system import System
+from .textio import HexDump, CrashDump
+from .util import StaticClass, MemoryAddresses, PathOperations
 
 import time
 import zlib
@@ -524,7 +524,7 @@ class Crash (object):
             # Stack trace.
             try:
                 self.stackTracePretty = thread.get_stack_trace_with_labels()
-            except Exception, e:
+            except Exception as e:
                 warnings.warn(
                     "Cannot get stack trace with labels, reason: %s" % str(e),
                     CrashWarning)
@@ -535,7 +535,7 @@ class Crash (object):
                 stackTraceLabels    = [ process.get_label_at_address(ra) \
                                              for ra in self.stackTracePC ]
                 self.stackTraceLabels = tuple(stackTraceLabels)
-            except Exception, e:
+            except Exception as e:
                 warnings.warn("Cannot get stack trace, reason: %s" % str(e),
                               CrashWarning)
 
@@ -569,7 +569,7 @@ class Crash (object):
         # Get the command line for the target process.
         try:
             self.commandLine = process.get_command_line()
-        except Exception, e:
+        except Exception as e:
             warnings.warn("Cannot get command line, reason: %s" % str(e),
                           CrashWarning)
 
@@ -578,7 +578,7 @@ class Crash (object):
             self.environmentData = process.get_environment_data()
             self.environment     = process.parse_environment_data(
                                                         self.environmentData)
-        except Exception, e:
+        except Exception as e:
             warnings.warn("Cannot get environment, reason: %s" % str(e),
                           CrashWarning)
 
@@ -594,13 +594,13 @@ class Crash (object):
         # Contents of the stack frame.
         try:
             self.stackRange = thread.get_stack_range()
-        except Exception, e:
+        except Exception as e:
             warnings.warn("Cannot get stack range, reason: %s" % str(e),
                           CrashWarning)
         try:
             self.stackFrame = thread.get_stack_frame()
             stackFrame = self.stackFrame
-        except Exception, e:
+        except Exception as e:
             self.stackFrame = thread.peek_stack_data()
             stackFrame = self.stackFrame[:64]
         if stackFrame:
@@ -610,7 +610,7 @@ class Crash (object):
         self.faultCode   = thread.peek_code_bytes()
         try:
             self.faultDisasm = thread.disassemble_around_pc(32)
-        except Exception, e:
+        except Exception as e:
             warnings.warn("Cannot disassemble, reason: %s" % str(e),
                           CrashWarning)
 
@@ -1048,7 +1048,7 @@ class Crash (object):
         """
         msg = ''
         if self.environment:
-            for key, value in self.environment.iteritems():
+            for key, value in self.environment.items():
                 msg += '  %s=%s\n' % (key, value)
         return msg
 
@@ -1363,7 +1363,7 @@ class CrashContainer (object):
         @rtype:  iterator
         @return: Iterator of known L{Crash} keys.
         """
-        return self.__keys.iterkeys()
+        return self.__keys.keys()
 
     class __CrashContainerIterator (object):
         """
@@ -1383,7 +1383,7 @@ class CrashContainer (object):
             # TODO: lock the database when iterating it.
             #
             self.__container = container
-            self.__keys_iter = container.iterkeys()
+            self.__keys_iter = container.keys()
 
         def next(self):
             """
@@ -1408,7 +1408,7 @@ class CrashContainer (object):
         @rtype:  iterator
         @return: Iterator of the contained L{Crash} objects.
         """
-        return self.itervalues()
+        return self.values()
 
     def itervalues(self):
         """

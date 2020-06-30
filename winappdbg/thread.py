@@ -39,9 +39,9 @@ from __future__ import with_statement
 
 __all__ = ['Thread']
 
-import win32
-from textio import HexDump
-from window import Window
+from . import win32
+from .textio import HexDump
+from .window import Window
 
 import struct
 import warnings
@@ -167,7 +167,7 @@ class Thread (object):
     def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
-            from process import Process
+            from .process import Process
 
     def get_process(self):
         """
@@ -425,7 +425,7 @@ class Thread (object):
         """
         try:
             self.wait(0)
-        except WindowsError, e:
+        except WindowsError as e:
             error = e.winerror
             if error == win32.ERROR_ACCESS_DENIED:
                 raise
@@ -981,9 +981,9 @@ class Thread (object):
         if isinstance(segment, str):
             selector = self.get_register(segment)
         elif isinstance(segment, (int, long)):
-            segment = long(segment)
+            segment = int(segment)
 
-            if segment < 0L or segment > 0xFFFFFFFFL:
+            if segment < 0 or segment > 0xFFFFFFFF:
                 msg = "Descriptor table index %d is an invalid DWORD."
                 msg = msg % segment
                 raise ValueError(msg)
@@ -1278,7 +1278,7 @@ class Thread (object):
         """
         try:
             trace = self.__get_stack_trace(depth, False)
-        except Exception, e:
+        except Exception as e:
             import traceback
             traceback.print_exc(e)
             trace = ()
@@ -1580,12 +1580,12 @@ class Thread (object):
                                        win32.CONTEXT_INTEGER)
         aProcess    = self.get_process()
         data        = dict()
-        for (reg_name, reg_value) in context.iteritems():
+        for (reg_name, reg_value) in context.items():
             if reg_name not in peekable_registers:
                 continue
 ##            if reg_name == 'Ebp':
 ##                stack_begin, stack_end = self.get_stack_range()
-##                print hex(stack_end), hex(reg_value), hex(stack_begin)
+##                print(hex(stack_end), hex(reg_value), hex(stack_begin))
 ##                if stack_begin and stack_end and stack_end < stack_begin and \
 ##                   stack_begin <= reg_value <= stack_end:
 ##                      continue
@@ -1833,7 +1833,7 @@ class _ThreadContainer (object):
         @return: Iterator of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.iterkeys()
+        return self.__threadDict.keys()
 
     def iter_threads(self):
         """
@@ -1842,7 +1842,7 @@ class _ThreadContainer (object):
         @return: Iterator of L{Thread} objects in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.itervalues()
+        return self.__threadDict.values()
 
     def get_thread_ids(self):
         """
@@ -1990,7 +1990,7 @@ class _ThreadContainer (object):
                 te = win32.Thread32Next(hSnapshot)
         finally:
             win32.CloseHandle(hSnapshot)
-        for tid in dead_tids:
+        for tid in list(dead_tids):
             self._del_thread(tid)
 
     def clear_dead_threads(self):
@@ -2007,7 +2007,7 @@ class _ThreadContainer (object):
         """
         Clears the threads snapshot.
         """
-        for aThread in self.__threadDict.itervalues():
+        for aThread in self.__threadDict.values():
             aThread.clear()
         self.__threadDict = dict()
 
@@ -2018,7 +2018,7 @@ class _ThreadContainer (object):
         for aThread in self.iter_threads():
             try:
                 aThread.close_handle()
-            except Exception, e:
+            except Exception as e:
                 try:
                     msg = "Cannot close thread handle %s, reason: %s"
                     msg %= (aThread.hThread.value, str(e))
@@ -2080,7 +2080,7 @@ class _ThreadContainer (object):
         Private method to get the list of thread IDs currently in the snapshot
         without triggering an automatic scan.
         """
-        return self.__threadDict.keys()
+        return list(self.__threadDict)
 
     def __add_created_thread(self, event):
         """

@@ -53,8 +53,8 @@ from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
 from sqlalchemy.sql.expression import asc, desc
 
 from crash import Crash, Marshaller, pickle
-from textio import CrashDump
-import win32
+from .textio import CrashDump
+from . import win32
 
 #------------------------------------------------------------------------------
 
@@ -180,7 +180,7 @@ class BaseDAO (object):
         L{_session} instance variable.
 
     @type _echo: bool
-    @cvar _echo: Set to C{True} to print all SQL queries to standard output.
+    @cvar _echo: Set to C{True} to print(all SQL queries to standard output.)
     """
 
     _echo = False
@@ -938,7 +938,7 @@ class CrashDAO (BaseDAO):
 
         # Filter all the fields in the crashes table that are present in the
         # CrashDTO object and not set to None, except for the row ID.
-        for name, column in CrashDTO.__dict__.iteritems():
+        for name, column in CrashDTO.__dict__.items():
             if not name.startswith('__') and name not in ('id',
                                                           'signature',
                                                           'data'):

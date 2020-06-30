@@ -32,7 +32,7 @@
 Wrapper for gdi32.dll in ctypes.
 """
 
-from defines import *  # NOQA
+from .defines import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

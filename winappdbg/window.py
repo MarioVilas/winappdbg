@@ -37,7 +37,7 @@ Window instrumentation.
 
 __all__ = ['Window']
 
-import win32
+from . import win32
 
 # Cygwin compatibility.
 try:
@@ -187,12 +187,12 @@ class Window (object):
     def __load_Process_class(self):
         global Process      # delayed import
         if Process is None:
-            from process import Process
+            from .process import Process
 
     def __load_Thread_class(self):
         global Thread       # delayed import
         if Thread is None:
-            from thread import Thread
+            from .thread import Thread
 
     def get_process(self):
         """
@@ -302,7 +302,7 @@ class Window (object):
         try:
             return win32.GetWindowText( self.get_handle() )
         except WindowsError:
-            return None
+            return ""
 
     def set_text(self, text):
         """

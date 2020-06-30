@@ -51,8 +51,8 @@ __all__ = [
     'PyDasmEngine',
 ]
 
-from textio import HexDump
-import win32
+from .textio import HexDump
+from . import win32
 
 import ctypes
 import warnings
