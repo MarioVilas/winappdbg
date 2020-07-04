@@ -2575,7 +2575,7 @@ def GetProcAddressA(hModule, lpProcName):
         if lpProcName.value & (~0xFFFF):
             raise ValueError('Ordinal number too large: %d' % lpProcName.value)
     elif type(lpProcName) == type(""):
-        lpProcName = ctypes.c_char_p(lpProcName)
+        lpProcName = ctypes.c_char_p(lpProcName.encode())
     else:
         raise TypeError(str(type(lpProcName)))
     return _GetProcAddress(hModule, lpProcName)

@@ -349,6 +349,8 @@ class Module (object):
                     warnings.warn(str(e))
         else:
             modName = "0x%x" % self.get_base()
+        if isinstance(modName,bytes):
+            modName = modName.decode()
         return modName
 
     def match_name(self, name):

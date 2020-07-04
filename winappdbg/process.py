@@ -185,6 +185,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         if not self.fileName:
             self.fileName = self.get_image_name()
+        if isinstance(self.fileName, bytes):
+            self.fileName = self.fileName.decode()
         return self.fileName
 
     def open_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
