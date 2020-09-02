@@ -1934,9 +1934,17 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if fUnicode:
-            nChars = nChars * 2
-        szString = self.read(lpBaseAddress, nChars)
+        szString = ''
+        if nChars == None:
+            tmp = ''
+            while tmp != '\0':
+                szString += tmp
+                tmp = self.read(lpBaseAddress, 1)
+                lpBaseAddress += 1
+        else:
+            if fUnicode:
+                nChars = nChars * 2
+            szString = self.read(lpBaseAddress, nChars)
         if fUnicode:
             szString = unicode(szString, 'U16', 'ignore')
         return szString
