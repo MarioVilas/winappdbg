@@ -1934,9 +1934,29 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         @raise WindowsError: On error an exception is raised.
         """
-        if fUnicode:
-            nChars = nChars * 2
-        szString = self.read(lpBaseAddress, nChars)
+        szString = ''
+        if nChars == None:
+            memory = []
+            if not self.is_buffer(lpBaseAddress, 1):
+                raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
+                
+            for mbi in self.get_memory_map(lpBaseAddress):
+                if mbi.State == win32.MEM_COMMIT and \
+                                            not mbi.Protect & win32.PAGE_GUARD:
+                    memory.append( (mbi.BaseAddress, mbi.RegionSize) )
+            
+            for lpBasePage, sizePage in memory:
+                page = self.read(lpBasePage, sizePage)
+                while lpBaseAddress - lpBasePage < lpBasePage + sizePage:
+                    if page[lpBaseAddress - lpBasePage]!='\0':
+                        szString += page[lpBaseAddress - lpBasePage]
+                    else:
+                        return szString
+                    lpBaseAddress += 1
+        else:
+            if fUnicode:
+                nChars = nChars * 2
+            szString = self.read(lpBaseAddress, nChars)
         if fUnicode:
             szString = unicode(szString, 'U16', 'ignore')
         return szString
