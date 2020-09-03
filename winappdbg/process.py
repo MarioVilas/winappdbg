@@ -1937,17 +1937,22 @@ class Process (_ThreadContainer, _ModuleContainer):
         szString = ''
         if nChars == None:
             memory = []
-            for mbi in self.get_memory_map(lpBaseAddress, lpBaseAddress):
+            if not self.is_buffer(lpBaseAddress, 1):
+                raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
+                
+            for mbi in self.get_memory_map(lpBaseAddress):
                 if mbi.State == win32.MEM_COMMIT and \
                                             not mbi.Protect & win32.PAGE_GUARD:
                     memory.append( (mbi.BaseAddress, mbi.RegionSize) )
-            lpBasePage, sizePage = memory[0]
-            page = self.read(lpBasePage, sizePage)
-            for i in xrange(lpBaseAddress-lpBasePage, lpBasePage+sizePage):
-                if page[i]!='\0':
-                    szString += page[i]
-                else:
-                    break
+            
+            for lpBasePage, sizePage in memory:
+                page = self.read(lpBasePage, sizePage)
+                while lpBaseAddress - lpBasePage < lpBasePage + sizePage:
+                    if page[lpBaseAddress - lpBasePage]!='\0':
+                        szString += page[lpBaseAddress - lpBasePage]
+                    else:
+                        return szString
+                    lpBaseAddress += 1
         else:
             if fUnicode:
                 nChars = nChars * 2
