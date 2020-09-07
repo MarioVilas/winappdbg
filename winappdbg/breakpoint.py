@@ -3729,7 +3729,7 @@ class _BreakpointContainer (object):
             breakpoints are set when the DLL they point to is loaded.
         """
         label = address
-        if type(address) not in (int, long):
+        if type(address) is not int:
             try:
                 address = self.system.get_process(pid).resolve_label(address)
                 if not address:
