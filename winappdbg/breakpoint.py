@@ -548,7 +548,7 @@ class CodeBreakpoint (Breakpoint):
     typeName = 'code breakpoint'
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = '\xCC'      # int 3
+        bpInstruction = b'\xCC'      # int 3 -> make it a byte-string for py3
 
     def __init__(self, address, condition = True, action = None):
         """
@@ -3777,7 +3777,7 @@ class _BreakpointContainer (object):
             integer value for the actual address or a string with a label
             to be resolved.
         """
-        if type(address) not in (int, long):
+        if type(address) is not int:
             unknown = True
             label = address
             try:
