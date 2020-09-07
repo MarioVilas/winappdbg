@@ -1044,7 +1044,7 @@ class Hook (object):
         if arch is None:
             arch = win32.arch
         if arch == win32.ARCH_I386:
-            return _Hook_i386(*argv, **argd)
+            return _Hook_i386(**argd)
         if arch == win32.ARCH_AMD64:
             return _Hook_amd64(*argv, **argd)
         return object.__new__(cls, *argv, **argd)
