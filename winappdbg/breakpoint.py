@@ -1119,7 +1119,7 @@ class Hook (object):
 
         @type  preCBArgs: list
         @param preCBArgs: (Optional) preCB custom arguments.
-            
+
         @type  postCBArgs: list
         @param postCBArgs: (Optional) postCB custom arguments.
         """
@@ -1139,7 +1139,7 @@ class Hook (object):
             self._signature = self._calc_signature(signature)
         else:
             self._signature = None
-        
+
         self.__preCBArgs = preCBArgs
         self.__postCBArgs = postCBArgs
 
