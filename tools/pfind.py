@@ -326,14 +326,15 @@ class Main (object):
                     try:
                         data = self.process.read(address, size)
                     except WindowsError, e:
-                        begin = HexDump.address(address)
-                        end   = HexDump.address(address + size)
-                        msg   = "Error reading %s-%s: %s"
-                        msg   = msg % (begin, end, str(e))
-                        print msg
-                        if self.options.verbose:
-                            print
-                        continue
+                        if e.winerror != win32.ERROR_INVALID_ADDRESS:
+                            begin = HexDump.address(address)
+                            end   = HexDump.address(address + size)
+                            msg   = "Error reading %s-%s: %s"
+                            msg   = msg % (begin, end, str(e))
+                            print msg
+                            if self.options.verbose:
+                                print
+                            continue
                     self.search_block(data, address, 0)
 
             # If an allocation limit is set,
@@ -355,13 +356,14 @@ class Main (object):
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
                     except WindowsError, e:
-                        begin = HexDump.address(address)
-                        end   = HexDump.address(address + total_size)
-                        msg   = "Error reading %s-%s: %s"
-                        msg   = msg % (begin, end, str(e))
-                        print msg
-                        if self.options.verbose:
-                            print
+                        if e.winerror != win32.ERROR_INVALID_ADDRESS:
+                            begin = HexDump.address(address)
+                            end   = HexDump.address(address + total_size)
+                            msg   = "Error reading %s-%s: %s"
+                            msg   = msg % (begin, end, str(e))
+                            print msg
+                            if self.options.verbose:
+                                print
 
     def search_block(self, data, address, shift):
         self.search_block_with(self.options.string,  data, address, shift)
