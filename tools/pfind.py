@@ -195,9 +195,13 @@ class Main (object):
         search = optparse.OptionGroup(self.parser, "What to search",
                     "(at least one of these switches must be used)")
         search.add_option("-s", "--string", action="append", metavar="VALUE",
-                          help="where VALUE is case sensitive text")
+                          help="where VALUE is case sensitive ANSI text")
         search.add_option("-i", "--istring", action="append", metavar="VALUE",
-                          help="where VALUE is case insensitive text")
+                          help="where VALUE is case insensitive ANSI text")
+        search.add_option("-S", "--ustring", action="append", metavar="VALUE",
+                          help="where VALUE is case sensitive Unicode text")
+        search.add_option("-I", "--iustring", action="append", metavar="VALUE",
+                          help="where VALUE is case insensitive Unicode text")
         search.add_option("-x", "--hexa", action="append", metavar="VALUE",
                           help="where VALUE is hexadecimal data")
         search.add_option("-p", "--pattern", action="append", metavar="VALUE",
@@ -226,6 +230,8 @@ class Main (object):
         self.parser.set_defaults(
                    string = [],
                   istring = [],
+                  ustring = [],
+                 iustring = [],
                      hexa = [],
                   pattern = [],
                    regexp = [],
@@ -240,11 +246,31 @@ class Main (object):
         self.targets = self.targets[1:]
 
         # Fail if no search query was entered
-        if not self.options.string  and \
-           not self.options.istring and \
-           not self.options.hexa    and \
+        if not self.options.string   and \
+           not self.options.istring  and \
+           not self.options.ustring  and \
+           not self.options.iustring and \
+           not self.options.hexa     and \
            not self.options.pattern:
                self.parser.error("at least one search switch must be used")
+
+        # Convert the Unicode strings into ANSI strings internally.
+        # XXX TODO I know this works for Western text but I need to try this
+        # with for example Chinese strings to make sure this hack holds.
+        for s in self.options.ustring:
+            try:
+                s = s.decode("cp1252").encode("utf16")[2:]
+            except Exception:
+                self.parser.error("Failed to encode Unicode string!")
+            self.options.string.append(s)
+        self.options.ustring = []
+        for s in self.options.iustring:
+            try:
+                s = s.decode("cp1252").encode("utf16")[2:]
+            except Exception:
+                self.parser.error("Failed to encode Unicode string!")
+            self.options.istring.append(s)
+        self.options.iustring = []
 
     def prepare_input(self):
 
