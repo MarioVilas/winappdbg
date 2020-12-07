@@ -548,7 +548,7 @@ class CodeBreakpoint (Breakpoint):
     typeName = 'code breakpoint'
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = '\xCC'      # int 3
+        bpInstruction = b'\xCC'      # int 3 -> make it a byte-string for py3
 
     def __init__(self, address, condition = True, action = None):
         """
@@ -1044,9 +1044,9 @@ class Hook (object):
         if arch is None:
             arch = win32.arch
         if arch == win32.ARCH_I386:
-            return _Hook_i386(*argv, **argd)
+            return _Hook_i386(**argd)
         if arch == win32.ARCH_AMD64:
-            return _Hook_amd64(*argv, **argd)
+            return _Hook_amd64(**argd)
         return object.__new__(cls, *argv, **argd)
 
     # XXX FIXME
@@ -3729,7 +3729,7 @@ class _BreakpointContainer (object):
             breakpoints are set when the DLL they point to is loaded.
         """
         label = address
-        if type(address) not in (int, long):
+        if type(address) is not int:
             try:
                 address = self.system.get_process(pid).resolve_label(address)
                 if not address:
@@ -3777,7 +3777,7 @@ class _BreakpointContainer (object):
             integer value for the actual address or a string with a label
             to be resolved.
         """
-        if type(address) not in (int, long):
+        if type(address) is not int:
             unknown = True
             label = address
             try:
