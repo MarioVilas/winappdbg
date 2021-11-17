@@ -1363,7 +1363,6 @@ class Thread (object):
             or reading data from the process memory.
         """
         sp, fp   = self.get_stack_frame_range()
-        print(sp,fp)
         size     = fp - sp
         if max_size and size > max_size:
             size = max_size
