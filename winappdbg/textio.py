@@ -1357,8 +1357,7 @@ class CrashDump (StaticClass):
         """
         if None in (registers, data):
             return ''
-        names = data.keys()
-        names.sort()
+        names = sorted(data)
         result = ''
         for reg_name in names:
             tag     = reg_name.lower()
@@ -1390,8 +1389,7 @@ class CrashDump (StaticClass):
         """
         if data is None:
             return ''
-        pointers = data.keys()
-        pointers.sort()
+        pointers = sorted(data)
         result = ''
         for offset in pointers:
             dumped  = HexDump.hexline(data[offset], separator, width)
@@ -1427,8 +1425,7 @@ class CrashDump (StaticClass):
             return ''
         if arch is None:
             arch = win32.arch
-        pointers = data.keys()
-        pointers.sort()
+        pointers = sorted(data)
         result = ''
         if pointers:
             if arch == win32.ARCH_I386:

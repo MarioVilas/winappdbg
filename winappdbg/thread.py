@@ -50,7 +50,7 @@ import warnings
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from win32 import WindowsError
 
 # delayed imports
 Process = None
@@ -1363,6 +1363,7 @@ class Thread (object):
             or reading data from the process memory.
         """
         sp, fp   = self.get_stack_frame_range()
+        print(sp,fp)
         size     = fp - sp
         if max_size and size > max_size:
             size = max_size

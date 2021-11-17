@@ -3707,8 +3707,8 @@ def ReadProcessMemory(hProcess, lpBaseAddress, nSize):
     lpBuffer            = ctypes.create_string_buffer(b'', nSize)
     lpNumberOfBytesRead = SIZE_T(0)
     success = _ReadProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, byref(lpNumberOfBytesRead))
-    if not success and GetLastError() != ERROR_PARTIAL_COPY:
-        raise ctypes.WinError()
+    #if not success and GetLastError() != ERROR_PARTIAL_COPY:
+    #    raise ctypes.WinError()
     return (lpBuffer.raw)[:lpNumberOfBytesRead.value]
 
 # BOOL WINAPI WriteProcessMemory(

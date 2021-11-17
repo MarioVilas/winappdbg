@@ -68,7 +68,7 @@ from os import getenv
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError, getenv  # NOQA
+    from win32 import WindowsError, getenv  # NOQA
 
 # delayed import
 System = None
@@ -1161,7 +1161,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         # renders garbage.
 
         # Read the environment block contents.
-        data = self.peek( *self.get_environment_block() )
+
+        eb_address,eb_size = self.get_environment_block()
+        data = self.peek(eb_address,eb_size)
+
 
         # Put them into a Unicode buffer.
         tmp = ctypes.create_string_buffer(data)
@@ -1260,6 +1263,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Get the environment variables.
         block = [ key + u'=' + value for (key, value) \
                                      in self.get_environment_variables() ]
+
 
         # Convert the data to ANSI if requested.
         if fUnicode is None:
@@ -1967,8 +1971,9 @@ class Process (_ThreadContainer, _ModuleContainer):
     def __peek_c_type(self, address, format, c_type):
         size = ctypes.sizeof(c_type)
         packed = self.peek(address, size)
+
         if len(packed) < size:
-            packed = '\0' * (size - len(packed)) + packed
+            packed = b'\0' * (size - len(packed)) + packed
         elif len(packed) > size:
             packed = packed[:size]
         return struct.unpack(format, packed)[0]

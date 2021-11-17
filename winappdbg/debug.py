@@ -50,6 +50,8 @@ from .breakpoint import _BreakpointContainer
 from .event import Event, EventDispatcher, EventFactory
 from .interactive import ConsoleDebugger
 
+from time import time
+
 import warnings
 ##import traceback
 
@@ -57,7 +59,7 @@ import warnings
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from win32 import WindowsError
 
 #==============================================================================
 
@@ -505,7 +507,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
             # Warn when mixing 32 and 64 bits.
             # This also allows the user to stop attaching altogether,
             # depending on how the warnings are configured.
-            if System.bits != aProcess.get_bits():
+            BITS_WARNING_FLAG = False
+            if System.bits != aProcess.get_bits() and BITS_WARNING_FLAG:
                 msg = "Mixture of 32 and 64 bits is considered experimental." \
                       " Use at your own risk!"
                 warnings.warn(msg, MixedBitsWarning)
@@ -1063,7 +1066,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Close all Win32 handles the Python garbage collector failed to close.
         self.force_garbage_collection(bIgnoreExceptions)
 
-    def next(self):
+    def next(self,time_limit_in_seconds = 0):
         """
         Handles the next debug event.
 
@@ -1079,16 +1082,21 @@ class Debug (EventDispatcher, _BreakpointContainer):
             event handler raises an exception nobody catches.
         """
         try:
-            event = self.wait()  # NOQA
+            try:
+                event = self.wait(time_limit_in_seconds * 1000)  # NOQA
+            except WindowsError:
+                if time_limit_in_seconds == 0:
+                    pass
+                else:
+                    raise
         except Exception:
             self.stop()
-            raise
         try:
             self.dispatch()
         finally:
             self.cont()
 
-    def loop(self):
+    def loop(self,time_limit_in_seconds = 0):
         """
         Simple debugging loop.
 
@@ -1118,8 +1126,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
             continued before returning. This may happen, for example, if the
             event handler raises an exception nobody catches.
         """
+
         while self:
-            self.next()
+            self.next(time_limit_in_seconds)
 
     def get_debugee_count(self):
         """

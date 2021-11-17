@@ -56,7 +56,7 @@ import traceback
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from win32 import WindowsError
 
 #==============================================================================
 
@@ -604,7 +604,7 @@ class Module (object):
         result = None
         symbols = self.get_symbols()
         symbols.sort()
-        for SymbolAddress, SymbolName, SymbolSize in symbols:
+        for SymbolName, SymbolAddress, SymbolSize in symbols:
             if SymbolAddress > address:
                 break
             result = (SymbolName, SymbolAddress, SymbolSize)
@@ -1141,7 +1141,7 @@ class _ModuleContainer (object):
         # Validate the parameters.
         if module is not None and ('!' in module or '+' in module):
             raise ValueError("Invalid module name: %s" % module)
-        if function is not None and ('!' in function or '+' in function):
+        if function is not None and ('!' in str(function) or '+' in str(function)):
             raise ValueError("Invalid function name: %s" % function)
 
         # Parse the label.
