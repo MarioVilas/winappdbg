@@ -1,8 +1,3 @@
-I modified the project WinAppDbg so it can be running with python 3.
-
-Test:
-	I have tested almost the python files in the examples and tools folders with python 3.7.7. 
-
 What is WinAppDbg?
 ==================
 
