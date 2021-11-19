@@ -32,9 +32,9 @@
 Wrapper for dbghelp.dll in ctypes.
 """
 
-from defines import *  # NOQA
-from version import *  # NOQA
-from kernel32 import *  # NOQA
+from .defines import *  # NOQA
+from .version import *  # NOQA
+from .kernel32 import *  # NOQA
 
 # DbgHelp versions and features list:
 # http://msdn.microsoft.com/en-us/library/windows/desktop/ms679294(v=vs.85).aspx

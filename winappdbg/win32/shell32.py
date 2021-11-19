@@ -36,8 +36,8 @@ Wrapper for shell32.dll in ctypes.
 # * Add a class wrapper to SHELLEXECUTEINFO
 # * More logic into ShellExecuteEx
 
-from defines import *  # NOQA
-from kernel32 import LocalFree
+from .defines import *  # NOQA
+from .kernel32 import LocalFree
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -249,7 +249,7 @@ def CommandLineToArgvW(lpCmdLine):
         if argc <= 0:
             raise ctypes.WinError()
         argv = ctypes.cast(argv, ctypes.POINTER(LPWSTR * argc) )
-        argv = [ argv.contents[i] for i in xrange(0, argc) ]
+        argv = [ argv.contents[i] for i in range(0, argc) ]
     finally:
         if vptr is not None:
             LocalFree(vptr)

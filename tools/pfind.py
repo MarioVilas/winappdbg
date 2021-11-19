@@ -285,10 +285,10 @@ class Main (object):
 
     def build_searchers_list(self, cls):
         searchers = getattr(self.options, cls.name)
-        for index in xrange(len(searchers)):
+        for index in range(len(searchers)):
             try:
                 searchers[index] = cls( searchers[index], index )
-            except Exception, e:
+            except Exception as e:
                 msg = cls.init_error_msg(index, searchers[index], e)
                 self.parser.error(msg)
 
@@ -333,7 +333,7 @@ class Main (object):
                 self.process = Process(self.pid)
                 self.process.get_handle()
             except WindowsError:
-                print "Can't open process %d, skipping" % self.pid
+                print("Can't open process %d, skipping" % self.pid)
                 if self.options.verbose:
                     print
                 continue
@@ -351,16 +351,14 @@ class Main (object):
                 for (address, size) in memory:
                     try:
                         data = self.process.read(address, size)
-                    except WindowsError, e:
-                        if e.winerror != win32.ERROR_INVALID_ADDRESS:
-                            begin = HexDump.address(address)
-                            end   = HexDump.address(address + size)
-                            msg   = "Error reading %s-%s: %s"
-                            msg   = msg % (begin, end, str(e))
-                            print msg
-                            if self.options.verbose:
-                                print
-                            continue
+                    except WindowsError as e:
+                        begin = HexDump.address(address)
+                        end   = HexDump.address(address + size)
+                        msg   = "Error reading %s-%s: %s"
+                        msg   = msg % (begin, end, str(e))
+                        if self.options.verbose:
+                            print(msg)
+                        continue
                     self.search_block(data, address, 0)
 
             # If an allocation limit is set,
@@ -381,15 +379,15 @@ class Main (object):
                                 break
                             buffer  = buffer[step:]
                             buffer  = buffer + self.process.read(address, step)
-                    except WindowsError, e:
-                        if e.winerror != win32.ERROR_INVALID_ADDRESS:
-                            begin = HexDump.address(address)
-                            end   = HexDump.address(address + total_size)
-                            msg   = "Error reading %s-%s: %s"
-                            msg   = msg % (begin, end, str(e))
-                            print msg
-                            if self.options.verbose:
-                                print
+
+                    except WindowsError as e:
+                        begin = HexDump.address(address)
+                        end   = HexDump.address(address + total_size)
+                        msg   = "Error reading %s-%s: %s"
+                        msg   = msg % (begin, end, str(e))
+                        if self.options.verbose:
+                            print(msg)
+
 
     def search_block(self, data, address, shift):
         self.search_block_with(self.options.string,  data, address, shift)
@@ -408,16 +406,16 @@ class Main (object):
                 if not searcher.found():
                     break
                 if self.options.verbose:
-                    print searcher.message(self.pid, address - shift, data)
+                    print(searcher.message(self.pid, address - shift, data))
                     print
                 else:
-                    print searcher.message(self.pid, address - shift)
+                    print(searcher.message(self.pid, address - shift))
 
     def run(self):
 
         # Banner
-        print "Process memory finder"
-        print "by Mario Vilas (mvilas at gmail.com)"
+        print("Process memory finder")
+        print("by Mario Vilas (mvilas at gmail.com)")
         print
 
         # Parse the command line

@@ -31,10 +31,10 @@
 """
 Detect the current architecture and operating system.
 
-Some functions here are really from kernel32.dll, others from version.dll.
+Some functions here are really from .kernel32.dll, others from version.dll.
 """
 
-from defines import *  # NOQA
+from .defines import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -140,6 +140,8 @@ LPVS_FIXEDFILEINFO = PVS_FIXEDFILEINFO
 #   _Out_opt_  LPDWORD lpdwHandle
 # );
 def GetFileVersionInfoA(lptstrFilename):
+    if isinstance(lptstrFilename,str):
+        lptstrFilename = lptstrFilename.encode()
     _GetFileVersionInfoA = windll.version.GetFileVersionInfoA
     _GetFileVersionInfoA.argtypes = [LPSTR, DWORD, DWORD, LPVOID]
     _GetFileVersionInfoA.restype  = bool
@@ -599,7 +601,7 @@ def GetLargePageMinimum():
 
 # HANDLE WINAPI GetCurrentProcess(void);
 def GetCurrentProcess():
-##    return 0xFFFFFFFFFFFFFFFFL
+##    return 0xFFFFFFFFFFFFFFFF
     _GetCurrentProcess = windll.kernel32.GetCurrentProcess
     _GetCurrentProcess.argtypes = []
     _GetCurrentProcess.restype  = HANDLE
@@ -607,7 +609,7 @@ def GetCurrentProcess():
 
 # HANDLE WINAPI GetCurrentThread(void);
 def GetCurrentThread():
-##    return 0xFFFFFFFFFFFFFFFEL
+##    return 0xFFFFFFFFFFFFFFFE
     _GetCurrentThread = windll.kernel32.GetCurrentThread
     _GetCurrentThread.argtypes = []
     _GetCurrentThread.restype  = HANDLE
@@ -766,7 +768,7 @@ def GetModuleFileNameA(hModule = None):
 
     nSize = MAX_PATH
     while 1:
-        lpFilename = ctypes.create_string_buffer("", nSize)
+        lpFilename = ctypes.create_string_buffer(b"", nSize)
         nCopied = _GetModuleFileNameA(hModule, lpFilename, nSize)
         if nCopied == 0:
             raise ctypes.WinError()
@@ -807,7 +809,7 @@ def GetFullPathNameA(lpFileName):
     nBufferLength = _GetFullPathNameA(lpFileName, 0, None, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer   = ctypes.create_string_buffer('', nBufferLength + 1)
+    lpBuffer   = ctypes.create_string_buffer(b'', nBufferLength + 1)
     lpFilePart = LPSTR()
     nCopied = _GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, byref(lpFilePart))
     if nCopied > nBufferLength or nCopied == 0:

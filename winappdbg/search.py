@@ -50,9 +50,9 @@ __all__ =   [
                 'MemoryAccessWarning',
             ]
 
-from textio import HexInput, HexDump
-from util import StaticClass, MemoryAddresses
-import win32
+from .textio import HexInput, HexDump
+from .util import StaticClass, MemoryAddresses
+from . import win32
 
 import warnings
 
@@ -369,7 +369,7 @@ class Search (StaticClass):
             for (address, size) in memory:
                 try:
                     data = process.read(address, size)
-                except WindowsError, e:
+                except WindowsError as e:
                     begin = HexDump.address(address)
                     end   = HexDump.address(address + size)
                     msg   = "Error reading %s-%s: %s"
@@ -401,7 +401,7 @@ class Search (StaticClass):
                             break
                         buffer  = buffer[step:]
                         buffer  = buffer + process.read(address, step)
-                except WindowsError, e:
+                except WindowsError as e:
                     begin = HexDump.address(address)
                     end   = HexDump.address(address + total_size)
                     msg   = "Error reading %s-%s: %s"

@@ -32,8 +32,8 @@
 Wrapper for shlwapi.dll in ctypes.
 """
 
-from defines import *  # NOQA
-from kernel32 import *  # NOQA
+from .defines import *  # NOQA
+from .kernel32 import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -196,7 +196,7 @@ def PathCombineA(lpszDir, lpszFile):
     _PathCombineA.argtypes = [LPSTR, LPSTR, LPSTR]
     _PathCombineA.restype  = LPSTR
 
-    lpszDest = ctypes.create_string_buffer("", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
+    lpszDest = ctypes.create_string_buffer(b"", max(MAX_PATH, len(lpszDir) + len(lpszFile) + 1))
     retval = _PathCombineA(lpszDest, lpszDir, lpszFile)
     if retval == NULL:
         return None
@@ -267,7 +267,7 @@ def PathRelativePathToA(pszFrom = None, dwAttrFrom = FILE_ATTRIBUTE_DIRECTORY, p
     # Argh, this function doesn't receive an output buffer size!
     # We'll try to guess the maximum possible buffer size.
     dwPath = max((len(pszFrom) + len(pszTo)) * 2 + 1, MAX_PATH + 1)
-    pszPath = ctypes.create_string_buffer('', dwPath)
+    pszPath = ctypes.create_string_buffer(b'', dwPath)
 
     # Also, it doesn't set the last error value.
     # Whoever coded it must have been drunk or tripping on acid. Or both.

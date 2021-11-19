@@ -85,9 +85,9 @@ def parse_cmdline(argv):
 def main(argv):
     'Main function.'
 
-    # Print the banner.
-    print "Process enumerator"
-    print "by Mario Vilas (mvilas at gmail.com)"
+    # print(the banner.)
+    print("Process enumerator")
+    print("by Mario Vilas (mvilas at gmail.com)")
     print
 
     # Parse the command line options.
@@ -109,10 +109,10 @@ def main(argv):
     except WindowsError:
         s.scan_processes_fast()
     pid_list = s.get_process_ids()
-    pid_list.sort()
     if not pid_list:
-        print "Unknown error enumerating processes!"
+        print("Unknown error enumerating processes!")
         return
+    pid_list = sorted(pid_list)
 
     # Get the filename of each process.
     filenames = dict()
@@ -149,6 +149,8 @@ def main(argv):
             continue
 
         # Remember the filename.
+        if isinstance(fileName,bytes):
+            fileName = fileName.decode()
         filenames[pid] = fileName
 
     # Get the window captions if requested.
@@ -159,6 +161,8 @@ def main(argv):
             try:
                 pid = w.get_pid()
                 text = w.get_text()
+                if text != "":
+                    text = text.decode('utf-8', "replace")
             except WindowsError:
                 continue
             try:
@@ -179,8 +183,8 @@ def main(argv):
                     srvset = set()
                     srvset.add(descriptor.ServiceName)
                     services[descriptor.ProcessId] = srvset
-        except WindowsError, e:
-            print "Error getting the list of services: %s" % str(e)
+        except WindowsError as e:
+            print("Error getting the list of services: %s" % str(e))
             return
 
     if options.format == "auto":
@@ -206,21 +210,21 @@ def main(argv):
                         srvlist.extend( [''] * (len(caplist) - len(srvlist)) )
                     if len(caplist):
                         table.addRow(' %d' % pid, fileName, caplist[0], srvlist[0])
-                        for i in xrange(1, len(caplist)):
+                        for i in range(1, len(caplist)):
                             table.addRow('', '', caplist[i], srvlist[i])
                     else:
                         table.addRow(' %d' % pid, fileName, '', '')
                 elif options.windows:
                     if len(caplist):
                         table.addRow(' %d' % pid, fileName, caplist[0])
-                        for i in xrange(1, len(caplist)):
+                        for i in range(1, len(caplist)):
                             table.addRow('', '', caplist[i])
                     else:
                         table.addRow(' %d' % pid, fileName, '')
                 elif options.services:
                     if len(srvlist):
                         table.addRow(' %d' % pid, fileName, srvlist[0])
-                        for i in xrange(1, len(srvlist)):
+                        for i in range(1, len(srvlist)):
                             table.addRow('', '', srvlist[i])
                     else:
                         table.addRow(' %d' % pid, fileName, '')

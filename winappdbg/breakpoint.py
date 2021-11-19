@@ -60,10 +60,10 @@ __all__ = [
 
     ]
 
-import win32
-from process import Process, Thread
-from util import DebugRegister, MemoryAddresses
-from textio import HexDump
+from . import win32
+from .process import Process, Thread
+from .util import DebugRegister, MemoryAddresses
+from .textio import HexDump
 
 import ctypes
 import warnings
@@ -347,7 +347,7 @@ class Breakpoint (object):
         if callable(condition):
             try:
                 return bool( condition(event) )
-            except Exception, e:
+            except Exception as e:
                 msg = ("Breakpoint condition callback %r"
                        " raised an exception: %s")
                 msg = msg % (condition, traceback.format_exc(e))
@@ -400,7 +400,7 @@ class Breakpoint (object):
         if action is not None:
             try:
                 return bool( action(event) )
-            except Exception, e:
+            except Exception as e:
                 msg = ("Breakpoint action callback %r"
                        " raised an exception: %s")
                 msg = msg % (action, traceback.format_exc(e))
@@ -548,7 +548,7 @@ class CodeBreakpoint (Breakpoint):
     typeName = 'code breakpoint'
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = '\xCC'      # int 3
+        bpInstruction = b'\xCC'      # int 3 -> make it a byte-string for py3
 
     def __init__(self, address, condition = True, action = None):
         """
@@ -681,7 +681,7 @@ class PageBreakpoint (Breakpoint):
         Breakpoint.__init__(self, address, pages * MemoryAddresses.pageSize,
                             condition, action)
 ##        if (address & 0x00000FFF) != 0:
-        floordiv_align = long(address) // long(MemoryAddresses.pageSize)
+        floordiv_align = int(address) // int(MemoryAddresses.pageSize)
         truediv_align  = float(address) / float(MemoryAddresses.pageSize)
         if floordiv_align != truediv_align:
             msg   = "Address of page breakpoint "               \
@@ -1044,9 +1044,9 @@ class Hook (object):
         if arch is None:
             arch = win32.arch
         if arch == win32.ARCH_I386:
-            return _Hook_i386(*argv, **argd)
+            return _Hook_i386(**argd)
         if arch == win32.ARCH_AMD64:
-            return _Hook_amd64(*argv, **argd)
+            return _Hook_amd64(**argd)
         return object.__new__(cls, *argv, **argd)
 
     # XXX FIXME
@@ -1149,7 +1149,7 @@ class Hook (object):
         c_wchar_p = ctypes.c_wchar_p
         _Pointer  = ctypes._Pointer
         cast      = ctypes.cast
-        for i in xrange(len(signature)):
+        for i in range(len(signature)):
             t = signature[i]
             if t is not c_void_p and (issubclass(t, _Pointer) \
                                             or t in [c_char_p, c_wchar_p]):
@@ -1377,7 +1377,7 @@ class Hook (object):
         try:
             params = self.get_params_stack(tid)[-1]
         except IndexError:
-            msg = "Hooked function called from thread %d already returned"
+            msg = "Hooked function called from .thread %d already returned"
             raise IndexError(msg % tid)
         return params
 
@@ -1395,7 +1395,7 @@ class Hook (object):
         try:
             stack = self.__paramStack[tid]
         except KeyError:
-            msg = "Hooked function was not called from thread %d"
+            msg = "Hooked function was not called from .thread %d"
             raise KeyError(msg % tid)
         return stack
 
@@ -1501,7 +1501,7 @@ class _Hook_amd64 (Hook):
         reg_float_sig = []
         stack_sig     = []
 
-        for i in xrange(len(signature)):
+        for i in range(len(signature)):
             arg  = signature[i]
             name = "arg_%d" % i
             stack_sig.append( (name, arg) )
@@ -1576,7 +1576,7 @@ class _Hook_amd64 (Hook):
                                                             FloatArguments)
                     arguments.update(float_args)
             params = tuple( [ arguments["arg_%d" % i]
-                              for i in xrange(args_count) ] )
+                              for i in range(args_count) ] )
         else:
             params = ()
         return params
@@ -1921,7 +1921,7 @@ class _BufferWatchCondition (object):
                 if bMatched and action is not None:
                     try:
                         action(event)
-                    except Exception, e:
+                    except Exception as e:
                         msg = ("Breakpoint action callback %r"
                                " raised an exception: %s")
                         msg = msg % (action, traceback.format_exc(e))
@@ -2094,7 +2094,7 @@ class _BreakpointContainer (object):
 
     def __del_running_bp_from_all_threads(self, bp):
         "Auxiliary method."
-        for (tid, bpset) in self.__runningBP.iteritems():
+        for (tid, bpset) in self.__runningBP.items():
             if bp in bpset:
                 bpset.remove(bp)
                 self.system.get_thread(tid).clear_tf()
@@ -2996,16 +2996,16 @@ class _BreakpointContainer (object):
         @rtype:  list of tuple( int, L{CodeBreakpoint} )
         @return: All code breakpoints as a list of tuples (pid, bp).
         """
-        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.iteritems() ]
+        return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.items() ]
 
     def get_all_page_breakpoints(self):
         """
         @rtype:  list of tuple( int, L{PageBreakpoint} )
         @return: All page breakpoints as a list of tuples (pid, bp).
         """
-##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.iteritems() ] ) )
+##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.items() ] ) )
         result = set()
-        for ((pid, address), bp) in self.__pageBP.iteritems():
+        for ((pid, address), bp) in self.__pageBP.items():
             result.add( (pid, bp) )
         return list(result)
 
@@ -3015,7 +3015,7 @@ class _BreakpointContainer (object):
         @return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in self.__hardwareBP.items():
             for bp in bplist:
                 result.append( (tid, bp) )
         return result
@@ -3071,7 +3071,7 @@ class _BreakpointContainer (object):
         @rtype:  list of L{CodeBreakpoint}
         @return: All code breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__codeBP.iteritems() \
+        return [ bp for ((pid, address), bp) in self.__codeBP.items() \
                 if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
@@ -3082,7 +3082,7 @@ class _BreakpointContainer (object):
         @rtype:  list of L{PageBreakpoint}
         @return: All page breakpoints for the given process.
         """
-        return [ bp for ((pid, address), bp) in self.__pageBP.iteritems() \
+        return [ bp for ((pid, address), bp) in self.__pageBP.items() \
                 if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
@@ -3096,7 +3096,7 @@ class _BreakpointContainer (object):
         @return: All hardware breakpoints for the given thread.
         """
         result = list()
-        for (tid, bplist) in self.__hardwareBP.iteritems():
+        for (tid, bplist) in self.__hardwareBP.items():
             if tid == dwThreadId:
                 for bp in bplist:
                     result.append(bp)
@@ -3594,7 +3594,7 @@ class _BreakpointContainer (object):
                 while running:
                     try:
                         running.pop().hit(event)
-                    except Exception, e:
+                    except Exception as e:
                         warnings.warn(str(e), BreakpointWarning)
 
             # Handle hardware breakpoints.
@@ -3739,7 +3739,7 @@ class _BreakpointContainer (object):
             breakpoints are set when the DLL they point to is loaded.
         """
         label = address
-        if type(address) not in (int, long):
+        if type(address) is not int:
             try:
                 address = self.system.get_process(pid).resolve_label(address)
                 if not address:
@@ -3787,7 +3787,7 @@ class _BreakpointContainer (object):
             integer value for the actual address or a string with a label
             to be resolved.
         """
-        if type(address) not in (int, long):
+        if type(address) is not int:
             unknown = True
             label = address
             try:
@@ -3852,8 +3852,8 @@ class _BreakpointContainer (object):
              - C{True} of the breakpoint is one-shot, C{False} otherwise.
         """
         result = []
-        for pid, deferred in self.__deferredBP.iteritems():
-            for (label, (action, oneshot)) in deferred.iteritems():
+        for pid, deferred in self.__deferredBP.items():
+            for (label, (action, oneshot)) in deferred.items():
                 result.add( (pid, label, action, oneshot) )
         return result
 
@@ -3872,7 +3872,7 @@ class _BreakpointContainer (object):
         """
         return [ (label, action, oneshot)
                   for (label, (action, oneshot))
-                  in self.__deferredBP.get(dwProcessId, {}).iteritems() ]
+                  in self.__deferredBP.get(dwProcessId, {}).items() ]
 
     def stalk_at(self, pid, address, action = None):
         """

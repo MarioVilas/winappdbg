@@ -51,8 +51,8 @@ __all__ = [
     'PyDasmEngine',
 ]
 
-from textio import HexDump
-import win32
+from .textio import HexDump
+from . import win32
 
 import ctypes
 import warnings
@@ -509,7 +509,7 @@ class CapstoneEngine (Engine):
         try:
             self.__bug = not isinstance(
                 list(capstone.cs_disasm_quick(
-                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, "\x90", 1
+                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, b"\x90", 1
                 ))[0],
                 capstone.capstone.CsInsn
             )
@@ -609,10 +609,10 @@ class CapstoneEngine (Engine):
                     mnemonic = "dcb "
                 bytes = []
                 for b in skipped:
-                    if b.isalpha():
-                        bytes.append("'%s'" % b)
+                    if chr(b).isalpha():
+                        bytes.append("'%s'" % chr(b))
                     else:
-                        bytes.append("0x%x" % ord(b))
+                        bytes.append("0x%x" % b)
                 op_str = ", ".join(bytes)
                 disasm = mnemonic + op_str
 

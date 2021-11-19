@@ -42,9 +42,9 @@ from __future__ import with_statement
 
 __all__ = ['Module', 'DebugSymbolsWarning']
 
-import win32
-from textio import HexInput, HexDump
-from util import PathOperations
+from . import win32
+from .textio import HexInput, HexDump
+from .util import PathOperations
 
 # delayed imports
 Process = None
@@ -56,7 +56,7 @@ import traceback
 try:
     WindowsError
 except NameError:
-    from winappdbg.win32 import WindowsError
+    from win32 import WindowsError
 
 #==============================================================================
 
@@ -230,7 +230,7 @@ class Module (object):
         else:
             global Process      # delayed import
             if Process is None:
-                from process import Process
+                from .process import Process
             if not isinstance(process, Process):
                 msg  = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
@@ -288,7 +288,7 @@ class Module (object):
                 mi     = win32.GetModuleInformation(handle, base)
                 self.SizeOfImage = mi.SizeOfImage
                 self.EntryPoint  = mi.EntryPoint
-            except WindowsError, e:
+            except WindowsError as e:
                 warnings.warn(
                     "Cannot get size and entry point of module %s, reason: %s"\
                     % (self.get_name(), e.strerror), RuntimeWarning)
@@ -342,13 +342,15 @@ class Module (object):
         pathname = self.get_filename()
         if pathname:
             modName = self.__filename_to_modname(pathname)
-            if isinstance(modName, unicode):
+            if isinstance(modName, str):
                 try:
                     modName = modName.encode('cp1252')
-                except UnicodeEncodeError, e:
+                except UnicodeEncodeError as e:
                     warnings.warn(str(e))
         else:
             modName = "0x%x" % self.get_base()
+        if isinstance(modName,bytes):
+            modName = modName.decode()
         return modName
 
     def match_name(self, name):
@@ -502,7 +504,7 @@ class Module (object):
                         win32.SymUnloadModule64(hProcess, BaseOfDll)
             finally:
                 win32.SymCleanup(hProcess)
-        except WindowsError, e:
+        except WindowsError as e:
             msg = "Cannot load debug symbols for process ID %d, reason:\n%s"
             msg = msg % (self.get_pid(), traceback.format_exc(e))
             warnings.warn(msg, DebugSymbolsWarning)
@@ -602,7 +604,7 @@ class Module (object):
         result = None
         symbols = self.get_symbols()
         symbols.sort()
-        for SymbolAddress, SymbolName, SymbolSize in symbols:
+        for SymbolName, SymbolAddress, SymbolSize in symbols:
             if SymbolAddress > address:
                 break
             result = (SymbolName, SymbolAddress, SymbolSize)
@@ -917,7 +919,7 @@ class _ModuleContainer (object):
         @return: Iterator of DLL base addresses in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.iterkeys()
+        return self.__moduleDict.keys()
 
     def iter_modules(self):
         """
@@ -926,7 +928,7 @@ class _ModuleContainer (object):
         @return: Iterator of L{Module} objects in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.itervalues()
+        return self.__moduleDict.values()
 
     def get_module_bases(self):
         """
@@ -1012,8 +1014,8 @@ class _ModuleContainer (object):
             Returns C{None} if no C{Module} can be found.
         """
         bases = self.get_module_bases()
-        bases.sort()
-        bases.append(0x10000000000000000L)  # max. 64 bit address + 1
+        bases = sorted(bases)
+        bases.append(0x10000000000000000)  # max. 64 bit address + 1
         if address >= bases[0]:
             i = 0
             max_i = len(bases) - 1
@@ -1092,7 +1094,7 @@ class _ModuleContainer (object):
         """
         Clears the modules snapshot.
         """
-        for aModule in self.__moduleDict.itervalues():
+        for aModule in self.__moduleDict.values():
             aModule.clear()
         self.__moduleDict = dict()
 
@@ -1139,7 +1141,7 @@ class _ModuleContainer (object):
         # Validate the parameters.
         if module is not None and ('!' in module or '+' in module):
             raise ValueError("Invalid module name: %s" % module)
-        if function is not None and ('!' in function or '+' in function):
+        if function is not None and ('!' in str(function) or '+' in str(function)):
             raise ValueError("Invalid function name: %s" % function)
 
         # Parse the label.

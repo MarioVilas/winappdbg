@@ -32,8 +32,8 @@
 PEB and TEB structures, constants and data types.
 """
 
-from defines import *  # NOQA
-from version import os
+from .defines import *  # NOQA
+from .version import os
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -2086,7 +2086,7 @@ PTEB_ACTIVE_FRAME = POINTER(TEB_ACTIVE_FRAME)
 
 # SameTebFlags
 DbgSafeThunkCall        = 1 << 0
-DbgInDebugPrint         = 1 << 1
+DbgInDebugprint         = 1 << 1
 DbgHasFiberData         = 1 << 2
 DbgSkipThreadAttach     = 1 << 3
 DbgWerInShipAssertCode  = 1 << 4
@@ -2217,7 +2217,7 @@ _TEB_2000 = _TEB_NT
 #    +0xf2c Instrumentation  : [16] Ptr32 Void
 #    +0xf6c WinSockData      : Ptr32 Void
 #    +0xf70 GdiBatchCount    : Uint4B
-#    +0xf74 InDbgPrint       : UChar
+#    +0xf74 InDbgprint(      : UChar)
 #    +0xf75 FreeStackOnTermination : UChar
 #    +0xf76 HasFiberData     : UChar
 #    +0xf77 IdealProcessor   : UChar
@@ -2357,7 +2357,7 @@ class _TEB_XP(Structure):
 #    +0x1730 EtwTraceData     : Ptr64 Void
 #    +0x1738 WinSockData      : Ptr64 Void
 #    +0x1740 GdiBatchCount    : Uint4B
-#    +0x1744 InDbgPrint       : UChar
+#    +0x1744 InDbgprint(      : UChar)
 #    +0x1745 FreeStackOnTermination : UChar
 #    +0x1746 HasFiberData     : UChar
 #    +0x1747 IdealProcessor   : UChar
@@ -2508,7 +2508,7 @@ class _TEB_XP_64(Structure):
 #    +0xf68 EtwTraceData     : Ptr32 Void
 #    +0xf6c WinSockData      : Ptr32 Void
 #    +0xf70 GdiBatchCount    : Uint4B
-#    +0xf74 InDbgPrint       : UChar
+#    +0xf74 InDbgprint(      : UChar)
 #    +0xf75 FreeStackOnTermination : UChar
 #    +0xf76 HasFiberData     : UChar
 #    +0xf77 IdealProcessor   : UChar
@@ -2690,7 +2690,7 @@ _TEB_2003_R2_64 = _TEB_2003_64
 #    +0xfc8 SpareCrossTebBits : Pos 0, 16 Bits
 #    +0xfca SameTebFlags     : Uint2B
 #    +0xfca DbgSafeThunkCall : Pos 0, 1 Bit
-#    +0xfca DbgInDebugPrint  : Pos 1, 1 Bit
+#    +0xfca DbgInDebugprint( : Pos 1, 1 Bit)
 #    +0xfca DbgHasFiberData  : Pos 2, 1 Bit
 #    +0xfca DbgSkipThreadAttach : Pos 3, 1 Bit
 #    +0xfca DbgWerInShipAssertCode : Pos 4, 1 Bit
@@ -2881,7 +2881,7 @@ class _TEB_2008(Structure):
 #    +0x17ec SpareCrossTebBits : Pos 0, 16 Bits
 #    +0x17ee SameTebFlags     : Uint2B
 #    +0x17ee DbgSafeThunkCall : Pos 0, 1 Bit
-#    +0x17ee DbgInDebugPrint  : Pos 1, 1 Bit
+#    +0x17ee DbgInDebugprint( : Pos 1, 1 Bit)
 #    +0x17ee DbgHasFiberData  : Pos 2, 1 Bit
 #    +0x17ee DbgSkipThreadAttach : Pos 3, 1 Bit
 #    +0x17ee DbgWerInShipAssertCode : Pos 4, 1 Bit
@@ -3074,7 +3074,7 @@ class _TEB_2008_64(Structure):
 #    +0xfc8 SpareCrossTebBits : Pos 0, 16 Bits
 #    +0xfca SameTebFlags     : Uint2B
 #    +0xfca SafeThunkCall    : Pos 0, 1 Bit
-#    +0xfca InDebugPrint     : Pos 1, 1 Bit
+#    +0xfca InDebugprint(    : Pos 1, 1 Bit)
 #    +0xfca HasFiberData     : Pos 2, 1 Bit
 #    +0xfca SkipThreadAttach : Pos 3, 1 Bit
 #    +0xfca WerInShipAssertCode : Pos 4, 1 Bit
@@ -3266,7 +3266,7 @@ class _TEB_2008_R2(Structure):
 #    +0x17ec SpareCrossTebBits : Pos 0, 16 Bits
 #    +0x17ee SameTebFlags     : Uint2B
 #    +0x17ee SafeThunkCall    : Pos 0, 1 Bit
-#    +0x17ee InDebugPrint     : Pos 1, 1 Bit
+#    +0x17ee InDebugprint(    : Pos 1, 1 Bit)
 #    +0x17ee HasFiberData     : Pos 2, 1 Bit
 #    +0x17ee SkipThreadAttach : Pos 3, 1 Bit
 #    +0x17ee WerInShipAssertCode : Pos 4, 1 Bit

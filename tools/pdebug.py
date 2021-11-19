@@ -97,10 +97,10 @@ class PDebug (ConsoleDebugger):
         # Use this debugger
         self.start_using_debugger(debug)
 
-    # Print the welcome banner.
+    # print(the welcome banner.)
     def print_banner(self):
-        print "WinAppDbg %s console debugger" % winappdbg.version
-        print "by Mario Vilas (mvilas at gmail.com)"
+        print("WinAppDbg %s console debugger" % winappdbg.version)
+        print("by Mario Vilas (mvilas at gmail.com)")
         print
 
 #------------------------------------------------------------------------------

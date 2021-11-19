@@ -32,7 +32,7 @@
 Wrapper for ntdll.dll in ctypes.
 """
 
-from defines import *  # NOQA
+from .defines import *  # NOQA
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
@@ -41,7 +41,7 @@ _all = set(vars().keys())
 _all.add('peb_teb')
 #==============================================================================
 
-from peb_teb import *
+from .peb_teb import *
 
 #--- Types --------------------------------------------------------------------
 
