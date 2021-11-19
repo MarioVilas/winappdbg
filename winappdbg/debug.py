@@ -1066,7 +1066,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         # Close all Win32 handles the Python garbage collector failed to close.
         self.force_garbage_collection(bIgnoreExceptions)
 
-    def next(self,time_limit_in_seconds = 0):
+    def next(self):
         """
         Handles the next debug event.
 
@@ -1082,21 +1082,16 @@ class Debug (EventDispatcher, _BreakpointContainer):
             event handler raises an exception nobody catches.
         """
         try:
-            try:
-                event = self.wait(time_limit_in_seconds * 1000)  # NOQA
-            except WindowsError:
-                if time_limit_in_seconds == 0:
-                    pass
-                else:
-                    raise
+            event = self.wait()  # NOQA
         except Exception:
             self.stop()
+            raise
         try:
             self.dispatch()
         finally:
             self.cont()
 
-    def loop(self,time_limit_in_seconds = 0):
+    def loop(self):
         """
         Simple debugging loop.
 
@@ -1128,7 +1123,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
 
         while self:
-            self.next(time_limit_in_seconds)
+            self.next()
 
     def get_debugee_count(self):
         """
