@@ -1992,7 +1992,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         size = ctypes.sizeof(c_type)
         packed = self.peek(address, size)
 
-        if len(packed) < size:
+        if len(packed) == 0:
+            packed = b'\0' * size
+        elif len(packed) < size:
             packed = b'\0' * (size - len(packed)) + packed
         elif len(packed) > size:
             packed = packed[:size]
