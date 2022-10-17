@@ -123,8 +123,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @type  bKillOnExit: bool
         @param bKillOnExit: (Optional) Kill on exit mode.
-            If C{True} debugged processes are killed when the debugger is
-            stopped. If C{False} when the debugger stops it detaches from all
+            If C{True} debugged processes are killed when the debugger thread
+            ends. If C{False} when the debugger stops it detaches from all
             debugged processes and leaves them running (default).
 
         @type  bHostileCode: bool
