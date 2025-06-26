@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,12 +39,6 @@ __all__ = ['Window']
 
 from . import win32
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 # delayed imports
 Process = None
 Thread  = None
@@ -69,7 +63,7 @@ Thread  = None
 # point the hook callback to it. We'd need to have the remote procedure call
 # feature first as (I believe) the hook can't be set remotely in this case.
 
-class Window (object):
+class Window:
     """
     Interface to an open window in the current desktop.
 

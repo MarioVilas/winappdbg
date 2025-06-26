@@ -1,4 +1,4 @@
-*.pyc
+__pycache__
 .idea
 .vscode
 build
@@ -6,3 +6,4 @@ dist
 html
 pdf
 MANIFEST
+*.txt

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,4 +53,4 @@ if __name__ == "__main__":
     pid     = int( sys.argv[1] )
     address = int( sys.argv[2], 0x10 )
     length  = int( sys.argv[3] )
-    print "%r" % process_read( pid, address, length )
+    print("%r" % process_read( pid, address, length ))

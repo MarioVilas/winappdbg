@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,7 @@ def wildcard_search( pid, pattern ):
     for address, data in process.search_hexa( pattern ):
 
         # Print a hex dump for each memory location found.
-        print HexDump.hexblock(data, address = address)
+        print(HexDump.hexblock(data, address = address))
 
 # When invoked from the command line,
 # the first argument is a process ID,

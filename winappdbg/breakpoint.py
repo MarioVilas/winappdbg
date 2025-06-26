@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,12 +69,6 @@ import ctypes
 import warnings
 import traceback
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 #==============================================================================
 
 class BreakpointWarning (UserWarning):
@@ -91,7 +85,7 @@ class BreakpointCallbackWarning (RuntimeWarning):
 
 #==============================================================================
 
-class Breakpoint (object):
+class Breakpoint:
     """
     Base class for breakpoints.
     Here's the breakpoints state machine.
@@ -568,7 +562,7 @@ class CodeBreakpoint (Breakpoint):
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             msg = "Code breakpoints not supported for %s" % win32.arch
             raise NotImplementedError(msg)
-        Breakpoint.__init__(self, address, len(self.bpInstruction),
+        super().__init__(address, len(self.bpInstruction),
                             condition, action)
         self.__previousValue = self.bpInstruction
 
@@ -608,17 +602,17 @@ class CodeBreakpoint (Breakpoint):
     def disable(self, aProcess, aThread):
         if not self.is_disabled() and not self.is_running():
             self.__clear_bp(aProcess)
-        super(CodeBreakpoint, self).disable(aProcess, aThread)
+        super().disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
-        super(CodeBreakpoint, self).enable(aProcess, aThread)
+        super().enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
-        super(CodeBreakpoint, self).one_shot(aProcess, aThread)
+        super().one_shot(aProcess, aThread)
 
     # FIXME race condition here (however unlikely)
     # If another thread runs on over the target address while
@@ -629,7 +623,7 @@ class CodeBreakpoint (Breakpoint):
         if self.is_enabled():
             self.__clear_bp(aProcess)
             aThread.set_tf()
-        super(CodeBreakpoint, self).running(aProcess, aThread)
+        super().running(aProcess, aThread)
 
 #==============================================================================
 
@@ -678,7 +672,7 @@ class PageBreakpoint (Breakpoint):
         @type  action: function
         @param action: (Optional) Action callback function.
         """
-        Breakpoint.__init__(self, address, pages * MemoryAddresses.pageSize,
+        super().__init__(address, pages * MemoryAddresses.pageSize,
                             condition, action)
 ##        if (address & 0x00000FFF) != 0:
         floordiv_align = int(address) // int(MemoryAddresses.pageSize)
@@ -725,7 +719,7 @@ class PageBreakpoint (Breakpoint):
     def disable(self, aProcess, aThread):
         if not self.is_disabled():
             self.__clear_bp(aProcess)
-        super(PageBreakpoint, self).disable(aProcess, aThread)
+        super().disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
@@ -733,16 +727,16 @@ class PageBreakpoint (Breakpoint):
             raise NotImplementedError(msg % win32.arch)
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
-        super(PageBreakpoint, self).enable(aProcess, aThread)
+        super().enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aProcess)
-        super(PageBreakpoint, self).one_shot(aProcess, aThread)
+        super().one_shot(aProcess, aThread)
 
     def running(self, aProcess, aThread):
         aThread.set_tf()
-        super(PageBreakpoint, self).running(aProcess, aThread)
+        super().running(aProcess, aThread)
 
 #==============================================================================
 
@@ -886,7 +880,7 @@ class HardwareBreakpoint (Breakpoint):
             msg = msg % repr(triggerFlag)
             raise ValueError(msg)
 
-        Breakpoint.__init__(self, address, size, condition, action)
+        super().__init__(address, size, condition, action)
         self.__trigger  = triggerFlag
         self.__watch    = sizeFlag
         self.__slot     = None
@@ -957,21 +951,21 @@ class HardwareBreakpoint (Breakpoint):
     def disable(self, aProcess, aThread):
         if not self.is_disabled():
             self.__clear_bp(aThread)
-        super(HardwareBreakpoint, self).disable(aProcess, aThread)
+        super().disable(aProcess, aThread)
 
     def enable(self, aProcess, aThread):
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aThread)
-        super(HardwareBreakpoint, self).enable(aProcess, aThread)
+        super().enable(aProcess, aThread)
 
     def one_shot(self, aProcess, aThread):
         if not self.is_enabled() and not self.is_one_shot():
             self.__set_bp(aThread)
-        super(HardwareBreakpoint, self).one_shot(aProcess, aThread)
+        super().one_shot(aProcess, aThread)
 
     def running(self, aProcess, aThread):
         self.__clear_bp(aThread)
-        super(HardwareBreakpoint, self).running(aProcess, aThread)
+        super().running(aProcess, aThread)
         aThread.set_tf()
 
 #==============================================================================
@@ -1009,7 +1003,7 @@ class HardwareBreakpoint (Breakpoint):
 
 # TODO: an API to modify the hooked function's arguments
 
-class Hook (object):
+class Hook:
     """
     Factory class to produce hook objects. Used by L{Debug.hook_function} and
     L{Debug.stalk_function}.
@@ -1600,7 +1594,7 @@ class _Hook_amd64 (Hook):
 # This class acts as a factory of Hook objects, one per target process.
 # Said objects are deleted by the unhook() method.
 
-class ApiHook (object):
+class ApiHook:
     """
     Used by L{EventHandler}.
 
@@ -1761,7 +1755,7 @@ class ApiHook (object):
 
 #==============================================================================
 
-class BufferWatch (object):
+class BufferWatch:
     """
     Returned by L{Debug.watch_buffer}.
 
@@ -1823,7 +1817,7 @@ class BufferWatch (object):
 
 #==============================================================================
 
-class _BufferWatchCondition (object):
+class _BufferWatchCondition:
     """
     Used by L{Debug.watch_buffer}.
 
@@ -1935,7 +1929,7 @@ class _BufferWatchCondition (object):
 
 #==============================================================================
 
-class _BreakpointContainer (object):
+class _BreakpointContainer:
     """
     Encapsulates the capability to contain Breakpoint objects.
 
@@ -2150,14 +2144,14 @@ class _BreakpointContainer (object):
         pid = event.get_pid()
 
         # Cleanup code breakpoints
-        for (bp_pid, bp_address) in self.__codeBP.keys():
+        for (bp_pid, bp_address) in list(self.__codeBP.keys()):
             if bp_pid == pid:
                 bp = self.__codeBP[ (bp_pid, bp_address) ]
                 self.__cleanup_breakpoint(event, bp)
                 del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints
-        for (bp_pid, bp_address) in self.__pageBP.keys():
+        for (bp_pid, bp_address) in list(self.__pageBP.keys()):
             if bp_pid == pid:
                 bp = self.__pageBP[ (bp_pid, bp_address) ]
                 self.__cleanup_breakpoint(event, bp)
@@ -2199,7 +2193,7 @@ class _BreakpointContainer (object):
                         self.__hardwareBP[tid].remove(bp)
 
         # Cleanup code breakpoints on this module
-        for (bp_pid, bp_address) in self.__codeBP.keys():
+        for (bp_pid, bp_address) in list(self.__codeBP.keys()):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     bp = self.__codeBP[ (bp_pid, bp_address) ]
@@ -2207,7 +2201,7 @@ class _BreakpointContainer (object):
                     del self.__codeBP[ (bp_pid, bp_address) ]
 
         # Cleanup page breakpoints on this module
-        for (bp_pid, bp_address) in self.__pageBP.keys():
+        for (bp_pid, bp_address) in list(self.__pageBP.keys()):
             if bp_pid == pid:
                 if process.get_module_at_address(bp_address) == module:
                     bp = self.__pageBP[ (bp_pid, bp_address) ]
@@ -3551,14 +3545,14 @@ class _BreakpointContainer (object):
             if self.in_hostile_mode():
                 pc = aThread.get_pc()
                 c = aProcess.read_char(pc - 1)
-                if c == 0xF1:               # int1
+                if c == b'\xf1':               # int1
                     bFakeSingleStep  = True
-                elif c == 0x9C:             # pushf
+                elif c == b'\x9c':             # pushf
                     bLastIsPushFlags = True
                 c = aProcess.peek_char(pc)
-                if c == 0x66:           # the only valid prefix for popf
+                if c == b'\x66':           # the only valid prefix for popf
                     c = aProcess.peek_char(pc + 1)
-                if c == 0x9D:           # popf
+                if c == b'\x9d':           # popf
                     if bLastIsPushFlags:
                         bLastIsPushFlags = False  # they cancel each other out
                     else:
@@ -3739,7 +3733,7 @@ class _BreakpointContainer (object):
             breakpoints are set when the DLL they point to is loaded.
         """
         label = address
-        if type(address) is not int:
+        if not isinstance(address, int):
             try:
                 address = self.system.get_process(pid).resolve_label(address)
                 if not address:
@@ -3787,7 +3781,7 @@ class _BreakpointContainer (object):
             integer value for the actual address or a string with a label
             to be resolved.
         """
-        if type(address) is not int:
+        if not isinstance(address, int):
             unknown = True
             label = address
             try:

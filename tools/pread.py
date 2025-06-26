@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process memory reader
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ from winappdbg import win32, Process, System, HexDump, HexInput
 def main():
     print("Process memory reader")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     if len(sys.argv) not in (4, 5):
         script = os.path.basename(sys.argv[0])
@@ -53,7 +53,7 @@ def main():
 
     try:
         pid = HexInput.integer(sys.argv[1])
-    except:
+    except Exception:
         s = System()
         s.scan_processes()
         pl = s.find_processes_by_filename(sys.argv[1])
@@ -93,13 +93,8 @@ def main():
             width = 16
         else:
             width = 8
-        print
+        print()
         print(HexDump.hexblock(data, address, width = width))
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main()

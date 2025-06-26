@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ def MAKE_LPARAM(lParam):
     """
     return ctypes.cast(lParam, LPARAM)
 
-class __WindowEnumerator (object):
+class __WindowEnumerator:
     """
     Window enumerator class. Used internally by the window enumeration APIs.
     """
@@ -391,10 +391,7 @@ LPGUITHREADINFO = PGUITHREADINFO
 # Point() and Rect() are here instead of gdi32.py because they were mainly
 # created to handle window coordinates rather than drawing on the screen.
 
-# XXX not sure if these classes should be psyco-optimized,
-# it may not work if the user wants to serialize them for some reason
-
-class Point(object):
+class Point:
     """
     Python wrapper over the L{POINT} class.
 
@@ -490,7 +487,7 @@ class Point(object):
         """
         return MapWindowPoints(hWndFrom, hWndTo, [self])
 
-class Rect(object):
+class Rect:
     """
     Python wrapper over the L{RECT} class.
 
@@ -622,7 +619,7 @@ class Rect(object):
         points = [ (self.left, self.top), (self.right, self.bottom) ]
         return MapWindowPoints(hWndFrom, hWndTo, points)
 
-class WindowPlacement(object):
+class WindowPlacement:
     """
     Python wrapper over the L{WINDOWPLACEMENT} class.
     """
@@ -833,9 +830,12 @@ def GetWindowTextA(hWnd):
     dwCharSize = sizeof(CHAR)
     while 1:
         lpString = ctypes.create_string_buffer(b"", nMaxCount)
+        SetLastError(ERROR_SUCCESS)
         nCount = _GetWindowTextA(hWnd, lpString, nMaxCount)
         if nCount == 0:
-            raise ctypes.WinError()
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
         if nCount < nMaxCount - dwCharSize:
             break
         nMaxCount += 0x1000
@@ -847,12 +847,15 @@ def GetWindowTextW(hWnd):
     _GetWindowTextW.restype = ctypes.c_int
 
     nMaxCount = 0x1000
-    dwCharSize = sizeof(CHAR)
+    dwCharSize = sizeof(WCHAR)
     while 1:
-        lpString = ctypes.create_unicodeg_buffer(u"", nMaxCount)
+        lpString = ctypes.create_unicode_buffer(u"", nMaxCount)
+        SetLastError(ERROR_SUCCESS)
         nCount = _GetWindowTextW(hWnd, lpString, nMaxCount)
         if nCount == 0:
-            raise ctypes.WinError()
+            errcode = GetLastError()
+            if errcode != ERROR_SUCCESS:
+                raise ctypes.WinError(errcode)
         if nCount < nMaxCount - dwCharSize:
             break
         nMaxCount += 0x1000
@@ -941,7 +944,7 @@ else:
     def GetWindowLongPtrW(hWnd, nIndex = 0):
         _GetWindowLongPtrW = windll.user32.GetWindowLongPtrW
         _GetWindowLongPtrW.argtypes = [HWND, ctypes.c_int]
-        _GetWindowLongPtrW.restype  = DWORD
+        _GetWindowLongPtrW.restype  = SIZE_T
 
         SetLastError(ERROR_SUCCESS)
         retval = _GetWindowLongPtrW(hWnd, nIndex)
@@ -1562,23 +1565,21 @@ def SendMessageTimeoutA(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout
     _SendMessageTimeoutA = windll.user32.SendMessageTimeoutA
     _SendMessageTimeoutA.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
     _SendMessageTimeoutA.restype  = LRESULT
-    _SendMessageTimeoutA.errcheck = RaiseIfZero
 
     wParam = MAKE_WPARAM(wParam)
     lParam = MAKE_LPARAM(lParam)
-    dwResult = DWORD(0)
+    dwResult = DWORD_PTR(0)
     _SendMessageTimeoutA(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, byref(dwResult))
     return dwResult.value
 
-def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0):
+def SendMessageTimeoutW(hWnd, Msg, wParam = 0, lParam = 0, fuFlags = 0, uTimeout = 0):
     _SendMessageTimeoutW = windll.user32.SendMessageTimeoutW
     _SendMessageTimeoutW.argtypes = [HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD_PTR]
     _SendMessageTimeoutW.restype  = LRESULT
-    _SendMessageTimeoutW.errcheck = RaiseIfZero
 
     wParam = MAKE_WPARAM(wParam)
     lParam = MAKE_LPARAM(lParam)
-    dwResult = DWORD(0)
+    dwResult = DWORD_PTR(0)
     _SendMessageTimeoutW(hWnd, Msg, wParam, lParam, fuFlags, uTimeout, byref(dwResult))
     return dwResult.value
 

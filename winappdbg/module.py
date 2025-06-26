@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,6 @@ Module instrumentation.
     DebugSymbolsWarning
 """
 
-from __future__ import with_statement
-
 __all__ = ['Module', 'DebugSymbolsWarning']
 
 from . import win32
@@ -52,12 +50,6 @@ Process = None
 import warnings
 import traceback
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from win32 import WindowsError
-
 #==============================================================================
 
 class DebugSymbolsWarning (UserWarning):
@@ -68,7 +60,7 @@ class DebugSymbolsWarning (UserWarning):
 
 #==============================================================================
 
-class Module (object):
+class Module:
     """
     Interface to a DLL library loaded in the context of another process.
 
@@ -118,7 +110,7 @@ class Module (object):
 
     unknown = '<unknown>'
 
-    class _SymbolEnumerator (object):
+    class _SymbolEnumerator:
         """
         Internally used by L{Module} to enumerate symbols in a module.
         """
@@ -136,7 +128,11 @@ class Module (object):
                     SymbolName = win32.UnDecorateSymbolName(SymbolName)
                 except Exception:
                     pass # not all symbols are decorated!
-            self.symbols.append( (SymbolName, SymbolAddress, SymbolSize) )
+            try:
+                name = SymbolName.decode()
+            except UnicodeDecodeError:
+                name = SymbolName.decode('latin-1', 'replace')
+            self.symbols.append( (name, SymbolAddress, SymbolSize) )
             return win32.TRUE
 
     def __init__(self, lpBaseOfDll, hFile = None, fileName    = None,
@@ -144,7 +140,7 @@ class Module (object):
                                                   EntryPoint  = None,
                                                   process     = None):
         """
-        @type  lpBaseOfDll: str
+        @type  lpBaseOfDll: int
         @param lpBaseOfDll: Base address of the module.
 
         @type  hFile: L{FileHandle}
@@ -342,15 +338,8 @@ class Module (object):
         pathname = self.get_filename()
         if pathname:
             modName = self.__filename_to_modname(pathname)
-            if isinstance(modName, str):
-                try:
-                    modName = modName.encode('cp1252')
-                except UnicodeEncodeError as e:
-                    warnings.warn(str(e))
         else:
             modName = "0x%x" % self.get_base()
-        if isinstance(modName,bytes):
-            modName = modName.decode()
         return modName
 
     def match_name(self, name):
@@ -699,10 +688,11 @@ class Module (object):
         """
         Resolves a function exported by this module.
 
-        @type  function: str or int
+        @type  function: str, bytes or int
         @param function:
-            str: Name of the function.
-            int: Ordinal of the function.
+            - C{str}: Name of the function (Unicode).
+            - C{bytes}: Name of the function (ANSI).
+            - C{int}: Ordinal of the function.
 
         @rtype:  int
         @return: Memory address of the exported function in the process.
@@ -802,7 +792,7 @@ class Module (object):
 # of toolhelp32 not working when the process hasn't finished initializing.
 # See: http://pferrie.host22.com/misc/lowlevel3.htm
 
-class _ModuleContainer (object):
+class _ModuleContainer:
     """
     Encapsulates the capability to contain Module objects.
 
@@ -937,7 +927,7 @@ class _ModuleContainer (object):
         @return: List of DLL base addresses in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__moduleDict.keys()
+        return list(self.__moduleDict.keys())
 
     def get_module_count(self):
         """
@@ -951,7 +941,7 @@ class _ModuleContainer (object):
 
     def get_module_by_name(self, modName):
         """
-        @type  modName: int
+        @type  modName: str
         @param modName:
             Name of the module to look for, as returned by L{Module.get_name}.
             If two or more modules with the same name are loaded, only one
@@ -1086,7 +1076,7 @@ class _ModuleContainer (object):
                         aModule.process     = self
                 me = win32.Module32Next(hSnapshot)
 ##        for base in self.get_module_bases(): # XXX triggers a scan
-        for base in self.__moduleDict.keys():
+        for base in list(self.__moduleDict.keys()):
             if base not in found_bases:
                 self._del_module(base)
 
@@ -1569,8 +1559,11 @@ When called as an instance method, the fuzzy syntax mode is used::
         @type  module: None or str
         @param module: (Optional) Module name.
 
-        @type  function: None, str or int
+        @type  function: None, str, bytes or int
         @param function: (Optional) Function name or ordinal.
+            - C{str}: Name of the function (Unicode).
+            - C{bytes}: Name of the function (ANSI).
+            - C{int}: Ordinal of the function.
 
         @type  offset: None or int
         @param offset: (Optional) Offset value.
@@ -1696,7 +1689,8 @@ When called as an instance method, the fuzzy syntax mode is used::
             address = self.__get_system_breakpoint(
                                             "kernel32!g_dwLastErrorToBreakOn")
             # cheat a little :)
-            self.__system_breakpoints["ntdll!g_dwLastErrorToBreakOn"] = address
+            if address:
+                self.__system_breakpoints["ntdll!g_dwLastErrorToBreakOn"] = address
         return address
 
     def is_system_defined_breakpoint(self, address):
@@ -1885,6 +1879,7 @@ When called as an instance method, the fuzzy syntax mode is used::
                 else:
                     found = (SymbolName, SymbolAddress, SymbolSize)
         return found
+
 #------------------------------------------------------------------------------
 
     # XXX _notify_* methods should not trigger a scan

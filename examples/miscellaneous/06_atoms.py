@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,12 @@ from winappdbg.win32 import GlobalGetAtomName, MAXINTATOM
 
 # print all valid named global atoms to standard output.
 def print_atoms():
-    for x in xrange(0, MAXINTATOM):
+    for x in range(0, MAXINTATOM):
         try:
             n = GlobalGetAtomName(x)
             if n == "#%d" % x:      # comment out to print
                 continue            # valid numeric atoms
-            print "Atom %4x: %r" % (x, n)
+            print("Atom %4x: %r" % (x, n))
         except WindowsError:
             pass
 

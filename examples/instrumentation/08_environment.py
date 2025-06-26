@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ def show_environment( pid ):
 
     # Print the environment variables.
     for variable, value in sorted( environment.items() ):
-        print "%s=%s" % (variable, value)
+        print("%s=%s" % (variable, value))
 
 # When invoked from the command line,
 # the first argument is a process ID,

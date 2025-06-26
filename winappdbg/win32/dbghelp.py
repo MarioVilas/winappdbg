@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -283,7 +283,15 @@ def SymInitializeA(hProcess, UserSearchPath = None, fInvadeProcess = False):
         UserSearchPath = None
     _SymInitialize(hProcess, UserSearchPath, fInvadeProcess)
 
-SymInitializeW = MakeWideVersion(SymInitializeA)
+def SymInitializeW(hProcess, UserSearchPath = None, fInvadeProcess = False):
+    _SymInitializeW = windll.dbghelp.SymInitializeW
+    _SymInitializeW.argtypes = [HANDLE, LPWSTR, BOOL]
+    _SymInitializeW.restype  = bool
+    _SymInitializeW.errcheck = RaiseIfZero
+    if not UserSearchPath:
+        UserSearchPath = None
+    _SymInitializeW(hProcess, UserSearchPath, fInvadeProcess)
+
 SymInitialize = GuessStringType(SymInitializeA, SymInitializeW)
 
 # BOOL WINAPI SymCleanup(
@@ -394,7 +402,27 @@ def SymLoadModule64A(hProcess, hFile = None, ImageName = None, ModuleName = None
             raise ctypes.WinError(dwErrorCode)
     return lpBaseAddress
 
-SymLoadModule64W = MakeWideVersion(SymLoadModule64A)
+def SymLoadModule64W(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
+    _SymLoadModule64W = windll.dbghelp.SymLoadModule64W
+    _SymLoadModule64W.argtypes = [HANDLE, HANDLE, LPWSTR, LPWSTR, DWORD64, DWORD]
+    _SymLoadModule64W.restype  = DWORD64
+
+    if not ImageName:
+        ImageName = None
+    if not ModuleName:
+        ModuleName = None
+    if not BaseOfDll:
+        BaseOfDll = 0
+    if not SizeOfDll:
+        SizeOfDll = 0
+    SetLastError(ERROR_SUCCESS)
+    lpBaseAddress = _SymLoadModule64W(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
+    if lpBaseAddress == NULL:
+        dwErrorCode = GetLastError()
+        if dwErrorCode != ERROR_SUCCESS:
+            raise ctypes.WinError(dwErrorCode)
+    return lpBaseAddress
+
 SymLoadModule64 = GuessStringType(SymLoadModule64A, SymLoadModule64W)
 
 # BOOL WINAPI SymUnloadModule(
@@ -850,7 +878,7 @@ def SymFromName(hProcess, Name):
     _SymFromNameA.errcheck = RaiseIfZero
 
     SymInfo = SYM_INFO()
-    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFO) in C.
+    SymInfo.SizeOfStruct = sizeof(SymInfo)
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     _SymFromNameA(hProcess, Name, byref(SymInfo))
@@ -864,7 +892,7 @@ def SymFromNameW(hProcess, Name):
     _SymFromNameW.errcheck = RaiseIfZero
 
     SymInfo = SYM_INFOW()
-    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFOW) in C.
+    SymInfo.SizeOfStruct = sizeof(SymInfo)
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     _SymFromNameW(hProcess, Name, byref(SymInfo))
@@ -886,7 +914,7 @@ def SymFromAddr(hProcess, Address):
     _SymFromAddr.errcheck = RaiseIfZero
 
     SymInfo = SYM_INFO()
-    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFO) in C.
+    SymInfo.SizeOfStruct = sizeof(SymInfo)
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
@@ -901,7 +929,7 @@ def SymFromAddrW(hProcess, Address):
     _SymFromAddr.errcheck = RaiseIfZero
 
     SymInfo = SYM_INFOW()
-    SymInfo.SizeOfStruct = 88 # *don't modify*: sizeof(SYMBOL_INFOW) in C.
+    SymInfo.SizeOfStruct = sizeof(SymInfo)
     SymInfo.MaxNameLen = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
@@ -966,8 +994,8 @@ def SymGetSymFromAddr64(hProcess, Address):
     _SymGetSymFromAddr64.errcheck = RaiseIfZero
 
     imagehlp_symbol64 = IMAGEHLP_SYMBOL64()
-    imagehlp_symbol64.SizeOfStruct = 32 # *don't modify*: sizeof(IMAGEHLP_SYMBOL64) in C.
-    imagehlp_symbol64.MaxNameLen = MAX_SYM_NAME
+    imagehlp_symbol64.SizeOfStruct = sizeof(imagehlp_symbol64)
+    imagehlp_symbol64.MaxNameLength = MAX_SYM_NAME
 
     Displacement = DWORD64(0)
     _SymGetSymFromAddr64(hProcess, Address, byref(Displacement), byref(imagehlp_symbol64))
@@ -1010,7 +1038,7 @@ def SymGetLineFromAddr64(hProcess, dwAddr):
     _SymGetLineFromAddr64.errcheck = RaiseIfZero
 
     imagehlp_line64 = IMAGEHLP_LINE64()
-    imagehlp_line64.SizeOfStruct = 32 # *don't modify*: sizeof(IMAGEHLP_LINE64) in C.
+    imagehlp_line64.SizeOfStruct = sizeof(imagehlp_line64)
 
     pdwDisplacement = DWORD(0)
     _SymGetLineFromAddr64(hProcess, dwAddr, byref(pdwDisplacement), byref(imagehlp_line64))
@@ -1250,10 +1278,7 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
 
     if ContextRecord is None:
         raise ValueError("ContextRecord cannot be None")
-    try:
-        pContextRecord = PCONTEXT(ContextRecord)
-    except:
-        pContextRecord = PWOW64_CONTEXT(ContextRecord)
+    pContextRecord = ctypes.cast(ContextRecord, PVOID)
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
     ret = _StackWalk64(MachineType, hProcess, hThread, byref(StackFrame),

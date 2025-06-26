@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -108,26 +108,26 @@ class MyEventHandler( EventHandler ):
     def __print_opening_ansi( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer )
         tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
+        print("%d: Opening %s: %s" % (tid, tag, string))
 
     def __print_opening_unicode( self, event, tag, pointer ):
         string = event.get_process().peek_string( pointer, fUnicode = True )
         tid    = event.get_tid()
-        print  "%d: Opening %s: %s" % (tid, tag, string)
+        print("%d: Opening %s: %s" % (tid, tag, string))
 
     def __print_success( self, event, retval ):
         tid = event.get_tid()
         if retval:
-            print "%d: Success: %x" % (tid, retval)
+            print("%d: Success: %x" % (tid, retval))
         else:
-            print "%d: Failed!" % tid
+            print("%d: Failed!" % tid)
 
     def __print_reg_success( self, event, retval ):
         tid = event.get_tid()
         if retval:
-            print "%d: Failed! Error code: %x" % (tid, retval)
+            print("%d: Failed! Error code: %x" % (tid, retval))
         else:
-            print "%d: Success!" % tid
+            print("%d: Success!" % tid)
 
 
 def simple_debugger( argv ):

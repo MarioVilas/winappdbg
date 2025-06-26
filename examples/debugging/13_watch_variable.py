@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,11 +58,11 @@ def entering( event ):
 
     # Show a message to the user.
     message = "%s: GetProcAddress(%s, %r);"
-    print message % (
+    print(message % (
         HexDump.address(return_address, bits),
         HexDump.address(hModule, bits),
         procedure_name
-    )
+    ))
 
     # Watch the DWORD at the top of the stack.
     try:
@@ -96,7 +96,7 @@ def returning( event ):
 
     # Show a message to the user.
     message = "%.08x: GetProcAddress() returned 0x%.08x"
-    print message % ( return_address, return_value )
+    print(message % ( return_address, return_value ))
 
 
 # This function will be called if we ran out of hardware breakpoints,
@@ -118,7 +118,7 @@ def returning_2( event ):
 
     # Show a message to the user.
     message = "%.08x: GetProcAddress() returned 0x%.08x"
-    print message % ( return_address, return_value )
+    print(message % ( return_address, return_value ))
 
 
 # This event handler sets a breakpoint at kernel32!GetProcAddress.

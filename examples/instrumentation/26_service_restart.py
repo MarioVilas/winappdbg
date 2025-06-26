@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -51,35 +51,35 @@ def restart_service( service ):
         if descriptor.CurrentState != win32.SERVICE_STOPPED:
 
             # Tell the service to stop.
-            print "Stopping service \"%s\"..." % display_name
+            print("Stopping service \"%s\"..." % display_name)
             System.stop_service( service )
 
             # Wait for the service to stop.
             wait_for_service( service, win32.SERVICE_STOP_PENDING )
-            print "Service stopped successfully."
+            print("Service stopped successfully.")
 
         # Tell the service to start.
-        print "Starting service \"%s\"..." % display_name
+        print("Starting service \"%s\"..." % display_name)
         System.start_service( service )
 
         # Wait for the service to start.
         wait_for_service( service, win32.SERVICE_START_PENDING )
-        print "Service started successfully."
+        print("Service started successfully.")
 
         # Show the new process ID.
         # This feature requires Windows XP and above.
         descriptor = System.get_service( service )
         try:
-            print "New process ID is: %d" % descriptor.ProcessId
+            print("New process ID is: %d" % descriptor.ProcessId)
         except AttributeError:
             pass
 
     # On error, show an error message.
-    except WindowsError, e:
+    except WindowsError as e:
         if e.winerror == win32.ERROR_ACCESS_DENIED:
-            print "Access denied! Is this an UAC elevated prompt?"
+            print("Access denied! Is this an UAC elevated prompt?")
         else:
-            print str(e)
+            print(str(e))
 
 
 # Helper function to wait for the service to change its state.

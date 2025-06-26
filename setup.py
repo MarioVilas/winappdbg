@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,11 @@
 
 __all__ = ['metadata', 'setup']
 
-from distutils.core import setup
-from distutils import version
+try:
+    from setuptools import setup, version
+except ImportError:
+    from distutils.core import setup
+    from distutils import version
 from warnings import warn
 
 import re
@@ -44,10 +47,11 @@ if not here:
     here = os.path.curdir
 here = os.path.abspath(here)
 
-# Text describing the module (reStructured text)
+# Text describing the module (Markdown)
 try:
     readme = os.path.join(here, 'README.md')
-    long_description = open(readme, 'r').read()
+    with open(readme, 'r', encoding='utf-8') as f:
+        long_description = f.read()
 except Exception:
     warn("README file not found or unreadable!")
     long_description = """The WinAppDbg python module
@@ -61,8 +65,6 @@ scripts = glob.glob(os.path.join(here, 'tools', '*.py'))
 metadata = {
 
     # Setup instructions
-    'requires'          : ['ctypes', 'BeaEnginePython', 'sqlalchemy'],
-    'provides'          : ['winappdbg'],
     'packages'          : ['winappdbg', 'winappdbg.win32', 'winappdbg.plugins'],
     'scripts'           : scripts,
 
@@ -72,7 +74,7 @@ metadata = {
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
-    'author_email'      : 'mvilas'+chr(64)+'gmail'+chr(0x2e)+'com',
+    'author_email'      : 'mvilas@gmail.com',
     'url'               : 'http://winappdbg.readthedocs.io/en/latest/',
     'download_url'      : 'https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.6.tar.gz',
     'platforms'         : ['win32', 'win64'],
@@ -83,43 +85,13 @@ metadata = {
                         'Intended Audience :: Developers',
                         'Natural Language :: English',
                         'Operating System :: Microsoft :: Windows',
-                        'Programming Language :: Python :: 2.5',
-                        'Programming Language :: Python :: 2.6',
-                        'Programming Language :: Python :: 2.7',
+                        'Programming Language :: Python :: 3',
                         'Topic :: Security',
                         'Topic :: Software Development :: Debuggers',
                         'Topic :: Software Development :: Libraries :: Python Modules',
                         'Topic :: Software Development :: Quality Assurance',
                         ],
     }
-
-# Distutils hack: in order to be able to build MSI installers with loose
-# version numbers, we subclass StrictVersion to accept loose version numbers
-# and convert them to the strict format. This works because Distutils will
-# happily reinstall a package even if the version number matches exactly the
-# one already installed on the system - so we can simply strip all extraneous
-# characters and beta/postrelease version numbers will be treated just like
-# the base version number.
-if __name__ == '__main__':
-    StrictVersion = version.StrictVersion
-    try:
-        StrictVersion().parse(metadata["version"])
-        strict = True
-    except ValueError:
-        strict = False
-    if not strict:
-        class NotSoStrictVersion (StrictVersion):
-            def parse (self, vstring):
-                components = []
-                for token in vstring.split('.'):
-                    token = token.strip()
-                    match = re.search('^[0-9]+', token)
-                    if match:
-                        number = token[ match.start() : match.end() ]
-                        components.append(number)
-                vstring = '.'.join(components)
-                return StrictVersion.parse(self, vstring)
-        version.StrictVersion = NotSoStrictVersion
 
 # Execute the setup script
 if __name__ == '__main__':

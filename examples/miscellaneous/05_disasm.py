@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,20 +36,20 @@ from winappdbg import Disassembler, HexInput, CrashDump
 if len( argv ) == 1:
 
     # Show the help message.
-    print "Usage:"
-    print "  %s <file> [offset] [size] [arch] [engine]" % argv[0]
+    print("Usage:")
+    print("  %s <file> [offset] [size] [arch] [engine]" % argv[0])
 
     # Show the available disassembler engines.
-    print
-    print "Supported disassembler engines:"
-    print "-------------------------------"
+    print()
+    print("Supported disassembler engines:")
+    print("-------------------------------")
     available = Disassembler.get_available_engines()
     for engine in Disassembler.get_all_engines():
-        print
-        print "Name: %s" % engine.name
-        print "Description: %s" % engine.desc
-        print "Available: %s" % ("YES" if engine in available else "NO")
-        print "Supported architectures: %s" % ", ".join( engine.supported )
+        print()
+        print("Name: %s" % engine.name)
+        print("Description: %s" % engine.desc)
+        print("Available: %s" % ("YES" if engine in available else "NO"))
+        print("Supported architectures: %s" % ", ".join( engine.supported ))
 
 # If there are command line arguments...
 else:
@@ -88,4 +88,4 @@ else:
     disassembly = disasm.decode( offset, code )
 
     # Show the disassembly.
-    print CrashDump.dump_code( disassembly, offset )
+    print(CrashDump.dump_code( disassembly, offset ))

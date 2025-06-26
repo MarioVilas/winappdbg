@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,11 +60,11 @@ def my_event_handler( event ):
                                 HexDump.address(pc, bits),
                                 pid,
                                 tid )
-    print message
+    print(message)
 
     # If the event is a crash...
     if code == win32.EXCEPTION_DEBUG_EVENT and event.is_last_chance():
-        print "Crash detected, storing crash dump in database..."
+        print("Crash detected, storing crash dump in database...")
 
         # Generate a minimal crash dump.
         crash = Crash( event )

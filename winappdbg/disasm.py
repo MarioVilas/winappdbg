@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,6 @@ __all__ = [
     'BeaEngine',
     'CapstoneEngine',
     'DistormEngine',
-    'LibdisassembleEngine',
-    'PyDasmEngine',
 ]
 
 from .textio import HexDump
@@ -58,15 +56,13 @@ import ctypes
 import warnings
 
 # lazy imports
-BeaEnginePython = None
+bea_disasm = None
 distorm3 = None
-pydasm = None
-libdisassemble = None
 capstone = None
 
 #==============================================================================
 
-class Engine (object):
+class Engine:
     """
     Base class for disassembly engine adaptors.
 
@@ -188,104 +184,58 @@ class BeaEngine (Engine):
 
     @classmethod
     def _import_dependencies(cls):
+        global bea_disasm
+        if bea_disasm is None:
+            # Lazy import.
+            from BeaEnginePython import Disasm
+            bea_disasm = Disasm
 
-        # Load the BeaEngine ctypes wrapper.
-        global BeaEnginePython
-        if BeaEnginePython is None:
-            import BeaEnginePython
+    def __init__(self, arch=None):
+        super().__init__(arch)
+        if self.arch == win32.ARCH_I386:
+            self._arch_code = 32
+        else:
+            self._arch_code = 64
 
     def decode(self, address, code):
-        addressof = ctypes.addressof
-
-        # Instance the code buffer.
-        buffer = ctypes.create_string_buffer(code)
-        buffer_ptr = addressof(buffer)
-
-        # Instance the disassembler structure.
-        Instruction = BeaEnginePython.DISASM()
-        Instruction.VirtualAddr = address
-        Instruction.EIP = buffer_ptr
-        Instruction.SecurityBlock = buffer_ptr + len(code)
-        if self.arch == win32.ARCH_I386:
-            Instruction.Archi = 0
-        else:
-            Instruction.Archi = 0x40
-        Instruction.Options = ( BeaEnginePython.Tabulation      +
-                                BeaEnginePython.NasmSyntax      +
-                                BeaEnginePython.SuffixedNumeral +
-                                BeaEnginePython.ShowSegmentRegs )
-
-        # Prepare for looping over each instruction.
         result = []
-        Disasm = BeaEnginePython.Disasm
-        InstructionPtr = addressof(Instruction)
-        hexdump = HexDump.hexadecimal
-        append = result.append
-        OUT_OF_BLOCK   = BeaEnginePython.OUT_OF_BLOCK
-        UNKNOWN_OPCODE = BeaEnginePython.UNKNOWN_OPCODE
-
-        # For each decoded instruction...
-        while True:
-
-            # Calculate the current offset into the buffer.
-            offset = Instruction.EIP - buffer_ptr
-
-            # If we've gone past the buffer, break the loop.
-            if offset >= len(code):
-                break
-
-            # Decode the current instruction.
-            InstrLength = Disasm(InstructionPtr)
-
-            # If BeaEngine detects we've gone past the buffer, break the loop.
-            if InstrLength == OUT_OF_BLOCK:
-                break
-
-            # The instruction could not be decoded.
-            if InstrLength == UNKNOWN_OPCODE:
-
-                # Output a single byte as a "db" instruction.
-                char = "%.2X" % ord(buffer[offset])
-                result.append((
-                    Instruction.VirtualAddr,
-                    1,
-                    "db %sh" % char,
-                    char,
-                ))
-                Instruction.VirtualAddr += 1
-                Instruction.EIP += 1
-
-            # The instruction was decoded but reading past the buffer's end.
-            # This can happen when the last instruction is a prefix without an
-            # opcode. For example: decode(0, '\x66')
-            elif offset + InstrLength > len(code):
-
-                # Output each byte as a "db" instruction.
-                for char in buffer[ offset : offset + len(code) ]:
-                    char = "%.2X" % ord(char)
-                    result.append((
-                        Instruction.VirtualAddr,
-                        1,
-                        "db %sh" % char,
-                        char,
-                    ))
-                    Instruction.VirtualAddr += 1
-                    Instruction.EIP += 1
-
-            # The instruction was decoded correctly.
-            else:
-
-                # Output the decoded instruction.
-                append((
-                    Instruction.VirtualAddr,
-                    InstrLength,
-                    Instruction.CompleteInstr.strip(),
-                    hexdump(buffer.raw[offset:offset+InstrLength]),
-                ))
-                Instruction.VirtualAddr += InstrLength
-                Instruction.EIP += InstrLength
-
-        # Return the list of decoded instructions.
+        try:
+            # Try the latest BeaEngine API.
+            instr = bea_disasm(code, address)
+            instr.set_arch(self._arch_code)
+            while instr.read() > 0:
+                size = instr.len()
+                disasm = instr.repr()
+                dump = instr.bytes().hex()
+                result.append((instr.addr(), size, disasm, dump))
+        except TypeError:
+            # This is a fallback for older versions of BeaEngine.
+            # It's less efficient but should still work.
+            result = []
+            offset = 0
+            while offset < len(code):
+                try:
+                    current_address = address + offset
+                    instr = bea_disasm(code[offset:])
+                    instr.set_arch(self._arch_code)
+                    size = instr.read()
+                    if size > 0:
+                        disasm = instr.repr()
+                        dump = instr.bytes().hex()
+                        result.append((current_address, size, disasm, dump))
+                        offset += size
+                    else:
+                        # Couldn't disassemble, treat as one byte.
+                        dump = code[offset:offset+1].hex()
+                        disasm = 'db 0x%s' % dump
+                        result.append((current_address, 1, disasm, dump))
+                        offset += 1
+                except Exception:
+                    # Couldn't disassemble, treat as one byte.
+                    dump = code[offset:offset+1].hex()
+                    disasm = 'db 0x%s' % dump
+                    result.append((current_address, 1, disasm, dump))
+                    offset += 1
         return result
 
 #==============================================================================
@@ -310,13 +260,10 @@ class DistormEngine (Engine):
         # Load the distorm bindings.
         global distorm3
         if distorm3 is None:
-            try:
-                import distorm3
-            except ImportError:
-                import distorm as distorm3
+            import distorm3
 
     def __init__(self, arch = None):
-        super(DistormEngine, self).__init__(arch)
+        super().__init__(arch)
 
         # Load the decoder function.
         self.__decode = distorm3.Decode
@@ -329,136 +276,6 @@ class DistormEngine (Engine):
 
     def decode(self, address, code):
         return self.__decode(address, code, self.__flag)
-
-#==============================================================================
-
-class PyDasmEngine (Engine):
-    """
-    Integration with PyDasm: Python bindings to libdasm.
-    """
-
-    name = "PyDasm"
-    desc = "PyDasm: Python bindings to libdasm"
-    url  = "https://github.com/alexeevdv/libdasm"
-
-    supported = set((
-        win32.ARCH_I386,
-    ))
-
-    @classmethod
-    def _import_dependencies(cls):
-
-        # Load the libdasm bindings.
-        global pydasm
-        if pydasm is None:
-            import pydasm
-
-    def decode(self, address, code):
-
-        # Decode each instruction in the buffer.
-        result = []
-        offset = 0
-        while offset < len(code):
-
-            # Try to decode the current instruction.
-            instruction = pydasm.get_instruction(code[offset:offset+32],
-                                                 pydasm.MODE_32)
-
-            # Get the memory address of the current instruction.
-            current = address + offset
-
-            # Illegal opcode or opcode longer than remaining buffer.
-            if not instruction or instruction.length + offset > len(code):
-                hexdump = '%.2X' % ord(code[offset])
-                disasm  = 'db 0x%s' % hexdump
-                ilen    = 1
-
-            # Correctly decoded instruction.
-            else:
-                disasm  = pydasm.get_instruction_string(instruction,
-                                                        pydasm.FORMAT_INTEL,
-                                                        current)
-                ilen    = instruction.length
-                hexdump = HexDump.hexadecimal(code[offset:offset+ilen])
-
-            # Add the decoded instruction to the list.
-            result.append((
-                current,
-                ilen,
-                disasm,
-                hexdump,
-            ))
-
-            # Move to the next instruction.
-            offset += ilen
-
-        # Return the list of decoded instructions.
-        return result
-
-#==============================================================================
-
-class LibdisassembleEngine (Engine):
-    """
-    Integration with Immunity libdisassemble.
-
-    @warn: The libdisassemble project appears to be abandoned.
-        We recommend switching to another disassembly engine.
-    """
-
-    name = "Libdisassemble"
-    desc = "Immunity libdisassemble"
-    url  = "http://www.immunitysec.com/resources-freesoftware.shtml"
-
-    supported = set((
-        win32.ARCH_I386,
-    ))
-
-    @classmethod
-    def _import_dependencies(cls):
-
-        # Load the libdisassemble module.
-        # Since it doesn't come with an installer or an __init__.py file
-        # users can only install it manually however they feel like it,
-        # so we'll have to do a bit of guessing to find it.
-
-        global libdisassemble
-        if libdisassemble is None:
-            try:
-
-                # If installed properly with __init__.py
-                import libdisassemble.disassemble as libdisassemble
-
-            except ImportError:
-
-                # If installed by just copying and pasting the files
-                import disassemble as libdisassemble
-
-    def decode(self, address, code):
-
-        # Decode each instruction in the buffer.
-        result = []
-        offset = 0
-        while offset < len(code):
-
-            # Decode the current instruction.
-            opcode  = libdisassemble.Opcode( code[offset:offset+32] )
-            length  = opcode.getSize()
-            disasm  = opcode.printOpcode('INTEL')
-            hexdump = HexDump.hexadecimal( code[offset:offset+length] )
-
-            # Add the decoded instruction to the list.
-            result.append((
-                address + offset,
-                length,
-                disasm,
-                hexdump,
-            ))
-
-            # Move to the next instruction.
-            offset += length
-
-        # Return the list of decoded instructions.
-        return result
 
 #==============================================================================
 
@@ -488,7 +305,7 @@ class CapstoneEngine (Engine):
             import capstone
 
     def __init__(self, arch = None):
-        super(CapstoneEngine, self).__init__(arch)
+        super().__init__(arch)
 
         # Load the constants for the requested architecture.
         self.__constants = {
@@ -556,7 +373,7 @@ class CapstoneEngine (Engine):
             instr = None
             try:
                 instr = list(decoder(
-                    code[offset:offset+16], address+offset, 1
+                    code[offset:offset+64], address+offset, 1
                 ))[0]
             except IndexError:
                 pass   # No instructions decoded.
@@ -607,14 +424,17 @@ class CapstoneEngine (Engine):
                     mnemonic = "db "
                 else:
                     mnemonic = "dcb "
-                bytes = []
-                for b in skipped:
-                    if chr(b).isalpha():
-                        bytes.append("'%s'" % chr(b))
+                b = []
+                for item in skipped:
+                    if chr(item).isalpha():
+                        b.append("'%s'" % chr(item))
                     else:
-                        bytes.append("0x%x" % b)
-                op_str = ", ".join(bytes)
-                disasm = mnemonic + op_str
+                        b.append("0x%x" % item)
+                op_str = ", ".join(b)
+                if mnemonic:
+                    disasm = mnemonic + op_str
+                else:
+                    disasm = op_str
 
             # Add the decoded instruction to the list.
             result.append((
@@ -635,7 +455,7 @@ class CapstoneEngine (Engine):
 # TODO: use a lock to access __decoder
 # TODO: look in sys.modules for whichever disassembler is already loaded
 
-class Disassembler (object):
+class Disassembler:
     """
     Generic disassembler. Uses a set of adapters to decide which library to
     load for which supported platform.
@@ -651,11 +471,7 @@ class Disassembler (object):
         # These are the recommended disassembly engines.
         DistormEngine,  # diStorm engine goes first for backwards compatibility
         CapstoneEngine, # most likely to be up to date along with diStorm
-
-        # These are kept for backwards compatibility only.
-        BeaEngine,      # unmaintained in a long time
-        PyDasmEngine,   # same
-        LibdisassembleEngine,   # entirely abandoned by Immunity
+        BeaEngine,      # less popular so it goes last
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.

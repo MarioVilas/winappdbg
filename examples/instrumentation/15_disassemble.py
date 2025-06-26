@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,8 @@ def print_thread_disassembly( tid ):
         thread.resume()
 
     # Display the disassembled code.
-    print
-    print CrashDump.dump_code( code, eip ),
+    print()
+    print(CrashDump.dump_code( code, eip ), end='')
 
 # When invoked from the command line,
 # the first argument is a thread ID

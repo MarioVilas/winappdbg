@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,4 +42,4 @@ command_line = system.argv_to_cmdline( sys.argv[ 1 : ] )
 process = system.start_process( command_line ) # see the docs for more options
 
 # Show info on the new process.
-print "Started process %d (%d bits)" % ( process.get_pid(), process.get_bits() )
+print("Started process %d (%d bits)" % ( process.get_pid(), process.get_bits() ))

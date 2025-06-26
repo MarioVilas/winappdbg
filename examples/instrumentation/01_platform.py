@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,8 +31,8 @@
 from winappdbg import System, version
 
 # Show the Windows version and the current architecture.
-print "WinAppDbg %s" % version
-print "Running on %s for the %s architecture." % (System.os, System.arch)
+print("WinAppDbg %s" % version)
+print("Running on %s for the %s architecture." % (System.os, System.arch))
 if System.wow64:
-    print "Running in 32 bit emulation mode."
-print "From this Python VM we can attach to %d-bit processes." % System.bits
+    print("Running in 32 bit emulation mode.")
+print("From this Python VM we can attach to %d-bit processes." % System.bits)

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -63,20 +63,20 @@ def show_window( window ):
     size     = (rect.right - rect.left, rect.bottom - rect.top)
 
     # Print the window information.
-    print "Handle:   %s" % HexDump.integer( window.get_handle() )
-    print "Caption:  %s" % window.text
-    print "Class:    %s" % window.classname
-    print "Style:    %s" % HexDump.integer( window.style )
-    print "ExStyle:  %s" % HexDump.integer( window.exstyle )
-    print "Position: (%i, %i) - (%i, %i)" % position
-    print "Size:     (%i, %i)" % size
+    print("Handle:   %s" % HexDump.integer( window.get_handle() ))
+    print("Caption:  %s" % window.text)
+    print("Class:    %s" % window.classname)
+    print("Style:    %s" % HexDump.integer( window.style ))
+    print("ExStyle:  %s" % HexDump.integer( window.exstyle ))
+    print("Position: (%i, %i) - (%i, %i)" % position)
+    print("Size:     (%i, %i)" % size)
 
 
 def main():
     try:
         show_window( find_window() )
     except WindowsError:
-        print "No window found!"
+        print("No window found!")
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -89,9 +89,9 @@ class HexInput (StaticClass):
         if token.startswith('0x'):
             result = int(token, 16)     # hexadecimal
         elif token.startswith('0b'):
-            result = int(token[2:], 2)  # binary
+            result = int(token, 0)      # binary
         elif token.startswith('0o'):
-            result = int(token, 8)      # octal
+            result = int(token, 0)      # octal
         else:
             try:
                 result = int(token)     # decimal
@@ -122,19 +122,19 @@ class HexInput (StaticClass):
         @type  token: str
         @param token: String to parse.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Parsed string value.
         """
         token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
             raise ValueError("Missing characters in hex data")
-        data = ''
+        data = bytearray()
         for i in range(0, len(token), 2):
             x = token[i:i+2]
             d = int(x, 16)
             s = struct.pack('<B', d)
-            data += s
-        return data
+            data.extend(s)
+        return bytes(data)
 
     @staticmethod
     def pattern(token):
@@ -152,27 +152,27 @@ class HexInput (StaticClass):
         @type  token: str
         @param token: String to parse.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Parsed string value.
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
             raise ValueError("Missing characters in hex data")
-        regexp = ''
+        regexp = b''
         for i in range(0, len(token), 2):
             x = token[i:i+2]
             if x == '??':
-                regexp += '.'
+                regexp += b'.'
             elif x[0] == '?':
-                f = '\\x%%.1x%s' % x[1]
-                x = ''.join([ f % c for c in range(0, 0x10) ])
-                regexp = '%s[%s]' % (regexp, x)
+                f = b'\\x%%.1x%s' % x[1].encode('ascii')
+                x = b''.join([ f % c for c in range(0, 0x10) ])
+                regexp = b'%s[%s]' % (regexp, x)
             elif x[1] == '?':
-                f = '\\x%s%%.1x' % x[0]
-                x = ''.join([ f % c for c in range(0, 0x10) ])
-                regexp = '%s[%s]' % (regexp, x)
+                f = b'\\x%s%%.1x' % x[0].encode('ascii')
+                x = b''.join([ f % c for c in range(0, 0x10) ])
+                regexp = b'%s[%s]' % (regexp, x)
             else:
-                regexp = '%s\\x%s' % (regexp, x)
+                regexp = b'%s\\x%s' % (regexp, x.encode('ascii'))
         return regexp
 
     @staticmethod
@@ -188,7 +188,7 @@ class HexInput (StaticClass):
         @return:
             C{True} if it's a valid hexadecimal pattern, C{False} otherwise.
         """
-        return re.match(r"^(?:[\?A-Fa-f0-9][\?A-Fa-f0-9]\s*)+$", token)
+        return re.match(r"^(?:[\?A-Fa-f0-9][\?A-Fa-f0-9]\s*)+$", token) is not None
 
     @staticmethod
     def get_pattern_length(token):
@@ -205,7 +205,7 @@ class HexInput (StaticClass):
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
             raise ValueError("Missing characters in hex data")
-        return len(token) / 2
+        return len(token) // 2
 
     @classmethod
     def integer_list_file(cls, filename):
@@ -231,20 +231,20 @@ class HexInput (StaticClass):
         """
         count  = 0
         result = list()
-        fd     = open(filename, 'r')
-        for line in fd:
-            count = count + 1
-            if '#' in line:
-                line = line[ : line.find('#') ]
-            line = line.strip()
-            if line:
-                try:
-                    value = cls.integer(line)
-                except ValueError as e:
-                    msg = "Error in line %d of %s: %s"
-                    msg = msg % (count, filename, str(e))
-                    raise ValueError(msg)
-                result.append(value)
+        with open(filename, 'r', encoding='utf-8') as fd:
+            for line in fd:
+                count = count + 1
+                if '#' in line:
+                    line = line[ : line.find('#') ]
+                line = line.strip()
+                if line:
+                    try:
+                        value = cls.integer(line)
+                    except ValueError as e:
+                        msg = "Error in line %d of %s: %s"
+                        msg = msg % (count, filename, str(e))
+                        raise ValueError(msg)
+                    result.append(value)
         return result
 
     @classmethod
@@ -267,14 +267,14 @@ class HexInput (StaticClass):
         """
         count  = 0
         result = list()
-        fd     = open(filename, 'r')
-        for line in fd:
-            count = count + 1
-            if '#' in line:
-                line = line[ : line.find('#') ]
-            line = line.strip()
-            if line:
-                result.append(line)
+        with open(filename, 'r', encoding='utf-8') as fd:
+            for line in fd:
+                count = count + 1
+                if '#' in line:
+                    line = line[ : line.find('#') ]
+                line = line.strip()
+                if line:
+                    result.append(line)
         return result
 
     @classmethod
@@ -302,18 +302,18 @@ class HexInput (StaticClass):
         """
         count  = 0
         result = list()
-        fd     = open(filename, 'r')
-        for line in fd:
-            count = count + 1
-            if '#' in line:
-                line = line[ : line.find('#') ]
-            line = line.strip()
-            if line:
-                try:
-                    value = cls.integer(line)
-                except ValueError:
-                    value = line
-                result.append(value)
+        with open(filename, 'r', encoding='utf-8') as fd:
+            for line in fd:
+                count = count + 1
+                if '#' in line:
+                    line = line[ : line.find('#') ]
+                line = line.strip()
+                if line:
+                    try:
+                        value = cls.integer(line)
+                    except ValueError:
+                        value = line
+                    result.append(value)
         return result
 
 #------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ class HexOutput (StaticClass):
         if bits is None:
             integer_size = cls.integer_size
         else:
-            integer_size = (bits / 4) + 2
+            integer_size = (bits // 4) + 2
         if integer >= 0:
             return ('0x%%.%dx' % (integer_size - 2)) % integer
         return ('-0x%%.%dx' % (integer_size - 2)) % -integer
@@ -375,7 +375,7 @@ class HexOutput (StaticClass):
             address_size = cls.address_size
             bits = win32.bits
         else:
-            address_size = (bits / 4) + 2
+            address_size = (bits // 4) + 2
         if address < 0:
             address = ((2 ** bits) - 1) ^ ~address
         return ('0x%%.%dx' % (address_size - 2)) % address
@@ -412,10 +412,9 @@ class HexOutput (StaticClass):
             (Optional) Number of bits of the target architecture.
             The default is platform dependent. See: L{HexOutput.integer_size}
         """
-        fd = open(filename, 'w')
-        for integer in values:
-            fd.write(cls.integer(integer, bits) + os.linesep)
-        fd.close()
+        with open(filename, 'w', encoding='utf-8') as fd:
+            for integer in values:
+                fd.write(cls.integer(integer, bits) + os.linesep)
 
     @classmethod
     def string_list_file(cls, filename, values):
@@ -431,9 +430,8 @@ class HexOutput (StaticClass):
         @type  values: list( int )
         @param values: List of strings to write to the file.
         """
-        fd = open(filename, 'w')
-        fd.writelines(values)
-        fd.close()
+        with open(filename, 'w', encoding='utf-8') as fd:
+            fd.writelines([s + os.linesep for s in values])
 
     @classmethod
     def mixed_list_file(cls, filename, values, bits):
@@ -454,14 +452,13 @@ class HexOutput (StaticClass):
             (Optional) Number of bits of the target architecture.
             The default is platform dependent. See: L{HexOutput.integer_size}
         """
-        fd = open(filename, 'w')
-        for original in values:
-            try:
-                parsed = cls.integer(original, bits)
-            except TypeError:
-                parsed = repr(original)
-            fd.write(parsed + os.linesep)
-        fd.close()
+        with open(filename, 'w', encoding='utf-8') as fd:
+            for original in values:
+                try:
+                    parsed = cls.integer(original, bits)
+                except TypeError:
+                    parsed = repr(original)
+                fd.write(parsed + os.linesep)
 
 #------------------------------------------------------------------------------
 
@@ -498,7 +495,7 @@ class HexDump (StaticClass):
         if bits is None:
             integer_size = cls.integer_size
         else:
-            integer_size = bits / 4
+            integer_size = bits // 4
         return ('%%.%dX' % integer_size) % (integer,)
 
     @classmethod
@@ -519,7 +516,7 @@ class HexDump (StaticClass):
             address_size = cls.address_size
             bits = win32.bits
         else:
-            address_size = bits / 4
+            address_size = bits // 4
         if address < 0:
             address = ((2 ** bits) - 1) ^ ~address
         return ('%%.%dX' % address_size) % (address,)
@@ -536,6 +533,8 @@ class HexDump (StaticClass):
         @return: Printable text.
         """
         result = ''
+        if isinstance(data, str):
+            data = data.encode('latin-1', 'replace')
         for c in data:
             if 32 < c < 128:
                 result += chr(c)
@@ -576,7 +575,7 @@ class HexDump (StaticClass):
         @return: Hexadecimal representation.
         """
         if len(data) & 1 != 0:
-            data += '\0'
+            data += b'\0'
         return separator.join( [ '%.4x' % struct.unpack('<H', data[i:i+2])[0] \
                                            for i in range(0, len(data), 2) ] )
 
@@ -596,7 +595,7 @@ class HexDump (StaticClass):
         @return: Hexadecimal representation.
         """
         if len(data) & 3 != 0:
-            data += '\0' * (4 - (len(data) & 3))
+            data += b'\0' * (4 - (len(data) & 3))
         return separator.join( [ '%.8x' % struct.unpack('<L', data[i:i+4])[0] \
                                            for i in range(0, len(data), 4) ] )
 
@@ -616,7 +615,7 @@ class HexDump (StaticClass):
         @return: Hexadecimal representation.
         """
         if len(data) & 7 != 0:
-            data += '\0' * (8 - (len(data) & 7))
+            data += b'\0' * (8 - (len(data) & 7))
         return separator.join( [ '%.16x' % struct.unpack('<Q', data[i:i+8])[0]\
                                            for i in range(0, len(data), 8) ] )
 
@@ -875,7 +874,7 @@ class HexDump (StaticClass):
 
 # TODO: implement an ANSI parser to simplify using colors
 
-class Color (object):
+class Color:
     """
     Colored console output.
     """
@@ -1108,7 +1107,7 @@ class Color (object):
 
 # TODO: another class for ASCII boxes
 
-class Table (object):
+class Table:
     """
     Text based table. The number of columns and the width of each column
     is automatically calculated.
@@ -1580,7 +1579,7 @@ class CrashDump (StaticClass):
         if bits is None:
             address_size = HexDump.address_size
         else:
-            address_size = bits / 4
+            address_size = bits // 4
         (addr, size, code, dump) = disassembly_line
         dump = dump.replace(' ', '')
         result = list()
@@ -1803,7 +1802,9 @@ class Logger(object):
         self.verbose = verbose
         self.logfile = logfile
         if self.logfile:
-            self.fd = open(self.logfile, 'a+')
+            self.fd = open(self.logfile, 'a+', encoding='utf-8')
+        else:
+            self.fd = None
 
     def __logfile_error(self, e):
         """
@@ -1832,14 +1833,12 @@ class Logger(object):
         @type  text: str
         @param text: Text to print.
         """
-        # python 3 so we do not need to convert them
-        #if isinstance(text, unicode):
-        #    text = text.encode('cp1252')
         if self.verbose:
             print(text)
-        if self.logfile:
+        if self.logfile and self.fd:
             try:
-                self.fd.writelines('%s\n' % text)
+                self.fd.write('%s\n' % text)
+                self.fd.flush()
             except IOError as e:
                 self.__logfile_error(e)
 
@@ -1885,4 +1884,4 @@ class Logger(object):
         @return: C{True} if a log file was set and/or standard output logging
             is enabled, or C{False} otherwise.
         """
-        return self.verbose or self.logfile
+        return self.verbose or (self.logfile is not None)

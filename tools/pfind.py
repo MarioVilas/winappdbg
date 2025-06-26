@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process memory finder
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,15 +39,9 @@ import re
 import sys
 import optparse
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 #==============================================================================
 
-class Search (object):
+class Search:
 
     name    = "query"
     desc    = "search query"
@@ -123,11 +117,17 @@ class StringSearch (Search):
               " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
-        self.string = self.pattern
+        if isinstance(self.pattern, str):
+            self.string = self.pattern.encode('latin-1')
+        else:
+            self.string = self.pattern
 
     def search(self, data):
         pos = data.find(self.string, self.end)
-        self.update(pos, pos + len(self.pattern))
+        if pos > -1:
+            self.update(pos, pos + len(self.string))
+        else:
+            self.update(-1, 0)
 
 #------------------------------------------------------------------------------
 
@@ -139,10 +139,13 @@ class TextSearch (StringSearch):
               " address %(where)s (%(size)d bytes)"
 
     def initialize_pattern(self):
-        self.string = self.pattern.lower()
+        if isinstance(self.pattern, str):
+            self.string = self.pattern.lower().encode('latin-1')
+        else:
+            self.string = self.pattern.lower()
 
     def search(self, data):
-        super(TextSearch, self).search( data.lower() )
+        super().search( data.lower() )
 
 #------------------------------------------------------------------------------
 
@@ -176,7 +179,7 @@ class PatternSearch (Search):
 
 #==============================================================================
 
-class Main (object):
+class Main:
 
     def __init__(self, argv):
         self.argv = argv
@@ -255,21 +258,19 @@ class Main (object):
                self.parser.error("at least one search switch must be used")
 
         # Convert the Unicode strings into ANSI strings internally.
-        # XXX TODO I know this works for Western text but I need to try this
-        # with for example Chinese strings to make sure this hack holds.
         for s in self.options.ustring:
             try:
-                s = s.decode("cp1252").encode("utf16")[2:]
+                s_bytes = s.encode("utf-16-le")
             except Exception:
                 self.parser.error("Failed to encode Unicode string!")
-            self.options.string.append(s)
+            self.options.string.append(s_bytes)
         self.options.ustring = []
         for s in self.options.iustring:
             try:
-                s = s.decode("cp1252").encode("utf16")[2:]
+                s_bytes = s.encode("utf-16-le")
             except Exception:
                 self.parser.error("Failed to encode Unicode string!")
-            self.options.istring.append(s)
+            self.options.istring.append(s_bytes)
         self.options.iustring = []
 
     def prepare_input(self):
@@ -335,7 +336,7 @@ class Main (object):
             except WindowsError:
                 print("Can't open process %d, skipping" % self.pid)
                 if self.options.verbose:
-                    print
+                    print()
                 continue
 
             # Get a list of allocated memory regions
@@ -407,7 +408,7 @@ class Main (object):
                     break
                 if self.options.verbose:
                     print(searcher.message(self.pid, address - shift, data))
-                    print
+                    print()
                 else:
                     print(searcher.message(self.pid, address - shift))
 
@@ -416,7 +417,7 @@ class Main (object):
         # Banner
         print("Process memory finder")
         print("by Mario Vilas (mvilas at gmail.com)")
-        print
+        print()
 
         # Parse the command line
         self.parse_cmdline()
@@ -433,10 +434,4 @@ def main(argv):
     return Main(argv).run()
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.cannotcompile(re.compile)
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

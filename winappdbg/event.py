@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -104,7 +104,7 @@ import traceback
 
 #==============================================================================
 
-class EventCallbackWarning (RuntimeWarning):
+class EventCallbackWarning(RuntimeWarning):
     """
     This warning is issued when an uncaught exception was raised by a
     user-defined event handler.
@@ -112,7 +112,7 @@ class EventCallbackWarning (RuntimeWarning):
 
 #==============================================================================
 
-class Event (object):
+class Event:
     """
     Event object.
 
@@ -235,7 +235,6 @@ class Event (object):
             # The process object was missing for some reason, so make a new one.
             process = Process(pid)
             system._add_process(process)
-##            process.scan_threads()    # not needed
             process.scan_modules()
         return process
 
@@ -253,13 +252,13 @@ class Event (object):
         else:
             # XXX HACK
             # The thread object was missing for some reason, so make a new one.
-            thread = Thread(tid)
+            thread = Thread(tid, process=process)
             process._add_thread(thread)
         return thread
 
 #==============================================================================
 
-class NoEvent (Event):
+class NoEvent(Event):
     """
     No event.
 
@@ -272,7 +271,7 @@ class NoEvent (Event):
     eventDescription = 'No debug event has occured.'
 
     def __init__(self, debug, raw = None):
-        Event.__init__(self, debug, raw)
+        super().__init__(debug, raw)
 
     def __len__(self):
         """
@@ -299,7 +298,7 @@ class NoEvent (Event):
 
 #==============================================================================
 
-class ExceptionEvent (Event):
+class ExceptionEvent(Event):
     """
     Exception event.
 
@@ -444,8 +443,8 @@ class ExceptionEvent (Event):
             try:
                 description = 'Exception code %s (%s)'
                 description = description % (HexDump.integer(code),
-                                             ctypes.FormatError(code))
-            except OverflowError:
+                                             win32.FormatError(code))
+            except (OverflowError, ValueError):
                 description = 'Exception code %s' % HexDump.integer(code)
         return description
 
@@ -684,7 +683,7 @@ class ExceptionEvent (Event):
 
 #==============================================================================
 
-class CreateThreadEvent (Event):
+class CreateThreadEvent(Event):
     """
     Thread creation event.
     """
@@ -729,7 +728,7 @@ class CreateThreadEvent (Event):
 
 #==============================================================================
 
-class CreateProcessEvent (Event):
+class CreateProcessEvent(Event):
     """
     Process creation event.
     """
@@ -881,7 +880,7 @@ class CreateProcessEvent (Event):
 
 #==============================================================================
 
-class ExitThreadEvent (Event):
+class ExitThreadEvent(Event):
     """
     Thread termination event.
     """
@@ -899,7 +898,7 @@ class ExitThreadEvent (Event):
 
 #==============================================================================
 
-class ExitProcessEvent (Event):
+class ExitProcessEvent(Event):
     """
     Process termination event.
     """
@@ -946,7 +945,7 @@ class ExitProcessEvent (Event):
 
 #==============================================================================
 
-class LoadDLLEvent (Event):
+class LoadDLLEvent(Event):
     """
     Module load event.
     """
@@ -1033,7 +1032,7 @@ class LoadDLLEvent (Event):
 
 #==============================================================================
 
-class UnloadDLLEvent (Event):
+class UnloadDLLEvent(Event):
     """
     Module unload event.
     """
@@ -1084,7 +1083,7 @@ class UnloadDLLEvent (Event):
 
 #==============================================================================
 
-class OutputDebugStringEvent (Event):
+class OutputDebugStringEvent(Event):
     """
     Debug string output event.
     """
@@ -1095,7 +1094,7 @@ class OutputDebugStringEvent (Event):
 
     def get_debug_string(self):
         """
-        @rtype:  str, unicode
+        @rtype:  bytes or str
         @return: String sent by the debugee.
             It may be ANSI or Unicode and may end with a null character.
         """
@@ -1106,7 +1105,7 @@ class OutputDebugStringEvent (Event):
 
 #==============================================================================
 
-class RIPEvent (Event):
+class RIPEvent(Event):
     """
     RIP event.
     """
@@ -1136,7 +1135,7 @@ class RIPEvent (Event):
 
 #==============================================================================
 
-class EventFactory (StaticClass):
+class EventFactory(StaticClass):
     """
     Factory of L{Event} objects.
 
@@ -1181,7 +1180,7 @@ class EventFactory (StaticClass):
 
 #==============================================================================
 
-class EventHandler (object):
+class EventHandler:
     """
     Base class for debug event handlers.
 
@@ -1379,7 +1378,7 @@ class EventHandler (object):
                     self.myVariable = myArgument
 
                     # Call the superclass constructor.
-                    super(MyEventHandler, self).__init__()
+                    super().__init__()
 
                 # The rest of your code below...
         """
@@ -1398,19 +1397,19 @@ class EventHandler (object):
         for lib, hooks in self.apiHooks.items():
             hook_objs = []
             for proc, args in hooks:
-                if type(args) in (int, int):
-                    h = ApiHook(self, lib, proc, paramCount = args)
+                if isinstance(args, int):
+                    h = ApiHook(self, lib, proc, paramCount=args)
                 else:
-                    h = ApiHook(self, lib, proc,  signature = args)
+                    h = ApiHook(self, lib, proc, signature=args)
                 hook_objs.append(h)
             apiHooks[lib] = hook_objs
         self.__apiHooks = apiHooks
 
-    def __get_hooks_for_dll(self, event):
+    def _get_hooks_for_dll(self, event):
         """
         Get the requested API hooks for the current DLL.
 
-        Used by L{__hook_dll} and L{__unhook_dll}.
+        Used by L{_hook_dll} and L{_unhook_dll}.
         """
         result = []
         if self.__apiHooks:
@@ -1422,26 +1421,26 @@ class EventHandler (object):
                         result.extend(hook_api_list)
         return result
 
-    def __hook_dll(self, event):
+    def _hook_dll(self, event):
         """
         Hook the requested API calls (in self.apiHooks).
 
         This method is called automatically whenever a DLL is loaded.
         """
         debug = event.debug
-        pid   = event.get_pid()
-        for hook_api_stub in self.__get_hooks_for_dll(event):
+        pid = event.get_pid()
+        for hook_api_stub in self._get_hooks_for_dll(event):
             hook_api_stub.hook(debug, pid)
 
-    def __unhook_dll(self, event):
+    def _unhook_dll(self, event):
         """
         Unhook the requested API calls (in self.apiHooks).
 
         This method is called automatically whenever a DLL is unloaded.
         """
         debug = event.debug
-        pid   = event.get_pid()
-        for hook_api_stub in self.__get_hooks_for_dll(event):
+        pid = event.get_pid()
+        for hook_api_stub in self._get_hooks_for_dll(event):
             hook_api_stub.unhook(debug, pid)
 
     def __call__(self, event):
@@ -1456,9 +1455,9 @@ class EventHandler (object):
         try:
             code = event.get_event_code()
             if code == win32.LOAD_DLL_DEBUG_EVENT:
-                self.__hook_dll(event)
+                self._hook_dll(event)
             elif code == win32.UNLOAD_DLL_DEBUG_EVENT:
-                self.__unhook_dll(event)
+                self._unhook_dll(event)
         finally:
             method = EventDispatcher.get_handler_method(self, event)
             if method is not None:
@@ -1555,7 +1554,7 @@ class EventSift(EventHandler):
                 if we_want_to_forward_this_event(event):
 
                     # Forward it.
-                    return super(MySift, self).event(event)
+                    return super().event(event)
 
                 # Otherwise, don't.
 
@@ -1598,7 +1597,7 @@ class EventSift(EventHandler):
         self.argv    = argv
         self.argd    = argd
         self.forward = dict()
-        super(EventSift, self).__init__()
+        super().__init__()
 
     # XXX HORRIBLE HACK
     # This makes apiHooks work in the inner handlers.
@@ -1606,19 +1605,19 @@ class EventSift(EventHandler):
         try:
             eventCode = event.get_event_code()
             if eventCode in (win32.LOAD_DLL_DEBUG_EVENT,
-                             win32.LOAD_DLL_DEBUG_EVENT):
+                             win32.UNLOAD_DLL_DEBUG_EVENT):
                 pid = event.get_pid()
                 handler = self.forward.get(pid, None)
                 if handler is None:
                     handler = self.cls(*self.argv, **self.argd)
-                self.forward[pid] = handler
+                    self.forward[pid] = handler
                 if isinstance(handler, EventHandler):
                     if eventCode == win32.LOAD_DLL_DEBUG_EVENT:
-                        handler.__EventHandler_hook_dll(event)
+                        handler._hook_dll(event)
                     else:
-                        handler.__EventHandler_unhook_dll(event)
+                        handler._unhook_dll(event)
         finally:
-            return super(EventSift, self).__call__(event)
+            return super().__call__(event)
 
     def event(self, event):
         """
@@ -1644,7 +1643,7 @@ class EventSift(EventHandler):
 
 #==============================================================================
 
-class EventDispatcher (object):
+class EventDispatcher:
     """
     Implements debug event dispatching capabilities.
 

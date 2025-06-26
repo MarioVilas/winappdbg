@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,24 +34,24 @@ from winappdbg import PathOperations
 
 # Get the command line argument.
 path = sys.argv[ 1 ]
-print "Path: %s" % path
+print("Path: %s" % path)
 
 # If it's a relative path...
 if PathOperations.path_is_relative( path ):
-    print "Path is relative."
+    print("Path is relative.")
 
     # Convert to absolute.
     absolute = PathOperations.make_absolute( path )
-    print "Absolute path: %s" % absolute
+    print("Absolute path: %s" % absolute)
 
 # If it's an absolute path...
 elif PathOperations.path_is_absolute( path ):
-    print "Path is absolute."
+    print("Path is absolute.")
 
     # Convert to relative.
     relative = PathOperations.make_relative( path )
-    print "Relative path: %s" % relative
+    print("Relative path: %s" % relative)
 
 # If it's neither...
 else:
-    print "Path is invalid."
+    print("Path is invalid.")

@@ -164,9 +164,6 @@ html_show_sourcelink = False
 # If nonempty, this is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = ''
 
-# Output file base name for HTML help builder.
-htmlhelp_basename = 'WinAppDbg'
-
 
 # -- Options for LaTeX output --------------------------------------------------
 

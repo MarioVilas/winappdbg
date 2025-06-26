@@ -38,7 +38,7 @@ Where **dwProcessId** is the Id of the process where we want to set the breakpoi
 Page breakpoints
 ++++++++++++++++
 
-*Page* breakpoints are implemented by changing the `access permissions <https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ of a given memory page. This causes a guard page exception to be generated when the given page is accessed anywhere in the code of the process.
+*Page* breakpoints are implemented by changing the `access permissions <https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ of a given memory page. This causes a guard page exception to be generated when the given page is accessed anywhere in the code of the process.
 
 When hit, page breakpoints trigger a **guard_page** event at your :ref:`event handler <the-eventhandler-class>`.
 
@@ -48,7 +48,7 @@ Let's see the signature of *define_page_breakpoint*:
    :start-after: # Page breakpoints.
    :end-before: """
 
-Where **dwProcessId** is the same. But now **address** needs to be page-aligned and **pages** is the number of pages covered by the breakpoint. This is because `VirtualProtectEx() <https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ works only with entire pages, you can't change the access permissions on individual bytes.
+Where **dwProcessId** is the same. But now **address** needs to be page-aligned and **pages** is the number of pages covered by the breakpoint. This is because `VirtualProtectEx() <https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex>`_ works only with entire pages, you can't change the access permissions on individual bytes.
 
 .. _hardware-breakpoints:
 
@@ -69,7 +69,7 @@ Seems a little more complicated than the others. :)
 
 The first difference we see is the *dwProcessId* parameter has been replaced by **dwThreadId**. This is because hardware breakpoints are only applicable to single threads, not to the entire process.
 
-The **address** is any address in the process memory, even if it's unmapped. This can be useful to set breakpoints on DLL libraries before they are loaded (as long as they don't get `relocated <https://en.wikipedia.org/wiki/Portable_Executable#Relocations>`_).
+The **address** is any address in the process memory, even if it's unmapped. This can be useful to set breakpoints on DLL libraries before they are loaded (as long as they don't get relocated).
 
 The **triggerFlag** parameter is used to specify exactly what event will trigger this breakpoint. There are four constants available:
 

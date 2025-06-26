@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 from winappdbg import Debug, EventHandler, HexDump, win32
 
 
-class MyHook (object):
+class MyHook:
 
     # Keep record of the buffers we watch.
     def __init__(self):
@@ -47,7 +47,7 @@ class MyHook (object):
             return
 
         # Show a message to the user.
-        print "\nReadFile:\n\tHandle %x\n\tExpected bytes: %d" % ( hFile, nNumberOfBytesToRead )
+        print("\nReadFile:\n\tHandle %x\n\tExpected bytes: %d" % ( hFile, nNumberOfBytesToRead ))
 
         # Stop watching the previous buffer.
         if self.__previous:
@@ -63,7 +63,7 @@ class MyHook (object):
 
         # If the function call failed ignore it.
         if return_value == 0:
-            print "\nReadFile:\n\tStatus: FAIL"
+            print("\nReadFile:\n\tStatus: FAIL")
             return
 
         # Get the buffer location and size.
@@ -85,7 +85,7 @@ class MyHook (object):
         # self.__previous = event.debug.stalk_buffer( pid, address, size, action )
 
         # Show a message to the user.
-        print "\nReadFile:\n\tStatus: SUCCESS\n\tRead bytes: %d" % size
+        print("\nReadFile:\n\tStatus: SUCCESS\n\tRead bytes: %d" % size)
 
 
     # This function will be called every time the procedure name buffer is accessed.
@@ -95,17 +95,17 @@ class MyHook (object):
         thread = event.get_thread()
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
-        print "%s: %s" % (
+        print("%s: %s" % (
             HexDump.address(code[0], thread.get_bits()),
             code[2].lower()
-        )
+        ))
 
 
 class MyEventHandler( EventHandler ):
 
     # Called on guard page exceptions NOT raised by our breakpoints.
     def guard_page( self, event ):
-        print event.get_exception_name()
+        print(event.get_exception_name())
 
     # Called on DLL load events.
     def load_dll( self, event ):

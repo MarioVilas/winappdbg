@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,11 +45,11 @@ table.addRow( "Dalek", "Cyberman" )
 table.justify( 0, 1 )  # column 0 is now right justified
 
 # Let's find out how wide the table is.
-print "Table width: %d" % table.getWidth()
+print("Table width: %d" % table.getWidth())
 
 # Let's find out how many bytes would it be if written to a file.
-print "Text size in characters: %d" % len( table.getOutput() )
+print("Text size in characters: %d" % len( table.getOutput() ))
 
 # Show the table contents on screen.
-print
-table.show(),
+print()
+table.show()

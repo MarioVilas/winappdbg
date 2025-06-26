@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process killer
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,13 +37,7 @@ from winappdbg import win32, Process, System, HexInput
 
 import os
 import sys
-from .thread import exit
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
+from sys import exit
 
 def main(argv):
     script = os.path.basename(argv[0])
@@ -51,13 +45,13 @@ def main(argv):
 
     print("Process killer")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     if len(params) == 0 or '-h' in params or '--help' in params or \
                                                      '/?' in params:
         print("Usage:")
         print("    %s <process ID or name> [process ID or name...]" % script)
-        print
+        print()
         print("If a process name is given instead of an ID all matching processes are killed.")
         exit()
 
@@ -182,9 +176,4 @@ def main(argv):
     exit()
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

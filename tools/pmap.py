@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process memory map
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ def number(value):
 def main():
     print("Process memory map")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
         script = os.path.basename(sys.argv[0])
@@ -90,7 +90,7 @@ def main():
             print("Memory map for %d (%s):" % (pid, fileName))
         else:
             print("Memory map for %d:" % pid)
-        print
+        print()
 ##        print(CrashDump.dump_memory_map(memoryMap),)
         print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
 
@@ -125,12 +125,7 @@ def main():
         print(("  %%%ds bytes of mapped memory" % width) % number(mapped))
         print(("  %%%ds bytes of image memory" % width) % number(image))
         print(("  %%%ds bytes of total memory" % width) % number(total))
-        print
+        print()
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main()

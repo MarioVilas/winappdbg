@@ -6,8 +6,8 @@ Advanced topics
 This section contains some more detailed explanations on the internal workings of *WinAppDbg* and how to perform more complex tasks with it.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
-   Signature
-   HowLabelsWork
    HowBreakpointsWork
+   HowLabelsWork
+   Signature

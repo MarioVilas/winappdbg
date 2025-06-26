@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ def show_command_line( pid ):
     process = Process( pid )
 
     # Print the process command line.
-    print process.get_command_line()
+    print(process.get_command_line())
 
     # The same thing could be done with the environment variables.
     #import pprint

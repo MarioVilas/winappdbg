@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ from winappdbg import System, Color
 def reg_search( search ):
 
     # Show the user what we're searching for.
-    print "Searching for: %r" % search
+    print("Searching for: %r" % search)
 
     # For each Registry key...
     for path in System.registry.iterkeys():
@@ -72,7 +72,7 @@ def reg_search( search ):
 
             # Registry values can be of many data types.
             # For this search we need to force all values to be strings.
-            if type(value) not in (str, unicode):
+            if not isinstance(value, str):
                 value = str(value)
 
             # Do the name or value match?
@@ -86,23 +86,22 @@ def highlight( search, text ):
         try:
             Color.default()
             p = 0
-            t = len( text )
-            s = len( search )
-            while p < t:
-                q = text.find( search )
-                if q < p:
-                    q = t
+            while p < len(text):
+                q = text.find( search, p )
+                if q == -1:
+                    sys.stdout.write( text[p:] )
+                    break
                 sys.stdout.write( text[ p : q ] )
                 Color.red()
                 Color.light()
-                sys.stdout.write( text[ q : q + s ] )
+                sys.stdout.write( search )
                 Color.default()
-                sys.stdout.write("\r\n")
-                p = q + s
+                p = q + len(search)
+            sys.stdout.write("\r\n")
         finally:
             Color.default()
     else:
-        print text
+        print(text)
 
 # Determine if the output is a console or a file.
 # Trying to use colors fails if the output is not the console.

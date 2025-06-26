@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ try:
 
     # For all processes that match the requested filename...
     for ( process, name ) in debug.system.find_processes_by_filename( filename ):
-        print process.get_pid(), name
+        print(process.get_pid(), name)
 
         # Attach to the process.
         debug.attach( process.get_pid() )

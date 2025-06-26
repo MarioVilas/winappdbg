@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# This line is needed in Python 2.5 to use the "with" statement.
-from __future__ import with_statement
-
 from winappdbg import Debug
 
 import sys
@@ -40,7 +37,7 @@ debug = Debug( bKillOnExit = True )
 
 # The user can stop debugging with Control-C.
 try:
-    print "Hit Control-C to stop debugging..."
+    print("Hit Control-C to stop debugging...")
 
     # Start a new process for debugging.
     debug.execv( sys.argv[ 1 : ] )
@@ -50,7 +47,7 @@ try:
 
 # If the user presses Control-C...
 except KeyboardInterrupt:
-    print "Interrupted by user."
+    print("Interrupted by user.")
 
     # Stop debugging. This kills all debugged processes.
     debug.stop()

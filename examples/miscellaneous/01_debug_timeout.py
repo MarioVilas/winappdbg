@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# This line is needed in Python 2.5 to use the "with" statement.
-from __future__ import with_statement
-
 from winappdbg import *  # NOQA
 from time import time
 
 # Using the Debug object in a "with" context ensures proper cleanup.
-with Debug( bKillOnExit = True ) as dbg:
+with Debug(bKillOnExit=True) as dbg:
 
     # Run the Windows Calculator (calc.exe).
     dbg.execl('calc.exe')
@@ -55,11 +52,11 @@ with Debug( bKillOnExit = True ) as dbg:
             dbg.wait(1000)  # 1 second accuracy
 
             # Show the current time on screen.
-            print time()
+            print(time())
 
         # If wait() times out just try again.
         # On any other error stop debugging.
-        except WindowsError, e:
+        except WindowsError as e:
             if e.winerror in (win32.ERROR_SEM_TIMEOUT,
                               win32.WAIT_TIMEOUT):
                 continue

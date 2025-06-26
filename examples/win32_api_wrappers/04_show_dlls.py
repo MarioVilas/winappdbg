@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,9 +41,9 @@ def print_modules( pid ):
         hdr = "%-16s    %-16s    %s"
 
     # Print a banner.
-    print "Modules for process %d:" % pid
-    print
-    print hdr % ("Address", "Size", "Path")
+    print("Modules for process %d:" % pid)
+    print()
+    print(hdr % ("Address", "Size", "Path"))
 
     # Create a snapshot of the process, only take the heap list.
     hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
@@ -53,9 +53,9 @@ def print_modules( pid ):
     while module is not None:
 
         # Print the module address, size and pathname.
-        print fmt % ( module.modBaseAddr,
+        print(fmt % ( module.modBaseAddr,
                       module.modBaseSize,
-                      module.szExePath )
+                      module.szExePath ))
 
         # Next module in the process.
         module = Module32Next( hSnapshot )

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,15 +39,15 @@ def show_window_tree( window, indent = 0 ):
     caption = window.get_text()
     line = ""
     if indent > 0:
-        print "|   " * indent
+        print("|   " * indent)
         line = "|   " * (indent - 1) + "|---"
     else:
-        print "|"
+        print("|")
     if caption is not None:
         line += handle + ": " + caption
     else:
         line += handle
-    print line
+    print(line)
 
     # Recursively show the child windows.
     for child in window.get_children():

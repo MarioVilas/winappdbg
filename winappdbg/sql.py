@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,53 +40,39 @@ __all__ = ['CrashDAO']
 import sqlite3
 import datetime
 import warnings
+from functools import wraps
+import json
 
-from sqlalchemy import create_engine, Column, ForeignKey, Sequence
+from sqlalchemy import create_engine, Column, ForeignKey, Sequence, inspect
 from sqlalchemy.engine.url import URL
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, deferred
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
-                             LargeBinary, Enum, VARCHAR
+                             LargeBinary, Enum
 from sqlalchemy.sql.expression import asc, desc
 
-from crash import Crash, Marshaller, pickle
+from crash import Crash, crash_decode, crash_encode
 from .textio import CrashDump
 from . import win32
 
 #------------------------------------------------------------------------------
 
-try:
-    from decorator import decorator
-except ImportError:
-    import functools
-    def decorator(w):
-        """
-        The C{decorator} module was not found. You can install it from:
-        U{http://pypi.python.org/pypi/decorator/}
-        """
-        def d(fn):
-            @functools.wraps(fn)
-            def x(*argv, **argd):
-                return w(fn, *argv, **argd)
-            return x
-        return d
+def Transactional(fn):
+    """
+    Decorator that wraps DAO methods to handle transactions automatically.
+
+    It may only work with subclasses of L{BaseDAO}.
+    """
+    @wraps(fn)
+    def wrapper(self, *argv, **argd):
+        with self._session.begin():
+            return fn(self, *argv, **argd)
+    return wrapper
 
 #------------------------------------------------------------------------------
 
-@compiles(String, 'mysql')
-@compiles(VARCHAR, 'mysql')
-def _compile_varchar_mysql(element, compiler, **kw):
-    """MySQL hack to avoid the "VARCHAR requires a length" error."""
-    if not element.length or element.length == 'max':
-        return "TEXT"
-    else:
-        return compiler.visit_VARCHAR(element, **kw)
-
-#------------------------------------------------------------------------------
-
-class BaseDTO (object):
+class BaseDTO:
     """
     Customized declarative base for SQLAlchemy.
     """
@@ -120,7 +106,7 @@ BaseDTO = declarative_base(cls = BaseDTO)
 #       http://dev.mysql.com/doc/refman/5.1/en/optimize-table.html
 #       http://msdn.microsoft.com/en-us/library/ms174459(v=sql.90).aspx
 
-class BaseDAO (object):
+class BaseDAO:
     """
     Data Access Object base class.
 
@@ -148,9 +134,7 @@ class BaseDAO (object):
     _echo = False
 
     _new_session = sessionmaker(autoflush = True,
-                                autocommit = True,
-                                expire_on_commit = True,
-                                weak_identity_map = True)
+                                expire_on_commit = True)
 
     def __init__(self, url, creator = None):
         """
@@ -242,43 +226,7 @@ class BaseDAO (object):
         self._dialect = dialect
         self._session = session
 
-    def _transactional(self, method, *argv, **argd):
-        """
-        Begins a transaction and calls the given DAO method.
-
-        If the method executes successfully the transaction is commited.
-
-        If the method fails, the transaction is rolled back.
-
-        @type  method: callable
-        @param method: Bound method of this class or one of its subclasses.
-            The first argument will always be C{self}.
-
-        @return: The return value of the method call.
-
-        @raise Exception: Any exception raised by the method.
-        """
-        self._session.begin(subtransactions = True)
-        try:
-            result = method(self, *argv, **argd)
-            self._session.commit()
-            return result
-        except:
-            self._session.rollback()
-            raise
-
 #------------------------------------------------------------------------------
-
-@decorator
-def Transactional(fn, self, *argv, **argd):
-    """
-    Decorator that wraps DAO methods to handle transactions automatically.
-
-    It may only work with subclasses of L{BaseDAO}.
-    """
-    return self._transactional(fn, *argv, **argd)
-
-#==============================================================================
 
 # Generates all possible memory access flags.
 def _gen_valid_access_flags():
@@ -585,14 +533,14 @@ class CrashDTO (BaseDTO):
 
         # Timestamp and signature.
         self.timestamp = datetime.datetime.fromtimestamp( crash.timeStamp )
-        self.signature = pickle.dumps(crash.signature, protocol = 0)
+        self.signature = json.dumps(crash.signature)
 
         # Marshalled Crash object, minus the memory dump.
         # This code is *not* thread safe!
         memoryMap = crash.memoryMap
         try:
             crash.memoryMap = None
-            self.data = buffer( Marshaller.dumps(crash) )
+            self.data = json.dumps(crash, default=crash_encode).encode('utf-8')
         finally:
             crash.memoryMap = memoryMap
 
@@ -644,8 +592,7 @@ class CrashDTO (BaseDTO):
 
         # Environment.
         if crash.environment:
-            envList = crash.environment.items()
-            envList.sort()
+            envList = sorted(crash.environment.items())
             environment = ''
             for envKey, envVal in envList:
                 # Must concatenate here instead of using a substitution,
@@ -671,7 +618,7 @@ class CrashDTO (BaseDTO):
         @rtype:  L{Crash}
         @return: Crash object.
         """
-        crash = Marshaller.loads(str(self.data))
+        crash = json.loads(self.data.decode('utf-8'), object_hook=crash_decode)
         if not isinstance(crash, Crash):
             raise TypeError(
                 "Expected Crash instance, got %s instead" % type(crash))
@@ -716,7 +663,7 @@ class CrashDAO (BaseDAO):
 
         # Filter out duplicated crashes, if requested.
         if not allow_duplicates:
-            signature = pickle.dumps(crash.signature, protocol = 0)
+            signature = json.dumps(crash.signature)
             if self._session.query(CrashDTO.id)                \
                             .filter_by(signature = signature) \
                             .count() > 0:
@@ -770,7 +717,7 @@ class CrashDAO (BaseDAO):
             for mbi in memoryMap:
                 r_mem = MemoryDTO(crash_id, mbi)
                 session.add(r_mem)
-                session.flush()
+            session.flush()
 
     @Transactional
     def find(self,
@@ -827,7 +774,7 @@ class CrashDAO (BaseDAO):
         # Build the SQL query.
         query = self._session.query(CrashDTO)
         if signature is not None:
-            sig_pickled = pickle.dumps(signature, protocol = 0)
+            sig_pickled = json.dumps(signature)
             query = query.filter(CrashDTO.signature == sig_pickled)
         if since:
             query = query.filter(CrashDTO.timestamp >= since)
@@ -892,21 +839,18 @@ class CrashDAO (BaseDAO):
 
         # Order by row ID to get consistent results.
         # Also some database engines require ordering when using offsets.
-        query = query.asc(CrashDTO.id)
+        query = query.order_by(asc(CrashDTO.id))
 
         # Build a CrashDTO from the Crash object.
         dto = CrashDTO(crash)
 
         # Filter all the fields in the crashes table that are present in the
         # CrashDTO object and not set to None, except for the row ID.
-        for name, column in CrashDTO.__dict__.items():
-            if not name.startswith('__') and name not in ('id',
-                                                          'signature',
-                                                          'data'):
-                if isinstance(column, Column):
-                    value = getattr(dto, name, None)
-                    if value is not None:
-                        query = query.filter(column == value)
+        for attr in inspect(CrashDTO).attrs:
+            if attr.key not in ('id', 'signature', 'data', 'timestamp'):
+                value = getattr(dto, attr.key, None)
+                if value is not None:
+                    query = query.filter(attr == value)
 
         # Page the query.
         if offset:
@@ -935,7 +879,7 @@ class CrashDAO (BaseDAO):
         """
         query = self._session.query(CrashDTO.id)
         if signature:
-            sig_pickled = pickle.dumps(signature, protocol = 0)
+            sig_pickled = json.dumps(signature)
             query = query.filter_by(signature = sig_pickled)
         return query.count()
 

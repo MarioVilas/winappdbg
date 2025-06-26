@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -569,7 +569,7 @@ HANDLE_FLAG_PROTECT_FROM_CLOSE  = 0x00000002
 
 #--- Handle wrappers ----------------------------------------------------------
 
-class Handle (object):
+class Handle:
     """
     Encapsulates Win32 handles to avoid leaking them.
 
@@ -587,7 +587,7 @@ class Handle (object):
     """
 
     # XXX DEBUG
-    # When this private flag is True each Handle will print(a message to)
+    # When this private flag is True each Handle will print a message to
     # standard output when it's created and destroyed. This is useful for
     # detecting handle leaks within WinAppDbg itself.
     __bLeakDetection = False
@@ -602,7 +602,7 @@ class Handle (object):
            C{True} if we own the handle and we need to close it.
            C{False} if someone else will be calling L{CloseHandle}.
         """
-        super(Handle, self).__init__()
+        super().__init__()
         self._value     = self._normalize(aHandle)
         self.bOwnership = bOwnership
         if Handle.__bLeakDetection:     # XXX DEBUG
@@ -741,31 +741,31 @@ class Handle (object):
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.value)
 
-    def __get_inherit(self):
+    @property
+    def inherit(self):
         if self.value is None:
             raise ValueError("Handle is already closed!")
         return bool( GetHandleInformation(self.value) & HANDLE_FLAG_INHERIT )
 
-    def __set_inherit(self, value):
+    @inherit.setter
+    def inherit(self, value):
         if self.value is None:
             raise ValueError("Handle is already closed!")
         flag = (0, HANDLE_FLAG_INHERIT)[ bool(value) ]
         SetHandleInformation(self.value, flag, flag)
 
-    inherit = property(__get_inherit, __set_inherit)
-
-    def __get_protectFromClose(self):
+    @property
+    def protectFromClose(self):
         if self.value is None:
             raise ValueError("Handle is already closed!")
         return bool( GetHandleInformation(self.value) & HANDLE_FLAG_PROTECT_FROM_CLOSE )
 
-    def __set_protectFromClose(self, value):
+    @protectFromClose.setter
+    def protectFromClose(self, value):
         if self.value is None:
             raise ValueError("Handle is already closed!")
         flag = (0, HANDLE_FLAG_PROTECT_FROM_CLOSE)[ bool(value) ]
         SetHandleInformation(self.value, flag, flag)
-
-    protectFromClose = property(__get_protectFromClose, __set_protectFromClose)
 
 class UserModeHandle (Handle):
     """
@@ -844,11 +844,19 @@ class ProcessHandle (Handle):
             Can only be C{None} if C{aHandle} is also C{None}.
             Defaults to L{PROCESS_ALL_ACCESS}.
         """
-        super(ProcessHandle, self).__init__(aHandle, bOwnership)
+        if aHandle is None:
+            aHandle = GetCurrentProcess()
+            bOwnership = False
+        else:
+            aHandle = self._normalize(aHandle)
+        super().__init__(aHandle, bOwnership)
         self.dwAccess = dwAccess
         if aHandle is not None and dwAccess is None:
             msg = "Missing access flags for process handle: %x" % aHandle
             raise TypeError(msg)
+
+    def __repr__(self):
+        return '<%s: %s (%s)>' % (self.__class__.__name__, self.value, self.dwAccess)
 
     def get_pid(self):
         """
@@ -887,11 +895,19 @@ class ThreadHandle (Handle):
             Can only be C{None} if C{aHandle} is also C{None}.
             Defaults to L{THREAD_ALL_ACCESS}.
         """
-        super(ThreadHandle, self).__init__(aHandle, bOwnership)
+        if aHandle is None:
+            aHandle = GetCurrentThread()
+            bOwnership = False
+        else:
+            aHandle = self._normalize(aHandle)
+        super().__init__(aHandle, bOwnership)
         self.dwAccess = dwAccess
         if aHandle is not None and dwAccess is None:
             msg = "Missing access flags for thread handle: %x" % aHandle
             raise TypeError(msg)
+
+    def __repr__(self):
+        return '<%s: %s (%s)>' % (self.__class__.__name__, self.value, self.dwAccess)
 
     def get_tid(self):
         """
@@ -968,19 +984,19 @@ class SnapshotHandle (Handle):
 
 #--- Structure wrappers -------------------------------------------------------
 
-class ProcessInformation (object):
+class ProcessInformation:
     """
     Process information object returned by L{CreateProcess}.
     """
 
     def __init__(self, pi):
-        self.hProcess    = ProcessHandle(pi.hProcess)
-        self.hThread     = ThreadHandle(pi.hThread)
+        super().__init__()
+        self.hProcess    = ProcessHandle( pi.hProcess )
+        self.hThread     = ThreadHandle( pi.hThread )
         self.dwProcessId = pi.dwProcessId
         self.dwThreadId  = pi.dwThreadId
 
-# Don't psyco-optimize this class because it needs to be serialized.
-class MemoryBasicInformation (object):
+class MemoryBasicInformation:
     """
     Memory information object returned by L{VirtualQueryEx}.
     """
@@ -1040,13 +1056,14 @@ class MemoryBasicInformation (object):
             self.State              = mbi.State
             self.Protect            = mbi.Protect
             self.Type               = mbi.Type
+        super().__init__()
 
-            # Only used when copying MemoryBasicInformation objects, instead of
-            # instancing them from a MEMORY_BASIC_INFORMATION structure.
-            if hasattr(mbi, 'content'):
-                self.content = mbi.content
-            if hasattr(mbi, 'filename'):
-                self.content = mbi.filename
+        # Only used when copying MemoryBasicInformation objects, instead of
+        # instancing them from a MEMORY_BASIC_INFORMATION structure.
+        if hasattr(mbi, 'content'):
+            self.content = mbi.content
+        if hasattr(mbi, 'filename'):
+            self.content = mbi.filename
 
     def __contains__(self, address):
         """
@@ -1161,7 +1178,7 @@ class MemoryBasicInformation (object):
         """
         return self.has_content() and bool(self.Protect & self.EXECUTABLE_AND_WRITEABLE)
 
-class ProcThreadAttributeList (object):
+class ProcThreadAttributeList:
     """
     Extended process and thread attribute support.
 
@@ -1194,6 +1211,7 @@ class ProcThreadAttributeList (object):
         except:
             ProcThreadAttributeList.__del__(self)
             raise
+        super().__init__()
 
     def __del__(self):
         try:
@@ -1500,7 +1518,7 @@ LPBY_HANDLE_FILE_INFORMATION = POINTER(BY_HANDLE_FILE_INFORMATION)
 #   FileIoPriorityHintInfo = 12,
 #   MaximumFileInfoByHandlesClass = 13
 # } FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
-class FILE_INFO_BY_HANDLE_CLASS(object):
+class FILE_INFO_BY_HANDLE_CLASS:
     FileBasicInfo                   = 0
     FileStandardInfo                = 1
     FileNameInfo                    = 2
@@ -2453,7 +2471,7 @@ def GetDllDirectoryA():
     nBufferLength = _GetDllDirectoryA(0, None)
     if nBufferLength == 0:
         return None
-    lpBuffer = ctypes.create_string_buffer("", nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b"", nBufferLength)
     _GetDllDirectoryA(nBufferLength, byref(lpBuffer))
     return lpBuffer.value
 
@@ -2465,7 +2483,7 @@ def GetDllDirectoryW():
     nBufferLength = _GetDllDirectoryW(0, None)
     if nBufferLength == 0:
         return None
-    lpBuffer = ctypes.create_unicode_buffer(u"", nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer("", nBufferLength)
     _GetDllDirectoryW(nBufferLength, byref(lpBuffer))
     return lpBuffer.value
 
@@ -2706,14 +2724,14 @@ def GetLogicalDriveStringsA():
     _GetLogicalDriveStringsA.errcheck = RaiseIfZero
 
     nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength)
     _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
     drive_strings = list()
     string_p = addressof(lpBuffer)
     sizeof_char = sizeof(ctypes.c_char)
     while True:
         string_v = ctypes.string_at(string_p)
-        if string_v == '':
+        if string_v == b'':
             break
         drive_strings.append(string_v)
         string_p += len(string_v) + sizeof_char
@@ -2726,66 +2744,18 @@ def GetLogicalDriveStringsW():
     _GetLogicalDriveStringsW.errcheck = RaiseIfZero
 
     nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
     drive_strings = list()
     string_p = addressof(lpBuffer)
     sizeof_wchar = sizeof(ctypes.c_wchar)
     while True:
         string_v = ctypes.wstring_at(string_p)
-        if string_v == u'':
+        if string_v == '':
             break
         drive_strings.append(string_v)
         string_p += (len(string_v) * sizeof_wchar) + sizeof_wchar
     return drive_strings
-
-##def GetLogicalDriveStringsA():
-##    _GetLogicalDriveStringsA = windll.kernel32.GetLogicalDriveStringsA
-##    _GetLogicalDriveStringsA.argtypes = [DWORD, LPSTR]
-##    _GetLogicalDriveStringsA.restype  = DWORD
-##    _GetLogicalDriveStringsA.errcheck = RaiseIfZero
-##
-##    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
-##    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
-##    _GetLogicalDriveStringsA(nBufferLength, lpBuffer)
-##    result = list()
-##    index = 0
-##    while 1:
-##        string = list()
-##        while 1:
-##            character = lpBuffer[index]
-##            index = index + 1
-##            if character == '\0':
-##                break
-##            string.append(character)
-##        if not string:
-##            break
-##        result.append(''.join(string))
-##    return result
-##
-##def GetLogicalDriveStringsW():
-##    _GetLogicalDriveStringsW = windll.kernel32.GetLogicalDriveStringsW
-##    _GetLogicalDriveStringsW.argtypes = [DWORD, LPWSTR]
-##    _GetLogicalDriveStringsW.restype  = DWORD
-##    _GetLogicalDriveStringsW.errcheck = RaiseIfZero
-##
-##    nBufferLength = (4 * 26) + 1    # "X:\\\0" from A to Z plus empty string
-##    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
-##    _GetLogicalDriveStringsW(nBufferLength, lpBuffer)
-##    result = list()
-##    index = 0
-##    while 1:
-##        string = list()
-##        while 1:
-##            character = lpBuffer[index]
-##            index = index + 1
-##            if character == u'\0':
-##                break
-##            string.append(character)
-##        if not string:
-##            break
-##        result.append(u''.join(string))
-##    return result
 
 GetLogicalDriveStrings = GuessStringType(GetLogicalDriveStringsA, GetLogicalDriveStringsW)
 
@@ -2803,7 +2773,7 @@ def QueryDosDeviceA(lpDeviceName = None):
     if not lpDeviceName:
         lpDeviceName = None
     ucchMax = 0x1000
-    lpTargetPath = ctypes.create_string_buffer('', ucchMax)
+    lpTargetPath = ctypes.create_string_buffer(b'', ucchMax)
     _QueryDosDeviceA(lpDeviceName, lpTargetPath, ucchMax)
     return lpTargetPath.value
 
@@ -2816,7 +2786,7 @@ def QueryDosDeviceW(lpDeviceName):
     if not lpDeviceName:
         lpDeviceName = None
     ucchMax = 0x1000
-    lpTargetPath = ctypes.create_unicode_buffer(u'', ucchMax)
+    lpTargetPath = ctypes.create_unicode_buffer('', ucchMax)
     _QueryDosDeviceW(lpDeviceName, lpTargetPath, ucchMax)
     return lpTargetPath.value
 
@@ -2986,12 +2956,12 @@ def SearchPathA(lpPath, lpFileName, lpExtension):
     if not lpExtension:
         lpExtension = None
     nBufferLength = _SearchPathA(lpPath, lpFileName, lpExtension, 0, None, None)
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength + 1)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength + 1)
     lpFilePart = LPSTR()
     _SearchPathA(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
-    if lpBuffer == '':
+    if lpBuffer == b'':
         if GetLastError() == ERROR_SUCCESS:
             raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
@@ -3008,12 +2978,12 @@ def SearchPathW(lpPath, lpFileName, lpExtension):
     if not lpExtension:
         lpExtension = None
     nBufferLength = _SearchPathW(lpPath, lpFileName, lpExtension, 0, None, None)
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength + 1)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength + 1)
     lpFilePart = LPWSTR()
     _SearchPathW(lpPath, lpFileName, lpExtension, nBufferLength, lpBuffer, byref(lpFilePart))
     lpFilePart = lpFilePart.value
     lpBuffer = lpBuffer.value
-    if lpBuffer == u'':
+    if lpBuffer == '':
         if GetLastError() == ERROR_SUCCESS:
             raise ctypes.WinError(ERROR_FILE_NOT_FOUND)
         raise ctypes.WinError()
@@ -3101,7 +3071,7 @@ def GetFinalPathNameByHandleA(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAM
     cchFilePath = _GetFinalPathNameByHandleA(hFile, None, 0, dwFlags)
     if cchFilePath == 0:
         raise ctypes.WinError()
-    lpszFilePath = ctypes.create_string_buffer('', cchFilePath + 1)
+    lpszFilePath = ctypes.create_string_buffer(b'', cchFilePath + 1)
     nCopied = _GetFinalPathNameByHandleA(hFile, lpszFilePath, cchFilePath, dwFlags)
     if nCopied <= 0 or nCopied > cchFilePath:
         raise ctypes.WinError()
@@ -3115,7 +3085,7 @@ def GetFinalPathNameByHandleW(hFile, dwFlags = FILE_NAME_NORMALIZED | VOLUME_NAM
     cchFilePath = _GetFinalPathNameByHandleW(hFile, None, 0, dwFlags)
     if cchFilePath == 0:
         raise ctypes.WinError()
-    lpszFilePath = ctypes.create_unicode_buffer(u'', cchFilePath + 1)
+    lpszFilePath = ctypes.create_unicode_buffer('', cchFilePath + 1)
     nCopied = _GetFinalPathNameByHandleW(hFile, lpszFilePath, cchFilePath, dwFlags)
     if nCopied <= 0 or nCopied > cchFilePath:
         raise ctypes.WinError()
@@ -3135,7 +3105,7 @@ def GetTempPathA():
     nBufferLength = _GetTempPathA(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength)
     nCopied = _GetTempPathA(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3149,7 +3119,7 @@ def GetTempPathW():
     nBufferLength = _GetTempPathW(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     nCopied = _GetTempPathW(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3170,20 +3140,20 @@ def GetTempFileNameA(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
 
     if lpPathName is None:
         lpPathName = GetTempPathA()
-    lpTempFileName = ctypes.create_string_buffer('', MAX_PATH)
+    lpTempFileName = ctypes.create_string_buffer(b'', MAX_PATH)
     uUnique = _GetTempFileNameA(lpPathName, lpPrefixString, uUnique, lpTempFileName)
     if uUnique == 0:
         raise ctypes.WinError()
     return lpTempFileName.value, uUnique
 
-def GetTempFileNameW(lpPathName = None, lpPrefixString = u"TMP", uUnique = 0):
+def GetTempFileNameW(lpPathName = None, lpPrefixString = "TMP", uUnique = 0):
     _GetTempFileNameW = windll.kernel32.GetTempFileNameW
     _GetTempFileNameW.argtypes = [LPWSTR, LPWSTR, UINT, LPWSTR]
     _GetTempFileNameW.restype  = UINT
 
     if lpPathName is None:
         lpPathName = GetTempPathW()
-    lpTempFileName = ctypes.create_unicode_buffer(u'', MAX_PATH)
+    lpTempFileName = ctypes.create_unicode_buffer('', MAX_PATH)
     uUnique = _GetTempFileNameW(lpPathName, lpPrefixString, uUnique, lpTempFileName)
     if uUnique == 0:
         raise ctypes.WinError()
@@ -3203,7 +3173,7 @@ def GetCurrentDirectoryA():
     nBufferLength = _GetCurrentDirectoryA(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength)
     nCopied = _GetCurrentDirectoryA(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3217,7 +3187,7 @@ def GetCurrentDirectoryW():
     nBufferLength = _GetCurrentDirectoryW(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     nCopied = _GetCurrentDirectoryW(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3237,7 +3207,7 @@ def GetSystemDirectoryA():
     nBufferLength = _GetSystemDirectoryA(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_string_buffer('', nBufferLength)
+    lpBuffer = ctypes.create_string_buffer(b'', nBufferLength)
     nCopied = _GetSystemDirectoryA(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3251,7 +3221,7 @@ def GetSystemDirectoryW():
     nBufferLength = _GetSystemDirectoryW(0, None)
     if nBufferLength <= 0:
         raise ctypes.WinError()
-    lpBuffer = ctypes.create_unicode_buffer(u'', nBufferLength)
+    lpBuffer = ctypes.create_unicode_buffer('', nBufferLength)
     nCopied = _GetSystemDirectoryW(nBufferLength, lpBuffer)
     if nCopied > nBufferLength or nCopied == 0:
         raise ctypes.WinError()
@@ -3298,12 +3268,9 @@ def GenerateConsoleCtrlEvent(dwCtrlEvent, dwProcessGroupId):
 # XXX NOTE
 #
 # Instead of waiting forever, we wait for a small period of time and loop.
-# This is a workaround for an unwanted behavior of psyco-accelerated code:
-# you can't interrupt a blocking call using Ctrl+C, because signal processing
-# is only done between C calls.
-#
-# Also see: bug #2793618 in Psyco project
-# http://sourceforge.net/tracker/?func=detail&aid=2793618&group_id=41036&atid=429622
+# This is a workaround for an unwanted behavior of Python code: you can't
+# interrupt a blocking call using Ctrl+C, because signal processing is only
+# done between C calls.
 
 # DWORD WINAPI WaitForSingleObject(
 #   HANDLE hHandle,
@@ -4426,12 +4393,12 @@ def Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, cbRead):
     _Toolhelp32ReadProcessMemory.argtypes = [DWORD, LPVOID, LPVOID, SIZE_T, POINTER(SIZE_T)]
     _Toolhelp32ReadProcessMemory.restype  = bool
 
-    lpBuffer            = ctypes.create_string_buffer('', cbRead)
+    lpBuffer            = ctypes.create_string_buffer(b'', cbRead)
     lpNumberOfBytesRead = SIZE_T(0)
     success = _Toolhelp32ReadProcessMemory(th32ProcessID, lpBaseAddress, lpBuffer, cbRead, byref(lpNumberOfBytesRead))
     if not success and GetLastError() != ERROR_PARTIAL_COPY:
         raise ctypes.WinError()
-    return str(lpBuffer.raw)[:lpNumberOfBytesRead.value]
+    return lpBuffer.raw[:lpNumberOfBytesRead.value]
 
 #------------------------------------------------------------------------------
 # Miscellaneous system information
@@ -4624,7 +4591,7 @@ def GlobalGetAtomNameA(nAtom):
 
     nSize = 64
     while 1:
-        lpBuffer = ctypes.create_string_buffer("", nSize)
+        lpBuffer = ctypes.create_string_buffer(b"", nSize)
         nCopied  = _GlobalGetAtomNameA(nAtom, lpBuffer, nSize)
         if nCopied < nSize - 1:
             break
@@ -4639,7 +4606,7 @@ def GlobalGetAtomNameW(nAtom):
 
     nSize = 64
     while 1:
-        lpBuffer = ctypes.create_unicode_buffer(u"", nSize)
+        lpBuffer = ctypes.create_unicode_buffer("", nSize)
         nCopied  = _GlobalGetAtomNameW(nAtom, lpBuffer, nSize)
         if nCopied < nSize - 1:
             break
@@ -4653,13 +4620,10 @@ GlobalGetAtomName = GuessStringType(GlobalGetAtomNameA, GlobalGetAtomNameW)
 # );
 def GlobalDeleteAtom(nAtom):
     _GlobalDeleteAtom = windll.kernel32.GlobalDeleteAtom
-    _GlobalDeleteAtom.argtypes
-    _GlobalDeleteAtom.restype
-    SetLastError(ERROR_SUCCESS)
+    _GlobalDeleteAtom.argtypes = [ATOM]
+    _GlobalDeleteAtom.restype  = ATOM
+    _GlobalDeleteAtom.errcheck = RaiseIfZero
     _GlobalDeleteAtom(nAtom)
-    error = GetLastError()
-    if error != ERROR_SUCCESS:
-        raise ctypes.WinError(error)
 
 #------------------------------------------------------------------------------
 # Wow64
@@ -4721,20 +4685,4 @@ def Wow64RevertWow64FsRedirection(OldValue):
 _all = set(vars().keys()).difference(_all)
 __all__ = [_x for _x in _all if not _x.startswith('_')]
 __all__.sort()
-#==============================================================================
-
-#==============================================================================
-# Mark functions that Psyco cannot compile.
-# In your programs, don't use psyco.full().
-# Call psyco.bind() on your main function instead.
-
-try:
-    import psyco
-    psyco.cannotcompile(WaitForDebugEvent)
-    psyco.cannotcompile(WaitForSingleObject)
-    psyco.cannotcompile(WaitForSingleObjectEx)
-    psyco.cannotcompile(WaitForMultipleObjects)
-    psyco.cannotcompile(WaitForMultipleObjectsEx)
-except ImportError:
-    pass
 #==============================================================================

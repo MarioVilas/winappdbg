@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,7 @@ for process in system.iter_processes():
             perm = ""
 
     # Skip processes we don't have permission to access.
-    except WindowsError, e:
+    except WindowsError as e:
         if e.winerror == ERROR_ACCESS_DENIED:
             continue
         raise

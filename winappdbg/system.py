@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,12 +53,6 @@ import ntpath
 import warnings
 
 from os import getenv
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError, getenv  # NOQA
 
 #==============================================================================
 
@@ -429,12 +423,12 @@ class System (_ProcessContainer):
         """
 
         # Get the file version info structure.
-        if type(filename) is str:
+        if isinstance(filename, bytes):
             pBlock = win32.GetFileVersionInfoA(filename)
-            pBuffer, dwLen = win32.VerQueryValueA(pBlock, "\\")
+            pBuffer, dwLen = win32.VerQueryValueA(pBlock, b"\\")
         else:
             pBlock = win32.GetFileVersionInfoW(filename)
-            pBuffer, dwLen = win32.VerQueryValueW(pBlock, u"\\")
+            pBuffer, dwLen = win32.VerQueryValueW(pBlock, "\\")
         if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
             raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
         pVersionInfo = ctypes.cast(
@@ -472,7 +466,7 @@ class System (_ProcessContainer):
             CreationTime = win32.FileTimeToSystemTime(FileDate)
             CreationTimestamp = "%s, %s %d, %d (%d:%d:%d.%d)" % (
                 cls.__days_of_the_week[CreationTime.wDayOfWeek],
-                cls.__months[CreationTime.wMonth],
+                cls.__months[CreationTime.wMonth - 1],  # Month is 1-based according to MSDN
                 CreationTime.wDay,
                 CreationTime.wYear,
                 CreationTime.wHour,
@@ -625,8 +619,8 @@ class System (_ProcessContainer):
             # Get the metadata for each file found. Sort them by version, newer first.
             by_version = []
             for pathname in candidates:
-                pBlock = win32.GetFileVersionInfoA(pathname)
-                pBuffer, dwLen = win32.VerQueryValueA(pBlock, b"\\")
+                pBlock = win32.GetFileVersionInfoW(pathname)
+                pBuffer, dwLen = win32.VerQueryValueW(pBlock, "\\")
                 if dwLen != ctypes.sizeof(win32.VS_FIXEDFILEINFO):
                     #raise ctypes.WinError(win32.ERROR_BAD_LENGTH)
                     continue

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,28 +43,6 @@ import functools
 _all = None
 _all = set(vars().keys())
 #==============================================================================
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    _gle = None
-    class WindowsError(OSError):
-        def __init__(self, *args, **kwargs):
-            OSError.__init__(self, *args, **kwargs)
-            global _gle
-            if _gle is None:
-                from .kernel32 import GetLastError as _gle
-            self.winerror = _gle()
-
-    from os import getenv as _real_getenv
-    def getenv(key, default=None):
-        value = _real_getenv(key, None)
-        if value is None:
-            value = _real_getenv(key.upper(), default)
-        return value
-
-#------------------------------------------------------------------------------
 
 # Some stuff from ctypes we'll be using very frequently.
 addressof   = ctypes.addressof
@@ -135,7 +113,7 @@ if WIN32_VERBOSE_MODE:
             self.__copy_attribute('argtypes')
             self.__copy_attribute('restype')
             self.__copy_attribute('errcheck')
-            print("-"*10)
+            print("-" * 10)
             print("%s ! %s %r" % (self.__dllname, self.__funcname, argv))
             retval = self.__func(*argv)
             print("== %r" % (retval,))
@@ -206,11 +184,11 @@ class GuessStringType(object):
     """
 
     # ANSI and Unicode types
-    t_ansi    = type('')
-    t_unicode = type(u'')
+    t_ansi    = bytes
+    t_unicode = str
 
-    # Default is ANSI for Python 2.x
-    t_default = t_ansi
+    # Default is Unicode for Python 3.x
+    t_default = t_unicode
 
     def __init__(self, fn_ansi, fn_unicode):
         """
@@ -251,19 +229,12 @@ class GuessStringType(object):
         else:
             fn = self.fn_unicode
 
+        # If both ANSI and Unicode strings are present, raise an exception.
+        if self.t_unicode in v_types and t_ansi in v_types:
+            raise TypeError("Passing a mix of strings and bytes to a Win32 API is not supported. Please convert all arguments to either strings or bytes.")
+
         # If at least one argument is a Unicode string...
         if self.t_unicode in v_types:
-
-            # If al least one argument is an ANSI string,
-            # convert all ANSI strings to Unicode
-            if t_ansi in v_types:
-                argv = list(argv)
-                for index in range(len(argv)):
-                    if v_types[index] == t_ansi:
-                        argv[index] = str(argv[index])
-                for (key, value) in argd.items():
-                    if type(value) == t_ansi:
-                        argd[key] = str(value)
 
             # Use the W version
             fn = self.fn_unicode
@@ -343,10 +314,10 @@ def MakeANSIVersion(fn):
             argv = list(argv)
             for index in range(len(argv)):
                 if v_types[index] == t_ansi:
-                    argv[index] = t_unicode(argv[index])
+                    argv[index] = argv[index].decode('mbcs')
             for key, value in argd.items():
                 if type(value) == t_ansi:
-                    argd[key] = t_unicode(value)
+                    argd[key] = value.decode('mbcs')
         return fn(*argv, **argd)
     return wrapper
 
@@ -367,10 +338,10 @@ def MakeWideVersion(fn):
             argv = list(argv)
             for index in range(len(argv)):
                 if v_types[index] == t_unicode:
-                    argv[index] = t_ansi(argv[index])
+                    argv[index] = argv[index].encode('mbcs')
             for key, value in argd.items():
                 if type(value) == t_unicode:
-                    argd[key] = t_ansi(value)
+                    argd[key] = value.encode('mbcs')
         return fn(*argv, **argd)
     return wrapper
 

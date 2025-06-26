@@ -13,7 +13,7 @@ Sometimes you'll want to set a maximum time to debug your target, especially whe
 :download:`Download <../../examples/miscellaneous/01_debug_timeout.py>`
 
 .. literalinclude:: ../../examples/miscellaneous/01_debug_timeout.py
-   :start-after: from __future__ import with_statement
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
 
 .. _memory-dump:
 

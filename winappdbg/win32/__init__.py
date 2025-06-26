@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ except ImportError:
         if kw.pop("use_last_error", False):
             flags |= ctypes._FUNCFLAG_USE_LASTERROR
         if kw:
-            raise ValueError("unexpected keyword argument(s) %s" % kw.keys())
+            raise ValueError("unexpected keyword argument(s) %s" % list(kw.keys()))
         try:
             return ctypes._win_functype_cache[(restype, argtypes, flags)]
         except KeyError:
@@ -121,18 +121,12 @@ except ImportError:
 
     # Fix FormatError.
     def FormatError(code):
-        code = int(long(code))
+        code = int(code)
         try:
-            if GuessStringType.t_default == GuessStringType.t_ansi:
-                FormatMessage = windll.kernel32.FormatMessageA
-                FormatMessage.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPSTR, DWORD]
-                FormatMessage.restype  = DWORD
-                lpBuffer = ctypes.create_string_buffer(1024)
-            else:
-                FormatMessage = windll.kernel32.FormatMessageW
-                FormatMessage.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPWSTR, DWORD]
-                FormatMessage.restype  = DWORD
-                lpBuffer = ctypes.create_unicode_buffer(1024)
+            FormatMessage = ctypes.windll.kernel32.FormatMessageW
+            FormatMessage.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPWSTR, DWORD]
+            FormatMessage.restype  = DWORD
+            lpBuffer = ctypes.create_unicode_buffer(1024)
             ##FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
             ##FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
             success = FormatMessage(0x1200, None, code, 0, lpBuffer, 1024)
@@ -140,9 +134,7 @@ except ImportError:
                 return lpBuffer.value
         except Exception:
             pass
-        if GuessStringType.t_default == GuessStringType.t_ansi:
-            return "Error code 0x%.8X" % code
-        return u"Error code 0x%.8X" % code
+        return "Error code 0x%.8X" % code
     ctypes.FormatError = FormatError
 
     # Fix WinError.

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,15 +39,15 @@ class MyEventHandler (EventHandler):
     def create_process(self, event):
         self.first = True
         self.name = event.get_process().get_filename()
-        print "Attached to %s" % self.name
+        print("Attached to %s" % self.name)
 
     def breakpoint(self, event):
         if self.first:
             self.first = False
-            print "First breakpoint reached at %s" % self.name
+            print("First breakpoint reached at %s" % self.name)
 
     def exit_process(self, event):
-        print "Detached from %s" % self.name
+        print("Detached from %s" % self.name)
 
 
 # Now when debugging we use the EventForwarder to be able to work with

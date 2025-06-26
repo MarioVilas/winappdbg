@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -563,7 +563,7 @@ class WAITCHAIN_NODE_INFO(Structure):
 
 PWAITCHAIN_NODE_INFO = POINTER(WAITCHAIN_NODE_INFO)
 
-class WaitChainNodeInfo (object):
+class WaitChainNodeInfo:
     """
     Represents a node in the wait chain.
 
@@ -658,8 +658,7 @@ class ThreadWaitChainSessionHandle (Handle):
         @type  aHandle: int
         @param aHandle: Win32 handle value.
         """
-        super(ThreadWaitChainSessionHandle, self).__init__(aHandle,
-                                                           bOwnership = True)
+        super().__init__(aHandle, bOwnership = True)
 
     def _close(self):
         if self.value is None:
@@ -2004,17 +2003,17 @@ def SaferCloseLevel(hLevelHandle):
 #   __in  LPCWSTR szFullPath,
 #   __in  BOOLEAN bFromShellExecute
 # );
-def SaferiIsExecutableFileType(szFullPath, bFromShellExecute = False):
+def SaferiIsExecutableFileTypeW(szFullPath, bFromShellExecute = False):
     _SaferiIsExecutableFileType = windll.advapi32.SaferiIsExecutableFileType
     _SaferiIsExecutableFileType.argtypes = [LPWSTR, BOOLEAN]
     _SaferiIsExecutableFileType.restype  = BOOL
     _SaferiIsExecutableFileType.errcheck = RaiseIfLastError
 
     SetLastError(ERROR_SUCCESS)
-    return bool(_SaferiIsExecutableFileType(szFullPath.decode('utf-8'), bFromShellExecute))
+    return bool(_SaferiIsExecutableFileType(szFullPath, bFromShellExecute))
 
-# useful alias since I'm likely to misspell it :P
-SaferIsExecutableFileType = SaferiIsExecutableFileType
+SaferiIsExecutableFileTypeA = MakeANSIVersion(SaferiIsExecutableFileTypeW)
+SaferiIsExecutableFileType = DefaultStringType(SaferiIsExecutableFileTypeA, SaferiIsExecutableFileTypeW)
 
 #------------------------------------------------------------------------------
 
@@ -2352,9 +2351,13 @@ def RegSetValueEx(hKey, lpValueName = None, lpData = None, dwType = None):
         elif isinstance(lpData, GuessStringType.t_unicode):
             dwType = REG_SZ
         elif isinstance(lpData, int):
-            dwType = REG_DWORD
-        elif isinstance(lpData, long):
-            dwType = REG_QWORD
+            # In Python 3, int has arbitrary precision.
+            # We guess the type from the size of the integer.
+            # This logic covers both signed and unsigned 32-bit integers.
+            if -2147483648 <= lpData <= 4294967295:
+                dwType = REG_DWORD
+            else:
+                dwType = REG_QWORD
         else:
             dwType = REG_BINARY
 

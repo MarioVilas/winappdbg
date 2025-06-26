@@ -1,20 +1,14 @@
-language: python
-
-# Supported CPython versions:
-# https://en.wikipedia.org/wiki/CPython#Version_history
+os: windows
+language: shell
 python:
- - pypy
- - 2.7
-
-# Use container-based infrastructure
-sudo: false
+- "3.9"
 
 install:
- - pip install flake8
+- python -m pip install --upgrade pip
+- python -m pip install flake8
+- python -m pip install -r requirements.txt
+- python -m pip install .
 
 script:
- # Static analysis
- - python2 -m flake8 --ignore=E,F403,F405,W503,W504 .
-
-matrix:
-  fast_finish: true
+- python -m flake8 --ignore=E,F403,F405,W503,W504 .
+- python test.py

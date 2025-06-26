@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,6 @@ Thread instrumentation.
     Thread
 """
 
-from __future__ import with_statement
-
 __all__ = ['Thread']
 
 from . import win32
@@ -46,12 +44,6 @@ from .window import Window
 import struct
 import warnings
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from win32 import WindowsError
-
 # delayed imports
 Process = None
 
@@ -60,7 +52,7 @@ Process = None
 # TODO
 # + fetch special registers (MMX, XMM, 3DNow!, etc)
 
-class Thread (object):
+class Thread:
     """
     Interface to a thread in another process.
 
@@ -144,25 +136,6 @@ class Thread (object):
         self.pInjectedMemory = None
         self.set_name(None)
         self.set_process(process)
-
-    # Not really sure if it's a good idea...
-##    def __eq__(self, aThread):
-##        """
-##        Compare two Thread objects. The comparison is made using the IDs.
-##
-##        @warning:
-##            If you have two Thread instances with different handles the
-##            equality operator still returns C{True}, so be careful!
-##
-##        @type  aThread: L{Thread}
-##        @param aThread: Another Thread object.
-##
-##        @rtype:  bool
-##        @return: C{True} if the two thread IDs are equal,
-##            C{False} otherwise.
-##        """
-##        return isinstance(aThread, Thread)           and \
-##               self.get_tid() == aThread.get_tid()
 
     def __load_Process_class(self):
         global Process      # delayed import
@@ -708,7 +681,7 @@ class Thread (object):
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
-        class Flags (object):
+        class Flags:
             'Commonly used processor flags'
             Overflow    = 0x800
             Direction   = 0x400
@@ -980,7 +953,7 @@ class Thread (object):
 
         if isinstance(segment, str):
             selector = self.get_register(segment)
-        elif isinstance(segment, (int, long)):
+        elif isinstance(segment, int):
             segment = int(segment)
 
             if segment < 0 or segment > 0xFFFFFFFF:
@@ -1278,9 +1251,9 @@ class Thread (object):
         """
         try:
             trace = self.__get_stack_trace(depth, False)
-        except Exception as e:
+        except Exception:
             import traceback
-            traceback.print_exc(e)
+            traceback.print_exc()
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, False)
@@ -1311,6 +1284,8 @@ class Thread (object):
         try:
             trace = self.__get_stack_trace(depth, True, bMakePretty)
         except Exception:
+            import traceback
+            traceback.print_exc()
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, True, bMakePretty)
@@ -1350,7 +1325,7 @@ class Thread (object):
         @type  max_size: int
         @param max_size: (Optional) Maximum amount of bytes to read.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Stack frame data.
             May not be accurate, depending on the compiler used.
             May return an empty string.
@@ -1378,7 +1353,7 @@ class Thread (object):
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Stack data.
 
         @raise WindowsError: Could not read the requested data.
@@ -1396,7 +1371,7 @@ class Thread (object):
         @type  offset: int
         @param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Stack data.
             Returned data may be less than the requested size.
         """
@@ -1533,7 +1508,7 @@ class Thread (object):
         @type  offset: int
         @param offset: Offset from the program counter to begin reading.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Bytes read from the process memory.
 
         @raise WindowsError: Could not read the requested data.
@@ -1550,7 +1525,7 @@ class Thread (object):
         @type  offset: int
         @param offset: Offset from the program counter to begin reading.
 
-        @rtype:  str
+        @rtype:  bytes
         @return: Bytes read from the process memory.
             May be less than the requested number of bytes.
         """
@@ -1569,7 +1544,7 @@ class Thread (object):
             Dictionary mapping register names to their values.
             If not given, the current thread context will be used.
 
-        @rtype:  dict( str S{->} str )
+        @rtype:  dict( str S{->} bytes )
         @return: Dictionary mapping register names to the data they point to.
         """
         peekable_registers = (
@@ -1583,12 +1558,6 @@ class Thread (object):
         for (reg_name, reg_value) in context.items():
             if reg_name not in peekable_registers:
                 continue
-##            if reg_name == 'Ebp':
-##                stack_begin, stack_end = self.get_stack_range()
-##                print(hex(stack_end), hex(reg_value), hex(stack_begin))
-##                if stack_begin and stack_end and stack_end < stack_begin and \
-##                   stack_begin <= reg_value <= stack_end:
-##                      continue
             reg_data = aProcess.peek(reg_value, peekSize)
             if reg_data:
                 data[reg_name] = reg_data
@@ -1601,7 +1570,7 @@ class Thread (object):
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Binary data to find pointers in.
 
         @type  peekSize: int
@@ -1613,7 +1582,7 @@ class Thread (object):
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
 
-        @rtype:  dict( str S{->} str )
+        @rtype:  dict( str S{->} bytes )
         @return: Dictionary mapping stack offsets to the data they point to.
         """
         aProcess = self.get_process()
@@ -1632,7 +1601,7 @@ class Thread (object):
         @type  lpAddress: int
         @param lpAddress: Memory address where the code was read from.
 
-        @type  code: str
+        @type  code: bytes
         @param code: Binary code to disassemble.
 
         @rtype:  list of tuple( long, int, str, str )
@@ -1742,7 +1711,7 @@ class Thread (object):
 
 #==============================================================================
 
-class _ThreadContainer (object):
+class _ThreadContainer:
     """
     Encapsulates the capability to contain Thread objects.
 
@@ -1846,11 +1815,11 @@ class _ThreadContainer (object):
 
     def get_thread_ids(self):
         """
-        @rtype:  list( int )
+        @rtype:  list of int
         @return: List of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
-        return self.__threadDict.keys()
+        return list(self.__threadDict.keys())
 
     def get_thread_count(self):
         """
@@ -2037,17 +2006,7 @@ class _ThreadContainer (object):
         @type  aThread: L{Thread}
         @param aThread: Thread object.
         """
-##        if not isinstance(aThread, Thread):
-##            if hasattr(aThread, '__class__'):
-##                typename = aThread.__class__.__name__
-##            else:
-##                typename = str(type(aThread))
-##            msg = "Expected Thread, got %s instead" % typename
-##            raise TypeError(msg)
         dwThreadId = aThread.dwThreadId
-##        if dwThreadId in self.__threadDict:
-##            msg = "Already have a Thread object with ID %d" % dwThreadId
-##            raise KeyError(msg)
         aThread.set_process(self)
         self.__threadDict[dwThreadId] = aThread
 
@@ -2098,10 +2057,6 @@ class _ThreadContainer (object):
             if teb_ptr:
                 aThread._teb_ptr = teb_ptr
             self._add_thread(aThread)
-        #else:
-        #    aThread = self.get_thread(dwThreadId)
-        #    if hThread != win32.INVALID_HANDLE_VALUE:
-        #        aThread.hThread = hThread   # may have more privileges
 
     def _notify_create_process(self, event):
         """

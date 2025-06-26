@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -252,8 +252,15 @@ try:
     import warnings
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        from sql import *
-    __all__.append('CrashDAO')
+        # It's also a good idea to check the version.
+        # Anything below 0.6 is not likely to work.
+        import sqlalchemy
+        from .sql import *  # NOQA
+        __all__.extend(('CrashDAO',))
+        if sqlalchemy.__version__ < '0.6':
+            warnings.warn(
+                "SQLAlchemy version is too old, please update to 0.6 or newer",
+                RuntimeWarning)
 except ImportError:
     import warnings
     warnings.warn("No SQL database support present (missing dependencies?)",

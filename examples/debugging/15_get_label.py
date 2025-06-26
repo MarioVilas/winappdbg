@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ def print_label( pid, address ):
     label = process.get_label_at_address( address )
 
     # Print the label.
-    print "%s == 0x%.08x" % ( label, address )
+    print("%s == 0x%.08x" % ( label, address ))
 
 # When invoked from the command line,
 # the first argument is a process ID,
@@ -53,5 +53,5 @@ def print_label( pid, address ):
 if __name__ == "__main__":
     import sys
     pid     = int( sys.argv[1] )
-    address = int( sys.argv[2], 0x10 )
+    address = int( sys.argv[2], 16 )
     print_label( pid, address )

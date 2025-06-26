@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process DLL injector
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ from winappdbg import Process, System, HexInput
 def main():
     print("Process DLL injector")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     if len(sys.argv) != 3:
         script = os.path.basename(sys.argv[0])
@@ -64,7 +64,7 @@ def main():
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
             for p,n in pl:
-                print("\t%12d: %s" % (p,n))
+                print("\t%12d: %s" % (p.get_pid(),n))
             return
         pid = pl[0][0].get_pid()
     print("Using PID %d (0x%x)" % (pid, pid))
@@ -75,7 +75,7 @@ def main():
     p = Process(pid)
     b = p.get_bits()
     if b != System.bits:
-        print(()
+        print(
             "Cannot inject into a %d bit process from a %d bit Python VM!"
             % (b, System.bits)
         )
@@ -84,9 +84,4 @@ def main():
     p.inject_dll(dll)
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main()

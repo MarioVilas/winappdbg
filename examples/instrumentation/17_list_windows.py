@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,4 +38,4 @@ for window in system.get_windows():
     handle  = HexDump.integer( window.get_handle() )
     caption = window.get_text()
     if caption is not None:
-        print "%s:\t%s" % ( handle, caption )
+        print("%s:\t%s" % ( handle, caption ))

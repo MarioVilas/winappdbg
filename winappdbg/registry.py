@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,23 +35,15 @@ Registry access.
     Registry, RegistryKey
 """
 
-from __future__ import with_statement
-
 __all__ = ['Registry']
 
 from . import win32
 import collections
 import warnings
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 #==============================================================================
 
-class _RegistryContainer (object):
+class _RegistryContainer:
     """
     Base class for L{Registry} and L{RegistryKey}.
     """
@@ -64,14 +56,11 @@ class _RegistryContainer (object):
     def __init__(self):
         self.__default = None
 
-    def has_key(self, name):
-        return name in self
-
     def get(self, name, default=__emptyArgument):
         try:
             return self[name]
         except KeyError:
-            if default is RegistryKey.__emptyArgument:
+            if default is _RegistryContainer.__emptyArgument:
                 return self.__default
             return default
 
@@ -83,7 +72,7 @@ class _RegistryContainer (object):
 
 #==============================================================================
 
-class RegistryKey (_RegistryContainer):
+class RegistryKey(_RegistryContainer):
     """
     Exposes a single Windows Registry key as a dictionary-like object.
 
@@ -104,7 +93,7 @@ class RegistryKey (_RegistryContainer):
         @type  handle: L{win32.RegistryKeyHandle}
         @param handle: Registry key handle.
         """
-        super(RegistryKey, self).__init__()
+        super().__init__()
         if path.endswith('\\'):
             path = path[:-1]
         self._path   = path
@@ -120,33 +109,6 @@ class RegistryKey (_RegistryContainer):
         #    msg = "This Registry key handle has already been closed."
         #    raise RuntimeError(msg)
         return self._handle
-
-    #def close(self):
-    #    """
-    #    Close the Registry key handle, freeing its resources. It cannot be
-    #    used again after calling this method.
-    #
-    #    @note: This method will be called automatically by the garbage
-    #        collector, and upon exiting a "with" block.
-    #
-    #    @raise RuntimeError: This Registry key handle has already been closed.
-    #    """
-    #    self.handle.close()
-    #
-    #def __enter__(self):
-    #    """
-    #    Compatibility with the "C{with}" Python statement.
-    #    """
-    #    return self
-    #
-    #def __exit__(self, type, value, traceback):
-    #    """
-    #    Compatibility with the "C{with}" Python statement.
-    #    """
-    #    try:
-    #        self.close()
-    #    except Exception:
-    #        pass
 
     def __contains__(self, name):
         try:
@@ -171,74 +133,35 @@ class RegistryKey (_RegistryContainer):
     def __delitem__(self, name):
         win32.RegDeleteValue(self.handle, name)
 
-    def iterkeys(self):
+    def keys(self):
         handle = self.handle
         index = 0
-        while 1:
+        while True:
             resp = win32.RegEnumValue(handle, index, False)
             if resp is None:
                 break
             yield resp[0]
             index += 1
 
-    def itervalues(self):
+    def values(self):
         handle = self.handle
         index = 0
-        while 1:
+        while True:
             resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             yield resp[2]
             index += 1
 
-    def iteritems(self):
+    def items(self):
         handle = self.handle
         index = 0
-        while 1:
+        while True:
             resp = win32.RegEnumValue(handle, index)
             if resp is None:
                 break
             yield resp[0], resp[2]
             index += 1
-
-    def keys(self):
-        # return list(self.keys())   # that can't be optimized by psyco
-        handle = self.handle
-        keys = list()
-        index = 0
-        while 1:
-            resp = win32.RegEnumValue(handle, index, False)
-            if resp is None:
-                break
-            keys.append(resp[0])
-            index += 1
-        return keys
-
-    def values(self):
-        # return list(self.values()) # that can't be optimized by psyco
-        handle = self.handle
-        values = list()
-        index = 0
-        while 1:
-            resp = win32.RegEnumValue(handle, index)
-            if resp is None:
-                break
-            values.append(resp[2])
-            index += 1
-        return values
-
-    def items(self):
-        # return list(self.iteritems()) # that can't be optimized by psyco
-        handle = self.handle
-        items = list()
-        index = 0
-        while 1:
-            resp = win32.RegEnumValue(handle, index)
-            if resp is None:
-                break
-            items.append( (resp[0], resp[2]) )
-            index += 1
-        return items
 
     def get_value_type(self, name):
         """
@@ -273,7 +196,7 @@ class RegistryKey (_RegistryContainer):
 
     def clear(self):
         handle = self.handle
-        while 1:
+        while True:
             resp = win32.RegEnumValue(handle, 0, False)
             if resp is None:
                 break
@@ -284,12 +207,6 @@ class RegistryKey (_RegistryContainer):
             return str(self[''])
         except KeyError:
             return ''
-
-    def __unicode__(self):
-        try:
-            return str(self[u''])
-        except KeyError:
-            return u''
 
     def __repr__(self):
         return '<Registry key: "%s">' % self._path
@@ -303,7 +220,7 @@ class RegistryKey (_RegistryContainer):
         """
         handle = self.handle
         index = 0
-        while 1:
+        while True:
             subkey = win32.RegEnumKey(handle, index)
             if subkey is None:
                 break
@@ -317,17 +234,7 @@ class RegistryKey (_RegistryContainer):
         @rtype:  list(L{RegistryKey})
         @return: List of subkeys.
         """
-        # return list(self.iterchildren()) # that can't be optimized by psyco
-        handle = self.handle
-        result = []
-        index = 0
-        while 1:
-            subkey = win32.RegEnumKey(handle, index)
-            if subkey is None:
-                break
-            result.append( self.child(subkey) )
-            index += 1
-        return result
+        return list(self.iterchildren())
 
     def child(self, subkey):
         """
@@ -375,7 +282,7 @@ class RegistryKey (_RegistryContainer):
 # Apparently RegDeleteTree won't work remotely from Win7 to WinXP, and the only
 # solution is to recursively call RegDeleteKey.
 
-class Registry (_RegistryContainer):
+class Registry(_RegistryContainer):
     """
     Exposes the Windows Registry as a Python container.
 
@@ -666,7 +573,7 @@ class Registry (_RegistryContainer):
         """
         if path.endswith('\\'):
             path = path[:-1]
-        if not self.has_key(path):  # NOQA
+        if path not in self:
             raise KeyError(path)
         stack = collections.deque()
         stack.appendleft(path)

@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://blog.didierstevens.com/2009/11/22/quickpost-selectmyparent-or-playing-with-the-windows-process-tree/
 
 # SelectMyParent: Start a program with a selected parent process.
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,19 +39,13 @@ import os
 import sys
 import ntpath
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 def main(argv):
 
     # print(the banner.)
     print("SelectMyParent: Start a program with a selected parent process")
     print("by Mario Vilas (mvilas at gmail.com)")
     print("based on a Didier Stevens tool (https://DidierStevens.com)")
-    print
+    print()
 
     # Check the command line arguments.
     if len(argv) < 3:
@@ -118,11 +112,5 @@ def main(argv):
     print("Process created: %d" % dwProcessId)
     return dwProcessId
 
-# Run main() binded to Psyco if available.
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

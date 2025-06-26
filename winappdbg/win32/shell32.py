@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -257,12 +257,11 @@ def CommandLineToArgvW(lpCmdLine):
 
 def CommandLineToArgvA(lpCmdLine):
     t_ansi = GuessStringType.t_ansi
-    t_unicode = GuessStringType.t_unicode
     if isinstance(lpCmdLine, t_ansi):
-        cmdline = t_unicode(lpCmdLine)
+        cmdline = lpCmdLine.decode('mbcs')
     else:
         cmdline = lpCmdLine
-    return [t_ansi(x) for x in CommandLineToArgvW(cmdline)]
+    return [x.encode('mbcs') for x in CommandLineToArgvW(cmdline)]
 
 CommandLineToArgv = GuessStringType(CommandLineToArgvA, CommandLineToArgvW)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -140,8 +140,6 @@ LPVS_FIXEDFILEINFO = PVS_FIXEDFILEINFO
 #   _Out_opt_  LPDWORD lpdwHandle
 # );
 def GetFileVersionInfoA(lptstrFilename):
-    if isinstance(lptstrFilename,str):
-        lptstrFilename = lptstrFilename.encode()
     _GetFileVersionInfoA = windll.version.GetFileVersionInfoA
     _GetFileVersionInfoA.argtypes = [LPSTR, DWORD, DWORD, LPVOID]
     _GetFileVersionInfoA.restype  = bool

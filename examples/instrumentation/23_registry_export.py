@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ RegistryEditorVersion = "Windows Registry Editor Version 5.00"
 
 # Helper function to serialize data to hexadecimal format.
 def reg_hexa(value, type):
-    return "hex(%x):%s" % (type, ",".join( ["%.2x" % ord(x) for x in value] ))
+    return "hex(%x):%s" % (type, ",".join( ["%.2x" % x for x in value] ))
 
 # Registry export function.
 def reg_export( reg_path, filename ):
@@ -52,7 +52,7 @@ def reg_export( reg_path, filename ):
     queue.append( key )
 
     # Open the output file.
-    with open(filename, "wb") as output:
+    with open(filename, "w", encoding="utf-16") as output:
 
         # Write the file format header.
         output.write( "%s\r\n" % RegistryEditorVersion )
@@ -70,7 +70,7 @@ def reg_export( reg_path, filename ):
                 output.write( "@=\"%s\"\r\n" % default )
 
             # For each value in the key...
-            for name, value in key.iteritems():
+            for name, value in key.items():
 
                 # Skip the default value since we already wrote it.
                 if not name:
@@ -81,28 +81,32 @@ def reg_export( reg_path, filename ):
 
                 # Serialize the value.
                 t_value = key.get_value_type(name)
-                if t_value == win32.REG_SZ and type(value) == str:
+                if t_value == win32.REG_SZ and isinstance(value, str):
                     s_value = "\"%s\"" % value.replace("\"", "\\\"")
                 elif t_value == win32.REG_DWORD:
                     s_value = "dword:%.8X" % value
                 else:
+                    new_value = value
                     if t_value == win32.REG_QWORD:
-                        value = struct.pack("<Q", value)
+                        new_value = struct.pack("<Q", value)
                     elif t_value == win32.REG_DWORD:
-                        value = struct.pack("<L", value)
+                        new_value = struct.pack("<L", value)
                     elif t_value == win32.REG_DWORD_BIG_ENDIAN:
-                        value = struct.pack(">L", value)
+                        new_value = struct.pack(">L", value)
                     elif t_value == win32.REG_MULTI_SZ:
-                        if not value:
-                            value = ""
-                        elif type(value) == str:
-                            value = "\0".join(value)
-                        else:
-                            value = u"\0".join(value)
-                    if type(value) == str:
-                        s_value = reg_hexa(value, t_value)
+                        # The value is a list of strings.
+                        # It must be encoded as a sequence of null-terminated
+                        # UTF-16LE strings, terminated by a final null character.
+                        new_value = ('\0'.join(value) + '\0\0').encode('utf-16le')
+
+                    if isinstance(new_value, str):
+                        # This will handle REG_EXPAND_SZ and any other
+                        # string-like types that were not packed into bytes.
+                        s_value = reg_hexa(new_value.encode("utf-16le"), t_value)
                     else:
-                        s_value = reg_hexa(value.encode("UTF-16"), t_value)
+                        # This will handle values from struct.pack and
+                        # our already encoded REG_MULTI_SZ.
+                        s_value = reg_hexa(new_value, t_value)
 
                 # Write the name and value.
                 output.write( "%s=%s\r\n" % (s_name, s_value) )

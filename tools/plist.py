@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process enumerator
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -57,12 +57,6 @@ from winappdbg import System, PathOperations, Table
 
 import optparse
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 def parse_cmdline(argv):
     'Parse the command line options.'
     parser = optparse.OptionParser()
@@ -88,7 +82,7 @@ def main(argv):
     # print(the banner.)
     print("Process enumerator")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     # Parse the command line options.
     (options, argv)  = parse_cmdline(argv)
@@ -269,9 +263,4 @@ def main(argv):
 
 if __name__ == '__main__':
     import sys
-    try:
-        import psyco
-        psyco.full()
-    except ImportError:
-        pass
     main(sys.argv)

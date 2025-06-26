@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ from winappdbg import win32
 
 try:
     fullpath, basename = win32.SearchPath( None, sys.argv[1], '.dll' )
-except WindowsError, e:
+except WindowsError as e:
     if e.winerror != win32.ERROR_FILE_NOT_FOUND:
         raise
     fullpath, basename = win32.SearchPath( None, sys.argv[1], '.exe' )
 
-print "Full path: %s" % fullpath
-print "Base name: %s" % basename
+print("Full path: %s" % fullpath)
+print("Base name: %s" % basename)

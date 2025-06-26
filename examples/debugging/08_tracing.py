@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ class MyEventHandler( EventHandler ):
         pc     = thread.get_pc()
         code   = thread.disassemble( pc, 0x10 ) [0]
         bits   = event.get_process().get_bits()
-        print "%s: %s" % ( HexDump.address(code[0], bits), code[2].lower() )
+        print("%s: %s" % ( HexDump.address(code[0], bits), code[2].lower() ))
 
 
 def simple_debugger( argv ):

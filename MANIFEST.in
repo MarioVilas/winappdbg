@@ -1,8 +1,6 @@
-include README
+include README.md
 include MANIFEST.in
 include setup.py
-include install.bat
-include install.cfg
 include setup.cfg
 include test.py
 include examples/instrumentation/*.py

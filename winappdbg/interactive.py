@@ -1,11 +1,11 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
 #  Nicolas Economou, for his command line debugger on which this is inspired.
 #  http://tinyurl.com/nicolaseconomou
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,6 @@ Interactive debugging console.
     CmdError
 """
 
-from __future__ import with_statement
-
 __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 
 # TODO document this module with docstrings.
@@ -66,15 +64,10 @@ import warnings
 import traceback
 
 from os import getenv
+from importlib import reload
 
 # too many variables named "cmd" to have a module by the same name :P
 from cmd import Cmd
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError, getenv  # NOQA
 
 # lazy imports
 readline = None
@@ -149,16 +142,16 @@ class ConsoleDebugger (Cmd, EventHandler):
     register_alias_32_to_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
 
     register_aliases_full_32 = list(segment_names)
-    register_aliases_full_32.extend(register_alias_32_to_16.keys())
-    register_aliases_full_32.extend(register_alias_32_to_8_low.keys())
-    register_aliases_full_32.extend(register_alias_32_to_8_high.keys())
+    register_aliases_full_32.extend(list(register_alias_32_to_16.keys()))
+    register_aliases_full_32.extend(list(register_alias_32_to_8_low.keys()))
+    register_aliases_full_32.extend(list(register_alias_32_to_8_high.keys()))
     register_aliases_full_32 = tuple(register_aliases_full_32)
 
     register_aliases_full_64 = list(segment_names)
-    register_aliases_full_64.extend(register_alias_64_to_32.keys())
-    register_aliases_full_64.extend(register_alias_64_to_16.keys())
-    register_aliases_full_64.extend(register_alias_64_to_8_low.keys())
-    register_aliases_full_64.extend(register_alias_64_to_8_high.keys())
+    register_aliases_full_64.extend(list(register_alias_64_to_32.keys()))
+    register_aliases_full_64.extend(list(register_alias_64_to_16.keys()))
+    register_aliases_full_64.extend(list(register_alias_64_to_8_low.keys()))
+    register_aliases_full_64.extend(list(register_alias_64_to_8_high.keys()))
     register_aliases_full_64 = tuple(register_aliases_full_64)
 
     # Names of the control flow instructions.
@@ -583,10 +576,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         name = event.get_event_name()
         desc = event.get_event_description()
         if code in desc:
-            print
+            print()
             print("%s: %s" % (name, desc))
         else:
-            print
+            print()
             print("%s (%s): %s" % (name, code, desc))
         self.print_event_location(event)
 
@@ -603,7 +596,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             msg = "%s at address %s (%s chance)" % (desc, address, chance)
         else:
             msg = "%s (%s) at address %s (%s chance)" % (desc, code, address, chance)
-        print
+        print()
         print(msg)
         self.print_event_location(event)
 
@@ -644,8 +637,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             disasm = None
         except NotImplementedError:
             disasm = None
-        print
-        print(CrashDump.dump_registers(ctx),)
+        print()
+        print(CrashDump.dump_registers(ctx), end=' ')
         print("%s:" % label)
         if disasm:
             print(CrashDump.dump_code_line(disasm[0], pc, bShowDump = True))
@@ -669,7 +662,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         data                    = self.read_memory(address, size, pid)
         if data:
             print("%s:" % label)
-            print(method(data, address),)
+            print(method(data, address), end=' ')
 
 #------------------------------------------------------------------------------
 # Debugging
@@ -920,7 +913,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Prompt the user for a YES/NO kind of question.
     def ask_user(self, msg, prompt = "Are you sure? (y/N): "):
         print(msg)
-        answer = raw_input(prompt)
+        answer = input(prompt)
         answer = answer.strip()[:1].lower()
         return answer == 'y'
 
@@ -991,7 +984,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Return a sorted list of method names.
     # Only returns the methods that implement commands.
     def get_names(self):
-        names = Cmd.get_names(self)
+        names = super().get_names()
         names = [ x for x in set(names) if x.startswith('do_') ]
         names.sort()
         return names
@@ -1106,7 +1099,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # This hack fixes a bug in Python, the interpreter console is closing the
     # stdin pipe when calling the exit() function (Ctrl+Z seems to work fine).
-    class _PythonExit(object):
+    class _PythonExit:
         def __repr__(self):
             return "Use exit() or Ctrl-Z plus Return to exit"
         def __call__(self):
@@ -1123,7 +1116,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         platform = 'WinAppDbg %s' % platform
         banner = banner % (sys.version, platform)
         local = {}
-        local.update(__builtins__)
+        local.update(vars(__builtins__))
         local.update({
             '__name__'  : '__console__',
             '__doc__'   : None,
@@ -1151,7 +1144,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         # When given a Python statement, execute it directly.
         if arg:
             try:
-                exec(arg in globals(), locals())
+                exec(arg, globals(), locals())
             except Exception as e:
                 traceback.print_exc(e)
 
@@ -1503,7 +1496,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             stack_trace = thread.get_stack_trace_with_labels()
             if stack_trace:
-                print(CrashDump.dump_stack_trace_with_labels(stack_trace),)
+                print(CrashDump.dump_stack_trace_with_labels(stack_trace), end=' ')
             else:
                 print("No stack trace available for thread (%d)" % tid)
         except WindowsError:
@@ -1873,7 +1866,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             minAddr = addr
             maxAddr = addr + size
         iter = process.search_bytes(
-                pattern, minAddr = minAddr, maxAddr = maxAddr)
+                pattern.encode('latin-1'), minAddr = minAddr, maxAddr = maxAddr)
         if process.get_bits() == 32:
             addr_width = 8
         else:
@@ -2080,7 +2073,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not arg:
             raise CmdError("missing parameter: string")
         process = self.get_process_from_prefix()
-        self.find_in_memory(arg, process)
+        self.find_in_memory(arg.encode('latin-1'), process)
 
     do_f = do_find
 
@@ -2095,7 +2088,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             memoryMap       = process.get_memory_map()
             mappedFilenames = process.get_mapped_filenames()
-            print
+            print()
             print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
         except WindowsError:
             msg = "can't get memory information for process (%d)"

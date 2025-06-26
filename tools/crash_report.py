@@ -1,8 +1,8 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Crash logger report (see crash_logger.py)
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,12 +37,6 @@ import optparse
 from winappdbg import CrashContainer, CrashDictionary
 
 from crash_logger import CrashLogger
-
-try:
-    import cerealizer
-    cerealizer.freeze_configuration()
-except ImportError:
-    pass
 
 def parse_cmdline(argv):
     'Parse the command line options.'
@@ -93,9 +87,8 @@ def open_database(filename):
             print("Warning: no database configured here, ignored")
             return
         elif options.database.startswith('dbm://'):
-            dbfile = options.database[6:]
-            print("Connecting to DBM database file: %s" % dbfile)
-            cc = CrashContainer(dbfile)
+            print("Warning: DBM databases are no longer supported, ignored")
+            return
         else:
             print("Connecting to database: %s" % options.database)
             cc = CrashDictionary(options.database)
@@ -130,15 +123,13 @@ def print_crash_report(cc, options):
             report = c.fullReport()
         else:
             report = c.briefReport() + '\n'
-        if isinstance(report, unicode):
-            report = report.encode('UTF8')          # XXX HORRIBLE HACK!
-        print(report,)
+        print(report, end='')
         print('-' * 79)
 
 def main(argv):
     print("Crash logger report")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     (options, parameters) = parse_cmdline(argv)
 
@@ -150,9 +141,4 @@ def main(argv):
         print_report_for_database(cc, options)
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

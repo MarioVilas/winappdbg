@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process memory writer
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ import sys
 def main():
     print("Process memory writer")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     if len(sys.argv) < 4:
         script = os.path.basename(sys.argv[0])
@@ -63,7 +63,7 @@ def main():
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
             for p,n in pl:
-                print("\t%s: %s" % (HexDump.integer(p),n))
+                print("\t%s: %s" % (HexDump.integer(p.get_pid()),n))
             return
         pid = pl[0][0].get_pid()
 
@@ -75,7 +75,8 @@ def main():
 
     filename = ' '.join(sys.argv[3:])
     if os.path.exists(filename):
-        data = open(filename, 'rb').read()
+        with open(filename, 'rb') as fd:
+            data = fd.read()
         print("Read %d bytes from %s" % (len(data), filename))
     else:
         try:
@@ -89,9 +90,4 @@ def main():
     print("Written %d bytes to PID %d" % (len(data), pid))
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main()

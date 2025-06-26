@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Command line debugger using WinAppDbg
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,7 @@ class PDebug (ConsoleDebugger):
     def print_banner(self):
         print("WinAppDbg %s console debugger" % winappdbg.version)
         print("by Mario Vilas (mvilas at gmail.com)")
-        print
+        print()
 
 #------------------------------------------------------------------------------
 # Command line parsing
@@ -259,9 +259,4 @@ def main(argv):
     return PDebug().run(argv)
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

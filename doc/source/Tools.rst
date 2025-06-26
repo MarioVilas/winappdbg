@@ -21,7 +21,7 @@ Crash logger
 
    Attaches as a debugger or starts a new process for debugging. Whenever an interesting debug event occurs (i.e. a bug is found) it can save the info to a database (SQLite, MySQL, SQL Server, etc.) and/or log it through standard output.
 
-   A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <https://archive.codeplex.com/?p=msecdbg>`_.
+   A :ref:`heuristic signature <signature>` can be used to try to determine whether two crashes were caused by the same bug, in order to discard duplicates. It can also try to guess how exploitable would the found crashes be, using similar heuristics to those of `!exploitable <https://web.archive.org/web/20210413145507/https://archive.codeplex.com/?p=msecdbg>`_.
 
    Additional features allow attaching to system services, setting breakpoints at the target process(es), attaching to spawned child processes, restarting crashed processes, and running a custom command when a crash is found.
 
@@ -34,7 +34,7 @@ Crash logger
 Process tools
 +++++++++++++
 
-These tools were inspired by the **ptools** suite by `Nicolás Economou <https://twitter.com/nicoeconomou>`_.
+These tools were inspired by the **ptools** suite by `Nicolás Economou <https://x.com/nicoeconomou>`_.
 
 * :download:`pdebug.py <../../tools/pdebug.py>` :
 

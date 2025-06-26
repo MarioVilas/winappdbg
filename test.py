@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,13 +36,13 @@ import warnings
 
 def test(title, fn):
     title = "Testing %s... " % title
-    print title,
+    print(title, end="")
     try:
         fn()
-        print "\tOK"
+        print("\tOK")
         return True
-    except Exception, e:
-        print "\tFAIL: %s" % str(e)
+    except Exception as e:
+        print("\tFAIL: %s" % str(e))
         return False
 
 def test_module_load():

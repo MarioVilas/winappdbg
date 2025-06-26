@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ def print_api_address( pid, modName, procName ):
     # Get the module.
     module = process.get_module_by_name( modName )
     if not module:
-        print "Module not found: %s" % modName
+        print("Module not found: %s" % modName)
         return
 
     # Resolve the requested API function address.
@@ -52,9 +52,9 @@ def print_api_address( pid, modName, procName ):
 
     # Print the address.
     if address:
-        print "%s!%s == 0x%.08x" % ( modName, procName, address )
+        print("%s!%s == 0x%.08x" % ( modName, procName, address ))
     else:
-        print "Could not resolve %s in module %s" % (procName, modName)
+        print("Could not resolve %s in module %s" % (procName, modName))
 
 # When invoked from the command line,
 # the first argument is a process ID,

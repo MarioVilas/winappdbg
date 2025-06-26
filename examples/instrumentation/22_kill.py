@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -63,21 +63,21 @@ def show_window( window ):
     size     = (rect.right - rect.left, rect.bottom - rect.top)
 
     # Print the window information.
-    print "Handle:   %s" % HexDump.integer( window.get_handle() )
-    print "Caption:  %s" % window.text
-    print "Class:    %s" % window.classname
-    print "Style:    %s" % HexDump.integer( window.style )
-    print "ExStyle:  %s" % HexDump.integer( window.exstyle )
-    print "Position: (%i, %i) - (%i, %i)" % position
-    print "Size:     (%i, %i)" % size
+    print("Handle:   %s" % HexDump.integer( window.get_handle() ))
+    print("Caption:  %s" % window.text)
+    print("Class:    %s" % window.classname)
+    print("Style:    %s" % HexDump.integer( window.style ))
+    print("ExStyle:  %s" % HexDump.integer( window.exstyle ))
+    print("Position: (%i, %i) - (%i, %i)" % position)
+    print("Size:     (%i, %i)" % size)
 
 
 # ...begins just like the previous example...
 
 
 def user_confirmed():
-    print
-    answer = raw_input( "Are you sure you want to kill this program? (y/N):" )
+    print()
+    answer = input( "Are you sure you want to kill this program? (y/N):" )
     answer = answer.strip().upper()
     return answer.startswith("Y")
 
@@ -88,7 +88,7 @@ def main():
     try:
         window = find_window()
     except WindowsError:
-        print "No window found!"
+        print("No window found!")
         return
 
     # Show the window info to the user.

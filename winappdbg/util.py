@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -77,12 +77,6 @@ import optparse
 
 from . import win32
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
 #==============================================================================
 
 class classproperty(property):
@@ -138,17 +132,19 @@ class Regenerator(object):
         'x.__iter__() <==> iter(x)'
         return self
 
-    def next(self):
+    def __next__(self):
         'x.next() -> the next value, or raise StopIteration'
         if self.__g_object is None:
             self.__g_object = self.__g_function( *self.__v_args, **self.__d_args )
         try:
-            return self.__g_object.next()
+            return next(self.__g_object)
         except StopIteration:
             self.__g_object = None
             raise
 
-class StaticClass (object):
+    next = __next__
+
+class StaticClass:
     def __new__(cls, *argv, **argd):
         "Don't try to instance this class, just use the static methods."
         raise NotImplementedError(
@@ -295,7 +291,7 @@ class PathOperations (StaticClass):
         # There are probably some native paths that
         # won't be converted by this naive approach.
         if isinstance(name, bytes):
-            name = name.decode()
+            name = name.decode('mbcs')
 
         if name.startswith("\\"):
             if name.startswith("\\??\\"):
@@ -439,7 +435,7 @@ class MemoryAddresses (StaticClass):
         begin, end = cls.align_address_range(address, address + size)
         # XXX FIXME
         # I think this rounding fails at least for address 0xFFFFFFFF size 1
-        return int(float(end - begin) / float(cls.pageSize))
+        return (end - begin) // cls.pageSize
 
     @staticmethod
     def do_ranges_intersect(begin, end, old_begin, old_end):
@@ -768,11 +764,7 @@ class DebugRegister (StaticClass):
     )
 
     # Dr7 &= disableMask[register]
-    disableMask = []
-    for x in enableMask:
-        disableMask.append(registerMask ^ x)
-    disableMask = tuple(disableMask)
-    del x
+    disableMask = tuple([~m for m in enableMask])
 
     # orMask, andMask = triggerMask[register][trigger]
     # Dr7 = (Dr7 & andMask) | orMask    # to set
@@ -780,31 +772,31 @@ class DebugRegister (StaticClass):
     triggerMask = (
         # Dr0 (bits 16-17)
         (
-            ((0 << 16), (3 << 16) ^ registerMask),  # execute
-            ((1 << 16), (3 << 16) ^ registerMask),  # write
-            ((2 << 16), (3 << 16) ^ registerMask),  # io read
-            ((3 << 16), (3 << 16) ^ registerMask),  # access
+            ((0 << 16), ~(3 << 16)),  # execute
+            ((1 << 16), ~(3 << 16)),  # write
+            ((2 << 16), ~(3 << 16)),  # io read
+            ((3 << 16), ~(3 << 16)),  # access
         ),
         # Dr1 (bits 20-21)
         (
-            ((0 << 20), (3 << 20) ^ registerMask),  # execute
-            ((1 << 20), (3 << 20) ^ registerMask),  # write
-            ((2 << 20), (3 << 20) ^ registerMask),  # io read
-            ((3 << 20), (3 << 20) ^ registerMask),  # access
+            ((0 << 20), ~(3 << 20)),  # execute
+            ((1 << 20), ~(3 << 20)),  # write
+            ((2 << 20), ~(3 << 20)),  # io read
+            ((3 << 20), ~(3 << 20)),  # access
         ),
         # Dr2 (bits 24-25)
         (
-            ((0 << 24), (3 << 24) ^ registerMask),  # execute
-            ((1 << 24), (3 << 24) ^ registerMask),  # write
-            ((2 << 24), (3 << 24) ^ registerMask),  # io read
-            ((3 << 24), (3 << 24) ^ registerMask),  # access
+            ((0 << 24), ~(3 << 24)),  # 'execute'
+            ((1 << 24), ~(3 << 24)),  # 'write'
+            ((2 << 24), ~(3 << 24)),  # 'io read'
+            ((3 << 24), ~(3 << 24)),  # 'access'
         ),
         # Dr3 (bits 28-29)
         (
-            ((0 << 28), (3 << 28) ^ registerMask),  # execute
-            ((1 << 28), (3 << 28) ^ registerMask),  # write
-            ((2 << 28), (3 << 28) ^ registerMask),  # io read
-            ((3 << 28), (3 << 28) ^ registerMask),  # access
+            ((0 << 28), ~(3 << 28)),  # 'execute'
+            ((1 << 28), ~(3 << 28)),  # 'write'
+            ((2 << 28), ~(3 << 28)),  # 'io read'
+            ((3 << 28), ~(3 << 28)),  # 'access'
         ),
     )
 
@@ -814,40 +806,40 @@ class DebugRegister (StaticClass):
     watchMask = (
         # Dr0 (bits 18-19)
         (
-            ((0 << 18), (3 << 18) ^ registerMask),  # byte
-            ((1 << 18), (3 << 18) ^ registerMask),  # word
-            ((2 << 18), (3 << 18) ^ registerMask),  # qword
-            ((3 << 18), (3 << 18) ^ registerMask),  # dword
+            ((0 << 18), ~(3 << 18)),  # byte
+            ((1 << 18), ~(3 << 18)),  # word
+            ((2 << 18), ~(3 << 18)),  # qword
+            ((3 << 18), ~(3 << 18)),  # dword
         ),
         # Dr1 (bits 22-23)
         (
-            ((0 << 23), (3 << 23) ^ registerMask),  # byte
-            ((1 << 23), (3 << 23) ^ registerMask),  # word
-            ((2 << 23), (3 << 23) ^ registerMask),  # qword
-            ((3 << 23), (3 << 23) ^ registerMask),  # dword
+            ((0 << 22), ~(3 << 22)),  # byte
+            ((1 << 22), ~(3 << 22)),  # word
+            ((2 << 22), ~(3 << 22)),  # qword
+            ((3 << 22), ~(3 << 22)),  # dword
         ),
         # Dr2 (bits 26-27)
         (
-            ((0 << 26), (3 << 26) ^ registerMask),  # byte
-            ((1 << 26), (3 << 26) ^ registerMask),  # word
-            ((2 << 26), (3 << 26) ^ registerMask),  # qword
-            ((3 << 26), (3 << 26) ^ registerMask),  # dword
+            ((0 << 26), ~(3 << 26)),  # byte
+            ((1 << 26), ~(3 << 26)),  # word
+            ((2 << 26), ~(3 << 26)),  # qword
+            ((3 << 26), ~(3 << 26)),  # dword
         ),
         # Dr3 (bits 30-31)
         (
-            ((0 << 30), (3 << 31) ^ registerMask),  # byte
-            ((1 << 30), (3 << 31) ^ registerMask),  # word
-            ((2 << 30), (3 << 31) ^ registerMask),  # qword
-            ((3 << 30), (3 << 31) ^ registerMask),  # dword
+            ((0 << 30), ~(3 << 30)),  # byte
+            ((1 << 30), ~(3 << 30)),  # word
+            ((2 << 30), ~(3 << 30)),  # qword
+            ((3 << 30), ~(3 << 30)),  # dword
         ),
     )
 
     # Dr7 = Dr7 & clearMask[register]
     clearMask = (
-        registerMask ^ ( (1 << 0) + (3 << 16) + (3 << 18) ),    # Dr0
-        registerMask ^ ( (1 << 2) + (3 << 20) + (3 << 22) ),    # Dr1
-        registerMask ^ ( (1 << 4) + (3 << 24) + (3 << 26) ),    # Dr2
-        registerMask ^ ( (1 << 6) + (3 << 28) + (3 << 30) ),    # Dr3
+        ~((1 << 0) | (3 << 16) | (3 << 18)),    # Dr0
+        ~((1 << 2) | (3 << 20) | (3 << 22)),    # Dr1
+        ~((1 << 4) | (3 << 24) | (3 << 26)),    # Dr2
+        ~((1 << 6) | (3 << 28) | (3 << 30)),    # Dr3
     )
 
     # Dr7 = Dr7 | generalDetectMask
@@ -880,7 +872,7 @@ class DebugRegister (StaticClass):
     hitMaskAll = hitMask[0] | hitMask[1] | hitMask[2] | hitMask[3]
 
     # Dr6 = Dr6 & clearHitMask
-    clearHitMask = registerMask ^ hitMaskAll
+    clearHitMask = ~hitMaskAll
 
     # bool(Dr6 & debugAccessMask)
     debugAccessMask = (1 << 13)
@@ -892,7 +884,7 @@ class DebugRegister (StaticClass):
     taskSwitchMask  = (1 << 15)
 
     # Dr6 = Dr6 & clearDr6Mask
-    clearDr6Mask = registerMask ^ (hitMaskAll | \
+    clearDr6Mask = ~(hitMaskAll | \
                             debugAccessMask | singleStepMask | taskSwitchMask)
 
 #------------------------------------------------------------------------------

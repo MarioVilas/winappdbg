@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Acknowledgements:
@@ -6,7 +6,7 @@
 #  http://tinyurl.com/nicolaseconomou
 
 # Process execution tracer
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,12 +41,6 @@ from winappdbg import HexInput, CrashDump
 import sys
 import ntpath
 import optparse
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
 
 #------------------------------------------------------------------------------
 
@@ -95,7 +89,7 @@ class Tracer( EventHandler ):
             label = thread.get_label_at_pc()
         print(label)
         print(CrashDump.dump_registers(ctx))
-        print(CrashDump.dump_stack_trace_with_labels(trace),)
+        print(CrashDump.dump_stack_trace_with_labels(trace), end='')
         print("-" * 79)
 
     # Disassemble the current instruction
@@ -399,9 +393,4 @@ def callback_execute_target(option, opt_str, value, parser):
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

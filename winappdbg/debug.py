@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -54,12 +54,6 @@ from time import time
 
 import warnings
 ##import traceback
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from win32 import WindowsError
 
 #==============================================================================
 
@@ -143,8 +137,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        EventDispatcher.__init__(self, eventHandler)
-        _BreakpointContainer.__init__(self)
+        super().__init__(eventHandler)
 
         self.system                         = System()
         self.lastEvent                      = None
@@ -352,7 +345,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if type(argv) is str:
+        if isinstance(argv, str):
             raise TypeError("Debug.execv expects a list, not a string")
         lpCmdLine = self.system.argv_to_cmdline(argv)
         return self.execl(lpCmdLine, **kwargs)
@@ -440,7 +433,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         @raise WindowsError: Raises an exception on error.
         """
-        if type(lpCmdLine) is not str:
+        if not isinstance(lpCmdLine, str):
             warnings.warn("Debug.execl expects a string")
 
         # Set the "debug" flag to True.
@@ -1213,14 +1206,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
         This method returns when the user closes the session.
         """
-        print
+        print()
         print("-" * 79)
         print("Interactive debugging session started.")
         print("Use the \"help\" command to list all available commands.")
         print("Use the \"quit\" command to close this session.")
         print("-" * 79)
         if self.lastEvent is None:
-            print
+            print()
         console = ConsoleDebugger()
         console.confirm_quit = bConfirmQuit
         console.load_history()
@@ -1230,11 +1223,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
         finally:
             console.stop_using_debugger()
             console.save_history()
-        print
+        print()
         print("-" * 79)
         print("Interactive debugging session closed.")
         print("-" * 79)
-        print
+        print()
 
 #------------------------------------------------------------------------------
 
@@ -1330,8 +1323,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
                 pbi = win32.NtQueryInformationProcess(
                                        hProcess, win32.ProcessBasicInformation)
                 ptr = pbi.PebBaseAddress + 2
-                if aProcess.peek(ptr, 1) == '\x01':
-                    aProcess.poke(ptr, '\x00')
+                if aProcess.peek(ptr, 1) == b'\x01':
+                    aProcess.poke(ptr, b'\x00')
             except WindowsError as e:
                 warnings.warn(
                     "Cannot patch PEB->BeingDebugged, reason: %s" % e.strerror)
@@ -1366,7 +1359,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
 
         # Pass the event to the breakpoint container.
-        bCallHandler = _BreakpointContainer._notify_load_dll(self, event)
+        bCallHandler = super()._notify_load_dll(event)
 
         # Get the process where the DLL was loaded.
         aProcess = event.get_process()
@@ -1405,7 +1398,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler1 = _BreakpointContainer._notify_exit_process(self, event)
+        bCallHandler1 = super()._notify_exit_process(event)
         bCallHandler2 = self.system._notify_exit_process(event)
 
         try:
@@ -1434,7 +1427,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler1 = _BreakpointContainer._notify_exit_thread(self, event)
+        bCallHandler1 = super()._notify_exit_thread(event)
         bCallHandler2 = event.get_process()._notify_exit_thread(event)
         return bCallHandler1 and bCallHandler2
 
@@ -1450,7 +1443,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         @rtype:  bool
         @return: C{True} to call the user-defined handle, C{False} otherwise.
         """
-        bCallHandler1 = _BreakpointContainer._notify_unload_dll(self, event)
+        bCallHandler1 = super()._notify_unload_dll(event)
         bCallHandler2 = event.get_process()._notify_unload_dll(event)
         return bCallHandler1 and bCallHandler2
 

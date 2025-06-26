@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,4 +35,4 @@ system = System()
 
 # Now we can enumerate the running processes.
 for process in system:
-    print "%d:\t%s" % ( process.get_pid(), process.get_filename() )
+    print("%d:\t%s" % ( process.get_pid(), process.get_filename() ))

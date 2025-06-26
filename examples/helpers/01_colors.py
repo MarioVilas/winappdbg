@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ if Color.can_use_colors():
                 function()
 
                 # Print a message.
-                print "This is %s %s text on black background." % ( intensity, color )
+                print("This is %s %s text on black background." % (intensity, color))
 
         # Set black text.
         Color.black()
@@ -75,7 +75,7 @@ if Color.can_use_colors():
                 function()
 
                 # Print a message.
-                print "This is black text on %s %s background." % ( intensity, color )
+                print("This is black text on %s %s background." % (intensity, color))
 
     # Reset the console colors and quit.
     finally:
@@ -83,4 +83,4 @@ if Color.can_use_colors():
 
 # No colors available!
 else:
-    print "Can't use colors! Are you redirecting the output to a file?"
+    print("Can't use colors! Are you redirecting the output to a file?")

@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,16 +35,16 @@ warnings.simplefilter("ignore")
 
 from winappdbg import Process, HexDump
 
-def memory_search( pid, bytes ):
+def memory_search( pid, bytestr ):
 
     # Instance a Process object.
     process = Process( pid )
 
     # Search for the string in the process memory.
-    for address in process.search_bytes( bytes ):
+    for address in process.search_bytes( bytestr ):
 
         # Print the memory address where it was found.
-        print HexDump.address( address )
+        print(HexDump.address( address ))
 
 # When invoked from the command line,
 # the first argument is a process ID,
@@ -52,5 +52,5 @@ def memory_search( pid, bytes ):
 if __name__ == "__main__":
     import sys
     pid   = int( sys.argv[1] )
-    bytes = sys.argv[2]
-    memory_search( pid, bytes )
+    bytestr = sys.argv[2].encode('latin-1')
+    memory_search( pid, bytestr )

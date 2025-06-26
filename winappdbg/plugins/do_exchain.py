@@ -1,9 +1,9 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Command line debugger using WinAppDbg
 # Show exception handlers list
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ def do(self, arg):
     ".exchain - Show the SEH chain"
     thread = self.get_thread_from_prefix()
     print("Exception handlers for thread %d" % thread.get_tid())
-    print
+    print()
     table = Table()
     table.addRow("Block", "Function")
     bits = thread.get_bits()

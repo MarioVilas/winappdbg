@@ -1,8 +1,8 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Process memory finder
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ class MemoryAccessWarning(RuntimeWarning):
 
 #==============================================================================
 
-class Pattern(object):
+class Pattern:
     """
     Base class to code your own search mechanism.
 
@@ -85,7 +85,7 @@ class Pattern(object):
         """
         Class constructor.
 
-        @type  pattern: str
+        @type  pattern: bytes or str
         @param pattern: Pattern string.
             Its exact meaning and format depends on the subclass.
         """
@@ -128,11 +128,11 @@ class Pattern(object):
         Searches for the pattern in the given data buffer.
         Subclasses don't normally need to reimplement this method.
 
-        @type  address: long
+        @type  address: int
         @param address: Memory address where the data was read from.
             Used to calculate the results tuple.
 
-        @type  data: str
+        @type  data: bytes
         @param data: Data buffer to search in.
 
         @type  overlapping: bool
@@ -180,10 +180,10 @@ class StringPattern(Pattern):
         """
         Class constructor.
 
-        @type  pattern: str
+        @type  pattern: bytes
         @param pattern: Static string to search for, case sensitive.
         """
-        super(StringPattern, self).__init__(pattern)
+        super().__init__(pattern)
 
     def next_match(self):
         return self.data.find(self.pattern, self.pos)
@@ -199,10 +199,10 @@ class IStringPattern(Pattern):
         """
         Class constructor.
 
-        @type  pattern: str
+        @type  pattern: bytes
         @param pattern: Static string to search for, case insensitive.
         """
-        super(IStringPattern, self).__init__(pattern.lower())
+        super().__init__(pattern.lower())
 
     def next_match(self):
         return self.data.lower().find(self.pattern, self.pos)
@@ -244,7 +244,7 @@ class HexPattern(Pattern):
                 "5? 5? c3"          # pop register / pop register / ret
                 "b8 ?? ?? ?? ??"    # mov eax, immediate value
         """
-        super(HexPattern, self).__init__(pattern)
+        super().__init__(pattern)
         if not HexInput.is_pattern(pattern):
             raise ValueError("Invalid hexadecimal pattern: %r" % pattern)
         self.length   = HexInput.get_pattern_length(pattern)
@@ -329,7 +329,7 @@ class Search (StaticClass):
 
             As you can see, the middle results are overlapping the last two.
 
-        @rtype:  iterator of tuple( int, int, str )
+        @rtype:  iterator of tuple( int, int, bytes )
         @return: An iterator of tuples. Each tuple contains the following:
              - The memory address where the pattern was found.
              - The size of the data that matches the pattern.
@@ -390,7 +390,7 @@ class Search (StaticClass):
                     end    = address + total_size
                     shift  = 0
                     buffer = process.read(address, min(size, total_size))
-                    while 1:
+                    while True:
                         for result in cls._search_block(
                                     process, patterns, buffer,
                                     address, shift, overlapping):
@@ -415,7 +415,7 @@ class Search (StaticClass):
                 searcher.reset()
             else:
                 searcher.shift(shift)
-            while 1:
+            while True:
                 searcher.search(address, data, overlapping)
                 if searcher.result is None:
                     break

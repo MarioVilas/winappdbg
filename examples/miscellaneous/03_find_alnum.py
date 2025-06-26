@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ def iterate_alnum_jump_addresses(process):
         fmt = 'L'
     elif System.bits == 64:
         fmt = 'Q'
-        print "Warning! 64 bit addresses are not likely to be alphanumeric!"
+        print("Warning! 64 bit addresses are not likely to be alphanumeric!")
     else:
         raise NotImplementedError
 
@@ -103,7 +103,7 @@ def print_alnum_jump_addresses(pid):
                 code = ""
 
             # Print it.
-            print numeric, ascii, modname, code
+            print(numeric, ascii, modname, code)
 
     # Resume the process when we're done.
     # This is inside a "finally" block, so if the program is interrupted
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     try:
         print_alnum_jump_addresses(pid)
     except KeyboardInterrupt:
-        print "Interrupted by the user."
+        print("Interrupted by the user.")
     except Exception:
         import traceback
         traceback.print_exc()

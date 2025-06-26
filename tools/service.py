@@ -1,8 +1,8 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Service tool
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,19 +33,13 @@ from winappdbg import System, PathOperations, Table, win32
 
 import optparse, time
 
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-   from winappdbg.win32 import WindowsError
-
 def main(argv):
     'Main function.'
 
     # print(the banner.)
     print("Service tool")
     print("by Mario Vilas (mvilas at gmail.com)")
-    print
+    print()
 
     # Parse the command line options.
     parser = optparse.OptionParser()
@@ -212,7 +206,7 @@ def show(search = None, wide = True):
         need_empty_line = False
         for (name, disp, status, type, pidStr, path) in data:
             if need_empty_line:
-                print
+                print()
             else:
                 need_empty_line = True
             print("Service name:   %s" % name)
@@ -281,9 +275,4 @@ def resume(target):
 
 if __name__ == '__main__':
     import sys
-    try:
-        import psyco
-        psyco.full()
-    except ImportError:
-        pass
     main(sys.argv[1:])

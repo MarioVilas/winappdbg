@@ -1,8 +1,8 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Crash logger
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import with_statement
-
 __all__ =   [
                 'LoggingEventHandler',
             ]
@@ -44,18 +42,6 @@ import sys
 import time
 import ntpath
 import traceback
-
-# Cygwin compatibility.
-try:
-    WindowsError
-except NameError:
-    from winappdbg.win32 import WindowsError
-
-try:
-    import cerealizer
-    cerealizer.freeze_configuration()
-except ImportError:
-    pass
 
 # XXX TODO
 # Use the "signal" module to avoid having to deal with unexpected
@@ -115,19 +101,13 @@ class LoggingEventHandler(EventHandler):
         self.srvToRestart = set()
 
         # Call the base class constructor.
-        super(LoggingEventHandler, self).__init__()
+        super().__init__()
 
     def _new_crash_container(self):
         url = self.options.database
         if not url:
-            return DummyCrashContainer(
-                                allowRepeatedKeys = self.options.duplicates)
-        if url.startswith('dbm://'):
-            url = url[6:]
-            return CrashContainer(url,
-                                  allowRepeatedKeys = self.options.duplicates)
-        return CrashDictionary(url,
-                               allowRepeatedKeys = self.options.duplicates)
+            return CrashDictionary(allowRepeatedKeys = self.options.duplicates)
+        return CrashDictionary(url, allowRepeatedKeys = self.options.duplicates)
 
     # Add the crash to the database.
     def _add_crash(self, event, bFullReport = None, bLogEvent = True):
@@ -184,7 +164,7 @@ class LoggingEventHandler(EventHandler):
 
         # Pause if requested.
         if self.options.pause:
-            raw_input("Press enter to continue...")
+            input("Press enter to continue...")
 
         try:
 
@@ -702,10 +682,10 @@ class LoggingEventHandler(EventHandler):
 
 #==============================================================================
 
-class CrashLogger (object):
+class CrashLogger:
 
     # Options object with its default settings.
-    class Options (object):
+    class Options:
         def __init__(self):
 
             # Targets
@@ -755,7 +735,7 @@ class CrashLogger (object):
         regexp = re.compile(r'(\S+)\s+(.*)')
 
         # Open the config file
-        with open(config, 'rU') as fd:
+        with open(config, 'r', encoding='utf-8') as fd:
             number = 0
             while 1:
 
@@ -808,7 +788,7 @@ class CrashLogger (object):
                     if key in opt_history:
                         print("Warning: duplicated option %s in line %d" \
                               " of config file %s" % (key, number, config))
-                        print
+                        print()
                     else:
                         opt_history.add(key)
 
@@ -960,27 +940,13 @@ class CrashLogger (object):
 
         # Warn or fail about inconsistent use of DBM databases
         if options.database and options.database.startswith('dbm://'):
-            if options.memory and options.memory > 1:
-                print("Warning: using options 'dbm' and 'memory' in combination can have a severe")
-                print("  performance penalty.")
-                print
-            if options.duplicates:
-                if options.verbose:
-                    print("Warning: inconsistent use of 'duplicates'")
-                    print("  DBM databases do not allow duplicate entries with the same key.")
-                    print("  This means that when the same crash is found more than once it will be logged")
-                    print("  to standard output each time, but will only be saved once into the database.")
-                    print
-                else:
-                    msg  = "inconsistent use of 'duplicates': "
-                    msg += "DBM databases do not allow duplicate entries with the same key"
-                    raise ValueError(msg)
+            self.read_config_file.parser.error("DBM databases are no longer supported, please remove the 'dbm://' prefix from your database URI")
 
         # Warn about inconsistent use of time_limit
         if options.time_limit and options.autodetach \
                                     and (options.windowed or options.console):
             count = len(options.windowed) + len(options.console)
-            print
+            print()
             print("Warning: inconsistent use of 'time_limit'")
             if count == 1:
                 print("  An execution time limit was set, but the launched process won't be killed.")
@@ -1290,9 +1256,4 @@ def main(argv):
         print("Interrupted by the user!")
 
 if __name__ == '__main__':
-    try:
-        import psyco
-        psyco.bind(main)
-    except ImportError:
-        pass
     main(sys.argv)

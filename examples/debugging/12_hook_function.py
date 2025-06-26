@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ def wsprintf( event, ra, lpOut, lpFmt ):
 
     # Show a message to the user.
     showparams = ", ".join( [ hex(x) for x in parameters ] )
-    print "wsprintf( %r, %s );" % ( lpFmt, showparams )
+    print("wsprintf( %r, %s );" % ( lpFmt, showparams ))
 
 
 class MyEventHandler( EventHandler ):

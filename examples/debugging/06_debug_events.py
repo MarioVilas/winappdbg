@@ -1,7 +1,7 @@
-#!/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -78,14 +78,14 @@ def my_event_handler( event ):
             name = "%s [%s]" % ( name, filename )
 
     # Show a descriptive message to the user.
-    print "-" * 79
+    print("-" * 79)
     format_string = "%s (0x%s) at address 0x%s, process %d, thread %d"
     message = format_string % ( name,
                                 HexDump.integer(code, bits),
                                 HexDump.address(address, bits),
                                 pid,
                                 tid )
-    print message
+    print(message)
 
 def simple_debugger( argv ):
 

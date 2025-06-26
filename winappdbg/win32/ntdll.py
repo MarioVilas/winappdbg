@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2009-2020, Mario Vilas
+# Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -426,8 +426,10 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
     _NtQueryInformationProcess = windll.ntdll.NtQueryInformationProcess
     _NtQueryInformationProcess.argtypes = [HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG]
     _NtQueryInformationProcess.restype = NTSTATUS
+    ProcessInformationIsRaw = False
     if ProcessInformationLength is not None:
-        ProcessInformation = ctypes.create_string_buffer("", ProcessInformationLength)
+        ProcessInformation = ctypes.create_string_buffer(b"", ProcessInformationLength)
+        ProcessInformationIsRaw = True
     else:
         if   ProcessInformationClass == ProcessBasicInformation:
             ProcessInformation = PROCESS_BASIC_INFORMATION()
@@ -445,16 +447,19 @@ def NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInf
     ntstatus = _NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, byref(ProcessInformation), ProcessInformationLength, byref(ReturnLength))
     if ntstatus != 0:
         raise ctypes.WinError( RtlNtStatusToDosError(ntstatus) )
-    if   ProcessInformationClass == ProcessBasicInformation:
+    if ProcessInformationIsRaw:
+        retval = ProcessInformation.raw[:ReturnLength.value]
+    elif   ProcessInformationClass == ProcessBasicInformation:
         retval = ProcessInformation
     elif ProcessInformationClass in (ProcessDebugPort, ProcessWow64Information, ProcessWx86Information, ProcessHandleCount, ProcessPriorityBoost):
         retval = ProcessInformation.value
     elif ProcessInformationClass == ProcessImageFileName:
-        vptr = ctypes.c_void_p(ProcessInformation.Buffer)
-        cptr = ctypes.cast( vptr, ctypes.c_wchar * ProcessInformation.Length )
-        retval = cptr.contents.raw
+        retval = ctypes.wstring_at(
+            ProcessInformation.Buffer,
+            ProcessInformation.Length // sizeof(WCHAR)
+        )
     else:
-        retval = ProcessInformation.raw[:ReturnLength.value]
+        raise Exception("This should not happen!")
     return retval
 
 ZwQueryInformationProcess = NtQueryInformationProcess
