@@ -29,13 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Debugging.
-
-@group Debugging:
-    Debug
-
-@group Warnings:
-    MixedBitsWarning
+Main debugger class. Most applications will want to start with this one.
 """
 
 __all__ = [ 'Debug', 'MixedBitsWarning' ]
@@ -84,21 +78,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
     """
     The main debugger class.
 
-    @group Debugging:
-        interactive, attach, detach, detach_from_all, execv, execl,
-        kill, kill_all,
-        get_debugee_count, get_debugee_pids,
-        is_debugee, is_debugee_attached, is_debugee_started,
-        in_hostile_mode,
-        add_existing_session
-
-    @group Debugging loop:
-        loop, stop, next, wait, dispatch, cont
-
-    @undocumented: force_garbage_collection
-
-    @type system: L{System}
-    @ivar system: A System snapshot that is automatically updated for
+    :type system: :class:`~.system.System`
+    :ivar system: A System snapshot that is automatically updated for
         processes being debugged. Processes not being debugged in this snapshot
         may be outdated.
     """
@@ -111,31 +92,33 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Debugger object.
 
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler:
+        :type  eventHandler: :class:`~.event.EventHandler`
+        :param eventHandler:
             (Optional, recommended) Custom event handler object.
 
-        @type  bKillOnExit: bool
-        @param bKillOnExit: (Optional) Kill on exit mode.
-            If C{True} debugged processes are killed when the debugger thread
-            ends. If C{False} when the debugger stops it detaches from all
+        :type  bKillOnExit: bool
+        :param bKillOnExit: (Optional) Kill on exit mode.
+            If ``True`` debugged processes are killed when the debugger thread
+            ends. If ``False`` when the debugger stops it detaches from all
             debugged processes and leaves them running (default).
 
-        @type  bHostileCode: bool
-        @param bHostileCode: (Optional) Hostile code mode.
-            Set to C{True} to take some basic precautions against anti-debug
+        :type  bHostileCode: bool
+        :param bHostileCode: (Optional) Hostile code mode.
+            Set to ``True`` to take some basic precautions against anti-debug
             tricks. Disabled by default.
 
-        @warn: When hostile mode is enabled, some things may not work as
+        :raises WindowsError: Raises an exception on error.
+
+        .. warning::
+            When hostile mode is enabled, some things may not work as
             expected! This is because the anti-anti debug tricks may disrupt
             the behavior of the Win32 debugging APIs or WinAppDbg itself.
 
-        @note: The L{eventHandler} parameter may be any callable Python object
+        .. note::
+            The ``eventHandler`` parameter may be any callable Python object
             (for example a function, or an instance method).
             However you'll probably find it more convenient to use an instance
-            of a subclass of L{EventHandler} here.
-
-        @raise WindowsError: Raises an exception on error.
+            of a subclass of :class:`~.event.EventHandler` here.
         """
         super().__init__(eventHandler)
 
@@ -187,8 +170,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def __len__(self):
         """
-        @rtype:  int
-        @return: Number of processes being debugged.
+        :rtype:  int
+        :return: Number of processes being debugged.
         """
         return self.get_debugee_count()
 
@@ -215,16 +198,16 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Attaches to an existing process for debugging.
 
-        @see: L{detach}, L{execv}, L{execl}
+        .. seealso:: :meth:`detach`, :meth:`execv`, :meth:`execl`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Global ID of a process to attach to.
+        :type  dwProcessId: int
+        :param dwProcessId: Global ID of a process to attach to.
 
-        @rtype:  L{Process}
-        @return: A new Process object. Normally you don't need to use it now,
+        :rtype:  :class:`~.process.Process`
+        :return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
             Depending on the circumstances, the debugger may or may not have
             attached to the target process.
         """
@@ -271,35 +254,35 @@ class Debug (EventDispatcher, _BreakpointContainer):
         Starts a new process for debugging.
 
         This method uses a list of arguments. To use a command line string
-        instead, use L{execl}.
+        instead, use :meth:`execl`.
 
-        @see: L{attach}, L{detach}
+        .. seealso:: :meth:`attach`, :meth:`detach`
 
-        @type  argv: list( str... )
-        @param argv: List of command line arguments to pass to the debugee.
+        :type  argv: list[str]
+        :param argv: List of command line arguments to pass to the debugee.
             The first element must be the debugee executable filename.
 
-        @type    bBreakOnEntryPoint: bool
-        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
+        :type    bBreakOnEntryPoint: bool
+        :keyword bBreakOnEntryPoint: ``True`` to automatically set a breakpoint
             at the program entry point.
 
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
-            Defaults to C{False}.
+        :type    bConsole: bool
+        :keyword bConsole: True to inherit the console of the debugger.
+            Defaults to ``False``.
 
-        @type    bFollow: bool
-        @keyword bFollow: C{True} to automatically attach to child processes.
-            Defaults to C{False}.
+        :type    bFollow: bool
+        :keyword bFollow: ``True`` to automatically attach to child processes.
+            Defaults to ``False``.
 
-        @type    bInheritHandles: bool
-        @keyword bInheritHandles: C{True} if the new process should inherit
-            it's parent process' handles. Defaults to C{False}.
+        :type    bInheritHandles: bool
+        :keyword bInheritHandles: ``True`` if the new process should inherit
+            it's parent process' handles. Defaults to ``False``.
 
-        @type    bSuspended: bool
-        @keyword bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee. Defaults to C{False}.
+        :type    bSuspended: bool
+        :keyword bSuspended: ``True`` to suspend the main thread before any code
+            is executed in the debugee. Defaults to ``False``.
 
-        @keyword dwParentProcessId: C{None} or C{0} if the debugger process
+        :keyword dwParentProcessId: ``None`` or ``0`` if the debugger process
             should be the parent process (default), or a process ID to
             forcefully set as the debugee's parent (only available for Windows
             Vista and above).
@@ -307,25 +290,26 @@ class Debug (EventDispatcher, _BreakpointContainer):
             In hostile mode, the default is not the debugger process but the
             process ID for "explorer.exe".
 
-        @type    iTrustLevel: int or None
-        @keyword iTrustLevel: Trust level.
+        :type    iTrustLevel: int or None
+        :keyword iTrustLevel: Trust level.
             Must be one of the following values:
-             - 0: B{No trust}. May not access certain resources, such as
-                  cryptographic keys and credentials. Only available since
-                  Windows XP and 2003, desktop editions. This is the default
-                  in hostile mode.
-             - 1: B{Normal trust}. Run with the same privileges as a normal
-                  user, that is, one that doesn't have the I{Administrator} or
-                  I{Power User} user rights. Only available since Windows XP
-                  and 2003, desktop editions.
-             - 2: B{Full trust}. Run with the exact same privileges as the
-                  current user. This is the default in normal mode.
 
-        @type    bAllowElevation: bool
-        @keyword bAllowElevation: C{True} to allow the child process to keep
-            UAC elevation, if the debugger itself is running elevated. C{False}
+            - 0: **No trust**. May not access certain resources, such as
+              cryptographic keys and credentials. Only available since
+              Windows XP and 2003, desktop editions. This is the default
+              in hostile mode.
+            - 1: **Normal trust**. Run with the same privileges as a normal
+              user, that is, one that doesn't have the *Administrator* or
+              *Power User* user rights. Only available since Windows XP
+              and 2003, desktop editions.
+            - 2: **Full trust**. Run with the exact same privileges as the
+              current user. This is the default in normal mode.
+
+        :type    bAllowElevation: bool
+        :keyword bAllowElevation: ``True`` to allow the child process to keep
+            UAC elevation, if the debugger itself is running elevated. ``False``
             to ensure the child process doesn't run with elevation. Defaults to
-            C{True}.
+            ``True``.
 
             This flag is only meaningful on Windows Vista and above, and if the
             debugger itself is running with elevation. It can be used to make
@@ -339,11 +323,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
             You should only need to if the target program requires elevation
             to work properly (for example if you try to debug an installer).
 
-        @rtype:  L{Process}
-        @return: A new Process object. Normally you don't need to use it now,
+        :rtype:  :class:`~.process.Process`
+        :return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
         if isinstance(argv, str):
             raise TypeError("Debug.execv expects a list, not a string")
@@ -355,39 +339,39 @@ class Debug (EventDispatcher, _BreakpointContainer):
         Starts a new process for debugging.
 
         This method uses a command line string. To use a list of arguments
-        instead, use L{execv}.
+        instead, use :meth:`execv`.
 
-        @see: L{attach}, L{detach}
+        .. seealso:: :meth:`attach`, :meth:`detach`
 
-        @type  lpCmdLine: str
-        @param lpCmdLine: Command line string to execute.
+        :type  lpCmdLine: str
+        :param lpCmdLine: Command line string to execute.
             The first token must be the debugee executable filename.
             Tokens with spaces must be enclosed in double quotes.
             Tokens including double quote characters must be escaped with a
             backslash.
 
-        @type    bBreakOnEntryPoint: bool
-        @keyword bBreakOnEntryPoint: C{True} to automatically set a breakpoint
-            at the program entry point. Defaults to C{False}.
+        :type    bBreakOnEntryPoint: bool
+        :keyword bBreakOnEntryPoint: ``True`` to automatically set a breakpoint
+            at the program entry point. Defaults to ``False``.
 
-        @type    bConsole: bool
-        @keyword bConsole: True to inherit the console of the debugger.
-            Defaults to C{False}.
+        :type    bConsole: bool
+        :keyword bConsole: True to inherit the console of the debugger.
+            Defaults to ``False``.
 
-        @type    bFollow: bool
-        @keyword bFollow: C{True} to automatically attach to child processes.
-            Defaults to C{False}.
+        :type    bFollow: bool
+        :keyword bFollow: ``True`` to automatically attach to child processes.
+            Defaults to ``False``.
 
-        @type    bInheritHandles: bool
-        @keyword bInheritHandles: C{True} if the new process should inherit
-            it's parent process' handles. Defaults to C{False}.
+        :type    bInheritHandles: bool
+        :keyword bInheritHandles: ``True`` if the new process should inherit
+            it's parent process' handles. Defaults to ``False``.
 
-        @type    bSuspended: bool
-        @keyword bSuspended: C{True} to suspend the main thread before any code
-            is executed in the debugee. Defaults to C{False}.
+        :type    bSuspended: bool
+        :keyword bSuspended: ``True`` to suspend the main thread before any code
+            is executed in the debugee. Defaults to ``False``.
 
-        @type    dwParentProcessId: int or None
-        @keyword dwParentProcessId: C{None} or C{0} if the debugger process
+        :type    dwParentProcessId: int or None
+        :keyword dwParentProcessId: ``None`` or ``0`` if the debugger process
             should be the parent process (default), or a process ID to
             forcefully set as the debugee's parent (only available for Windows
             Vista and above).
@@ -395,25 +379,26 @@ class Debug (EventDispatcher, _BreakpointContainer):
             In hostile mode, the default is not the debugger process but the
             process ID for "explorer.exe".
 
-        @type    iTrustLevel: int
-        @keyword iTrustLevel: Trust level.
+        :type    iTrustLevel: int
+        :keyword iTrustLevel: Trust level.
             Must be one of the following values:
-             - 0: B{No trust}. May not access certain resources, such as
-                  cryptographic keys and credentials. Only available since
-                  Windows XP and 2003, desktop editions. This is the default
-                  in hostile mode.
-             - 1: B{Normal trust}. Run with the same privileges as a normal
-                  user, that is, one that doesn't have the I{Administrator} or
-                  I{Power User} user rights. Only available since Windows XP
-                  and 2003, desktop editions.
-             - 2: B{Full trust}. Run with the exact same privileges as the
-                  current user. This is the default in normal mode.
 
-        @type    bAllowElevation: bool
-        @keyword bAllowElevation: C{True} to allow the child process to keep
-            UAC elevation, if the debugger itself is running elevated. C{False}
+            - 0: **No trust**. May not access certain resources, such as
+              cryptographic keys and credentials. Only available since
+              Windows XP and 2003, desktop editions. This is the default
+              in hostile mode.
+            - 1: **Normal trust**. Run with the same privileges as a normal
+              user, that is, one that doesn't have the *Administrator* or
+              *Power User* user rights. Only available since Windows XP
+              and 2003, desktop editions.
+            - 2: **Full trust**. Run with the exact same privileges as the
+              current user. This is the default in normal mode.
+
+        :type    bAllowElevation: bool
+        :keyword bAllowElevation: ``True`` to allow the child process to keep
+            UAC elevation, if the debugger itself is running elevated. ``False``
             to ensure the child process doesn't run with elevation. Defaults to
-            C{True} in normal mode and C{False} in hostile mode.
+            ``True`` in normal mode and ``False`` in hostile mode.
 
             This flag is only meaningful on Windows Vista and above, and if the
             debugger itself is running with elevation. It can be used to make
@@ -427,11 +412,11 @@ class Debug (EventDispatcher, _BreakpointContainer):
             You should only need to if the target program requires elevation
             to work properly (for example if you try to debug an installer).
 
-        @rtype:  L{Process}
-        @return: A new Process object. Normally you don't need to use it now,
+        :rtype:  :class:`~.process.Process`
+        :return: A new Process object. Normally you don't need to use it now,
             it's best to interact with the process from the event handler.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
         if not isinstance(lpCmdLine, str):
             warnings.warn("Debug.execl expects a string")
@@ -544,16 +529,16 @@ class Debug (EventDispatcher, _BreakpointContainer):
         other tools).
 
         You don't normally need to call this method. Most users should call
-        L{attach}, L{execv} or L{execl} instead.
+        :meth:`attach`, :meth:`execv` or :meth:`execl` instead.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Global process ID.
+        :type  dwProcessId: int
+        :param dwProcessId: Global process ID.
 
-        @type  bStarted: bool
-        @param bStarted: C{True} if the process was started by the debugger,
-            or C{False} if the process was attached to instead.
+        :type  bStarted: bool
+        :param bStarted: ``True`` if the process was started by the debugger,
+            or ``False`` if the process was attached to instead.
 
-        @raise WindowsError: The target process does not exist, is not attached
+        :raises WindowsError: The target process does not exist, is not attached
             to the debugger anymore.
         """
 
@@ -588,17 +573,17 @@ class Debug (EventDispatcher, _BreakpointContainer):
         Perform the necessary cleanup of a process about to be killed or
         detached from.
 
-        This private method is called by L{kill} and L{detach}.
+        This private method is called by :meth:`kill` and :meth:`detach`.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Global ID of a process to kill.
+        :type  dwProcessId: int
+        :param dwProcessId: Global ID of a process to kill.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when killing the process.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
         # If the process is being debugged...
         if self.is_debugee(dwProcessId):
@@ -666,17 +651,17 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Kills a process currently being debugged.
 
-        @see: L{detach}
+        .. seealso:: :meth:`detach`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Global ID of a process to kill.
+        :type  dwProcessId: int
+        :param dwProcessId: Global ID of a process to kill.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when killing the process.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
 
         # Keep a reference to the process. We'll need it later.
@@ -718,13 +703,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Kills from all processes currently being debugged.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
-            raised when killing each process. C{False} to stop and raise an
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
+            raised when killing each process. ``False`` to stop and raise an
             exception when encountering an error.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
         for pid in self.get_debugee_pids():
             self.kill(pid, bIgnoreExceptions = bIgnoreExceptions)
@@ -733,20 +718,21 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Detaches from a process currently being debugged.
 
-        @note: On Windows 2000 and below the process is killed.
+        .. note::
+            On Windows 2000 and below the process is killed.
 
-        @see: L{attach}, L{detach_from_all}
+        .. seealso:: :meth:`attach`, :meth:`detach_from_all`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Global ID of a process to detach from.
+        :type  dwProcessId: int
+        :param dwProcessId: Global ID of a process to detach from.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
-            raised when detaching. C{False} to stop and raise an exception when
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
+            raised when detaching. ``False`` to stop and raise an exception when
             encountering an error.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
 
         # Keep a reference to the process. We'll need it later.
@@ -805,14 +791,15 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Detaches from all processes currently being debugged.
 
-        @note: To better handle last debugging event, call L{stop} instead.
+        .. note::
+            To better handle last debugging event, call :meth:`stop` instead.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when detaching.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
         for pid in self.get_debugee_pids():
             self.detach(pid, bIgnoreExceptions = bIgnoreExceptions)
@@ -823,18 +810,18 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Waits for the next debug event.
 
-        @see: L{cont}, L{dispatch}, L{loop}
+        .. seealso:: :meth:`cont`, :meth:`dispatch`, :meth:`loop`
 
-        @type  dwMilliseconds: int
-        @param dwMilliseconds: (Optional) Timeout in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
+        :type  dwMilliseconds: int
+        :param dwMilliseconds: (Optional) Timeout in milliseconds.
+            Use ``INFINITE`` or ``None`` for no timeout.
 
-        @rtype:  L{Event}
-        @return: An event that occured in one of the debugees.
+        :rtype:  :class:`~.event.Event`
+        :return: An event that occured in one of the debugees.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
             If no target processes are left to debug,
-            the error code is L{win32.ERROR_INVALID_HANDLE}.
+            the error code is `win32.ERROR_INVALID_HANDLE`.
         """
 
         # Wait for the next debug event.
@@ -851,12 +838,12 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Calls the debug event notify callbacks.
 
-        @see: L{cont}, L{loop}, L{wait}
+        .. seealso:: :meth:`cont`, :meth:`loop`, :meth:`wait`
 
-        @type  event: L{Event}
-        @param event: (Optional) Event object returned by L{wait}.
+        :type  event: :class:`~.event.Event`
+        :param event: (Optional) Event object returned by :meth:`wait`.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
 
         # If no event object was given, use the last event.
@@ -928,12 +915,12 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Resumes execution after processing a debug event.
 
-        @see: dispatch(), loop(), wait()
+        .. seealso:: :meth:`dispatch`, :meth:`loop`, :meth:`wait`
 
-        @type  event: L{Event}
-        @param event: (Optional) Event object returned by L{wait}.
+        :type  event: :class:`~.event.Event`
+        :param event: (Optional) Event object returned by :meth:`wait`.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
 
         # If no event object was given, use the last event.
@@ -987,13 +974,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         If the kill on exit mode is on, debugged processes are killed when the
         debugger is stopped. Otherwise when the debugger stops it detaches from
         all debugged processes and leaves them running (default). For more
-        details see: L{__init__}
+        details see: :meth:`__init__`
 
-        @note: This method is better than L{detach_from_all} because it can
+        .. note::
+            This method is better than :meth:`detach_from_all` because it can
             gracefully handle the last debugging event before detaching.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when detaching.
         """
 
@@ -1063,9 +1051,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Handles the next debug event.
 
-        @see: L{cont}, L{dispatch}, L{wait}, L{stop}
+        .. seealso:: :meth:`cont`, :meth:`dispatch`, :meth:`wait`, :meth:`stop`
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
 
             If the wait operation causes an error, debugging is stopped
             (meaning all debugees are either killed or detached from).
@@ -1093,6 +1081,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
         is raised. Multiple calls are allowed.
 
         This is a trivial example script::
+
             import sys
             debug = Debug()
             try:
@@ -1101,11 +1090,12 @@ class Debug (EventDispatcher, _BreakpointContainer):
             finally:
                 debug.stop()
 
-        @see: L{next}, L{stop}
+        .. seealso::
+            :meth:`next`, :meth:`stop`
 
-            U{http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx}
+            http://msdn.microsoft.com/en-us/library/ms681675(VS.85).aspx
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
 
             If the wait operation causes an error, debugging is stopped
             (meaning all debugees are either killed or detached from).
@@ -1120,15 +1110,15 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def get_debugee_count(self):
         """
-        @rtype:  int
-        @return: Number of processes being debugged.
+        :rtype:  int
+        :return: Number of processes being debugged.
         """
         return len(self.__attachedDebugees) + len(self.__startedDebugees)
 
     def get_debugee_pids(self):
         """
-        @rtype:  list( int... )
-        @return: Global IDs of processes being debugged.
+        :rtype:  list[int]
+        :return: Global IDs of processes being debugged.
         """
         return list(self.__attachedDebugees) + list(self.__startedDebugees)
 
@@ -1136,14 +1126,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Determine if the debugger is debugging the given process.
 
-        @see: L{is_debugee_attached}, L{is_debugee_started}
+        .. seealso:: :meth:`is_debugee_attached`, :meth:`is_debugee_started`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :type  dwProcessId: int
+        :param dwProcessId: Process global ID.
 
-        @rtype:  bool
-        @return: C{True} if the given process is being debugged
-            by this L{Debug} instance.
+        :rtype:  bool
+        :return: ``True`` if the given process is being debugged
+            by this :class:`Debug` instance.
         """
         return self.is_debugee_attached(dwProcessId) or \
                self.is_debugee_started(dwProcessId)
@@ -1152,14 +1142,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Determine if the given process was started by the debugger.
 
-        @see: L{is_debugee}, L{is_debugee_attached}
+        .. seealso:: :meth:`is_debugee`, :meth:`is_debugee_attached`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :type  dwProcessId: int
+        :param dwProcessId: Process global ID.
 
-        @rtype:  bool
-        @return: C{True} if the given process was started for debugging by this
-            L{Debug} instance.
+        :rtype:  bool
+        :return: ``True`` if the given process was started for debugging by this
+            :class:`Debug` instance.
         """
         return dwProcessId in self.__startedDebugees
 
@@ -1167,14 +1157,14 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Determine if the debugger is attached to the given process.
 
-        @see: L{is_debugee}, L{is_debugee_started}
+        .. seealso:: :meth:`is_debugee`, :meth:`is_debugee_started`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :type  dwProcessId: int
+        :param dwProcessId: Process global ID.
 
-        @rtype:  bool
-        @return: C{True} if the given process is attached to this
-            L{Debug} instance.
+        :rtype:  bool
+        :return: ``True`` if the given process is attached to this
+            :class:`Debug` instance.
         """
         return dwProcessId in self.__attachedDebugees
 
@@ -1182,9 +1172,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Determine if we're in hostile mode (anti-anti-debug).
 
-        @rtype:  bool
-        @return: C{True} if this C{Debug} instance was started in hostile mode,
-            C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` if this ``Debug`` instance was started in hostile mode,
+            ``False`` otherwise.
         """
         return self.__bHostileCode
 
@@ -1194,15 +1184,16 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Start an interactive debugging session.
 
-        @type  bConfirmQuit: bool
-        @param bConfirmQuit: Set to C{True} to ask the user for confirmation
-            before closing the session, C{False} otherwise.
+        :type  bConfirmQuit: bool
+        :param bConfirmQuit: Set to ``True`` to ask the user for confirmation
+            before closing the session, ``False`` otherwise.
 
-        @type  bShowBanner: bool
-        @param bShowBanner: Set to C{True} to show a banner before entering
-            the session and after leaving it, C{False} otherwise.
+        :type  bShowBanner: bool
+        :param bShowBanner: Set to ``True`` to show a banner before entering
+            the session and after leaving it, ``False`` otherwise.
 
-        @warn: This will temporarily disable the user-defined event handler!
+        .. warning::
+            This will temporarily disable the user-defined event handler!
 
         This method returns when the user closes the session.
         """
@@ -1236,8 +1227,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Close all Win32 handles the Python garbage collector failed to close.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when detaching.
         """
         try:
@@ -1281,13 +1272,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the creation of a new process.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{CreateProcessEvent}
-        @param event: Create process event.
+        :type  event: :class:`~.event.CreateProcessEvent`
+        :param event: Create process event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwProcessId = event.get_pid()
         if dwProcessId not in self.__attachedDebugees:
@@ -1335,13 +1326,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the creation of a new thread.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{CreateThreadEvent}
-        @param event: Create thread event.
+        :type  event: :class:`~.event.CreateThreadEvent`
+        :param event: Create thread event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         return event.get_process()._notify_create_thread(event)
 
@@ -1349,13 +1340,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the load of a new module.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{LoadDLLEvent}
-        @param event: Load DLL event.
+        :type  event: :class:`~.event.LoadDLLEvent`
+        :param event: Load DLL event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
 
         # Pass the event to the breakpoint container.
@@ -1390,13 +1381,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the termination of a process.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{ExitProcessEvent}
-        @param event: Exit process event.
+        :type  event: :class:`~.event.ExitProcessEvent`
+        :param event: Exit process event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         bCallHandler1 = super()._notify_exit_process(event)
         bCallHandler2 = self.system._notify_exit_process(event)
@@ -1419,13 +1410,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the termination of a thread.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{ExitThreadEvent}
-        @param event: Exit thread event.
+        :type  event: :class:`~.event.ExitThreadEvent`
+        :param event: Exit thread event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         bCallHandler1 = super()._notify_exit_thread(event)
         bCallHandler2 = event.get_process()._notify_exit_thread(event)
@@ -1435,13 +1426,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify the unload of a module.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{UnloadDLLEvent}
-        @param event: Unload DLL event.
+        :type  event: :class:`~.event.UnloadDLLEvent`
+        :param event: Unload DLL event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         bCallHandler1 = super()._notify_unload_dll(event)
         bCallHandler2 = event.get_process()._notify_unload_dll(event)
@@ -1451,13 +1442,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify of a RIP event.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @type  event: L{RIPEvent}
-        @param event: RIP event.
+        :type  event: :class:`~.event.RIPEvent`
+        :param event: RIP event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         event.debug.detach( event.get_pid() )
         return True
@@ -1466,19 +1457,20 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify of a Debug Ctrl-C exception.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @note: This exception is only raised when a debugger is attached, and
+        .. note::
+            This exception is only raised when a debugger is attached, and
             applications are not supposed to handle it, so we need to handle it
             ourselves or the application may crash.
 
-        @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
+        .. seealso:: http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx
 
-        @type  event: L{ExceptionEvent}
-        @param event: Debug Ctrl-C exception event.
+        :type  event: :class:`~.event.ExceptionEvent`
+        :param event: Debug Ctrl-C exception event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         if event.is_first_chance():
             event.continueStatus = win32.DBG_EXCEPTION_HANDLED
@@ -1488,18 +1480,19 @@ class Debug (EventDispatcher, _BreakpointContainer):
         """
         Notify of a Microsoft Visual C exception.
 
-        @warning: This method is meant to be used internally by the debugger.
+        .. warning:: This method is meant to be used internally by the debugger.
 
-        @note: This allows the debugger to understand the
+        .. note::
+            This allows the debugger to understand the
             Microsoft Visual C thread naming convention.
 
-        @see: U{http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx}
+        .. seealso:: http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
 
-        @type  event: L{ExceptionEvent}
-        @param event: Microsoft Visual C exception event.
+        :type  event: :class:`~.event.ExceptionEvent`
+        :param event: Microsoft Visual C exception event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwType = event.get_exception_information(0)
         if dwType == 0x1000:

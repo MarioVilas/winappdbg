@@ -30,9 +30,6 @@
 
 """
 Thread instrumentation.
-
-@group Instrumentation:
-    Thread
 """
 
 __all__ = ['Thread']
@@ -56,79 +53,34 @@ class Thread:
     """
     Interface to a thread in another process.
 
-    @group Properties:
-        get_tid, get_pid, get_process, set_process, get_exit_code, is_alive,
-        get_name, set_name, get_windows, get_teb, get_teb_address, is_wow64,
-        get_arch, get_bits, get_handle, open_handle, close_handle
+    :ivar dwThreadId: Global thread ID.
+    :type dwThreadId: int
 
-    @group Instrumentation:
-        suspend, resume, kill, wait
+    :ivar hThread: Handle to the thread.
+    :type hThread: `~winappdbg.win32.ThreadHandle`
 
-    @group Debugging:
-        get_seh_chain_pointer, set_seh_chain_pointer,
-        get_seh_chain, get_wait_chain, is_hidden
+    :ivar process: Parent process object.
+    :type process: `Process`
 
-    @group Disassembly:
-        disassemble, disassemble_around, disassemble_around_pc,
-        disassemble_string, disassemble_instruction, disassemble_current
+    :ivar pInjectedMemory: If the thread was created by
+        :meth:`Process.inject_code`, this member contains a pointer to the
+        memory buffer for the injected code. Otherwise it's ``None``.
 
-    @group Stack:
-        get_stack_frame, get_stack_frame_range, get_stack_range,
-        get_stack_trace, get_stack_trace_with_labels,
-        read_stack_data, read_stack_dwords, read_stack_qwords,
-        peek_stack_data, peek_stack_dwords, peek_stack_qwords,
-        read_stack_structure, read_stack_frame
-
-    @group Registers:
-        get_context,
-        get_register,
-        get_flags, get_flag_value,
-        get_pc, get_sp, get_fp,
-        get_cf, get_df, get_sf, get_tf, get_zf,
-        set_context,
-        set_register,
-        set_flags, set_flag_value,
-        set_pc, set_sp, set_fp,
-        set_cf, set_df, set_sf, set_tf, set_zf,
-        clear_cf, clear_df, clear_sf, clear_tf, clear_zf,
-        Flags
-
-    @group Threads snapshot:
-        clear
-
-    @group Miscellaneous:
-        read_code_bytes, peek_code_bytes,
-        peek_pointers_in_data, peek_pointers_in_registers,
-        get_linear_address, get_label_at_pc
-
-    @type dwThreadId: int
-    @ivar dwThreadId: Global thread ID. Use L{get_tid} instead.
-
-    @type hThread: L{ThreadHandle}
-    @ivar hThread: Handle to the thread. Use L{get_handle} instead.
-
-    @type process: L{Process}
-    @ivar process: Parent process object. Use L{get_process} instead.
-
-    @type pInjectedMemory: int
-    @ivar pInjectedMemory: If the thread was created by L{Process.inject_code},
-        this member contains a pointer to the memory buffer for the injected
-        code. Otherwise it's C{None}.
-
-        The L{kill} method uses this member to free the buffer
+        The :meth:`kill` method uses this member to free the buffer
         when the injected thread is killed.
+    :type pInjectedMemory: int
     """
 
     def __init__(self, dwThreadId, hThread = None, process = None):
         """
-        @type  dwThreadId: int
-        @param dwThreadId: Global thread ID.
+        :type  dwThreadId: int
+        :param dwThreadId: Global thread ID.
 
-        @type  hThread: L{ThreadHandle}
-        @param hThread: (Optional) Handle to the thread.
+        :type  hThread: ~winappdbg.win32.ThreadHandle
+        :param hThread: (Optional) Handle to the thread.
 
-        @type  process: L{Process}
-        @param process: (Optional) Parent Process object.
+        :type  process: ~winappdbg.process.Process
+        :param process: (Optional) Parent Process object.
         """
         self.dwProcessId     = None
         self.dwThreadId      = dwThreadId
@@ -144,9 +96,9 @@ class Thread:
 
     def get_process(self):
         """
-        @rtype:  L{Process}
-        @return: Parent Process object.
-            Returns C{None} if unknown.
+        :rtype:  ~winappdbg.process.Process
+        :return: Parent Process object.
+            Returns ``None`` if unknown.
         """
         if self.__process is not None:
             return self.__process
@@ -158,8 +110,8 @@ class Thread:
         """
         Manually set the parent Process object. Use with care!
 
-        @type  process: L{Process}
-        @param process: (Optional) Process object. Use C{None} for no process.
+        :type  process: ~winappdbg.process.Process
+        :param process: (Optional) Process object. Use ``None`` for no process.
         """
         if process is None:
             self.dwProcessId = None
@@ -177,11 +129,11 @@ class Thread:
 
     def get_pid(self):
         """
-        @rtype:  int
-        @return: Parent process global ID.
+        :rtype:  int
+        :return: Parent process global ID.
 
-        @raise WindowsError: An error occured when calling a Win32 API function.
-        @raise RuntimeError: The parent process ID can't be found.
+        :raises WindowsError: An error occured when calling a Win32 API function.
+        :raises RuntimeError: The parent process ID can't be found.
         """
         if self.dwProcessId is None:
             if self.__process is not None:
@@ -217,15 +169,15 @@ class Thread:
 
     def get_tid(self):
         """
-        @rtype:  int
-        @return: Thread global ID.
+        :rtype:  int
+        :return: Thread global ID.
         """
         return self.dwThreadId
 
     def get_name(self):
         """
-        @rtype:  str
-        @return: Thread name, or C{None} if the thread is nameless.
+        :rtype:  str
+        :return: Thread name, or ``None`` if the thread is nameless.
         """
         return self.name
 
@@ -233,8 +185,8 @@ class Thread:
         """
         Sets the thread's name.
 
-        @type  name: str
-        @param name: Thread name, or C{None} if the thread is nameless.
+        :type  name: str
+        :param name: Thread name, or ``None`` if the thread is nameless.
         """
         self.name = name
 
@@ -244,17 +196,17 @@ class Thread:
         """
         Opens a new handle to the thread, closing the previous one.
 
-        The new handle is stored in the L{hThread} property.
+        The new handle is stored in the ``hThread`` property.
 
-        @warn: Normally you should call L{get_handle} instead, since it's much
+        .. warning:: Normally you should call :meth:`get_handle` instead, since it's much
             "smarter" and tries to reuse handles and merge access rights.
 
-        @type  dwDesiredAccess: int
-        @param dwDesiredAccess: Desired access rights.
-            Defaults to L{win32.THREAD_ALL_ACCESS}.
-            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx}
+        :type  dwDesiredAccess: int
+        :param dwDesiredAccess: Desired access rights.
+            Defaults to ``win32.THREAD_ALL_ACCESS``.
+            See: http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx
 
-        @raise WindowsError: It's not possible to open a handle to the thread
+        :raises WindowsError: It's not possible to open a handle to the thread
             with the requested access rights. This typically happens because
             the target thread belongs to system process and the debugger is not
             runnning with administrative rights.
@@ -272,8 +224,8 @@ class Thread:
         """
         Closes the handle to the thread.
 
-        @note: Normally you don't need to call this method. All handles
-            created by I{WinAppDbg} are automatically closed when the garbage
+        .. note:: Normally you don't need to call this method. All handles
+            created by *WinAppDbg* are automatically closed when the garbage
             collector claims them.
         """
         try:
@@ -286,22 +238,22 @@ class Thread:
 
     def get_handle(self, dwDesiredAccess = win32.THREAD_ALL_ACCESS):
         """
-        Returns a handle to the thread with I{at least} the access rights
+        Returns a handle to the thread with *at least* the access rights
         requested.
 
-        @note:
+        .. note::
             If a handle was previously opened and has the required access
             rights, it's reused. If not, a new handle is opened with the
             combination of the old and new access rights.
 
-        @type  dwDesiredAccess: int
-        @param dwDesiredAccess: Desired access rights.
-            See: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx}
+        :type  dwDesiredAccess: int
+        :param dwDesiredAccess: Desired access rights.
+            See: http://msdn.microsoft.com/en-us/library/windows/desktop/ms686769(v=vs.85).aspx
 
-        @rtype:  ThreadHandle
-        @return: Handle to the thread.
+        :rtype:  ~winappdbg.win32.ThreadHandle
+        :return: Handle to the thread.
 
-        @raise WindowsError: It's not possible to open a handle to the thread
+        :raises WindowsError: It's not possible to open a handle to the thread
             with the requested access rights. This typically happens because
             the target thread belongs to system process and the debugger is not
             runnning with administrative rights.
@@ -329,9 +281,9 @@ class Thread:
         """
         Waits for the thread to finish executing.
 
-        @type  dwTimeout: int
-        @param dwTimeout: (Optional) Timeout value in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
+        :type  dwTimeout: int
+        :param dwTimeout: (Optional) Timeout value in milliseconds.
+            Use ``INFINITE`` or ``None`` for no timeout.
         """
         self.get_handle(win32.SYNCHRONIZE).wait(dwTimeout)
 
@@ -339,11 +291,11 @@ class Thread:
         """
         Terminates the thread execution.
 
-        @note: If the C{lpInjectedMemory} member contains a valid pointer,
-        the memory is freed.
+        .. note:: If the ``lpInjectedMemory`` member contains a valid pointer,
+            the memory is freed.
 
-        @type  dwExitCode: int
-        @param dwExitCode: (Optional) Thread exit code.
+        :type  dwExitCode: int
+        :param dwExitCode: (Optional) Thread exit code.
         """
         hThread = self.get_handle(win32.THREAD_TERMINATE)
         win32.TerminateThread(hThread, dwExitCode)
@@ -366,8 +318,8 @@ class Thread:
         """
         Suspends the thread execution.
 
-        @rtype:  int
-        @return: Suspend count. If zero, the thread is running.
+        :rtype:  int
+        :return: Suspend count. If zero, the thread is running.
         """
         hThread = self.get_handle(win32.THREAD_SUSPEND_RESUME)
         if self.is_wow64():
@@ -383,17 +335,17 @@ class Thread:
         """
         Resumes the thread execution.
 
-        @rtype:  int
-        @return: Suspend count. If zero, the thread is running.
+        :rtype:  int
+        :return: Suspend count. If zero, the thread is running.
         """
         hThread = self.get_handle(win32.THREAD_SUSPEND_RESUME)
         return win32.ResumeThread(hThread)
 
     def is_alive(self):
         """
-        @rtype:  bool
-        @return: C{True} if the thread if currently running.
-        @raise WindowsError:
+        :rtype:  bool
+        :return: ``True`` if the thread if currently running.
+        :raises WindowsError:
             The debugger doesn't have enough privileges to perform this action.
         """
         try:
@@ -407,8 +359,8 @@ class Thread:
 
     def get_exit_code(self):
         """
-        @rtype:  int
-        @return: Thread exit code, or C{STILL_ACTIVE} if it's still alive.
+        :rtype:  int
+        :return: Thread exit code, or ``STILL_ACTIVE`` if it's still alive.
         """
         if win32.THREAD_ALL_ACCESS == win32.THREAD_ALL_ACCESS_VISTA:
             dwAccess = win32.THREAD_QUERY_LIMITED_INFORMATION
@@ -423,8 +375,8 @@ class Thread:
 
     def get_windows(self):
         """
-        @rtype:  list of L{Window}
-        @return: Returns a list of windows handled by this thread.
+        :rtype:  list of ~winappdbg.window.Window
+        :return: Returns a list of windows handled by this thread.
         """
         try:
             process = self.get_process()
@@ -444,32 +396,32 @@ class Thread:
         Retrieves the execution context (i.e. the registers values) for this
         thread.
 
-        @type  ContextFlags: int
-        @param ContextFlags: Optional, specify which registers to retrieve.
-            Defaults to C{win32.CONTEXT_ALL} which retrieves all registes
+        :type  ContextFlags: int
+        :param ContextFlags: Optional, specify which registers to retrieve.
+            Defaults to ``win32.CONTEXT_ALL`` which retrieves all registes
             for the current platform.
 
-        @type  bSuspend: bool
-        @param bSuspend: C{True} to automatically suspend the thread before
-            getting its context, C{False} otherwise.
+        :type  bSuspend: bool
+        :param bSuspend: ``True`` to automatically suspend the thread before
+            getting its context, ``False`` otherwise.
 
-            Defaults to C{False} because suspending the thread during some
+            Defaults to ``False`` because suspending the thread during some
             debug events (like thread creation or destruction) may lead to
             strange errors.
 
             Note that WinAppDbg 1.4 used to suspend the thread automatically
             always. This behavior was changed in version 1.5.
 
-        @type bRaw: bool
-        @param bRaw: C{True} to return a raw ctypes CONTEXT structure,
-            C{False} to get Python dictionary mapping register names
-            to their values. Defaults to {False} because in most cases
+        :type bRaw: bool
+        :param bRaw: ``True`` to return a raw ctypes CONTEXT structure,
+            ``False`` to get Python dictionary mapping register names
+            to their values. Defaults to ``False`` because in most cases
             you never need the ctypes structure.
 
-        @rtype:  dict( str S{->} int )
-        @return: Dictionary mapping register names to their values.
+        :rtype:  dict( str -> int )
+        :return: Dictionary mapping register names to their values.
 
-        @see: L{set_context}
+        .. seealso:: :meth:`set_context`
         """
 
         # Some words on the "strange errors" that lead to the bSuspend
@@ -544,16 +496,16 @@ class Thread:
         """
         Sets the values of the registers.
 
-        @see: L{get_context}
+        .. seealso:: :meth:`get_context`
 
-        @type  context:  dict( str S{->} int )
-        @param context: Dictionary mapping register names to their values.
+        :type  context:  dict( str -> int )
+        :param context: Dictionary mapping register names to their values.
 
-        @type  bSuspend: bool
-        @param bSuspend: C{True} to automatically suspend the thread before
-            setting its context, C{False} otherwise.
+        :type  bSuspend: bool
+        :param bSuspend: ``True`` to automatically suspend the thread before
+            setting its context, ``False`` otherwise.
 
-            Defaults to C{False} because suspending the thread during some
+            Defaults to ``False`` because suspending the thread during some
             debug events (like thread creation or destruction) may lead to
             strange errors.
 
@@ -587,11 +539,11 @@ class Thread:
 
     def get_register(self, register):
         """
-        @type  register: str
-        @param register: Register name.
+        :type  register: str
+        :param register: Register name.
 
-        @rtype:  int
-        @return: Value of the requested register.
+        :rtype:  int
+        :return: Value of the requested register.
         """
         'Returns the value of a specific register.'
         context = self.get_context()
@@ -601,11 +553,11 @@ class Thread:
         """
         Sets the value of a specific register.
 
-        @type  register: str
-        @param register: Register name.
+        :type  register: str
+        :param register: Register name.
 
-        @rtype:  int
-        @return: Register value.
+        :rtype:  int
+        :return: Register value.
         """
         context = self.get_context()
         context[register] = value
@@ -620,8 +572,8 @@ class Thread:
 
         def get_pc(self):
             """
-            @rtype:  int
-            @return: Value of the program counter register.
+            :rtype:  int
+            :return: Value of the program counter register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             return context.pc
@@ -630,8 +582,8 @@ class Thread:
             """
             Sets the value of the program counter register.
 
-            @type  pc: int
-            @param pc: Value of the program counter register.
+            :type  pc: int
+            :param pc: Value of the program counter register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             context.pc = pc
@@ -639,8 +591,8 @@ class Thread:
 
         def get_sp(self):
             """
-            @rtype:  int
-            @return: Value of the stack pointer register.
+            :rtype:  int
+            :return: Value of the stack pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             return context.sp
@@ -649,8 +601,8 @@ class Thread:
             """
             Sets the value of the stack pointer register.
 
-            @type  sp: int
-            @param sp: Value of the stack pointer register.
+            :type  sp: int
+            :param sp: Value of the stack pointer register.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             context.sp = sp
@@ -658,8 +610,8 @@ class Thread:
 
         def get_fp(self):
             """
-            @rtype:  int
-            @return: Value of the frame pointer register.
+            :rtype:  int
+            :return: Value of the frame pointer register.
             """
             flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
             context = self.get_context(flags)
@@ -669,8 +621,8 @@ class Thread:
             """
             Sets the value of the frame pointer register.
 
-            @type  fp: int
-            @param fp: Value of the frame pointer register.
+            :type  fp: int
+            :param fp: Value of the frame pointer register.
             """
             flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
             context = self.get_context(flags)
@@ -698,11 +650,11 @@ class Thread:
 
         def get_flags(self, FlagMask = 0xFFFFFFFF):
             """
-            @type  FlagMask: int
-            @param FlagMask: (Optional) Bitwise-AND mask.
+            :type  FlagMask: int
+            :param FlagMask: (Optional) Bitwise-AND mask.
 
-            @rtype:  int
-            @return: Flags register contents, optionally masking out some bits.
+            :rtype:  int
+            :return: Flags register contents, optionally masking out some bits.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             return context['EFlags'] & FlagMask
@@ -711,11 +663,11 @@ class Thread:
             """
             Sets the flags register, optionally masking some bits.
 
-            @type  eflags: int
-            @param eflags: Flags register contents.
+            :type  eflags: int
+            :param eflags: Flags register contents.
 
-            @type  FlagMask: int
-            @param FlagMask: (Optional) Bitwise-AND mask.
+            :type  FlagMask: int
+            :param FlagMask: (Optional) Bitwise-AND mask.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
             context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
@@ -723,11 +675,11 @@ class Thread:
 
         def get_flag_value(self, FlagBit):
             """
-            @type  FlagBit: int
-            @param FlagBit: One of the L{Flags}.
+            :type  FlagBit: int
+            :param FlagBit: One of the L{Flags}.
 
-            @rtype:  bool
-            @return: Boolean value of the requested flag.
+            :rtype:  bool
+            :return: Boolean value of the requested flag.
             """
             return bool( self.get_flags(FlagBit) )
 
@@ -735,11 +687,11 @@ class Thread:
             """
             Sets a single flag, leaving the others intact.
 
-            @type  FlagBit: int
-            @param FlagBit: One of the L{Flags}.
+            :type  FlagBit: int
+            :param FlagBit: One of the L{Flags}.
 
-            @type  FlagValue: bool
-            @param FlagValue: Boolean value of the flag.
+            :type  FlagValue: bool
+            :param FlagValue: Boolean value of the flag.
             """
             if FlagValue:
                 eflags = FlagBit
@@ -750,36 +702,36 @@ class Thread:
 
         def get_zf(self):
             """
-            @rtype:  bool
-            @return: Boolean value of the Zero flag.
+            :rtype:  bool
+            :return: Boolean value of the Zero flag.
             """
             return self.get_flag_value(self.Flags.Zero)
 
         def get_cf(self):
             """
-            @rtype:  bool
-            @return: Boolean value of the Carry flag.
+            :rtype:  bool
+            :return: Boolean value of the Carry flag.
             """
             return self.get_flag_value(self.Flags.Carry)
 
         def get_sf(self):
             """
-            @rtype:  bool
-            @return: Boolean value of the Sign flag.
+            :rtype:  bool
+            :return: Boolean value of the Sign flag.
             """
             return self.get_flag_value(self.Flags.Sign)
 
         def get_df(self):
             """
-            @rtype:  bool
-            @return: Boolean value of the Direction flag.
+            :rtype:  bool
+            :return: Boolean value of the Direction flag.
             """
             return self.get_flag_value(self.Flags.Direction)
 
         def get_tf(self):
             """
-            @rtype:  bool
-            @return: Boolean value of the Trap flag.
+            :rtype:  bool
+            :return: Boolean value of the Trap flag.
             """
             return self.get_flag_value(self.Flags.Trap)
 
@@ -829,8 +781,8 @@ class Thread:
         """
         Determines if the thread is running under WOW64.
 
-        @rtype:  bool
-        @return:
+        :rtype:  bool
+        :return:
             C{True} if the thread is running under WOW64. That is, it belongs
             to a 32-bit application running in a 64-bit Windows.
 
@@ -838,9 +790,9 @@ class Thread:
             running in a 32-bit Windows, or a 64-bit application running in a
             64-bit Windows.
 
-        @raise WindowsError: On error an exception is raised.
+        :raise WindowsError: On error an exception is raised.
 
-        @see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
+        :see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
         """
         try:
             wow64 = self.__wow64
@@ -854,8 +806,8 @@ class Thread:
 
     def get_arch(self):
         """
-        @rtype:  str
-        @return: The architecture in which this thread believes to be running.
+        :rtype:  str
+        :return: The architecture in which this thread believes to be running.
             For example, if running a 32 bit binary in a 64 bit machine, the
             architecture returned by this method will be L{win32.ARCH_I386},
             but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
@@ -866,8 +818,8 @@ class Thread:
 
     def get_bits(self):
         """
-        @rtype:  str
-        @return: The number of bits in which this thread believes to be
+        :rtype:  str
+        :return: The number of bits in which this thread believes to be
             running. For example, if running a 32 bit binary in a 64 bit
             machine, the number of bits returned by this method will be C{32},
             but the value of L{System.arch} will be C{64}.
@@ -882,8 +834,8 @@ class Thread:
 
         Some binary packers hide their own threads to thwart debugging.
 
-        @rtype:  bool
-        @return: C{True} if the thread is hidden from debuggers.
+        :rtype:  bool
+        :return: C{True} if the thread is hidden from debuggers.
             This means the thread's execution won't be stopped for debug
             events, and thus said events won't be sent to the debugger.
         """
@@ -896,9 +848,9 @@ class Thread:
         Returns a copy of the TEB.
         To dereference pointers in it call L{Process.read_structure}.
 
-        @rtype:  L{TEB}
-        @return: TEB structure.
-        @raise WindowsError: An exception is raised on error.
+        :rtype:  L{TEB}
+        :return: TEB structure.
+        :raise WindowsError: An exception is raised on error.
         """
         return self.get_process().read_structure( self.get_teb_address(),
                                                   win32.TEB )
@@ -907,9 +859,9 @@ class Thread:
         """
         Returns a remote pointer to the TEB.
 
-        @rtype:  int
-        @return: Remote pointer to the L{TEB} structure.
-        @raise WindowsError: An exception is raised on error.
+        :rtype:  int
+        :return: Remote pointer to the L{TEB} structure.
+        :raise WindowsError: An exception is raised on error.
         """
         try:
             return self._teb_ptr
@@ -933,18 +885,18 @@ class Thread:
         Linear addresses can be used to access a process memory,
         calling L{Process.read} and L{Process.write}.
 
-        @type  segment: str, int or long
-        @param segment: Segment register name or DWORD descriptor table index.
+        :type  segment: str, int or long
+        :param segment: Segment register name or DWORD descriptor table index.
 
-        @type  address: int
-        @param address: Segment relative memory address.
+        :type  address: int
+        :param address: Segment relative memory address.
 
-        @rtype:  int
-        @return: Linear memory address.
+        :rtype:  int
+        :return: Linear memory address.
 
-        @raise ValueError: Address is too large for selector.
+        :raise ValueError: Address is too large for selector.
 
-        @raise WindowsError:
+        :raise WindowsError:
             The current architecture does not support selectors.
             Selectors only exist in x86-based systems.
         """
@@ -991,8 +943,8 @@ class Thread:
 
     def get_label_at_pc(self):
         """
-        @rtype:  str
-        @return: Label that points to the instruction currently being executed.
+        :rtype:  str
+        :return: Label that points to the instruction currently being executed.
         """
         return self.get_process().get_label_at_address( self.get_pc() )
 
@@ -1000,12 +952,12 @@ class Thread:
         """
         Get the pointer to the first structured exception handler block.
 
-        @rtype:  int
-        @return: Remote pointer to the first block of the structured exception
+        :rtype:  int
+        :return: Remote pointer to the first block of the structured exception
             handlers linked list. If the list is empty, the returned value is
             C{0xFFFFFFFF}.
 
-        @raise NotImplementedError:
+        :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
         """
         if win32.arch != win32.ARCH_I386:
@@ -1020,12 +972,12 @@ class Thread:
         """
         Change the pointer to the first structured exception handler block.
 
-        @type  value: int
-        @param value: Value of the remote pointer to the first block of the
+        :type  value: int
+        :param value: Value of the remote pointer to the first block of the
             structured exception handlers linked list. To disable SEH set the
             value C{0xFFFFFFFF}.
 
-        @raise NotImplementedError:
+        :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
         """
         if win32.arch != win32.ARCH_I386:
@@ -1038,15 +990,17 @@ class Thread:
 
     def get_seh_chain(self):
         """
-        @rtype:  list of tuple( int, int )
-        @return: List of structured exception handlers.
+        :rtype:  list of tuple( int, int )
+        :return: List of structured exception handlers.
             Each SEH is represented as a tuple of two addresses:
+
                 - Address of this SEH block
                 - Address of the SEH callback function
+                
             Do not confuse this with the contents of the SEH block itself,
             where the first member is a pointer to the B{next} block instead.
 
-        @raise NotImplementedError:
+        :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
         """
         seh_chain = list()
@@ -1063,16 +1017,16 @@ class Thread:
 
     def get_wait_chain(self):
         """
-        @rtype:
+        :rtype:
             tuple of (
             list of L{win32.WaitChainNodeInfo} structures,
             bool)
-        @return:
+        :return:
             Wait chain for the thread.
             The boolean indicates if there's a cycle in the chain (a deadlock).
-        @raise AttributeError:
+        :raise AttributeError:
             This method is only suppported in Windows Vista and above.
-        @see:
+        :see:
             U{http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx}
         """
         with win32.OpenThreadWaitChainSession() as hWct:
@@ -1080,12 +1034,12 @@ class Thread:
 
     def get_stack_range(self):
         """
-        @rtype:  tuple( int, int )
-        @return: Stack beginning and end pointers, in memory addresses order.
+        :rtype:  tuple( int, int )
+        :return: Stack beginning and end pointers, in memory addresses order.
             That is, the first pointer is the stack top, and the second pointer
             is the stack bottom, since the stack grows towards lower memory
             addresses.
-        @raise   WindowsError: Raises an exception on error.
+        :raise   WindowsError: Raises an exception on error.
         """
         # TODO use teb.DeallocationStack too (max. possible stack size)
         teb = self.get_teb()
@@ -1098,28 +1052,28 @@ class Thread:
         Tries to get a stack trace for the current function using the debug
         helper API (dbghelp.dll).
 
-        @type  depth: int
-        @param depth: Maximum depth of stack trace.
+        :type  depth: int
+        :param depth: Maximum depth of stack trace.
 
-        @type  bUseLabels: bool
-        @param bUseLabels: C{True} to use labels, C{False} to use addresses.
+        :type  bUseLabels: bool
+        :param bUseLabels: C{True} to use labels, C{False} to use addresses.
 
-        @type  bMakePretty: bool
-        @param bMakePretty:
+        :type  bMakePretty: bool
+        :param bMakePretty:
             C{True} for user readable labels,
             C{False} for labels that can be passed to L{Process.resolve_label}.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
 
-        @rtype:  tuple of tuple( int, int, str )
-        @return: Stack trace of the thread as a tuple of
+        :rtype:  tuple of tuple( int, int, str )
+        :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename )
             when C{bUseLabels} is C{True}, or a tuple of
             ( return address, frame pointer label )
             when C{bUseLabels} is C{False}.
 
-        @raise WindowsError: Raises an exception on error.
+        :raise WindowsError: Raises an exception on error.
         """
 
         aProcess = self.get_process()
@@ -1179,28 +1133,28 @@ class Thread:
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
 
-        @type  depth: int
-        @param depth: Maximum depth of stack trace.
+        :type  depth: int
+        :param depth: Maximum depth of stack trace.
 
-        @type  bUseLabels: bool
-        @param bUseLabels: C{True} to use labels, C{False} to use addresses.
+        :type  bUseLabels: bool
+        :param bUseLabels: C{True} to use labels, C{False} to use addresses.
 
-        @type  bMakePretty: bool
-        @param bMakePretty:
+        :type  bMakePretty: bool
+        :param bMakePretty:
             C{True} for user readable labels,
             C{False} for labels that can be passed to L{Process.resolve_label}.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
 
-        @rtype:  tuple of tuple( int, int, str )
-        @return: Stack trace of the thread as a tuple of
+        :rtype:  tuple of tuple( int, int, str )
+        :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename )
             when C{bUseLabels} is C{True}, or a tuple of
             ( return address, frame pointer label )
             when C{bUseLabels} is C{False}.
 
-        @raise WindowsError: Raises an exception on error.
+        :raise WindowsError: Raises an exception on error.
         """
         aProcess = self.get_process()
         st, sb   = self.get_stack_range()   # top, bottom
@@ -1240,14 +1194,14 @@ class Thread:
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
 
-        @type  depth: int
-        @param depth: Maximum depth of stack trace.
+        :type  depth: int
+        :param depth: Maximum depth of stack trace.
 
-        @rtype:  tuple of tuple( int, int, str )
-        @return: Stack trace of the thread as a tuple of
+        :rtype:  tuple of tuple( int, int, str )
+        :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename ).
 
-        @raise WindowsError: Raises an exception on error.
+        :raise WindowsError: Raises an exception on error.
         """
         try:
             trace = self.__get_stack_trace(depth, False)
@@ -1264,22 +1218,22 @@ class Thread:
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
 
-        @type  depth: int
-        @param depth: Maximum depth of stack trace.
+        :type  depth: int
+        :param depth: Maximum depth of stack trace.
 
-        @type  bMakePretty: bool
-        @param bMakePretty:
+        :type  bMakePretty: bool
+        :param bMakePretty:
             C{True} for user readable labels,
             C{False} for labels that can be passed to L{Process.resolve_label}.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
 
-        @rtype:  tuple of tuple( int, int, str )
-        @return: Stack trace of the thread as a tuple of
+        :rtype:  tuple of tuple( int, int, str )
+        :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer label ).
 
-        @raise WindowsError: Raises an exception on error.
+        :raise WindowsError: Raises an exception on error.
         """
         try:
             trace = self.__get_stack_trace(depth, True, bMakePretty)
@@ -1296,15 +1250,15 @@ class Thread:
         Returns the starting and ending addresses of the stack frame.
         Only works for functions with standard prologue and epilogue.
 
-        @rtype:  tuple( int, int )
-        @return: Stack frame range.
+        :rtype:  tuple( int, int )
+        :return: Stack frame range.
             May not be accurate, depending on the compiler used.
 
-        @raise RuntimeError: The stack frame is invalid,
+        :raise RuntimeError: The stack frame is invalid,
             or the function doesn't have a standard prologue
             and epilogue.
 
-        @raise WindowsError: An error occured when getting the thread context.
+        :raise WindowsError: An error occured when getting the thread context.
         """
         st, sb = self.get_stack_range()   # top, bottom
         sp     = self.get_sp()
@@ -1322,19 +1276,19 @@ class Thread:
         Reads the contents of the current stack frame.
         Only works for functions with standard prologue and epilogue.
 
-        @type  max_size: int
-        @param max_size: (Optional) Maximum amount of bytes to read.
+        :type  max_size: int
+        :param max_size: (Optional) Maximum amount of bytes to read.
 
-        @rtype:  bytes
-        @return: Stack frame data.
+        :rtype:  bytes
+        :return: Stack frame data.
             May not be accurate, depending on the compiler used.
             May return an empty string.
 
-        @raise RuntimeError: The stack frame is invalid,
+        :raise RuntimeError: The stack frame is invalid,
             or the function doesn't have a standard prologue
             and epilogue.
 
-        @raise WindowsError: An error occured when getting the thread context
+        :raise WindowsError: An error occured when getting the thread context
             or reading data from the process memory.
         """
         sp, fp   = self.get_stack_frame_range()
@@ -1347,16 +1301,16 @@ class Thread:
         """
         Reads the contents of the top of the stack.
 
-        @type  size: int
-        @param size: Number of bytes to read.
+        :type  size: int
+        :param size: Number of bytes to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  bytes
-        @return: Stack data.
+        :rtype:  bytes
+        :return: Stack data.
 
-        @raise WindowsError: Could not read the requested data.
+        :raise WindowsError: Could not read the requested data.
         """
         aProcess = self.get_process()
         return aProcess.read(self.get_sp() + offset, size)
@@ -1365,14 +1319,14 @@ class Thread:
         """
         Tries to read the contents of the top of the stack.
 
-        @type  size: int
-        @param size: Number of bytes to read.
+        :type  size: int
+        :param size: Number of bytes to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  bytes
-        @return: Stack data.
+        :rtype:  bytes
+        :return: Stack data.
             Returned data may be less than the requested size.
         """
         aProcess = self.get_process()
@@ -1382,16 +1336,16 @@ class Thread:
         """
         Reads DWORDs from the top of the stack.
 
-        @type  count: int
-        @param count: Number of DWORDs to read.
+        :type  count: int
+        :param count: Number of DWORDs to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  tuple( int... )
-        @return: Tuple of integers read from the stack.
+        :rtype:  tuple( int... )
+        :return: Tuple of integers read from the stack.
 
-        @raise WindowsError: Could not read the requested data.
+        :raise WindowsError: Could not read the requested data.
         """
         if count > 0:
             stackData = self.read_stack_data(count * 4, offset)
@@ -1402,14 +1356,14 @@ class Thread:
         """
         Tries to read DWORDs from the top of the stack.
 
-        @type  count: int
-        @param count: Number of DWORDs to read.
+        :type  count: int
+        :param count: Number of DWORDs to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  tuple( int... )
-        @return: Tuple of integers read from the stack.
+        :rtype:  tuple( int... )
+        :return: Tuple of integers read from the stack.
             May be less than the requested number of DWORDs.
         """
         stackData = self.peek_stack_data(count * 4, offset)
@@ -1423,16 +1377,16 @@ class Thread:
         """
         Reads QWORDs from the top of the stack.
 
-        @type  count: int
-        @param count: Number of QWORDs to read.
+        :type  count: int
+        :param count: Number of QWORDs to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  tuple( int... )
-        @return: Tuple of integers read from the stack.
+        :rtype:  tuple( int... )
+        :return: Tuple of integers read from the stack.
 
-        @raise WindowsError: Could not read the requested data.
+        :raise WindowsError: Could not read the requested data.
         """
         stackData = self.read_stack_data(count * 8, offset)
         return struct.unpack('<'+('Q'*count), stackData)
@@ -1441,14 +1395,14 @@ class Thread:
         """
         Tries to read QWORDs from the top of the stack.
 
-        @type  count: int
-        @param count: Number of QWORDs to read.
+        :type  count: int
+        :param count: Number of QWORDs to read.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
 
-        @rtype:  tuple( int... )
-        @return: Tuple of integers read from the stack.
+        :rtype:  tuple( int... )
+        :return: Tuple of integers read from the stack.
             May be less than the requested number of QWORDs.
         """
         stackData = self.peek_stack_data(count * 8, offset)
@@ -1462,15 +1416,15 @@ class Thread:
         """
         Reads the given structure at the top of the stack.
 
-        @type  structure: ctypes.Structure
-        @param structure: Structure of the data to read from the stack.
+        :type  structure: ctypes.Structure
+        :param structure: Structure of the data to read from the stack.
 
-        @type  offset: int
-        @param offset: Offset from the stack pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the stack pointer to begin reading.
             The stack pointer is the same returned by the L{get_sp} method.
 
-        @rtype:  tuple
-        @return: Tuple of elements read from the stack. The type of each
+        :rtype:  tuple
+        :return: Tuple of elements read from the stack. The type of each
             element matches the types in the stack frame structure.
         """
         aProcess  = self.get_process()
@@ -1482,15 +1436,15 @@ class Thread:
         """
         Reads the stack frame of the thread.
 
-        @type  structure: ctypes.Structure
-        @param structure: Structure of the stack frame.
+        :type  structure: ctypes.Structure
+        :param structure: Structure of the stack frame.
 
-        @type  offset: int
-        @param offset: Offset from the frame pointer to begin reading.
+        :type  offset: int
+        :param offset: Offset from the frame pointer to begin reading.
             The frame pointer is the same returned by the L{get_fp} method.
 
-        @rtype:  tuple
-        @return: Tuple of elements read from the stack frame. The type of each
+        :rtype:  tuple
+        :return: Tuple of elements read from the stack frame. The type of each
             element matches the types in the stack frame structure.
         """
         aProcess  = self.get_process()
@@ -1502,16 +1456,16 @@ class Thread:
         """
         Tries to read some bytes of the code currently being executed.
 
-        @type  size: int
-        @param size: Number of bytes to read.
+        :type  size: int
+        :param size: Number of bytes to read.
 
-        @type  offset: int
-        @param offset: Offset from the program counter to begin reading.
+        :type  offset: int
+        :param offset: Offset from the program counter to begin reading.
 
-        @rtype:  bytes
-        @return: Bytes read from the process memory.
+        :rtype:  bytes
+        :return: Bytes read from the process memory.
 
-        @raise WindowsError: Could not read the requested data.
+        :raise WindowsError: Could not read the requested data.
         """
         return self.get_process().read(self.get_pc() + offset, size)
 
@@ -1519,14 +1473,14 @@ class Thread:
         """
         Tries to read some bytes of the code currently being executed.
 
-        @type  size: int
-        @param size: Number of bytes to read.
+        :type  size: int
+        :param size: Number of bytes to read.
 
-        @type  offset: int
-        @param offset: Offset from the program counter to begin reading.
+        :type  offset: int
+        :param offset: Offset from the program counter to begin reading.
 
-        @rtype:  bytes
-        @return: Bytes read from the process memory.
+        :rtype:  bytes
+        :return: Bytes read from the process memory.
             May be less than the requested number of bytes.
         """
         return self.get_process().peek(self.get_pc() + offset, size)
@@ -1536,16 +1490,16 @@ class Thread:
         Tries to guess which values in the registers are valid pointers,
         and reads some data from them.
 
-        @type  peekSize: int
-        @param peekSize: Number of bytes to read from each pointer found.
+        :type  peekSize: int
+        :param peekSize: Number of bytes to read from each pointer found.
 
-        @type  context: dict( str S{->} int )
-        @param context: (Optional)
+        :type  context: dict( str -> int )
+        :param context: (Optional)
             Dictionary mapping register names to their values.
             If not given, the current thread context will be used.
 
-        @rtype:  dict( str S{->} bytes )
-        @return: Dictionary mapping register names to the data they point to.
+        :rtype:  dict( str -> bytes )
+        :return: Dictionary mapping register names to the data they point to.
         """
         peekable_registers = (
             'Eax', 'Ebx', 'Ecx', 'Edx', 'Esi', 'Edi', 'Ebp'
@@ -1570,20 +1524,20 @@ class Thread:
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
 
-        @type  data: bytes
-        @param data: Binary data to find pointers in.
+        :type  data: bytes
+        :param data: Binary data to find pointers in.
 
-        @type  peekSize: int
-        @param peekSize: Number of bytes to read from each pointer found.
+        :type  peekSize: int
+        :param peekSize: Number of bytes to read from each pointer found.
 
-        @type  peekStep: int
-        @param peekStep: Expected data alignment.
+        :type  peekStep: int
+        :param peekStep: Expected data alignment.
             Typically you specify 1 when data alignment is unknown,
             or 4 when you expect data to be DWORD aligned.
             Any other value may be specified.
 
-        @rtype:  dict( str S{->} bytes )
-        @return: Dictionary mapping stack offsets to the data they point to.
+        :rtype:  dict( str -> bytes )
+        :return: Dictionary mapping stack offsets to the data they point to.
         """
         aProcess = self.get_process()
         return aProcess.peek_pointers_in_data(data, peekSize, peekStep)
@@ -1598,15 +1552,16 @@ class Thread:
         """
         Disassemble instructions from a block of binary code.
 
-        @type  lpAddress: int
-        @param lpAddress: Memory address where the code was read from.
+        :type  lpAddress: int
+        :param lpAddress: Memory address where the code was read from.
 
-        @type  code: bytes
-        @param code: Binary code to disassemble.
+        :type  code: bytes
+        :param code: Binary code to disassemble.
 
-        @rtype:  list of tuple( long, int, str, str )
-        @return: List of tuples. Each tuple represents an assembly instruction
+        :rtype:  list of tuple( long, int, str, str )
+        :return: List of tuples. Each tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1619,15 +1574,16 @@ class Thread:
         """
         Disassemble instructions from the address space of the process.
 
-        @type  lpAddress: int
-        @param lpAddress: Memory address where to read the code from.
+        :type  lpAddress: int
+        :param lpAddress: Memory address where to read the code from.
 
-        @type  dwSize: int
-        @param dwSize: Size of binary code to disassemble.
+        :type  dwSize: int
+        :param dwSize: Size of binary code to disassemble.
 
-        @rtype:  list of tuple( long, int, str, str )
-        @return: List of tuples. Each tuple represents an assembly instruction
+        :rtype:  list of tuple( long, int, str, str )
+        :return: List of tuples. Each tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1640,16 +1596,17 @@ class Thread:
         """
         Disassemble around the given address.
 
-        @type  lpAddress: int
-        @param lpAddress: Memory address where to read the code from.
+        :type  lpAddress: int
+        :param lpAddress: Memory address where to read the code from.
 
-        @type  dwSize: int
-        @param dwSize: Delta offset.
+        :type  dwSize: int
+        :param dwSize: Delta offset.
             Code will be read from lpAddress - dwSize to lpAddress + dwSize.
 
-        @rtype:  list of tuple( long, int, str, str )
-        @return: List of tuples. Each tuple represents an assembly instruction
+        :rtype:  list of tuple( long, int, str, str )
+        :return: List of tuples. Each tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1662,13 +1619,14 @@ class Thread:
         """
         Disassemble around the program counter of the given thread.
 
-        @type  dwSize: int
-        @param dwSize: Delta offset.
+        :type  dwSize: int
+        :param dwSize: Delta offset.
             Code will be read from pc - dwSize to pc + dwSize.
 
-        @rtype:  list of tuple( long, int, str, str )
-        @return: List of tuples. Each tuple represents an assembly instruction
+        :rtype:  list of tuple( long, int, str, str )
+        :return: List of tuples. Each tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1681,12 +1639,13 @@ class Thread:
         """
         Disassemble the instruction at the given memory address.
 
-        @type  lpAddress: int
-        @param lpAddress: Memory address where to read the code from.
+        :type  lpAddress: int
+        :param lpAddress: Memory address where to read the code from.
 
-        @rtype:  tuple( long, int, str, str )
-        @return: The tuple represents an assembly instruction
+        :rtype:  tuple( long, int, str, str )
+        :return: The tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1699,9 +1658,10 @@ class Thread:
         """
         Disassemble the instruction at the program counter of the given thread.
 
-        @rtype:  tuple( long, int, str, str )
-        @return: The tuple represents an assembly instruction
+        :rtype:  tuple( long, int, str, str )
+        :return: The tuple represents an assembly instruction
             and contains:
+
              - Memory address of instruction.
              - Size of instruction in bytes.
              - Disassembly line of instruction.
@@ -1740,13 +1700,13 @@ class _ThreadContainer:
 
     def __contains__(self, anObject):
         """
-        @type  anObject: L{Thread}, int
-        @param anObject:
+        :type  anObject: L{Thread}, int
+        :param anObject:
              - C{int}: Global ID of the thread to look for.
              - C{Thread}: Thread object to look for.
 
-        @rtype:  bool
-        @return: C{True} if the snapshot contains
+        :rtype:  bool
+        :return: C{True} if the snapshot contains
             a L{Thread} object with the same ID.
         """
         if isinstance(anObject, Thread):
@@ -1755,27 +1715,27 @@ class _ThreadContainer:
 
     def __iter__(self):
         """
-        @see:    L{iter_threads}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Thread} objects in this snapshot.
+        :see:    L{iter_threads}
+        :rtype:  dictionary-valueiterator
+        :return: Iterator of L{Thread} objects in this snapshot.
         """
         return self.iter_threads()
 
     def __len__(self):
         """
-        @see:    L{get_thread_count}
-        @rtype:  int
-        @return: Count of L{Thread} objects in this snapshot.
+        :see:    L{get_thread_count}
+        :rtype:  int
+        :return: Count of L{Thread} objects in this snapshot.
         """
         return self.get_thread_count()
 
     def has_thread(self, dwThreadId):
         """
-        @type  dwThreadId: int
-        @param dwThreadId: Global ID of the thread to look for.
+        :type  dwThreadId: int
+        :param dwThreadId: Global ID of the thread to look for.
 
-        @rtype:  bool
-        @return: C{True} if the snapshot contains a
+        :rtype:  bool
+        :return: C{True} if the snapshot contains a
             L{Thread} object with the given global ID.
         """
         self.__initialize_snapshot()
@@ -1783,11 +1743,11 @@ class _ThreadContainer:
 
     def get_thread(self, dwThreadId):
         """
-        @type  dwThreadId: int
-        @param dwThreadId: Global ID of the thread to look for.
+        :type  dwThreadId: int
+        :param dwThreadId: Global ID of the thread to look for.
 
-        @rtype:  L{Thread}
-        @return: Thread object with the given global ID.
+        :rtype:  L{Thread}
+        :return: Thread object with the given global ID.
         """
         self.__initialize_snapshot()
         if dwThreadId not in self.__threadDict:
@@ -1797,34 +1757,34 @@ class _ThreadContainer:
 
     def iter_thread_ids(self):
         """
-        @see:    L{iter_threads}
-        @rtype:  dictionary-keyiterator
-        @return: Iterator of global thread IDs in this snapshot.
+        :see:    L{iter_threads}
+        :rtype:  dictionary-keyiterator
+        :return: Iterator of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
         return self.__threadDict.keys()
 
     def iter_threads(self):
         """
-        @see:    L{iter_thread_ids}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Thread} objects in this snapshot.
+        :see:    L{iter_thread_ids}
+        :rtype:  dictionary-valueiterator
+        :return: Iterator of L{Thread} objects in this snapshot.
         """
         self.__initialize_snapshot()
         return self.__threadDict.values()
 
     def get_thread_ids(self):
         """
-        @rtype:  list of int
-        @return: List of global thread IDs in this snapshot.
+        :rtype:  list of int
+        :return: List of global thread IDs in this snapshot.
         """
         self.__initialize_snapshot()
         return list(self.__threadDict.keys())
 
     def get_thread_count(self):
         """
-        @rtype:  int
-        @return: Count of L{Thread} objects in this snapshot.
+        :rtype:  int
+        :return: Count of L{Thread} objects in this snapshot.
         """
         self.__initialize_snapshot()
         return len(self.__threadDict)
@@ -1835,18 +1795,18 @@ class _ThreadContainer:
         """
         Find threads by name, using different search methods.
 
-        @type  name: str, None
-        @param name: Name to look for. Use C{None} to find nameless threads.
+        :type  name: str, None
+        :param name: Name to look for. Use C{None} to find nameless threads.
 
-        @type  bExactMatch: bool
-        @param bExactMatch: C{True} if the name must be
+        :type  bExactMatch: bool
+        :param bExactMatch: C{True} if the name must be
             B{exactly} as given, C{False} if the name can be
             loosely matched.
 
             This parameter is ignored when C{name} is C{None}.
 
-        @rtype:  list( L{Thread} )
-        @return: All threads matching the given name.
+        :rtype:  list( L{Thread} )
+        :return: All threads matching the given name.
         """
         found_threads = list()
 
@@ -1878,8 +1838,8 @@ class _ThreadContainer:
 
     def get_windows(self):
         """
-        @rtype:  list of L{Window}
-        @return: Returns a list of windows handled by this process.
+        :rtype:  list of ~winappdbg.window.Window
+        :return: Returns a list of windows handled by this process.
         """
         window_list = list()
         for thread in self.iter_threads():
@@ -1892,14 +1852,14 @@ class _ThreadContainer:
         """
         Remotely creates a new thread in the process.
 
-        @type  lpStartAddress: int
-        @param lpStartAddress: Start address for the new thread.
+        :type  lpStartAddress: int
+        :param lpStartAddress: Start address for the new thread.
 
-        @type  lpParameter: int
-        @param lpParameter: Optional argument for the new thread.
+        :type  lpParameter: int
+        :param lpParameter: Optional argument for the new thread.
 
-        @type  bSuspended: bool
-        @param bSuspended: C{True} if the new thread should be suspended.
+        :type  bSuspended: bool
+        :param bSuspended: C{True} if the new thread should be suspended.
             In that case use L{Thread.resume} to start execution.
         """
         if bSuspended:
@@ -2003,8 +1963,8 @@ class _ThreadContainer:
         """
         Private method to add a thread object to the snapshot.
 
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        :type  aThread: L{Thread}
+        :param aThread: Thread object.
         """
         dwThreadId = aThread.dwThreadId
         aThread.set_process(self)
@@ -2014,8 +1974,8 @@ class _ThreadContainer:
         """
         Private method to remove a thread object from the snapshot.
 
-        @type  dwThreadId: int
-        @param dwThreadId: Global thread ID.
+        :type  dwThreadId: int
+        :param dwThreadId: Global thread ID.
         """
         try:
             aThread = self.__threadDict[dwThreadId]
@@ -2045,8 +2005,8 @@ class _ThreadContainer:
         """
         Private method to automatically add new thread objects from debug events.
 
-        @type  event: L{Event}
-        @param event: Event object.
+        :type  event: L{Event}
+        :param event: Event object.
         """
         dwThreadId  = event.get_tid()
         hThread     = event.get_thread_handle()
@@ -2065,11 +2025,11 @@ class _ThreadContainer:
         This is done automatically by the L{Debug} class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{CreateProcessEvent}
-        @param event: Create process event.
+        :type  event: L{CreateProcessEvent}
+        :param event: Create process event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -2081,11 +2041,11 @@ class _ThreadContainer:
         This is done automatically by the L{Debug} class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{CreateThreadEvent}
-        @param event: Create thread event.
+        :type  event: L{CreateThreadEvent}
+        :param event: Create thread event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -2097,11 +2057,11 @@ class _ThreadContainer:
         This is done automatically by the L{Debug} class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{ExitThreadEvent}
-        @param event: Exit thread event.
+        :type  event: L{ExitThreadEvent}
+        :param event: Exit thread event.
 
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :rtype:  bool
+        :return: C{True} to call the user-defined handle, C{False} otherwise.
         """
         dwThreadId = event.get_tid()
 ##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan

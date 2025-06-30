@@ -31,7 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 def do(self, arg):
-    ".example - This is an example plugin for the command line debugger"
+    """.example - This is an example plugin for the command line debugger
+
+    :param str arg: Arguments for the command.
+    """
     print("This is an example command.")
     print("%s.do(%r, %r):" % (__name__, self, arg))
     print("  last event", self.lastEvent)

@@ -31,7 +31,9 @@
 """
 Event handling module.
 
-@see: U{http://winappdbg.readthedocs.io/en/latest/Debugging.html}
+Contains the logic to handle debugging events in your scripts and tools.
+
+.. seealso:: http://winappdbg.readthedocs.io/en/latest/Debugging.html
 
 @group Debugging:
     EventHandler, EventSift
@@ -116,30 +118,24 @@ class Event:
     """
     Event object.
 
-    @type eventMethod: str
-    @cvar eventMethod:
-        Method name to call when using L{EventHandler} subclasses.
+    :cvar str eventMethod:
+        Method name to call when using :class:`EventHandler` subclasses.
         Used internally.
 
-    @type eventName: str
-    @cvar eventName:
+    :cvar str eventName:
         User-friendly name of the event.
 
-    @type eventDescription: str
-    @cvar eventDescription:
+    :cvar str eventDescription:
         User-friendly description of the event.
 
-    @type debug: L{Debug}
-    @ivar debug:
-        Debug object that received the event.
+    :ivar Debug debug:
+        :class:`Debug` object that received the event.
 
-    @type raw: L{DEBUG_EVENT}
-    @ivar raw:
-        Raw DEBUG_EVENT structure as used by the Win32 API.
+    :ivar winappdg.win32.DEBUG_EVENT raw:
+        Raw ``DEBUG_EVENT`` structure as used by the Win32 API.
 
-    @type continueStatus: int
-    @ivar continueStatus:
-        Continue status to pass to L{win32.ContinueDebugEvent}.
+    :ivar int continueStatus:
+        Continue status to pass to :func:`win32.ContinueDebugEvent`.
     """
 
     eventMethod      = 'unknown_event'
@@ -148,11 +144,8 @@ class Event:
 
     def __init__(self, debug, raw):
         """
-        @type  debug: L{Debug}
-        @param debug: Debug object that received the event.
-
-        @type  raw: L{DEBUG_EVENT}
-        @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
+        :param Debug debug: :class:`Debug` object that received the event.
+        :param winappdg.win32.DEBUG_EVENT raw: Raw ``DEBUG_EVENT`` structure as used by the Win32 API.
         """
         self.debug          = debug
         self.raw            = raw
@@ -169,62 +162,49 @@ class Event:
 
     def get_event_name(self):
         """
-        @rtype:  str
-        @return: User-friendly name of the event.
+        :rtype:  str
+        :return: User-friendly name of the event.
         """
         return self.eventName
 
     def get_event_description(self):
         """
-        @rtype:  str
-        @return: User-friendly description of the event.
+        :rtype:  str
+        :return: User-friendly description of the event.
         """
         return self.eventDescription
 
     def get_event_code(self):
         """
-        @rtype:  int
-        @return: Debug event code as defined in the Win32 API.
+        :rtype:  int
+        :return: Debug event code as defined in the Win32 API.
         """
         return self.raw.dwDebugEventCode
 
-##    # Compatibility with version 1.0
-##    # XXX to be removed in version 1.4
-##    def get_code(self):
-##        """
-##        Alias of L{get_event_code} for backwards compatibility
-##        with WinAppDbg version 1.0.
-##        Will be phased out in the next version.
-##
-##        @rtype:  int
-##        @return: Debug event code as defined in the Win32 API.
-##        """
-##        return self.get_event_code()
-
     def get_pid(self):
         """
-        @see: L{get_process}
+        .. seealso:: :meth:`get_process`
 
-        @rtype:  int
-        @return: Process global ID where the event occured.
+        :rtype:  int
+        :return: Process global ID where the event occured.
         """
         return self.raw.dwProcessId
 
     def get_tid(self):
         """
-        @see: L{get_thread}
+        .. seealso:: :meth:`get_thread`
 
-        @rtype:  int
-        @return: Thread global ID where the event occured.
+        :rtype:  int
+        :return: Thread global ID where the event occured.
         """
         return self.raw.dwThreadId
 
     def get_process(self):
         """
-        @see: L{get_pid}
+        .. seealso:: :meth:`get_pid`
 
-        @rtype:  L{Process}
-        @return: Process where the event occured.
+        :rtype:  :class:`Process`
+        :return: Process where the event occured.
         """
         pid     = self.get_pid()
         system  = self.debug.system
@@ -240,10 +220,10 @@ class Event:
 
     def get_thread(self):
         """
-        @see: L{get_tid}
+        .. seealso:: :meth:`get_tid`
 
-        @rtype:  L{Thread}
-        @return: Thread where the event occured.
+        :rtype:  :class:`Thread`
+        :return: Thread where the event occured.
         """
         tid     = self.get_tid()
         process = self.get_process()
@@ -262,8 +242,8 @@ class NoEvent(Event):
     """
     No event.
 
-    Dummy L{Event} object that can be used as a placeholder when no debug
-    event has occured yet. It's never returned by the L{EventFactory}.
+    Dummy :class:`Event` object that can be used as a placeholder when no debug
+    event has occured yet. It's never returned by the :class:`EventFactory`.
     """
 
     eventMethod      = 'no_event'
@@ -275,8 +255,8 @@ class NoEvent(Event):
 
     def __len__(self):
         """
-        Always returns C{0}, so when evaluating the object as a boolean it's
-        always C{False}. This prevents L{Debug.cont} from trying to continue
+        Always returns ``0``, so when evaluating the object as a boolean it's
+        always ``False``. This prevents :meth:`Debug.cont` from trying to continue
         a dummy event.
         """
         return 0
@@ -302,23 +282,19 @@ class ExceptionEvent(Event):
     """
     Exception event.
 
-    @type exceptionName: dict( int S{->} str )
-    @cvar exceptionName:
+    :cvar dict(int, str) exceptionName:
         Mapping of exception constants to their names.
 
-    @type exceptionDescription: dict( int S{->} str )
-    @cvar exceptionDescription:
+    :cvar dict(int, str) exceptionDescription:
         Mapping of exception constants to user-friendly strings.
 
-    @type breakpoint: L{Breakpoint}
-    @ivar breakpoint:
+    :ivar Breakpoint breakpoint:
         If the exception was caused by one of our breakpoints, this member
         contains a reference to the breakpoint object. Otherwise it's not
         defined. It should only be used from the condition or action callback
         routines, instead of the event handler.
 
-    @type hook: L{Hook}
-    @ivar hook:
+    :ivar Hook hook:
         If the exception was caused by a function hook, this member contains a
         reference to the hook object. Otherwise it's not defined. It should
         only be used from the hook callback routines, instead of the event
@@ -425,8 +401,8 @@ class ExceptionEvent(Event):
 
     def get_exception_name(self):
         """
-        @rtype:  str
-        @return: Name of the exception as defined by the Win32 API.
+        :rtype:  str
+        :return: Name of the exception as defined by the Win32 API.
         """
         code = self.get_exception_code()
         unk  = HexDump.integer(code)
@@ -434,8 +410,8 @@ class ExceptionEvent(Event):
 
     def get_exception_description(self):
         """
-        @rtype:  str
-        @return: User-friendly name of the exception.
+        :rtype:  str
+        :return: User-friendly name of the exception.
         """
         code = self.get_exception_code()
         description = self.__exceptionDescription.get(code, None)
@@ -450,36 +426,36 @@ class ExceptionEvent(Event):
 
     def is_first_chance(self):
         """
-        @rtype:  bool
-        @return: C{True} for first chance exceptions, C{False} for last chance.
+        :rtype:  bool
+        :return: ``True`` for first chance exceptions, ``False`` for last chance.
         """
         return self.raw.u.Exception.dwFirstChance != 0
 
     def is_last_chance(self):
         """
-        @rtype:  bool
-        @return: The opposite of L{is_first_chance}.
+        :rtype:  bool
+        :return: The opposite of :meth:`is_first_chance`.
         """
         return not self.is_first_chance()
 
     def is_noncontinuable(self):
         """
-        @see: U{http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx}
+        .. seealso:: http://msdn.microsoft.com/en-us/library/aa363082(VS.85).aspx
 
-        @rtype:  bool
-        @return: C{True} if the exception is noncontinuable,
-            C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` if the exception is noncontinuable,
+            ``False`` otherwise.
 
             Attempting to continue a noncontinuable exception results in an
-            EXCEPTION_NONCONTINUABLE_EXCEPTION exception to be raised.
+            ``EXCEPTION_NONCONTINUABLE_EXCEPTION`` exception to be raised.
         """
         return bool( self.raw.u.Exception.ExceptionRecord.ExceptionFlags & \
                                             win32.EXCEPTION_NONCONTINUABLE )
 
     def is_continuable(self):
         """
-        @rtype:  bool
-        @return: The opposite of L{is_noncontinuable}.
+        :rtype:  bool
+        :return: The opposite of :meth:`is_noncontinuable`.
         """
         return not self.is_noncontinuable()
 
@@ -491,29 +467,29 @@ class ExceptionEvent(Event):
         Often the exception code is also a valid Win32 error code, but that's
         up to the debugged application.
 
-        @rtype:  bool
-        @return: C{True} if the exception is user-defined, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` if the exception is user-defined, ``False`` otherwise.
         """
         return self.get_exception_code() & 0x10000000 == 0
 
     def is_system_defined_exception(self):
         """
-        @rtype:  bool
-        @return: The opposite of L{is_user_defined_exception}.
+        :rtype:  bool
+        :return: The opposite of :meth:`is_user_defined_exception`.
         """
         return not self.is_user_defined_exception()
 
     def get_exception_code(self):
         """
-        @rtype:  int
-        @return: Exception code as defined by the Win32 API.
+        :rtype:  int
+        :return: Exception code as defined by the Win32 API.
         """
         return self.raw.u.Exception.ExceptionRecord.ExceptionCode
 
     def get_exception_address(self):
         """
-        @rtype:  int
-        @return: Memory address where the exception occured.
+        :rtype:  int
+        :return: Memory address where the exception occured.
         """
         address = self.raw.u.Exception.ExceptionRecord.ExceptionAddress
         if address is None:
@@ -522,11 +498,9 @@ class ExceptionEvent(Event):
 
     def get_exception_information(self, index):
         """
-        @type  index: int
-        @param index: Index into the exception information block.
-
-        @rtype:  int
-        @return: Exception information DWORD.
+        :param int index: Index into the exception information block.
+        :rtype:  int
+        :return: Exception information DWORD.
         """
         if index < 0 or index > win32.EXCEPTION_MAXIMUM_PARAMETERS:
             raise IndexError("Array index out of range: %s" % repr(index))
@@ -538,8 +512,8 @@ class ExceptionEvent(Event):
 
     def get_exception_information_as_list(self):
         """
-        @rtype:  list( int )
-        @return: Exception information block.
+        :rtype:  list( int )
+        :return: Exception information block.
         """
         info = self.raw.u.Exception.ExceptionRecord.ExceptionInformation
         data = list()
@@ -552,18 +526,18 @@ class ExceptionEvent(Event):
 
     def get_fault_type(self):
         """
-        @rtype:  int
-        @return: Access violation type.
+        :rtype:  int
+        :return: Access violation type.
             Should be one of the following constants:
 
-             - L{win32.EXCEPTION_READ_FAULT}
-             - L{win32.EXCEPTION_WRITE_FAULT}
-             - L{win32.EXCEPTION_EXECUTE_FAULT}
+            - ``win32.EXCEPTION_READ_FAULT``
+            - ``win32.EXCEPTION_WRITE_FAULT``
+            - ``win32.EXCEPTION_EXECUTE_FAULT``
 
-        @note: This method is only meaningful for access violation exceptions,
+        .. note:: This method is only meaningful for access violation exceptions,
             in-page memory error exceptions and guard page exceptions.
 
-        @raise NotImplementedError: Wrong kind of exception.
+        :raises NotImplementedError: Wrong kind of exception.
         """
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
@@ -573,13 +547,13 @@ class ExceptionEvent(Event):
 
     def get_fault_address(self):
         """
-        @rtype:  int
-        @return: Access violation memory address.
+        :rtype:  int
+        :return: Access violation memory address.
 
-        @note: This method is only meaningful for access violation exceptions,
+        .. note:: This method is only meaningful for access violation exceptions,
             in-page memory error exceptions and guard page exceptions.
 
-        @raise NotImplementedError: Wrong kind of exception.
+        :raises NotImplementedError: Wrong kind of exception.
         """
         if self.get_exception_code() not in (win32.EXCEPTION_ACCESS_VIOLATION,
                     win32.EXCEPTION_IN_PAGE_ERROR, win32.EXCEPTION_GUARD_PAGE):
@@ -589,13 +563,13 @@ class ExceptionEvent(Event):
 
     def get_ntstatus_code(self):
         """
-        @rtype:  int
-        @return: NTSTATUS status code that caused the exception.
+        :rtype:  int
+        :return: NTSTATUS status code that caused the exception.
 
-        @note: This method is only meaningful for in-page memory error
+        .. note:: This method is only meaningful for in-page memory error
             exceptions.
 
-        @raise NotImplementedError: Not an in-page memory error.
+        :raises NotImplementedError: Not an in-page memory error.
         """
         if self.get_exception_code() != win32.EXCEPTION_IN_PAGE_ERROR:
             msg = "This method is only meaningful "\
@@ -605,8 +579,8 @@ class ExceptionEvent(Event):
 
     def is_nested(self):
         """
-        @rtype:  bool
-        @return: Returns C{True} if there are additional exception records
+        :rtype:  bool
+        :return: Returns ``True`` if there are additional exception records
             associated with this exception. This would mean the exception
             is nested, that is, it was triggered while trying to handle
             at least one previous exception.
@@ -621,8 +595,8 @@ class ExceptionEvent(Event):
         happens when an exception is raised in the debugee while trying to
         handle a previous exception.
 
-        @rtype:  list( L{win32.EXCEPTION_RECORD} )
-        @return:
+        :rtype:  list( win32.EXCEPTION_RECORD )
+        :return:
             List of raw exception record structures as used by the Win32 API.
 
             There is always at least one exception record, so the list is
@@ -648,8 +622,8 @@ class ExceptionEvent(Event):
         happens when an exception is raised in the debugee while trying to
         handle a previous exception.
 
-        @rtype:  list( L{ExceptionEvent} )
-        @return:
+        :rtype:  list( ExceptionEvent )
+        :return:
             List of ExceptionEvent objects representing each exception record
             found in this event.
 
@@ -694,9 +668,9 @@ class CreateThreadEvent(Event):
 
     def get_thread_handle(self):
         """
-        @rtype:  L{ThreadHandle}
-        @return: Thread handle received from the system.
-            Returns C{None} if the handle is not available.
+        :rtype:  :class:`ThreadHandle`
+        :return: Thread handle received from the system.
+            Returns ``None`` if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -709,20 +683,20 @@ class CreateThreadEvent(Event):
 
     def get_teb(self):
         """
-        @rtype:  int
-        @return: Pointer to the TEB.
+        :rtype:  int
+        :return: Pointer to the TEB.
         """
         return self.raw.u.CreateThread.lpThreadLocalBase
 
     def get_start_address(self):
         """
-        @rtype:  int
-        @return: Pointer to the first instruction to execute in this thread.
+        :rtype:  int
+        :return: Pointer to the first instruction to execute in this thread.
 
-            Returns C{NULL} when the debugger attached to a process
+            Returns ``NULL`` when the debugger attached to a process
             and the thread already existed.
 
-            See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
+            See http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx
         """
         return self.raw.u.CreateThread.lpStartAddress
 
@@ -739,9 +713,9 @@ class CreateProcessEvent(Event):
 
     def get_file_handle(self):
         """
-        @rtype:  L{FileHandle} or None
-        @return: File handle to the main module, received from the system.
-            Returns C{None} if the handle is not available.
+        :rtype:  :class:`FileHandle` or None
+        :return: File handle to the main module, received from the system.
+            Returns ``None`` if the handle is not available.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
@@ -759,9 +733,9 @@ class CreateProcessEvent(Event):
 
     def get_process_handle(self):
         """
-        @rtype:  L{ProcessHandle}
-        @return: Process handle received from the system.
-            Returns C{None} if the handle is not available.
+        :rtype:  :class:`ProcessHandle`
+        :return: Process handle received from the system.
+            Returns ``None`` if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -774,9 +748,9 @@ class CreateProcessEvent(Event):
 
     def get_thread_handle(self):
         """
-        @rtype:  L{ThreadHandle}
-        @return: Thread handle received from the system.
-            Returns C{None} if the handle is not available.
+        :rtype:  :class:`ThreadHandle`
+        :return: Thread handle received from the system.
+            Returns ``None`` if the handle is not available.
         """
         # The handle doesn't need to be closed.
         # See http://msdn.microsoft.com/en-us/library/ms681423(VS.85).aspx
@@ -789,36 +763,37 @@ class CreateProcessEvent(Event):
 
     def get_start_address(self):
         """
-        @rtype:  int
-        @return: Pointer to the first instruction to execute in this process.
+        :rtype:  int
+        :return: Pointer to the first instruction to execute in this process.
 
-            Returns C{NULL} when the debugger attaches to a process.
+            Returns ``NULL`` when the debugger attaches to a process.
 
-            See U{http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx}
+            See http://msdn.microsoft.com/en-us/library/ms679295(VS.85).aspx
         """
         return self.raw.u.CreateProcessInfo.lpStartAddress
 
     def get_image_base(self):
         """
-        @rtype:  int
-        @return: Base address of the main module.
-        @warn: This value is taken from the PE file
-            and may be incorrect because of ASLR!
+        :rtype:  int
+        :return: Base address of the main module.
+
+            .. warning:: This value is taken from the PE file
+                and may be incorrect because of ASLR!
         """
         # TODO try to calculate the real value when ASLR is active.
         return self.raw.u.CreateProcessInfo.lpBaseOfImage
 
     def get_teb(self):
         """
-        @rtype:  int
-        @return: Pointer to the TEB.
+        :rtype:  int
+        :return: Pointer to the TEB.
         """
         return self.raw.u.CreateProcessInfo.lpThreadLocalBase
 
     def get_debug_info(self):
         """
-        @rtype:  str
-        @return: Debugging information.
+        :rtype:  str
+        :return: Debugging information.
         """
         raw  = self.raw.u.CreateProcessInfo
         ptr  = raw.lpBaseOfImage + raw.dwDebugInfoFileOffset
@@ -830,10 +805,10 @@ class CreateProcessEvent(Event):
 
     def get_filename(self):
         """
-        @rtype:  str, None
-        @return: This method does it's best to retrieve the filename to
-        the main module of the process. However, sometimes that's not
-        possible, and C{None} is returned instead.
+        :rtype:  str, None
+        :return: This method does it's best to retrieve the filename to
+            the main module of the process. However, sometimes that's not
+            possible, and ``None`` is returned instead.
         """
 
         # Try to get the filename from the file handle.
@@ -866,15 +841,15 @@ class CreateProcessEvent(Event):
 
     def get_module_base(self):
         """
-        @rtype:  int
-        @return: Base address of the main module.
+        :rtype:  int
+        :return: Base address of the main module.
         """
         return self.get_image_base()
 
     def get_module(self):
         """
-        @rtype:  L{Module}
-        @return: Main module of the process.
+        :rtype:  :class:`Module`
+        :return: Main module of the process.
         """
         return self.get_process().get_module( self.get_module_base() )
 
@@ -891,8 +866,8 @@ class ExitThreadEvent(Event):
 
     def get_exit_code(self):
         """
-        @rtype:  int
-        @return: Exit code of the thread.
+        :rtype:  int
+        :return: Exit code of the thread.
         """
         return self.raw.u.ExitThread.dwExitCode
 
@@ -909,37 +884,37 @@ class ExitProcessEvent(Event):
 
     def get_exit_code(self):
         """
-        @rtype:  int
-        @return: Exit code of the process.
+        :rtype:  int
+        :return: Exit code of the process.
         """
         return self.raw.u.ExitProcess.dwExitCode
 
     def get_filename(self):
         """
-        @rtype:  None or str
-        @return: Filename of the main module.
-            C{None} if the filename is unknown.
+        :rtype:  None or str
+        :return: Filename of the main module.
+            ``None`` if the filename is unknown.
         """
         return self.get_module().get_filename()
 
     def get_image_base(self):
         """
-        @rtype:  int
-        @return: Base address of the main module.
+        :rtype:  int
+        :return: Base address of the main module.
         """
         return self.get_module_base()
 
     def get_module_base(self):
         """
-        @rtype:  int
-        @return: Base address of the main module.
+        :rtype:  int
+        :return: Base address of the main module.
         """
         return self.get_module().get_base()
 
     def get_module(self):
         """
-        @rtype:  L{Module}
-        @return: Main module of the process.
+        :rtype:  :class:`Module`
+        :return: Main module of the process.
         """
         return self.get_process().get_main_module()
 
@@ -956,15 +931,15 @@ class LoadDLLEvent(Event):
 
     def get_module_base(self):
         """
-        @rtype:  int
-        @return: Base address for the newly loaded DLL.
+        :rtype:  int
+        :return: Base address for the newly loaded DLL.
         """
         return self.raw.u.LoadDll.lpBaseOfDll
 
     def get_module(self):
         """
-        @rtype:  L{Module}
-        @return: Module object for the newly loaded DLL.
+        :rtype:  :class:`Module`
+        :return: Module object for the newly loaded DLL.
         """
         lpBaseOfDll = self.get_module_base()
         aProcess    = self.get_process()
@@ -982,9 +957,9 @@ class LoadDLLEvent(Event):
 
     def get_file_handle(self):
         """
-        @rtype:  L{FileHandle} or None
-        @return: File handle to the newly loaded DLL received from the system.
-            Returns C{None} if the handle is not available.
+        :rtype:  :class:`FileHandle` or None
+        :return: File handle to the newly loaded DLL received from the system.
+            Returns ``None`` if the handle is not available.
         """
         # This handle DOES need to be closed.
         # Therefore we must cache it so it doesn't
@@ -1002,10 +977,10 @@ class LoadDLLEvent(Event):
 
     def get_filename(self):
         """
-        @rtype:  str, None
-        @return: This method does it's best to retrieve the filename to
-        the newly loaded module. However, sometimes that's not
-        possible, and C{None} is returned instead.
+        :rtype:  str, None
+        :return: This method does it's best to retrieve the filename to
+            the newly loaded module. However, sometimes that's not
+            possible, and ``None`` is returned instead.
         """
         szFilename = None
 
@@ -1043,15 +1018,15 @@ class UnloadDLLEvent(Event):
 
     def get_module_base(self):
         """
-        @rtype:  int
-        @return: Base address for the recently unloaded DLL.
+        :rtype:  int
+        :return: Base address for the recently unloaded DLL.
         """
         return self.raw.u.UnloadDll.lpBaseOfDll
 
     def get_module(self):
         """
-        @rtype:  L{Module}
-        @return: Module object for the recently unloaded DLL.
+        :rtype:  :class:`Module`
+        :return: Module object for the recently unloaded DLL.
         """
         lpBaseOfDll = self.get_module_base()
         aProcess    = self.get_process()
@@ -1064,9 +1039,9 @@ class UnloadDLLEvent(Event):
 
     def get_file_handle(self):
         """
-        @rtype:  None or L{FileHandle}
-        @return: File handle to the recently unloaded DLL.
-            Returns C{None} if the handle is not available.
+        :rtype:  None or :class:`FileHandle`
+        :return: File handle to the recently unloaded DLL.
+            Returns ``None`` if the handle is not available.
         """
         hFile = self.get_module().hFile
         if hFile in (0, win32.NULL, win32.INVALID_HANDLE_VALUE):
@@ -1075,9 +1050,9 @@ class UnloadDLLEvent(Event):
 
     def get_filename(self):
         """
-        @rtype:  None or str
-        @return: Filename of the recently unloaded DLL.
-            C{None} if the filename is unknown.
+        :rtype:  None or str
+        :return: Filename of the recently unloaded DLL.
+            ``None`` if the filename is unknown.
         """
         return self.get_module().get_filename()
 
@@ -1094,8 +1069,8 @@ class OutputDebugStringEvent(Event):
 
     def get_debug_string(self):
         """
-        @rtype:  bytes or str
-        @return: String sent by the debugee.
+        :rtype:  bytes or str
+        :return: String sent by the debugee.
             It may be ANSI or Unicode and may end with a null character.
         """
         return self.get_process().peek_string(
@@ -1117,19 +1092,20 @@ class RIPEvent(Event):
 
     def get_rip_error(self):
         """
-        @rtype:  int
-        @return: RIP error code as defined by the Win32 API.
+        :rtype:  int
+        :return: RIP error code as defined by the Win32 API.
         """
         return self.raw.u.RipInfo.dwError
 
     def get_rip_type(self):
         """
-        @rtype:  int
-        @return: RIP type code as defined by the Win32 API.
-            May be C{0} or one of the following:
-             - L{win32.SLE_ERROR}
-             - L{win32.SLE_MINORERROR}
-             - L{win32.SLE_WARNING}
+        :rtype:  int
+        :return: RIP type code as defined by the Win32 API.
+            May be ``0`` or one of the following:
+
+             - ``winappdbg.win32.SLE_ERROR``
+             - ``winappdbg.win32.SLE_MINORERROR``
+             - ``winappdbg.win32.SLE_WARNING``
         """
         return self.raw.u.RipInfo.dwType
 
@@ -1137,16 +1113,14 @@ class RIPEvent(Event):
 
 class EventFactory(StaticClass):
     """
-    Factory of L{Event} objects.
+    Factory of :class:`Event` objects.
 
-    @type baseEvent: L{Event}
-    @cvar baseEvent:
+    :cvar Event baseEvent:
         Base class for Event objects.
         It's used for unknown event codes.
 
-    @type eventClasses: dict( int S{->} L{Event} )
-    @cvar eventClasses:
-        Dictionary that maps event codes to L{Event} subclasses.
+    :cvar dict(int, Event) eventClasses:
+        Dictionary that maps event codes to :class:`Event` subclasses.
     """
 
     baseEvent    = Event
@@ -1165,14 +1139,10 @@ class EventFactory(StaticClass):
     @classmethod
     def get(cls, debug, raw):
         """
-        @type  debug: L{Debug}
-        @param debug: Debug object that received the event.
-
-        @type  raw: L{DEBUG_EVENT}
-        @param raw: Raw DEBUG_EVENT structure as used by the Win32 API.
-
-        @rtype: L{Event}
-        @returns: An Event object or one of it's subclasses,
+        :param Debug debug: :class:`Debug` object that received the event.
+        :param winappdg.win32.DEBUG_EVENT raw: Raw ``DEBUG_EVENT`` structure as used by the Win32 API.
+        :rtype: :class:`Event`
+        :return: An Event object or one of it's subclasses,
             depending on the event type.
         """
         eventClass = cls.eventClasses.get(raw.dwDebugEventCode, cls.baseEvent)
@@ -1187,113 +1157,112 @@ class EventHandler:
     Your program should subclass it to implement it's own event handling.
 
     The constructor can be overriden as long as you call the superclass
-    constructor. The special method L{__call__} B{MUST NOT} be overriden.
+    constructor. The special method ``__call__`` **MUST NOT** be overriden.
 
     The signature for event handlers is the following::
 
         def event_handler(self, event):
 
-    Where B{event} is an L{Event} object.
+    Where *event* is an :class:`Event` object.
 
     Each event handler is named after the event they handle.
     This is the list of all valid event handler names:
 
-     - I{event}
+    - *event*
 
-       Receives an L{Event} object or an object of any of it's subclasses,
-       and handles any event for which no handler was defined.
+      Receives an :class:`Event` object or an object of any of it's subclasses,
+      and handles any event for which no handler was defined.
 
-     - I{unknown_event}
+    - *unknown_event*
 
-       Receives an L{Event} object or an object of any of it's subclasses,
-       and handles any event unknown to the debugging engine. (This is not
-       likely to happen unless the Win32 debugging API is changed in future
-       versions of Windows).
+      Receives an :class:`Event` object or an object of any of it's subclasses,
+      and handles any event unknown to the debugging engine. (This is not
+      likely to happen unless the Win32 debugging API is changed in future
+      versions of Windows).
 
-     - I{exception}
+    - *exception*
 
-       Receives an L{ExceptionEvent} object and handles any exception for
-       which no handler was defined. See above for exception handlers.
+      Receives an :class:`ExceptionEvent` object and handles any exception for
+      which no handler was defined. See above for exception handlers.
 
-     - I{unknown_exception}
+    - *unknown_exception*
 
-       Receives an L{ExceptionEvent} object and handles any exception unknown
-       to the debugging engine. This usually happens for C++ exceptions, which
-       are not standardized and may change from one compiler to the next.
+      Receives an :class:`ExceptionEvent` object and handles any exception unknown
+      to the debugging engine. This usually happens for C++ exceptions, which
+      are not standardized and may change from one compiler to the next.
 
-       Currently we have partial support for C++ exceptions thrown by Microsoft
-       compilers.
+      Currently we have partial support for C++ exceptions thrown by Microsoft
+      compilers.
 
-       Also see: U{RaiseException()
-       <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>}
+      Also see: `RaiseException()
+      <http://msdn.microsoft.com/en-us/library/ms680552(VS.85).aspx>`_
 
-     - I{create_thread}
+    - *create_thread*
 
-       Receives a L{CreateThreadEvent} object.
+      Receives a :class:`CreateThreadEvent` object.
 
-     - I{create_process}
+    - *create_process*
 
-       Receives a L{CreateProcessEvent} object.
+      Receives a :class:`CreateProcessEvent` object.
 
-     - I{exit_thread}
+    - *exit_thread*
 
-       Receives a L{ExitThreadEvent} object.
+      Receives a :class:`ExitThreadEvent` object.
 
-     - I{exit_process}
+    - *exit_process*
 
-       Receives a L{ExitProcessEvent} object.
+      Receives a :class:`ExitProcessEvent` object.
 
-     - I{load_dll}
+    - *load_dll*
 
-       Receives a L{LoadDLLEvent} object.
+      Receives a :class:`LoadDLLEvent` object.
 
-     - I{unload_dll}
+    - *unload_dll*
 
-       Receives an L{UnloadDLLEvent} object.
+      Receives an :class:`UnloadDLLEvent` object.
 
-     - I{output_string}
+    - *output_string*
 
-       Receives an L{OutputDebugStringEvent} object.
+      Receives an :class:`OutputDebugStringEvent` object.
 
-     - I{rip}
+    - *rip*
 
-       Receives a L{RIPEvent} object.
+      Receives a :class:`RIPEvent` object.
 
     This is the list of all valid exception handler names
-    (they all receive an L{ExceptionEvent} object):
+    (they all receive an :class:`ExceptionEvent` object):
 
-     - I{access_violation}
-     - I{array_bounds_exceeded}
-     - I{breakpoint}
-     - I{control_c_exit}
-     - I{datatype_misalignment}
-     - I{debug_control_c}
-     - I{float_denormal_operand}
-     - I{float_divide_by_zero}
-     - I{float_inexact_result}
-     - I{float_invalid_operation}
-     - I{float_overflow}
-     - I{float_stack_check}
-     - I{float_underflow}
-     - I{guard_page}
-     - I{illegal_instruction}
-     - I{in_page_error}
-     - I{integer_divide_by_zero}
-     - I{integer_overflow}
-     - I{invalid_disposition}
-     - I{invalid_handle}
-     - I{ms_vc_exception}
-     - I{noncontinuable_exception}
-     - I{possible_deadlock}
-     - I{privileged_instruction}
-     - I{single_step}
-     - I{stack_overflow}
-     - I{wow64_breakpoint}
+    - *access_violation*
+    - *array_bounds_exceeded*
+    - *breakpoint*
+    - *control_c_exit*
+    - *datatype_misalignment*
+    - *debug_control_c*
+    - *float_denormal_operand*
+    - *float_divide_by_zero*
+    - *float_inexact_result*
+    - *float_invalid_operation*
+    - *float_overflow*
+    - *float_stack_check*
+    - *float_underflow*
+    - *guard_page*
+    - *illegal_instruction*
+    - *in_page_error*
+    - *integer_divide_by_zero*
+    - *integer_overflow*
+    - *invalid_disposition*
+    - *invalid_handle*
+    - *ms_vc_exception*
+    - *noncontinuable_exception*
+    - *possible_deadlock*
+    - *privileged_instruction*
+    - *single_step*
+    - *stack_overflow*
+    - *wow64_breakpoint*
 
 
 
-    @type apiHooks: dict( str S{->} list( tuple( str, int ) ) )
-    @cvar apiHooks:
+    :cvar dict(str, list(tuple(str, int))) apiHooks:
         Dictionary that maps module names to lists of
         tuples of ( procedure name, parameter count ).
 
@@ -1330,7 +1299,7 @@ class EventHandler:
         callback won't get the string or structure pointed to by it, but the
         remote memory address instead. This is so to prevent the ctypes library
         from being "too helpful" and trying to dereference the pointer. To get
-        the actual data being pointed to, use one of the L{Process.read}
+        the actual data being pointed to, use one of the :meth:`Process.read`
         methods.
 
         Now, to intercept calls to LoadLibraryEx define a method like this in
@@ -1341,7 +1310,7 @@ class EventHandler:
 
                 # (...)
 
-        Note that the first parameter is always the L{Event} object, and the
+        Note that the first parameter is always the :class:`Event` object, and the
         second parameter is the return address. The third parameter and above
         are the values passed to the hooked function.
 
@@ -1351,7 +1320,7 @@ class EventHandler:
             def post_LoadLibraryEx(self, event, retval):
                 # (...)
 
-        The first parameter is the L{Event} object and the second is the
+        The first parameter is the :class:`Event` object and the second is the
         return value from the hooked function.
     """
 
@@ -1409,7 +1378,7 @@ class EventHandler:
         """
         Get the requested API hooks for the current DLL.
 
-        Used by L{_hook_dll} and L{_unhook_dll}.
+        Used by :meth:`_hook_dll` and :meth:`_unhook_dll`.
         """
         result = []
         if self.__apiHooks:
@@ -1447,10 +1416,9 @@ class EventHandler:
         """
         Dispatch debug events.
 
-        @warn: B{Don't override this method!}
+        .. warning:: **Don't override this method!**
 
-        @type  event: L{Event}
-        @param event: Event object.
+        :param Event event: Event object.
         """
         try:
             code = event.get_event_code()
@@ -1482,6 +1450,7 @@ class EventSift(EventHandler):
     multiple processes.
 
     Example::
+
         from winappdbg import Debug, EventHandler, EventSift
 
         # This class was written assuming only one process is attached.
@@ -1513,13 +1482,14 @@ class EventSift(EventHandler):
                 debug.execl("charmap.exe")
                 debug.loop()
 
-    Subclasses of C{EventSift} can prevent specific event types from
+    Subclasses of `EventSift` can prevent specific event types from
     being forwarded by simply defining a method for it. That means your
     subclass can handle some event types globally while letting other types
     be handled on per-process basis. To forward events manually you can
-    call C{self.event(event)}.
+    call ``self.event(event)``.
 
     Example::
+
         class MySift (EventSift):
 
             # Don't forward this event.
@@ -1537,7 +1507,7 @@ class EventSift(EventHandler):
 
             # All other events will be forwarded.
 
-    Note that overriding the C{event} method would cause no events to be
+    Note that overriding the `event` method would cause no events to be
     forwarded at all. To prevent this, call the superclass implementation.
 
     Example::
@@ -1558,22 +1528,22 @@ class EventSift(EventHandler):
 
                 # Otherwise, don't.
 
-    @type cls: class
-    @ivar cls:
+    :ivar cls:
         Event handler class. There will be one instance of this class
-        per debugged process in the L{forward} dictionary.
+        per debugged process in the :attr:`forward` dictionary.
+    :type cls: class
 
-    @type argv: list
-    @ivar argv:
-        Positional arguments to pass to the constructor of L{cls}.
+    :ivar argv:
+        Positional arguments to pass to the constructor of :attr:`cls`.
+    :type argv: list
 
-    @type argd: list
-    @ivar argd:
-        Keyword arguments to pass to the constructor of L{cls}.
+    :ivar argd:
+        Keyword arguments to pass to the constructor of :attr:`cls`.
+    :type argd: list
 
-    @type forward: dict
-    @ivar forward:
-        Dictionary that maps each debugged process ID to an instance of L{cls}.
+    :ivar forward:
+        Dictionary that maps each debugged process ID to an instance of :attr:`cls`.
+    :type forward: dict
     """
 
     def __init__(self, cls, *argv, **argd):
@@ -1582,13 +1552,12 @@ class EventSift(EventHandler):
         debugged, and forwards the events of each process to each corresponding
         instance.
 
-        @warn: If you subclass L{EventSift} and reimplement this method,
+        .. warning:: If you subclass :class:`EventSift` and reimplement this method,
             don't forget to call the superclass constructor!
 
-        @see: L{event}
+        .. seealso:: :meth:`event`
 
-        @type  cls: class
-        @param cls: Event handler class. This must be the class itself, not an
+        :param class cls: Event handler class. This must be the class itself, not an
             instance! All additional arguments passed to the constructor of
             the event forwarder will be passed on to the constructor of this
             class as well.
@@ -1624,7 +1593,7 @@ class EventSift(EventHandler):
         Forwards events to the corresponding instance of your event handler
         for this process.
 
-        If you subclass L{EventSift} and reimplement this method, no event
+        If you subclass :class:`EventSift` and reimplement this method, no event
         will be forwarded at all unless you call the superclass implementation.
 
         If your filtering is based on the event type, there's a much easier way
@@ -1646,9 +1615,6 @@ class EventSift(EventHandler):
 class EventDispatcher:
     """
     Implements debug event dispatching capabilities.
-
-    @group Debugging events:
-        get_event_handler, set_event_handler, get_handler_method
     """
 
     # Maps event code constants to the names of the pre-notify routines.
@@ -1692,15 +1658,14 @@ class EventDispatcher:
         """
         Event dispatcher.
 
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler: (Optional) User-defined event handler.
+        :param EventHandler eventHandler: (Optional) User-defined event handler.
 
-        @raise TypeError: The event handler is of an incorrect type.
+        :raises TypeError: The event handler is of an incorrect type.
 
-        @note: The L{eventHandler} parameter may be any callable Python object
+        .. note:: The ``eventHandler`` parameter may be any callable Python object
             (for example a function, or an instance method).
             However you'll probably find it more convenient to use an instance
-            of a subclass of L{EventHandler} here.
+            of a subclass of :class:`EventHandler` here.
         """
         self.set_event_handler(eventHandler)
 
@@ -1708,10 +1673,10 @@ class EventDispatcher:
         """
         Get the event handler.
 
-        @see: L{set_event_handler}
+        .. seealso:: :meth:`set_event_handler`
 
-        @rtype:  L{EventHandler}
-        @return: Current event handler object, or C{None}.
+        :rtype:  :class:`EventHandler`
+        :return: Current event handler object, or ``None``.
         """
         return self.__eventHandler
 
@@ -1719,20 +1684,17 @@ class EventDispatcher:
         """
         Set the event handler.
 
-        @warn: This is normally not needed. Use with care!
+        .. warning:: This is normally not needed. Use with care!
 
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler: New event handler object, or C{None}.
+        :param EventHandler eventHandler: New event handler object, or ``None``.
+        :rtype:  :class:`EventHandler`
+        :return: Previous event handler object, or ``None``.
+        :raises TypeError: The event handler is of an incorrect type.
 
-        @rtype:  L{EventHandler}
-        @return: Previous event handler object, or C{None}.
-
-        @raise TypeError: The event handler is of an incorrect type.
-
-        @note: The L{eventHandler} parameter may be any callable Python object
+        .. note:: The ``eventHandler`` parameter may be any callable Python object
             (for example a function, or an instance method).
             However you'll probably find it more convenient to use an instance
-            of a subclass of L{EventHandler} here.
+            of a subclass of :class:`EventHandler` here.
         """
         if eventHandler is not None and not callable(eventHandler):
             raise TypeError("Event handler must be a callable object")
@@ -1756,23 +1718,17 @@ class EventDispatcher:
     @staticmethod
     def get_handler_method(eventHandler, event, fallback=None):
         """
-        Retrieves the appropriate callback method from an L{EventHandler}
-        instance for the given L{Event} object.
+        Retrieves the appropriate callback method from an :class:`EventHandler`
+        instance for the given :class:`Event` object.
 
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler:
+        :param EventHandler eventHandler:
             Event handler object whose methods we are examining.
-
-        @type  event: L{Event}
-        @param event: Debugging event to be handled.
-
-        @type  fallback: callable
-        @param fallback: (Optional) If no suitable method is found in the
-            L{EventHandler} instance, return this value.
-
-        @rtype:  callable
-        @return: Bound method that will handle the debugging event.
-            Returns C{None} if no such method is defined.
+        :param Event event: Debugging event to be handled.
+        :param callable fallback: (Optional) If no suitable method is found in the
+            :class:`EventHandler` instance, return this value.
+        :rtype:  callable
+        :return: Bound method that will handle the debugging event.
+            Returns ``None`` if no such method is defined.
         """
         eventCode = event.get_event_code()
         method = getattr(eventHandler, 'event', fallback)
@@ -1783,21 +1739,19 @@ class EventDispatcher:
 
     def dispatch(self, event):
         """
-        Sends event notifications to the L{Debug} object and
-        the L{EventHandler} object provided by the user.
+        Sends event notifications to the :class:`Debug` object and
+        the :class:`EventHandler` object provided by the user.
 
-        The L{Debug} object will forward the notifications to it's contained
-        snapshot objects (L{System}, L{Process}, L{Thread} and L{Module}) when
+        The :class:`Debug` object will forward the notifications to it's contained
+        snapshot objects (:class:`System`, :class:`Process`, :class:`Thread` and :class:`Module`) when
         appropriate.
 
-        @warning: This method is called automatically from L{Debug.dispatch}.
+        .. warning:: This method is called automatically from :meth:`Debug.dispatch`.
 
-        @see: L{Debug.cont}, L{Debug.loop}, L{Debug.wait}
+        .. seealso:: :meth:`Debug.cont`, :meth:`Debug.loop`, :meth:`Debug.wait`
 
-        @type  event: L{Event}
-        @param event: Event object passed to L{Debug.dispatch}.
-
-        @raise WindowsError: Raises an exception on error.
+        :param Event event: Event object passed to :meth:`Debug.dispatch`.
+        :raises WindowsError: Raises an exception on error.
         """
         returnValue  = None
         bCallHandler = True

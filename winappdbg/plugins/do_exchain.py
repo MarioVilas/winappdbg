@@ -33,7 +33,10 @@
 from winappdbg import HexDump, Table
 
 def do(self, arg):
-    ".exchain - Show the SEH chain"
+    """.exchain - Show the SEH chain
+
+    :param str arg: (not used)
+    """
     thread = self.get_thread_from_prefix()
     print("Exception handlers for thread %d" % thread.get_tid())
     print()

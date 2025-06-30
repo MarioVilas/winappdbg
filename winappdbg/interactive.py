@@ -34,12 +34,6 @@
 
 """
 Interactive debugging console.
-
-@group Debugging:
-    ConsoleDebugger
-
-@group Exceptions:
-    CmdError
 """
 
 __all__ = [ 'ConsoleDebugger', 'CmdError' ]
@@ -75,7 +69,7 @@ readline = None
 #==============================================================================
 
 class DummyEvent (NoEvent):
-    "Dummy event object used internally by L{ConsoleDebugger}."
+    "Dummy event object used internally by :class:`ConsoleDebugger`."
 
     def get_pid(self):
         return self._pid
@@ -94,7 +88,7 @@ class DummyEvent (NoEvent):
 class CmdError (Exception):
     """
     Exception raised when a command parsing error occurs.
-    Used internally by L{ConsoleDebugger}.
+    Used internally by :class:`ConsoleDebugger`.
     """
 
 #==============================================================================
@@ -103,7 +97,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     """
     Interactive console debugger.
 
-    @see: L{Debug.interactive}
+    .. seealso:: :meth:`winappdbg.debug.Debug.interactive`
     """
 
 #------------------------------------------------------------------------------
@@ -173,7 +167,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         Interactive console debugger.
 
-        @see: L{Debug.interactive}
+        .. seealso:: :meth:`winappdbg.debug.Debug.interactive`
         """
         Cmd.__init__(self)
         EventHandler.__init__(self)

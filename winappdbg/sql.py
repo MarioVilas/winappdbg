@@ -30,9 +30,6 @@
 
 """
 SQL database storage support.
-
-@group Crash reporting:
-    CrashDAO
 """
 
 __all__ = ['CrashDAO']
@@ -52,7 +49,7 @@ from sqlalchemy.types import Integer, BigInteger, Boolean, DateTime, String, \
                              LargeBinary, Enum
 from sqlalchemy.sql.expression import asc, desc
 
-from crash import Crash, crash_decode, crash_encode
+from .crash import Crash, crash_decode, crash_encode
 from .textio import CrashDump
 from . import win32
 
@@ -62,7 +59,7 @@ def Transactional(fn):
     """
     Decorator that wraps DAO methods to handle transactions automatically.
 
-    It may only work with subclasses of L{BaseDAO}.
+    It may only work with subclasses of :class:`BaseDAO`.
     """
     @wraps(fn)
     def wrapper(self, *argv, **argd):
@@ -110,25 +107,25 @@ class BaseDAO:
     """
     Data Access Object base class.
 
-    @type _url: sqlalchemy.url.URL
-    @ivar _url: Database connection URL.
+    :type _url: sqlalchemy.url.URL
+    :ivar _url: Database connection URL.
 
-    @type _dialect: str
-    @ivar _dialect: SQL dialect currently being used.
+    :type _dialect: str
+    :ivar _dialect: SQL dialect currently being used.
 
-    @type _driver: str
-    @ivar _driver: Name of the database driver currently being used.
-        To get the actual Python module use L{_url}.get_driver() instead.
+    :type _driver: str
+    :ivar _driver: Name of the database driver currently being used.
+        To get the actual Python module use ``_url.get_driver()`` instead.
 
-    @type _session: sqlalchemy.orm.Session
-    @ivar _session: Database session object.
+    :type _session: sqlalchemy.orm.Session
+    :ivar _session: Database session object.
 
-    @type _new_session: class
-    @cvar _new_session: Custom configured Session class used to create the
-        L{_session} instance variable.
+    :type _new_session: class
+    :cvar _new_session: Custom configured Session class used to create the
+        :attr:`_session` instance variable.
 
-    @type _echo: bool
-    @cvar _echo: Set to C{True} to print(all SQL queries to standard output.)
+    :type _echo: bool
+    :cvar _echo: Set to ``True`` to print all SQL queries to standard output.
     """
 
     _echo = False
@@ -143,39 +140,40 @@ class BaseDAO:
         The current implementation uses SQLAlchemy and so it will support
         whatever database said module supports.
 
-        @type  url: str
-        @param url:
+        :param str url:
             URL that specifies the database to connect to.
 
             Some examples:
              - Opening an SQLite file:
-               C{dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")}
+               ``dao = CrashDAO("sqlite:///C:\\some\\path\\database.sqlite")``
              - Connecting to a locally installed SQL Express database:
-               C{dao = CrashDAO("mssql://.\\SQLEXPRESS/Crashes?trusted_connection=yes")}
+               ``dao = CrashDAO("mssql://.\\SQLEXPRESS/Crashes?trusted_connection=yes")``
              - Connecting to a MySQL database running locally, using the
-               C{oursql} library, authenticating as the "winappdbg" user with
+               ``oursql`` library, authenticating as the "winappdbg" user with
                no password:
-               C{dao = CrashDAO("mysql+oursql://winappdbg@localhost/Crashes")}
+               ``dao = CrashDAO("mysql+oursql://winappdbg@localhost/Crashes")``
              - Connecting to a Postgres database running locally,
                authenticating with user and password:
-               C{dao = CrashDAO("postgresql://winappdbg:winappdbg@localhost/Crashes")}
+               ``dao = CrashDAO("postgresql://winappdbg:winappdbg@localhost/Crashes")``
 
-            For more information see the C{SQLAlchemy} documentation online:
-            U{http://docs.sqlalchemy.org/en/latest/core/engines.html}
+            For more information see the `SQLAlchemy documentation online <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__.
 
             Note that in all dialects except for SQLite the database
             must already exist. The tables schema, however, is created
             automatically when connecting for the first time.
 
             To create the database in MSSQL, you can use the
-            U{SQLCMD<http://msdn.microsoft.com/en-us/library/ms180944.aspx>}
+            `SQLCMD <http://msdn.microsoft.com/en-us/library/ms180944.aspx>`__
             command::
+
                 sqlcmd -Q "CREATE DATABASE Crashes"
 
             In MySQL you can use something like the following::
+
                 mysql -u root -e "CREATE DATABASE Crashes;"
 
             And in Postgres::
+
                 createdb Crashes -h localhost -U winappdbg -p winappdbg -O winappdbg
 
             Some small changes to the schema may be tolerated (for example,
@@ -185,8 +183,8 @@ class BaseDAO:
             very much on the SQLAlchemy version you're using, but it's best
             to use the latest version always.
 
-        @type  creator: callable
-        @param creator: (Optional) Callback function that creates the SQL
+        :param callable creator:
+            (Optional) Callback function that creates the SQL
             database connection.
 
             Normally it's not necessary to use this argument. However in some
@@ -284,7 +282,7 @@ class MemoryDTO (BaseDTO):
 
     def __init__(self, crash_id, mbi):
         """
-        Process a L{win32.MemoryBasicInformation} object for database storage.
+        Process a :class:`win32.MemoryBasicInformation` object for database storage.
         """
 
         # Crash ID.
@@ -378,15 +376,15 @@ class MemoryDTO (BaseDTO):
 
     def toMBI(self, getMemoryDump = False):
         """
-        Returns a L{win32.MemoryBasicInformation} object using the data
+        Returns a :class:`win32.MemoryBasicInformation` object using the data
         retrieved from the database.
 
-        @type  getMemoryDump: bool
-        @param getMemoryDump: (Optional) If C{True} retrieve the memory dump.
-            Defaults to C{False} since this may be a costly operation.
+        :param bool getMemoryDump:
+            (Optional) If ``True`` retrieve the memory dump.
+            Defaults to ``False`` since this may be a costly operation.
 
-        @rtype:  L{win32.MemoryBasicInformation}
-        @return: Memory block information.
+        :rtype:  win32.MemoryBasicInformation
+        :return: Memory block information.
         """
         mbi = win32.MemoryBasicInformation()
         mbi.BaseAddress = self.address
@@ -527,8 +525,7 @@ class CrashDTO (BaseDTO):
 
     def __init__(self, crash):
         """
-        @type  crash: Crash
-        @param crash: L{Crash} object to store into the database.
+        :param Crash crash: :class:`Crash` object to store into the database.
         """
 
         # Timestamp and signature.
@@ -609,14 +606,14 @@ class CrashDTO (BaseDTO):
 
     def toCrash(self, getMemoryDump = False):
         """
-        Returns a L{Crash} object using the data retrieved from the database.
+        Returns a :class:`Crash` object using the data retrieved from the database.
 
-        @type  getMemoryDump: bool
-        @param getMemoryDump: If C{True} retrieve the memory dump.
-            Defaults to C{False} since this may be a costly operation.
+        :param bool getMemoryDump:
+            If ``True`` retrieve the memory dump.
+            Defaults to ``False`` since this may be a costly operation.
 
-        @rtype:  L{Crash}
-        @return: Crash object.
+        :rtype:  Crash
+        :return: Crash object.
         """
         crash = json.loads(self.data.decode('utf-8'), object_hook=crash_decode)
         if not isinstance(crash, Crash):
@@ -635,8 +632,8 @@ class CrashDTO (BaseDTO):
 
 class CrashDAO (BaseDAO):
     """
-    Data Access Object to read, write and search for L{Crash} objects in a
-    database.
+    Data Access Object to read, write and search for :class:`Crash` objects
+    in a database.
     """
 
     @Transactional
@@ -645,17 +642,17 @@ class CrashDAO (BaseDAO):
         Add a new crash dump to the database, optionally filtering them by
         signature to avoid duplicates.
 
-        @type  crash: L{Crash}
-        @param crash: Crash object.
+        :param Crash crash: Crash object.
 
-        @type  allow_duplicates: bool
-        @param allow_duplicates: (Optional)
-            C{True} to always add the new crash dump.
-            C{False} to only add the crash dump if no other crash with the
+        :param bool allow_duplicates:
+            (Optional)
+            ``True`` to always add the new crash dump.
+            ``False`` to only add the crash dump if no other crash with the
             same signature is found in the database.
 
-            Sometimes, your fuzzer turns out to be I{too} good. Then you find
+            Sometimes, your fuzzer turns out to be *too* good. Then you find
             youself browsing through gigabytes of crash dumps, only to find
+
             a handful of actual bugs in them. This simple heuristic filter
             saves you the trouble by discarding crashes that seem to be similar
             to another one you've already found.
@@ -731,34 +728,34 @@ class CrashDAO (BaseDAO):
         Results can be paged to avoid consuming too much memory if the database
         is large.
 
-        @see: L{find_by_example}
+        .. seealso:: :meth:`find_by_example`
 
-        @type  signature: object
-        @param signature: (Optional) Return only through crashes matching
-            this signature. See L{Crash.signature} for more details.
+        :param object signature:
+            (Optional) Return only through crashes matching this signature.
+            See :attr:`Crash.signature` for more details.
 
-        @type  order: int
-        @param order: (Optional) Sort by timestamp.
-            If C{== 0}, results are not sorted.
-            If C{> 0}, results are sorted from older to newer.
-            If C{< 0}, results are sorted from newer to older.
+        :param int order:
+            (Optional) Sort by timestamp.
+            If ``== 0``, results are not sorted.
+            If ``> 0``, results are sorted from older to newer.
+            If ``< 0``, results are sorted from newer to older.
 
-        @type  since: datetime
-        @param since: (Optional) Return only the crashes after and
+        :param datetime.datetime since:
+            (Optional) Return only the crashes after and
             including this date and time.
 
-        @type  until: datetime
-        @param until: (Optional) Return only the crashes before this date
+        :param datetime.datetime until:
+            (Optional) Return only the crashes before this date
             and time, not including it.
 
-        @type  offset: int
-        @param offset: (Optional) Skip the first I{offset} results.
+        :param int offset:
+            (Optional) Skip the first *offset* results.
 
-        @type  limit: int
-        @param limit: (Optional) Return at most I{limit} results.
+        :param int limit:
+            (Optional) Return at most *limit* results.
 
-        @rtype:  list(L{Crash})
-        @return: List of Crash objects.
+        :rtype:  list[Crash]
+        :return: List of :class:`Crash` objects.
         """
 
         # Validate the parameters.
@@ -809,23 +806,22 @@ class CrashDAO (BaseDAO):
         Results can be paged to avoid consuming too much memory if the database
         is large.
 
-        @see: L{find}
+        .. seealso:: :meth:`find`
 
-        @type  crash: L{Crash}
-        @param crash: Crash object to compare with. Fields set to C{None} are
-            ignored, all other fields but the signature are used in the
-            comparison.
+        :param Crash crash:
+            Crash object to compare with. Fields set to ``None`` are ignored,
+            all other fields but the signature are used in the comparison.
 
-            To search for signature instead use the L{find} method.
+            To search for signature instead use the :meth:`find` method.
 
-        @type  offset: int
-        @param offset: (Optional) Skip the first I{offset} results.
+        :param int offset:
+            (Optional) Skip the first *offset* results.
 
-        @type  limit: int
-        @param limit: (Optional) Return at most I{limit} results.
+        :param int limit:
+            (Optional) Return at most *limit* results.
 
-        @rtype:  list(L{Crash})
-        @return: List of similar crash dumps found.
+        :rtype:  list[Crash]
+        :return: List of similar crash dumps found.
         """
 
         # Validate the parameters.
@@ -870,12 +866,12 @@ class CrashDAO (BaseDAO):
         Counts how many crash dumps have been stored in this database.
         Optionally filters the count by heuristic signature.
 
-        @type  signature: object
-        @param signature: (Optional) Count only the crashes that match
-            this signature. See L{Crash.signature} for more details.
+        :param object signature:
+            (Optional) Count only the crashes that match this signature.
+            See :attr:`Crash.signature` for more details.
 
-        @rtype:  int
-        @return: Count of crash dumps stored in this database.
+        :rtype:  int
+        :return: Count of crash dumps stored in this database.
         """
         query = self._session.query(CrashDTO.id)
         if signature:
@@ -888,8 +884,7 @@ class CrashDAO (BaseDAO):
         """
         Remove the given crash dump from the database.
 
-        @type  crash: L{Crash}
-        @param crash: Crash dump to remove.
+        :param Crash crash: Crash dump to remove.
         """
         query = self._session.query(CrashDTO).filter_by(id = crash._rowid)
         query.delete(synchronize_session = False)

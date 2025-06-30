@@ -45,7 +45,7 @@ import warnings
 
 class _RegistryContainer:
     """
-    Base class for L{Registry} and L{RegistryKey}.
+    Base class for :class:`Registry` and :class:`RegistryKey`.
     """
 
     # Dummy object to detect empty arguments.
@@ -76,22 +76,19 @@ class RegistryKey(_RegistryContainer):
     """
     Exposes a single Windows Registry key as a dictionary-like object.
 
-    @see: L{Registry}
+    .. seealso:: :class:`Registry`
 
-    @type path: str
-    @ivar path: Registry key path.
+    :type path: str
+    :ivar path: Registry key path.
 
-    @type handle: L{win32.RegistryKeyHandle}
-    @ivar handle: Registry key handle.
+    :type handle: :class:`~.win32.RegistryKeyHandle`
+    :ivar handle: Registry key handle.
     """
 
     def __init__(self, path, handle):
         """
-        @type  path: str
-        @param path: Registry key path.
-
-        @type  handle: L{win32.RegistryKeyHandle}
-        @param handle: Registry key handle.
+        :param str path: Registry key path.
+        :param ~win32.RegistryKeyHandle handle: Registry key handle.
         """
         super().__init__()
         if path.endswith('\\'):
@@ -167,25 +164,22 @@ class RegistryKey(_RegistryContainer):
         """
         Retrieves the low-level data type for the given value.
 
-        @type  name: str
-        @param name: Registry value name.
-
-        @rtype:  int
-        @return: One of the following constants:
-         - L{win32.REG_NONE} (0)
-         - L{win32.REG_SZ} (1)
-         - L{win32.REG_EXPAND_SZ} (2)
-         - L{win32.REG_BINARY} (3)
-         - L{win32.REG_DWORD} (4)
-         - L{win32.REG_DWORD_BIG_ENDIAN} (5)
-         - L{win32.REG_LINK} (6)
-         - L{win32.REG_MULTI_SZ} (7)
-         - L{win32.REG_RESOURCE_LIST} (8)
-         - L{win32.REG_FULL_RESOURCE_DESCRIPTOR} (9)
-         - L{win32.REG_RESOURCE_REQUIREMENTS_LIST} (10)
-         - L{win32.REG_QWORD} (11)
-
-        @raise KeyError: The specified value could not be found.
+        :param str name: Registry value name.
+        :rtype: int
+        :return: One of the following constants:
+         - :const:`~.win32.REG_NONE` (0)
+         - :const:`~.win32.REG_SZ` (1)
+         - :const:`~.win32.REG_EXPAND_SZ` (2)
+         - :const:`~.win32.REG_BINARY` (3)
+         - :const:`~.win32.REG_DWORD` (4)
+         - :const:`~.win32.REG_DWORD_BIG_ENDIAN` (5)
+         - :const:`~.win32.REG_LINK` (6)
+         - :const:`~.win32.REG_MULTI_SZ` (7)
+         - :const:`~.win32.REG_RESOURCE_LIST` (8)
+         - :const:`~.win32.REG_FULL_RESOURCE_DESCRIPTOR` (9)
+         - :const:`~.win32.REG_RESOURCE_REQUIREMENTS_LIST` (10)
+         - :const:`~.win32.REG_QWORD` (11)
+        :raises KeyError: The specified value could not be found.
         """
         try:
             return win32.RegQueryValueEx(self.handle, name)[1]
@@ -215,8 +209,8 @@ class RegistryKey(_RegistryContainer):
         """
         Iterates the subkeys for this Registry key.
 
-        @rtype:  iter of L{RegistryKey}
-        @return: Iterator of subkeys.
+        :rtype: iter of :class:`RegistryKey`
+        :return: Iterator of subkeys.
         """
         handle = self.handle
         index = 0
@@ -231,8 +225,8 @@ class RegistryKey(_RegistryContainer):
         """
         Returns a list of subkeys for this Registry key.
 
-        @rtype:  list(L{RegistryKey})
-        @return: List of subkeys.
+        :rtype: list(:class:`RegistryKey`)
+        :return: List of subkeys.
         """
         return list(self.iterchildren())
 
@@ -240,11 +234,9 @@ class RegistryKey(_RegistryContainer):
         """
         Retrieves a subkey for this Registry key, given its name.
 
-        @type  subkey: str
-        @param subkey: Name of the subkey.
-
-        @rtype:  L{RegistryKey}
-        @return: Subkey.
+        :param str subkey: Name of the subkey.
+        :rtype: :class:`RegistryKey`
+        :return: Subkey.
         """
         path = self._path + '\\' + subkey
         handle = win32.RegOpenKey(self.handle, subkey)
@@ -258,7 +250,7 @@ class RegistryKey(_RegistryContainer):
         to disk by itself. This mechanism is provided to ensure the write
         happens immediately, as opposed to whenever the OS wants to.
 
-        @warn: Calling this method too often may degrade performance.
+        .. warning:: Calling this method too often may degrade performance.
         """
         win32.RegFlushKey(self.handle)
 
@@ -286,9 +278,9 @@ class Registry(_RegistryContainer):
     """
     Exposes the Windows Registry as a Python container.
 
-    @type machine: str or None
-    @ivar machine: For a remote Registry, the machine name.
-        For a local Registry, the value is C{None}.
+    :type machine: str or None
+    :ivar machine: For a remote Registry, the machine name.
+        For a local Registry, the value is ``None``.
     """
 
     _hives_by_name = {
@@ -325,8 +317,7 @@ class Registry(_RegistryContainer):
         """
         Opens a local or remote registry.
 
-        @type  machine: str
-        @param machine: Optional machine name. If C{None} it opens the local
+        :param str machine: Optional machine name. If ``None`` it opens the local
             registry.
         """
         self._machine = machine
@@ -340,18 +331,16 @@ class Registry(_RegistryContainer):
         """
         Splits a Registry path and returns the hive and key.
 
-        @type  path: str
-        @param path: Registry path.
-
-        @rtype:  tuple( int, str )
-        @return: Tuple containing the hive handle and the subkey path.
+        :param str path: Registry path.
+        :rtype: tuple( int, str )
+        :return: Tuple containing the hive handle and the subkey path.
             The hive handle is always one of the following integer constants:
-             - L{win32.HKEY_CLASSES_ROOT}
-             - L{win32.HKEY_CURRENT_USER}
-             - L{win32.HKEY_LOCAL_MACHINE}
-             - L{win32.HKEY_USERS}
-             - L{win32.HKEY_PERFORMANCE_DATA}
-             - L{win32.HKEY_CURRENT_CONFIG}
+             - :const:`~.win32.HKEY_CLASSES_ROOT`
+             - :const:`~.win32.HKEY_CURRENT_USER`
+             - :const:`~.win32.HKEY_LOCAL_MACHINE`
+             - :const:`~.win32.HKEY_USERS`
+             - :const:`~.win32.HKEY_PERFORMANCE_DATA`
+             - :const:`~.win32.HKEY_CURRENT_CONFIG`
         """
         if '\\' in path:
             p = path.find('\\')
@@ -367,13 +356,12 @@ class Registry(_RegistryContainer):
         """
         Parses a Registry path and returns the hive and key.
 
-        @type  path: str
-        @param path: Registry path.
-
-        @rtype:  tuple( int, str )
-        @return: Tuple containing the hive handle and the subkey path.
+        :param str path: Registry path.
+        :rtype: tuple( int, str )
+        :return: Tuple containing the hive handle and the subkey path.
             For a local Registry, the hive handle is an integer.
-            For a remote Registry, the hive handle is a L{RegistryKeyHandle}.
+            For a remote Registry, the hive handle is a
+            :class:`~.win32.RegistryKeyHandle`.
         """
         handle, path = self._split_path(path)
         if self._machine is not None:
@@ -384,21 +372,17 @@ class Registry(_RegistryContainer):
         """
         Joins the hive and key to make a Registry path.
 
-        @type  hive: int
-        @param hive: Registry hive handle.
+        :param int hive: Registry hive handle.
             The hive handle must be one of the following integer constants:
-             - L{win32.HKEY_CLASSES_ROOT}
-             - L{win32.HKEY_CURRENT_USER}
-             - L{win32.HKEY_LOCAL_MACHINE}
-             - L{win32.HKEY_USERS}
-             - L{win32.HKEY_PERFORMANCE_DATA}
-             - L{win32.HKEY_CURRENT_CONFIG}
-
-        @type  subkey: str
-        @param subkey: Subkey path.
-
-        @rtype:  str
-        @return: Registry path.
+             - :const:`~.win32.HKEY_CLASSES_ROOT`
+             - :const:`~.win32.HKEY_CURRENT_USER`
+             - :const:`~.win32.HKEY_LOCAL_MACHINE`
+             - :const:`~.win32.HKEY_USERS`
+             - :const:`~.win32.HKEY_PERFORMANCE_DATA`
+             - :const:`~.win32.HKEY_CURRENT_CONFIG`
+        :param str subkey: Subkey path.
+        :rtype: str
+        :return: Registry path.
         """
         path = self._hives_by_value[hive]
         if subkey:
@@ -409,11 +393,9 @@ class Registry(_RegistryContainer):
         """
         Sanitizes the given Registry path.
 
-        @type  path: str
-        @param path: Registry path.
-
-        @rtype:  str
-        @return: Registry path.
+        :param str path: Registry path.
+        :rtype: str
+        :return: Registry path.
         """
         return self._join_path( *self._split_path(path) )
 
@@ -421,14 +403,12 @@ class Registry(_RegistryContainer):
         """
         Connect to the specified hive of a remote Registry.
 
-        @note: The connection will be cached, to close all connections and
-            erase this cache call the L{close} method.
+        .. note:: The connection will be cached, to close all connections and
+            erase this cache call the :meth:`close` method.
 
-        @type  hive: int
-        @param hive: Hive to connect to.
-
-        @rtype:  L{win32.RegistryKeyHandle}
-        @return: Open handle to the remote Registry hive.
+        :param int hive: Hive to connect to.
+        :rtype: :class:`~.win32.RegistryKeyHandle`
+        :return: Open handle to the remote Registry hive.
         """
         try:
             handle = self._remote_hives[hive]
@@ -526,11 +506,9 @@ class Registry(_RegistryContainer):
         """
         Creates a new Registry key.
 
-        @type  path: str
-        @param path: Registry key path.
-
-        @rtype:  L{RegistryKey}
-        @return: The newly created Registry key.
+        :param str path: Registry key path.
+        :rtype: :class:`RegistryKey`
+        :return: The newly created Registry key.
         """
         path = self._sanitize_path(path)
         hive, subpath = self._parse_path(path)
@@ -541,11 +519,9 @@ class Registry(_RegistryContainer):
         """
         Returns a list of subkeys for the given Registry key.
 
-        @type  path: str
-        @param path: Registry key path.
-
-        @rtype:  list(str)
-        @return: List of subkey names.
+        :param str path: Registry key path.
+        :rtype: list(str)
+        :return: List of subkey names.
         """
         result = list()
         hive, subpath = self._parse_path(path)
@@ -563,13 +539,10 @@ class Registry(_RegistryContainer):
         """
         Returns a recursive iterator on the specified key and its subkeys.
 
-        @type  path: str
-        @param path: Registry key path.
-
-        @rtype:  iterator
-        @return: Recursive iterator that returns Registry key paths.
-
-        @raise KeyError: The specified path does not exist.
+        :param str path: Registry key path.
+        :rtype: iterator
+        :return: Recursive iterator that returns Registry key paths.
+        :raises KeyError: The specified path does not exist.
         """
         if path.endswith('\\'):
             path = path[:-1]

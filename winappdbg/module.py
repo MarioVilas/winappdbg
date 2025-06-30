@@ -31,11 +31,7 @@
 """
 Module instrumentation.
 
-@group Instrumentation:
-    Module
-
-@group Warnings:
-    DebugSymbolsWarning
+Here is the logic for handling DLL libraries loaded by debugees.
 """
 
 __all__ = ['Module', 'DebugSymbolsWarning']
@@ -64,55 +60,39 @@ class Module:
     """
     Interface to a DLL library loaded in the context of another process.
 
-    @group Properties:
-        get_base, get_filename, get_name, get_size, get_entry_point,
-        get_process, set_process, get_pid,
-        get_handle, set_handle, open_handle, close_handle
+    :cvar unknown: Suggested tag for unknown modules.
+    :type unknown: str
 
-    @group Labels:
-        get_label, get_label_at_address, is_address_here,
-        resolve, resolve_label, match_name
+    :ivar lpBaseOfDll: Base of DLL module.
+        Use :meth:`get_base` instead.
+    :type lpBaseOfDll: int
 
-    @group Symbols:
-        load_symbols, unload_symbols, get_symbols, iter_symbols,
-        resolve_symbol, get_symbol_at_address
+    :ivar hFile: Handle to the module file.
+        Use :meth:`get_handle` instead.
+    :type hFile: :class:`~winappdbg.win32.FileHandle`
 
-    @group Modules snapshot:
-        clear
+    :ivar fileName: Module filename.
+        Use :meth:`get_filename` instead.
+    :type fileName: str
 
-    @type unknown: str
-    @cvar unknown: Suggested tag for unknown modules.
+    :ivar SizeOfImage: Size of the module.
+        Use :meth:`get_size` instead.
+    :type SizeOfImage: int
 
-    @type lpBaseOfDll: int
-    @ivar lpBaseOfDll: Base of DLL module.
-        Use L{get_base} instead.
+    :ivar EntryPoint: Entry point of the module.
+        Use :meth:`get_entry_point` instead.
+    :type EntryPoint: int
 
-    @type hFile: L{FileHandle}
-    @ivar hFile: Handle to the module file.
-        Use L{get_handle} instead.
-
-    @type fileName: str
-    @ivar fileName: Module filename.
-        Use L{get_filename} instead.
-
-    @type SizeOfImage: int
-    @ivar SizeOfImage: Size of the module.
-        Use L{get_size} instead.
-
-    @type EntryPoint: int
-    @ivar EntryPoint: Entry point of the module.
-        Use L{get_entry_point} instead.
-
-    @type process: L{Process}
-    @ivar process: Process where the module is loaded.
-        Use the L{get_process} method instead.
+    :ivar process: Process where the module is loaded.
+        Use the :meth:`get_process` method instead.
+    :type process: :class:`Process`
     """
 
     unknown = '<unknown>'
 
     class _SymbolEnumerator:
         """
-        Internally used by L{Module} to enumerate symbols in a module.
+        Internally used by :class:`Module` to enumerate symbols in a module.
         """
 
         def __init__(self, undecorate = False):
@@ -140,23 +120,14 @@ class Module:
                                                   EntryPoint  = None,
                                                   process     = None):
         """
-        @type  lpBaseOfDll: int
-        @param lpBaseOfDll: Base address of the module.
-
-        @type  hFile: L{FileHandle}
-        @param hFile: (Optional) Handle to the module file.
-
-        @type  fileName: str
-        @param fileName: (Optional) Module filename.
-
-        @type  SizeOfImage: int
-        @param SizeOfImage: (Optional) Size of the module.
-
-        @type  EntryPoint: int
-        @param EntryPoint: (Optional) Entry point of the module.
-
-        @type  process: L{Process}
-        @param process: (Optional) Process where the module is loaded.
+        :param int lpBaseOfDll: Base address of the module.
+        :param hFile: (Optional) Handle to the module file.
+        :type  hFile: :class:`~winappdbg.win32.FileHandle`
+        :param str fileName: (Optional) Module filename.
+        :param int SizeOfImage: (Optional) Size of the module.
+        :param int EntryPoint: (Optional) Entry point of the module.
+        :param process: (Optional) Process where the module is loaded.
+        :type  process: :class:`Process`
         """
         self.lpBaseOfDll    = lpBaseOfDll
         self.fileName       = fileName
@@ -168,36 +139,19 @@ class Module:
         self.set_handle(hFile)
         self.set_process(process)
 
-    # Not really sure if it's a good idea...
-##    def __eq__(self, aModule):
-##        """
-##        Compare two Module objects. The comparison is made using the process
-##        IDs and the module bases.
-##
-##        @type  aModule: L{Module}
-##        @param aModule: Another Module object.
-##
-##        @rtype:  bool
-##        @return: C{True} if the two process IDs and module bases are equal,
-##            C{False} otherwise.
-##        """
-##        return isinstance(aModule, Module)           and \
-##               self.get_pid() == aModule.get_pid()   and \
-##               self.get_base() == aModule.get_base()
-
     def get_handle(self):
         """
-        @rtype:  L{Handle}
-        @return: File handle.
-            Returns C{None} if unknown.
+        :returns: File handle.
+            Returns ``None`` if unknown.
+        :rtype:  :class:`~winappdbg.win32.Handle`
         """
         # no way to guess!
         return self.__hFile
 
     def set_handle(self, hFile):
         """
-        @type  hFile: L{Handle}
-        @param hFile: File handle. Use C{None} to clear.
+        :param hFile: File handle. Use ``None`` to clear.
+        :type  hFile: :class:`~winappdbg.win32.Handle`
         """
         if hFile == win32.INVALID_HANDLE_VALUE:
             hFile = None
@@ -207,9 +161,9 @@ class Module:
 
     def get_process(self):
         """
-        @rtype:  L{Process}
-        @return: Parent Process object.
-            Returns C{None} if unknown.
+        :returns: Parent Process object.
+            Returns ``None`` if unknown.
+        :rtype:  :class:`Process`
         """
         # no way to guess!
         return self.__process
@@ -218,8 +172,8 @@ class Module:
         """
         Manually set the parent process. Use with care!
 
-        @type  process: L{Process}
-        @param process: (Optional) Process object. Use C{None} for no process.
+        :param process: (Optional) Process object. Use ``None`` for no process.
+        :type  process: :class:`Process`
         """
         if process is None:
             self.__process = None
@@ -237,9 +191,9 @@ class Module:
 
     def get_pid(self):
         """
-        @rtype:  int or None
-        @return: Parent process global ID.
-            Returns C{None} on error.
+        :returns: Parent process global ID.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         process = self.get_process()
         if process is not None:
@@ -247,17 +201,17 @@ class Module:
 
     def get_base(self):
         """
-        @rtype:  int or None
-        @return: Base address of the module.
-            Returns C{None} if unknown.
+        :returns: Base address of the module.
+            Returns ``None`` if unknown.
+        :rtype:  int or None
         """
         return self.lpBaseOfDll
 
     def get_size(self):
         """
-        @rtype:  int or None
-        @return: Base size of the module.
-            Returns C{None} if unknown.
+        :returns: Base size of the module.
+            Returns ``None`` if unknown.
+        :rtype:  int or None
         """
         if not self.SizeOfImage:
             self.__get_size_and_entry_point()
@@ -265,9 +219,9 @@ class Module:
 
     def get_entry_point(self):
         """
-        @rtype:  int or None
-        @return: Entry point of the module.
-            Returns C{None} if unknown.
+        :returns: Entry point of the module.
+            Returns ``None`` if unknown.
+        :rtype:  int or None
         """
         if not self.EntryPoint:
             self.__get_size_and_entry_point()
@@ -291,9 +245,9 @@ class Module:
 
     def get_filename(self):
         """
-        @rtype:  str or None
-        @return: Module filename.
-            Returns C{None} if unknown.
+        :returns: Module filename.
+            Returns ``None`` if unknown.
+        :rtype:  str or None
         """
         if self.fileName is None:
             if self.hFile not in (None, win32.INVALID_HANDLE_VALUE):
@@ -305,11 +259,9 @@ class Module:
 
     def __filename_to_modname(self, pathname):
         """
-        @type  pathname: str
-        @param pathname: Pathname to a module.
-
-        @rtype:  str
-        @return: Module name.
+        :param str pathname: Pathname to a module.
+        :returns: Module name.
+        :rtype:  str
         """
         filename = PathOperations.pathname_to_filename(pathname)
         if filename:
@@ -325,15 +277,15 @@ class Module:
 
     def get_name(self):
         """
-        @rtype:  str
-        @return: Module name, as used in labels.
+        :returns: Module name, as used in labels.
+        :rtype:  str
 
-        @warning: Names are B{NOT} guaranteed to be unique.
+        .. warning:: Names are **NOT** guaranteed to be unique.
 
             If you need unique identification for a loaded module,
             use the base address instead.
 
-        @see: L{get_label}
+        .. seealso:: :meth:`get_label`
         """
         pathname = self.get_filename()
         if pathname:
@@ -344,10 +296,10 @@ class Module:
 
     def match_name(self, name):
         """
-        @rtype:  bool
-        @return:
-            C{True} if the given name could refer to this module.
-            It may not be exactly the same returned by L{get_name}.
+        :returns:
+            ``True`` if the given name could refer to this module.
+            It may not be exactly the same returned by :meth:`get_name`.
+        :rtype:  bool
         """
 
         # If the given name is exactly our name, return True.
@@ -379,7 +331,7 @@ class Module:
         """
         Opens a new handle to the module.
 
-        The new handle is stored in the L{hFile} property.
+        The new handle is stored in the :attr:`hFile` property.
         """
 
         if not self.get_filename():
@@ -402,10 +354,10 @@ class Module:
         """
         Closes the handle to the module.
 
-        @note: Normally you don't need to call this method. All handles
-            created by I{WinAppDbg} are automatically closed when the garbage
+        .. note:: Normally you don't need to call this method. All handles
+            created by *WinAppDbg* are automatically closed when the garbage
             collector claims them. So unless you've been tinkering with it,
-            setting L{hFile} to C{None} should be enough.
+            setting :attr:`hFile` to ``None`` should be enough.
         """
         try:
             if hasattr(self.hFile, 'close'):
@@ -417,8 +369,8 @@ class Module:
 
     def get_handle(self):
         """
-        @rtype:  L{FileHandle}
-        @return: Handle to the module file.
+        :returns: Handle to the module file.
+        :rtype:  :class:`~winappdbg.win32.FileHandle`
         """
         if self.hFile in (None, win32.INVALID_HANDLE_VALUE):
             self.open_handle()
@@ -442,7 +394,7 @@ class Module:
     def load_symbols(self):
         """
         Loads the debugging symbols for a module.
-        Automatically called by L{get_symbols}.
+        Automatically called by :meth:`get_symbols`.
         """
         if win32.PROCESS_ALL_ACCESS == win32.PROCESS_ALL_ACCESS_VISTA:
             dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
@@ -510,12 +462,12 @@ class Module:
         Returns the debugging symbols for a module.
         The symbols are automatically loaded when needed.
 
-        @rtype:  list of tuple( str, int, int )
-        @return: List of symbols.
+        :returns: List of symbols.
             Each symbol is represented by a tuple that contains:
-                - Symbol name
-                - Symbol memory address
-                - Symbol size in bytes
+            - Symbol name
+            - Symbol memory address
+            - Symbol size in bytes
+        :rtype:  list(tuple(str, int, int))
         """
         if not self.__symbols:
             self.load_symbols()
@@ -527,12 +479,12 @@ class Module:
         in no particular order.
         The symbols are automatically loaded when needed.
 
-        @rtype:  iterator of tuple( str, int, int )
-        @return: Iterator of symbols.
+        :returns: Iterator of symbols.
             Each symbol is represented by a tuple that contains:
-                - Symbol name
-                - Symbol memory address
-                - Symbol size in bytes
+            - Symbol name
+            - Symbol memory address
+            - Symbol size in bytes
+        :rtype:  iterator of tuple(str, int, int)
         """
         if not self.__symbols:
             self.load_symbols()
@@ -542,15 +494,12 @@ class Module:
         """
         Resolves a debugging symbol's address.
 
-        @type  symbol: str
-        @param symbol: Name of the symbol to resolve.
+        :param str symbol: Name of the symbol to resolve.
+        :param bool bCaseSensitive: ``True`` for case sensitive matches,
+            ``False`` for case insensitive.
 
-        @type  bCaseSensitive: bool
-        @param bCaseSensitive: C{True} for case sensitive matches,
-            C{False} for case insensitive.
-
-        @rtype:  int or None
-        @return: Memory address of symbol. C{None} if not found.
+        :returns: Memory address of symbol. ``None`` if not found.
+        :rtype:  int or None
         """
         if bCaseSensitive:
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
@@ -580,15 +529,14 @@ class Module:
         """
         Tries to find the closest matching symbol for the given address.
 
-        @type  address: int
-        @param address: Memory address to query.
-
-        @rtype: None or tuple( str, int, int )
-        @return: Returns a tuple consisting of:
+        :param int address: Memory address to query.
+        :returns: Returns a tuple consisting of:
              - Name
              - Address
              - Size (in bytes)
-            Returns C{None} if no symbol could be matched.
+
+            Returns ``None`` if no symbol could be matched.
+        :rtype: None or tuple(str, int, int)
         """
         result = None
         symbols = self.get_symbols()
@@ -606,14 +554,11 @@ class Module:
         Retrieves the label for the given function of this module or the module
         base address if no function name is given.
 
-        @type  function: str
-        @param function: (Optional) Exported function name.
-
-        @type  offset: int
-        @param offset: (Optional) Offset from the module base address.
-
-        @rtype:  str
-        @return: Label for the module base address, plus the offset if given.
+        :param function: (Optional) Exported function name.
+        :type  function: str
+        :param int offset: (Optional) Offset from the module base address.
+        :returns: Label for the module base address, plus the offset if given.
+        :rtype:  str
         """
         return _ModuleContainer.parse_label(self.get_name(), function, offset)
 
@@ -624,14 +569,11 @@ class Module:
         If the address belongs to the module, the label is made relative to
         it's base address.
 
-        @type  address: int
-        @param address: Memory address.
-
-        @type  offset: None or int
-        @param offset: (Optional) Offset value.
-
-        @rtype:  str
-        @return: Label pointing to the given address.
+        :param int address: Memory address.
+        :param offset: (Optional) Offset value.
+        :type  offset: None or int
+        :returns: Label pointing to the given address.
+        :rtype:  str
         """
 
         # Add the offset to the address.
@@ -670,13 +612,11 @@ class Module:
         """
         Tries to determine if the given address belongs to this module.
 
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  bool or None
-        @return: C{True} if the address belongs to the module,
-            C{False} if it doesn't,
-            and C{None} if it can't be determined.
+        :param int address: Memory address.
+        :returns: ``True`` if the address belongs to the module,
+            ``False`` if it doesn't,
+            and ``None`` if it can't be determined.
+        :rtype:  bool or None
         """
         base = self.get_base()
         size = self.get_size()
@@ -688,15 +628,15 @@ class Module:
         """
         Resolves a function exported by this module.
 
-        @type  function: str, bytes or int
-        @param function:
-            - C{str}: Name of the function (Unicode).
-            - C{bytes}: Name of the function (ANSI).
-            - C{int}: Ordinal of the function.
+        :param function:
+            - ``str``: Name of the function (Unicode).
+            - ``bytes``: Name of the function (ANSI).
+            - ``int``: Ordinal of the function.
+        :type  function: str, bytes or int
 
-        @rtype:  int
-        @return: Memory address of the exported function in the process.
+        :returns: Memory address of the exported function in the process.
             Returns None on error.
+        :rtype:  int
         """
 
         # Unknown DLL filename, there's nothing we can do.
@@ -733,14 +673,13 @@ class Module:
         Resolves a label for this module only. If the label refers to another
         module, an exception is raised.
 
-        @type  label: str
-        @param label: Label to resolve.
+        :param str label: Label to resolve.
 
-        @rtype:  int
-        @return: Memory address pointed to by the label.
+        :returns: Memory address pointed to by the label.
+        :rtype:  int
 
-        @raise ValueError: The label is malformed or impossible to resolve.
-        @raise RuntimeError: Cannot resolve the module or function.
+        :raises ValueError: The label is malformed or impossible to resolve.
+        :raises RuntimeError: Cannot resolve the module or function.
         """
 
         # Split the label into it's components.
@@ -796,33 +735,11 @@ class _ModuleContainer:
     """
     Encapsulates the capability to contain Module objects.
 
-    @note: Labels are an approximated way of referencing memory locations
+    .. note:: Labels are an approximated way of referencing memory locations
         across different executions of the same process, or different processes
         with common modules. They are not meant to be perfectly unique, and
         some errors may occur when multiple modules with the same name are
         loaded, or when module filenames can't be retrieved.
-
-    @group Modules snapshot:
-        scan_modules,
-        get_module, get_module_bases, get_module_count,
-        get_module_at_address, get_module_by_name,
-        has_module, iter_modules, iter_module_addresses,
-        clear_modules
-
-    @group Labels:
-        parse_label, split_label, sanitize_label, resolve_label,
-        resolve_label_components, get_label_at_address, split_label_strict,
-        split_label_fuzzy
-
-    @group Symbols:
-        load_symbols, unload_symbols, get_symbols, iter_symbols,
-        resolve_symbol, get_symbol_at_address
-
-    @group Debugging:
-        is_system_defined_breakpoint, get_system_breakpoint,
-        get_user_breakpoint, get_breakin_breakpoint,
-        get_wow64_system_breakpoint, get_wow64_user_breakpoint,
-        get_wow64_breakin_breakpoint, get_break_on_error_ptr
     """
 
     def __init__(self):
@@ -846,14 +763,14 @@ class _ModuleContainer:
 
     def __contains__(self, anObject):
         """
-        @type  anObject: L{Module}, int
-        @param anObject:
-            - C{Module}: Module object to look for.
-            - C{int}: Base address of the DLL to look for.
+        :param anObject:
+            - :class:`Module`: Module object to look for.
+            - ``int``: Base address of the DLL to look for.
+        :type  anObject: :class:`Module`, int
 
-        @rtype:  bool
-        @return: C{True} if the snapshot contains
-            a L{Module} object with the same base address.
+        :returns: ``True`` if the snapshot contains
+            a :class:`Module` object with the same base address.
+        :rtype:  bool
         """
         if isinstance(anObject, Module):
             anObject = anObject.lpBaseOfDll
@@ -861,39 +778,37 @@ class _ModuleContainer:
 
     def __iter__(self):
         """
-        @see:    L{iter_modules}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Module} objects in this snapshot.
+        :returns: Iterator of :class:`Module` objects in this snapshot.
+        :rtype:  dictionary-valueiterator
+
+        .. seealso:: :meth:`iter_modules`
         """
         return self.iter_modules()
 
     def __len__(self):
         """
-        @see:    L{get_module_count}
-        @rtype:  int
-        @return: Count of L{Module} objects in this snapshot.
+        :returns: Count of :class:`Module` objects in this snapshot.
+        :rtype:  int
+
+        .. seealso:: :meth:`get_module_count`
         """
         return self.get_module_count()
 
     def has_module(self, lpBaseOfDll):
         """
-        @type  lpBaseOfDll: int
-        @param lpBaseOfDll: Base address of the DLL to look for.
-
-        @rtype:  bool
-        @return: C{True} if the snapshot contains a
-            L{Module} object with the given base address.
+        :param int lpBaseOfDll: Base address of the DLL to look for.
+        :returns: ``True`` if the snapshot contains a
+            :class:`Module` object with the given base address.
+        :rtype:  bool
         """
         self.__initialize_snapshot()
         return lpBaseOfDll in self.__moduleDict
 
     def get_module(self, lpBaseOfDll):
         """
-        @type  lpBaseOfDll: int
-        @param lpBaseOfDll: Base address of the DLL to look for.
-
-        @rtype:  L{Module}
-        @return: Module object with the given base address.
+        :param int lpBaseOfDll: Base address of the DLL to look for.
+        :returns: Module object with the given base address.
+        :rtype:  :class:`Module`
         """
         self.__initialize_snapshot()
         if lpBaseOfDll not in self.__moduleDict:
@@ -904,35 +819,38 @@ class _ModuleContainer:
 
     def iter_module_addresses(self):
         """
-        @see:    L{iter_modules}
-        @rtype:  dictionary-keyiterator
-        @return: Iterator of DLL base addresses in this snapshot.
+        :returns: Iterator of DLL base addresses in this snapshot.
+        :rtype:  dictionary-keyiterator
+
+        .. seealso:: :meth:`iter_modules`
         """
         self.__initialize_snapshot()
         return self.__moduleDict.keys()
 
     def iter_modules(self):
         """
-        @see:    L{iter_module_addresses}
-        @rtype:  dictionary-valueiterator
-        @return: Iterator of L{Module} objects in this snapshot.
+        :returns: Iterator of :class:`Module` objects in this snapshot.
+        :rtype:  dictionary-valueiterator
+
+        .. seealso:: :meth:`iter_module_addresses`
         """
         self.__initialize_snapshot()
         return self.__moduleDict.values()
 
     def get_module_bases(self):
         """
-        @see:    L{iter_module_addresses}
-        @rtype:  list( int... )
-        @return: List of DLL base addresses in this snapshot.
+        :returns: List of DLL base addresses in this snapshot.
+        :rtype:  list(int)
+
+        .. seealso:: :meth:`iter_module_addresses`
         """
         self.__initialize_snapshot()
         return list(self.__moduleDict.keys())
 
     def get_module_count(self):
         """
-        @rtype:  int
-        @return: Count of L{Module} objects in this snapshot.
+        :returns: Count of :class:`Module` objects in this snapshot.
+        :rtype:  int
         """
         self.__initialize_snapshot()
         return len(self.__moduleDict)
@@ -941,9 +859,8 @@ class _ModuleContainer:
 
     def get_module_by_name(self, modName):
         """
-        @type  modName: str
-        @param modName:
-            Name of the module to look for, as returned by L{Module.get_name}.
+        :param str modName:
+            Name of the module to look for, as returned by :meth:`Module.get_name`.
             If two or more modules with the same name are loaded, only one
             of the matching modules is returned.
 
@@ -951,9 +868,9 @@ class _ModuleContainer:
             This works correctly even if two modules with the same name
             are loaded from different paths.
 
-        @rtype:  L{Module}
-        @return: C{Module} object that best matches the given name.
-            Returns C{None} if no C{Module} can be found.
+        :returns: :class:`Module` object that best matches the given name.
+            Returns ``None`` if no :class:`Module` can be found.
+        :rtype:  :class:`Module`
         """
 
         # Convert modName to lowercase.
@@ -996,12 +913,10 @@ class _ModuleContainer:
 
     def get_module_at_address(self, address):
         """
-        @type  address: int
-        @param address: Memory address to query.
-
-        @rtype:  L{Module}
-        @return: C{Module} object that best matches the given address.
-            Returns C{None} if no C{Module} can be found.
+        :param int address: Memory address to query.
+        :returns: :class:`Module` object that best matches the given address.
+            Returns ``None`` if no :class:`Module` can be found.
+        :rtype:  :class:`Module`
         """
         bases = self.get_module_bases()
         bases = sorted(bases)
@@ -1095,27 +1010,25 @@ class _ModuleContainer:
         """
         Creates a label from a module and a function name, plus an offset.
 
-        @warning: This method only creates the label, it doesn't make sure the
+        .. warning:: This method only creates the label, it doesn't make sure the
             label actually points to a valid memory location.
 
-        @type  module: None or str
-        @param module: (Optional) Module name.
+        :param module: (Optional) Module name.
+        :type  module: None or str
+        :param function: (Optional) Function name or ordinal.
+        :type  function: None, str or int
+        :param offset: (Optional) Offset value.
 
-        @type  function: None, str or int
-        @param function: (Optional) Function name or ordinal.
+            If ``function`` is specified, offset from the function.
 
-        @type  offset: None or int
-        @param offset: (Optional) Offset value.
+            If ``function`` is ``None``, offset from the module.
+        :type  offset: None or int
 
-            If C{function} is specified, offset from the function.
-
-            If C{function} is C{None}, offset from the module.
-
-        @rtype:  str
-        @return:
+        :returns:
             Label representing the given function in the given module.
+        :rtype:  str
 
-        @raise ValueError:
+        :raises ValueError:
             The module or function name contain invalid characters.
         """
 
@@ -1164,31 +1077,29 @@ class _ModuleContainer:
     @staticmethod
     def split_label_strict(label):
         """
-        Splits a label created with L{parse_label}.
+        Splits a label created with :meth:`parse_label`.
 
-        To parse labels with a less strict syntax, use the L{split_label_fuzzy}
+        To parse labels with a less strict syntax, use the :meth:`split_label_fuzzy`
         method instead.
 
-        @warning: This method only parses the label, it doesn't make sure the
+        .. warning:: This method only parses the label, it doesn't make sure the
             label actually points to a valid memory location.
 
-        @type  label: str
-        @param label: Label to split.
-
-        @rtype:  tuple( str or None, str or int or None, int or None )
-        @return: Tuple containing the C{module} name,
-            the C{function} name or ordinal, and the C{offset} value.
+        :param str label: Label to split.
+        :returns: Tuple containing the ``module`` name,
+            the ``function`` name or ordinal, and the ``offset`` value.
 
             If the label doesn't specify a module,
-            then C{module} is C{None}.
+            then ``module`` is ``None``.
 
             If the label doesn't specify a function,
-            then C{function} is C{None}.
+            then ``function`` is ``None``.
 
             If the label doesn't specify an offset,
-            then C{offset} is C{0}.
+            then ``offset`` is ``0``.
+        :rtype:  tuple(str or None, str or int or None, int or None)
 
-        @raise ValueError: The label is malformed.
+        :raises ValueError: The label is malformed.
         """
         module = function = None
         offset = 0
@@ -1308,32 +1219,30 @@ class _ModuleContainer:
         """
         Splits a label entered as user input.
 
-        It's more flexible in it's syntax parsing than the L{split_label_strict}
+        It's more flexible in it's syntax parsing than the :meth:`split_label_strict`
         method, as it allows the exclamation mark (B{C{!}}) to be omitted. The
         ambiguity is resolved by searching the modules in the snapshot to guess
         if a label refers to a module or a function. It also tries to rebuild
         labels when they contain hardcoded addresses.
 
-        @warning: This method only parses the label, it doesn't make sure the
+        .. warning:: This method only parses the label, it doesn't make sure the
             label actually points to a valid memory location.
 
-        @type  label: str
-        @param label: Label to split.
-
-        @rtype:  tuple( str or None, str or int or None, int or None )
-        @return: Tuple containing the C{module} name,
-            the C{function} name or ordinal, and the C{offset} value.
+        :param str label: Label to split.
+        :returns: Tuple containing the ``module`` name,
+            the ``function`` name or ordinal, and the ``offset`` value.
 
             If the label doesn't specify a module,
-            then C{module} is C{None}.
+            then ``module`` is ``None``.
 
             If the label doesn't specify a function,
-            then C{function} is C{None}.
+            then ``function`` is ``None``.
 
             If the label doesn't specify an offset,
-            then C{offset} is C{0}.
+            then ``offset`` is ``0``.
+        :rtype:  tuple(str or None, str or int or None, int or None)
 
-        @raise ValueError: The label is malformed.
+        :raises ValueError: The label is malformed.
         """
         module = function = None
         offset = 0
@@ -1442,42 +1351,35 @@ class _ModuleContainer:
     @classmethod
     def split_label(cls, label):
         """
-Splits a label into it's C{module}, C{function} and C{offset}
-components, as used in L{parse_label}.
+        Splits a label into it's ``module``, ``function`` and ``offset``
+        components, as used in :meth:`parse_label`.
 
-When called as a static method, the strict syntax mode is used::
+        When called as a static method, the strict syntax mode is used::
 
-    winappdbg.Process.split_label( "kernel32!CreateFileA" )
+            winappdbg.Process.split_label( "kernel32!CreateFileA" )
 
-When called as an instance method, the fuzzy syntax mode is used::
+        When called as an instance method, the fuzzy syntax mode is used::
 
-    aProcessInstance.split_label( "CreateFileA" )
+            aProcessInstance.split_label( "CreateFileA" )
 
-@see: L{split_label_strict}, L{split_label_fuzzy}
+        :param str label: Label to split.
+        :returns:
+            Tuple containing the ``module`` name,
+            the ``function`` name or ordinal, and the ``offset`` value.
 
-@type  label: str
-@param label: Label to split.
+            If the label doesn't specify a module,
+            then ``module`` is ``None``.
 
-@rtype:  tuple( str or None, str or int or None, int or None )
-@return:
-    Tuple containing the C{module} name,
-    the C{function} name or ordinal, and the C{offset} value.
+            If the label doesn't specify a function,
+            then ``function`` is ``None``.
 
-    If the label doesn't specify a module,
-    then C{module} is C{None}.
+            If the label doesn't specify an offset,
+            then ``offset`` is ``0``.
+        :rtype:  tuple(str or None, str or int or None, int or None)
+        :raises ValueError: The label is malformed.
 
-    If the label doesn't specify a function,
-    then C{function} is C{None}.
-
-    If the label doesn't specify an offset,
-    then C{offset} is C{0}.
-
-@raise ValueError: The label is malformed.
+        .. seealso:: :meth:`split_label_strict`, :meth:`split_label_fuzzy`
         """
-
-        # XXX
-        # Docstring indentation was removed so epydoc doesn't complain
-        # when parsing the docs for __use_fuzzy_mode().
 
         # This function is overwritten by __init__
         # so here is the static implementation only.
@@ -1485,7 +1387,9 @@ When called as an instance method, the fuzzy syntax mode is used::
 
     # The split_label method is replaced with this function by __init__.
     def __use_fuzzy_mode(self, label):
-        "@see: L{split_label}"
+        """
+        .. seealso:: :meth:`split_label`
+        """
         return self.split_label_fuzzy(label)
 ##    __use_fuzzy_mode.__doc__ = split_label.__doc__
 
@@ -1493,11 +1397,9 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Converts a label taken from user input into a well-formed label.
 
-        @type  label: str
-        @param label: Label taken from user input.
-
-        @rtype:  str
-        @return: Sanitized label.
+        :param str label: Label taken from user input.
+        :returns: Sanitized label.
+        :rtype:  str
         """
         (module, function, offset) = self.split_label_fuzzy(label)
         label = self.parse_label(module, function, offset)
@@ -1507,26 +1409,24 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Resolve the memory address of the given label.
 
-        @note:
+        .. note::
             If multiple modules with the same name are loaded,
             the label may be resolved at any of them. For a more precise
-            way to resolve functions use the base address to get the L{Module}
-            object (see L{Process.get_module}) and then call L{Module.resolve}.
+            way to resolve functions use the base address to get the :class:`Module`
+            object (see :meth:`Process.get_module`) and then call :meth:`Module.resolve`.
 
             If no module name is specified in the label, the function may be
             resolved in any loaded module. If you want to resolve all functions
-            with that name in all processes, call L{Process.iter_modules} to
+            with that name in all processes, call :meth:`Process.iter_modules` to
             iterate through all loaded modules, and then try to resolve the
-            function in each one of them using L{Module.resolve}.
+            function in each one of them using :meth:`Module.resolve`.
 
-        @type  label: str
-        @param label: Label to resolve.
+        :param str label: Label to resolve.
+        :returns: Memory address pointed to by the label.
+        :rtype:  int
 
-        @rtype:  int
-        @return: Memory address pointed to by the label.
-
-        @raise ValueError: The label is malformed or impossible to resolve.
-        @raise RuntimeError: Cannot resolve the module or function.
+        :raises ValueError: The label is malformed or impossible to resolve.
+        :raises RuntimeError: Cannot resolve the module or function.
         """
 
         # Split the label into module, function and offset components.
@@ -1544,39 +1444,37 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Resolve the memory address of the given module, function and/or offset.
 
-        @note:
+        .. note::
             If multiple modules with the same name are loaded,
             the label may be resolved at any of them. For a more precise
-            way to resolve functions use the base address to get the L{Module}
-            object (see L{Process.get_module}) and then call L{Module.resolve}.
+            way to resolve functions use the base address to get the :class:`Module`
+            object (see :meth:`Process.get_module`) and then call :meth:`Module.resolve`.
 
             If no module name is specified in the label, the function may be
             resolved in any loaded module. If you want to resolve all functions
-            with that name in all processes, call L{Process.iter_modules} to
+            with that name in all processes, call :meth:`Process.iter_modules` to
             iterate through all loaded modules, and then try to resolve the
-            function in each one of them using L{Module.resolve}.
+            function in each one of them using :meth:`Module.resolve`.
 
-        @type  module: None or str
-        @param module: (Optional) Module name.
+        :param module: (Optional) Module name.
+        :type  module: None or str
+        :param function: (Optional) Function name or ordinal.
+            - ``str``: Name of the function (Unicode).
+            - ``bytes``: Name of the function (ANSI).
+            - ``int``: Ordinal of the function.
+        :type  function: None, str, bytes or int
+        :param offset: (Optional) Offset value.
 
-        @type  function: None, str, bytes or int
-        @param function: (Optional) Function name or ordinal.
-            - C{str}: Name of the function (Unicode).
-            - C{bytes}: Name of the function (ANSI).
-            - C{int}: Ordinal of the function.
+            If ``function`` is specified, offset from the function.
 
-        @type  offset: None or int
-        @param offset: (Optional) Offset value.
+            If ``function`` is ``None``, offset from the module.
+        :type  offset: None or int
 
-            If C{function} is specified, offset from the function.
+        :returns: Memory address pointed to by the label.
+        :rtype:  int
 
-            If C{function} is C{None}, offset from the module.
-
-        @rtype:  int
-        @return: Memory address pointed to by the label.
-
-        @raise ValueError: The label is malformed or impossible to resolve.
-        @raise RuntimeError: Cannot resolve the module or function.
+        :raises ValueError: The label is malformed or impossible to resolve.
+        :raises RuntimeError: Cannot resolve the module or function.
         """
         # Default address if no module or function are given.
         # An offset may be added later.
@@ -1636,18 +1534,15 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Creates a label from the given memory address.
 
-        @warning: This method uses the name of the nearest currently loaded
+        .. warning:: This method uses the name of the nearest currently loaded
             module. If that module is unloaded later, the label becomes
             impossible to resolve.
 
-        @type  address: int
-        @param address: Memory address.
-
-        @type  offset: None or int
-        @param offset: (Optional) Offset value.
-
-        @rtype:  str
-        @return: Label pointing to the given address.
+        :param int address: Memory address.
+        :param offset: (Optional) Offset value.
+        :type  offset: None or int
+        :returns: Label pointing to the given address.
+        :rtype:  str
         """
         if offset:
             address = address + offset
@@ -1679,10 +1574,10 @@ When called as an instance method, the fuzzy syntax mode is used::
     # It can only be resolved if we have the debug symbols.
     def get_break_on_error_ptr(self):
         """
-        @rtype: int
-        @return:
-            If present, returns the address of the C{g_dwLastErrorToBreakOn}
-            global variable for this process. If not, returns C{None}.
+        :returns:
+            If present, returns the address of the ``g_dwLastErrorToBreakOn``
+            global variable for this process. If not, returns ``None``.
+        :rtype: int
         """
         address = self.__get_system_breakpoint("ntdll!g_dwLastErrorToBreakOn")
         if not address:
@@ -1695,13 +1590,11 @@ When called as an instance method, the fuzzy syntax mode is used::
 
     def is_system_defined_breakpoint(self, address):
         """
-        @type  address: int
-        @param address: Memory address.
-
-        @rtype:  bool
-        @return: C{True} if the given address points to a system defined
+        :param int address: Memory address.
+        :returns: ``True`` if the given address points to a system defined
             breakpoint. System defined breakpoints are hardcoded into
             system libraries.
+        :rtype:  bool
         """
         if address:
             module = self.get_module_at_address(address)
@@ -1714,20 +1607,20 @@ When called as an instance method, the fuzzy syntax mode is used::
     # In Wine, the system breakpoint seems to be somewhere in kernel32.
     def get_system_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the system breakpoint
+        :returns: Memory address of the system breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll!DbgBreakPoint")
 
     # I don't know when this breakpoint is actually used...
     def get_user_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the user breakpoint
+        :returns: Memory address of the user breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll!DbgUserBreakPoint")
 
@@ -1735,40 +1628,40 @@ When called as an instance method, the fuzzy syntax mode is used::
     # when the debugging symbols for ntdll.dll are loaded.
     def get_breakin_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the remote breakin breakpoint
+        :returns: Memory address of the remote breakin breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll!DbgUiRemoteBreakin")
 
     # Equivalent of ntdll!DbgBreakPoint in Wow64.
     def get_wow64_system_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the Wow64 system breakpoint
+        :returns: Memory address of the Wow64 system breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll32!DbgBreakPoint")
 
     # Equivalent of ntdll!DbgUserBreakPoint in Wow64.
     def get_wow64_user_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the Wow64 user breakpoint
+        :returns: Memory address of the Wow64 user breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll32!DbgUserBreakPoint")
 
     # Equivalent of ntdll!DbgUiRemoteBreakin in Wow64.
     def get_wow64_breakin_breakpoint(self):
         """
-        @rtype:  int or None
-        @return: Memory address of the Wow64 remote breakin breakpoint
+        :returns: Memory address of the Wow64 remote breakin breakpoint
             within the process address space.
-            Returns C{None} on error.
+            Returns ``None`` on error.
+        :rtype:  int or None
         """
         return self.__get_system_breakpoint("ntdll32!DbgUiRemoteBreakin")
 
@@ -1777,7 +1670,7 @@ When called as an instance method, the fuzzy syntax mode is used::
     def load_symbols(self):
         """
         Loads the debugging symbols for all modules in this snapshot.
-        Automatically called by L{get_symbols}.
+        Automatically called by :meth:`get_symbols`.
         """
         for aModule in self.iter_modules():
             aModule.load_symbols()
@@ -1794,12 +1687,12 @@ When called as an instance method, the fuzzy syntax mode is used::
         Returns the debugging symbols for all modules in this snapshot.
         The symbols are automatically loaded when needed.
 
-        @rtype:  list of tuple( str, int, int )
-        @return: List of symbols.
+        :returns: List of symbols.
             Each symbol is represented by a tuple that contains:
-                - Symbol name
-                - Symbol memory address
-                - Symbol size in bytes
+            - Symbol name
+            - Symbol memory address
+            - Symbol size in bytes
+        :rtype:  list(tuple(str, int, int))
         """
         symbols = list()
         for aModule in self.iter_modules():
@@ -1813,12 +1706,12 @@ When called as an instance method, the fuzzy syntax mode is used::
         snapshot, in no particular order.
         The symbols are automatically loaded when needed.
 
-        @rtype:  iterator of tuple( str, int, int )
-        @return: Iterator of symbols.
+        :returns: Iterator of symbols.
             Each symbol is represented by a tuple that contains:
-                - Symbol name
-                - Symbol memory address
-                - Symbol size in bytes
+            - Symbol name
+            - Symbol memory address
+            - Symbol size in bytes
+        :rtype:  iterator of tuple(str, int, int)
         """
         for aModule in self.iter_modules():
             for symbol in aModule.iter_symbols():
@@ -1828,15 +1721,12 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Resolves a debugging symbol's address.
 
-        @type  symbol: str
-        @param symbol: Name of the symbol to resolve.
+        :param str symbol: Name of the symbol to resolve.
+        :param bool bCaseSensitive: ``True`` for case sensitive matches,
+            ``False`` for case insensitive.
 
-        @type  bCaseSensitive: bool
-        @param bCaseSensitive: C{True} for case sensitive matches,
-            C{False} for case insensitive.
-
-        @rtype:  int or None
-        @return: Memory address of symbol. C{None} if not found.
+        :returns: Memory address of symbol. ``None`` if not found.
+        :rtype:  int or None
         """
         if bCaseSensitive:
             for (SymbolName, SymbolAddress, SymbolSize) in self.iter_symbols():
@@ -1852,15 +1742,14 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Tries to find the closest matching symbol for the given address.
 
-        @type  address: int
-        @param address: Memory address to query.
-
-        @rtype: None or tuple( str, int, int )
-        @return: Returns a tuple consisting of:
+        :param int address: Memory address to query.
+        :returns: Returns a tuple consisting of:
              - Name
              - Address
              - Size (in bytes)
-            Returns C{None} if no symbol could be matched.
+
+            Returns ``None`` if no symbol could be matched.
+        :rtype: None or tuple(str, int, int)
         """
         # Any module may have symbols pointing anywhere in memory, so there's
         # no easy way to optimize this. I guess we're stuck with brute force.
@@ -1888,8 +1777,8 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Private method to add a module object to the snapshot.
 
-        @type  aModule: L{Module}
-        @param aModule: Module object.
+        :param aModule: Module object.
+        :type  aModule: :class:`Module`
         """
 ##        if not isinstance(aModule, Module):
 ##            if hasattr(aModule, '__class__'):
@@ -1909,8 +1798,7 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Private method to remove a module object from the snapshot.
 
-        @type  lpBaseOfDll: int
-        @param lpBaseOfDll: Module base address.
+        :param int lpBaseOfDll: Module base address.
         """
         try:
             aModule = self.__moduleDict[lpBaseOfDll]
@@ -1926,8 +1814,8 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Private method to automatically add new module objects from debug events.
 
-        @type  event: L{Event}
-        @param event: Event object.
+        :param event: Event object.
+        :type  event: :class:`~winappdbg.event.Event`
         """
         lpBaseOfDll = event.get_module_base()
         hFile       = event.get_file_handle()
@@ -1963,14 +1851,13 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Notify the load of the main module.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the :class:`~winappdbg.debug.Debug` class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{CreateProcessEvent}
-        @param event: Create process event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Create process event.
+        :type  event: :class:`~winappdbg.event.CreateProcessEvent`
+        :returns: ``True`` to call the user-defined handle, ``False`` otherwise.
+        :rtype:  bool
         """
         self.__add_loaded_module(event)
         return True
@@ -1979,14 +1866,13 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Notify the load of a new module.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the :class:`~winappdbg.debug.Debug` class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{LoadDLLEvent}
-        @param event: Load DLL event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Load DLL event.
+        :type  event: :class:`~winappdbg.event.LoadDLLEvent`
+        :returns: ``True`` to call the user-defined handle, ``False`` otherwise.
+        :rtype:  bool
         """
         self.__add_loaded_module(event)
         return True
@@ -1995,14 +1881,13 @@ When called as an instance method, the fuzzy syntax mode is used::
         """
         Notify the release of a loaded module.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the :class:`~winappdbg.debug.Debug` class, you shouldn't need
         to call it yourself.
 
-        @type  event: L{UnloadDLLEvent}
-        @param event: Unload DLL event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Unload DLL event.
+        :type  event: :class:`~winappdbg.event.UnloadDLLEvent`
+        :returns: ``True`` to call the user-defined handle, ``False`` otherwise.
+        :rtype:  bool
         """
         lpBaseOfDll = event.get_module_base()
 ##        if self.has_module(lpBaseOfDll):  # XXX this would trigger a scan

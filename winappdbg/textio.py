@@ -30,16 +30,6 @@
 
 """
 Functions for text input, logging or text output.
-
-@group Helpers:
-    HexDump,
-    HexInput,
-    HexOutput,
-    Color,
-    Table,
-    Logger
-    DebugLog
-    CrashDump
 """
 
 __all__ =   [
@@ -67,7 +57,7 @@ import os
 class HexInput (StaticClass):
     """
     Static functions for user input parsing.
-    The counterparts for each method are in the L{HexOutput} class.
+    The counterparts for each method are in the :class:`HexOutput` class.
     """
 
     @staticmethod
@@ -75,11 +65,11 @@ class HexInput (StaticClass):
         """
         Convert numeric strings into integers.
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  int
-        @return: Parsed integer value.
+        :return: Parsed integer value.
+        :rtype:  int
         """
         token = token.strip()
         neg = False
@@ -106,11 +96,11 @@ class HexInput (StaticClass):
         """
         Convert numeric strings into memory addresses.
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  int
-        @return: Parsed integer value.
+        :return: Parsed integer value.
+        :rtype:  int
         """
         return int(token, 16)
 
@@ -119,11 +109,11 @@ class HexInput (StaticClass):
         """
         Convert a strip of hexadecimal numbers into binary data.
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  bytes
-        @return: Parsed string value.
+        :return: Parsed string value.
+        :rtype:  bytes
         """
         token = ''.join([ c for c in token if c.isalnum() ])
         if len(token) % 2 != 0:
@@ -149,11 +139,11 @@ class HexInput (StaticClass):
 
             "B8 0D F0 AD BA"    # mov eax, 0xBAADF00D
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  bytes
-        @return: Parsed string value.
+        :return: Parsed string value.
+        :rtype:  bytes
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
@@ -179,14 +169,13 @@ class HexInput (StaticClass):
     def is_pattern(token):
         """
         Determine if the given argument is a valid hexadecimal pattern to be
-        used with L{pattern}.
+        used with :meth:`pattern`.
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  bool
-        @return:
-            C{True} if it's a valid hexadecimal pattern, C{False} otherwise.
+        :return: ``True`` if it's a valid hexadecimal pattern, ``False`` otherwise.
+        :rtype:  bool
         """
         return re.match(r"^(?:[\?A-Fa-f0-9][\?A-Fa-f0-9]\s*)+$", token) is not None
 
@@ -194,13 +183,13 @@ class HexInput (StaticClass):
     def get_pattern_length(token):
         """
         Determine the byte length of the given hexadecimal pattern to be
-        used with L{pattern}.
+        used with :meth:`pattern`.
 
-        @type  token: str
-        @param token: String to parse.
+        :param token: String to parse.
+        :type  token: str
 
-        @rtype:  int
-        @return: Length in bytes.
+        :return: Length in bytes.
+        :rtype:  int
         """
         token = ''.join([ c for c in token if c == '?' or c.isalnum() ])
         if len(token) % 2 != 0:
@@ -223,11 +212,11 @@ class HexInput (StaticClass):
             - binary numbers ("0b100" is 4)
             - octal numbers ("0100" is 64)
 
-        @type  filename: str
-        @param filename: Name of the file to read.
+        :param filename: Name of the file to read.
+        :type  filename: str
 
-        @rtype:  list( int )
-        @return: List of integers read from the file.
+        :return: List of integers read from the file.
+        :rtype:  list[int]
         """
         count  = 0
         result = list()
@@ -259,11 +248,11 @@ class HexInput (StaticClass):
          - empty lines are ignored
          - strings cannot span over a single line
 
-        @type  filename: str
-        @param filename: Name of the file to read.
+        :param filename: Name of the file to read.
+        :type  filename: str
 
-        @rtype:  list
-        @return: List of integers and strings read from the file.
+        :return: List of integers and strings read from the file.
+        :rtype:  list[str]
         """
         count  = 0
         result = list()
@@ -294,11 +283,11 @@ class HexInput (StaticClass):
             - binary numbers ("0b100" is 4)
             - octal numbers ("0100" is 64)
 
-        @type  filename: str
-        @param filename: Name of the file to read.
+        :param filename: Name of the file to read.
+        :type  filename: str
 
-        @rtype:  list
-        @return: List of integers and strings read from the file.
+        :return: List of integers and strings read from the file.
+        :rtype:  list
         """
         count  = 0
         result = list()
@@ -321,14 +310,12 @@ class HexInput (StaticClass):
 class HexOutput (StaticClass):
     """
     Static functions for user output parsing.
-    The counterparts for each method are in the L{HexInput} class.
+    The counterparts for each method are in the :class:`HexInput` class.
 
-    @type integer_size: int
-    @cvar integer_size: Default size in characters of an outputted integer.
+    :cvar int integer_size: Default size in characters of an outputted integer.
         This value is platform dependent.
 
-    @type address_size: int
-    @cvar address_size: Default Number of bits of the target architecture.
+    :cvar int address_size: Default Number of bits of the target architecture.
         This value is platform dependent.
     """
 
@@ -338,16 +325,15 @@ class HexOutput (StaticClass):
     @classmethod
     def integer(cls, integer, bits = None):
         """
-        @type  integer: int
-        @param integer: Integer.
+        :param integer: Integer.
+        :type  integer: int
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexOutput.integer_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`integer_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  str
         """
         if bits is None:
             integer_size = cls.integer_size
@@ -360,16 +346,15 @@ class HexOutput (StaticClass):
     @classmethod
     def address(cls, address, bits = None):
         """
-        @type  address: int
-        @param address: Memory address.
+        :param address: Memory address.
+        :type  address: int
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexOutput.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  str
         """
         if bits is None:
             address_size = cls.address_size
@@ -385,11 +370,11 @@ class HexOutput (StaticClass):
         """
         Convert binary data to a string of hexadecimal numbers.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @rtype:  str
-        @return: Hexadecimal representation.
+        :return: Hexadecimal representation.
+        :rtype:  str
         """
         return HexDump.hexadecimal(data, separator = '')
 
@@ -399,18 +384,18 @@ class HexOutput (StaticClass):
         Write a list of integers to a file.
         If a file of the same name exists, it's contents are replaced.
 
-        See L{HexInput.integer_list_file} for a description of the file format.
+        See :meth:`~winappdbg.textio.HexInput.integer_list_file`
+        for a description of the file format.
 
-        @type  filename: str
-        @param filename: Name of the file to write.
+        :param filename: Name of the file to write.
+        :type  filename: str
 
-        @type  values: list( int )
-        @param values: List of integers to write to the file.
+        :param values: List of integers to write to the file.
+        :type  values: list[int]
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexOutput.integer_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`integer_size`
+        :type  bits: int
         """
         with open(filename, 'w', encoding='utf-8') as fd:
             for integer in values:
@@ -422,13 +407,14 @@ class HexOutput (StaticClass):
         Write a list of strings to a file.
         If a file of the same name exists, it's contents are replaced.
 
-        See L{HexInput.string_list_file} for a description of the file format.
+        See :meth:`~winappdbg.textio.HexInput.string_list_file`
+        for a description of the file format.
 
-        @type  filename: str
-        @param filename: Name of the file to write.
+        :param filename: Name of the file to write.
+        :type  filename: str
 
-        @type  values: list( int )
-        @param values: List of strings to write to the file.
+        :param values: List of strings to write to the file.
+        :type  values: list[str]
         """
         with open(filename, 'w', encoding='utf-8') as fd:
             fd.writelines([s + os.linesep for s in values])
@@ -439,18 +425,18 @@ class HexOutput (StaticClass):
         Write a list of mixed values to a file.
         If a file of the same name exists, it's contents are replaced.
 
-        See L{HexInput.mixed_list_file} for a description of the file format.
+        See :meth:`~winappdbg.textio.HexInput.mixed_list_file`
+        for a description of the file format.
 
-        @type  filename: str
-        @param filename: Name of the file to write.
+        :param filename: Name of the file to write.
+        :type  filename: str
 
-        @type  values: list( int )
-        @param values: List of mixed values to write to the file.
+        :param values: List of mixed values to write to the file.
+        :type  values: list
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexOutput.integer_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`integer_size`
+        :type  bits: int
         """
         with open(filename, 'w', encoding='utf-8') as fd:
             for original in values:
@@ -466,12 +452,10 @@ class HexDump (StaticClass):
     """
     Static functions for hexadecimal dumps.
 
-    @type integer_size: int
-    @cvar integer_size: Size in characters of an outputted integer.
+    :cvar int integer_size: Size in characters of an outputted integer.
         This value is platform dependent.
 
-    @type address_size: int
-    @cvar address_size: Size in characters of an outputted address.
+    :cvar int address_size: Size in characters of an outputted address.
         This value is platform dependent.
     """
 
@@ -481,16 +465,15 @@ class HexDump (StaticClass):
     @classmethod
     def integer(cls, integer, bits = None):
         """
-        @type  integer: int
-        @param integer: Integer.
+        :param integer: Integer.
+        :type  integer: int
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.integer_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`integer_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  str
         """
         if bits is None:
             integer_size = cls.integer_size
@@ -501,16 +484,15 @@ class HexDump (StaticClass):
     @classmethod
     def address(cls, address, bits = None):
         """
-        @type  address: int
-        @param address: Memory address.
+        :param address: Memory address.
+        :type  address: int
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  str
         """
         if bits is None:
             address_size = cls.address_size
@@ -526,11 +508,11 @@ class HexDump (StaticClass):
         """
         Replace unprintable characters with dots.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @rtype:  str
-        @return: Printable text.
+        :return: Printable text.
+        :rtype:  str
         """
         result = ''
         if isinstance(data, str):
@@ -547,15 +529,15 @@ class HexDump (StaticClass):
         """
         Convert binary data to a string of hexadecimal numbers.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
+        :param separator: Separator between the hexadecimal
+            representation of each character.
+        :type  separator: str
 
-        @rtype:  str
-        @return: Hexadecimal representation.
+        :return: Hexadecimal representation.
+        :rtype:  str
         """
         return separator.join( [ '%.2x' % c for c in data ] )
 
@@ -564,15 +546,15 @@ class HexDump (StaticClass):
         """
         Convert binary data to a string of hexadecimal WORDs.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each WORD.
+        :param separator: Separator between the hexadecimal
+            representation of each WORD.
+        :type  separator: str
 
-        @rtype:  str
-        @return: Hexadecimal representation.
+        :return: Hexadecimal representation.
+        :rtype:  str
         """
         if len(data) & 1 != 0:
             data += b'\0'
@@ -584,15 +566,15 @@ class HexDump (StaticClass):
         """
         Convert binary data to a string of hexadecimal DWORDs.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each DWORD.
+        :param separator: Separator between the hexadecimal
+            representation of each DWORD.
+        :type  separator: str
 
-        @rtype:  str
-        @return: Hexadecimal representation.
+        :return: Hexadecimal representation.
+        :rtype:  str
         """
         if len(data) & 3 != 0:
             data += b'\0' * (4 - (len(data) & 3))
@@ -604,15 +586,15 @@ class HexDump (StaticClass):
         """
         Convert binary data to a string of hexadecimal QWORDs.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each QWORD.
+        :param separator: Separator between the hexadecimal
+            representation of each QWORD.
+        :type  separator: str
 
-        @rtype:  str
-        @return: Hexadecimal representation.
+        :return: Hexadecimal representation.
+        :rtype:  str
         """
         if len(data) & 7 != 0:
             data += b'\0' * (8 - (len(data) & 7))
@@ -624,20 +606,19 @@ class HexDump (StaticClass):
         """
         Dump a line of hexadecimal numbers from binary data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
+        :param separator: Separator between the hexadecimal
+            representation of each character.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of characters to convert per text line.
-            This value is also used for padding.
+        :param width: (Optional) Maximum number of characters to convert per
+            text line. This value is also used for padding.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         if width is None:
             fmt = '%s  %s'
@@ -654,27 +635,26 @@ class HexDump (StaticClass):
         Dump a block of hexadecimal numbers from binary data.
         Also show a printable text version of the data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address: Memory address where the data was read from.
+        :param address: Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
+        :param separator: Separator between the hexadecimal
+            representation of each character.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of characters to convert per text line.
+        :param width: (Optional) Maximum number of characters to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         return cls.hexblock_cb(cls.hexline, data, address, bits, width,
                  cb_kwargs = {'width' : width, 'separator' : separator})
@@ -689,35 +669,32 @@ class HexDump (StaticClass):
         Dump a block of binary data using a callback function to convert each
         line of text.
 
-        @type  callback: function
-        @param callback: Callback function to convert each line of data.
+        :param callback: Callback function to convert each line of data.
+        :type  callback: function
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address:
-            (Optional) Memory address where the data was read from.
+        :param address: (Optional) Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  cb_args: str
-        @param cb_args:
-            (Optional) Arguments to pass to the callback function.
+        :param cb_args: (Optional) Arguments to pass to the callback function.
+        :type  cb_args: str
 
-        @type  cb_kwargs: str
-        @param cb_kwargs:
-            (Optional) Keyword arguments to pass to the callback function.
+        :param cb_kwargs: (Optional) Keyword arguments to pass to the
+            callback function.
+        :type  cb_kwargs: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of bytes to convert per text line.
+        :param width: (Optional) Maximum number of bytes to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         result = ''
         if address is None:
@@ -742,27 +719,26 @@ class HexDump (StaticClass):
         """
         Dump a block of hexadecimal BYTEs from binary data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address: Memory address where the data was read from.
+        :param address: Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each BYTE.
+        :param separator: Separator between the hexadecimal
+            representation of each BYTE.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of BYTEs to convert per text line.
+        :param width: (Optional) Maximum number of BYTEs to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         return cls.hexblock_cb(cls.hexadecimal, data,
                                address, bits, width,
@@ -776,27 +752,26 @@ class HexDump (StaticClass):
         """
         Dump a block of hexadecimal WORDs from binary data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address: Memory address where the data was read from.
+        :param address: Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each WORD.
+        :param separator: Separator between the hexadecimal
+            representation of each WORD.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of WORDs to convert per text line.
+        :param width: (Optional) Maximum number of WORDs to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         return cls.hexblock_cb(cls.hexa_word, data,
                                address, bits, width * 2,
@@ -810,27 +785,26 @@ class HexDump (StaticClass):
         """
         Dump a block of hexadecimal DWORDs from binary data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address: Memory address where the data was read from.
+        :param address: Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each DWORD.
+        :param separator: Separator between the hexadecimal
+            representation of each DWORD.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of DWORDs to convert per text line.
+        :param width: (Optional) Maximum number of DWORDs to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         return cls.hexblock_cb(cls.hexa_dword, data,
                                address, bits, width * 4,
@@ -844,27 +818,26 @@ class HexDump (StaticClass):
         """
         Dump a block of hexadecimal QWORDs from binary data.
 
-        @type  data: str
-        @param data: Binary data.
+        :param data: Binary data.
+        :type  data: str
 
-        @type  address: str
-        @param address: Memory address where the data was read from.
+        :param address: Memory address where the data was read from.
+        :type  address: str
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`address_size`
+        :type  bits: int
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each QWORD.
+        :param separator: Separator between the hexadecimal
+            representation of each QWORD.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of QWORDs to convert per text line.
+        :param width: (Optional) Maximum number of QWORDs to convert
+            per text line.
+        :type  width: int
 
-        @rtype:  str
-        @return: Multiline output text.
+        :return: Multiline output text.
+        :rtype:  str
         """
         return cls.hexblock_cb(cls.hexa_qword, data,
                                address, bits, width * 8,
@@ -899,9 +872,9 @@ class Color:
         call to any other method of this class to make sure it's actually
         possible to use colors.
 
-        @rtype:  bool
-        @return: C{True} if it's possible to output text with color,
-            C{False} otherwise.
+        :return: ``True`` if it's possible to output text with color,
+            ``False`` otherwise.
+        :rtype:  bool
         """
         try:
             cls._get_text_attributes()
@@ -1115,8 +1088,8 @@ class Table:
 
     def __init__(self, sep = ' '):
         """
-        @type  sep: str
-        @param sep: Separator between cells in each row.
+        :param sep: Separator between cells in each row.
+        :type  sep: str
         """
         self.__cols  = list()
         self.__width = list()
@@ -1126,8 +1099,8 @@ class Table:
         """
         Add a row to the table. All items are converted to strings.
 
-        @type    row: tuple
-        @keyword row: Each argument is a cell in the table.
+        :param row: Each argument is a cell in the table.
+        :type  row: tuple
         """
         row     = [ str(item) for item in row ]
         len_row = [ len(item) for item in row ]
@@ -1147,16 +1120,14 @@ class Table:
         """
         Make the text in a column left or right justified.
 
-        @type  column: int
-        @param column: Index of the column.
+        :param column: Index of the column.
+        :type  column: int
 
-        @type  direction: int
-        @param direction:
-            C{-1} to justify left,
-            C{1} to justify right.
+        :param direction: ``-1`` to justify left, ``1`` to justify right.
+        :type  direction: int
 
-        @raise IndexError: Bad column index.
-        @raise ValueError: Bad direction value.
+        :raises IndexError: Bad column index.
+        :raises ValueError: Bad direction value.
         """
         if direction == -1:
             self.__width[column] =   abs(self.__width[column])
@@ -1169,9 +1140,9 @@ class Table:
         """
         Get the width of the text output for the table.
 
-        @rtype:  int
-        @return: Width in characters for the text output,
+        :return: Width in characters for the text output,
             including the newline character.
+        :rtype:  int
         """
         width = 0
         if self.__width:
@@ -1183,8 +1154,8 @@ class Table:
         """
         Get the text output for the table.
 
-        @rtype:  str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  str
         """
         return '%s\n' % '\n'.join( self.yieldOutput() )
 
@@ -1192,8 +1163,8 @@ class Table:
         """
         Generate the text output for the table.
 
-        @rtype:  generator of str
-        @return: Text output.
+        :return: Text output.
+        :rtype:  generator of str
         """
         width = self.__width
         if width:
@@ -1218,8 +1189,7 @@ class CrashDump (StaticClass):
     """
     Static functions for crash dumps.
 
-    @type reg_template: str
-    @cvar reg_template: Template for the L{dump_registers} method.
+    :cvar str reg_template: Template for the :meth:`dump_registers` method.
     """
 
     # Templates for the dump_registers method.
@@ -1246,13 +1216,13 @@ class CrashDump (StaticClass):
         """
         Dump the x86 processor flags.
         The output mimics that of the WinDBG debugger.
-        Used by L{dump_registers}.
+        Used by :meth:`dump_registers`.
 
-        @type  efl: int
-        @param efl: Value of the eFlags register.
+        :param efl: Value of the eFlags register.
+        :type  efl: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if efl is None:
             return ''
@@ -1309,18 +1279,20 @@ class CrashDump (StaticClass):
         Dump the x86/x64 processor register values.
         The output mimics that of the WinDBG debugger.
 
-        @type  registers: dict( str S{->} int )
-        @param registers: Dictionary mapping register names to their values.
+        :param registers: Dictionary mapping register names to their values.
+        :type  registers: dict[str, int]
 
-        @type  arch: str
-        @param arch: Architecture of the machine whose registers were dumped.
+        :param arch: Architecture of the machine whose registers were dumped.
             Defaults to the current architecture.
-            Currently only the following architectures are supported:
-             - L{win32.ARCH_I386}
-             - L{win32.ARCH_AMD64}
 
-        @rtype:  str
-        @return: Text suitable for logging.
+            Currently only the following architectures are supported:
+
+             - :const:`winappdbg.win32.ARCH_I386`
+             - :const:`winappdbg.win32.ARCH_AMD64`
+        :type  arch: str
+
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if registers is None:
             return ''
@@ -1343,16 +1315,17 @@ class CrashDump (StaticClass):
         """
         Dump data pointed to by the given registers, if any.
 
-        @type  registers: dict( str S{->} int )
-        @param registers: Dictionary mapping register names to their values.
-            This value is returned by L{Thread.get_context}.
+        :param registers: Dictionary mapping register names to their values.
+            This value is returned by :meth:`~winappdbg.thread.Thread.get_context`.
+        :type  registers: dict[str, int]
 
-        @type  data: dict( str S{->} str )
-        @param data: Dictionary mapping register names to the data they point to.
-            This value is returned by L{Thread.peek_pointers_in_registers}.
+        :param data: Dictionary mapping register names to the data they point to.
+            This value is returned by
+            :meth:`~winappdbg.thread.Thread.peek_pointers_in_registers`.
+        :type  data: dict[str, str]
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if None in (registers, data):
             return ''
@@ -1372,19 +1345,18 @@ class CrashDump (StaticClass):
         """
         Dump data from pointers guessed within the given binary data.
 
-        @type  data: str
-        @param data: Dictionary mapping offsets to the data they point to.
+        :param data: Dictionary mapping offsets to the data they point to.
+        :type  data: str
 
-        @type  base: int
-        @param base: Base offset.
+        :param base: Base offset.
+        :type  base: int
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if data is None:
             return ''
@@ -1401,24 +1373,23 @@ class CrashDump (StaticClass):
         """
         Dump data from pointers guessed within the given stack dump.
 
-        @type  data: str
-        @param data: Dictionary mapping stack offsets to the data they point to.
+        :param data: Dictionary mapping stack offsets to the data they point to.
+        :type  data: str
 
-        @type  separator: str
-        @param separator:
-            Separator between the hexadecimal representation of each character.
+        :param separator: Separator between the hexadecimal
+            representation of each character.
+        :type  separator: str
 
-        @type  width: int
-        @param width:
-            (Optional) Maximum number of characters to convert per text line.
-            This value is also used for padding.
+        :param width: (Optional) Maximum number of characters to convert per
+            text line. This value is also used for padding.
+        :type  width: int
 
-        @type  arch: str
-        @param arch: Architecture of the machine whose registers were dumped.
+        :param arch: Architecture of the machine whose registers were dumped.
             Defaults to the current architecture.
+        :type  arch: str
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if data is None:
             return ''
@@ -1443,20 +1414,20 @@ class CrashDump (StaticClass):
     @staticmethod
     def dump_stack_trace(stack_trace, bits = None):
         """
-        Dump a stack trace, as returned by L{Thread.get_stack_trace} with the
-        C{bUseLabels} parameter set to C{False}.
+        Dump a stack trace, as returned by
+        :meth:`~winappdbg.thread.Thread.get_stack_trace`
+        with the ``bUseLabels`` parameter set to ``False``.
 
-        @type  stack_trace: list( int, int, str )
-        @param stack_trace: Stack trace as a list of tuples of
+        :param stack_trace: Stack trace as a list of tuples of
             ( return address, frame pointer, module filename )
+        :type  stack_trace: list[tuple(int, int, str)]
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if not stack_trace:
             return ''
@@ -1472,19 +1443,18 @@ class CrashDump (StaticClass):
     def dump_stack_trace_with_labels(stack_trace, bits = None):
         """
         Dump a stack trace,
-        as returned by L{Thread.get_stack_trace_with_labels}.
+        as returned by :meth:`~winappdbg.thread.Thread.get_stack_trace_with_labels`.
 
-        @type  stack_trace: list( int, int, str )
-        @param stack_trace: Stack trace as a list of tuples of
+        :param stack_trace: Stack trace as a list of tuples of
             ( return address, frame pointer, module filename )
+        :type  stack_trace: list[tuple(int, str)]
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if not stack_trace:
             return ''
@@ -1507,23 +1477,23 @@ class CrashDump (StaticClass):
         """
         Dump a disassembly. Optionally mark where the program counter is.
 
-        @type  disassembly: list of tuple( int, int, str, str )
-        @param disassembly: Disassembly dump as returned by
-            L{Process.disassemble} or L{Thread.disassemble_around_pc}.
+        :param disassembly: Disassembly dump as returned by
+            :meth:`~winappdbg.process.Process.disassemble` or
+            :meth:`~winappdbg.thread.Thread.disassemble_around_pc`.
+        :type  disassembly: list[tuple(int, int, str, str)]
 
-        @type  pc: int
-        @param pc: (Optional) Program counter.
+        :param pc: (Optional) Program counter.
+        :type  pc: int
 
-        @type  bLowercase: bool
-        @param bLowercase: (Optional) If C{True} convert the code to lowercase.
+        :param bLowercase: (Optional) If ``True`` convert the code to lowercase.
+        :type  bLowercase: bool
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if not disassembly:
             return ''
@@ -1547,34 +1517,34 @@ class CrashDump (StaticClass):
                                                            dwCodeWidth = None,
                                                                   bits = None):
         """
-        Dump a single line of code. To dump a block of code use L{dump_code}.
+        Dump a single line of code. To dump a block of code use :meth:`dump_code`.
 
-        @type  disassembly_line: tuple( int, int, str, str )
-        @param disassembly_line: Single item of the list returned by
-            L{Process.disassemble} or L{Thread.disassemble_around_pc}.
+        :param disassembly_line: Single item of the list returned by
+            :meth:`~winappdbg.process.Process.disassemble` or
+            :meth:`~winappdbg.thread.Thread.disassemble_around_pc`.
+        :type  disassembly_line: tuple(int, int, str, str)
 
-        @type  bShowAddress: bool
-        @param bShowAddress: (Optional) If C{True} show the memory address.
+        :param bShowAddress: (Optional) If ``True`` show the memory address.
+        :type  bShowAddress: bool
 
-        @type  bShowDump: bool
-        @param bShowDump: (Optional) If C{True} show the hexadecimal dump.
+        :param bShowDump: (Optional) If ``True`` show the hexadecimal dump.
+        :type  bShowDump: bool
 
-        @type  bLowercase: bool
-        @param bLowercase: (Optional) If C{True} convert the code to lowercase.
+        :param bLowercase: (Optional) If ``True`` convert the code to lowercase.
+        :type  bLowercase: bool
 
-        @type  dwDumpWidth: int or None
-        @param dwDumpWidth: (Optional) Width in characters of the hex dump.
+        :param dwDumpWidth: (Optional) Width in characters of the hex dump.
+        :type  dwDumpWidth: int or None
 
-        @type  dwCodeWidth: int or None
-        @param dwCodeWidth: (Optional) Width in characters of the code.
+        :param dwCodeWidth: (Optional) Width in characters of the code.
+        :type  dwCodeWidth: int or None
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if bits is None:
             address_size = HexDump.address_size
@@ -1608,20 +1578,20 @@ class CrashDump (StaticClass):
         Dump the memory map of a process. Optionally show the filenames for
         memory mapped files as well.
 
-        @type  memoryMap: list( L{win32.MemoryBasicInformation} )
-        @param memoryMap: Memory map returned by L{Process.get_memory_map}.
+        :param memoryMap: Memory map returned by
+            :meth:`~winappdbg.process.Process.get_memory_map`.
+        :type  memoryMap: list[win32.MemoryBasicInformation]
 
-        @type  mappedFilenames: dict( int S{->} str )
-        @param mappedFilenames: (Optional) Memory mapped filenames
-            returned by L{Process.get_mapped_filenames}.
+        :param mappedFilenames: (Optional) Memory mapped filenames
+            returned by :meth:`~winappdbg.process.Process.get_mapped_filenames`.
+        :type  mappedFilenames: dict[int, str]
 
-        @type  bits: int
-        @param bits:
-            (Optional) Number of bits of the target architecture.
-            The default is platform dependent. See: L{HexDump.address_size}
+        :param bits: (Optional) Number of bits of the target architecture.
+            The default is platform dependent. See: :attr:`~HexDump.address_size`
+        :type  bits: int
 
-        @rtype:  str
-        @return: Text suitable for logging.
+        :return: Text suitable for logging.
+        :rtype:  str
         """
         if not memoryMap:
             return ''
@@ -1719,11 +1689,11 @@ class DebugLog (StaticClass):
         """
         Log lines of text, inserting a timestamp.
 
-        @type  text: str
-        @param text: Text to log.
+        :param text: Text to log.
+        :type  text: str
 
-        @rtype:  str
-        @return: Log line.
+        :return: Log line.
+        :rtype:  str
         """
         if text.endswith('\n'):
             text = text[:-len('\n')]
@@ -1738,15 +1708,15 @@ class DebugLog (StaticClass):
         """
         Log lines of text associated with a debug event.
 
-        @type  event: L{Event}
-        @param event: Event object.
+        :param event: Event object.
+        :type  event: :class:`~winappdbg.event.Event`
 
-        @type  text: str
-        @param text: (Optional) Text to log. If no text is provided the default
+        :param text: (Optional) Text to log. If no text is provided the default
             is to show a description of the event itself.
+        :type  text: str
 
-        @rtype:  str
-        @return: Log line.
+        :return: Log line.
+        :rtype:  str
         """
         if not text:
             if event.get_event_code() == win32.EXCEPTION_DEBUG_EVENT:
@@ -1780,24 +1750,24 @@ class Logger(object):
     """
     Logs text to standard output and/or a text file.
 
-    @type logfile: str or None
-    @ivar logfile: Append messages to this text file.
+    :ivar logfile: Append messages to this text file.
+    :vartype logfile: str or None
 
-    @type verbose: bool
-    @ivar verbose: C{True} to print(messages to standard output.)
+    :ivar verbose: ``True`` to print messages to standard output.
+    :vartype verbose: bool
 
-    @type fd: file
-    @ivar fd: File object where log messages are printed to.
-        C{None} if no log file is used.
+    :ivar fd: File object where log messages are printed to.
+        ``None`` if no log file is used.
+    :vartype fd: file
     """
 
     def __init__(self, logfile = None, verbose = True):
         """
-        @type  logfile: str or None
-        @param logfile: Append messages to this text file.
+        :param logfile: Append messages to this text file.
+        :type  logfile: str or None
 
-        @type  verbose: bool
-        @param verbose: C{True} to print(messages to standard output.)
+        :param verbose: ``True`` to print messages to standard output.
+        :type  verbose: bool
         """
         self.verbose = verbose
         self.logfile = logfile
@@ -1813,8 +1783,8 @@ class Logger(object):
 
         Used internally.
 
-        @type  e: Exception
-        @param e: Exception raised when trying to write to the log file.
+        :param e: Exception raised when trying to write to the log file.
+        :type  e: Exception
         """
         from sys import stderr
         msg = "Warning, error writing log file %s: %s\n"
@@ -1830,8 +1800,8 @@ class Logger(object):
 
         Used internally.
 
-        @type  text: str
-        @param text: Text to print.
+        :param text: Text to print.
+        :type  text: str
         """
         if self.verbose:
             print(text)
@@ -1846,8 +1816,8 @@ class Logger(object):
         """
         Log lines of text, inserting a timestamp.
 
-        @type  text: str
-        @param text: Text to log.
+        :param text: Text to log.
+        :type  text: str
         """
         self.__do_log( DebugLog.log_text(text) )
 
@@ -1855,12 +1825,12 @@ class Logger(object):
         """
         Log lines of text associated with a debug event.
 
-        @type  event: L{Event}
-        @param event: Event object.
+        :param event: Event object.
+        :type  event: :class:`~winappdbg.event.Event`
 
-        @type  text: str
-        @param text: (Optional) Text to log. If no text is provided the default
+        :param text: (Optional) Text to log. If no text is provided the default
             is to show a description of the event itself.
+        :type  text: str
         """
         self.__do_log( DebugLog.log_event(event, text) )
 
@@ -1872,7 +1842,7 @@ class Logger(object):
 
     def is_enabled(self):
         """
-        Determines if the logger will actually print(anything when the log_*)
+        Determines if the logger will actually print anything when the ``log_*``
         methods are called.
 
         This may save some processing if the log text requires a lengthy
@@ -1880,8 +1850,8 @@ class Logger(object):
         is disabled, there's no point in preparing a log text that won't
         be shown to anyone.
 
-        @rtype:  bool
-        @return: C{True} if a log file was set and/or standard output logging
-            is enabled, or C{False} otherwise.
+        :return: ``True`` if a log file was set and/or standard output logging
+            is enabled, or ``False`` otherwise.
+        :rtype:  bool
         """
         return self.verbose or (self.logfile is not None)

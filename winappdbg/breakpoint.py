@@ -29,14 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-Breakpoints.
-
-@group Breakpoints:
-    Breakpoint, CodeBreakpoint, PageBreakpoint, HardwareBreakpoint,
-    BufferWatch, Hook, ApiHook
-
-@group Warnings:
-    BreakpointWarning, BreakpointCallbackWarning
+This submodule controls breakpoints logic. There are two layers to this API, a lower level and a higher level.
 """
 
 __all__ = [
@@ -87,41 +80,22 @@ class BreakpointCallbackWarning (RuntimeWarning):
 
 class Breakpoint:
     """
-    Base class for breakpoints.
-    Here's the breakpoints state machine.
+    Base class for breakpoints. Here's the breakpoints state machine.
 
-    @see: L{CodeBreakpoint}, L{PageBreakpoint}, L{HardwareBreakpoint}
+    .. seealso:: :class:`CodeBreakpoint`, :class:`PageBreakpoint`, :class:`HardwareBreakpoint`
 
-    @group Breakpoint states:
-        DISABLED, ENABLED, ONESHOT, RUNNING
-    @group State machine:
-        hit, disable, enable, one_shot, running,
-        is_disabled, is_enabled, is_one_shot, is_running,
-        get_state, get_state_name
-    @group Information:
-        get_address, get_size, get_span, is_here
-    @group Conditional breakpoints:
-        is_conditional, is_unconditional,
-        get_condition, set_condition, eval_condition
-    @group Automatic breakpoints:
-        is_automatic, is_interactive,
-        get_action, set_action, run_action
-
-    @cvar DISABLED: I{Disabled} S{->} Enabled, OneShot
-    @cvar ENABLED:  I{Enabled}  S{->} I{Running}, Disabled
-    @cvar ONESHOT:  I{OneShot}  S{->} I{Disabled}
-    @cvar RUNNING:  I{Running}  S{->} I{Enabled}, Disabled
-
-    @type DISABLED: int
-    @type ENABLED:  int
-    @type ONESHOT:  int
-    @type RUNNING:  int
-
-    @type stateNames: dict E{lb} int S{->} str E{rb}
-    @cvar stateNames: User-friendly names for each breakpoint state.
-
-    @type typeName: str
-    @cvar typeName: User friendly breakpoint type string.
+    :cvar DISABLED: *Disabled* -> Enabled, OneShot
+    :type DISABLED: int
+    :cvar ENABLED:  *Enabled*  -> *Running*, Disabled
+    :type ENABLED:  int
+    :cvar ONESHOT:  *OneShot*  -> *Disabled*
+    :type ONESHOT:  int
+    :cvar RUNNING:  *Running*  -> *Enabled*, Disabled
+    :type RUNNING:  int
+    :cvar stateNames: User-friendly names for each breakpoint state.
+    :type stateNames: dict{int: str}
+    :cvar typeName: User friendly breakpoint type string.
+    :type typeName: str
     """
 
     # I don't think transitions Enabled <-> OneShot should be allowed... plus
@@ -145,26 +119,18 @@ class Breakpoint:
         """
         Breakpoint object.
 
-        @type  address: int
-        @param address: Memory address for breakpoint.
-
-        @type  size: int
-        @param size: Size of breakpoint in bytes (defaults to 1).
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
+        :param int address: Memory address for breakpoint.
+        :param int size: Size of breakpoint in bytes (defaults to 1).
+        :param callable condition: Optional condition callback function.
             The callback signature is::
 
                 def condition_callback(event):
                     return True     # returns True or False
 
-            Where B{event} is an L{Event} object,
-            and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
+            and the return value is a boolean (``True`` to dispatch the event,
+            ``False`` otherwise).
+        :param callable action: Optional action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
 
@@ -173,7 +139,7 @@ class Breakpoint:
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
         self.__address   = address
         self.__size      = size
@@ -209,36 +175,36 @@ class Breakpoint:
 
     def is_disabled(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint is in L{DISABLED} state.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is in :attr:`DISABLED` state.
         """
         return self.get_state() == self.DISABLED
 
     def is_enabled(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint is in L{ENABLED} state.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is in :attr:`ENABLED` state.
         """
         return self.get_state() == self.ENABLED
 
     def is_one_shot(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint is in L{ONESHOT} state.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is in :attr:`ONESHOT` state.
         """
         return self.get_state() == self.ONESHOT
 
     def is_running(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint is in L{RUNNING} state.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is in :attr:`RUNNING` state.
         """
         return self.get_state() == self.RUNNING
 
     def is_here(self, address):
         """
-        @rtype:  bool
-        @return: C{True} if the address is within the range of the breakpoint.
+        :rtype:  bool
+        :return: ``True`` if the address is within the range of the breakpoint.
         """
         begin = self.get_address()
         end   = begin + self.get_size()
@@ -246,41 +212,39 @@ class Breakpoint:
 
     def get_address(self):
         """
-        @rtype:  int
-        @return: The target memory address for the breakpoint.
+        :rtype:  int
+        :return: The target memory address for the breakpoint.
         """
         return self.__address
 
     def get_size(self):
         """
-        @rtype:  int
-        @return: The size in bytes of the breakpoint.
+        :rtype:  int
+        :return: Size of breakpoint in bytes.
         """
         return self.__size
 
     def get_span(self):
         """
-        @rtype:  tuple( int, int )
-        @return:
-            Starting and ending address of the memory range
-            covered by the breakpoint.
+        Get the range of memory addresses for this breakpoint.
+
+        :rtype:  tuple( int, int )
+        :return: Tuple containing the first and last memory addresses.
         """
         address = self.get_address()
-        size    = self.get_size()
-        return ( address, address + size )
+        return ( address, address + self.get_size() - 1 )
 
     def get_state(self):
         """
-        @rtype:  int
-        @return: The current state of the breakpoint
-            (L{DISABLED}, L{ENABLED}, L{ONESHOT}, L{RUNNING}).
+        :rtype:  int
+        :return: The current state of the breakpoint.
         """
         return self.__state
 
     def get_state_name(self):
         """
-        @rtype:  str
-        @return: The name of the current state of the breakpoint.
+        :rtype:  str
+        :return: The user-friendly name for the current state of the breakpoint.
         """
         return self.stateNames[ self.get_state() ]
 
@@ -288,107 +252,107 @@ class Breakpoint:
 
     def is_conditional(self):
         """
-        @see: L{__init__}
-        @rtype:  bool
-        @return: C{True} if the breakpoint has a condition callback defined.
+        Check if this is a conditional breakpoint.
+        A breakpoint is conditional if a callback function was set.
+
+        :rtype:  bool
+        :return: ``True`` if this is a conditional breakpoint.
         """
         # Do not evaluate as boolean! Test for identity with True instead.
         return self.__condition is not True
 
     def is_unconditional(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint doesn't have a condition callback defined.
+        :rtype:  bool
+        :return: ``True`` if this is not a conditional breakpoint.
         """
         # Do not evaluate as boolean! Test for identity with True instead.
         return self.__condition is True
 
     def get_condition(self):
         """
-        @rtype:  bool, function
-        @return: Returns the condition callback for conditional breakpoints.
-            Returns C{True} for unconditional breakpoints.
+        :rtype:  callable
+        :return: The condition callback function. Returns ``True`` for unconditional breakpoints.
         """
         return self.__condition
 
     def set_condition(self, condition = True):
         """
-        Sets a new condition callback for the breakpoint.
+        Set the condition callback function for this breakpoint.
 
-        @see: L{__init__}
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
+        :param callable condition: Condition callback function.
         """
         if condition is None:
-            self.__condition = True
-        else:
-            self.__condition = condition
+            condition = True
+        if condition is not True and not callable(condition):
+            msg = "Condition must be a callable object or the value True, "
+            msg = msg + "got %s instead" % type(condition)
+            raise TypeError(msg)
+        self.__condition = condition
 
     def eval_condition(self, event):
         """
-        Evaluates the breakpoint condition, if any was set.
+        Evaluate the condition callback for this breakpoint.
 
-        @type  event: L{Event}
-        @param event: Debug event triggered by the breakpoint.
-
-        @rtype:  bool
-        @return: C{True} to dispatch the event, C{False} otherwise.
+        :param event: Event that triggered this breakpoint.
+        :type event: :class:`~winappdbg.event.Event`
+        :rtype:  bool
+        :return: ``True`` to dispatch the event, ``False`` otherwise.
         """
         condition = self.get_condition()
         if condition is True:   # shortcut for unconditional breakpoints
             return True
-        if callable(condition):
-            try:
-                return bool( condition(event) )
-            except Exception as e:
-                msg = ("Breakpoint condition callback %r"
-                       " raised an exception: %s")
-                msg = msg % (condition, traceback.format_exc(e))
-                warnings.warn(msg, BreakpointCallbackWarning)
-                return False
-        return bool( condition )    # force evaluation now
+        if not callable(condition):
+            msg = "Condition must be a callable object, got %s instead"
+            raise TypeError(msg % type(condition))
+        try:
+            return bool( condition(event) )
+        except Exception:
+            msg = "Breakpoint condition callback %s raised an exception"
+            msg = msg % repr(condition)
+            traceback.print_exc()
+            warnings.warn(msg, BreakpointCallbackWarning)
+            return False
 
 #------------------------------------------------------------------------------
 
     def is_automatic(self):
         """
-        @rtype:  bool
-        @return: C{True} if the breakpoint has an action callback defined.
+        :rtype:  bool
+        :return: ``True`` if this breakpoint is automatic.
         """
         return self.__action is not None
 
     def is_interactive(self):
         """
-        @rtype:  bool
-        @return:
-            C{True} if the breakpoint doesn't have an action callback defined.
+        :rtype:  bool
+        :return: ``True`` if this breakpoint is interactive.
         """
         return self.__action is None
 
     def get_action(self):
         """
-        @rtype:  bool, function
-        @return: Returns the action callback for automatic breakpoints.
-            Returns C{None} for interactive breakpoints.
+        :rtype:  callable
+        :return: The action callback function for this breakpoint.
         """
         return self.__action
 
     def set_action(self, action = None):
         """
-        Sets a new action callback for the breakpoint.
+        Set the action callback function for this breakpoint.
 
-        @type  action: function
-        @param action: (Optional) Action callback function.
+        :param callable action: Action callback function.
         """
+        if action is not None and not callable(action):
+            raise TypeError("Action must be a callable object or None")
         self.__action = action
 
     def run_action(self, event):
         """
-        Executes the breakpoint action callback, if any was set.
+        Run the action callback for this breakpoint.
 
-        @type  event: L{Event}
-        @param event: Debug event triggered by the breakpoint.
+        :param event: Event that triggered this breakpoint.
+        :type event: :class:`~winappdbg.event.Event`
         """
         action = self.get_action()
         if action is not None:
@@ -405,17 +369,7 @@ class Breakpoint:
 #------------------------------------------------------------------------------
 
     def __bad_transition(self, state):
-        """
-        Raises an C{AssertionError} exception for an invalid state transition.
-
-        @see: L{stateNames}
-
-        @type  state: int
-        @param state: Intended breakpoint state.
-
-        @raise Exception: Always.
-        """
-        oldState = self.stateNames[ self.get_state() ]
+        oldState = self.stateNames[ self.__state ]
         newState = self.stateNames[ state ]
         msg = "Invalid state transition (%s -> %s)" \
               " for breakpoint at address %s"
@@ -424,65 +378,56 @@ class Breakpoint:
 
     def disable(self, aProcess, aThread):
         """
-        Transition to L{DISABLED} state.
-          - When hit: OneShot S{->} Disabled
-          - Forced by user: Enabled, OneShot, Running S{->} Disabled
-          - Transition from running state may require special handling
-            by the breakpoint implementation class.
+        Disables a breakpoint.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        :param aProcess: Process that contains the breakpoint.
+        :type aProcess: :class:`~winappdbg.process.Process`
+        :param aThread: Current thread.
+        :type aThread: :class:`~winappdbg.thread.Thread`
+        :raises RuntimeError: The breakpoint was not in an active state.
         """
-##        if self.__state not in (self.ENABLED, self.ONESHOT, self.RUNNING):
-##            self.__bad_transition(self.DISABLED)
+        if self.__state not in (self.ENABLED, self.ONESHOT, self.RUNNING):
+            self.__bad_transition(self.DISABLED)
         self.__state = self.DISABLED
 
     def enable(self, aProcess, aThread):
         """
-        Transition to L{ENABLED} state.
-          - When hit: Running S{->} Enabled
-          - Forced by user: Disabled, Running S{->} Enabled
-          - Transition from running state may require special handling
-            by the breakpoint implementation class.
+        Enables a breakpoint.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        :param aProcess: Process that contains the breakpoint.
+        :type aProcess: :class:`~winappdbg.process.Process`
+        :param aThread: Current thread.
+        :type aThread: :class:`~winappdbg.thread.Thread`
+        :raises RuntimeError: The breakpoint was already enabled.
         """
-##        if self.__state not in (self.DISABLED, self.RUNNING):
-##            self.__bad_transition(self.ENABLED)
+        if self.__state not in (self.DISABLED, self.RUNNING):
+            self.__bad_transition(self.ENABLED)
         self.__state = self.ENABLED
 
     def one_shot(self, aProcess, aThread):
         """
-        Transition to L{ONESHOT} state.
-          - Forced by user: Disabled S{->} OneShot
+        Sets a breakpoint for one shot.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        :param aProcess: Process that contains the breakpoint.
+        :type aProcess: :class:`~winappdbg.process.Process`
+        :param aThread: Current thread.
+        :type aThread: :class:`~winappdbg.thread.Thread`
+        :raises RuntimeError: The breakpoint was already enabled.
         """
-##        if self.__state != self.DISABLED:
-##            self.__bad_transition(self.ONESHOT)
+        if self.__state != self.DISABLED:
+            self.__bad_transition(self.ONESHOT)
         self.__state = self.ONESHOT
 
     def running(self, aProcess, aThread):
         """
-        Transition to L{RUNNING} state.
-          - When hit: Enabled S{->} Running
+        Puts the breakpoint in running state. This happens when a breakpoint
+        is hit and it's condition evaluates to ``False``.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
+        :param aProcess: Process that contains the breakpoint.
+        :type aProcess: :class:`~winappdbg.process.Process`
+        :param aThread: Current thread.
+        :type aThread: :class:`~winappdbg.thread.Thread`
+        :raises RuntimeError: The breakpoint was not enabled.
         """
         if self.__state != self.ENABLED:
             self.__bad_transition(self.RUNNING)
@@ -490,17 +435,13 @@ class Breakpoint:
 
     def hit(self, event):
         """
-        Notify a breakpoint that it's been hit.
+        This method is called when the breakpoint is hit.
+        It evaluates the breakpoint's condition and automatically disables it
+        if it's a one-shot breakpoint.
 
-        This triggers the corresponding state transition and sets the
-        C{breakpoint} property of the given L{Event} object.
-
-        @see: L{disable}, L{enable}, L{one_shot}, L{running}
-
-        @type  event: L{Event}
-        @param event: Debug event to handle (depends on the breakpoint type).
-
-        @raise AssertionError: Disabled breakpoints can't be hit.
+        :param event: Event that triggered this breakpoint.
+        :type event: :class:`~winappdbg.event.Event`
+        :raises RuntimeError: An unexpected error occurred.
         """
         aProcess = event.get_process()
         aThread  = event.get_thread()
@@ -531,33 +472,39 @@ class Breakpoint:
 
 class CodeBreakpoint (Breakpoint):
     """
-    Code execution breakpoints (using an int3 opcode).
+    Code execution breakpoints (using an ``int3`` opcode).
 
-    @see: L{Debug.break_at}
-
-    @type bpInstruction: str
-    @cvar bpInstruction: Breakpoint instruction for the current processor.
+    .. seealso:: :meth:`~winappdbg.debug.Debug.break_at`
     """
 
     typeName = 'code breakpoint'
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = b'\xCC'      # int 3 -> make it a byte-string for py3
+        bpInstruction = b'\xCC'
 
     def __init__(self, address, condition = True, action = None):
         """
         Code breakpoint object.
 
-        @see: L{Breakpoint.__init__}
+        :param int address: Memory address for breakpoint.
+        :param callable condition: Optional condition callback function.
+            The callback signature is::
 
-        @type  address: int
-        @param address: Memory address for breakpoint.
+                def condition_callback(event):
+                    return True     # returns True or False
 
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
+            and the return value is a boolean (``True`` to dispatch the event,
+            ``False`` otherwise).
+        :param callable action: Optional action callback function.
+            If specified, the event is handled by this callback instead of
+            being dispatched normally.
+            The callback signature is::
 
-        @type  action: function
-        @param action: (Optional) Action callback function.
+                def action_callback(event):
+                    pass        # no return value
+
+            Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             msg = "Code breakpoints not supported for %s" % win32.arch
@@ -570,8 +517,7 @@ class CodeBreakpoint (Breakpoint):
         """
         Writes a breakpoint instruction at the target address.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
+        :param Process aProcess: Process object.
         """
         address = self.get_address()
         self.__previousValue = aProcess.read(address, len(self.bpInstruction))
@@ -585,8 +531,7 @@ class CodeBreakpoint (Breakpoint):
         """
         Restores the original byte at the target address.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
+        :param Process aProcess: Process object.
         """
         address = self.get_address()
         currentValue = aProcess.read(address, len(self.bpInstruction))
@@ -644,10 +589,7 @@ class PageBreakpoint (Breakpoint):
     """
     Page access breakpoint (using guard pages).
 
-    @see: L{Debug.watch_buffer}
-
-    @group Information:
-        get_size_in_pages
+    .. seealso:: :meth:`~winappdbg.debug.Debug.watch_buffer`
     """
 
     typeName = 'page breakpoint'
@@ -658,19 +600,26 @@ class PageBreakpoint (Breakpoint):
         """
         Page breakpoint object.
 
-        @see: L{Breakpoint.__init__}
+        :param int address: Memory address for breakpoint. Must be page aligned.
+        :param int pages: Number of pages to watch for access.
+        :param callable condition: Optional condition callback function.
+            The callback signature is::
 
-        @type  address: int
-        @param address: Memory address for breakpoint.
+                def condition_callback(event):
+                    return True     # returns True or False
 
-        @type  pages: int
-        @param address: Size of breakpoint in pages.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
+            and the return value is a boolean (``True`` to dispatch the event,
+            ``False`` otherwise).
+        :param callable action: Optional action callback function.
+            If specified, the event is handled by this callback instead of
+            being dispatched normally.
+            The callback signature is::
 
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
+                def action_callback(event):
+                    pass        # no return value
 
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
         super().__init__(address, pages * MemoryAddresses.pageSize,
                             condition, action)
@@ -685,8 +634,8 @@ class PageBreakpoint (Breakpoint):
 
     def get_size_in_pages(self):
         """
-        @rtype:  int
-        @return: The size in pages of the breakpoint.
+        :rtype:  int
+        :return: Size of breakpoint in pages.
         """
         # The size is always a multiple of the page size.
         return self.get_size() // MemoryAddresses.pageSize
@@ -695,8 +644,7 @@ class PageBreakpoint (Breakpoint):
         """
         Sets the target pages as guard pages.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
+        :param Process aProcess: Process object.
         """
         lpAddress    = self.get_address()
         dwSize       = self.get_size()
@@ -708,8 +656,7 @@ class PageBreakpoint (Breakpoint):
         """
         Restores the original permissions of the target pages.
 
-        @type  aProcess: L{Process}
-        @param aProcess: Process object.
+        :param Process aProcess: Process object.
         """
         lpAddress    = self.get_address()
         flNewProtect = aProcess.mquery(lpAddress).Protect
@@ -744,43 +691,26 @@ class HardwareBreakpoint (Breakpoint):
     """
     Hardware breakpoint (using debug registers).
 
-    @see: L{Debug.watch_variable}
+    .. seealso:: :meth:`~winappdbg.debug.Debug.watch_variable`
 
-    @group Information:
-        get_slot, get_trigger, get_watch
-
-    @group Trigger flags:
-        BREAK_ON_EXECUTION, BREAK_ON_WRITE, BREAK_ON_ACCESS
-
-    @group Watch size flags:
-        WATCH_BYTE, WATCH_WORD, WATCH_DWORD, WATCH_QWORD
-
-    @type BREAK_ON_EXECUTION: int
-    @cvar BREAK_ON_EXECUTION: Break on execution.
-
-    @type BREAK_ON_WRITE: int
-    @cvar BREAK_ON_WRITE: Break on write.
-
-    @type BREAK_ON_ACCESS: int
-    @cvar BREAK_ON_ACCESS: Break on read or write.
-
-    @type WATCH_BYTE: int
-    @cvar WATCH_BYTE: Watch a byte.
-
-    @type WATCH_WORD: int
-    @cvar WATCH_WORD: Watch a word (2 bytes).
-
-    @type WATCH_DWORD: int
-    @cvar WATCH_DWORD: Watch a double word (4 bytes).
-
-    @type WATCH_QWORD: int
-    @cvar WATCH_QWORD: Watch one quad word (8 bytes).
-
-    @type validTriggers: tuple
-    @cvar validTriggers: Valid trigger flag values.
-
-    @type validWatchSizes: tuple
-    @cvar validWatchSizes: Valid watch flag values.
+    :cvar BREAK_ON_EXECUTION: Break on execution.
+    :type BREAK_ON_EXECUTION: int
+    :cvar BREAK_ON_WRITE: Break on write.
+    :type BREAK_ON_WRITE: int
+    :cvar BREAK_ON_ACCESS: Break on read or write.
+    :type BREAK_ON_ACCESS: int
+    :cvar WATCH_BYTE: Watch a byte.
+    :type WATCH_BYTE: int
+    :cvar WATCH_WORD: Watch a word (2 bytes).
+    :type WATCH_WORD: int
+    :cvar WATCH_DWORD: Watch a double word (4 bytes).
+    :type WATCH_DWORD: int
+    :cvar WATCH_QWORD: Watch one quad word (8 bytes).
+    :type WATCH_QWORD: int
+    :cvar validTriggers: Valid trigger flag values.
+    :type validTriggers: tuple
+    :cvar validWatchSizes: Valid watch flag values.
+    :type validWatchSizes: tuple
     """
 
     typeName = 'hardware breakpoint'
@@ -814,50 +744,36 @@ class HardwareBreakpoint (Breakpoint):
         """
         Hardware breakpoint object.
 
-        @see: L{Breakpoint.__init__}
+        :param int address: Memory address for breakpoint.
+        :param int triggerFlag: When to trigger the breakpoint.
+            Must be one of the following values:
+            - :attr:`BREAK_ON_EXECUTION`
+            - :attr:`BREAK_ON_WRITE`
+            - :attr:`BREAK_ON_ACCESS`
+        :param int sizeFlag: Size of the data to watch.
+            Must be one of the following values:
+            - :attr:`WATCH_BYTE`
+            - :attr:`WATCH_WORD`
+            - :attr:`WATCH_DWORD`
+            - :attr:`WATCH_QWORD`
+        :param callable condition: Optional condition callback function.
+            The callback signature is::
 
-        @type  address: int
-        @param address: Memory address for breakpoint.
+                def condition_callback(event):
+                    return True     # returns True or False
 
-        @type  triggerFlag: int
-        @param triggerFlag: Trigger of breakpoint. Must be one of the following:
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
+            and the return value is a boolean (``True`` to dispatch the event,
+            ``False`` otherwise).
+        :param callable action: Optional action callback function.
+            If specified, the event is handled by this callback instead of
+            being dispatched normally.
+            The callback signature is::
 
-             - L{BREAK_ON_EXECUTION}
+                def action_callback(event):
+                    pass        # no return value
 
-               Break on code execution.
-
-             - L{BREAK_ON_WRITE}
-
-               Break on memory read or write.
-
-             - L{BREAK_ON_ACCESS}
-
-               Break on memory write.
-
-        @type  sizeFlag: int
-        @param sizeFlag: Size of breakpoint. Must be one of the following:
-
-             - L{WATCH_BYTE}
-
-               One (1) byte in size.
-
-             - L{WATCH_WORD}
-
-               Two (2) bytes in size.
-
-             - L{WATCH_DWORD}
-
-               Four (4) bytes in size.
-
-             - L{WATCH_QWORD}
-
-               Eight (8) bytes in size.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             msg = "Hardware breakpoints not supported for %s" % win32.arch
@@ -886,12 +802,6 @@ class HardwareBreakpoint (Breakpoint):
         self.__slot     = None
 
     def __clear_bp(self, aThread):
-        """
-        Clears this breakpoint from the debug registers.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
         if self.__slot is not None:
             aThread.suspend()
             try:
@@ -903,12 +813,6 @@ class HardwareBreakpoint (Breakpoint):
                 aThread.resume()
 
     def __set_bp(self, aThread):
-        """
-        Sets this breakpoint in the debug registers.
-
-        @type  aThread: L{Thread}
-        @param aThread: Thread object.
-        """
         if self.__slot is None:
             aThread.suspend()
             try:
@@ -926,25 +830,22 @@ class HardwareBreakpoint (Breakpoint):
 
     def get_slot(self):
         """
-        @rtype:  int
-        @return: The debug register number used by this breakpoint,
-            or C{None} if the breakpoint is not active.
+        :rtype:  int
+        :return: The debug register slot used by this breakpoint.
         """
         return self.__slot
 
     def get_trigger(self):
         """
-        @see: L{validTriggers}
-        @rtype:  int
-        @return: The breakpoint trigger flag.
+        :rtype:  int
+        :return: The trigger flag for this breakpoint.
         """
         return self.__trigger
 
     def get_watch(self):
         """
-        @see: L{validWatchSizes}
-        @rtype:  int
-        @return: The breakpoint watch flag.
+        :rtype:  int
+        :return: The watch size flag for this breakpoint.
         """
         return self.__watch
 
@@ -1005,8 +906,9 @@ class HardwareBreakpoint (Breakpoint):
 
 class Hook:
     """
-    Factory class to produce hook objects. Used by L{Debug.hook_function} and
-    L{Debug.stalk_function}.
+    Factory class to produce hook objects. Used by
+    :meth:`~winappdbg.debug.Debug.hook_function` and
+    :meth:`~winappdbg.debug.Debug.stalk_function`.
 
     When you try to instance this class, one of the architecture specific
     implementations is returned instead.
@@ -1016,11 +918,11 @@ class Hook:
     the stack, sets a breakpoint at the return address and retrieves the
     return value from the function call.
 
-    @see: L{_Hook_i386}, L{_Hook_amd64}
+    .. seealso:: :class:`_Hook_i386`, :class:`_Hook_amd64`
 
-    @type useHardwareBreakpoints: bool
-    @cvar useHardwareBreakpoints: C{True} to try to use hardware breakpoints,
-        C{False} otherwise.
+    :cvar useHardwareBreakpoints: ``True`` to try to use hardware breakpoints,
+        ``False`` otherwise.
+    :type useHardwareBreakpoints: bool
     """
 
     # This is a factory class that returns
@@ -1060,9 +962,9 @@ class Hook:
                        paramCount = None, signature = None,
                        arch = None, preCBArgs = None, postCBArgs = None):
         """
-        @type  preCB: function
-        @param preCB: (Optional) Callback triggered on function entry.
+        Hook object.
 
+        :param callable preCB: Optional callback triggered on function entry.
             The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
@@ -1080,21 +982,15 @@ class Hook:
             the remote memory address instead. This is so to prevent the ctypes
             library from being "too helpful" and trying to dereference the
             pointer. To get the actual data being pointed to, use one of the
-            L{Process.read} methods.
-
-        @type  postCB: function
-        @param postCB: (Optional) Callback triggered on function exit.
-
+            :meth:`~winappdbg.process.Process.read` methods.
+        :param callable postCB: Optional callback triggered on function exit.
             The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
                     # (...)
-
-        @type  paramCount: int
-        @param paramCount:
-            (Optional) Number of parameters for the C{preCB} callback,
-            not counting the return address. Parameters are read from
+        :param int paramCount: Optional number of parameters for the ``preCB``
+            callback, not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
 
             This is a faster way to pull stack parameters in 32 bits, but in 64
@@ -1102,20 +998,15 @@ class Hook:
             not all arguments to the hooked function will be of the same size.
 
             For a more reliable and cross-platform way of hooking use the
-            C{signature} argument instead.
-
-        @type  signature: tuple
-        @param signature:
-            (Optional) Tuple of C{ctypes} data types that constitute the
-            hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack. Overrides the
-            C{paramCount} argument.
-
-        @type  preCBArgs: list
-        @param preCBArgs: (Optional) preCB custom arguments.
-
-        @type  postCBArgs: list
-        @param postCBArgs: (Optional) postCB custom arguments.
+            ``signature`` argument instead.
+        :param tuple signature: Optional tuple of ``ctypes`` data types that
+            constitute the hooked function signature. When the function is
+            called, this will be used to parse the arguments from the stack.
+            Overrides the ``paramCount`` argument.
+        :param str arch: Optional architecture string.
+            See :data:`winappdbg.win32.arch`.
+        :param tuple preCBArgs: Optional tuple of extra arguments to ``preCB``.
+        :param tuple postCBArgs: Optional tuple of extra arguments to ``postCB``.
         """
         self.__preCB      = preCB
         self.__postCB     = postCB
@@ -1178,10 +1069,9 @@ class Hook:
         """
         Handles the breakpoint event on entry of the function.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint hit event.
-
-        @raise WindowsError: An error occured.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :raises WindowsError: An error occurred.
         """
         debug = event.debug
 
@@ -1247,10 +1137,11 @@ class Hook:
 
     def __postCallAction_hwbp(self, event):
         """
-        Handles hardware breakpoint events on return from the function.
+        Handles the breakpoint event on exit of the function.
+        This method is a callback for a hardware breakpoint.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Single step event.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
         """
 
         # Remove the one shot hardware breakpoint
@@ -1269,10 +1160,11 @@ class Hook:
 
     def __postCallAction_codebp(self, event):
         """
-        Handles code breakpoint events on return from the function.
+        Handles the breakpoint event on exit of the function.
+        This method is a callback for a code breakpoint.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint hit event.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
         """
 
         # If the breakpoint was accidentally hit by another thread,
@@ -1300,10 +1192,10 @@ class Hook:
 
     def __postCallAction(self, event):
         """
-        Calls the "post" callback.
+        This method is called when the hooked function returns.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint hit event.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
         """
         aThread = event.get_thread()
         retval  = self._get_return_value(aThread)
@@ -1314,16 +1206,12 @@ class Hook:
 
     def __callHandler(self, callback, event, *params):
         """
-        Calls a "pre" or "post" handler, if set.
+        This is a wrapper for the user-defined callbacks.
 
-        @type  callback: function
-        @param callback: Callback function to call.
-
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint hit event.
-
-        @type  params: tuple
-        @param params: Parameters for the callback function.
+        :param callable callback: Callback function to call.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :param params: Parameters for the callback function.
         """
         if callback is not None:
             event.hook = self
@@ -1334,11 +1222,9 @@ class Hook:
         Remembers the arguments tuple for the last call to the hooked function
         from this thread.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  params: tuple( arg, arg, arg... )
-        @param params: Tuple of arguments.
+        :param int tid: Thread ID.
+        :param params: Tuple of arguments.
+        :type params: tuple
         """
         stack = self.__paramStack.get( tid, [] )
         stack.append(params)
@@ -1349,8 +1235,7 @@ class Hook:
         Forgets the arguments tuple for the last call to the hooked function
         from this thread.
 
-        @type  tid: int
-        @param tid: Thread global ID.
+        :param int tid: Thread ID.
         """
         stack = self.__paramStack[tid]
         stack.pop()
@@ -1362,11 +1247,9 @@ class Hook:
         Returns the parameters found in the stack when the hooked function
         was last called by this thread.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @rtype:  tuple( arg, arg, arg... )
-        @return: Tuple of arguments.
+        :param int tid: Thread ID.
+        :return: Tuple of arguments.
+        :rtype: tuple
         """
         try:
             params = self.get_params_stack(tid)[-1]
@@ -1380,11 +1263,9 @@ class Hook:
         Returns the parameters found in the stack each time the hooked function
         was called by this thread and hasn't returned yet.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @rtype:  list of tuple( arg, arg, arg... )
-        @return: List of argument tuples.
+        :param int tid: Thread ID.
+        :return: List of tuples of parameters.
+        :rtype: list
         """
         try:
             stack = self.__paramStack[tid]
@@ -1395,45 +1276,31 @@ class Hook:
 
     def hook(self, debug, pid, address):
         """
-        Installs the function hook at a given process and address.
+        Convenience method to set the hook.
 
-        @see: L{unhook}
-
-        @warning: Do not call from an function hook callback.
-
-        @type  debug: L{Debug}
-        @param debug: Debug object.
-
-        @type  pid: int
-        @param pid: Process ID.
-
-        @type  address: int
-        @param address: Function address.
+        :param debug: Debugger object.
+        :type debug: :class:`~winappdbg.debug.Debug`
+        :param int pid: Process ID.
+        :param int address: Address to hook.
+        :return: The new breakpoint object.
+        :rtype: :class:`Breakpoint`
         """
         return debug.break_at(pid, address, self)
 
     def unhook(self, debug, pid, address):
         """
-        Removes the function hook at a given process and address.
+        Convenience method to remove the hook.
 
-        @see: L{hook}
-
-        @warning: Do not call from an function hook callback.
-
-        @type  debug: L{Debug}
-        @param debug: Debug object.
-
-        @type  pid: int
-        @param pid: Process ID.
-
-        @type  address: int
-        @param address: Function address.
+        :param debug: Debugger object.
+        :type debug: :class:`~winappdbg.debug.Debug`
+        :param int pid: Process ID.
+        :param int address: Address of the hook.
         """
         return debug.dont_break_at(pid, address)
 
 class _Hook_i386 (Hook):
-    """
-    Implementation details for L{Hook} on the L{win32.ARCH_I386} architecture.
+    """Implementation details for :class:`Hook` on the
+    :data:`~winappdbg.win32.ARCH_I386` architecture.
     """
 
     # We don't want to inherit the parent class __new__ method.
@@ -1466,8 +1333,8 @@ class _Hook_i386 (Hook):
         return ctx['Eax']
 
 class _Hook_amd64 (Hook):
-    """
-    Implementation details for L{Hook} on the L{win32.ARCH_AMD64} architecture.
+    """Implementation details for :class:`Hook` on the
+    :data:`~winappdbg.win32.ARCH_AMD64` architecture.
     """
 
     # We don't want to inherit the parent class __new__ method.
@@ -1595,35 +1462,31 @@ class _Hook_amd64 (Hook):
 # Said objects are deleted by the unhook() method.
 
 class ApiHook:
-    """
-    Used by L{EventHandler}.
+    """Used by :class:`~winappdbg.event.EventHandler`.
 
     This class acts as an action callback for code breakpoints set at the
     beginning of a function. It automatically retrieves the parameters from
     the stack, sets a breakpoint at the return address and retrieves the
     return value from the function call.
 
-    @see: L{EventHandler.apiHooks}
+    .. seealso:: :attr:`winappdbg.event.EventHandler.apiHooks`
 
-    @type modName: str
-    @ivar modName: Module name.
-
-    @type procName: str
-    @ivar procName: Procedure name.
+    :ivar str modName: Module name.
+    :ivar str procName: Procedure name.
     """
 
     def __init__(self, eventHandler, modName, procName, paramCount = None,
                                                          signature = None):
         """
-        @type  eventHandler: L{EventHandler}
-        @param eventHandler: Event handler instance. This is where the hook
+        :param eventHandler:
+            Event handler instance. This is where the hook
             callbacks are to be defined (see below).
+        :type eventHandler: :class:`~winappdbg.event.EventHandler`
 
-        @type  modName: str
-        @param modName: Module name.
+        :param str modName: Module name.
 
-        @type  procName: str
-        @param procName: Procedure name.
+        :param str procName:
+            Procedure name.
             The pre and post callbacks will be deduced from it.
 
             For example, if the procedure is "LoadLibraryEx" the callback
@@ -1650,34 +1513,31 @@ class ApiHook:
             the remote memory address instead. This is so to prevent the ctypes
             library from being "too helpful" and trying to dereference the
             pointer. To get the actual data being pointed to, use one of the
-            L{Process.read} methods.
+            :meth:`~winappdbg.process.Process.read` methods.
 
-        @type  paramCount: int
-        @param paramCount:
-            (Optional) Number of parameters for the C{preCB} callback,
-            not counting the return address. Parameters are read from
+        :param int paramCount:
+            Optional number of parameters for the ``preCB``
+            callback, not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
-
             This is a faster way to pull stack parameters in 32 bits, but in 64
             bits (or with some odd APIs in 32 bits) it won't be useful, since
             not all arguments to the hooked function will be of the same size.
 
             For a more reliable and cross-platform way of hooking use the
-            C{signature} argument instead.
+            ``signature`` argument instead.
 
-        @type  signature: tuple
-        @param signature:
-            (Optional) Tuple of C{ctypes} data types that constitute the
-            hooked function signature. When the function is called, this will
-            be used to parse the arguments from the stack. Overrides the
-            C{paramCount} argument.
+        :param tuple signature:
+            Optional tuple of ``ctypes`` data types that
+            constitute the hooked function signature. When the function is
+            called, this will be used to parse the arguments from the stack.
+            Overrides the ``paramCount`` argument.
         """
         self.__modName    = modName
         self.__procName   = procName
         self.__paramCount = paramCount
         self.__signature  = signature
-        self.__preCB      = getattr(eventHandler, 'pre_%s'  % procName, None)
-        self.__postCB     = getattr(eventHandler, 'post_%s' % procName, None)
+        self.__preCB      = getattr(eventHandler, 'pre_' + procName, None)
+        self.__postCB     = getattr(eventHandler, 'post_' + procName, None)
         self.__hook       = dict()
 
     def __call__(self, event):
@@ -1756,26 +1616,16 @@ class ApiHook:
 #==============================================================================
 
 class BufferWatch:
-    """
-    Returned by L{Debug.watch_buffer}.
+    """Returned by :meth:`~winappdbg.debug.Debug.watch_buffer`.
 
     This object uniquely references a buffer being watched, even if there are
     multiple watches set on the exact memory region.
 
-    @type pid: int
-    @ivar pid: Process ID.
-
-    @type start: int
-    @ivar start: Memory address of the start of the buffer.
-
-    @type end: int
-    @ivar end: Memory address of the end of the buffer.
-
-    @type action: callable
-    @ivar action: Action callback.
-
-    @type oneshot: bool
-    @ivar oneshot: C{True} for one shot breakpoints, C{False} otherwise.
+    :ivar int pid: Process ID.
+    :ivar int start: Memory address of the start of the buffer.
+    :ivar int end: Memory address of the end of the buffer.
+    :ivar callable action: Action callback.
+    :ivar bool oneshot: ``True`` for one shot breakpoints, ``False`` otherwise.
     """
 
     def __init__(self, pid, start, end, action = None, oneshot = False):
@@ -1806,20 +1656,19 @@ class BufferWatch:
         return self.__oneshot
 
     def match(self, address):
-        """
-        Determine if the given memory address lies within the watched buffer.
+        """Determine if the given memory address lies within the watched buffer.
 
-        @rtype: bool
-        @return: C{True} if the given memory address lies within the watched
-            buffer, C{False} otherwise.
+        :param int address: Memory address to check.
+        :rtype: bool
+        :return: ``True`` if the given memory address lies within the watched
+            buffer, ``False`` otherwise.
         """
         return self.__start <= address < self.__end
 
 #==============================================================================
 
 class _BufferWatchCondition:
-    """
-    Used by L{Debug.watch_buffer}.
+    """Used by :meth:`~winappdbg.debug.Debug.watch_buffer`.
 
     This class acts as a condition callback for page breakpoints.
     It emulates page breakpoints that can overlap and/or take up less
@@ -1830,24 +1679,17 @@ class _BufferWatchCondition:
         self.__ranges = list()  # list of BufferWatch in definition order
 
     def add(self, bw):
-        """
-        Adds a buffer watch identifier.
+        """Adds a buffer watch identifier.
 
-        @type  bw: L{BufferWatch}
-        @param bw:
-            Buffer watch identifier.
+        :param BufferWatch bw: Buffer watch identifier.
         """
         self.__ranges.append(bw)
 
     def remove(self, bw):
-        """
-        Removes a buffer watch identifier.
+        """Removes a buffer watch identifier.
 
-        @type  bw: L{BufferWatch}
-        @param bw:
-            Buffer watch identifier.
-
-        @raise KeyError: The buffer watch identifier was already removed.
+        :param BufferWatch bw: Buffer watch identifier.
+        :raises KeyError: The buffer watch identifier was already removed.
         """
         try:
             self.__ranges.remove(bw)
@@ -1856,18 +1698,14 @@ class _BufferWatchCondition:
                 raise
 
     def remove_last_match(self, address, size):
-        """
-        Removes the last buffer from the watch object
+        """Removes the last buffer from the watch object
         to match the given address and size.
 
-        @type  address: int
-        @param address: Memory address of buffer to stop watching.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to stop watching.
-
-        @rtype:  int
-        @return: Number of matching elements found. Only the last one to be
+        :param int address: Memory address of buffer to stop watching.
+        :param int size: Size in bytes of buffer to stop watching.
+        :rtype:  int
+        :return:
+            Number of matching elements found. Only the last one to be
             added is actually deleted upon calling this method.
 
             This counter allows you to know if there are more matching elements
@@ -1886,23 +1724,22 @@ class _BufferWatchCondition:
 
     def count(self):
         """
-        @rtype:  int
-        @return: Number of buffers being watched.
+        :rtype: int
+        :return: Number of buffers being watched.
         """
         return len(self.__ranges)
 
     def __call__(self, event):
-        """
-        Breakpoint condition callback.
+        """Breakpoint condition callback.
 
         This method will also call the action callbacks for each
         buffer being watched.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Guard page exception event.
+        :param event: Guard page exception event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
 
-        @rtype:  bool
-        @return: C{True} if the address being accessed belongs
+        :rtype:  bool
+        :return: ``True`` if the address being accessed belongs
             to at least one of the buffers that was being watched
             and had no action callback.
         """
@@ -1930,108 +1767,116 @@ class _BufferWatchCondition:
 #==============================================================================
 
 class _BreakpointContainer:
-    """
-    Encapsulates the capability to contain Breakpoint objects.
+    """Encapsulates the capability to contain Breakpoint objects.
 
-    @group Breakpoints:
-        break_at, watch_variable, watch_buffer, hook_function,
-        dont_break_at, dont_watch_variable, dont_watch_buffer,
-        dont_hook_function, unhook_function,
-        break_on_error, dont_break_on_error
+    .. rubric:: Breakpoints
 
-    @group Stalking:
-        stalk_at, stalk_variable, stalk_buffer, stalk_function,
-        dont_stalk_at, dont_stalk_variable, dont_stalk_buffer,
-        dont_stalk_function
+    - :meth:`break_at`
+    - :meth:`watch_variable`
+    - :meth:`watch_buffer`
+    - :meth:`hook_function`
+    - :meth:`dont_break_at`
+    - :meth:`dont_watch_variable`
+    - :meth:`dont_watch_buffer`
+    - :meth:`dont_hook_function`
+    - :meth:`unhook_function`
+    - :meth:`break_on_error`
+    - :meth:`dont_break_on_error`
 
-    @group Tracing:
-        is_tracing, get_traced_tids,
-        start_tracing, stop_tracing,
-        start_tracing_process, stop_tracing_process,
-        start_tracing_all, stop_tracing_all
+    .. rubric:: Stalking
 
-    @group Symbols:
-        resolve_label, resolve_exported_function
+    - :meth:`stalk_at`
+    - :meth:`stalk_variable`
+    - :meth:`stalk_buffer`
+    - :meth:`stalk_function`
+    - :meth:`dont_stalk_at`
+    - :meth:`dont_stalk_variable`
+    - :meth:`dont_stalk_buffer`
+    - :meth:`dont_stalk_function`
 
-    @group Advanced breakpoint use:
-        define_code_breakpoint,
-        define_page_breakpoint,
-        define_hardware_breakpoint,
-        has_code_breakpoint,
-        has_page_breakpoint,
-        has_hardware_breakpoint,
-        get_code_breakpoint,
-        get_page_breakpoint,
-        get_hardware_breakpoint,
-        erase_code_breakpoint,
-        erase_page_breakpoint,
-        erase_hardware_breakpoint,
-        enable_code_breakpoint,
-        enable_page_breakpoint,
-        enable_hardware_breakpoint,
-        enable_one_shot_code_breakpoint,
-        enable_one_shot_page_breakpoint,
-        enable_one_shot_hardware_breakpoint,
-        disable_code_breakpoint,
-        disable_page_breakpoint,
-        disable_hardware_breakpoint
+    .. rubric:: Tracing
 
-    @group Listing breakpoints:
-        get_all_breakpoints,
-        get_all_code_breakpoints,
-        get_all_page_breakpoints,
-        get_all_hardware_breakpoints,
-        get_process_breakpoints,
-        get_process_code_breakpoints,
-        get_process_page_breakpoints,
-        get_process_hardware_breakpoints,
-        get_thread_hardware_breakpoints,
-        get_all_deferred_code_breakpoints,
-        get_process_deferred_code_breakpoints
+    - :meth:`is_tracing`
+    - :meth:`get_traced_tids`
+    - :meth:`start_tracing`
+    - :meth:`stop_tracing`
+    - :meth:`start_tracing_process`
+    - :meth:`stop_tracing_process`
+    - :meth:`start_tracing_all`
+    - :meth:`stop_tracing_all`
 
-    @group Batch operations on breakpoints:
-        enable_all_breakpoints,
-        enable_one_shot_all_breakpoints,
-        disable_all_breakpoints,
-        erase_all_breakpoints,
-        enable_process_breakpoints,
-        enable_one_shot_process_breakpoints,
-        disable_process_breakpoints,
-        erase_process_breakpoints
+    .. rubric:: Symbols
 
-    @group Breakpoint types:
-        BP_TYPE_ANY, BP_TYPE_CODE, BP_TYPE_PAGE, BP_TYPE_HARDWARE
-    @group Breakpoint states:
-        BP_STATE_DISABLED, BP_STATE_ENABLED, BP_STATE_ONESHOT, BP_STATE_RUNNING
-    @group Memory breakpoint trigger flags:
-        BP_BREAK_ON_EXECUTION, BP_BREAK_ON_WRITE, BP_BREAK_ON_ACCESS
-    @group Memory breakpoint size flags:
-        BP_WATCH_BYTE, BP_WATCH_WORD, BP_WATCH_DWORD, BP_WATCH_QWORD
+    - :meth:`resolve_label`
+    - :meth:`resolve_exported_function`
 
-    @type BP_TYPE_ANY: int
-    @cvar BP_TYPE_ANY: To get all breakpoints
-    @type BP_TYPE_CODE: int
-    @cvar BP_TYPE_CODE: To get code breakpoints only
-    @type BP_TYPE_PAGE: int
-    @cvar BP_TYPE_PAGE: To get page breakpoints only
-    @type BP_TYPE_HARDWARE: int
-    @cvar BP_TYPE_HARDWARE: To get hardware breakpoints only
+    .. rubric:: Advanced breakpoint use
 
-    @type BP_STATE_DISABLED: int
-    @cvar BP_STATE_DISABLED: Breakpoint is disabled.
-    @type BP_STATE_ENABLED: int
-    @cvar BP_STATE_ENABLED: Breakpoint is enabled.
-    @type BP_STATE_ONESHOT: int
-    @cvar BP_STATE_ONESHOT: Breakpoint is enabled for one shot.
-    @type BP_STATE_RUNNING: int
-    @cvar BP_STATE_RUNNING: Breakpoint is running (recently hit).
+    - :meth:`define_code_breakpoint`
+    - :meth:`define_page_breakpoint`
+    - :meth:`define_hardware_breakpoint`
+    - :meth:`has_code_breakpoint`
+    - :meth:`has_page_breakpoint`
+    - :meth:`has_hardware_breakpoint`
+    - :meth:`get_code_breakpoint`
+    - :meth:`get_page_breakpoint`
+    - :meth:`get_hardware_breakpoint`
+    - :meth:`erase_code_breakpoint`
+    - :meth:`erase_page_breakpoint`
+    - :meth:`erase_hardware_breakpoint`
+    - :meth:`enable_code_breakpoint`
+    - :meth:`enable_page_breakpoint`
+    - :meth:`enable_hardware_breakpoint`
+    - :meth:`enable_one_shot_code_breakpoint`
+    - :meth:`enable_one_shot_page_breakpoint`
+    - :meth:`enable_one_shot_hardware_breakpoint`
+    - :meth:`disable_code_breakpoint`
+    - :meth:`disable_page_breakpoint`
+    - :meth:`disable_hardware_breakpoint`
 
-    @type BP_BREAK_ON_EXECUTION: int
-    @cvar BP_BREAK_ON_EXECUTION: Break on code execution.
-    @type BP_BREAK_ON_WRITE: int
-    @cvar BP_BREAK_ON_WRITE: Break on memory write.
-    @type BP_BREAK_ON_ACCESS: int
-    @cvar BP_BREAK_ON_ACCESS: Break on memory read or write.
+    .. rubric:: Listing breakpoints
+
+    - :meth:`get_all_breakpoints`
+    - :meth:`get_all_code_breakpoints`
+    - :meth:`get_all_page_breakpoints`
+    - :meth:`get_all_hardware_breakpoints`
+    - :meth:`get_process_breakpoints`
+    - :meth:`get_process_code_breakpoints`
+    - :meth:`get_process_page_breakpoints`
+    - :meth:`get_process_hardware_breakpoints`
+    - :meth:`get_thread_hardware_breakpoints`
+    - :meth:`get_all_deferred_code_breakpoints`
+    - :meth:`get_process_deferred_code_breakpoints`
+
+    .. rubric:: Batch operations on breakpoints
+
+    - :meth:`enable_all_breakpoints`
+    - :meth:`enable_one_shot_all_breakpoints`
+    - :meth:`disable_all_breakpoints`
+    - :meth:`erase_all_breakpoints`
+    - :meth:`enable_process_breakpoints`
+    - :meth:`enable_one_shot_process_breakpoints`
+    - :meth:`disable_process_breakpoints`
+    - :meth:`erase_process_breakpoints`
+
+    :cvar int BP_TYPE_ANY: To get all breakpoints.
+    :cvar int BP_TYPE_CODE: To get code breakpoints only.
+    :cvar int BP_TYPE_PAGE: To get page breakpoints only.
+    :cvar int BP_TYPE_HARDWARE: To get hardware breakpoints only.
+
+    :cvar int BP_STATE_DISABLED: Breakpoint is disabled.
+    :cvar int BP_STATE_ENABLED: Breakpoint is enabled.
+    :cvar int BP_STATE_ONESHOT: Breakpoint is enabled for one shot.
+    :cvar int BP_STATE_RUNNING: Breakpoint is running (recently hit).
+
+    :cvar int BP_BREAK_ON_EXECUTION: Break on code execution.
+    :cvar int BP_BREAK_ON_WRITE: Break on memory write.
+    :cvar int BP_BREAK_ON_ACCESS: Break on memory read or write.
+
+    :cvar int BP_WATCH_BYTE: Watch a byte.
+    :cvar int BP_WATCH_WORD: Watch a word (2 bytes).
+    :cvar int BP_WATCH_DWORD: Watch a double word (4 bytes).
+    :cvar int BP_WATCH_QWORD: Watch one quad word (8 bytes).
     """
 
     # Breakpoint types
@@ -2071,23 +1916,23 @@ class _BreakpointContainer:
     # Since the bps are meant to stay alive no cleanup is done here.
 
     def __get_running_bp_set(self, tid):
-        "Auxiliary method."
+        """Get the set of running breakpoints for a thread."""
         return self.__runningBP.get(tid, ())
 
     def __add_running_bp(self, tid, bp):
-        "Auxiliary method."
+        """Add a running breakpoint to a thread."""
         if tid not in self.__runningBP:
             self.__runningBP[tid] = set()
         self.__runningBP[tid].add(bp)
 
     def __del_running_bp(self, tid, bp):
-        "Auxiliary method."
+        """Delete a running breakpoint from a thread."""
         self.__runningBP[tid].remove(bp)
         if not self.__runningBP[tid]:
             del self.__runningBP[tid]
 
     def __del_running_bp_from_all_threads(self, bp):
-        "Auxiliary method."
+        """Delete a running breakpoint from all threads."""
         for (tid, bpset) in self.__runningBP.items():
             if bp in bpset:
                 bpset.remove(bp)
@@ -2100,7 +1945,7 @@ class _BreakpointContainer:
     # The main goal here is to avoid memory or handle leaks.
 
     def __cleanup_breakpoint(self, event, bp):
-        "Auxiliary method."
+        """Cleanup a breakpoint object."""
         try:
             process = event.get_process()
             thread  = event.get_thread()
@@ -2111,10 +1956,7 @@ class _BreakpointContainer:
         bp.set_action(None)     # break possible circular reference
 
     def __cleanup_thread(self, event):
-        """
-        Auxiliary method for L{_notify_exit_thread}
-        and L{_notify_exit_process}.
-        """
+        """Cleanup breakpoints associated with a thread that's exiting."""
         tid = event.get_tid()
 
         # Cleanup running breakpoints
@@ -2138,9 +1980,7 @@ class _BreakpointContainer:
             self.__tracing.remove(tid)
 
     def __cleanup_process(self, event):
-        """
-        Auxiliary method for L{_notify_exit_process}.
-        """
+        """Cleanup breakpoints associated with a process that's exiting."""
         pid = event.get_pid()
 
         # Cleanup code breakpoints
@@ -2164,9 +2004,7 @@ class _BreakpointContainer:
             pass
 
     def __cleanup_module(self, event):
-        """
-        Auxiliary method for L{_notify_unload_dll}.
-        """
+        """Cleanup breakpoints associated with a module that's being unloaded."""
         pid     = event.get_pid()
         process = event.get_process()
         module  = event.get_module()
@@ -2218,34 +2056,20 @@ class _BreakpointContainer:
         """
         Creates a disabled code breakpoint at the given address.
 
-        @see:
-            L{has_code_breakpoint},
-            L{get_code_breakpoint},
-            L{enable_code_breakpoint},
-            L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint},
-            L{erase_code_breakpoint}
+        :see: :meth:`has_code_breakpoint`, :meth:`get_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`disable_code_breakpoint`, :meth:`erase_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of the code instruction to break at.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of the code instruction to break at.
+        :param callable condition: (Optional) Condition callback function.
             The callback signature is::
 
                 def condition_callback(event):
                     return True     # returns True or False
 
-            Where B{event} is an L{Event} object,
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            (``True`` to dispatch the event, ``False`` otherwise).
+        :param callable action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
 
@@ -2254,15 +2078,12 @@ class _BreakpointContainer:
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object,
-            and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
+            Where ``event`` is an :class:`~winappdbg.event.Event`.
 
-        @rtype:  L{CodeBreakpoint}
-        @return: The code breakpoint object.
+        :rtype:  :class:`CodeBreakpoint`
+        :return: The code breakpoint object.
         """
         bp = CodeBreakpoint(address, condition, action)
-
         key = (dwProcessId, bp.get_address())
         if key in self.__codeBP:
             msg = "Already exists (PID %d) : %r"
@@ -2277,37 +2098,21 @@ class _BreakpointContainer:
         """
         Creates a disabled page breakpoint at the given address.
 
-        @see:
-            L{has_page_breakpoint},
-            L{get_page_breakpoint},
-            L{enable_page_breakpoint},
-            L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint},
-            L{erase_page_breakpoint}
+        :see: :meth:`has_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`disable_page_breakpoint`, :meth:`erase_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of the first page to watch.
-
-        @type  pages: int
-        @param pages: Number of pages to watch.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of the first page to watch.
+        :param int pages: Number of pages to watch.
+        :param callable condition: (Optional) Condition callback function.
             The callback signature is::
 
                 def condition_callback(event):
                     return True     # returns True or False
 
-            Where B{event} is an L{Event} object,
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            (``True`` to dispatch the event, ``False`` otherwise).
+        :param callable action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
 
@@ -2316,12 +2121,12 @@ class _BreakpointContainer:
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object,
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
+            (``True`` to dispatch the event, ``False`` otherwise).
 
-        @rtype:  L{PageBreakpoint}
-        @return: The page breakpoint object.
+        :rtype:  :class:`PageBreakpoint`
+        :return: The page breakpoint object.
         """
         bp    = PageBreakpoint(address, pages, condition, action)
         begin = bp.get_address()
@@ -2353,72 +2158,39 @@ class _BreakpointContainer:
         """
         Creates a disabled hardware breakpoint at the given address.
 
-        @see:
-            L{has_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{enable_hardware_breakpoint},
-            L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint},
-            L{erase_hardware_breakpoint}
+        :see: :meth:`has_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`
 
-        @note:
-            Hardware breakpoints do not seem to work properly on VirtualBox.
-            See U{http://www.virtualbox.org/ticket/477}.
+        .. note:: Hardware breakpoints do not seem to work properly on VirtualBox.
+            See `http://www.virtualbox.org/ticket/477 <http://www.virtualbox.org/ticket/477>`__.
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address to watch.
-
-        @type  triggerFlag: int
-        @param triggerFlag: Trigger of breakpoint. Must be one of the following:
-
-             - L{BP_BREAK_ON_EXECUTION}
-
-               Break on code execution.
-
-             - L{BP_BREAK_ON_WRITE}
-
-               Break on memory read or write.
-
-             - L{BP_BREAK_ON_ACCESS}
-
-               Break on memory write.
-
-        @type  sizeFlag: int
-        @param sizeFlag: Size of breakpoint. Must be one of the following:
-
-             - L{BP_WATCH_BYTE}
-
-               One (1) byte in size.
-
-             - L{BP_WATCH_WORD}
-
-               Two (2) bytes in size.
-
-             - L{BP_WATCH_DWORD}
-
-               Four (4) bytes in size.
-
-             - L{BP_WATCH_QWORD}
-
-               Eight (8) bytes in size.
-
-        @type  condition: function
-        @param condition: (Optional) Condition callback function.
-
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address to watch.
+        :param int triggerFlag: Trigger of breakpoint. Must be one of the following:
+            - :attr:`BP_BREAK_ON_EXECUTION`
+                Break on code execution.
+            - :attr:`BP_BREAK_ON_WRITE`
+                Break on memory read or write.
+            - :attr:`BP_BREAK_ON_ACCESS`
+                Break on memory write.
+        :param int sizeFlag: Size of breakpoint. Must be one of the following:
+            - :attr:`BP_WATCH_BYTE`
+                One (1) byte in size.
+            - :attr:`BP_WATCH_WORD`
+                Two (2) bytes in size.
+            - :attr:`BP_WATCH_DWORD`
+                Four (4) bytes in size.
+            - :attr:`BP_WATCH_QWORD`
+                Eight (8) bytes in size.
+        :param callable condition: (Optional) Condition callback function.
             The callback signature is::
 
                 def condition_callback(event):
                     return True     # returns True or False
 
-            Where B{event} is an L{Event} object,
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
+            (``True`` to dispatch the event, ``False`` otherwise).
+        :param callable action: (Optional) Action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
 
@@ -2427,12 +2199,12 @@ class _BreakpointContainer:
                 def action_callback(event):
                     pass        # no return value
 
-            Where B{event} is an L{Event} object,
+            Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean
-            (C{True} to dispatch the event, C{False} otherwise).
+            (``True`` to dispatch the event, ``False`` otherwise).
 
-        @rtype:  L{HardwareBreakpoint}
-        @return: The hardware breakpoint object.
+        :rtype:  :class:`HardwareBreakpoint`
+        :return: The hardware breakpoint object.
         """
         bp    = HardwareBreakpoint(address, triggerFlag, sizeFlag, condition,
                                                                         action)
@@ -2462,22 +2234,12 @@ class _BreakpointContainer:
         """
         Checks if a code breakpoint is defined at the given address.
 
-        @see:
-            L{define_code_breakpoint},
-            L{get_code_breakpoint},
-            L{erase_code_breakpoint},
-            L{enable_code_breakpoint},
-            L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint}
+        :see: :meth:`define_code_breakpoint`, :meth:`get_code_breakpoint`, :meth:`erase_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`disable_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint is defined, C{False} otherwise.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is defined, ``False`` otherwise.
         """
         return (dwProcessId, address) in self.__codeBP
 
@@ -2485,22 +2247,12 @@ class _BreakpointContainer:
         """
         Checks if a page breakpoint is defined at the given address.
 
-        @see:
-            L{define_page_breakpoint},
-            L{get_page_breakpoint},
-            L{erase_page_breakpoint},
-            L{enable_page_breakpoint},
-            L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint}
+        :see: :meth:`define_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`erase_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`disable_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint is defined, C{False} otherwise.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is defined, ``False`` otherwise.
         """
         return (dwProcessId, address) in self.__pageBP
 
@@ -2508,22 +2260,12 @@ class _BreakpointContainer:
         """
         Checks if a hardware breakpoint is defined at the given address.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{erase_hardware_breakpoint},
-            L{enable_hardware_breakpoint},
-            L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint}
+        :see: :meth:`define_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint is defined, C{False} otherwise.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address of breakpoint.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint is defined, ``False`` otherwise.
         """
         if dwThreadId in self.__hardwareBP:
             bpSet = self.__hardwareBP[dwThreadId]
@@ -2541,25 +2283,15 @@ class _BreakpointContainer:
         Returns the internally used breakpoint object,
         for the code breakpoint defined at the given address.
 
-        @warning: It's usually best to call the L{Debug} methods
+        .. warning:: It's usually best to call the :class:`~winappdbg.debug.Debug` methods
             instead of accessing the breakpoint objects directly.
 
-        @see:
-            L{define_code_breakpoint},
-            L{has_code_breakpoint},
-            L{enable_code_breakpoint},
-            L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint},
-            L{erase_code_breakpoint}
+        :see: :meth:`define_code_breakpoint`, :meth:`has_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`disable_code_breakpoint`, :meth:`erase_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address where the breakpoint is defined.
-
-        @rtype:  L{CodeBreakpoint}
-        @return: The code breakpoint object.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address where the breakpoint is defined.
+        :rtype:  :class:`CodeBreakpoint`
+        :return: The code breakpoint object.
         """
         key = (dwProcessId, address)
         if key not in self.__codeBP:
@@ -2573,25 +2305,15 @@ class _BreakpointContainer:
         Returns the internally used breakpoint object,
         for the page breakpoint defined at the given address.
 
-        @warning: It's usually best to call the L{Debug} methods
+        .. warning:: It's usually best to call the :class:`~winappdbg.debug.Debug` methods
             instead of accessing the breakpoint objects directly.
 
-        @see:
-            L{define_page_breakpoint},
-            L{has_page_breakpoint},
-            L{enable_page_breakpoint},
-            L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint},
-            L{erase_page_breakpoint}
+        :see: :meth:`define_page_breakpoint`, :meth:`has_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`disable_page_breakpoint`, :meth:`erase_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address where the breakpoint is defined.
-
-        @rtype:  L{PageBreakpoint}
-        @return: The page breakpoint object.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address where the breakpoint is defined.
+        :rtype:  :class:`PageBreakpoint`
+        :return: The page breakpoint object.
         """
         key = (dwProcessId, address)
         if key not in self.__pageBP:
@@ -2605,26 +2327,15 @@ class _BreakpointContainer:
         Returns the internally used breakpoint object,
         for the code breakpoint defined at the given address.
 
-        @warning: It's usually best to call the L{Debug} methods
+        .. warning:: It's usually best to call the :class:`~winappdbg.debug.Debug` methods
             instead of accessing the breakpoint objects directly.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{has_hardware_breakpoint},
-            L{get_code_breakpoint},
-            L{enable_hardware_breakpoint},
-            L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint},
-            L{erase_hardware_breakpoint}
+        :see: :meth:`define_hardware_breakpoint`, :meth:`has_hardware_breakpoint`, :meth:`get_code_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address where the breakpoint is defined.
-
-        @rtype:  L{HardwareBreakpoint}
-        @return: The hardware breakpoint object.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address where the breakpoint is defined.
+        :rtype:  :class:`HardwareBreakpoint`
+        :return: The hardware breakpoint object.
         """
         if dwThreadId not in self.__hardwareBP:
             msg = "No hardware breakpoints set for thread %d"
@@ -2643,18 +2354,10 @@ class _BreakpointContainer:
         """
         Enables the code breakpoint at the given address.
 
-        @see:
-            L{define_code_breakpoint},
-            L{has_code_breakpoint},
-            L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint}
-            L{erase_code_breakpoint},
+        :see: :meth:`define_code_breakpoint`, :meth:`has_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`disable_code_breakpoint`, :meth:`erase_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_code_breakpoint(dwProcessId, address)
@@ -2666,19 +2369,10 @@ class _BreakpointContainer:
         """
         Enables the page breakpoint at the given address.
 
-        @see:
-            L{define_page_breakpoint},
-            L{has_page_breakpoint},
-            L{get_page_breakpoint},
-            L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint}
-            L{erase_page_breakpoint},
+        :see: :meth:`define_page_breakpoint`, :meth:`has_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`disable_page_breakpoint`, :meth:`erase_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_page_breakpoint(dwProcessId, address)
@@ -2690,22 +2384,13 @@ class _BreakpointContainer:
         """
         Enables the hardware breakpoint at the given address.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{has_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint}
-            L{erase_hardware_breakpoint},
+        :see: :meth:`define_hardware_breakpoint`, :meth:`has_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`
 
-        @note: Do not set hardware breakpoints while processing the system
+        .. note:: Do not set hardware breakpoints while processing the system
             breakpoint event.
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address of breakpoint.
         """
         t  = self.system.get_thread(dwThreadId)
         bp = self.get_hardware_breakpoint(dwThreadId, address)
@@ -2717,19 +2402,10 @@ class _BreakpointContainer:
         """
         Enables the code breakpoint at the given address for only one shot.
 
-        @see:
-            L{define_code_breakpoint},
-            L{has_code_breakpoint},
-            L{get_code_breakpoint},
-            L{enable_code_breakpoint},
-            L{disable_code_breakpoint}
-            L{erase_code_breakpoint},
+        :see: :meth:`define_code_breakpoint`, :meth:`has_code_breakpoint`, :meth:`get_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`disable_code_breakpoint`, :meth:`erase_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_code_breakpoint(dwProcessId, address)
@@ -2741,19 +2417,10 @@ class _BreakpointContainer:
         """
         Enables the page breakpoint at the given address for only one shot.
 
-        @see:
-            L{define_page_breakpoint},
-            L{has_page_breakpoint},
-            L{get_page_breakpoint},
-            L{enable_page_breakpoint},
-            L{disable_page_breakpoint}
-            L{erase_page_breakpoint},
+        :see: :meth:`define_page_breakpoint`, :meth:`has_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`disable_page_breakpoint`, :meth:`erase_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_page_breakpoint(dwProcessId, address)
@@ -2765,19 +2432,10 @@ class _BreakpointContainer:
         """
         Enables the hardware breakpoint at the given address for only one shot.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{has_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{enable_hardware_breakpoint},
-            L{disable_hardware_breakpoint}
-            L{erase_hardware_breakpoint},
+        :see: :meth:`define_hardware_breakpoint`, :meth:`has_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address of breakpoint.
         """
         t  = self.system.get_thread(dwThreadId)
         bp = self.get_hardware_breakpoint(dwThreadId, address)
@@ -2789,19 +2447,10 @@ class _BreakpointContainer:
         """
         Disables the code breakpoint at the given address.
 
-        @see:
-            L{define_code_breakpoint},
-            L{has_code_breakpoint},
-            L{get_code_breakpoint},
-            L{enable_code_breakpoint}
-            L{enable_one_shot_code_breakpoint},
-            L{erase_code_breakpoint},
+        :see: :meth:`define_code_breakpoint`, :meth:`has_code_breakpoint`, :meth:`get_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`erase_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_code_breakpoint(dwProcessId, address)
@@ -2813,19 +2462,10 @@ class _BreakpointContainer:
         """
         Disables the page breakpoint at the given address.
 
-        @see:
-            L{define_page_breakpoint},
-            L{has_page_breakpoint},
-            L{get_page_breakpoint},
-            L{enable_page_breakpoint}
-            L{enable_one_shot_page_breakpoint},
-            L{erase_page_breakpoint},
+        :see: :meth:`define_page_breakpoint`, :meth:`has_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`erase_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         p  = self.system.get_process(dwProcessId)
         bp = self.get_page_breakpoint(dwProcessId, address)
@@ -2837,19 +2477,10 @@ class _BreakpointContainer:
         """
         Disables the hardware breakpoint at the given address.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{has_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{enable_hardware_breakpoint}
-            L{enable_one_shot_hardware_breakpoint},
-            L{erase_hardware_breakpoint},
+        :see: :meth:`define_hardware_breakpoint`, :meth:`has_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`erase_hardware_breakpoint`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address of breakpoint.
         """
         t  = self.system.get_thread(dwThreadId)
         p  = t.get_process()
@@ -2866,19 +2497,10 @@ class _BreakpointContainer:
         """
         Erases the code breakpoint at the given address.
 
-        @see:
-            L{define_code_breakpoint},
-            L{has_code_breakpoint},
-            L{get_code_breakpoint},
-            L{enable_code_breakpoint},
-            L{enable_one_shot_code_breakpoint},
-            L{disable_code_breakpoint}
+        :see: :meth:`define_code_breakpoint`, :meth:`has_code_breakpoint`, :meth:`get_code_breakpoint`, :meth:`enable_code_breakpoint`, :meth:`enable_one_shot_code_breakpoint`, :meth:`disable_code_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         bp = self.get_code_breakpoint(dwProcessId, address)
         if not bp.is_disabled():
@@ -2889,19 +2511,10 @@ class _BreakpointContainer:
         """
         Erases the page breakpoint at the given address.
 
-        @see:
-            L{define_page_breakpoint},
-            L{has_page_breakpoint},
-            L{get_page_breakpoint},
-            L{enable_page_breakpoint},
-            L{enable_one_shot_page_breakpoint},
-            L{disable_page_breakpoint}
+        :see: :meth:`define_page_breakpoint`, :meth:`has_page_breakpoint`, :meth:`get_page_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`disable_page_breakpoint`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwProcessId: Process global ID.
+        :param int address: Memory address of breakpoint.
         """
         bp    = self.get_page_breakpoint(dwProcessId, address)
         begin = bp.get_address()
@@ -2918,19 +2531,10 @@ class _BreakpointContainer:
         """
         Erases the hardware breakpoint at the given address.
 
-        @see:
-            L{define_hardware_breakpoint},
-            L{has_hardware_breakpoint},
-            L{get_hardware_breakpoint},
-            L{enable_hardware_breakpoint},
-            L{enable_one_shot_hardware_breakpoint},
-            L{disable_hardware_breakpoint}
+        :see: :meth:`define_hardware_breakpoint`, :meth:`has_hardware_breakpoint`, :meth:`get_hardware_breakpoint`, :meth:`enable_hardware_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`, :meth:`disable_hardware_breakpoint`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of breakpoint.
+        :param int dwThreadId: Thread global ID.
+        :param int address: Memory address of breakpoint.
         """
         bp = self.get_hardware_breakpoint(dwThreadId, address)
         if not bp.is_disabled():
@@ -2950,22 +2554,22 @@ class _BreakpointContainer:
 
         Each tuple contains:
          - Process global ID to which the breakpoint applies.
-         - Thread global ID to which the breakpoint applies, or C{None}.
-         - The L{Breakpoint} object itself.
+         - Thread global ID to which the breakpoint applies, or ``None``.
+         - The :class:`Breakpoint` object itself.
 
-        @note: If you're only interested in a specific breakpoint type, or in
+        .. note:: If you're only interested in a specific breakpoint type, or in
             breakpoints for a specific process or thread, it's probably faster
             to call one of the following methods:
-             - L{get_all_code_breakpoints}
-             - L{get_all_page_breakpoints}
-             - L{get_all_hardware_breakpoints}
-             - L{get_process_code_breakpoints}
-             - L{get_process_page_breakpoints}
-             - L{get_process_hardware_breakpoints}
-             - L{get_thread_hardware_breakpoints}
+             - :meth:`get_all_code_breakpoints`
+             - :meth:`get_all_page_breakpoints`
+             - :meth:`get_all_hardware_breakpoints`
+             - :meth:`get_process_code_breakpoints`
+             - :meth:`get_process_page_breakpoints`
+             - :meth:`get_process_hardware_breakpoints`
+             - :meth:`get_thread_hardware_breakpoints`
 
-        @rtype:  list of tuple( pid, tid, bp )
-        @return: List of all breakpoints.
+        :rtype:  list of tuple( pid, tid, bp )
+        :return: List of all breakpoints.
         """
         bplist = list()
 
@@ -2987,15 +2591,15 @@ class _BreakpointContainer:
 
     def get_all_code_breakpoints(self):
         """
-        @rtype:  list of tuple( int, L{CodeBreakpoint} )
-        @return: All code breakpoints as a list of tuples (pid, bp).
+        :rtype:  list of tuple( int, :class:`CodeBreakpoint` )
+        :return: All code breakpoints as a list of tuples (pid, bp).
         """
         return [ (pid, bp) for ((pid, address), bp) in self.__codeBP.items() ]
 
     def get_all_page_breakpoints(self):
         """
-        @rtype:  list of tuple( int, L{PageBreakpoint} )
-        @return: All page breakpoints as a list of tuples (pid, bp).
+        :rtype:  list of tuple( int, :class:`PageBreakpoint` )
+        :return: All page breakpoints as a list of tuples (pid, bp).
         """
 ##        return list( set( [ (pid, bp) for ((pid, address), bp) in self.__pageBP.items() ] ) )
         result = set()
@@ -3005,8 +2609,8 @@ class _BreakpointContainer:
 
     def get_all_hardware_breakpoints(self):
         """
-        @rtype:  list of tuple( int, L{HardwareBreakpoint} )
-        @return: All hardware breakpoints as a list of tuples (tid, bp).
+        :rtype:  list of tuple( int, :class:`HardwareBreakpoint` )
+        :return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
         for (tid, bplist) in self.__hardwareBP.items():
@@ -3020,25 +2624,23 @@ class _BreakpointContainer:
 
         Each tuple contains:
          - Process global ID to which the breakpoint applies.
-         - Thread global ID to which the breakpoint applies, or C{None}.
-         - The L{Breakpoint} object itself.
+         - Thread global ID to which the breakpoint applies, or ``None``.
+         - The :class:`Breakpoint` object itself.
 
-        @note: If you're only interested in a specific breakpoint type, or in
+        .. note:: If you're only interested in a specific breakpoint type, or in
             breakpoints for a specific process or thread, it's probably faster
             to call one of the following methods:
-             - L{get_all_code_breakpoints}
-             - L{get_all_page_breakpoints}
-             - L{get_all_hardware_breakpoints}
-             - L{get_process_code_breakpoints}
-             - L{get_process_page_breakpoints}
-             - L{get_process_hardware_breakpoints}
-             - L{get_thread_hardware_breakpoints}
+             - :meth:`get_all_code_breakpoints`
+             - :meth:`get_all_page_breakpoints`
+             - :meth:`get_all_hardware_breakpoints`
+             - :meth:`get_process_code_breakpoints`
+             - :meth:`get_process_page_breakpoints`
+             - :meth:`get_process_hardware_breakpoints`
+             - :meth:`get_thread_hardware_breakpoints`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @rtype:  list of tuple( pid, tid, bp )
-        @return: List of all breakpoints for the given process.
+        :param int dwProcessId: Process global ID.
+        :rtype:  list of tuple( pid, tid, bp )
+        :return: List of all breakpoints for the given process.
         """
         bplist = list()
 
@@ -3059,35 +2661,29 @@ class _BreakpointContainer:
 
     def get_process_code_breakpoints(self, dwProcessId):
         """
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @rtype:  list of L{CodeBreakpoint}
-        @return: All code breakpoints for the given process.
+        :param int dwProcessId: Process global ID.
+        :rtype:  list of :class:`CodeBreakpoint`
+        :return: All code breakpoints for the given process.
         """
         return [ bp for ((pid, address), bp) in self.__codeBP.items() \
                 if pid == dwProcessId ]
 
     def get_process_page_breakpoints(self, dwProcessId):
         """
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @rtype:  list of L{PageBreakpoint}
-        @return: All page breakpoints for the given process.
+        :param int dwProcessId: Process global ID.
+        :rtype:  list of :class:`PageBreakpoint`
+        :return: All page breakpoints for the given process.
         """
         return [ bp for ((pid, address), bp) in self.__pageBP.items() \
                 if pid == dwProcessId ]
 
     def get_thread_hardware_breakpoints(self, dwThreadId):
         """
-        @see: L{get_process_hardware_breakpoints}
+        :see: :meth:`get_process_hardware_breakpoints`
 
-        @type  dwThreadId: int
-        @param dwThreadId: Thread global ID.
-
-        @rtype:  list of L{HardwareBreakpoint}
-        @return: All hardware breakpoints for the given thread.
+        :param int dwThreadId: Thread global ID.
+        :rtype:  list of :class:`HardwareBreakpoint`
+        :return: All hardware breakpoints for the given thread.
         """
         result = list()
         for (tid, bplist) in self.__hardwareBP.items():
@@ -3098,13 +2694,11 @@ class _BreakpointContainer:
 
     def get_process_hardware_breakpoints(self, dwProcessId):
         """
-        @see: L{get_thread_hardware_breakpoints}
+        :see: :meth:`get_thread_hardware_breakpoints`
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
-
-        @rtype:  list of tuple( int, L{HardwareBreakpoint} )
-        @return: All hardware breakpoints for each thread in the given process
+        :param int dwProcessId: Process global ID.
+        :rtype:  list of tuple( int, :class:`HardwareBreakpoint` )
+        :return: All hardware breakpoints for each thread in the given process
             as a list of tuples (tid, bp).
         """
         result = list()
@@ -3118,23 +2712,22 @@ class _BreakpointContainer:
 
 ##    def get_all_hooks(self):
 ##        """
-##        @see: L{get_process_hooks}
+##        :see: :meth:`get_process_hooks`
 ##
-##        @rtype:  list of tuple( int, int, L{Hook} )
-##        @return: All defined hooks as a list of tuples (pid, address, hook).
+##        :rtype:  list of tuple( int, int, :class:`Hook` )
+##        :return: All defined hooks as a list of tuples (pid, address, hook).
 ##        """
 ##        return [ (pid, address, hook) \
 ##            for ((pid, address), hook) in self.__hook_objects ]
 ##
 ##    def get_process_hooks(self, dwProcessId):
 ##        """
-##        @see: L{get_all_hooks}
+##        :see: :meth:`get_all_hooks`
 ##
-##        @type  dwProcessId: int
-##        @param dwProcessId: Process global ID.
+##        :param int dwProcessId: Process global ID.
 ##
-##        @rtype:  list of tuple( int, int, L{Hook} )
-##        @return: All hooks for the given process as a list of tuples
+##        :rtype:  list of tuple( int, int, :class:`Hook` )
+##        :return: All hooks for the given process as a list of tuples
 ##            (pid, address, hook).
 ##        """
 ##        return [ (pid, address, hook) \
@@ -3149,10 +2742,7 @@ class _BreakpointContainer:
         """
         Enables all disabled breakpoints in all processes.
 
-        @see:
-            enable_code_breakpoint,
-            enable_page_breakpoint,
-            enable_hardware_breakpoint
+        :see: :meth:`enable_code_breakpoint`, :meth:`enable_page_breakpoint`, :meth:`enable_hardware_breakpoint`
         """
 
         # disable code breakpoints
@@ -3174,10 +2764,7 @@ class _BreakpointContainer:
         """
         Enables for one shot all disabled breakpoints in all processes.
 
-        @see:
-            enable_one_shot_code_breakpoint,
-            enable_one_shot_page_breakpoint,
-            enable_one_shot_hardware_breakpoint
+        :see: :meth:`enable_one_shot_code_breakpoint`, :meth:`enable_one_shot_page_breakpoint`, :meth:`enable_one_shot_hardware_breakpoint`
         """
 
         # disable code breakpoints for one shot
@@ -3199,10 +2786,7 @@ class _BreakpointContainer:
         """
         Disables all breakpoints in all processes.
 
-        @see:
-            disable_code_breakpoint,
-            disable_page_breakpoint,
-            disable_hardware_breakpoint
+        :see: :meth:`disable_code_breakpoint`, :meth:`disable_page_breakpoint`, :meth:`disable_hardware_breakpoint`
         """
 
         # disable code breakpoints
@@ -3221,10 +2805,7 @@ class _BreakpointContainer:
         """
         Erases all breakpoints in all processes.
 
-        @see:
-            erase_code_breakpoint,
-            erase_page_breakpoint,
-            erase_hardware_breakpoint
+        :see: :meth:`erase_code_breakpoint`, :meth:`erase_page_breakpoint`, :meth:`erase_hardware_breakpoint`
         """
 
         # This should be faster but let's not trust the GC so much :P
@@ -3259,8 +2840,7 @@ class _BreakpointContainer:
         """
         Enables all disabled breakpoints for the given process.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :param int dwProcessId: Process global ID.
         """
 
         # enable code breakpoints
@@ -3289,8 +2869,7 @@ class _BreakpointContainer:
         """
         Enables for one shot all disabled breakpoints for the given process.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :param int dwProcessId: Process global ID.
         """
 
         # enable code breakpoints for one shot
@@ -3319,8 +2898,7 @@ class _BreakpointContainer:
         """
         Disables all breakpoints for the given process.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :param int dwProcessId: Process global ID.
         """
 
         # disable code breakpoints
@@ -3346,8 +2924,7 @@ class _BreakpointContainer:
         """
         Erases all breakpoints for the given process.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process global ID.
+        :param int dwProcessId: Process global ID.
         """
 
         # disable breakpoints first
@@ -3385,11 +2962,10 @@ class _BreakpointContainer:
         """
         Notify breakpoints of a guard page exception event.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Guard page exception event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Guard page exception event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         address         = event.get_fault_address()
         pid             = event.get_pid()
@@ -3439,11 +3015,10 @@ class _BreakpointContainer:
         """
         Notify breakpoints of a breakpoint exception event.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint exception event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Breakpoint exception event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         address         = event.get_exception_address()
         pid             = event.get_pid()
@@ -3505,11 +3080,10 @@ class _BreakpointContainer:
         """
         Notify breakpoints of a single step exception event.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Single step exception event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handle, C{False} otherwise.
+        :param event: Single step exception event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         tid          = event.get_tid()
         aThread      = event.get_thread()
@@ -3644,11 +3218,10 @@ class _BreakpointContainer:
         """
         Notify the loading of a DLL.
 
-        @type  event: L{LoadDLLEvent}
-        @param event: Load DLL event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        :param event: Load DLL event.
+        :type event: :class:`~winappdbg.event.LoadDLLEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
         self.__set_deferred_breakpoints(event)
         return True
@@ -3657,11 +3230,10 @@ class _BreakpointContainer:
         """
         Notify the unloading of a DLL.
 
-        @type  event: L{UnloadDLLEvent}
-        @param event: Unload DLL event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        :param event: Unload DLL event.
+        :type event: :class:`~winappdbg.event.UnloadDLLEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
         self.__cleanup_module(event)
         return True
@@ -3670,11 +3242,10 @@ class _BreakpointContainer:
         """
         Notify the termination of a thread.
 
-        @type  event: L{ExitThreadEvent}
-        @param event: Exit thread event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        :param event: Exit thread event.
+        :type event: :class:`~winappdbg.event.ExitThreadEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
         self.__cleanup_thread(event)
         return True
@@ -3683,11 +3254,10 @@ class _BreakpointContainer:
         """
         Notify the termination of a process.
 
-        @type  event: L{ExitProcessEvent}
-        @param event: Exit process event.
-
-        @rtype:  bool
-        @return: C{True} to call the user-defined handler, C{False} otherwise.
+        :param event: Exit process event.
+        :type event: :class:`~winappdbg.event.ExitProcessEvent`
+        :rtype:  bool
+        :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
         self.__cleanup_process(event)
         self.__cleanup_thread(event)
@@ -3708,27 +3278,19 @@ class _BreakpointContainer:
 
     def __set_break(self, pid, address, action, oneshot):
         """
-        Used by L{break_at} and L{stalk_at}.
+        Used by :meth:`break_at` and :meth:`stalk_at`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_code_breakpoint} for more details.
-
-        @type  oneshot: bool
-        @param oneshot: C{True} for one-shot breakpoints, C{False} otherwise.
-
-        @rtype:  L{Breakpoint}
-        @return: Returns the new L{Breakpoint} object, or C{None} if the label
+        :type address: int or str
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_code_breakpoint` for more details.
+        :param bool oneshot: ``True`` for one-shot breakpoints, ``False`` otherwise.
+        :rtype:  :class:`Breakpoint`
+        :return: Returns the new :class:`Breakpoint` object, or ``None`` if the label
             couldn't be resolved and the breakpoint was deferred. Deferred
             breakpoints are set when the DLL they point to is loaded.
         """
@@ -3770,16 +3332,14 @@ class _BreakpointContainer:
 
     def __clear_break(self, pid, address):
         """
-        Used by L{dont_break_at} and L{dont_stalk_at}.
+        Used by :meth:`dont_break_at` and :meth:`dont_stalk_at`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
+        :type address: int or str
         """
         if not isinstance(address, int):
             unknown = True
@@ -3812,8 +3372,8 @@ class _BreakpointContainer:
         Used internally. Sets all deferred breakpoints for a DLL when it's
         loaded.
 
-        @type  event: L{LoadDLLEvent}
-        @param event: Load DLL event.
+        :param event: Load DLL event.
+        :type event: :class:`~winappdbg.event.LoadDLLEvent`
         """
         pid = event.get_pid()
         try:
@@ -3838,12 +3398,12 @@ class _BreakpointContainer:
         """
         Returns a list of deferred code breakpoints.
 
-        @rtype:  tuple of (int, str, callable, bool)
-        @return: Tuple containing the following elements:
+        :rtype:  tuple of (int, str, callable, bool)
+        :return: Tuple containing the following elements:
              - Process ID where to set the breakpoint.
              - Label pointing to the address where to set the breakpoint.
              - Action callback for the breakpoint.
-             - C{True} of the breakpoint is one-shot, C{False} otherwise.
+             - ``True`` of the breakpoint is one-shot, ``False`` otherwise.
         """
         result = []
         for pid, deferred in self.__deferredBP.items():
@@ -3855,14 +3415,12 @@ class _BreakpointContainer:
         """
         Returns a list of deferred code breakpoints.
 
-        @type  dwProcessId: int
-        @param dwProcessId: Process ID.
-
-        @rtype:  tuple of (int, str, callable, bool)
-        @return: Tuple containing the following elements:
+        :param int dwProcessId: Process ID.
+        :rtype:  tuple of (int, str, callable, bool)
+        :return: Tuple containing the following elements:
              - Label pointing to the address where to set the breakpoint.
              - Action callback for the breakpoint.
-             - C{True} of the breakpoint is one-shot, C{False} otherwise.
+             - ``True`` of the breakpoint is one-shot, ``False`` otherwise.
         """
         return [ (label, action, oneshot)
                   for (label, (action, oneshot))
@@ -3875,24 +3433,18 @@ class _BreakpointContainer:
         If instead of an address you pass a label, the breakpoint may be
         deferred until the DLL it points to is loaded.
 
-        @see: L{break_at}, L{dont_stalk_at}
+        :see: :meth:`break_at`, :meth:`dont_stalk_at`
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_code_breakpoint} for more details.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint was set immediately, or C{False} if
+        :type address: int or str
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_code_breakpoint` for more details.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint was set immediately, or ``False`` if
             it was deferred.
         """
         bp = self.__set_break(pid, address, action, oneshot = True)
@@ -3905,24 +3457,18 @@ class _BreakpointContainer:
         If instead of an address you pass a label, the breakpoint may be
         deferred until the DLL it points to is loaded.
 
-        @see: L{stalk_at}, L{dont_break_at}
+        :see: :meth:`stalk_at`, :meth:`dont_break_at`
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_code_breakpoint} for more details.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint was set immediately, or C{False} if
+        :type address: int or str
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_code_breakpoint` for more details.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint was set immediately, or ``False`` if
             it was deferred.
         """
         bp = self.__set_break(pid, address, action, oneshot = False)
@@ -3930,31 +3476,27 @@ class _BreakpointContainer:
 
     def dont_break_at(self, pid, address):
         """
-        Clears a code breakpoint set by L{break_at}.
+        Clears a code breakpoint set by :meth:`break_at`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
+        :type address: int or str
         """
         self.__clear_break(pid, address)
 
     def dont_stalk_at(self, pid, address):
         """
-        Clears a code breakpoint set by L{stalk_at}.
+        Clears a code breakpoint set by :meth:`stalk_at`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
+        :type address: int or str
         """
         self.__clear_break(pid, address)
 
@@ -3971,18 +3513,13 @@ class _BreakpointContainer:
         If instead of an address you pass a label, the hook may be
         deferred until the DLL it points to is loaded.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
-
-        @type  preCB: function
-        @param preCB: (Optional) Callback triggered on function entry.
-
+        :type address: int or str
+        :param callable preCB: (Optional) Callback triggered on function entry.
             The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
@@ -4000,20 +3537,15 @@ class _BreakpointContainer:
             the remote memory address instead. This is so to prevent the ctypes
             library from being "too helpful" and trying to dereference the
             pointer. To get the actual data being pointed to, use one of the
-            L{Process.read} methods.
-
-        @type  postCB: function
-        @param postCB: (Optional) Callback triggered on function exit.
-
+            :meth:`~winappdbg.process.Process.read` methods.
+        :param callable postCB: (Optional) Callback triggered on function exit.
             The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
                     # (...)
-
-        @type  paramCount: int
-        @param paramCount:
-            (Optional) Number of parameters for the C{preCB} callback,
+        :param int paramCount:
+            (Optional) Number of parameters for the ``preCB`` callback,
             not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
 
@@ -4022,17 +3554,14 @@ class _BreakpointContainer:
             not all arguments to the hooked function will be of the same size.
 
             For a more reliable and cross-platform way of hooking use the
-            C{signature} argument instead.
-
-        @type  signature: tuple
-        @param signature:
-            (Optional) Tuple of C{ctypes} data types that constitute the
+            ``signature`` argument instead.
+        :param tuple signature:
+            (Optional) Tuple of ``ctypes`` data types that constitute the
             hooked function signature. When the function is called, this will
             be used to parse the arguments from the stack. Overrides the
-            C{paramCount} argument.
-
-        @rtype:  bool
-        @return: C{True} if the hook was set immediately, or C{False} if
+            ``paramCount`` argument.
+        :rtype:  bool
+        :return: ``True`` if the hook was set immediately, or ``False`` if
             it was deferred.
         """
         try:
@@ -4053,18 +3582,13 @@ class _BreakpointContainer:
         If instead of an address you pass a label, the hook may be
         deferred until the DLL it points to is loaded.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
-
-        @type  preCB: function
-        @param preCB: (Optional) Callback triggered on function entry.
-
+        :type address: int or str
+        :param callable preCB: (Optional) Callback triggered on function entry.
             The signature for the callback should be something like this::
 
                 def pre_LoadLibraryEx(event, ra, lpFilename, hFile, dwFlags):
@@ -4082,20 +3606,15 @@ class _BreakpointContainer:
             the remote memory address instead. This is so to prevent the ctypes
             library from being "too helpful" and trying to dereference the
             pointer. To get the actual data being pointed to, use one of the
-            L{Process.read} methods.
-
-        @type  postCB: function
-        @param postCB: (Optional) Callback triggered on function exit.
-
+            :meth:`~winappdbg.process.Process.read` methods.
+        :param callable postCB: (Optional) Callback triggered on function exit.
             The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
                     # (...)
-
-        @type  paramCount: int
-        @param paramCount:
-            (Optional) Number of parameters for the C{preCB} callback,
+        :param int paramCount:
+            (Optional) Number of parameters for the ``preCB`` callback,
             not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
 
@@ -4104,17 +3623,14 @@ class _BreakpointContainer:
             not all arguments to the hooked function will be of the same size.
 
             For a more reliable and cross-platform way of hooking use the
-            C{signature} argument instead.
-
-        @type  signature: tuple
-        @param signature:
-            (Optional) Tuple of C{ctypes} data types that constitute the
+            ``signature`` argument instead.
+        :param tuple signature:
+            (Optional) Tuple of ``ctypes`` data types that constitute the
             hooked function signature. When the function is called, this will
             be used to parse the arguments from the stack. Overrides the
-            C{paramCount} argument.
-
-        @rtype:  bool
-        @return: C{True} if the breakpoint was set immediately, or C{False} if
+            ``paramCount`` argument.
+        :rtype:  bool
+        :return: ``True`` if the breakpoint was set immediately, or ``False`` if
             it was deferred.
         """
         try:
@@ -4128,16 +3644,14 @@ class _BreakpointContainer:
 
     def dont_hook_function(self, pid, address):
         """
-        Removes a function hook set by L{hook_function}.
+        Removes a function hook set by :meth:`hook_function`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
+        :type address: int or str
         """
         self.dont_break_at(pid, address)
 
@@ -4146,16 +3660,14 @@ class _BreakpointContainer:
 
     def dont_stalk_function(self, pid, address):
         """
-        Removes a function hook set by L{stalk_function}.
+        Removes a function hook set by :meth:`stalk_function`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int or str
-        @param address:
+        :param int pid: Process global ID.
+        :param address:
             Memory address of code instruction to break at. It can be an
             integer value for the actual address or a string with a label
             to be resolved.
+        :type address: int or str
         """
         self.dont_stalk_at(pid, address)
 
@@ -4165,25 +3677,16 @@ class _BreakpointContainer:
 
     def __set_variable_watch(self, tid, address, size, action):
         """
-        Used by L{watch_variable} and L{stalk_variable}.
+        Used by :meth:`watch_variable` and :meth:`stalk_variable`.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to watch.
-
-        @type  size: int
-        @param size: Size of variable to watch. The only supported sizes are:
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to watch.
+        :param int size: Size of variable to watch. The only supported sizes are:
             byte (1), word (2), dword (4) and qword (8).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_hardware_breakpoint} for more details.
-
-        @rtype:  L{HardwareBreakpoint}
-        @return: Hardware breakpoint at the requested address.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_hardware_breakpoint` for more details.
+        :rtype:  :class:`HardwareBreakpoint`
+        :return: Hardware breakpoint at the requested address.
         """
 
         # TODO
@@ -4226,13 +3729,10 @@ class _BreakpointContainer:
 
     def __clear_variable_watch(self, tid, address):
         """
-        Used by L{dont_watch_variable} and L{dont_stalk_variable}.
+        Used by :meth:`dont_watch_variable` and :meth:`dont_stalk_variable`.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to stop watching.
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to stop watching.
         """
         if self.has_hardware_breakpoint(tid, address):
             self.erase_hardware_breakpoint(tid, address)
@@ -4241,22 +3741,14 @@ class _BreakpointContainer:
         """
         Sets a hardware breakpoint at the given thread, address and size.
 
-        @see: L{dont_watch_variable}
+        :see: :meth:`dont_watch_variable`
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to watch.
-
-        @type  size: int
-        @param size: Size of variable to watch. The only supported sizes are:
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to watch.
+        :param int size: Size of variable to watch. The only supported sizes are:
             byte (1), word (2), dword (4) and qword (8).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_hardware_breakpoint} for more details.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_hardware_breakpoint` for more details.
         """
         bp = self.__set_variable_watch(tid, address, size, action)
         if not bp.is_enabled():
@@ -4267,22 +3759,14 @@ class _BreakpointContainer:
         Sets a one-shot hardware breakpoint at the given thread,
         address and size.
 
-        @see: L{dont_watch_variable}
+        :see: :meth:`dont_watch_variable`
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to watch.
-
-        @type  size: int
-        @param size: Size of variable to watch. The only supported sizes are:
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to watch.
+        :param int size: Size of variable to watch. The only supported sizes are:
             byte (1), word (2), dword (4) and qword (8).
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_hardware_breakpoint} for more details.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_hardware_breakpoint` for more details.
         """
         bp = self.__set_variable_watch(tid, address, size, action)
         if not bp.is_one_shot():
@@ -4290,25 +3774,19 @@ class _BreakpointContainer:
 
     def dont_watch_variable(self, tid, address):
         """
-        Clears a hardware breakpoint set by L{watch_variable}.
+        Clears a hardware breakpoint set by :meth:`watch_variable`.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to stop watching.
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to stop watching.
         """
         self.__clear_variable_watch(tid, address)
 
     def dont_stalk_variable(self, tid, address):
         """
-        Clears a hardware breakpoint set by L{stalk_variable}.
+        Clears a hardware breakpoint set by :meth:`stalk_variable`.
 
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @type  address: int
-        @param address: Memory address of variable to stop watching.
+        :param int tid: Thread global ID.
+        :param int address: Memory address of variable to stop watching.
         """
         self.__clear_variable_watch(tid, address)
 
@@ -4318,26 +3796,16 @@ class _BreakpointContainer:
 
     def __set_buffer_watch(self, pid, address, size, action, bOneShot):
         """
-        Used by L{watch_buffer} and L{stalk_buffer}.
+        Used by :meth:`watch_buffer` and :meth:`stalk_buffer`.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to watch.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to watch.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_page_breakpoint} for more details.
-
-        @type  bOneShot: bool
-        @param bOneShot:
-            C{True} to set a one-shot breakpoint,
-            C{False} to set a normal breakpoint.
+        :param int pid: Process global ID.
+        :param int address: Memory address of buffer to watch.
+        :param int size: Size in bytes of buffer to watch.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_page_breakpoint` for more details.
+        :param bool bOneShot:
+            ``True`` to set a one-shot breakpoint,
+            ``False`` to set a normal breakpoint.
         """
 
         # Check the size isn't zero or negative.
@@ -4418,18 +3886,13 @@ class _BreakpointContainer:
 
     def __clear_buffer_watch_old_method(self, pid, address, size):
         """
-        Used by L{dont_watch_buffer} and L{dont_stalk_buffer}.
+        Used by :meth:`dont_watch_buffer` and :meth:`dont_stalk_buffer`.
 
-        @warn: Deprecated since WinAppDbg 1.5.
+        .. warning:: Deprecated since WinAppDbg 1.5.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to stop watching.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to stop watching.
+        :param int pid: Process global ID.
+        :param int address: Memory address of buffer to stop watching.
+        :param int size: Size in bytes of buffer to stop watching.
         """
         warnings.warn("Deprecated since WinAppDbg 1.5", DeprecationWarning)
 
@@ -4467,10 +3930,10 @@ class _BreakpointContainer:
 
     def __clear_buffer_watch(self, bw):
         """
-        Used by L{dont_watch_buffer} and L{dont_stalk_buffer}.
+        Used by :meth:`dont_watch_buffer` and :meth:`dont_stalk_buffer`.
 
-        @type  bw: L{BufferWatch}
-        @param bw: Buffer watch identifier.
+        :param bw: Buffer watch identifier.
+        :type bw: :class:`BufferWatch`
         """
 
         # Get the PID and the start and end addresses of the buffer.
@@ -4512,24 +3975,15 @@ class _BreakpointContainer:
         """
         Sets a page breakpoint and notifies when the given buffer is accessed.
 
-        @see: L{dont_watch_variable}
+        :see: :meth:`dont_watch_variable`
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to watch.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to watch.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_page_breakpoint} for more details.
-
-        @rtype:  L{BufferWatch}
-        @return: Buffer watch identifier.
+        :param int pid: Process global ID.
+        :param int address: Memory address of buffer to watch.
+        :param int size: Size in bytes of buffer to watch.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_page_breakpoint` for more details.
+        :rtype:  :class:`BufferWatch`
+        :return: Buffer watch identifier.
         """
         self.__set_buffer_watch(pid, address, size, action, False)
 
@@ -4538,34 +3992,25 @@ class _BreakpointContainer:
         Sets a one-shot page breakpoint and notifies
         when the given buffer is accessed.
 
-        @see: L{dont_watch_variable}
+        :see: :meth:`dont_watch_variable`
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  address: int
-        @param address: Memory address of buffer to watch.
-
-        @type  size: int
-        @param size: Size in bytes of buffer to watch.
-
-        @type  action: function
-        @param action: (Optional) Action callback function.
-
-            See L{define_page_breakpoint} for more details.
-
-        @rtype:  L{BufferWatch}
-        @return: Buffer watch identifier.
+        :param int pid: Process global ID.
+        :param int address: Memory address of buffer to watch.
+        :param int size: Size in bytes of buffer to watch.
+        :param callable action: (Optional) Action callback function.
+            See :meth:`define_page_breakpoint` for more details.
+        :rtype:  :class:`BufferWatch`
+        :return: Buffer watch identifier.
         """
         self.__set_buffer_watch(pid, address, size, action, True)
 
     def dont_watch_buffer(self, bw, *argv, **argd):
         """
-        Clears a page breakpoint set by L{watch_buffer}.
+        Clears a page breakpoint set by :meth:`watch_buffer`.
 
-        @type  bw: L{BufferWatch}
-        @param bw:
-            Buffer watch identifier returned by L{watch_buffer}.
+        :param bw:
+            Buffer watch identifier returned by :meth:`watch_buffer`.
+        :type bw: :class:`BufferWatch`
         """
 
         # The sane way to do it.
@@ -4592,11 +4037,11 @@ class _BreakpointContainer:
 
     def dont_stalk_buffer(self, bw, *argv, **argd):
         """
-        Clears a page breakpoint set by L{stalk_buffer}.
+        Clears a page breakpoint set by :meth:`stalk_buffer`.
 
-        @type  bw: L{BufferWatch}
-        @param bw:
-            Buffer watch identifier returned by L{stalk_buffer}.
+        :param bw:
+            Buffer watch identifier returned by :meth:`stalk_buffer`.
+        :type bw: :class:`BufferWatch`
         """
         self.dont_watch_buffer(bw, *argv, **argd)
 
@@ -4609,8 +4054,8 @@ class _BreakpointContainer:
 
     def __start_tracing(self, thread):
         """
-        @type  thread: L{Thread}
-        @param thread: Thread to start tracing.
+        :param thread: Thread to start tracing.
+        :type thread: :class:`~winappdbg.thread.Thread`
         """
         tid = thread.get_tid()
         if not tid in self.__tracing:
@@ -4619,8 +4064,8 @@ class _BreakpointContainer:
 
     def __stop_tracing(self, thread):
         """
-        @type  thread: L{Thread}
-        @param thread: Thread to stop tracing.
+        :param thread: Thread to stop tracing.
+        :type thread: :class:`~winappdbg.thread.Thread`
         """
         tid = thread.get_tid()
         if tid in self.__tracing:
@@ -4630,11 +4075,9 @@ class _BreakpointContainer:
 
     def is_tracing(self, tid):
         """
-        @type  tid: int
-        @param tid: Thread global ID.
-
-        @rtype:  bool
-        @return: C{True} if the thread is being traced, C{False} otherwise.
+        :param int tid: Thread global ID.
+        :rtype:  bool
+        :return: ``True`` if the thread is being traced, ``False`` otherwise.
         """
         return tid in self.__tracing
 
@@ -4642,8 +4085,8 @@ class _BreakpointContainer:
         """
         Retrieves the list of global IDs of all threads being traced.
 
-        @rtype:  list( int... )
-        @return: List of thread global IDs.
+        :rtype:  list of int
+        :return: List of thread global IDs.
         """
         tids = list(self.__tracing)
         tids.sort()
@@ -4653,8 +4096,7 @@ class _BreakpointContainer:
         """
         Start tracing mode in the given thread.
 
-        @type  tid: int
-        @param tid: Global ID of thread to start tracing.
+        :param int tid: Global ID of thread to start tracing.
         """
         if not self.is_tracing(tid):
             thread = self.system.get_thread(tid)
@@ -4664,8 +4106,7 @@ class _BreakpointContainer:
         """
         Stop tracing mode in the given thread.
 
-        @type  tid: int
-        @param tid: Global ID of thread to stop tracing.
+        :param int tid: Global ID of thread to stop tracing.
         """
         if self.is_tracing(tid):
             thread = self.system.get_thread(tid)
@@ -4675,8 +4116,7 @@ class _BreakpointContainer:
         """
         Start tracing mode for all threads in the given process.
 
-        @type  pid: int
-        @param pid: Global ID of process to start tracing.
+        :param int pid: Global ID of process to start tracing.
         """
         for thread in self.system.get_process(pid).iter_threads():
             self.__start_tracing(thread)
@@ -4685,8 +4125,7 @@ class _BreakpointContainer:
         """
         Stop tracing mode for all threads in the given process.
 
-        @type  pid: int
-        @param pid: Global ID of process to stop tracing.
+        :param int pid: Global ID of process to stop tracing.
         """
         for thread in self.system.get_process(pid).iter_threads():
             self.__stop_tracing(thread)
@@ -4713,31 +4152,26 @@ class _BreakpointContainer:
         """
         Sets or clears the system breakpoint for a given Win32 error code.
 
-        Use L{Process.is_system_defined_breakpoint} to tell if a breakpoint
+        Use :meth:`~winappdbg.process.Process.is_system_defined_breakpoint` to tell if a breakpoint
         exception was caused by a system breakpoint or by the application
         itself (for example because of a failed assertion in the code).
 
-        @note: This functionality is only available since Windows Server 2003.
+        .. note:: This functionality is only available since Windows Server 2003.
             In 2003 it only breaks on error values set externally to the
             kernel32.dll library, but this was fixed in Windows Vista.
 
-        @warn: This method will fail if the debug symbols for ntdll (kernel32
+        .. warning:: This method will fail if the debug symbols for ntdll (kernel32
             in Windows 2003) are not present. For more information see:
-            L{System.fix_symbol_store_path}.
+            :meth:`~winappdbg.system.System.fix_symbol_store_path`.
 
-        @see: U{http://www.nynaeve.net/?p=147}
+        :see: `http://www.nynaeve.net/?p=147 <http://www.nynaeve.net/?p=147>`__
 
-        @type  pid: int
-        @param pid: Process ID.
-
-        @type  errorCode: int
-        @param errorCode: Win32 error code to stop on. Set to C{0} or
-            C{ERROR_SUCCESS} to clear the breakpoint instead.
-
-        @raise NotImplementedError:
+        :param int pid: Process ID.
+        :param int errorCode: Win32 error code to stop on. Set to ``0`` or
+            ``ERROR_SUCCESS`` to clear the breakpoint instead.
+        :raises NotImplementedError:
             The functionality is not supported in this system.
-
-        @raise WindowsError:
+        :raises WindowsError:
             An error occurred while processing this request.
         """
         aProcess = self.system.get_process(pid)
@@ -4749,15 +4183,12 @@ class _BreakpointContainer:
 
     def dont_break_on_error(self, pid):
         """
-        Alias to L{break_on_error}C{(pid, ERROR_SUCCESS)}.
+        Alias to ``break_on_error(pid, ERROR_SUCCESS)``.
 
-        @type  pid: int
-        @param pid: Process ID.
-
-        @raise NotImplementedError:
+        :param int pid: Process ID.
+        :raises NotImplementedError:
             The functionality is not supported in this system.
-
-        @raise WindowsError:
+        :raises WindowsError:
             An error occurred while processing this request.
         """
         self.break_on_error(pid, 0)
@@ -4770,18 +4201,12 @@ class _BreakpointContainer:
         """
         Resolves the exported DLL function for the given process.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  modName: str
-        @param modName: Name of the module that exports the function.
-
-        @type  procName: str
-        @param procName: Name of the exported function to resolve.
-
-        @rtype:  int, None
-        @return: On success, the address of the exported function.
-            On failure, returns C{None}.
+        :param int pid: Process global ID.
+        :param str modName: Name of the module that exports the function.
+        :param str procName: Name of the exported function to resolve.
+        :rtype:  int or None
+        :return: On success, the address of the exported function.
+            On failure, returns ``None``.
         """
         aProcess = self.system.get_process(pid)
         aModule = aProcess.get_module_by_name(modName)
@@ -4797,16 +4222,11 @@ class _BreakpointContainer:
         """
         Resolves a label for the given process.
 
-        @type  pid: int
-        @param pid: Process global ID.
-
-        @type  label: str
-        @param label: Label to resolve.
-
-        @rtype:  int
-        @return: Memory address pointed to by the label.
-
-        @raise ValueError: The label is malformed or impossible to resolve.
-        @raise RuntimeError: Cannot resolve the module or function.
+        :param int pid: Process global ID.
+        :param str label: Label to resolve.
+        :rtype:  int
+        :return: Memory address pointed to by the label.
+        :raises ValueError: The label is malformed or impossible to resolve.
+        :raises RuntimeError: Cannot resolve the module or function.
         """
         return self.get_process(pid).resolve_label(label)

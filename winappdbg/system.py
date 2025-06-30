@@ -28,12 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-System settings.
-
-@group Instrumentation:
-    System
-"""
+"""System settings."""
 
 from __future__ import with_statement
 
@@ -61,57 +56,28 @@ class System (_ProcessContainer):
     Interface to a batch of processes, plus some system wide settings.
     Contains a snapshot of processes.
 
-    @group Platform settings:
-        arch, bits, os, wow64, pageSize
+    :cvar arch: Name of the processor architecture we're running on.
+        For more details see :func:`~winappdbg.win32.version._get_arch`.
+    :type arch: str
 
-    @group Instrumentation:
-        find_window, get_window_at, get_foreground_window,
-        get_desktop_window, get_shell_window, get_top_level_windows
+    :cvar bits: Size of the machine word in bits for the current architecture.
+        For more details see :func:`~winappdbg.win32.version._get_bits`.
+    :type bits: int
 
-    @group Debugging:
-        load_dbghelp, fix_symbol_store_path,
-        request_debug_privileges, drop_debug_privileges
+    :cvar os: Name of the Windows version we're runing on.
+        For more details see :func:`~winappdbg.win32.version._get_os`.
+    :type os: str
 
-    @group Postmortem debugging:
-        get_postmortem_debugger, set_postmortem_debugger,
-        get_postmortem_exclusion_list, add_to_postmortem_exclusion_list,
-        remove_from_postmortem_exclusion_list
+    :cvar wow64: ``True`` if the debugger is a 32 bits process running in a 64
+        bits version of Windows, ``False`` otherwise.
+    :type wow64: bool
 
-    @group System services:
-        get_services, get_active_services,
-        start_service, stop_service,
-        pause_service, resume_service,
-        get_service_display_name, get_service_from_display_name
-
-    @group Permissions and privileges:
-        request_privileges, drop_privileges, adjust_privileges, is_admin
-
-    @group Miscellaneous global settings:
-        set_kill_on_exit_mode, read_msr, write_msr, enable_step_on_branch_mode,
-        get_last_branch_location
-
-    @type arch: str
-    @cvar arch: Name of the processor architecture we're running on.
-        For more details see L{win32.version._get_arch}.
-
-    @type bits: int
-    @cvar bits: Size of the machine word in bits for the current architecture.
-        For more details see L{win32.version._get_bits}.
-
-    @type os: str
-    @cvar os: Name of the Windows version we're runing on.
-        For more details see L{win32.version._get_os}.
-
-    @type wow64: bool
-    @cvar wow64: C{True} if the debugger is a 32 bits process running in a 64
-        bits version of Windows, C{False} otherwise.
-
-    @type pageSize: int
-    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
+    :cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
+    :type pageSize: int
 
-    @type registry: L{Registry}
-    @cvar registry: Windows Registry for this machine.
+    :cvar registry: Windows Registry for this machine.
+    :type registry: :class:`~winappdbg.registry.Registry`
     """
 
     arch  = win32.arch
@@ -136,22 +102,22 @@ class System (_ProcessContainer):
         given class name and/or window name. If neither are provided any
         top-level window will match.
 
-        @see: L{get_window_at}
+        .. seealso:: :meth:`get_window_at`
 
-        @type  className: str
-        @param className: (Optional) Class name of the window to find.
-            If C{None} or not used any class name will match the search.
+        :type  className: str
+        :param className: (Optional) Class name of the window to find.
+            If ``None`` or not used any class name will match the search.
 
-        @type  windowName: str
-        @param windowName: (Optional) Caption text of the window to find.
-            If C{None} or not used any caption text will match the search.
+        :type  windowName: str
+        :param windowName: (Optional) Caption text of the window to find.
+            If ``None`` or not used any caption text will match the search.
 
-        @rtype:  L{Window} or None
-        @return: A window that matches the request. There may be more matching
+        :rtype:  :class:`~.window.Window` or None
+        :return: A window that matches the request. There may be more matching
             windows, but this method only returns one. If no matching window
-            is found, the return value is C{None}.
+            is found, the return value is ``None``.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         # I'd love to reverse the order of the parameters
         # but that might create some confusion. :(
@@ -165,54 +131,54 @@ class System (_ProcessContainer):
         Get the window located at the given coordinates in the desktop.
         If no such window exists an exception is raised.
 
-        @see: L{find_window}
+        .. seealso:: :meth:`find_window`
 
-        @type  x: int
-        @param x: Horizontal coordinate.
-        @type  y: int
-        @param y: Vertical coordinate.
+        :type  x: int
+        :param x: Horizontal coordinate.
+        :type  y: int
+        :param y: Vertical coordinate.
 
-        @rtype:  L{Window}
-        @return: Window at the requested position. If no such window
-            exists a C{WindowsError} exception is raised.
+        :rtype:  :class:`~.window.Window`
+        :return: Window at the requested position. If no such window
+            exists a ``WindowsError`` exception is raised.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return Window( win32.WindowFromPoint( (x, y) ) )
 
     @staticmethod
     def get_foreground_window():
         """
-        @rtype:  L{Window}
-        @return: Returns the foreground window.
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  :class:`~.window.Window`
+        :return: Returns the foreground window.
+        :raises WindowsError: An error occured while processing this request.
         """
         return Window( win32.GetForegroundWindow() )
 
     @staticmethod
     def get_desktop_window():
         """
-        @rtype:  L{Window}
-        @return: Returns the desktop window.
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  :class:`~.window.Window`
+        :return: Returns the desktop window.
+        :raises WindowsError: An error occured while processing this request.
         """
         return Window( win32.GetDesktopWindow() )
 
     @staticmethod
     def get_shell_window():
         """
-        @rtype:  L{Window}
-        @return: Returns the shell window.
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  :class:`~.window.Window`
+        :return: Returns the shell window.
+        :raises WindowsError: An error occured while processing this request.
         """
         return Window( win32.GetShellWindow() )
 
     @staticmethod
     def get_top_level_windows():
         """
-        @rtype:  L{Window}
-        @return: Returns the top-level windows in the current desktop.
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  list[:class:`~.window.Window`]
+        :return: Returns the top-level windows in the current desktop.
+        :raises WindowsError: An error occured while processing this request.
         """
         return [ Window( hWnd ) for hWnd in win32.EnumWindows() ]
 
@@ -226,15 +192,15 @@ class System (_ProcessContainer):
         This may be needed to debug processes running as SYSTEM
         (such as services) since Windows XP.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when requesting debug privileges.
 
-        @rtype:  bool
-        @return: C{True} on success, C{False} on failure.
+        :rtype:  bool
+        :return: ``True`` on success, ``False`` on failure.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
         try:
             cls.request_privileges(win32.SE_DEBUG_NAME)
@@ -252,15 +218,15 @@ class System (_ProcessContainer):
         This may be needed to avoid being detected
         by certain anti-debug tricks.
 
-        @type  bIgnoreExceptions: bool
-        @param bIgnoreExceptions: C{True} to ignore any exceptions that may be
+        :type  bIgnoreExceptions: bool
+        :param bIgnoreExceptions: ``True`` to ignore any exceptions that may be
             raised when dropping debug privileges.
 
-        @rtype:  bool
-        @return: C{True} on success, C{False} on failure.
+        :rtype:  bool
+        :return: ``True`` on success, ``False`` on failure.
 
-        @raise WindowsError: Raises an exception on error, unless
-            C{bIgnoreExceptions} is C{True}.
+        :raises WindowsError: Raises an exception on error, unless
+            ``bIgnoreExceptions`` is ``True``.
         """
         try:
             cls.drop_privileges(win32.SE_DEBUG_NAME)
@@ -275,10 +241,10 @@ class System (_ProcessContainer):
         """
         Requests privileges.
 
-        @type  privileges: int...
-        @param privileges: Privileges to request.
+        :type  privileges: int...
+        :param privileges: Privileges to request.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
         cls.adjust_privileges(True, privileges)
 
@@ -287,10 +253,10 @@ class System (_ProcessContainer):
         """
         Drops privileges.
 
-        @type  privileges: int...
-        @param privileges: Privileges to drop.
+        :type  privileges: int...
+        :param privileges: Privileges to drop.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
         cls.adjust_privileges(False, privileges)
 
@@ -299,13 +265,13 @@ class System (_ProcessContainer):
         """
         Requests or drops privileges.
 
-        @type  state: bool
-        @param state: C{True} to request, C{False} to drop.
+        :type  state: bool
+        :param state: ``True`` to request, ``False`` to drop.
 
-        @type  privileges: list(int)
-        @param privileges: Privileges to request or drop.
+        :type  privileges: list(int)
+        :param privileges: Privileges to request or drop.
 
-        @raise WindowsError: Raises an exception on error.
+        :raises WindowsError: Raises an exception on error.
         """
         with win32.OpenProcessToken(win32.GetCurrentProcess(),
                                 win32.TOKEN_ADJUST_PRIVILEGES) as hToken:
@@ -315,9 +281,9 @@ class System (_ProcessContainer):
     @staticmethod
     def is_admin():
         """
-        @rtype:  bool
-        @return: C{True} if the current user as Administrator privileges,
-            C{False} otherwise. Since Windows Vista and above this means if
+        :rtype:  bool
+        :return: ``True`` if the current user as Administrator privileges,
+            ``False`` otherwise. Since Windows Vista and above this means if
             the current process is running with UAC elevation or not.
         """
         return win32.IsUserAnAdmin()
@@ -383,43 +349,47 @@ class System (_ProcessContainer):
         """
         Get the program version from an executable file, if available.
 
-        @type  filename: str
-        @param filename: Pathname to the executable file to query.
+        :type  filename: str
+        :param filename: Pathname to the executable file to query.
 
-        @rtype: tuple(str, str, bool, bool, str, str)
-        @return: Tuple with version information extracted from the executable
+        :rtype: tuple(str, str, bool, bool, str, str)
+        :return: Tuple with version information extracted from the executable
             file metadata, containing the following:
-             - File version number (C{"major.minor"}).
-             - Product version number (C{"major.minor"}).
-             - C{True} for debug builds, C{False} for production builds.
-             - C{True} for legacy OS builds (DOS, OS/2, Win16),
-               C{False} for modern OS builds.
-             - Binary file type.
-               May be one of the following values:
-                - "application"
-                - "dynamic link library"
-                - "static link library"
-                - "font"
-                - "raster font"
-                - "TrueType font"
-                - "vector font"
-                - "driver"
-                - "communications driver"
-                - "display driver"
-                - "installable driver"
-                - "keyboard driver"
-                - "language driver"
-                - "legacy driver"
-                - "mouse driver"
-                - "network driver"
-                - "printer driver"
-                - "sound driver"
-                - "system driver"
-                - "versioned printer driver"
-             - Binary creation timestamp.
-            Any of the fields may be C{None} if not available.
 
-        @raise WindowsError: Raises an exception on error.
+            - File version number (``"major.minor"``).
+            - Product version number (``"major.minor"``).
+            - ``True`` for debug builds, ``False`` for production builds.
+            - ``True`` for legacy OS builds (DOS, OS/2, Win16),
+              ``False`` for modern OS builds.
+            - Binary file type.
+              May be one of the following values:
+
+              - "application"
+              - "dynamic link library"
+              - "static link library"
+              - "font"
+              - "raster font"
+              - "TrueType font"
+              - "vector font"
+              - "driver"
+              - "communications driver"
+              - "display driver"
+              - "installable driver"
+              - "keyboard driver"
+              - "language driver"
+              - "legacy driver"
+              - "mouse driver"
+              - "network driver"
+              - "printer driver"
+              - "sound driver"
+              - "system driver"
+              - "versioned printer driver"
+
+            - Binary creation timestamp.
+
+            Any of the fields may be ``None`` if not available.
+
+        :raises WindowsError: Raises an exception on error.
         """
 
         # Get the file version info structure.
@@ -494,7 +464,7 @@ class System (_ProcessContainer):
     @classmethod
     def load_dbghelp(cls, pathname = None):
         """
-        Load the specified version of the C{dbghelp.dll} library.
+        Load the specified version of the ``dbghelp.dll`` library.
 
         This library is shipped with the Debugging Tools for Windows, and it's
         required to load debug symbols.
@@ -507,6 +477,7 @@ class System (_ProcessContainer):
         users won't need to have the Microsoft SDK installed.
 
         Example::
+
             from winappdbg import Debug
 
             def simple_debugger( argv ):
@@ -516,7 +487,7 @@ class System (_ProcessContainer):
                 try:
 
                     # Load a specific dbghelp.dll file
-                    debug.system.load_dbghelp("C:\\Custom install path\\dbghelp.dll")
+                    debug.system.load_dbghelp("C:\\\\Custom install path\\\\dbghelp.dll")
 
                     # Start a new process for debugging
                     debug.execv( argv )
@@ -528,20 +499,20 @@ class System (_ProcessContainer):
                 finally:
                     debug.stop()
 
-        @see: U{http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx}
+        .. seealso:: `http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx <http://msdn.microsoft.com/en-us/library/ms679294(VS.85).aspx>`__
 
-        @type  pathname: str
-        @param pathname:
-            (Optional) Full pathname to the C{dbghelp.dll} library.
+        :type  pathname: str
+        :param pathname:
+            (Optional) Full pathname to the ``dbghelp.dll`` library.
             If not provided this method will try to autodetect it.
 
-        @rtype:  ctypes.WinDLL
-        @return: Loaded instance of C{dbghelp.dll}.
+        :rtype:  ctypes.WinDLL
+        :return: Loaded instance of ``dbghelp.dll``.
 
-        @raise NotImplementedError: This feature was not implemented for the
+        :raises NotImplementedError: This feature was not implemented for the
             current architecture.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
 
         # If a pathname was given, just load the library and return.
@@ -679,35 +650,35 @@ class System (_ProcessContainer):
                               remote = True,
                               force = False):
         """
-        Fix the symbol store path. Equivalent to the C{.symfix} command in
+        Fix the symbol store path. Equivalent to the ``.symfix`` command in
         Microsoft WinDbg.
 
         If the symbol store path environment variable hasn't been set, this
         method will provide a default one.
 
-        @type  symbol_store_path: str or None
-        @param symbol_store_path: (Optional) Symbol store path to set.
+        :type  symbol_store_path: str or None
+        :param symbol_store_path: (Optional) Symbol store path to set.
 
-        @type  remote: bool
-        @param remote: (Optional) Defines the symbol store path to set when the
-            C{symbol_store_path} is C{None}.
+        :type  remote: bool
+        :param remote: (Optional) Defines the symbol store path to set when the
+            ``symbol_store_path`` is ``None``.
 
-            If C{True} the default symbol store path is set to the Microsoft
+            If ``True`` the default symbol store path is set to the Microsoft
             symbol server. Debug symbols will be downloaded through HTTP.
             This gives the best results but is also quite slow.
 
-            If C{False} the default symbol store path is set to the local
+            If ``False`` the default symbol store path is set to the local
             cache only. This prevents debug symbols from being downloaded and
             is faster, but unless you've installed the debug symbols on this
             machine or downloaded them in a previous debugging session, some
             symbols may be missing.
 
-            If the C{symbol_store_path} argument is not C{None}, this argument
+            If the ``symbol_store_path`` argument is not ``None``, this argument
             is ignored entirely.
 
-        @type  force: bool
-        @param force: (Optional) If C{True} the new symbol store path is set
-            always. If C{False} the new symbol store path is only set if
+        :type  force: bool
+        :param force: (Optional) If ``True`` the new symbol store path is set
+            always. If ``False`` the new symbol store path is only set if
             missing.
 
             This allows you to call this method preventively to ensure the
@@ -715,6 +686,7 @@ class System (_ProcessContainer):
             but without messing up whatever configuration the user has.
 
             Example::
+
                 from winappdbg import Debug, System
 
                 def simple_debugger( argv ):
@@ -737,9 +709,9 @@ class System (_ProcessContainer):
                     finally:
                         debug.stop()
 
-        @rtype:  str or None
-        @return: The previously set symbol store path if any,
-            otherwise returns C{None}.
+        :rtype:  str or None
+        :return: The previously set symbol store path if any,
+            otherwise returns ``None``.
         """
         try:
             if symbol_store_path is None:
@@ -783,18 +755,18 @@ class System (_ProcessContainer):
          - Microsoft Windows 2000 and below.
          - ReactOS.
 
-        @type  bKillOnExit: bool
-        @param bKillOnExit: C{True} to automatically kill processes when the
-            debugger thread dies. C{False} to automatically detach from
+        :type  bKillOnExit: bool
+        :param bKillOnExit: ``True`` to automatically kill processes when the
+            debugger thread dies. ``False`` to automatically detach from
             processes when the debugger thread dies.
 
-        @rtype:  bool
-        @return: C{True} on success, C{False} on error.
+        :rtype:  bool
+        :return: ``True`` on success, ``False`` on error.
 
-        @note:
+        .. note::
             This call will fail if a debug port was not created. That is, if
             the debugger isn't attached to at least one process. For more info
-            see: U{http://msdn.microsoft.com/en-us/library/ms679307.aspx}
+            see: `http://msdn.microsoft.com/en-us/library/ms679307.aspx <http://msdn.microsoft.com/en-us/library/ms679307.aspx>`__
         """
         try:
             # won't work before calling CreateProcess or DebugActiveProcess
@@ -808,19 +780,19 @@ class System (_ProcessContainer):
         """
         Read the contents of the specified MSR (Machine Specific Register).
 
-        @type  address: int
-        @param address: MSR to read.
+        :type  address: int
+        :param address: MSR to read.
 
-        @rtype:  int
-        @return: Value of the specified MSR.
+        :rtype:  int
+        :return: Value of the specified MSR.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
 
-        @raise NotImplementedError:
-            Current architecture is not C{i386} or C{amd64}.
+        :raises NotImplementedError:
+            Current architecture is not ``i386`` or ``amd64``.
 
-        @warning:
+        .. warning::
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
@@ -840,19 +812,19 @@ class System (_ProcessContainer):
         """
         Set the contents of the specified MSR (Machine Specific Register).
 
-        @type  address: int
-        @param address: MSR to write.
+        :type  address: int
+        :param address: MSR to write.
 
-        @type  value: int
-        @param value: Contents to write on the MSR.
+        :type  value: int
+        :param value: Contents to write on the MSR.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
 
-        @raise NotImplementedError:
-            Current architecture is not C{i386} or C{amd64}.
+        :raises NotImplementedError:
+            Current architecture is not ``i386`` or ``amd64``.
 
-        @warning:
+        .. warning::
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
         """
@@ -870,19 +842,19 @@ class System (_ProcessContainer):
         When tracing, call this on every single step event
         for step on branch mode.
 
-        @raise WindowsError:
-            Raises C{ERROR_DEBUGGER_INACTIVE} if the debugger is not attached
+        :raises WindowsError:
+            Raises ``ERROR_DEBUGGER_INACTIVE`` if the debugger is not attached
             to least one process.
 
-        @raise NotImplementedError:
-            Current architecture is not C{i386} or C{amd64}.
+        :raises NotImplementedError:
+            Current architecture is not ``i386`` or ``amd64``.
 
-        @warning:
+        .. warning::
             This method uses the processor's machine specific registers (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
 
-        @note:
+        .. note::
             It doesn't seem to work in VMWare or VirtualBox machines.
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
@@ -895,21 +867,21 @@ class System (_ProcessContainer):
         """
         Returns the source and destination addresses of the last taken branch.
 
-        @rtype: tuple( int, int )
-        @return: Source and destination addresses of the last taken branch.
+        :rtype: tuple( int, int )
+        :return: Source and destination addresses of the last taken branch.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
 
-        @raise NotImplementedError:
-            Current architecture is not C{i386} or C{amd64}.
+        :raises NotImplementedError:
+            Current architecture is not ``i386`` or ``amd64``.
 
-        @warning:
+        .. warning::
             This method uses the processor's machine specific registers (MSR).
             It could potentially brick your machine.
             It works on my machine, but your mileage may vary.
 
-        @note:
+        .. note::
             It doesn't seem to work in VMWare or VirtualBox machines.
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
@@ -925,20 +897,20 @@ class System (_ProcessContainer):
         """
         Returns the postmortem debugging settings from the Registry.
 
-        @see: L{set_postmortem_debugger}
+        .. seealso:: :meth:`set_postmortem_debugger`
 
-        @type  bits: int
-        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}.
+        :type  bits: int
+        :param bits: Set to ``32`` for the 32 bits debugger, or ``64`` for the
+            64 bits debugger. Set to {None} for the default (:attr:`System.bits`).
 
-        @rtype:  tuple( str, bool, int )
-        @return: A tuple containing the command line string to the postmortem
+        :rtype:  tuple( str, bool, int )
+        :return: A tuple containing the command line string to the postmortem
             debugger, a boolean specifying if user interaction is allowed
             before attaching, and an integer specifying a user defined hotkey.
-            Any member of the tuple may be C{None}.
-            See L{set_postmortem_debugger} for more details.
+            Any member of the tuple may be ``None``.
+            See :meth:`set_postmortem_debugger` for more details.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
         """
         if bits is None:
@@ -967,16 +939,16 @@ class System (_ProcessContainer):
         """
         Returns the exclusion list for the postmortem debugger.
 
-        @see: L{get_postmortem_debugger}
+        .. seealso:: :meth:`get_postmortem_debugger`
 
-        @type  bits: int
-        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}).
+        :type  bits: int
+        :param bits: Set to ``32`` for the 32 bits debugger, or ``64`` for the
+            64 bits debugger. Set to ``None`` for the default (:attr:`System.bits`).
 
-        @rtype:  list( str )
-        @return: List of excluded application filenames.
+        :rtype:  list( str )
+        :return: List of excluded application filenames.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
         """
         if bits is None:
@@ -1002,35 +974,35 @@ class System (_ProcessContainer):
         """
         Sets the postmortem debugging settings in the Registry.
 
-        @warning: This method requires administrative rights.
+        .. warning:: This method requires administrative rights.
 
-        @see: L{get_postmortem_debugger}
+        .. seealso:: :meth:`get_postmortem_debugger`
 
-        @type  cmdline: str
-        @param cmdline: Command line to the new postmortem debugger.
+        :type  cmdline: str
+        :param cmdline: Command line to the new postmortem debugger.
             When the debugger is invoked, the first "%ld" is replaced with the
             process ID and the second "%ld" is replaced with the event handle.
             Don't forget to enclose the program filename in double quotes if
             the path contains spaces.
 
-        @type  auto: bool
-        @param auto: Set to C{True} if no user interaction is allowed, C{False}
+        :type  auto: bool
+        :param auto: Set to ``True`` if no user interaction is allowed, ``False``
             to prompt a confirmation dialog before attaching.
-            Use C{None} to leave this value unchanged.
+            Use ``None`` to leave this value unchanged.
 
-        @type  hotkey: int
-        @param hotkey: Virtual key scan code for the user defined hotkey.
-            Use C{0} to disable the hotkey.
-            Use C{None} to leave this value unchanged.
+        :type  hotkey: int
+        :param hotkey: Virtual key scan code for the user defined hotkey.
+            Use ``0`` to disable the hotkey.
+            Use ``None`` to leave this value unchanged.
 
-        @type  bits: int
-        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}).
+        :type  bits: int
+        :param bits: Set to ``32`` for the 32 bits debugger, or ``64`` for the
+            64 bits debugger. Set to {None} for the default (:attr:`System.bits`).
 
-        @rtype:  tuple( str, bool, int )
-        @return: Previously defined command line and auto flag.
+        :rtype:  tuple( str, bool, int )
+        :return: Previously defined command line and auto flag.
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
         """
         if bits is None:
@@ -1057,19 +1029,19 @@ class System (_ProcessContainer):
         """
         Adds the given filename to the exclusion list for postmortem debugging.
 
-        @warning: This method requires administrative rights.
+        .. warning:: This method requires administrative rights.
 
-        @see: L{get_postmortem_exclusion_list}
+        .. seealso:: :meth:`get_postmortem_exclusion_list`
 
-        @type  pathname: str
-        @param pathname:
+        :type  pathname: str
+        :param pathname:
             Application pathname to exclude from postmortem debugging.
 
-        @type  bits: int
-        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}).
+        :type  bits: int
+        :param bits: Set to ``32`` for the 32 bits debugger, or ``64`` for the
+            64 bits debugger. Set to {None} for the default (:attr:`System.bits`).
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
         """
         if bits is None:
@@ -1095,26 +1067,26 @@ class System (_ProcessContainer):
         Removes the given filename to the exclusion list for postmortem
         debugging from the Registry.
 
-        @warning: This method requires administrative rights.
+        .. warning:: This method requires administrative rights.
 
-        @warning: Don't ever delete entries you haven't created yourself!
+        .. warning:: Don't ever delete entries you haven't created yourself!
             Some entries are set by default for your version of Windows.
             Deleting them might deadlock your system under some circumstances.
 
             For more details see:
-            U{http://msdn.microsoft.com/en-us/library/bb204634(v=vs.85).aspx}
+            `http://msdn.microsoft.com/en-us/library/bb204634(v=vs.85).aspx <http://msdn.microsoft.com/en-us/library/bb204634(v=vs.85).aspx>`__
 
-        @see: L{get_postmortem_exclusion_list}
+        .. seealso:: :meth:`get_postmortem_exclusion_list`
 
-        @type  pathname: str
-        @param pathname: Application pathname to remove from the postmortem
+        :type  pathname: str
+        :param pathname: Application pathname to remove from the postmortem
             debugging exclusion list.
 
-        @type  bits: int
-        @param bits: Set to C{32} for the 32 bits debugger, or C{64} for the
-            64 bits debugger. Set to {None} for the default (L{System.bits}).
+        :type  bits: int
+        :param bits: Set to ``32`` for the 32 bits debugger, or ``64`` for the
+            64 bits debugger. Set to {None} for the default (:attr:`System.bits`).
 
-        @raise WindowsError:
+        :raises WindowsError:
             Raises an exception on error.
         """
         if bits is None:
@@ -1144,12 +1116,13 @@ class System (_ProcessContainer):
         """
         Retrieve a list of all system services.
 
-        @see: L{get_active_services},
-            L{start_service}, L{stop_service},
-            L{pause_service}, L{resume_service}
+        .. seealso::
+            :meth:`get_active_services`,
+            :meth:`start_service`, :meth:`stop_service`,
+            :meth:`pause_service`, :meth:`resume_service`
 
-        @rtype:  list( L{win32.ServiceStatusProcessEntry} )
-        @return: List of service status descriptors.
+        :rtype:  list of win32.ServiceStatusProcessEntry
+        :return: List of service status descriptors.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
@@ -1164,12 +1137,13 @@ class System (_ProcessContainer):
         """
         Retrieve a list of all active system services.
 
-        @see: L{get_services},
-            L{start_service}, L{stop_service},
-            L{pause_service}, L{resume_service}
+        .. seealso::
+            :meth:`get_services`,
+            :meth:`start_service`, :meth:`stop_service`,
+            :meth:`pause_service`, :meth:`resume_service`
 
-        @rtype:  list( L{win32.ServiceStatusProcessEntry} )
-        @return: List of service status descriptors.
+        :rtype:  list of win32.ServiceStatusProcessEntry
+        :return: List of service status descriptors.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
@@ -1184,16 +1158,17 @@ class System (_ProcessContainer):
         """
         Get the service descriptor for the given service name.
 
-        @see: L{start_service}, L{stop_service},
-            L{pause_service}, L{resume_service}
+        .. seealso::
+            :meth:`start_service`, :meth:`stop_service`,
+            :meth:`pause_service`, :meth:`resume_service`
 
-        @type  name: str
-        @param name: Service unique name. You can get this value from the
-            C{ServiceName} member of the service descriptors returned by
-            L{get_services} or L{get_active_services}.
+        :type  name: str
+        :param name: Service unique name. You can get this value from the
+            ``ServiceName`` member of the service descriptors returned by
+            :meth:`get_services` or :meth:`get_active_services`.
 
-        @rtype:  L{win32.ServiceStatusProcess}
-        @return: Service status descriptor.
+        :rtype:  win32.ServiceStatusProcess
+        :return: Service status descriptor.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
@@ -1211,15 +1186,15 @@ class System (_ProcessContainer):
         """
         Get the service display name for the given service name.
 
-        @see: L{get_service}
+        .. seealso:: :meth:`get_service`
 
-        @type  name: str
-        @param name: Service unique name. You can get this value from the
-            C{ServiceName} member of the service descriptors returned by
-            L{get_services} or L{get_active_services}.
+        :type  name: str
+        :param name: Service unique name. You can get this value from the
+            ``ServiceName`` member of the service descriptors returned by
+            :meth:`get_services` or :meth:`get_active_services`.
 
-        @rtype:  str
-        @return: Service display name.
+        :rtype:  str
+        :return: Service display name.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
@@ -1231,15 +1206,15 @@ class System (_ProcessContainer):
         """
         Get the service unique name given its display name.
 
-        @see: L{get_service}
+        .. seealso:: :meth:`get_service`
 
-        @type  displayName: str
-        @param displayName: Service display name. You can get this value from
-            the C{DisplayName} member of the service descriptors returned by
-            L{get_services} or L{get_active_services}.
+        :type  displayName: str
+        :param displayName: Service display name. You can get this value from
+            the ``DisplayName`` member of the service descriptors returned by
+            :meth:`get_services` or :meth:`get_active_services`.
 
-        @rtype:  str
-        @return: Service unique name.
+        :rtype:  str
+        :return: Service unique name.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_ENUMERATE_SERVICE
@@ -1251,14 +1226,14 @@ class System (_ProcessContainer):
         """
         Start the service given by name.
 
-        @warn: This method requires UAC elevation in Windows Vista and above.
+        .. warning:: This method requires UAC elevation in Windows Vista and above.
 
-        @see: L{stop_service}, L{pause_service}, L{resume_service}
+        .. seealso:: :meth:`stop_service`, :meth:`pause_service`, :meth:`resume_service`
 
-        @type  name: str
-        @param name: Service unique name. You can get this value from the
-            C{ServiceName} member of the service descriptors returned by
-            L{get_services} or L{get_active_services}.
+        :type  name: str
+        :param name: Service unique name. You can get this value from the
+            ``ServiceName`` member of the service descriptors returned by
+            :meth:`get_services` or :meth:`get_active_services`.
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_CONNECT
@@ -1273,10 +1248,11 @@ class System (_ProcessContainer):
         """
         Stop the service given by name.
 
-        @warn: This method requires UAC elevation in Windows Vista and above.
+        .. warning:: This method requires UAC elevation in Windows Vista and above.
 
-        @see: L{get_services}, L{get_active_services},
-            L{start_service}, L{pause_service}, L{resume_service}
+        .. seealso::
+            :meth:`get_services`, :meth:`get_active_services`,
+            :meth:`start_service`, :meth:`pause_service`, :meth:`resume_service`
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_CONNECT
@@ -1291,12 +1267,13 @@ class System (_ProcessContainer):
         """
         Pause the service given by name.
 
-        @warn: This method requires UAC elevation in Windows Vista and above.
+        .. warning:: This method requires UAC elevation in Windows Vista and above.
 
-        @note: Not all services support this.
+        .. note:: Not all services support this.
 
-        @see: L{get_services}, L{get_active_services},
-            L{start_service}, L{stop_service}, L{resume_service}
+        .. seealso::
+            :meth:`get_services`, :meth:`get_active_services`,
+            :meth:`start_service`, :meth:`stop_service`, :meth:`resume_service`
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_CONNECT
@@ -1311,12 +1288,13 @@ class System (_ProcessContainer):
         """
         Resume the service given by name.
 
-        @warn: This method requires UAC elevation in Windows Vista and above.
+        .. warning:: This method requires UAC elevation in Windows Vista and above.
 
-        @note: Not all services support this.
+        .. note:: Not all services support this.
 
-        @see: L{get_services}, L{get_active_services},
-            L{start_service}, L{stop_service}, L{pause_service}
+        .. seealso::
+            :meth:`get_services`, :meth:`get_active_services`,
+            :meth:`start_service`, :meth:`stop_service`, :meth:`pause_service`
         """
         with win32.OpenSCManager(
             dwDesiredAccess = win32.SC_MANAGER_CONNECT

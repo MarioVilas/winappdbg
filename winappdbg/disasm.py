@@ -31,12 +31,16 @@
 """
 Binary code disassembly.
 
-@group Disassembler loader:
-    Disassembler, Engine
+**Disassembler loader:**
 
-@group Disassembler engines:
-    BeaEngine, CapstoneEngine, DistormEngine,
-    LibdisassembleEngine, PyDasmEngine
+- :class:`Disassembler`
+- :class:`Engine`
+
+**Disassembler engines:**
+
+- :class:`BeaEngine`
+- :class:`CapstoneEngine`
+- :class:`DistormEngine`
 """
 
 from __future__ import with_statement
@@ -66,21 +70,12 @@ class Engine:
     """
     Base class for disassembly engine adaptors.
 
-    @type name: str
-    @cvar name: Engine name to use with the L{Disassembler} class.
-
-    @type desc: str
-    @cvar desc: User friendly name of the disassembler engine.
-
-    @type url: str
-    @cvar url: Download URL.
-
-    @type supported: set(str)
-    @cvar supported: Set of supported processor architectures.
-        For more details see L{win32.version._get_arch}.
-
-    @type arch: str
-    @ivar arch: Name of the processor architecture.
+    :cvar str name: Engine name to use with the :class:`Disassembler` class.
+    :cvar str desc: User friendly name of the disassembler engine.
+    :cvar str url: Download URL.
+    :cvar set(str) supported: Set of supported processor architectures.
+        For more details see :attr:`winappdbg.win32.arch`.
+    :ivar str arch: Name of the processor architecture.
     """
 
     name = "<insert engine name here>"
@@ -90,12 +85,10 @@ class Engine:
 
     def __init__(self, arch = None):
         """
-        @type  arch: str
-        @param arch: Name of the processor architecture.
+        :param str arch: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
-            For more details see L{win32.version._get_arch}.
-
-        @raise NotImplementedError: This disassembler doesn't support the
+            For more details see :attr:`winappdbg.win32.arch`.
+        :raises NotImplementedError: This disassembler doesn't support the
             requested processor architecture.
         """
         self.arch = self._validate_arch(arch)
@@ -108,17 +101,14 @@ class Engine:
 
     def _validate_arch(self, arch = None):
         """
-        @type  arch: str
-        @param arch: Name of the processor architecture.
+        :param str arch: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
-            For more details see L{win32.version._get_arch}.
-
-        @rtype:  str
-        @return: Name of the processor architecture.
+            For more details see :attr:`winappdbg.win32.arch`.
+        :return: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
-            For more details see L{win32.version._get_arch}.
-
-        @raise NotImplementedError: This disassembler doesn't support the
+            For more details see :attr:`winappdbg.win32.arch`.
+        :rtype: str
+        :raises NotImplementedError: This disassembler doesn't support the
             requested processor architecture.
         """
 
@@ -140,28 +130,23 @@ class Engine:
         """
         Loads the dependencies for this disassembler.
 
-        @raise ImportError: This disassembler cannot find or load the
+        :raises ImportError: This disassembler cannot find or load the
             necessary dependencies to make it work.
         """
         raise SyntaxError("Subclasses MUST implement this method!")
 
     def decode(self, address, code):
         """
-        @type  address: int
-        @param address: Memory address where the code was read from.
-
-        @type  code: str
-        @param code: Machine code to disassemble.
-
-        @rtype:  list of tuple( long, int, str, str )
-        @return: List of tuples. Each tuple represents an assembly instruction
+        :param int address: Memory address where the code was read from.
+        :param str code: Machine code to disassemble.
+        :return: List of tuples. Each tuple represents an assembly instruction
             and contains:
-             - Memory address of instruction.
-             - Size of instruction in bytes.
-             - Disassembly line of instruction.
-             - Hexadecimal dump of instruction.
-
-        @raise NotImplementedError: This disassembler could not be loaded.
+            - Memory address of instruction.
+            - Size of instruction in bytes.
+            - Disassembly line of instruction.
+            - Hexadecimal dump of instruction.
+        :rtype: list[tuple(int, int, str, str)]
+        :raises NotImplementedError: This disassembler could not be loaded.
             This may be due to missing dependencies.
         """
         raise NotImplementedError()
@@ -460,10 +445,9 @@ class Disassembler:
     Generic disassembler. Uses a set of adapters to decide which library to
     load for which supported platform.
 
-    @type engines: tuple( L{Engine} )
-    @cvar engines: Set of supported engines. If you implement your own adapter
-        you can add its class here to make it available to L{Disassembler}.
-        Supported disassemblers are:
+    :cvar tuple(Engine) engines: Set of supported engines. If you implement your
+        own adapter you can add its class here to make it available to
+        :class:`Disassembler`.
     """
 
     engines = (
@@ -485,24 +469,20 @@ class Disassembler:
 
     def __new__(cls, arch = None, engine = None):
         """
-        Factory class. You can't really instance a L{Disassembler} object,
-        instead one of the adapter L{Engine} subclasses is returned.
+        Factory class. You can't really instance a :class:`Disassembler`
+        object, instead one of the adapter :class:`Engine` subclasses is
+        returned.
 
-        @type  arch: str
-        @param arch: (Optional) Name of the processor architecture.
+        :param str arch: (Optional) Name of the processor architecture.
             If not provided the current processor architecture is assumed.
-            For more details see L{win32.version._get_arch}.
-
-        @type  engine: str
-        @param engine: (Optional) Name of the disassembler engine.
+            For more details see :attr:`winappdbg.win32.arch`.
+        :param str engine: (Optional) Name of the disassembler engine.
             If not provided a compatible one is loaded automatically.
-            See: L{Engine.name}
-
-        @raise NotImplementedError: No compatible disassembler was found that
+            See: :attr:`Engine.name`
+        :raises NotImplementedError: No compatible disassembler was found that
             could decode machine code for the requested architecture. This may
             be due to missing dependencies.
-
-        @raise ValueError: An unknown engine name was supplied.
+        :raises ValueError: An unknown engine name was supplied.
         """
 
         # Use the default architecture if none specified.
@@ -555,10 +535,10 @@ class Disassembler:
         for this version of WinAppDbg.
 
         To get the disassembly engines that can actually be used, call
-        L{get_supported_engines} instead.
+        :meth:`get_supported_engines` instead.
 
-        @rtype:  tuple( Engine )
-        @return: Tuple of Engine objects.
+        :return: Tuple of Engine objects.
+        :rtype: tuple(Engine)
         """
         return cls.engines
 
@@ -568,13 +548,14 @@ class Disassembler:
         Get the list of supported disassembly engines on this machine.
 
         To get the full list of disassembly engines supported by this version
-        of WinAppDbg, call L{get_all_engines} instead.
+        of WinAppDbg, call :meth:`get_all_engines` instead.
 
-        @warning: This call will internally load all the required dependencies
-            for all disassembly engines! This is to ensure they are available.
+        .. warning:: This call will internally load all the required
+           dependencies for all disassembly engines! This is to ensure they are
+           available.
 
-        @rtype:  tuple( Engine )
-        @return: Tuple of Engine objects.
+        :return: Tuple of Engine objects.
+        :rtype: tuple(Engine)
         """
         supported = []
         for e in cls.engines:

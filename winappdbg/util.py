@@ -30,23 +30,6 @@
 
 """
 Miscellaneous utility classes and functions.
-
-@group Helpers:
-    PathOperations,
-    MemoryAddresses,
-    CustomAddressIterator,
-    DataAddressIterator,
-    ImageAddressIterator,
-    MappedAddressIterator,
-    ExecutableAddressIterator,
-    ReadableAddressIterator,
-    WriteableAddressIterator,
-    ExecutableAndWriteableAddressIterator,
-    DebugRegister,
-    Regenerator,
-    BannerHelpFormatter,
-    StaticClass,
-    classproperty
 """
 
 __all__ = [
@@ -86,7 +69,7 @@ class classproperty(property):
     Only works for getting properties, if you set them
     the symbol gets overwritten in the class namespace.
 
-    Inspired on: U{http://stackoverflow.com/a/7864317/426293}
+    Inspired on: http://stackoverflow.com/a/7864317/426293
     """
     def __init__(self, fget=None, fset=None, fdel=None, doc=""):
         if fset is not None or fdel is not None:
@@ -114,14 +97,12 @@ class Regenerator(object):
 
     def __init__(self, g_function, *v_args, **d_args):
         """
-        @type  g_function: function
-        @param g_function: Function that when called returns a generator.
-
-        @type  v_args: tuple
-        @param v_args: Variable arguments to pass to the generator function.
-
-        @type  d_args: dict
-        @param d_args: Variable arguments to pass to the generator function.
+        :param function g_function:
+            Function that when called returns a generator.
+        :param tuple v_args:
+            Variable arguments to pass to the generator function.
+        :param dict d_args:
+            Variable arguments to pass to the generator function.
         """
         self.__g_function = g_function
         self.__v_args     = v_args
@@ -152,6 +133,7 @@ class StaticClass:
 
 #==============================================================================
 
+# TODO: consider removing this class entirely and rely on Python to do this.
 class PathOperations (StaticClass):
     """
     Static methods for filename and pathname manipulation.
@@ -160,67 +142,68 @@ class PathOperations (StaticClass):
     @staticmethod
     def path_is_relative(path):
         """
-        @see: L{path_is_absolute}
+        :see: :meth:`path_is_absolute`
 
-        @type  path: str
-        @param path: Absolute or relative path.
+        :type path: str
+        :param path: Absolute or relative path.
 
-        @rtype:  bool
-        @return: C{True} if the path is relative, C{False} if it's absolute.
+        :rtype:  bool
+        :return: ``True`` if the path is relative, ``False`` if it's absolute.
         """
         return win32.PathIsRelative(path)
 
     @staticmethod
     def path_is_absolute(path):
         """
-        @see: L{path_is_relative}
+        :see: :meth:`path_is_relative`
 
-        @type  path: str
-        @param path: Absolute or relative path.
+        :type path: str
+        :param path: Absolute or relative path.
 
-        @rtype:  bool
-        @return: C{True} if the path is absolute, C{False} if it's relative.
+        :rtype:  bool
+        :return: ``True`` if the path is absolute, ``False`` if it's relative.
         """
         return not win32.PathIsRelative(path)
 
     @staticmethod
     def make_relative(path, current = None):
         """
-        @type  path: str
-        @param path: Absolute path.
+        :type path: str
+        :param path: Absolute path.
 
-        @type  current: str
-        @param current: (Optional) Path to the current directory.
+        :type current: str
+        :param current: (Optional) Path to the current directory.
 
-        @rtype:  str
-        @return: Relative path.
+        :rtype:  str
+        :return: Relative path.
 
-        @raise WindowsError: It's impossible to make the path relative.
-            This happens when the path and the current path are not on the
-            same disk drive or network share.
+        :raises WindowsError:
+            It's impossible to make the path relative. This happens when the
+            path and the current path are not on the same disk drive or
+            network share.
         """
         return win32.PathRelativePathTo(pszFrom = current, pszTo = path)
 
     @staticmethod
     def make_absolute(path):
         """
-        @type  path: str
-        @param path: Relative path.
+        :type path: str
+        :param path: Relative path.
 
-        @rtype:  str
-        @return: Absolute path.
+        :rtype:  str
+        :return: Absolute path.
         """
         return win32.GetFullPathName(path)[0]
 
     @staticmethod
     def split_extension(pathname):
         """
-        @type  pathname: str
-        @param pathname: Absolute path.
+        :type pathname: str
+        :param pathname: Absolute path.
 
-        @rtype:  tuple( str, str )
-        @return:
-            Tuple containing the file and extension components of the filename.
+        :rtype:  tuple( str, str )
+        :return: Tuple containing the file and extension components of the
+            filename.
         """
         filepart = win32.PathRemoveExtension(pathname)
         extpart  = win32.PathFindExtension(pathname)
@@ -229,11 +212,11 @@ class PathOperations (StaticClass):
     @staticmethod
     def split_filename(pathname):
         """
-        @type  pathname: str
-        @param pathname: Absolute path.
+        :type pathname: str
+        :param pathname: Absolute path.
 
-        @rtype:  tuple( str, str )
-        @return: Tuple containing the path to the file and the base filename.
+        :rtype:  tuple( str, str )
+        :return: Tuple containing the path to the file and the base filename.
         """
         filepart = win32.PathFindFileName(pathname)
         pathpart = win32.PathRemoveFileSpec(pathname)
@@ -242,13 +225,13 @@ class PathOperations (StaticClass):
     @staticmethod
     def split_path(path):
         """
-        @see: L{join_path}
+        :see: :meth:`join_path`
 
-        @type  path: str
-        @param path: Absolute or relative path.
+        :type path: str
+        :param path: Absolute or relative path.
 
-        @rtype:  list( str... )
-        @return: List of path components.
+        :rtype:  list( str... )
+        :return: List of path components.
         """
         components = list()
         while path:
@@ -262,13 +245,13 @@ class PathOperations (StaticClass):
     @staticmethod
     def join_path(*components):
         """
-        @see: L{split_path}
+        :see: :meth:`split_path`
 
-        @type  components: tuple( str... )
-        @param components: Path components.
+        :type components: tuple( str... )
+        :param components: Path components.
 
-        @rtype:  str
-        @return: Absolute or relative path.
+        :rtype:  str
+        :return: Absolute or relative path.
         """
         if components:
             path = components[0]
@@ -281,11 +264,11 @@ class PathOperations (StaticClass):
     @staticmethod
     def native_to_win32_pathname(name):
         """
-        @type  name: str
-        @param name: Native (NT) absolute pathname.
+        :type name: str
+        :param name: Native (NT) absolute pathname.
 
-        @rtype:  str
-        @return: Win32 absolute pathname.
+        :rtype:  str
+        :return: Win32 absolute pathname.
         """
         # XXX TODO
         # There are probably some native paths that
@@ -319,30 +302,13 @@ class PathOperations (StaticClass):
                         break
         return name
 
-    @staticmethod
-    def pathname_to_filename(pathname):
-        """
-        Equivalent to: C{PathOperations.split_filename(pathname)[0]}
-
-        @note: This function is preserved for backwards compatibility with
-            WinAppDbg 1.4 and earlier. It may be removed in future versions.
-
-        @type  pathname: str
-        @param pathname: Absolute path to a file.
-
-        @rtype:  str
-        @return: Filename component of the path.
-        """
-        return win32.PathFindFileName(pathname)
-
 #==============================================================================
 
 class MemoryAddresses (StaticClass):
     """
     Class to manipulate memory addresses.
 
-    @type pageSize: int
-    @cvar pageSize: Page size in bytes. Defaults to 0x1000 but it's
+    :cvar int pageSize: Page size in bytes. Defaults to 0x1000 but it's
         automatically updated on runtime when importing the module.
     """
 
@@ -366,11 +332,11 @@ class MemoryAddresses (StaticClass):
         """
         Align the given address to the start of the page it occupies.
 
-        @type  address: int
-        @param address: Memory address.
+        :type address: int
+        :param address: Memory address.
 
-        @rtype:  int
-        @return: Aligned memory address.
+        :rtype:  int
+        :return: Aligned memory address.
         """
         return address - ( address % cls.pageSize )
 
@@ -380,29 +346,32 @@ class MemoryAddresses (StaticClass):
         Align the given address to the end of the page it occupies.
         That is, to point to the start of the next page.
 
-        @type  address: int
-        @param address: Memory address.
+        :type address: int
+        :param address: Memory address.
 
-        @rtype:  int
-        @return: Aligned memory address.
+        :rtype:  int
+        :return: Aligned memory address.
         """
         return address + cls.pageSize - ( address % cls.pageSize )
 
     @classmethod
     def align_address_range(cls, begin, end):
         """
-        Align the given address range to the start and end of the page(s) it occupies.
+        Align the given address range to the start and end of the page(s) it
+        occupies.
 
-        @type  begin: int
-        @param begin: Memory address of the beginning of the buffer.
-            Use C{None} for the first legal address in the address space.
+        :type begin: int
+        :param begin:
+            Memory address of the beginning of the buffer. Use ``None`` for
+            the first legal address in the address space.
 
-        @type  end: int
-        @param end: Memory address of the end of the buffer.
-            Use C{None} for the last legal address in the address space.
+        :type end: int
+        :param end:
+            Memory address of the end of the buffer. Use ``None`` for the
+            last legal address in the address space.
 
-        @rtype:  tuple( int, int )
-        @return: Aligned memory addresses.
+        :rtype:  tuple( int, int )
+        :return: Aligned memory addresses.
         """
         if begin is None:
             begin = 0
@@ -420,14 +389,14 @@ class MemoryAddresses (StaticClass):
         """
         Get the number of pages in use by the given buffer.
 
-        @type  address: int
-        @param address: Aligned memory address.
+        :type address: int
+        :param address: Aligned memory address.
 
-        @type  size: int
-        @param size: Buffer size.
+        :type size: int
+        :param size: Buffer size.
 
-        @rtype:  int
-        @return: Buffer size in number of pages.
+        :rtype:  int
+        :return: Buffer size in number of pages.
         """
         if size < 0:
             size    = -size
@@ -442,20 +411,20 @@ class MemoryAddresses (StaticClass):
         """
         Determine if the two given memory address ranges intersect.
 
-        @type  begin: int
-        @param begin: Start address of the first range.
+        :type begin: int
+        :param begin: Start address of the first range.
 
-        @type  end: int
-        @param end: End address of the first range.
+        :type end: int
+        :param end: End address of the first range.
 
-        @type  old_begin: int
-        @param old_begin: Start address of the second range.
+        :type old_begin: int
+        :param old_begin: Start address of the second range.
 
-        @type  old_end: int
-        @param old_end: End address of the second range.
+        :type old_end: int
+        :param old_end: End address of the second range.
 
-        @rtype:  bool
-        @return: C{True} if the two ranges intersect, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` if the two ranges intersect, ``False`` otherwise.
         """
         return  (old_begin <= begin < old_end) or \
                 (old_begin < end <= old_end)   or \
@@ -469,16 +438,18 @@ def CustomAddressIterator(memory_map, condition):
     Generator function that iterates through a memory map, filtering memory
     region blocks by any given condition.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @type  condition: function
-    @param condition: Callback function that returns C{True} if the memory
-        block should be returned, or C{False} if it should be filtered.
+    :type condition: function
+    :param condition:
+        Callback function that returns ``True`` if the memory block should be
+        returned, or ``False`` if it should be filtered.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     for mbi in memory_map:
         if condition(mbi):
@@ -493,12 +464,13 @@ def DataAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that contain data.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                       win32.MemoryBasicInformation.has_content)
@@ -508,12 +480,13 @@ def ImageAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that belong to executable images.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                          win32.MemoryBasicInformation.is_image)
@@ -523,12 +496,13 @@ def MappedAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that belong to memory mapped files.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                         win32.MemoryBasicInformation.is_mapped)
@@ -538,12 +512,13 @@ def ReadableAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that are readable.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                       win32.MemoryBasicInformation.is_readable)
@@ -553,14 +528,17 @@ def WriteableAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that are writeable.
 
-    @note: Writeable memory is always readable too.
+    .. note::
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+        Writeable memory is always readable too.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
+
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                      win32.MemoryBasicInformation.is_writeable)
@@ -570,14 +548,17 @@ def ExecutableAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that are executable.
 
-    @note: Executable memory is always readable too.
+    .. note::
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+        Executable memory is always readable too.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
+
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                                     win32.MemoryBasicInformation.is_executable)
@@ -587,15 +568,18 @@ def ExecutableAndWriteableAddressIterator(memory_map):
     Generator function that iterates through a memory map, returning only those
     memory blocks that are executable and writeable.
 
-    @note: The presence of such pages make memory corruption vulnerabilities
+    .. note::
+
+        The presence of such pages make memory corruption vulnerabilities
         much easier to exploit.
 
-    @type  memory_map: list( L{win32.MemoryBasicInformation} )
-    @param memory_map: List of memory region information objects.
-        Returned by L{Process.get_memory_map}.
+    :type memory_map: list( :class:`win32.MemoryBasicInformation` )
+    :param memory_map:
+        List of memory region information objects. Returned by
+        :meth:`Process.get_memory_map`.
 
-    @rtype:  generator of L{win32.MemoryBasicInformation}
-    @return: Generator object to iterate memory blocks.
+    :rtype:  generator of :class:`win32.MemoryBasicInformation`
+    :return: Generator object to iterate memory blocks.
     """
     return CustomAddressIterator(memory_map,
                       win32.MemoryBasicInformation.is_executable_and_writeable)
@@ -605,109 +589,75 @@ def ExecutableAndWriteableAddressIterator(memory_map):
 class DebugRegister (StaticClass):
     """
     Class to manipulate debug registers.
-    Used by L{HardwareBreakpoint}.
+    Used by :class:`HardwareBreakpoint`.
 
-    @group Trigger flags used by HardwareBreakpoint:
-        BREAK_ON_EXECUTION, BREAK_ON_WRITE, BREAK_ON_ACCESS, BREAK_ON_IO_ACCESS
-    @group Size flags used by HardwareBreakpoint:
-        WATCH_BYTE, WATCH_WORD, WATCH_DWORD, WATCH_QWORD
-    @group Bitwise masks for Dr7:
-        enableMask, disableMask, triggerMask, watchMask, clearMask,
-        generalDetectMask
-    @group Bitwise masks for Dr6:
-        hitMask, hitMaskAll, debugAccessMask, singleStepMask, taskSwitchMask,
-        clearDr6Mask, clearHitMask
-    @group Debug control MSR definitions:
-        DebugCtlMSR, LastBranchRecord, BranchTrapFlag, PinControl,
-        LastBranchToIP, LastBranchFromIP,
-        LastExceptionToIP, LastExceptionFromIP
+    .. rubric:: Trigger flags used by HardwareBreakpoint
 
-    @type BREAK_ON_EXECUTION: int
-    @cvar BREAK_ON_EXECUTION: Break on execution.
+    - ``BREAK_ON_EXECUTION``: Break on execution.
+    - ``BREAK_ON_WRITE``: Break on write.
+    - ``BREAK_ON_ACCESS``: Break on read or write.
+    - ``BREAK_ON_IO_ACCESS``: Break on I/O port access.
+      Not supported by any hardware.
 
-    @type BREAK_ON_WRITE: int
-    @cvar BREAK_ON_WRITE: Break on write.
+    .. rubric:: Size flags used by HardwareBreakpoint
 
-    @type BREAK_ON_ACCESS: int
-    @cvar BREAK_ON_ACCESS: Break on read or write.
+    - ``WATCH_BYTE``: Watch a byte.
+    - ``WATCH_WORD``: Watch a word.
+    - ``WATCH_DWORD``: Watch a double word.
+    - ``WATCH_QWORD``: Watch one quad word.
 
-    @type BREAK_ON_IO_ACCESS: int
-    @cvar BREAK_ON_IO_ACCESS: Break on I/O port access.
-        Not supported by any hardware.
+    .. rubric:: Bitwise masks for Dr7
 
-    @type WATCH_BYTE: int
-    @cvar WATCH_BYTE: Watch a byte.
-
-    @type WATCH_WORD: int
-    @cvar WATCH_WORD: Watch a word.
-
-    @type WATCH_DWORD: int
-    @cvar WATCH_DWORD: Watch a double word.
-
-    @type WATCH_QWORD: int
-    @cvar WATCH_QWORD: Watch one quad word.
-
-    @type enableMask: 4-tuple of integers
-    @cvar enableMask:
-        Enable bit on C{Dr7} for each slot.
+    - :cvar 4-tuple of integers enableMask:
+        Enable bit on ``Dr7`` for each slot.
         Works as a bitwise-OR mask.
-
-    @type disableMask: 4-tuple of integers
-    @cvar disableMask:
-        Mask of the enable bit on C{Dr7} for each slot.
+    - :cvar 4-tuple of integers disableMask:
+        Mask of the enable bit on ``Dr7`` for each slot.
         Works as a bitwise-AND mask.
-
-    @type triggerMask: 4-tuple of 2-tuples of integers
-    @cvar triggerMask:
-        Trigger bits on C{Dr7} for each trigger flag value.
+    - :cvar 4-tuple of 2-tuples of integers triggerMask:
+        Trigger bits on ``Dr7`` for each trigger flag value.
         Each 2-tuple has the bitwise-OR mask and the bitwise-AND mask.
-
-    @type watchMask: 4-tuple of 2-tuples of integers
-    @cvar watchMask:
-        Watch bits on C{Dr7} for each watch flag value.
+    - :cvar 4-tuple of 2-tuples of integers watchMask:
+        Watch bits on ``Dr7`` for each watch flag value.
         Each 2-tuple has the bitwise-OR mask and the bitwise-AND mask.
-
-    @type clearMask: 4-tuple of integers
-    @cvar clearMask:
-        Mask of all important bits on C{Dr7} for each slot.
+    - :cvar 4-tuple of integers clearMask:
+        Mask of all important bits on ``Dr7`` for each slot.
         Works as a bitwise-AND mask.
-
-    @type generalDetectMask: integer
-    @cvar generalDetectMask:
+    - :cvar int generalDetectMask:
         General detect mode bit. It enables the processor to notify the
         debugger when the debugee is trying to access one of the debug
         registers.
 
-    @type hitMask: 4-tuple of integers
-    @cvar hitMask:
-        Hit bit on C{Dr6} for each slot.
+    .. rubric:: Bitwise masks for Dr6
+
+    - :cvar 4-tuple of integers hitMask:
+        Hit bit on ``Dr6`` for each slot.
         Works as a bitwise-AND mask.
-
-    @type hitMaskAll: integer
-    @cvar hitMaskAll:
-        Bitmask for all hit bits in C{Dr6}. Useful to know if at least one
+    - :cvar int hitMaskAll:
+        Bitmask for all hit bits in ``Dr6``. Useful to know if at least one
         hardware breakpoint was hit, or to clear the hit bits only.
-
-    @type clearHitMask: integer
-    @cvar clearHitMask:
-        Bitmask to clear all the hit bits in C{Dr6}.
-
-    @type debugAccessMask: integer
-    @cvar debugAccessMask:
+    - :cvar int clearHitMask:
+        Bitmask to clear all the hit bits in ``Dr6``.
+    - :cvar int debugAccessMask:
         The debugee tried to access a debug register. Needs bit
-        L{generalDetectMask} enabled in C{Dr7}.
-
-    @type singleStepMask: integer
-    @cvar singleStepMask:
+        :attr:`generalDetectMask` enabled in ``Dr7``.
+    - :cvar int singleStepMask:
         A single step exception was raised. Needs the trap flag enabled.
-
-    @type taskSwitchMask: integer
-    @cvar taskSwitchMask:
+    - :cvar int taskSwitchMask:
         A task switch has occurred. Needs the TSS T-bit set to 1.
+    - :cvar int clearDr6Mask:
+        Bitmask to clear all meaningful bits in ``Dr6``.
 
-    @type clearDr6Mask: integer
-    @cvar clearDr6Mask:
-        Bitmask to clear all meaningful bits in C{Dr6}.
+    .. rubric:: Debug control MSR definitions
+
+    - ``DebugCtlMSR``
+    - ``LastBranchRecord``
+    - ``BranchTrapFlag``
+    - ``PinControl``
+    - ``LastBranchToIP``
+    - ``LastBranchFromIP``
+    - ``LastExceptionToIP``
+    - ``LastExceptionFromIP``
     """
 
     BREAK_ON_EXECUTION  = 0
@@ -966,13 +916,13 @@ class DebugRegister (StaticClass):
         """
         Clears a hardware breakpoint.
 
-        @see: find_slot, set_bp
+        :see: :meth:`find_slot`, :meth:`set_bp`
 
-        @type  ctx: dict( str S{->} int )
-        @param ctx: Thread context dictionary.
+        :type ctx: dict( str, int )
+        :param ctx: Thread context dictionary.
 
-        @type  register: int
-        @param register: Slot (debug register) for hardware breakpoint.
+        :type register: int
+        :param register: Slot (debug register) for hardware breakpoint.
         """
         ctx['Dr7'] &= cls.clearMask[register]
         ctx['Dr%d' % register] = 0
@@ -982,22 +932,24 @@ class DebugRegister (StaticClass):
         """
         Sets a hardware breakpoint.
 
-        @see: clear_bp, find_slot
+        :see: :meth:`clear_bp`, :meth:`find_slot`
 
-        @type  ctx: dict( str S{->} int )
-        @param ctx: Thread context dictionary.
+        :type ctx: dict( str, int )
+        :param ctx: Thread context dictionary.
 
-        @type  register: int
-        @param register: Slot (debug register).
+        :type register: int
+        :param register: Slot (debug register).
 
-        @type  address: int
-        @param address: Memory address.
+        :type address: int
+        :param address: Memory address.
 
-        @type  trigger: int
-        @param trigger: Trigger flag. See L{HardwareBreakpoint.validTriggers}.
+        :type trigger: int
+        :param trigger:
+            Trigger flag. See ``HardwareBreakpoint.validTriggers``.
 
-        @type  watch: int
-        @param watch: Watch flag. See L{HardwareBreakpoint.validWatchSizes}.
+        :type watch: int
+        :param watch:
+            Watch flag. See ``HardwareBreakpoint.validWatchSizes``.
         """
         Dr7 = ctx['Dr7']
         Dr7 |= cls.enableMask[register]
@@ -1015,13 +967,13 @@ class DebugRegister (StaticClass):
         """
         Finds an empty slot to set a hardware breakpoint.
 
-        @see: clear_bp, set_bp
+        :see: :meth:`clear_bp`, :meth:`set_bp`
 
-        @type  ctx: dict( str S{->} int )
-        @param ctx: Thread context dictionary.
+        :type ctx: dict( str, int )
+        :param ctx: Thread context dictionary.
 
-        @rtype:  int
-        @return: Slot (debug register) for hardware breakpoint.
+        :rtype:  int
+        :return: Slot (debug register) for hardware breakpoint.
         """
         Dr7  = ctx['Dr7']
         slot = 0

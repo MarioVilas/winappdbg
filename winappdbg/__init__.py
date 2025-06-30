@@ -33,80 +33,117 @@ Windows application debugging engine for Python.
 
 by Mario Vilas (mvilas at gmail.com)
 
-Project: U{https://github.com/MarioVilas/winappdbg/}
+Project: https://github.com/MarioVilas/winappdbg/
 
-Web:     U{http://winappdbg.readthedocs.io/en/latest/}
+Web:     http://winappdbg.readthedocs.io/en/latest/
 
-Blog:    U{http://breakingcode.wordpress.com}
+Blog:    http://breakingcode.wordpress.com
 
-@group Debugging:
-    Debug, EventHandler, EventSift, DebugLog
+**Debugging:**
 
-@group Instrumentation:
-    System, Process, Thread, Module, Window, Registry
+- `Debug`
+- `EventHandler`
+- `EventSift`
+- `DebugLog`
 
-@group Disassemblers:
-    Disassembler,
-    BeaEngine, DistormEngine, PyDasmEngine
+**Instrumentation:**
 
-@group Crash reporting:
-    Crash, CrashDump, CrashDAO, CrashDictionary
+- `System`
+- `Process`
+- `Thread`
+- `Module`
+- `Window`
+- `Registry`
 
-@group Memory search:
-    Search,
-    Pattern,
-    StringPattern,
-    IStringPattern,
-    HexPattern
+**Disassemblers:**
 
-@group Debug events:
-    Event,
-    NoEvent,
-    CreateProcessEvent,
-    CreateThreadEvent,
-    ExitProcessEvent,
-    ExitThreadEvent,
-    LoadDLLEvent,
-    UnloadDLLEvent,
-    OutputDebugStringEvent,
-    RIPEvent,
-    ExceptionEvent
+- `Disassembler`
+- `BeaEngine`
+- `DistormEngine`
+- `PyDasmEngine`
 
-@group Win32 API wrappers:
-    win32, Handle, ProcessHandle, ThreadHandle, FileHandle
+**Crash reporting:**
 
-@group Helpers:
-    HexInput, HexOutput, HexDump, Color, Table, Logger,
-    PathOperations,
-    MemoryAddresses,
-    CustomAddressIterator,
-    DataAddressIterator,
-    ImageAddressIterator,
-    MappedAddressIterator,
-    ExecutableAddressIterator,
-    ReadableAddressIterator,
-    WriteableAddressIterator,
-    ExecutableAndWriteableAddressIterator,
-    DebugRegister,
-    Regenerator
+- `Crash`
+- `CrashDump`
+- `CrashDAO`
+- `CrashDictionary`
 
-@group Warnings:
-    MixedBitsWarning, BreakpointWarning, BreakpointCallbackWarning,
-    EventCallbackWarning, DebugSymbolsWarning, CrashWarning
+**Memory search:**
 
-@group Deprecated classes:
-    CrashContainer, CrashTable, CrashTableMSSQL,
-    VolatileCrashContainer, DummyCrashContainer
+- `Search`
+- `Pattern`
+- `StringPattern`
+- `IStringPattern`
+- `HexPattern`
 
-@type version_number: float
-@var  version_number: This WinAppDbg major and minor version,
+**Debug events:**
+
+- `Event`
+- `NoEvent`
+- `CreateProcessEvent`
+- `CreateThreadEvent`
+- `ExitProcessEvent`
+- `ExitThreadEvent`
+- `LoadDLLEvent`
+- `UnloadDLLEvent`
+- `OutputDebugStringEvent`
+- `RIPEvent`
+- `ExceptionEvent`
+
+**Win32 API wrappers:**
+
+- `win32`
+- `Handle`
+- `ProcessHandle`
+- `ThreadHandle`
+- `FileHandle`
+
+**Helpers:**
+
+- `HexInput`
+- `HexOutput`
+- `HexDump`
+- `Color`
+- `Table`
+- `Logger`
+- `PathOperations`
+- `MemoryAddresses`
+- `CustomAddressIterator`
+- `DataAddressIterator`
+- `ImageAddressIterator`
+- `MappedAddressIterator`
+- `ExecutableAddressIterator`
+- `ReadableAddressIterator`
+- `WriteableAddressIterator`
+- `ExecutableAndWriteableAddressIterator`
+- `DebugRegister`
+- `Regenerator`
+
+**Warnings:**
+
+- `MixedBitsWarning`
+- `BreakpointWarning`
+- `BreakpointCallbackWarning`
+- `EventCallbackWarning`
+- `DebugSymbolsWarning`
+- `CrashWarning`
+
+**Deprecated classes:**
+
+- `CrashContainer`
+- `CrashTable`
+- `CrashTableMSSQL`
+- `VolatileCrashContainer`
+- `DummyCrashContainer`
+
+:type version_number: float
+:var  version_number: This WinAppDbg major and minor version,
     as a floating point number. Use this for compatibility checking.
 
-@type version: str
-@var  version: This WinAppDbg release version,
+:type version: str
+:var  version: This WinAppDbg release version,
     as a printable string. Use this to show to the user.
-
-@undocumented: plugins
 """
 
 # List of all public symbols

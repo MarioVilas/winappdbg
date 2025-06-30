@@ -31,15 +31,12 @@
 """
 Crash dump support.
 
-@group Crash reporting:
-    Crash, CrashDictionary
+Crash reporting:
+- :class:`Crash`
+- :class:`CrashDictionary`
 
-@group Warnings:
-    CrashWarning
-
-@group Deprecated classes:
-    CrashContainer, CrashTable, CrashTableMSSQL,
-    VolatileCrashContainer, DummyCrashContainer
+Warnings:
+- :class:`CrashWarning`
 """
 
 __all__ = [
@@ -134,279 +131,257 @@ class Crash:
     """
     Represents a crash, bug, or another interesting event in the debugee.
 
-    @group Basic information:
-        timeStamp, signature, eventCode, eventName, pid, tid, arch, os, bits,
-        registers, labelPC, pc, sp, fp
+    .. rubric:: Basic information
 
-    @group Optional information:
-        debugString,
-        modFileName,
-        lpBaseOfDll,
-        exceptionCode,
-        exceptionName,
-        exceptionDescription,
-        exceptionAddress,
-        exceptionLabel,
-        firstChance,
-        faultType,
-        faultAddress,
-        faultLabel,
-        isOurBreakpoint,
-        isSystemBreakpoint,
-        stackTrace,
-        stackTracePC,
-        stackTraceLabels,
-        stackTracePretty
+    - :attr:`timeStamp`
+    - :attr:`signature`
+    - :attr:`eventCode`
+    - :attr:`eventName`
+    - :attr:`pid`
+    - :attr:`tid`
+    - :attr:`arch`
+    - :attr:`os`
+    - :attr:`bits`
+    - :attr:`registers`
+    - :attr:`labelPC`
+    - :attr:`pc`
+    - :attr:`sp`
+    - :attr:`fp`
 
-    @group Extra information:
-        commandLine,
-        environment,
-        environmentData,
-        registersPeek,
-        stackRange,
-        stackFrame,
-        stackPeek,
-        faultCode,
-        faultMem,
-        faultPeek,
-        faultDisasm,
-        memoryMap
+    .. rubric:: Optional information
 
-    @group Report:
-        briefReport, fullReport, notesReport, environmentReport, isExploitable
+    - :attr:`debugString`
+    - :attr:`modFileName`
+    - :attr:`lpBaseOfDll`
+    - :attr:`exceptionCode`
+    - :attr:`exceptionName`
+    - :attr:`exceptionDescription`
+    - :attr:`exceptionAddress`
+    - :attr:`exceptionLabel`
+    - :attr:`firstChance`
+    - :attr:`faultType`
+    - :attr:`faultAddress`
+    - :attr:`faultLabel`
+    - :attr:`isOurBreakpoint`
+    - :attr:`isSystemBreakpoint`
+    - :attr:`stackTrace`
+    - :attr:`stackTracePC`
+    - :attr:`stackTraceLabels`
+    - :attr:`stackTracePretty`
 
-    @group Notes:
-        addNote, getNotes, iterNotes, hasNotes, clearNotes, notes
+    .. rubric:: Extra information
 
-    @group Miscellaneous:
-        fetch_extra_data
+    - :attr:`commandLine`
+    - :attr:`environment`
+    - :attr:`environmentData`
+    - :attr:`registersPeek`
+    - :attr:`stackRange`
+    - :attr:`stackFrame`
+    - :attr:`stackPeek`
+    - :attr:`faultCode`
+    - :attr:`faultMem`
+    - :attr:`faultPeek`
+    - :attr:`faultDisasm`
+    - :attr:`memoryMap`
 
-    @type timeStamp: float
-    @ivar timeStamp: Timestamp as returned by time.time().
+    .. rubric:: Report
 
-    @type signature: object
-    @ivar signature: Approximately unique signature for the Crash object.
+    - :meth:`briefReport`
+    - :meth:`fullReport`
+    - :meth:`notesReport`
+    - :meth:`environmentReport`
+    - :meth:`isExploitable`
+
+    .. rubric:: Notes
+
+    - :meth:`addNote`
+    - :meth:`getNotes`
+    - :meth:`iterNotes`
+    - :meth:`hasNotes`
+    - :meth:`clearNotes`
+    - :attr:`notes`
+
+    .. rubric:: Miscellaneous
+
+    - :meth:`fetch_extra_data`
+
+    :vartype timeStamp: float
+    :ivar timeStamp: Timestamp as returned by :func:`time.time`.
+    :vartype signature: object
+    :ivar signature:
+        Approximately unique signature for the Crash object.
 
         This signature can be used as an heuristic to determine if two crashes
         were caused by the same software error. Ideally it should be treated as
         as opaque serializable object that can be tested for equality.
+    :vartype notes: list[str]
+    :ivar notes: List of strings, each string is a note.
+    :vartype eventCode: int
+    :ivar eventCode: Event code as defined by the Win32 API.
+    :vartype eventName: str
+    :ivar eventName: Event code user-friendly name.
+    :vartype pid: int
+    :ivar pid: Process global ID.
+    :vartype tid: int
+    :ivar tid: Thread global ID.
+    :vartype arch: str
+    :ivar arch: Processor architecture.
+    :vartype os: str
+    :ivar os:
+        Operating system version.
 
-    @type notes: list( str )
-    @ivar notes: List of strings, each string is a note.
-
-    @type eventCode: int
-    @ivar eventCode: Event code as defined by the Win32 API.
-
-    @type eventName: str
-    @ivar eventName: Event code user-friendly name.
-
-    @type pid: int
-    @ivar pid: Process global ID.
-
-    @type tid: int
-    @ivar tid: Thread global ID.
-
-    @type arch: str
-    @ivar arch: Processor architecture.
-
-    @type os: str
-    @ivar os: Operating system version.
-
-        May indicate a 64 bit version even if L{arch} and L{bits} indicate 32
-        bits. This means the crash occurred inside a WOW64 process.
-
-    @type bits: int
-    @ivar bits: C{32} or C{64} bits.
-
-    @type commandLine: None or str
-    @ivar commandLine: Command line for the target process.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type environmentData: None or list of str
-    @ivar environmentData: Environment data for the target process.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type environment: None or dict( str S{->} str )
-    @ivar environment: Environment variables for the target process.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type registers: dict( str S{->} int )
-    @ivar registers: Dictionary mapping register names to their values.
-
-    @type registersPeek: None or dict( str S{->} str )
-    @ivar registersPeek: Dictionary mapping register names to the data they point to.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type labelPC: None or str
-    @ivar labelPC: Label pointing to the program counter.
-
-        C{None} or invalid if unapplicable or unable to retrieve.
-
-    @type debugString: None or str
-    @ivar debugString: Debug string sent by the debugee.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type exceptionCode: None or int
-    @ivar exceptionCode: Exception code as defined by the Win32 API.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type exceptionName: None or str
-    @ivar exceptionName: Exception code user-friendly name.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type exceptionDescription: None or str
-    @ivar exceptionDescription: Exception description.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type exceptionAddress: None or int
-    @ivar exceptionAddress: Memory address where the exception occured.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type exceptionLabel: None or str
-    @ivar exceptionLabel: Label pointing to the exception address.
-
-        C{None} or invalid if unapplicable or unable to retrieve.
-
-    @type faultType: None or int
-    @ivar faultType: Access violation type.
-        Only applicable to memory faults.
+        May indicate a 64 bit version even if :attr:`arch` and :attr:`bits`
+        indicate 32 bits. This means the crash occurred inside a WOW64 process.
+    :vartype bits: int
+    :ivar bits: ``32`` or ``64`` bits.
+    :vartype commandLine: str or None
+    :ivar commandLine:
+        Command line for the target process.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype environmentData: list[str] or None
+    :ivar environmentData:
+        Environment data for the target process.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype environment: dict[str, str] or None
+    :ivar environment:
+        Environment variables for the target process.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype registers: dict[str, int]
+    :ivar registers: Dictionary mapping register names to their values.
+    :vartype registersPeek: dict[str, str] or None
+    :ivar registersPeek:
+        Dictionary mapping register names to the data they point to.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype labelPC: str or None
+    :ivar labelPC:
+        Label pointing to the program counter.
+        ``None`` or invalid if unapplicable or unable to retrieve.
+    :vartype debugString: str or None
+    :ivar debugString:
+        Debug string sent by the debugee.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype exceptionCode: int or None
+    :ivar exceptionCode:
+        Exception code as defined by the Win32 API.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype exceptionName: str or None
+    :ivar exceptionName:
+        Exception code user-friendly name.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype exceptionDescription: str or None
+    :ivar exceptionDescription:
+        Exception description.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype exceptionAddress: int or None
+    :ivar exceptionAddress:
+        Memory address where the exception occured.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype exceptionLabel: str or None
+    :ivar exceptionLabel:
+        Label pointing to the exception address.
+        ``None`` or invalid if unapplicable or unable to retrieve.
+    :vartype faultType: int or None
+    :ivar faultType:
+        Access violation type. Only applicable to memory faults.
         Should be one of the following constants:
 
-         - L{win32.ACCESS_VIOLATION_TYPE_READ}
-         - L{win32.ACCESS_VIOLATION_TYPE_WRITE}
-         - L{win32.ACCESS_VIOLATION_TYPE_DEP}
+        - :const:`win32.ACCESS_VIOLATION_TYPE_READ`
+        - :const:`win32.ACCESS_VIOLATION_TYPE_WRITE`
+        - :const:`win32.ACCESS_VIOLATION_TYPE_DEP`
 
-        C{None} if unapplicable or unable to retrieve.
-
-    @type faultAddress: None or int
-    @ivar faultAddress: Access violation memory address.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype faultAddress: int or None
+    :ivar faultAddress:
+        Access violation memory address. Only applicable to memory faults.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype faultLabel: str or None
+    :ivar faultLabel:
+        Label pointing to the access violation memory address.
         Only applicable to memory faults.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type faultLabel: None or str
-    @ivar faultLabel: Label pointing to the access violation memory address.
-        Only applicable to memory faults.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type firstChance: None or bool
-    @ivar firstChance:
-        C{True} for first chance exceptions, C{False} for second chance.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type isOurBreakpoint: bool
-    @ivar isOurBreakpoint:
-        C{True} for breakpoints defined by the L{Debug} class,
-        C{False} otherwise.
-
-        C{None} if unapplicable.
-
-    @type isSystemBreakpoint: bool
-    @ivar isSystemBreakpoint:
-        C{True} for known system-defined breakpoints,
-        C{False} otherwise.
-
-        C{None} if unapplicable.
-
-    @type modFileName: None or str
-    @ivar modFileName: File name of module where the program counter points to.
-
-        C{None} or invalid if unapplicable or unable to retrieve.
-
-    @type lpBaseOfDll: None or int
-    @ivar lpBaseOfDll: Base of module where the program counter points to.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type stackTrace: None or tuple of tuple( int, int, str )
-    @ivar stackTrace:
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype firstChance: bool or None
+    :ivar firstChance:
+        ``True`` for first chance exceptions, ``False`` for second chance.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype isOurBreakpoint: bool
+    :ivar isOurBreakpoint:
+        ``True`` for breakpoints defined by the :class:`~debug.Debug` class,
+        ``False`` otherwise. ``None`` if unapplicable.
+    :vartype isSystemBreakpoint: bool
+    :ivar isSystemBreakpoint:
+        ``True`` for known system-defined breakpoints, ``False`` otherwise.
+        ``None`` if unapplicable.
+    :vartype modFileName: str or None
+    :ivar modFileName:
+        File name of module where the program counter points to.
+        ``None`` or invalid if unapplicable or unable to retrieve.
+    :vartype lpBaseOfDll: int or None
+    :ivar lpBaseOfDll:
+        Base of module where the program counter points to.
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype stackTrace: tuple[tuple[int, int, str]] or None
+    :ivar stackTrace:
         Stack trace of the current thread as a tuple of
-        ( frame pointer, return address, module filename ).
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type stackTracePretty: None or tuple of tuple( int, str )
-    @ivar stackTracePretty:
+        (frame pointer, return address, module filename).
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype stackTracePretty: tuple[tuple[int, str]] or None
+    :ivar stackTracePretty:
         Stack trace of the current thread as a tuple of
-        ( frame pointer, return location ).
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type stackTracePC: None or tuple( int... )
-    @ivar stackTracePC: Tuple of return addresses in the stack trace.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type stackTraceLabels: None or tuple( str... )
-    @ivar stackTraceLabels:
+        (frame pointer, return location).
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype stackTracePC: tuple[int, ...] or None
+    :ivar stackTracePC:
+        Tuple of return addresses in the stack trace.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype stackTraceLabels: tuple[str, ...] or None
+    :ivar stackTraceLabels:
         Tuple of labels pointing to the return addresses in the stack trace.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type stackRange: tuple( int, int )
-    @ivar stackRange:
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype stackRange: tuple[int, int]
+    :ivar stackRange:
         Stack beginning and end pointers, in memory addresses order.
-
-        C{None} if unapplicable or unable to retrieve.
-
-    @type stackFrame: None or str
-    @ivar stackFrame: Data pointed to by the stack pointer.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type stackPeek: None or dict( int S{->} str )
-    @ivar stackPeek: Dictionary mapping stack offsets to the data they point to.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type faultCode: None or str
-    @ivar faultCode: Data pointed to by the program counter.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type faultMem: None or str
-    @ivar faultMem: Data pointed to by the exception address.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type faultPeek: None or dict( intS{->} str )
-    @ivar faultPeek: Dictionary mapping guessed pointers at L{faultMem} to the data they point to.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type faultDisasm: None or tuple of tuple( long, int, str, str )
-    @ivar faultDisasm: Dissassembly around the program counter.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type memoryMap: None or list of L{win32.MemoryBasicInformation} objects.
-    @ivar memoryMap: Memory snapshot of the program. May contain the actual
+        ``None`` if unapplicable or unable to retrieve.
+    :vartype stackFrame: str or None
+    :ivar stackFrame:
+        Data pointed to by the stack pointer.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype stackPeek: dict[int, str] or None
+    :ivar stackPeek:
+        Dictionary mapping stack offsets to the data they point to.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype faultCode: str or None
+    :ivar faultCode:
+        Data pointed to by the program counter.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype faultMem: str or None
+    :ivar faultMem:
+        Data pointed to by the exception address.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype faultPeek: dict[int, str] or None
+    :ivar faultPeek:
+        Dictionary mapping guessed pointers at :attr:`faultMem` to the
+        data they point to.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype faultDisasm: tuple[tuple[int, int, str, str]] or None
+    :ivar faultDisasm:
+        Dissassembly around the program counter.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype memoryMap: list[:class:`~win32.MemoryBasicInformation`] or None
+    :ivar memoryMap:
+        Memory snapshot of the program. May contain the actual
         data from the entire process memory if requested.
-        See L{fetch_extra_data} for more details.
-
-        C{None} or empty if unapplicable or unable to retrieve.
-
-    @type _rowid: int
-    @ivar _rowid: Row ID in the database. Internally used by the DAO layer.
+        See :meth:`fetch_extra_data` for more details.
+        ``None`` or empty if unapplicable or unable to retrieve.
+    :vartype _rowid: int
+    :ivar _rowid:
+        Row ID in the database. Internally used by the DAO layer.
         Only present in crash dumps retrieved from the database. Do not rely
         on this property to be present in future versions of WinAppDbg.
     """
 
     def __init__(self, event):
         """
-        @type  event: L{Event}
-        @param event: Event object for crash.
+        :param ~winappdbg.event.Event event: Event object for crash.
         """
 
         # First of all, take the timestamp.
@@ -529,25 +504,24 @@ class Crash:
 
     def fetch_extra_data(self, event, takeMemorySnapshot = 0):
         """
-        Fetch extra data from the L{Event} object.
+        Fetch extra data from the :class:`~winappdbg.event.Event` object.
 
-        @note: Since this method may take a little longer to run, it's best to
+        .. note::
+            Since this method may take a little longer to run, it's best to
             call it only after you've determined the crash is interesting and
             you want to save it.
 
-        @type  event: L{Event}
-        @param event: Event object for crash.
-
-        @type  takeMemorySnapshot: int
-        @param takeMemorySnapshot:
+        :param ~winappdbg.event.Event event: Event object for crash.
+        :param int takeMemorySnapshot:
             Memory snapshot behavior:
-             - C{0} to take no memory information (default).
-             - C{1} to take only the memory map.
-               See L{Process.get_memory_map}.
-             - C{2} to take a full memory snapshot.
-               See L{Process.take_memory_snapshot}.
-             - C{3} to take a live memory snapshot.
-               See L{Process.generate_memory_snapshot}.
+
+            - ``0`` to take no memory information (default).
+            - ``1`` to take only the memory map.
+              See :meth:`~winappdbg.process.Process.get_memory_map`.
+            - ``2`` to take a full memory snapshot.
+              See :meth:`~winappdbg.process.Process.take_memory_snapshot`.
+            - ``3`` to take a live memory snapshot.
+              See :meth:`~winappdbg.process.Process.generate_memory_snapshot`.
         """
 
         # Get the process and thread, we'll use them below.
@@ -706,26 +680,26 @@ class Crash:
         Guess how likely is it that the bug causing the crash can be leveraged
         into an exploitable vulnerability.
 
-        @note: Don't take this as an equivalent of a real exploitability
+        .. note::
+            Don't take this as an equivalent of a real exploitability
             analysis, that can only be done by a human being! This is only
             a guideline, useful for example to sort crashes - placing the most
             interesting ones at the top.
 
-        @see: The heuristics are similar to those of the B{!exploitable}
-            extension for I{WinDBG}, which can be downloaded from here:
+        The heuristics are similar to those of the ``!exploitable``
+        extension for *WinDBG*:
+        https://web.archive.org/web/20210413145507/https://archive.codeplex.com/?p=msecdbg
 
-            U{http://www.codeplex.com/msecdbg}
-
-        @rtype: tuple( str, str, str )
-        @return: The first element of the tuple is the result of the analysis,
+        :rtype: tuple[str, str, str]
+        :return: The first element of the tuple is the result of the analysis,
             being one of the following:
 
-             - Not an exception
-             - Not exploitable
-             - Not likely exploitable
-             - Unknown
-             - Probably exploitable
-             - Exploitable
+            - Not an exception
+            - Not exploitable
+            - Not likely exploitable
+            - Unknown
+            - Probably exploitable
+            - Exploitable
 
             The second element of the tuple is a code to identify the matched
             heuristic rule.

@@ -30,9 +30,6 @@
 
 """
 Window instrumentation.
-
-@group Instrumentation:
-    Window
 """
 
 __all__ = ['Window']
@@ -67,67 +64,43 @@ class Window:
     """
     Interface to an open window in the current desktop.
 
-    @group Properties:
-        get_handle, get_pid, get_tid,
-        get_process, get_thread,
-        set_process, set_thread,
-        get_classname, get_style, get_extended_style,
-        get_text, set_text,
-        get_placement, set_placement,
-        get_screen_rect, get_client_rect,
-        screen_to_client, client_to_screen
+    :ivar hWnd: Window handle.
+    :type hWnd: int
 
-    @group State:
-        is_valid, is_visible, is_enabled, is_maximized, is_minimized, is_child,
-        is_zoomed, is_iconic
+    :ivar dwProcessId: Global ID of the process that owns this window.
+    :type dwProcessId: int
 
-    @group Navigation:
-        get_parent, get_children, get_root, get_tree,
-        get_child_at
+    :ivar dwThreadId: Global ID of the thread that owns this window.
+    :type dwThreadId: int
 
-    @group Instrumentation:
-        enable, disable, show, hide, maximize, minimize, restore, move, kill
+    :ivar process: Process that owns this window.
+        Use the :meth:`get_process` method instead.
+    :type process: `Process`
 
-    @group Low-level access:
-        send, post
+    :ivar thread: Thread that owns this window.
+        Use the :meth:`get_thread` method instead.
+    :type thread: `Thread`
 
-    @type hWnd: int
-    @ivar hWnd: Window handle.
+    :ivar classname: Window class name.
+    :type classname: str
 
-    @type dwProcessId: int
-    @ivar dwProcessId: Global ID of the process that owns this window.
+    :ivar text: Window text (caption).
+    :type text: str
 
-    @type dwThreadId: int
-    @ivar dwThreadId: Global ID of the thread that owns this window.
-
-    @type process: L{Process}
-    @ivar process: Process that owns this window.
-        Use the L{get_process} method instead.
-
-    @type thread: L{Thread}
-    @ivar thread: Thread that owns this window.
-        Use the L{get_thread} method instead.
-
-    @type classname: str
-    @ivar classname: Window class name.
-
-    @type text: str
-    @ivar text: Window text (caption).
-
-    @type placement: L{win32.WindowPlacement}
-    @ivar placement: Window placement in the desktop.
+    :ivar placement: Window placement in the desktop.
+    :type placement: `win32.WindowPlacement`
     """
 
     def __init__(self, hWnd = None, process = None, thread = None):
         """
-        @type  hWnd: int or L{win32.HWND}
-        @param hWnd: Window handle.
+        :param hWnd: Window handle.
+        :type  hWnd: int or `win32.HWND`
 
-        @type  process: L{Process}
-        @param process: (Optional) Process that owns this window.
+        :param process: (Optional) Process that owns this window.
+        :type  process: `Process`
 
-        @type  thread: L{Thread}
-        @param thread: (Optional) Thread that owns this window.
+        :param thread: (Optional) Thread that owns this window.
+        :type  thread: `Thread`
         """
         self.hWnd        = hWnd
         self.dwProcessId = None
@@ -145,9 +118,9 @@ class Window:
 
     def get_handle(self):
         """
-        @rtype:  int
-        @return: Window handle.
-        @raise ValueError: No window handle set.
+        :rtype:  int
+        :return: Window handle.
+        :raises ValueError: No window handle set.
         """
         if self.hWnd is None:
             raise ValueError("No window handle set!")
@@ -155,8 +128,8 @@ class Window:
 
     def get_pid(self):
         """
-        @rtype:  int
-        @return: Global ID of the process that owns this window.
+        :rtype:  int
+        :return: Global ID of the process that owns this window.
         """
         if self.dwProcessId is not None:
             return self.dwProcessId
@@ -165,8 +138,8 @@ class Window:
 
     def get_tid(self):
         """
-        @rtype:  int
-        @return: Global ID of the thread that owns this window.
+        :rtype:  int
+        :return: Global ID of the thread that owns this window.
         """
         if self.dwThreadId is not None:
             return self.dwThreadId
@@ -190,8 +163,8 @@ class Window:
 
     def get_process(self):
         """
-        @rtype:  L{Process}
-        @return: Parent Process object.
+        :rtype:  `Process`
+        :return: Parent Process object.
         """
         if self.__process is not None:
             return self.__process
@@ -203,8 +176,8 @@ class Window:
         """
         Manually set the parent process. Use with care!
 
-        @type  process: L{Process}
-        @param process: (Optional) Process object. Use C{None} to autodetect.
+        :param process: (Optional) Process object. Use ``None`` to autodetect.
+        :type  process: `Process`
         """
         if process is None:
             self.__process = None
@@ -219,8 +192,8 @@ class Window:
 
     def get_thread(self):
         """
-        @rtype:  L{Thread}
-        @return: Parent Thread object.
+        :rtype:  `Thread`
+        :return: Parent Thread object.
         """
         if self.__thread is not None:
             return self.__thread
@@ -232,8 +205,8 @@ class Window:
         """
         Manually set the thread process. Use with care!
 
-        @type  thread: L{Thread}
-        @param thread: (Optional) Thread object. Use C{None} to autodetect.
+        :param thread: (Optional) Thread object. Use ``None`` to autodetect.
+        :type  thread: `Thread`
         """
         if thread is None:
             self.__thread = None
@@ -262,36 +235,36 @@ class Window:
 
     def get_classname(self):
         """
-        @rtype:  str
-        @return: Window class name.
+        :rtype:  str
+        :return: Window class name.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return win32.GetClassName( self.get_handle() )
 
     def get_style(self):
         """
-        @rtype:  int
-        @return: Window style mask.
+        :rtype:  int
+        :return: Window style mask.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowLongPtr( self.get_handle(), win32.GWL_STYLE )
 
     def get_extended_style(self):
         """
-        @rtype:  int
-        @return: Window extended style mask.
+        :rtype:  int
+        :return: Window extended style mask.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowLongPtr( self.get_handle(), win32.GWL_EXSTYLE )
 
     def get_text(self):
         """
-        @see:    L{set_text}
-        @rtype:  str
-        @return: Window text (caption) on success, C{None} on error.
+        :see: :meth:`set_text`
+        :rtype:  str
+        :return: Window text (caption) on success, ``None`` on error.
         """
         try:
             return win32.GetWindowText( self.get_handle() )
@@ -302,12 +275,12 @@ class Window:
         """
         Set the window text (caption).
 
-        @see: L{get_text}
+        :see: :meth:`get_text`
 
-        @type  text: str
-        @param text: New window text.
+        :param text: New window text.
+        :type  text: str
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         win32.SetWindowText( self.get_handle(), text )
 
@@ -315,12 +288,12 @@ class Window:
         """
         Retrieve the window placement in the desktop.
 
-        @see: L{set_placement}
+        :see: :meth:`set_placement`
 
-        @rtype:  L{win32.WindowPlacement}
-        @return: Window placement in the desktop.
+        :rtype:  `win32.WindowPlacement`
+        :return: Window placement in the desktop.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowPlacement( self.get_handle() )
 
@@ -328,12 +301,12 @@ class Window:
         """
         Set the window placement in the desktop.
 
-        @see: L{get_placement}
+        :see: :meth:`get_placement`
 
-        @type  placement: L{win32.WindowPlacement}
-        @param placement: Window placement in the desktop.
+        :param placement: Window placement in the desktop.
+        :type  placement: `win32.WindowPlacement`
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         win32.SetWindowPlacement( self.get_handle(), placement )
 
@@ -341,10 +314,10 @@ class Window:
         """
         Get the window coordinates in the desktop.
 
-        @rtype:  L{win32.Rect}
-        @return: Rectangle occupied by the window in the desktop.
+        :rtype:  `win32.Rect`
+        :return: Rectangle occupied by the window in the desktop.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         return win32.GetWindowRect( self.get_handle() )
 
@@ -352,10 +325,10 @@ class Window:
         """
         Get the window's client area coordinates in the desktop.
 
-        @rtype:  L{win32.Rect}
-        @return: Rectangle occupied by the window's client area in the desktop.
+        :rtype:  `win32.Rect`
+        :return: Rectangle occupied by the window's client area in the desktop.
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         cr = win32.GetClientRect( self.get_handle() )
         cr.left, cr.top     = self.client_to_screen(cr.left, cr.top)
@@ -380,20 +353,22 @@ class Window:
         """
         Translates window client coordinates to screen coordinates.
 
-        @note: This is a simplified interface to some of the functionality of
-            the L{win32.Point} class.
+        .. note::
 
-        @see: {win32.Point.client_to_screen}
+            This is a simplified interface to some of the functionality of
+            the `win32.Point` class.
 
-        @type  x: int
-        @param x: Horizontal coordinate.
-        @type  y: int
-        @param y: Vertical coordinate.
+        :see: :meth:`win32.Point.client_to_screen`
 
-        @rtype:  tuple( int, int )
-        @return: Translated coordinates in a tuple (x, y).
+        :param x: Horizontal coordinate.
+        :type  x: int
+        :param y: Vertical coordinate.
+        :type  y: int
 
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  tuple( int, int )
+        :return: Translated coordinates in a tuple (x, y).
+
+        :raises WindowsError: An error occured while processing this request.
         """
         return tuple( win32.ClientToScreen( self.get_handle(), (x, y) ) )
 
@@ -401,20 +376,22 @@ class Window:
         """
         Translates window screen coordinates to client coordinates.
 
-        @note: This is a simplified interface to some of the functionality of
-            the L{win32.Point} class.
+        .. note::
 
-        @see: {win32.Point.screen_to_client}
+            This is a simplified interface to some of the functionality of
+            the `win32.Point` class.
 
-        @type  x: int
-        @param x: Horizontal coordinate.
-        @type  y: int
-        @param y: Vertical coordinate.
+        :see: :meth:`win32.Point.screen_to_client`
 
-        @rtype:  tuple( int, int )
-        @return: Translated coordinates in a tuple (x, y).
+        :param x: Horizontal coordinate.
+        :type  x: int
+        :param y: Vertical coordinate.
+        :type  y: int
 
-        @raise WindowsError: An error occured while processing this request.
+        :rtype:  tuple( int, int )
+        :return: Translated coordinates in a tuple (x, y).
+
+        :raises WindowsError: An error occured while processing this request.
         """
         return tuple( win32.ScreenToClient( self.get_handle(), (x, y) ) )
 
@@ -422,10 +399,10 @@ class Window:
 
     def get_parent(self):
         """
-        @see:    L{get_children}
-        @rtype:  L{Window} or None
-        @return: Parent window. Returns C{None} if the window has no parent.
-        @raise WindowsError: An error occured while processing this request.
+        :see: :meth:`get_children`
+        :rtype:  `Window` or None
+        :return: Parent window. Returns ``None`` if the window has no parent.
+        :raises WindowsError: An error occured while processing this request.
         """
         hWnd = win32.GetParent( self.get_handle() )
         if hWnd:
@@ -433,10 +410,10 @@ class Window:
 
     def get_children(self):
         """
-        @see:    L{get_parent}
-        @rtype:  list( L{Window} )
-        @return: List of child windows.
-        @raise WindowsError: An error occured while processing this request.
+        :see: :meth:`get_parent`
+        :rtype:  list( `Window` )
+        :return: List of child windows.
+        :raises WindowsError: An error occured while processing this request.
         """
         return [
                 self.__get_window(hWnd) \
@@ -445,10 +422,10 @@ class Window:
 
     def get_tree(self):
         """
-        @see:    L{get_root}
-        @rtype:  dict( L{Window} S{->} dict( ... ) )
-        @return: Dictionary of dictionaries forming a tree of child windows.
-        @raise WindowsError: An error occured while processing this request.
+        :see: :meth:`get_root`
+        :rtype:  dict( `Window` -> dict( ... ) )
+        :return: Dictionary of dictionaries forming a tree of child windows.
+        :raises WindowsError: An error occured while processing this request.
         """
         subtree = dict()
         for aWindow in self.get_children():
@@ -457,12 +434,12 @@ class Window:
 
     def get_root(self):
         """
-        @see:    L{get_tree}
-        @rtype:  L{Window}
-        @return: If this is a child window, return the top-level window it
+        :see: :meth:`get_tree`
+        :rtype:  `Window`
+        :return: If this is a child window, return the top-level window it
             belongs to.
             If this window is already a top-level window, returns itself.
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         hWnd     = self.get_handle()
         history  = set()
@@ -483,21 +460,21 @@ class Window:
         Get the child window located at the given coordinates. If no such
         window exists an exception is raised.
 
-        @see: L{get_children}
+        :see: :meth:`get_children`
 
-        @type  x: int
-        @param x: Horizontal coordinate.
+        :param x: Horizontal coordinate.
+        :type  x: int
 
-        @type  y: int
-        @param y: Vertical coordinate.
+        :param y: Vertical coordinate.
+        :type  y: int
 
-        @type  bAllowTransparency: bool
-        @param bAllowTransparency: If C{True} transparent areas in windows are
-            ignored, returning the window behind them. If C{False} transparent
+        :param bAllowTransparency: If ``True`` transparent areas in windows are
+            ignored, returning the window behind them. If ``False`` transparent
             areas are treated just like any other area.
+        :type  bAllowTransparency: bool
 
-        @rtype:  L{Window}
-        @return: Child window at the requested position, or C{None} if there
+        :rtype:  `Window`
+        :return: Child window at the requested position, or ``None`` if there
             is no window at those coordinates.
         """
         try:
@@ -515,48 +492,48 @@ class Window:
 
     def is_valid(self):
         """
-        @rtype:  bool
-        @return: C{True} if the window handle is still valid.
+        :rtype:  bool
+        :return: ``True`` if the window handle is still valid.
         """
         return win32.IsWindow( self.get_handle() )
 
     def is_visible(self):
         """
-        @see: {show}, {hide}
-        @rtype:  bool
-        @return: C{True} if the window is in a visible state.
+        :see: :meth:`show`, :meth:`hide`
+        :rtype:  bool
+        :return: ``True`` if the window is in a visible state.
         """
         return win32.IsWindowVisible( self.get_handle() )
 
     def is_enabled(self):
         """
-        @see: {enable}, {disable}
-        @rtype:  bool
-        @return: C{True} if the window is in an enabled state.
+        :see: :meth:`enable`, :meth:`disable`
+        :rtype:  bool
+        :return: ``True`` if the window is in an enabled state.
         """
         return win32.IsWindowEnabled( self.get_handle() )
 
     def is_maximized(self):
         """
-        @see: L{maximize}
-        @rtype:  bool
-        @return: C{True} if the window is maximized.
+        :see: :meth:`maximize`
+        :rtype:  bool
+        :return: ``True`` if the window is maximized.
         """
         return win32.IsZoomed( self.get_handle() )
 
     def is_minimized(self):
         """
-        @see: L{minimize}
-        @rtype:  bool
-        @return: C{True} if the window is minimized.
+        :see: :meth:`minimize`
+        :rtype:  bool
+        :return: ``True`` if the window is minimized.
         """
         return win32.IsIconic( self.get_handle() )
 
     def is_child(self):
         """
-        @see: L{get_parent}
-        @rtype:  bool
-        @return: C{True} if the window is a child window.
+        :see: :meth:`get_parent`
+        :rtype:  bool
+        :return: ``True`` if the window is a child window.
         """
         return win32.IsChild( self.get_handle() )
 
@@ -569,9 +546,9 @@ class Window:
         """
         Enable the user input for the window.
 
-        @see: L{disable}
+        :see: :meth:`disable`
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         win32.EnableWindow( self.get_handle(), True )
 
@@ -579,9 +556,9 @@ class Window:
         """
         Disable the user input for the window.
 
-        @see: L{enable}
+        :see: :meth:`enable`
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         win32.EnableWindow( self.get_handle(), False )
 
@@ -589,12 +566,12 @@ class Window:
         """
         Make the window visible.
 
-        @see: L{hide}
+        :see: :meth:`hide`
 
-        @type  bAsync: bool
-        @param bAsync: Perform the request asynchronously.
+        :param bAsync: Perform the request asynchronously.
+        :type  bAsync: bool
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_SHOW )
@@ -605,12 +582,12 @@ class Window:
         """
         Make the window invisible.
 
-        @see: L{show}
+        :see: :meth:`show`
 
-        @type  bAsync: bool
-        @param bAsync: Perform the request asynchronously.
+        :param bAsync: Perform the request asynchronously.
+        :type  bAsync: bool
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_HIDE )
@@ -621,12 +598,12 @@ class Window:
         """
         Maximize the window.
 
-        @see: L{minimize}, L{restore}
+        :see: :meth:`minimize`, :meth:`restore`
 
-        @type  bAsync: bool
-        @param bAsync: Perform the request asynchronously.
+        :param bAsync: Perform the request asynchronously.
+        :type  bAsync: bool
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_MAXIMIZE )
@@ -637,12 +614,12 @@ class Window:
         """
         Minimize the window.
 
-        @see: L{maximize}, L{restore}
+        :see: :meth:`maximize`, :meth:`restore`
 
-        @type  bAsync: bool
-        @param bAsync: Perform the request asynchronously.
+        :param bAsync: Perform the request asynchronously.
+        :type  bAsync: bool
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_MINIMIZE )
@@ -653,12 +630,12 @@ class Window:
         """
         Unmaximize and unminimize the window.
 
-        @see: L{maximize}, L{minimize}
+        :see: :meth:`maximize`, :meth:`minimize`
 
-        @type  bAsync: bool
-        @param bAsync: Perform the request asynchronously.
+        :param bAsync: Perform the request asynchronously.
+        :type  bAsync: bool
 
-        @raise WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occured while processing this request.
         """
         if bAsync:
             win32.ShowWindowAsync( self.get_handle(), win32.SW_RESTORE )
@@ -670,25 +647,27 @@ class Window:
         """
         Moves and/or resizes the window.
 
-        @note: This is request is performed syncronously.
+        .. note::
 
-        @type  x: int
-        @param x: (Optional) New horizontal coordinate.
+            This is request is performed syncronously.
 
-        @type  y: int
-        @param y: (Optional) New vertical coordinate.
+        :param x: (Optional) New horizontal coordinate.
+        :type  x: int
 
-        @type  width: int
-        @param width: (Optional) Desired window width.
+        :param y: (Optional) New vertical coordinate.
+        :type  y: int
 
-        @type  height: int
-        @param height: (Optional) Desired window height.
+        :param width: (Optional) Desired window width.
+        :type  width: int
 
-        @type  bRepaint: bool
-        @param bRepaint:
-            (Optional) C{True} if the window should be redrawn afterwards.
+        :param height: (Optional) Desired window height.
+        :type  height: int
 
-        @raise WindowsError: An error occured while processing this request.
+        :param bRepaint:
+            (Optional) ``True`` if the window should be redrawn afterwards.
+        :type  bRepaint: bool
+
+        :raises WindowsError: An error occured while processing this request.
         """
         if None in (x, y, width, height):
             rect = self.get_screen_rect()
@@ -706,9 +685,11 @@ class Window:
         """
         Signals the program to quit.
 
-        @note: This is an asyncronous request.
+        .. note::
 
-        @raise WindowsError: An error occured while processing this request.
+            This is an asyncronous request.
+
+        :raises WindowsError: An error occured while processing this request.
         """
         self.post(win32.WM_QUIT)
 
@@ -716,22 +697,22 @@ class Window:
         """
         Send a low-level window message syncronically.
 
-        @type  uMsg: int
-        @param uMsg: Message code.
+        :param uMsg: Message code.
+        :type  uMsg: int
 
-        @param wParam:
+        :param wParam:
             The type and meaning of this parameter depends on the message.
 
-        @param lParam:
+        :param lParam:
             The type and meaning of this parameter depends on the message.
 
-        @param dwTimeout: Optional timeout for the operation.
-            Use C{None} to wait indefinitely.
+        :param dwTimeout: Optional timeout for the operation.
+            Use ``None`` to wait indefinitely.
 
-        @rtype:  int
-        @return: The meaning of the return value depends on the window message.
-            Typically a value of C{0} means an error occured. You can get the
-            error code by calling L{win32.GetLastError}.
+        :rtype:  int
+        :return: The meaning of the return value depends on the window message.
+            Typically a value of ``0`` means an error occured. You can get the
+            error code by calling ``win32.GetLastError()``.
         """
         if dwTimeout is None:
             return win32.SendMessage(self.get_handle(), uMsg, wParam, lParam)
@@ -743,15 +724,15 @@ class Window:
         """
         Post a low-level window message asyncronically.
 
-        @type  uMsg: int
-        @param uMsg: Message code.
+        :param uMsg: Message code.
+        :type  uMsg: int
 
-        @param wParam:
+        :param wParam:
             The type and meaning of this parameter depends on the message.
 
-        @param lParam:
+        :param lParam:
             The type and meaning of this parameter depends on the message.
 
-        @raise WindowsError: An error occured while sending the message.
+        :raises WindowsError: An error occured while sending the message.
         """
         win32.PostMessage(self.get_handle(), uMsg, wParam, lParam)

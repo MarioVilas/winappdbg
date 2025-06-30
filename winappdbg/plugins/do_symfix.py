@@ -31,5 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 def do(self, arg):
-    ".symfix - Set the default Microsoft Symbol Store settings if missing"
+    """.symfix - Set the default Microsoft Symbol Store settings if missing
+
+    :param str arg: (not used)
+    """
     self.debug.system.fix_symbol_store_path(remote = True, force = False)

@@ -42,3 +42,4 @@ Table of Contents
    Downloads
    Tools
    ProgrammingGuide
+   API

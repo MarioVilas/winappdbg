@@ -31,14 +31,6 @@
 
 """
 Process memory search.
-
-@group Memory search:
-    Search,
-    Pattern,
-    StringPattern,
-    IStringPattern,
-    HexPattern,
-    MemoryAccessWarning
 """
 
 __all__ =   [
@@ -77,16 +69,16 @@ class Pattern:
     Base class to code your own search mechanism.
 
     Normally you only need to reimplement the following methods:
-     - C{__len__}()
-     - C{next_match}().
+     - ``__len__()``
+     - ``next_match()``.
     """
 
     def __init__(self, pattern):
         """
         Class constructor.
 
-        @type  pattern: bytes or str
-        @param pattern: Pattern string.
+        :type  pattern: bytes or str
+        :param pattern: Pattern string.
             Its exact meaning and format depends on the subclass.
         """
         self.pattern = pattern
@@ -112,8 +104,8 @@ class Pattern:
         Used internally to adjust offsets when doing buffered searches.
         Subclasses don't normally need to reimplement this method.
 
-        @type  delta: int
-        @param delta: Delta offset.
+        :type  delta: int
+        :param delta: Delta offset.
         """
         self.start   = None
         self.end     = None
@@ -128,16 +120,16 @@ class Pattern:
         Searches for the pattern in the given data buffer.
         Subclasses don't normally need to reimplement this method.
 
-        @type  address: int
-        @param address: Memory address where the data was read from.
+        :type  address: int
+        :param address: Memory address where the data was read from.
             Used to calculate the results tuple.
 
-        @type  data: bytes
-        @param data: Data buffer to search in.
+        :type  data: bytes
+        :param data: Data buffer to search in.
 
-        @type  overlapping: bool
-        @param overlapping: C{True} for overlapped searches,
-            C{False} otherwise.
+        :type  overlapping: bool
+        :param overlapping: ``True`` for overlapped searches,
+            ``False`` otherwise.
         """
         self.data = data
         self.start = self.next_match()
@@ -153,19 +145,19 @@ class Pattern:
 
     def __len__(self):
         """
-        @rtype:  int
-        @return: maximum length of a string
+        :rtype:  int
+        :return: maximum length of a string
             that can be matched by the pattern.
         """
         return len(self.pattern)
 
     def next_match(self):
         """
-        This method B{MUST} be reimplemented by subclasses.
-        The data buffer can be found in C{self.data}.
+        This method **MUST** be reimplemented by subclasses.
+        The data buffer can be found in ``self.data``.
 
-        @rtype:  int
-        @return: Position in the buffer where the pattern was found.
+        :rtype:  int
+        :return: Position in the buffer where the pattern was found.
         """
         raise NotImplementedError()
 
@@ -180,8 +172,8 @@ class StringPattern(Pattern):
         """
         Class constructor.
 
-        @type  pattern: bytes
-        @param pattern: Static string to search for, case sensitive.
+        :type  pattern: bytes
+        :param pattern: Static string to search for, case sensitive.
         """
         super().__init__(pattern)
 
@@ -199,8 +191,8 @@ class IStringPattern(Pattern):
         """
         Class constructor.
 
-        @type  pattern: bytes
-        @param pattern: Static string to search for, case insensitive.
+        :type  pattern: bytes
+        :param pattern: Static string to search for, case insensitive.
         """
         super().__init__(pattern.lower())
 
@@ -214,13 +206,16 @@ class HexPattern(Pattern):
     Hexadecimal pattern matching with wildcards.
 
     Hex patterns must be in this form::
+
         "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
 
     Spaces are optional. Capitalization of hex digits doesn't matter.
     This is exactly equivalent to the previous example::
+
         "68656C6C6F20776F726C64"            # "hello world"
 
-    Wildcards are allowed, in the form of a C{?} sign in any hex digit::
+    Wildcards are allowed, in the form of a ``?`` sign in any hex digit::
+
         "5? 5? c3"          # pop register / pop register / ret
         "b8 ?? ?? ?? ??"    # mov eax, immediate value
     """
@@ -229,18 +224,21 @@ class HexPattern(Pattern):
         """
         Class constructor.
 
-        @type  pattern: str
-        @param pattern:
+        :type  pattern: str
+        :param pattern:
             Hexadecimal pattern matching with wildcards.
 
             Hex patterns must be in this form::
+
                 "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
 
             Spaces are optional. Capitalization of hex digits doesn't matter.
             This is exactly equivalent to the previous example::
+
                 "68656C6C6F20776F726C64"            # "hello world"
 
-            Wildcards are allowed, in the form of a C{?} sign in any hex digit::
+            Wildcards are allowed, in the form of a ``?`` sign in any hex digit::
+
                 "5? 5? c3"          # pop register / pop register / ret
                 "b8 ?? ?? ?? ??"    # mov eax, immediate value
         """
@@ -276,51 +274,54 @@ class Search (StaticClass):
         """
         Search for the given string or pattern within the process memory.
 
-        @type  process: L{Process}
-        @param process: Process to search.
+        :type  process: :class:`~winappdbg.process.Process`
+        :param process: Process to search.
 
-        @type  patterns: L{list of Pattern}
-        @param patterns: List of strings or wildcard patterns to search for.
-            It must be an instance of a subclass of L{Pattern}.
+        :type  patterns: list of :class:`~.Pattern`
+        :param patterns: List of strings or wildcard patterns to search for.
+            It must be an instance of a subclass of :class:`~.Pattern`.
 
-            The following L{Pattern} subclasses are provided by WinAppDbg:
-             - L{StringPattern} (case sensitive string search)
-             - L{IStringPattern} (case insensitive string search)
-             - L{HexPattern} (hexadecimal pattern with wildcards)
+            The following :class:`~.Pattern` subclasses are provided by WinAppDbg:
+            - :class:`~.StringPattern` (case sensitive string search)
+            - :class:`~.IStringPattern` (case insensitive string search)
+            - :class:`~.HexPattern` (hexadecimal pattern with wildcards)
 
-            You can also write your own subclass of L{Pattern}
+            You can also write your own subclass of :class:`~.Pattern`
             for customized searches.
 
-        @type  minAddr: int
-        @param minAddr: (Optional) Start the search at this memory address.
+        :type  minAddr: int
+        :param minAddr: (Optional) Start the search at this memory address.
 
-        @type  maxAddr: int
-        @param maxAddr: (Optional) Stop the search at this memory address.
+        :type  maxAddr: int
+        :param maxAddr: (Optional) Stop the search at this memory address.
 
-        @type  bufferPages: int
-        @param bufferPages: (Optional) Number of memory pages to buffer when
+        :type  bufferPages: int
+        :param bufferPages: (Optional) Number of memory pages to buffer when
             performing the search. Valid values are:
-             - C{0} or C{None}: Automatically determine the required buffer size.
-               This is the default.
-             - C{> 0}: Set the buffer size in memory pages.
-             - C{< 0}: Disable buffering entirely. This may give you a little
-               speed gain at the cost of an increased memory usage. If the
-               target process has very large contiguous memory regions it may
-               actually be slower or even fail.
 
-        @type  overlapping: bool
-        @param overlapping: C{True} to allow overlapping results, C{False}
+            - ``0`` or ``None``: Automatically determine the required buffer size.
+              This is the default.
+            - ``> 0``: Set the buffer size in memory pages.
+            - ``< 0``: Disable buffering entirely. This may give you a little
+              speed gain at the cost of an increased memory usage. If the
+              target process has very large contiguous memory regions it may
+              actually be slower or even fail.
+
+        :type  overlapping: bool
+        :param overlapping: ``True`` to allow overlapping results, ``False``
             otherwise.
 
             Overlapping results yield the maximum possible number of results.
 
             For example, if searching for "AAAA" within "AAAAAAAA" at address
-            C{0x10000}, when overlapping is turned off the following matches
+            ``0x10000``, when overlapping is turned off the following matches
             are yielded::
+
                 (0x10000, 4, "AAAA")
                 (0x10004, 4, "AAAA")
 
             If overlapping is turned on, the following matches are yielded::
+
                 (0x10000, 4, "AAAA")
                 (0x10001, 4, "AAAA")
                 (0x10002, 4, "AAAA")
@@ -329,13 +330,13 @@ class Search (StaticClass):
 
             As you can see, the middle results are overlapping the last two.
 
-        @rtype:  iterator of tuple( int, int, bytes )
-        @return: An iterator of tuples. Each tuple contains the following:
-             - The memory address where the pattern was found.
-             - The size of the data that matches the pattern.
-             - The data that matches the pattern.
+        :rtype:  iterator of tuple( int, int, bytes )
+        :return: An iterator of tuples. Each tuple contains the following:
+            - The memory address where the pattern was found.
+            - The size of the data that matches the pattern.
+            - The data that matches the pattern.
 
-        @raise WindowsError: An error occurred when querying or reading the
+        :raises WindowsError: An error occurred when querying or reading the
             process memory.
         """
 
