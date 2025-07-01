@@ -35,8 +35,8 @@ def print_atoms():
     for x in range(0, MAXINTATOM):
         try:
             n = GlobalGetAtomName(x)
-            if n == "#%d" % x:      # comment out to print
-                continue            # valid numeric atoms
+            #if n == "#%d" % x:      # uncomment to ignore
+            #    continue            # valid numeric atoms
             print("Atom %4x: %r" % (x, n))
         except WindowsError:
             pass

@@ -42,12 +42,28 @@ def print_drivers( fFullPath = False ):
 
     # Get the list of loaded device drivers.
     ImageBaseList = EnumDeviceDrivers()
-    print("Device drivers found: %d" % len(ImageBaseList))
+
+    # Filter out None values (happens when SeDebugPrivilege is not enabled)
+    ValidDrivers = [ImageBase for ImageBase in ImageBaseList if ImageBase is not None]
+
+    print("Total entries returned: %d" % len(ImageBaseList))
+    print("Valid device drivers found: %d" % len(ValidDrivers))
+
+    if len(ValidDrivers) == 0 and len(ImageBaseList) > 0:
+        print("WARNING: EnumDeviceDrivers returned NULL addresses.")
+        print("This typically means SeDebugPrivilege is not enabled.")
+        print("Try running this script as Administrator.")
+        return
+
+    if len(ValidDrivers) == 0:
+        print("No device drivers found.")
+        return
+
     print()
     print(hdr % ("Image base", "File name"))
 
-    # For each device driver...
-    for ImageBase in ImageBaseList:
+    # For each valid device driver...
+    for ImageBase in ValidDrivers:
 
         # Get the device driver filename.
         if fFullPath:

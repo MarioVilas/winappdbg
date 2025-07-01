@@ -79,9 +79,6 @@ class BaseDTO:
         # Don't use MyISAM in MySQL. It doesn't support ON DELETE CASCADE.
         'mysql_engine': 'InnoDB',
 
-        # Don't use BlitzDB in Drizzle. It doesn't support foreign keys.
-        'drizzle_engine': 'InnoDB',
-
         # Collate to UTF-8.
         'mysql_charset': 'utf8',
 

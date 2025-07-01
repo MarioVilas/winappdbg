@@ -120,7 +120,8 @@ class Debug (EventDispatcher, _BreakpointContainer):
             However you'll probably find it more convenient to use an instance
             of a subclass of :class:`~.event.EventHandler` here.
         """
-        super().__init__(eventHandler)
+        EventDispatcher.__init__(self, eventHandler)
+        _BreakpointContainer.__init__(self)
 
         self.system                         = System()
         self.lastEvent                      = None
@@ -1007,18 +1008,9 @@ class Debug (EventDispatcher, _BreakpointContainer):
                     raise
                 warnings.warn(str(e), RuntimeWarning)
 
-                # Disable all breakpoints in the thread before resuming execution.
-                try:
-                    tid = event.get_tid()
-                    self.disable_thread_breakpoints(tid)
-                except Exception as e:
-                    if not bIgnoreExceptions:
-                        raise
-                    warnings.warn(str(e), RuntimeWarning)
-
             # Resume execution.
             try:
-                event.continueDebugEvent = win32.DBG_CONTINUE
+                event.continueStatus = win32.DBG_CONTINUE
                 self.cont(event)
             except Exception as e:
                 if not bIgnoreExceptions:

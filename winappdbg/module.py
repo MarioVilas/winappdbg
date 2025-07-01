@@ -239,9 +239,18 @@ class Module:
                 self.SizeOfImage = mi.SizeOfImage
                 self.EntryPoint  = mi.EntryPoint
             except WindowsError as e:
-                warnings.warn(
-                    "Cannot get size and entry point of module %s, reason: %s"\
-                    % (self.get_name(), e.strerror), RuntimeWarning)
+                # GetModuleInformation can fail during early process initialization
+                # when the target process hasn't fully set up its module table yet.
+                # This is common during debugging when module events are fired
+                # before the process is fully initialized.
+                # See: https://devblogs.microsoft.com/oldnewthing/20150716-00/?p=45131
+                if e.winerror == win32.ERROR_INVALID_HANDLE:
+                    # Don't warn for this case - it's expected during early debugging
+                    pass
+                else:
+                    warnings.warn(
+                        "Cannot get size and entry point of module %s, reason: %s"\
+                        % (self.get_name(), e.strerror), RuntimeWarning)
 
     def get_filename(self):
         """

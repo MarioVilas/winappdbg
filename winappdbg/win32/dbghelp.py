@@ -402,27 +402,7 @@ def SymLoadModule64A(hProcess, hFile = None, ImageName = None, ModuleName = None
             raise ctypes.WinError(dwErrorCode)
     return lpBaseAddress
 
-def SymLoadModule64W(hProcess, hFile = None, ImageName = None, ModuleName = None, BaseOfDll = None, SizeOfDll = None):
-    _SymLoadModule64W = windll.dbghelp.SymLoadModule64W
-    _SymLoadModule64W.argtypes = [HANDLE, HANDLE, LPWSTR, LPWSTR, DWORD64, DWORD]
-    _SymLoadModule64W.restype  = DWORD64
-
-    if not ImageName:
-        ImageName = None
-    if not ModuleName:
-        ModuleName = None
-    if not BaseOfDll:
-        BaseOfDll = 0
-    if not SizeOfDll:
-        SizeOfDll = 0
-    SetLastError(ERROR_SUCCESS)
-    lpBaseAddress = _SymLoadModule64W(hProcess, hFile, ImageName, ModuleName, BaseOfDll, SizeOfDll)
-    if lpBaseAddress == NULL:
-        dwErrorCode = GetLastError()
-        if dwErrorCode != ERROR_SUCCESS:
-            raise ctypes.WinError(dwErrorCode)
-    return lpBaseAddress
-
+SymLoadModule64W = MakeWideVersion(SymLoadModule64A)
 SymLoadModule64 = GuessStringType(SymLoadModule64A, SymLoadModule64W)
 
 # BOOL WINAPI SymUnloadModule(
@@ -463,17 +443,7 @@ def SymGetModuleInfoA(hProcess, dwAddr):
     _SymGetModuleInfo(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
-def SymGetModuleInfoW(hProcess, dwAddr):
-    _SymGetModuleInfoW = windll.dbghelp.SymGetModuleInfoW
-    _SymGetModuleInfoW.argtypes = [HANDLE, DWORD, PIMAGEHLP_MODULEW]
-    _SymGetModuleInfoW.restype  = bool
-    _SymGetModuleInfoW.errcheck = RaiseIfZero
-
-    ModuleInfo = IMAGEHLP_MODULEW()
-    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfoW(hProcess, dwAddr, byref(ModuleInfo))
-    return ModuleInfo
-
+SymGetModuleInfoW = MakeWideVersion(SymGetModuleInfoA)
 SymGetModuleInfo = GuessStringType(SymGetModuleInfoA, SymGetModuleInfoW)
 
 # BOOL WINAPI SymGetModuleInfo64(
@@ -492,17 +462,7 @@ def SymGetModuleInfo64A(hProcess, dwAddr):
     _SymGetModuleInfo64(hProcess, dwAddr, byref(ModuleInfo))
     return ModuleInfo
 
-def SymGetModuleInfo64W(hProcess, dwAddr):
-    _SymGetModuleInfo64W = windll.dbghelp.SymGetModuleInfo64W
-    _SymGetModuleInfo64W.argtypes = [HANDLE, DWORD64, PIMAGEHLP_MODULE64W]
-    _SymGetModuleInfo64W.restype  = bool
-    _SymGetModuleInfo64W.errcheck = RaiseIfZero
-
-    ModuleInfo = IMAGEHLP_MODULE64W()
-    ModuleInfo.SizeOfStruct = sizeof(ModuleInfo)
-    _SymGetModuleInfo64W(hProcess, dwAddr, byref(ModuleInfo))
-    return ModuleInfo
-
+SymGetModuleInfo64W = MakeWideVersion(SymGetModuleInfo64A)
 SymGetModuleInfo64 = GuessStringType(SymGetModuleInfo64A, SymGetModuleInfo64W)
 
 # BOOL CALLBACK SymEnumerateModulesProc(
@@ -572,19 +532,7 @@ def SymEnumerateModules64A(hProcess, EnumModulesCallback, UserContext = None):
         UserContext = LPVOID(NULL)
     _SymEnumerateModules64(hProcess, EnumModulesCallback, UserContext)
 
-def SymEnumerateModules64W(hProcess, EnumModulesCallback, UserContext = None):
-    _SymEnumerateModules64W = windll.dbghelp.SymEnumerateModules64W
-    _SymEnumerateModules64W.argtypes = [HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID]
-    _SymEnumerateModules64W.restype  = bool
-    _SymEnumerateModules64W.errcheck = RaiseIfZero
-
-    EnumModulesCallback = PSYM_ENUMMODULES_CALLBACK64W(EnumModulesCallback)
-    if UserContext:
-        UserContext = ctypes.pointer(UserContext)
-    else:
-        UserContext = LPVOID(NULL)
-    _SymEnumerateModules64W(hProcess, EnumModulesCallback, UserContext)
-
+SymEnumerateModules64W = MakeWideVersion(SymEnumerateModules64A)
 SymEnumerateModules64 = GuessStringType(SymEnumerateModules64A, SymEnumerateModules64W)
 
 # BOOL CALLBACK SymEnumerateSymbolsProc(
@@ -658,19 +606,7 @@ def SymEnumerateSymbols64A(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext
         UserContext = LPVOID(NULL)
     _SymEnumerateSymbols64(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
 
-def SymEnumerateSymbols64W(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext = None):
-    _SymEnumerateSymbols64W = windll.dbghelp.SymEnumerateSymbols64W
-    _SymEnumerateSymbols64W.argtypes = [HANDLE, ULONG64, PSYM_ENUMSYMBOLS_CALLBACK64W, PVOID]
-    _SymEnumerateSymbols64W.restype  = bool
-    _SymEnumerateSymbols64W.errcheck = RaiseIfZero
-
-    EnumSymbolsCallback = PSYM_ENUMSYMBOLS_CALLBACK64W(EnumSymbolsCallback)
-    if UserContext:
-        UserContext = ctypes.pointer(UserContext)
-    else:
-        UserContext = LPVOID(NULL)
-    _SymEnumerateSymbols64W(hProcess, BaseOfDll, EnumSymbolsCallback, UserContext)
-
+SymEnumerateSymbols64W = MakeWideVersion(SymEnumerateSymbols64A)
 SymEnumerateSymbols64 = GuessStringType(SymEnumerateSymbols64A, SymEnumerateSymbols64W)
 
 # DWORD WINAPI UnDecorateSymbolName(
@@ -987,7 +923,7 @@ PIMAGEHLP_SYMBOLW64 = POINTER(IMAGEHLP_SYMBOLW64)
 #  __inout    PIMAGEHLP_SYMBOL64 Symbol
 # );
 #===============================================================================
-def SymGetSymFromAddr64(hProcess, Address):
+def SymGetSymFromAddr64A(hProcess, Address):
     _SymGetSymFromAddr64 = windll.dbghelp.SymGetSymFromAddr64
     _SymGetSymFromAddr64.argtypes = [HANDLE, DWORD64, PDWORD64, PIMAGEHLP_SYMBOL64]
     _SymGetSymFromAddr64.restype = bool
@@ -1002,7 +938,8 @@ def SymGetSymFromAddr64(hProcess, Address):
 
     return (Displacement.value, imagehlp_symbol64)
 
-#TODO: check for the 'W' version of SymGetSymFromAddr64()
+SymGetSymFromAddr64W = MakeWideVersion(SymGetSymFromAddr64A)
+SymGetSymFromAddr64 = GuessStringType(SymGetSymFromAddr64A, SymGetSymFromAddr64W)
 
 #===============================================================================
 # typedef struct _IMAGEHLP_LINE64 {
@@ -1031,7 +968,7 @@ PIMAGEHLP_LINE64 = POINTER(IMAGEHLP_LINE64)
 #  __out PIMAGEHLP_LINE64 Line
 # );
 #===============================================================================
-def SymGetLineFromAddr64(hProcess, dwAddr):
+def SymGetLineFromAddr64A(hProcess, dwAddr):
     _SymGetLineFromAddr64 = windll.dbghelp.SymGetLineFromAddr64
     _SymGetLineFromAddr64.argtypes = [HANDLE, DWORD64, PDWORD, PIMAGEHLP_LINE64]
     _SymGetLineFromAddr64.restype = bool
@@ -1045,7 +982,8 @@ def SymGetLineFromAddr64(hProcess, dwAddr):
 
     return (pdwDisplacement.value, imagehlp_line64)
 
-#TODO: check for the 'W' version of SymGetLineFromAddr64()
+SymGetLineFromAddr64W = MakeWideVersion(SymGetLineFromAddr64A)
+SymGetLineFromAddr64 = GuessStringType(SymGetLineFromAddr64A, SymGetLineFromAddr64W)
 
 #===============================================================================
 # typedef struct API_VERSION {
@@ -1074,7 +1012,6 @@ def ImagehlpApiVersion():
 
     api_version = _ImagehlpApiVersion()
     return api_version.contents
-
 
 #===============================================================================
 # LPAPI_VERSION WINAPI ImagehlpApiVersionEx(

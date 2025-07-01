@@ -28,12 +28,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-    # Note:
-    # This simple approach seems fast enough. But if there's ever a need to
-    # optimize this for 32 bits Windows this is how it could be done: since
-    # the system allocation granularity is 64k, it should be possible to
-    # precalculate the lower 16 bits of all possible alphanumeric addresses,
-    # then only test the higher 16 bits of the address for each memory region.
+# Note:
+# This simple approach seems fast enough. But if there's ever a need to
+# optimize this for 32 bits Windows this is how it could be done: since
+# the system allocation granularity is 64k, it should be possible to
+# precalculate the lower 16 bits of all possible alphanumeric addresses,
+# then only test the higher 16 bits of the address for each memory region.
 
 from struct import pack
 from winappdbg import System, Process, HexDump
@@ -41,10 +41,10 @@ from winappdbg import System, Process, HexDump
 # Iterator of alphanumeric executable addresses.
 def iterate_alnum_jump_addresses(process):
 
-    # Determine the size of a pointer in the current architecture.
-    if System.bits == 32:
+    # Determine the size of a pointer for this process.
+    if process.get_bits() == 32:
         fmt = 'L'
-    elif System.bits == 64:
+    elif process.get_bits() == 64:
         fmt = 'Q'
         print("Warning! 64 bit addresses are not likely to be alphanumeric!")
     else:

@@ -74,11 +74,11 @@ def EnumDeviceDrivers():
     _EnumDeviceDrivers.errcheck = RaiseIfZero
 
     size       = 0x1000
-    lpcbNeeded = DWORD(size)
+    lpcbNeeded = DWORD()
     unit       = sizeof(LPVOID)
     while 1:
         lpImageBase = (LPVOID * (size // unit))()
-        _EnumDeviceDrivers(byref(lpImageBase), lpcbNeeded, byref(lpcbNeeded))
+        _EnumDeviceDrivers(byref(lpImageBase), size, byref(lpcbNeeded))
         needed = lpcbNeeded.value
         if needed <= size:
             break

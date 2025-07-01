@@ -302,6 +302,19 @@ class PathOperations (StaticClass):
                         break
         return name
 
+    @staticmethod
+    def pathname_to_filename(pathname):
+        """
+        Equivalent to: C{PathOperations.split_filename(pathname)[0]}
+
+        :type  pathname: str
+        :param pathname: Absolute path to a file.
+
+        :rtype:  str
+        :return: Filename component of the path.
+        """
+        return win32.PathFindFileName(pathname)
+
 #==============================================================================
 
 class MemoryAddresses (StaticClass):

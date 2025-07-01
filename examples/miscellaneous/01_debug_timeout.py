@@ -30,12 +30,13 @@
 
 from winappdbg import *  # NOQA
 from time import time
+from sys import argv
 
 # Using the Debug object in a "with" context ensures proper cleanup.
 with Debug(bKillOnExit=True) as dbg:
 
-    # Run the Windows Calculator (calc.exe).
-    dbg.execl('calc.exe')
+    # Run the target program.
+    dbg.execv(argv[1:])
 
     # For the extra paranoid: this makes sure calc.exe dies
     # even if our own process is killed from the Task Manager.

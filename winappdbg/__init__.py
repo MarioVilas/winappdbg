@@ -146,51 +146,41 @@ Blog:    http://breakingcode.wordpress.com
     as a printable string. Use this to show to the user.
 """
 
+# Library version
+version_number = 1.7
+version = "Version %s" % version_number
+
 # List of all public symbols
 __all__ =   [
                 # Library version
                 'version',
                 'version_number',
 
-                # from breakpoint import *
-##                'Breakpoint',
-##                'CodeBreakpoint',
-##                'PageBreakpoint',
-##                'HardwareBreakpoint',
-##                'Hook',
-##                'ApiHook',
-##                'BufferWatch',
+                # Breakpoints submodule
                 'BreakpointWarning',
                 'BreakpointCallbackWarning',
 
-                # from crash import *
+                # Crash handling submodule
                 'Crash',
+                'CrashDump',
                 'CrashWarning',
                 'CrashDictionary',
-                'CrashContainer',
-                'CrashTable',
-                'CrashTableMSSQL',
-                'VolatileCrashContainer',
-                'DummyCrashContainer',
 
-                # from debug import *
+                # Debugger
                 'Debug',
                 'MixedBitsWarning',
 
-                # from disasm import *
+                # Disassembler
                 'Disassembler',
                 'BeaEngine',
+                'CapstoneEngine',
                 'DistormEngine',
-                'PyDasmEngine',
 
-                # from event import *
+                # Debug event handler
                 'EventHandler',
                 'EventSift',
-##                'EventFactory',
-##                'EventDispatcher',
                 'EventCallbackWarning',
                 'Event',
-##                'NoEvent',
                 'CreateProcessEvent',
                 'CreateThreadEvent',
                 'ExitProcessEvent',
@@ -201,30 +191,33 @@ __all__ =   [
                 'RIPEvent',
                 'ExceptionEvent',
 
-                # from interactive import *
-##                'ConsoleDebugger',
-
-                # from module import *
+                # DLL module instrumentation
                 'Module',
                 'DebugSymbolsWarning',
 
-                # from .process import *
+                # Thread instrumentation
+                'Thread',
+
+                # Process instrumentation
                 'Process',
 
-                # from system import *
+                # Window instrumentation
+                'Window',
+
+                # System settings
                 'System',
 
-                # from search import *
+                # Process memory search
                 'Search',
                 'Pattern',
                 'StringPattern',
                 'IStringPattern',
                 'HexPattern',
 
-                # from registry import *
+                # Windows Registry access
                 'Registry',
 
-                # from textio import *
+                # Text manipulation helpers
                 'HexDump',
                 'HexInput',
                 'HexOutput',
@@ -234,10 +227,7 @@ __all__ =   [
                 'DebugLog',
                 'Logger',
 
-                # from thread import *
-                'Thread',
-
-                # from util import *
+                # Miscellaneous utilities
                 'PathOperations',
                 'MemoryAddresses',
                 'CustomAddressIterator',
@@ -250,13 +240,10 @@ __all__ =   [
                 'ExecutableAndWriteableAddressIterator',
                 'DebugRegister',
 
-                # from window import *
-                'Window',
-
-                # import win32
+                # Win32 API wrappers
                 'win32',
 
-                # from win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
+                # Win32 API handle wrappers
                 'Handle',
                 'ProcessHandle',
                 'ThreadHandle',
@@ -283,26 +270,26 @@ from .window import *  # NOQA
 from . import win32
 from .win32 import Handle, ProcessHandle, ThreadHandle, FileHandle
 
-try:
-    # We need to ignore all warnings from this module because SQLAlchemy
-    # became really picky in its latest versions regarding what we send it.
-    import warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        # It's also a good idea to check the version.
-        # Anything below 0.6 is not likely to work.
-        import sqlalchemy
-        from .sql import *  # NOQA
-        __all__.extend(('CrashDAO',))
-        if sqlalchemy.__version__ < '0.6':
-            warnings.warn(
-                "SQLAlchemy version is too old, please update to 0.6 or newer",
-                RuntimeWarning)
-except ImportError:
-    import warnings
-    warnings.warn("No SQL database support present (missing dependencies?)",
-                  ImportWarning)
+# try:
+#     # We need to ignore all warnings from this module because SQLAlchemy
+#     # became really picky in its latest versions regarding what we send it.
+#     import warnings
+#     with warnings.catch_warnings():
+#         warnings.simplefilter("ignore")
+#         # It's also a good idea to check the version.
+#         # Anything below 0.6 is not likely to work.
+#         import sqlalchemy
+#         from .sql import *  # NOQA
+#         __all__.extend(('CrashDAO',))
+#         if sqlalchemy.__version__ < '0.6':
+#             warnings.warn(
+#                 "SQLAlchemy version is too old, please update to 0.6 or newer",
+#                 RuntimeWarning)
+# except ImportError:
+#     import warnings
+#     warnings.warn("No SQL database support present (missing dependencies?)",
+#                   ImportWarning)
 
-# Library version
-version_number = 1.7
-version = "Version %s" % version_number
+import sqlalchemy
+from .sql import *
+__all__.extend(('CrashDAO',))

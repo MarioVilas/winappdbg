@@ -55,7 +55,7 @@ def print_modules( pid ):
         # Print the module address, size and pathname.
         print(fmt % ( module.modBaseAddr,
                       module.modBaseSize,
-                      module.szExePath ))
+                      module.szExePath.decode("latin-1") ))
 
         # Next module in the process.
         module = Module32Next( hSnapshot )

@@ -450,12 +450,11 @@ class Disassembler:
         :class:`Disassembler`.
     """
 
+    # These are the supported disassembly engines.
     engines = (
-
-        # These are the recommended disassembly engines.
-        DistormEngine,  # diStorm engine goes first for backwards compatibility
         CapstoneEngine, # most likely to be up to date along with diStorm
-        BeaEngine,      # less popular so it goes last
+        DistormEngine,  # diStorm needs to be compiled, so less likely to work
+        BeaEngine,      # pip install may fail silently so I'm putting it last
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.

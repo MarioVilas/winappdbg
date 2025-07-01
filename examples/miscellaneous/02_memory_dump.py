@@ -34,10 +34,7 @@ import ntpath
 import winappdbg
 from winappdbg import win32
 
-try:
-    import sqlite3 as sqlite
-except ImportError:
-    from pysqlite2 import dbapi2 as sqlite
+import sqlite3
 
 # Create a snaphot of running processes.
 system = winappdbg.System()
@@ -65,7 +62,7 @@ for filename in sys.argv[1:]:
         print("Creating database %s" % dbfile)
 
         # Connect to the database and get a cursor.
-        database = sqlite.connect(dbfile)
+        database = sqlite3.connect(dbfile)
         cursor   = database.cursor()
 
         # Create the table for the memory map.

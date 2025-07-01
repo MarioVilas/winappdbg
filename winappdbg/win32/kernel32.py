@@ -4616,7 +4616,7 @@ def GlobalGetAtomNameW(nAtom):
         nSize = nSize + 64
     return lpBuffer.value
 
-GlobalGetAtomName = GuessStringType(GlobalGetAtomNameA, GlobalGetAtomNameW)
+GlobalGetAtomName = DefaultStringType(GlobalGetAtomNameA, GlobalGetAtomNameW)
 
 # ATOM GlobalDeleteAtom(
 #   __in  ATOM nAtom
