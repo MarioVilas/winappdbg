@@ -30,12 +30,12 @@
 
 import mock
 import unittest
-import winappdbg
+import winappdbg.module
 
 class ModuleTests(unittest.TestCase):
 
     def assertSymbolAtAddressEqual(self, address, symbol):
-        self.assertEqual(winappdbg.Module(0).get_symbol_at_address(address),
+        self.assertEqual(winappdbg.module.Module(0).get_symbol_at_address(address),
                         symbol)
 
     @mock.patch('winappdbg.Module.iter_symbols')

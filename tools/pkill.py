@@ -33,7 +33,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import win32, Process, System, HexInput
+from winappdbg import win32
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.textio import HexInput
 
 import os
 import sys

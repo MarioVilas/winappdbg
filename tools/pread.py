@@ -36,7 +36,10 @@
 import os
 import sys
 
-from winappdbg import win32, Process, System, HexDump, HexInput
+from winappdbg import win32
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.textio import HexDump, HexInput
 
 def main():
     print("Process memory reader")

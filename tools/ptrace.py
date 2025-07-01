@@ -35,8 +35,12 @@
 
 import winappdbg
 from winappdbg import win32
-from winappdbg import Debug, EventHandler, System, Process
-from winappdbg import HexInput, CrashDump
+from winappdbg.debug import Debug
+from winappdbg.event import EventHandler
+from winappdbg.system import System
+from winappdbg.process import Process
+from winappdbg.textio import HexInput
+from winappdbg.crash import CrashDump
 
 import sys
 import ntpath

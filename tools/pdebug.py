@@ -34,7 +34,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import winappdbg
-from winappdbg import System, Debug, ConsoleDebugger
+
+from winappdbg.system import System
+from winappdbg.debug import Debug
+from winappdbg.interactive import ConsoleDebugger
 
 import sys
 import optparse

@@ -29,12 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__all__ =   [
-                'LoggingEventHandler',
-            ]
-
-import winappdbg
-from winappdbg import *  # NOQA
+from winappdbg.crash import Crash, CrashDictionary
+from winappdbg.debug import Debug
+from winappdbg.event import EventHandler
+from winappdbg.module import Module
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.textio import Logger, HexDump, HexInput
+from winappdbg import win32
 
 import re
 import os
@@ -104,10 +106,7 @@ class LoggingEventHandler(EventHandler):
         super().__init__()
 
     def _new_crash_container(self):
-        url = self.options.database
-        if not url:
-            return CrashDictionary(allowRepeatedKeys = self.options.duplicates)
-        return CrashDictionary(url, allowRepeatedKeys = self.options.duplicates)
+        return CrashDictionary(self.options.database, allowRepeatedKeys = self.options.duplicates)
 
     # Add the crash to the database.
     def _add_crash(self, event, bFullReport = None, bLogEvent = True):
@@ -512,11 +511,11 @@ class LoggingEventHandler(EventHandler):
                 errorType = event.get_rip_type()
                 if errorType == 0:
                     msg = "RIP error at thread %d, code %x"
-                elif errorType == SLE_ERROR:
+                elif errorType == win32.SLE_ERROR:
                     msg = "RIP fatal error at thread %d, code %x"
-                elif errorType == SLE_MINORERROR:
+                elif errorType == win32.SLE_MINORERROR:
                     msg = "RIP minor error at thread %d, code %x"
-                elif errorType == SLE_WARNING:
+                elif errorType == win32.SLE_WARNING:
                     msg = "RIP warning at thread %d, code %x"
                 else:
                     msg = "RIP error type %d, code %%x" % errorType
@@ -1069,7 +1068,7 @@ class CrashLogger:
         script = ntpath.split(__file__)[1]
         print("Usage:")
         print("\t%s <configuration file>" % script)
-        print
+        print()
         print("See example.cfg for details on the config file format.")
 
     # Run the crash logger

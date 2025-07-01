@@ -53,7 +53,9 @@
 # Also to show processes run by SYSTEM or other users with different colors.
 # Can be done with colorama/termcolor or raw win32 api if it's easy enough.
 
-from winappdbg import System, PathOperations, Table
+from winappdbg.system import System
+from winappdbg.util import PathOperations
+from winappdbg.textio import Table
 
 import optparse
 

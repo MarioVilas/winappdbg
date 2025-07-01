@@ -29,7 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import System, PathOperations, Table, win32
+from winappdbg.system import System
+from winappdbg.util import PathOperations
+from winappdbg.textio import Table
+from winappdbg import win32
 
 import optparse, time
 

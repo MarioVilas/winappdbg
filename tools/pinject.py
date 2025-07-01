@@ -36,7 +36,9 @@
 import os
 import sys
 
-from winappdbg import Process, System, HexInput
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.textio import HexInput
 
 def main():
     print("Process DLL injector")

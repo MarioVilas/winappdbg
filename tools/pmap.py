@@ -36,7 +36,10 @@
 import os
 import sys
 
-from winappdbg import Process, System, CrashDump, HexInput
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.crash import CrashDump
+from winappdbg.textio import HexInput
 
 def number(value):
     value = str(value)
