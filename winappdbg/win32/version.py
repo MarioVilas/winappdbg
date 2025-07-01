@@ -946,8 +946,8 @@ def _get_bits():
 
     This is useful to know if we're running in a 32 bits or a 64 bits machine.
 
-    @rtype: int
-    @return: Returns the size of L{SIZE_T} in bits.
+    :rtype: int
+    :returns: Returns the size of :data:`SIZE_T` in bits.
     """
     return sizeof(SIZE_T) * 8
 
@@ -955,34 +955,34 @@ def _get_arch():
     """
     Determines the current processor architecture.
 
-    @rtype: str
-    @return:
+    :rtype: str
+    :returns:
         On error, returns:
 
-         - L{ARCH_UNKNOWN} (C{"unknown"}) meaning the architecture could not be detected or is not known to WinAppDbg.
+        - :data:`ARCH_UNKNOWN` (``"unknown"``) meaning the architecture could not be detected or is not known to WinAppDbg.
 
         On success, returns one of the following values:
 
-         - L{ARCH_I386} (C{"i386"}) for Intel 32-bit x86 processor or compatible.
-         - L{ARCH_AMD64} (C{"amd64"}) for Intel 64-bit x86_64 processor or compatible.
+        - :data:`ARCH_I386` (``"i386"``) for Intel 32-bit x86 processor or compatible.
+        - :data:`ARCH_AMD64` (``"amd64"``) for Intel 64-bit x86_64 processor or compatible.
 
         May also return one of the following values if you get both Python and
         WinAppDbg to work in such machines... let me know if you do! :)
 
-         - L{ARCH_MIPS} (C{"mips"}) for MIPS compatible processors.
-         - L{ARCH_ALPHA} (C{"alpha"}) for Alpha processors.
-         - L{ARCH_PPC} (C{"ppc"}) for PowerPC compatible processors.
-         - L{ARCH_SHX} (C{"shx"}) for Hitachi SH processors.
-         - L{ARCH_ARM} (C{"arm"}) for ARM compatible processors.
-         - L{ARCH_IA64} (C{"ia64"}) for Intel Itanium processor or compatible.
-         - L{ARCH_ALPHA64} (C{"alpha64"}) for Alpha64 processors.
-         - L{ARCH_MSIL} (C{"msil"}) for the .NET virtual machine.
-         - L{ARCH_SPARC} (C{"sparc"}) for Sun Sparc processors.
+        - :data:`ARCH_MIPS` (``"mips"``) for MIPS compatible processors.
+        - :data:`ARCH_ALPHA` (``"alpha"``) for Alpha processors.
+        - :data:`ARCH_PPC` (``"ppc"``) for PowerPC compatible processors.
+        - :data:`ARCH_SHX` (``"shx"``) for Hitachi SH processors.
+        - :data:`ARCH_ARM` (``"arm"``) for ARM compatible processors.
+        - :data:`ARCH_IA64` (``"ia64"``) for Intel Itanium processor or compatible.
+        - :data:`ARCH_ALPHA64` (``"alpha64"``) for Alpha64 processors.
+        - :data:`ARCH_MSIL` (``"msil"``) for the .NET virtual machine.
+        - :data:`ARCH_SPARC` (``"sparc"``) for Sun Sparc processors.
 
-        Probably IronPython returns C{ARCH_MSIL} but I haven't tried it. Python
-        on Windows CE and Windows Mobile should return C{ARCH_ARM}. Python on
-        Solaris using Wine would return C{ARCH_SPARC}. Python in an Itanium
-        machine should return C{ARCH_IA64} both on Wine and proper Windows.
+        Probably IronPython returns ``ARCH_MSIL`` but I haven't tried it. Python
+        on Windows CE and Windows Mobile should return ``ARCH_ARM``. Python on
+        Solaris using Wine would return ``ARCH_SPARC``. Python in an Itanium
+        machine should return ``ARCH_IA64`` both on Wine and proper Windows.
         All other values should only be returned on Linux using Wine.
     """
     try:
@@ -998,9 +998,9 @@ def _get_wow64():
     """
     Determines if the current process is running in Windows-On-Windows 64 bits.
 
-    @rtype:  bool
-    @return: C{True} of the current process is a 32 bit program running in a
-        64 bit version of Windows, C{False} if it's either a 32 bit program
+    :rtype:  bool
+    :returns: ``True`` of the current process is a 32 bit program running in a
+        64 bit version of Windows, ``False`` if it's either a 32 bit program
         in a 32 bit Windows or a 64 bit program in a 64 bit Windows.
     """
     # Try to determine if the debugger itself is running on WOW64.
@@ -1018,56 +1018,57 @@ def _get_os(osvi = None):
     """
     Determines the current operating system.
 
-    @warning:
-        Since Windows 8 the C{GetVersionEx} call will "lie" to us,
+    .. warning::
+        Since Windows 8 the ``GetVersionEx`` call will "lie" to us,
         as the reported version does not match the real Windows
-        version but the version specified in the C{python.exe}
+        version but the version specified in the ``python.exe``
         manifest data.
 
         Other ways I found online to retrieve the real data did not
         work very well for me, in addition of being extremely hacky.
 
-    @note:
+    .. note::
         Wine reports itself as Windows XP 32 bits
         (even if the Linux host is 64 bits).
         ReactOS may report itself as Windows 2000 or Windows XP,
         depending on the version of ReactOS.
 
-    @type  osvi: L{OSVERSIONINFOEXA}
-    @param osvi: Optional. The return value from L{GetVersionEx}.
+    :type  osvi: :class:`OSVERSIONINFOEXA`
+    :param osvi: Optional. The return value from :func:`GetVersionEx`.
 
-    @rtype: str
-    @return:
+    :rtype: str
+    :returns:
         One of the following values:
-         - L{OS_UNKNOWN} (C{"Unknown"})
-         - L{OS_NT} (C{"Windows NT"})
-         - L{OS_W2K} (C{"Windows 2000"})
-         - L{OS_XP} (C{"Windows XP"})
-         - L{OS_XP_64} (C{"Windows XP (64 bits)"})
-         - L{OS_VISTA} (C{"Windows Vista"})
-         - L{OS_VISTA_64} (C{"Windows Vista (64 bits)"})
-         - L{OS_W7} (C{"Windows 7"})
-         - L{OS_W7_64} (C{"Windows 7 (64 bits)"})
-         - L{OS_W8} (C{"Windows 8"})
-         - L{OS_W8_64} (C{"Windows 8 (64 bits)"})
-         - L{OS_W81} (C{"Windows 8.1"})
-         - L{OS_W81_64} (C{"Windows 8.1 (64 bits)"})
-         - L{OS_W12} (C{"Windows 12"})
-         - L{OS_W12_64} (C{"Windows 12 (64 bits)"})
-         - L{OS_W2K3} (C{"Windows Server 2003"})
-         - L{OS_W2K3_64} (C{"Windows Server 2003 (64 bits)"})
-         - L{OS_W2K3R2} (C{"Windows Server 2003 R2"})
-         - L{OS_W2K3R2_64} (C{"Windows Server 2003 R2 (64 bits)"})
-         - L{OS_W2K8} (C{"Windows Server 2008"})
-         - L{OS_W2K8_64} (C{"Windows Server 2008 (64 bits)"})
-         - L{OS_W2K8R2} (C{"Windows Server 2008 R2"})
-         - L{OS_W2K8R2_64} (C{"Windows Server 2008 R2 (64 bits)"})
-         - L{OS_W2K12} (C{"Windows Server 2012"})
-         - L{OS_W2K12_64} (C{"Windows Server 2012 (64 bits)"})
-         - L{OS_W2K12R2} (C{"Windows Server 20012 R2"})
-         - L{OS_W2K12R2_64} (C{"Windows Server 2012 R2 (64 bits)"})
-         - L{OS_W2K16} (C{"Windows Server 2016"})
-         - L{OS_W2K16_64} (C{"Windows Server 2016 (64 bits)"})
+
+        - :data:`OS_UNKNOWN` (``"Unknown"``)
+        - :data:`OS_NT` (``"Windows NT"``)
+        - :data:`OS_W2K` (``"Windows 2000"``)
+        - :data:`OS_XP` (``"Windows XP"``)
+        - :data:`OS_XP_64` (``"Windows XP (64 bits)"``)
+        - :data:`OS_VISTA` (``"Windows Vista"``)
+        - :data:`OS_VISTA_64` (``"Windows Vista (64 bits)"``)
+        - :data:`OS_W7` (``"Windows 7"``)
+        - :data:`OS_W7_64` (``"Windows 7 (64 bits)"``)
+        - :data:`OS_W8` (``"Windows 8"``)
+        - :data:`OS_W8_64` (``"Windows 8 (64 bits)"``)
+        - :data:`OS_W81` (``"Windows 8.1"``)
+        - :data:`OS_W81_64` (``"Windows 8.1 (64 bits)"``)
+        - :data:`OS_W12` (``"Windows 12"``)
+        - :data:`OS_W12_64` (``"Windows 12 (64 bits)"``)
+        - :data:`OS_W2K3` (``"Windows Server 2003"``)
+        - :data:`OS_W2K3_64` (``"Windows Server 2003 (64 bits)"``)
+        - :data:`OS_W2K3R2` (``"Windows Server 2003 R2"``)
+        - :data:`OS_W2K3R2_64` (``"Windows Server 2003 R2 (64 bits)"``)
+        - :data:`OS_W2K8` (``"Windows Server 2008"``)
+        - :data:`OS_W2K8_64` (``"Windows Server 2008 (64 bits)"``)
+        - :data:`OS_W2K8R2` (``"Windows Server 2008 R2"``)
+        - :data:`OS_W2K8R2_64` (``"Windows Server 2008 R2 (64 bits)"``)
+        - :data:`OS_W2K12` (``"Windows Server 2012"``)
+        - :data:`OS_W2K12_64` (``"Windows Server 2012 (64 bits)"``)
+        - :data:`OS_W2K12R2` (``"Windows Server 20012 R2"``)
+        - :data:`OS_W2K12R2_64` (``"Windows Server 2012 R2 (64 bits)"``)
+        - :data:`OS_W2K16` (``"Windows Server 2016"``)
+        - :data:`OS_W2K16_64` (``"Windows Server 2016 (64 bits)"``)
     """
 
     # Get the OSVI structure.
@@ -1076,9 +1077,9 @@ def _get_os(osvi = None):
 
     #-------------------------------------------------------------------------
     # UGLY HACK:
-    # Since Windows 8 the C{GetVersionEx} call will "lie" to us,
+    # Since Windows 8 the GetVersionEx call will "lie" to us,
     # as the reported version does not match the real Windows
-    # version but the version specified in the C{python.exe}
+    # version but the version specified in the python.exe
     # manifest data. We will try to get the real information from
     # the registry instead.
     try:
@@ -1204,19 +1205,19 @@ def _get_ntddi(osvi):
     Determines the current operating system.
 
     This function allows you to quickly tell apart major OS differences.
-    For more detailed information call L{kernel32.GetVersionEx} instead.
+    For more detailed information call :func:`kernel32.GetVersionEx` instead.
 
-    @note:
+    .. note::
         Wine reports itself as Windows XP 32 bits
         (even if the Linux host is 64 bits).
         ReactOS may report itself as Windows 2000 or Windows XP,
         depending on the version of ReactOS.
 
-    @type  osvi: L{OSVERSIONINFOEXA}
-    @param osvi: Optional. The return value from L{kernel32.GetVersionEx}.
+    :type  osvi: :class:`OSVERSIONINFOEXA`
+    :param osvi: Optional. The return value from :func:`kernel32.GetVersionEx`.
 
-    @rtype:  int
-    @return: NTDDI version number.
+    :rtype:  int
+    :returns: NTDDI version number.
     """
     if not osvi:
         osvi = GetVersionEx()
@@ -1229,24 +1230,24 @@ def _get_ntddi(osvi):
 
 # The order of the following definitions DOES matter!
 
-# Current integer size in bits. See L{_get_bits} for more details.
+# Current integer size in bits. See :func:`_get_bits` for more details.
 bits = _get_bits()
 
-# Current processor architecture. See L{_get_arch} for more details.
+# Current processor architecture. See :func:`_get_arch` for more details.
 arch = _get_arch()
 
-# Set to C{True} if the current process is running in WOW64. See L{_get_wow64} for more details.
+# Set to ``True`` if the current process is running in WOW64. See :func:`_get_wow64` for more details.
 wow64 = _get_wow64()
 
 _osvi = GetVersionEx()
 
-# Current operating system. See L{_get_os} for more details.
+# Current operating system. See :func:`_get_os` for more details.
 os = _get_os()
 
-# Current operating system as an NTDDI constant. See L{_get_ntddi} for more details.
+# Current operating system as an NTDDI constant. See :func:`_get_ntddi` for more details.
 NTDDI_VERSION = _get_ntddi(_osvi)
 
-# Upper word of L{NTDDI_VERSION}, contains the OS major and minor version number.
+# Upper word of :data:`NTDDI_VERSION`, contains the OS major and minor version number.
 WINVER = NTDDI_VERSION >> 16
 
 #==============================================================================

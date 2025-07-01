@@ -304,5 +304,5 @@ except ImportError:
                   ImportWarning)
 
 # Library version
-version_number = 1.6
+version_number = 1.7
 version = "Version %s" % version_number

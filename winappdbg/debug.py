@@ -158,13 +158,13 @@ class Debug (EventDispatcher, _BreakpointContainer):
 
     def __enter__(self):
         """
-        Compatibility with the "C{with}" Python statement.
+        Compatibility with the ``with`` Python statement.
         """
         return self
 
     def __exit__(self, type, value, traceback):
         """
-        Compatibility with the "C{with}" Python statement.
+        Compatibility with the ``with`` Python statement.
         """
         self.stop()
 

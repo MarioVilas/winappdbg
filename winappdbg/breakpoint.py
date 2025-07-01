@@ -1544,10 +1544,9 @@ class ApiHook:
         """
         Handles the breakpoint event on entry of the function.
 
-        @type  event: L{ExceptionEvent}
-        @param event: Breakpoint hit event.
-
-        @raise WindowsError: An error occured.
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        :raises WindowsError: An error occurred.
         """
         pid = event.get_pid()
         try:
@@ -1571,13 +1570,11 @@ class ApiHook:
         """
         Installs the API hook on a given process and module.
 
-        @warning: Do not call from an API hook callback.
+        .. warning:: Do not call from an API hook callback.
 
-        @type  debug: L{Debug}
-        @param debug: Debug object.
-
-        @type  pid: int
-        @param pid: Process ID.
+        :param debug: Debug object.
+        :type debug: :class:`~winappdbg.debug.Debug`
+        :param int pid: Process ID.
         """
         label = "%s!%s" % (self.__modName, self.__procName)
         try:
@@ -1597,13 +1594,11 @@ class ApiHook:
         """
         Removes the API hook from the given process and module.
 
-        @warning: Do not call from an API hook callback.
+        .. warning:: Do not call from an API hook callback.
 
-        @type  debug: L{Debug}
-        @param debug: Debug object.
-
-        @type  pid: int
-        @param pid: Process ID.
+        :param debug: Debug object.
+        :type debug: :class:`~winappdbg.debug.Debug`
+        :param int pid: Process ID.
         """
         try:
             hook = self.__hook[pid]

@@ -127,8 +127,8 @@ def RaiseIfZero(result, func = None, arguments = ()):
     """
     Error checking for most Win32 API calls.
 
-    The function is assumed to return an integer, which is C{0} on error.
-    In that case the C{WindowsError} exception is raised.
+    The function is assumed to return an integer, which is ``0`` on error.
+    In that case the :exc:`WindowsError` exception is raised.
     """
     if not result:
         raise ctypes.WinError()
@@ -139,10 +139,10 @@ def RaiseIfNotZero(result, func = None, arguments = ()):
     Error checking for some odd Win32 API calls.
 
     The function is assumed to return an integer, which is zero on success.
-    If the return value is nonzero the C{WindowsError} exception is raised.
+    If the return value is nonzero the :exc:`WindowsError` exception is raised.
 
     This is mostly useful for free() like functions, where the return value is
-    the pointer to the memory block on failure or a C{NULL} pointer on success.
+    the pointer to the memory block on failure or a ``NULL`` pointer on success.
     """
     if result:
         raise ctypes.WinError()
@@ -153,7 +153,7 @@ def RaiseIfNotErrorSuccess(result, func = None, arguments = ()):
     Error checking for Win32 Registry API calls.
 
     The function is assumed to return a Win32 error code. If the code is not
-    C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
+    ``ERROR_SUCCESS`` then a :exc:`WindowsError` exception is raised.
     """
     if result != ERROR_SUCCESS:
         raise ctypes.WinError(result)
@@ -164,23 +164,26 @@ class GuessStringType(object):
     Decorator that guesses the correct version (A or W) to call
     based on the types of the strings passed as parameters.
 
-    Calls the B{ANSI} version if the only string types are ANSI.
+    Calls the **ANSI** version if the only string types are ANSI.
 
-    Calls the B{Unicode} version if Unicode or mixed string types are passed.
+    Calls the **Unicode** version if Unicode string types are passed.
+
+    Raises an exception if mixed types are passed.
 
     The default if no string arguments are passed depends on the value of the
-    L{t_default} class variable.
+    :attr:`t_default` class variable.
 
-    @type fn_ansi: function
-    @ivar fn_ansi: ANSI version of the API function to call.
-    @type fn_unicode: function
-    @ivar fn_unicode: Unicode (wide) version of the API function to call.
+    :type fn_ansi: function
+    :ivar fn_ansi: ANSI version of the API function to call.
+    :type fn_unicode: function
+    :ivar fn_unicode: Unicode (wide) version of the API function to call.
 
-    @type t_default: type
-    @cvar t_default: Default string type to use.
+    :type t_default: type
+    :cvar t_default: Default string type to use.
         Possible values are:
-         - type('') for ANSI
-         - type(u'') for Unicode
+
+        - type('') for ANSI
+        - type(u'') for Unicode
     """
 
     # ANSI and Unicode types
@@ -192,10 +195,10 @@ class GuessStringType(object):
 
     def __init__(self, fn_ansi, fn_unicode):
         """
-        @type  fn_ansi: function
-        @param fn_ansi: ANSI version of the API function to call.
-        @type  fn_unicode: function
-        @param fn_unicode: Unicode (wide) version of the API function to call.
+        :type  fn_ansi: function
+        :param fn_ansi: ANSI version of the API function to call.
+        :type  fn_unicode: function
+        :param fn_unicode: Unicode (wide) version of the API function to call.
         """
         self.fn_ansi    = fn_ansi
         self.fn_unicode = fn_unicode
@@ -252,22 +255,22 @@ class GuessStringType(object):
 class DefaultStringType(object):
     """
     Decorator that uses the default version (A or W) to call
-    based on the configuration of the L{GuessStringType} decorator.
+    based on the configuration of the :class:`GuessStringType` decorator.
 
-    @see: L{GuessStringType.t_default}
+    .. seealso:: :attr:`GuessStringType.t_default`
 
-    @type fn_ansi: function
-    @ivar fn_ansi: ANSI version of the API function to call.
-    @type fn_unicode: function
-    @ivar fn_unicode: Unicode (wide) version of the API function to call.
+    :type fn_ansi: function
+    :ivar fn_ansi: ANSI version of the API function to call.
+    :type fn_unicode: function
+    :ivar fn_unicode: Unicode (wide) version of the API function to call.
     """
 
     def __init__(self, fn_ansi, fn_unicode):
         """
-        @type  fn_ansi: function
-        @param fn_ansi: ANSI version of the API function to call.
-        @type  fn_unicode: function
-        @param fn_unicode: Unicode (wide) version of the API function to call.
+        :type  fn_ansi: function
+        :param fn_ansi: ANSI version of the API function to call.
+        :type  fn_unicode: function
+        :param fn_unicode: Unicode (wide) version of the API function to call.
         """
         self.fn_ansi    = fn_ansi
         self.fn_unicode = fn_unicode
@@ -301,8 +304,8 @@ def MakeANSIVersion(fn):
     """
     Decorator that generates an ANSI version of a Unicode (wide) only API call.
 
-    @type  fn: callable
-    @param fn: Unicode (wide) version of the API function to call.
+    :type  fn: callable
+    :param fn: Unicode (wide) version of the API function to call.
     """
     @functools.wraps(fn)
     def wrapper(*argv, **argd):
@@ -325,8 +328,8 @@ def MakeWideVersion(fn):
     """
     Decorator that generates a Unicode (wide) version of an ANSI only API call.
 
-    @type  fn: callable
-    @param fn: ANSI version of the API function to call.
+    :type  fn: callable
+    :param fn: ANSI version of the API function to call.
     """
     @functools.wraps(fn)
     def wrapper(*argv, **argd):

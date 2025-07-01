@@ -461,7 +461,7 @@ class Disassembler:
     # Add the list of implemented disassembler adaptors to the docstring.
     __doc__ += "\n"
     for e in engines:
-        __doc__ += "         - %s - %s (U{%s})\n" % (e.name, e.desc, e.url)
+        __doc__ += "         - %s - %s (%s)\n" % (e.name, e.desc, e.url)
     del e
 
     # Cache of already loaded disassemblers.

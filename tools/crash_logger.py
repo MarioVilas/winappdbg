@@ -66,12 +66,12 @@ class LoggingEventHandler(EventHandler):
     Event handler that logs all events to standard output.
     It also remembers crashes, bugs or otherwise interesting events.
 
-    @type crashCollector: class
-    @cvar crashCollector:
-        Crash collector class. Typically L{Crash} or a custom subclass of it.
+    :type crashCollector: class
+    :cvar crashCollector:
+        Crash collector class. Typically :class:`Crash` or a custom subclass of it.
 
         Most users don't ever need to change this.
-        See: U{http://winappdbg.readthedocs.io/en/latest/Signature.html}
+        See: http://winappdbg.readthedocs.io/en/latest/Signature.html
     """
 
     # Default crash collector is our good old Crash class.

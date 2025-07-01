@@ -1220,7 +1220,7 @@ class _ModuleContainer:
         Splits a label entered as user input.
 
         It's more flexible in it's syntax parsing than the :meth:`split_label_strict`
-        method, as it allows the exclamation mark (B{C{!}}) to be omitted. The
+        method, as it allows the exclamation mark ``!`` to be omitted. The
         ambiguity is resolved by searching the modules in the snapshot to guess
         if a label refers to a module or a function. It also tries to rebuild
         labels when they contain hardcoded addresses.

@@ -1767,7 +1767,7 @@ _PEB_W7_64      = _PEB_2008_R2_64
 class _PEB_W7_Beta(Structure):
     """
     This definition of the PEB structure is only valid for the beta versions
-    of Windows 7. For the final version of Windows 7 use L{_PEB_W7} instead.
+    of Windows 7. For the final version of Windows 7 use ``_PEB_W7`` instead.
     This structure is not chosen automatically.
     """
     _pack_   = 8

@@ -676,7 +676,7 @@ class Thread:
         def get_flag_value(self, FlagBit):
             """
             :type  FlagBit: int
-            :param FlagBit: One of the L{Flags}.
+            :param FlagBit: One of the :attr:`Flags`.
 
             :rtype:  bool
             :return: Boolean value of the requested flag.
@@ -688,7 +688,7 @@ class Thread:
             Sets a single flag, leaving the others intact.
 
             :type  FlagBit: int
-            :param FlagBit: One of the L{Flags}.
+            :param FlagBit: One of the :attr:`Flags`.
 
             :type  FlagValue: bool
             :param FlagValue: Boolean value of the flag.
@@ -783,16 +783,16 @@ class Thread:
 
         :rtype:  bool
         :return:
-            C{True} if the thread is running under WOW64. That is, it belongs
+            ``True`` if the thread is running under WOW64. That is, it belongs
             to a 32-bit application running in a 64-bit Windows.
 
-            C{False} if the thread belongs to either a 32-bit application
+            ``False`` if the thread belongs to either a 32-bit application
             running in a 32-bit Windows, or a 64-bit application running in a
             64-bit Windows.
 
         :raise WindowsError: On error an exception is raised.
 
-        :see: U{http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx}
+        :see: http://msdn.microsoft.com/en-us/library/aa384249(VS.85).aspx
         """
         try:
             wow64 = self.__wow64
@@ -809,8 +809,8 @@ class Thread:
         :rtype:  str
         :return: The architecture in which this thread believes to be running.
             For example, if running a 32 bit binary in a 64 bit machine, the
-            architecture returned by this method will be L{win32.ARCH_I386},
-            but the value of L{System.arch} will be L{win32.ARCH_AMD64}.
+            architecture returned by this method will be ``win32.ARCH_I386``,
+            but the value of ``System.arch`` will be ``win32.ARCH_AMD64``.
         """
         if win32.bits == 32 and not win32.wow64:
             return win32.arch
@@ -821,8 +821,8 @@ class Thread:
         :rtype:  str
         :return: The number of bits in which this thread believes to be
             running. For example, if running a 32 bit binary in a 64 bit
-            machine, the number of bits returned by this method will be C{32},
-            but the value of L{System.arch} will be C{64}.
+            machine, the number of bits returned by this method will be ``32``,
+            but the value of ``System.arch`` will be ``64``.
         """
         if win32.bits == 32 and not win32.wow64:
             return 32
@@ -835,7 +835,7 @@ class Thread:
         Some binary packers hide their own threads to thwart debugging.
 
         :rtype:  bool
-        :return: C{True} if the thread is hidden from debuggers.
+        :return: ``True`` if the thread is hidden from debuggers.
             This means the thread's execution won't be stopped for debug
             events, and thus said events won't be sent to the debugger.
         """
@@ -846,9 +846,9 @@ class Thread:
     def get_teb(self):
         """
         Returns a copy of the TEB.
-        To dereference pointers in it call L{Process.read_structure}.
+        To dereference pointers in it call :meth:`Process.read_structure`.
 
-        :rtype:  L{TEB}
+        :rtype:  win32.TEB
         :return: TEB structure.
         :raise WindowsError: An exception is raised on error.
         """
@@ -860,7 +860,7 @@ class Thread:
         Returns a remote pointer to the TEB.
 
         :rtype:  int
-        :return: Remote pointer to the L{TEB} structure.
+        :return: Remote pointer to the TEB structure.
         :raise WindowsError: An exception is raised on error.
         """
         try:
@@ -883,7 +883,7 @@ class Thread:
         Translates segment-relative addresses to linear addresses.
 
         Linear addresses can be used to access a process memory,
-        calling L{Process.read} and L{Process.write}.
+        calling :meth:`Process.read` and :meth:`Process.write`.
 
         :type  segment: str, int or long
         :param segment: Segment register name or DWORD descriptor table index.
@@ -955,7 +955,7 @@ class Thread:
         :rtype:  int
         :return: Remote pointer to the first block of the structured exception
             handlers linked list. If the list is empty, the returned value is
-            C{0xFFFFFFFF}.
+            ``0xFFFFFFFF``.
 
         :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
@@ -975,7 +975,7 @@ class Thread:
         :type  value: int
         :param value: Value of the remote pointer to the first block of the
             structured exception handlers linked list. To disable SEH set the
-            value C{0xFFFFFFFF}.
+            value ``0xFFFFFFFF``.
 
         :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
@@ -996,9 +996,9 @@ class Thread:
 
                 - Address of this SEH block
                 - Address of the SEH callback function
-                
+
             Do not confuse this with the contents of the SEH block itself,
-            where the first member is a pointer to the B{next} block instead.
+            where the first member is a pointer to the **next** block instead.
 
         :raise NotImplementedError:
             This method is only supported in 32 bits versions of Windows.
@@ -1019,7 +1019,7 @@ class Thread:
         """
         :rtype:
             tuple of (
-            list of L{win32.WaitChainNodeInfo} structures,
+            list of :class:`win32.WaitChainNodeInfo` structures,
             bool)
         :return:
             Wait chain for the thread.
@@ -1027,7 +1027,7 @@ class Thread:
         :raise AttributeError:
             This method is only suppported in Windows Vista and above.
         :see:
-            U{http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx}
+            http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx
         """
         with win32.OpenThreadWaitChainSession() as hWct:
             return win32.GetThreadWaitChain(hWct, ThreadId = self.get_tid())
@@ -1056,12 +1056,12 @@ class Thread:
         :param depth: Maximum depth of stack trace.
 
         :type  bUseLabels: bool
-        :param bUseLabels: C{True} to use labels, C{False} to use addresses.
+        :param bUseLabels: ``True`` to use labels, ``False`` to use addresses.
 
         :type  bMakePretty: bool
         :param bMakePretty:
-            C{True} for user readable labels,
-            C{False} for labels that can be passed to L{Process.resolve_label}.
+            ``True`` for user readable labels,
+            ``False`` for labels that can be passed to :meth:`Process.resolve_label`.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
@@ -1069,9 +1069,9 @@ class Thread:
         :rtype:  tuple of tuple( int, int, str )
         :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename )
-            when C{bUseLabels} is C{True}, or a tuple of
+            when ``bUseLabels`` is ``True``, or a tuple of
             ( return address, frame pointer label )
-            when C{bUseLabels} is C{False}.
+            when ``bUseLabels`` is ``False``.
 
         :raise WindowsError: Raises an exception on error.
         """
@@ -1137,12 +1137,12 @@ class Thread:
         :param depth: Maximum depth of stack trace.
 
         :type  bUseLabels: bool
-        :param bUseLabels: C{True} to use labels, C{False} to use addresses.
+        :param bUseLabels: ``True`` to use labels, ``False`` to use addresses.
 
         :type  bMakePretty: bool
         :param bMakePretty:
-            C{True} for user readable labels,
-            C{False} for labels that can be passed to L{Process.resolve_label}.
+            ``True`` for user readable labels,
+            ``False`` for labels that can be passed to :meth:`Process.resolve_label`.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
@@ -1150,9 +1150,9 @@ class Thread:
         :rtype:  tuple of tuple( int, int, str )
         :return: Stack trace of the thread as a tuple of
             ( return address, frame pointer address, module filename )
-            when C{bUseLabels} is C{True}, or a tuple of
+            when ``bUseLabels`` is ``True``, or a tuple of
             ( return address, frame pointer label )
-            when C{bUseLabels} is C{False}.
+            when ``bUseLabels`` is ``False``.
 
         :raise WindowsError: Raises an exception on error.
         """
@@ -1223,8 +1223,8 @@ class Thread:
 
         :type  bMakePretty: bool
         :param bMakePretty:
-            C{True} for user readable labels,
-            C{False} for labels that can be passed to L{Process.resolve_label}.
+            ``True`` for user readable labels,
+            ``False`` for labels that can be passed to :meth:`Process.resolve_label`.
 
             "Pretty" labels look better when producing output for the user to
             read, while pure labels are more useful programatically.
@@ -1421,7 +1421,7 @@ class Thread:
 
         :type  offset: int
         :param offset: Offset from the stack pointer to begin reading.
-            The stack pointer is the same returned by the L{get_sp} method.
+            The stack pointer is the same returned by the :meth:`get_sp` method.
 
         :rtype:  tuple
         :return: Tuple of elements read from the stack. The type of each
@@ -1441,7 +1441,7 @@ class Thread:
 
         :type  offset: int
         :param offset: Offset from the frame pointer to begin reading.
-            The frame pointer is the same returned by the L{get_fp} method.
+            The frame pointer is the same returned by the :meth:`get_fp` method.
 
         :rtype:  tuple
         :return: Tuple of elements read from the stack frame. The type of each
@@ -1674,16 +1674,6 @@ class Thread:
 class _ThreadContainer:
     """
     Encapsulates the capability to contain Thread objects.
-
-    @group Instrumentation:
-        start_thread
-
-    @group Threads snapshot:
-        scan_threads,
-        get_thread, get_thread_count, get_thread_ids,
-        has_thread, iter_threads, iter_thread_ids,
-        find_threads_by_name, get_windows,
-        clear_threads, clear_dead_threads, close_thread_handles
     """
 
     def __init__(self):
@@ -1700,14 +1690,14 @@ class _ThreadContainer:
 
     def __contains__(self, anObject):
         """
-        :type  anObject: L{Thread}, int
+        :type  anObject: Thread, int
         :param anObject:
-             - C{int}: Global ID of the thread to look for.
-             - C{Thread}: Thread object to look for.
+             - ``int``: Global ID of the thread to look for.
+             - ``Thread``: Thread object to look for.
 
         :rtype:  bool
-        :return: C{True} if the snapshot contains
-            a L{Thread} object with the same ID.
+        :return: ``True`` if the snapshot contains
+            a Thread object with the same ID.
         """
         if isinstance(anObject, Thread):
             anObject = anObject.dwThreadId
@@ -1715,17 +1705,17 @@ class _ThreadContainer:
 
     def __iter__(self):
         """
-        :see:    L{iter_threads}
+        :see:    :meth:`iter_threads`
         :rtype:  dictionary-valueiterator
-        :return: Iterator of L{Thread} objects in this snapshot.
+        :return: Iterator of Thread objects in this snapshot.
         """
         return self.iter_threads()
 
     def __len__(self):
         """
-        :see:    L{get_thread_count}
+        :see:    :meth:`get_thread_count`
         :rtype:  int
-        :return: Count of L{Thread} objects in this snapshot.
+        :return: Count of Thread objects in this snapshot.
         """
         return self.get_thread_count()
 
@@ -1735,8 +1725,8 @@ class _ThreadContainer:
         :param dwThreadId: Global ID of the thread to look for.
 
         :rtype:  bool
-        :return: C{True} if the snapshot contains a
-            L{Thread} object with the given global ID.
+        :return: ``True`` if the snapshot contains a
+            Thread object with the given global ID.
         """
         self.__initialize_snapshot()
         return dwThreadId in self.__threadDict
@@ -1746,7 +1736,7 @@ class _ThreadContainer:
         :type  dwThreadId: int
         :param dwThreadId: Global ID of the thread to look for.
 
-        :rtype:  L{Thread}
+        :rtype:  Thread
         :return: Thread object with the given global ID.
         """
         self.__initialize_snapshot()
@@ -1757,7 +1747,7 @@ class _ThreadContainer:
 
     def iter_thread_ids(self):
         """
-        :see:    L{iter_threads}
+        :see:    :meth:`iter_threads`
         :rtype:  dictionary-keyiterator
         :return: Iterator of global thread IDs in this snapshot.
         """
@@ -1766,9 +1756,9 @@ class _ThreadContainer:
 
     def iter_threads(self):
         """
-        :see:    L{iter_thread_ids}
+        :see:    :meth:`iter_thread_ids`
         :rtype:  dictionary-valueiterator
-        :return: Iterator of L{Thread} objects in this snapshot.
+        :return: Iterator of Thread objects in this snapshot.
         """
         self.__initialize_snapshot()
         return self.__threadDict.values()
@@ -1784,7 +1774,7 @@ class _ThreadContainer:
     def get_thread_count(self):
         """
         :rtype:  int
-        :return: Count of L{Thread} objects in this snapshot.
+        :return: Count of Thread objects in this snapshot.
         """
         self.__initialize_snapshot()
         return len(self.__threadDict)
@@ -1796,16 +1786,16 @@ class _ThreadContainer:
         Find threads by name, using different search methods.
 
         :type  name: str, None
-        :param name: Name to look for. Use C{None} to find nameless threads.
+        :param name: Name to look for. Use ``None`` to find nameless threads.
 
         :type  bExactMatch: bool
-        :param bExactMatch: C{True} if the name must be
-            B{exactly} as given, C{False} if the name can be
+        :param bExactMatch: ``True`` if the name must be
+            **exactly** as given, ``False`` if the name can be
             loosely matched.
 
-            This parameter is ignored when C{name} is C{None}.
+            This parameter is ignored when ``name`` is ``None``.
 
-        :rtype:  list( L{Thread} )
+        :rtype:  list( Thread )
         :return: All threads matching the given name.
         """
         found_threads = list()
@@ -1859,8 +1849,8 @@ class _ThreadContainer:
         :param lpParameter: Optional argument for the new thread.
 
         :type  bSuspended: bool
-        :param bSuspended: C{True} if the new thread should be suspended.
-            In that case use L{Thread.resume} to start execution.
+        :param bSuspended: ``True`` if the new thread should be suspended.
+            In that case use :meth:`Thread.resume` to start execution.
         """
         if bSuspended:
             dwCreationFlags = win32.CREATE_SUSPENDED
@@ -1963,7 +1953,7 @@ class _ThreadContainer:
         """
         Private method to add a thread object to the snapshot.
 
-        :type  aThread: L{Thread}
+        :type  aThread: Thread
         :param aThread: Thread object.
         """
         dwThreadId = aThread.dwThreadId
@@ -2005,7 +1995,7 @@ class _ThreadContainer:
         """
         Private method to automatically add new thread objects from debug events.
 
-        :type  event: L{Event}
+        :type  event: Event
         :param event: Event object.
         """
         dwThreadId  = event.get_tid()
@@ -2022,14 +2012,14 @@ class _ThreadContainer:
         """
         Notify the creation of the main thread of this process.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the Debug class, you shouldn't need
         to call it yourself.
 
-        :type  event: L{CreateProcessEvent}
+        :type  event: CreateProcessEvent
         :param event: Create process event.
 
         :rtype:  bool
-        :return: C{True} to call the user-defined handle, C{False} otherwise.
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -2038,14 +2028,14 @@ class _ThreadContainer:
         """
         Notify the creation of a new thread in this process.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the Debug class, you shouldn't need
         to call it yourself.
 
-        :type  event: L{CreateThreadEvent}
+        :type  event: CreateThreadEvent
         :param event: Create thread event.
 
         :rtype:  bool
-        :return: C{True} to call the user-defined handle, C{False} otherwise.
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         self.__add_created_thread(event)
         return True
@@ -2054,14 +2044,14 @@ class _ThreadContainer:
         """
         Notify the termination of a thread.
 
-        This is done automatically by the L{Debug} class, you shouldn't need
+        This is done automatically by the Debug class, you shouldn't need
         to call it yourself.
 
-        :type  event: L{ExitThreadEvent}
+        :type  event: ExitThreadEvent
         :param event: Exit thread event.
 
         :rtype:  bool
-        :return: C{True} to call the user-defined handle, C{False} otherwise.
+        :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwThreadId = event.get_tid()
 ##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan

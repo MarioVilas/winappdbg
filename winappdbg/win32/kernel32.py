@@ -56,7 +56,7 @@ def RaiseIfLastError(result, func = None, arguments = ()):
     Error checking for Win32 API calls with no error-specific return value.
 
     Regardless of the return value, the function calls GetLastError(). If the
-    code is not C{ERROR_SUCCESS} then a C{WindowsError} exception is raised.
+    code is not ``ERROR_SUCCESS`` then a ``WindowsError`` exception is raised.
 
     For this to work, the user MUST call SetLastError(ERROR_SUCCESS) prior to
     calling the API. Otherwise an exception may be raised even on success,
@@ -573,17 +573,17 @@ class Handle:
     """
     Encapsulates Win32 handles to avoid leaking them.
 
-    @type inherit: bool
-    @ivar inherit: C{True} if the handle is to be inherited by child processes,
-        C{False} otherwise.
+    :type inherit: bool
+    :ivar inherit: ``True`` if the handle is to be inherited by child processes,
+        ``False`` otherwise.
 
-    @type protectFromClose: bool
-    @ivar protectFromClose: Set to C{True} to prevent the handle from being
-        closed. Must be set to C{False} before you're done using the handle,
+    :type protectFromClose: bool
+    :ivar protectFromClose: Set to ``True`` to prevent the handle from being
+        closed. Must be set to ``False`` before you're done using the handle,
         or it will be left open until the debugger exits. Use with care!
 
-    @see:
-        L{ProcessHandle}, L{ThreadHandle}, L{FileHandle}, L{SnapshotHandle}
+    .. seealso::
+        :class:`ProcessHandle`, :class:`ThreadHandle`, :class:`FileHandle`, :class:`SnapshotHandle`
     """
 
     # XXX DEBUG
@@ -594,13 +594,13 @@ class Handle:
 
     def __init__(self, aHandle = None, bOwnership = True):
         """
-        @type  aHandle: int
-        @param aHandle: Win32 handle value.
+        :type  aHandle: int
+        :param aHandle: Win32 handle value.
 
-        @type  bOwnership: bool
-        @param bOwnership:
-           C{True} if we own the handle and we need to close it.
-           C{False} if someone else will be calling L{CloseHandle}.
+        :type  bOwnership: bool
+        :param bOwnership:
+           ``True`` if we own the handle and we need to close it.
+           ``False`` if someone else will be calling :func:`CloseHandle`.
         """
         super().__init__()
         self._value     = self._normalize(aHandle)
@@ -625,7 +625,7 @@ class Handle:
 
     def __enter__(self):
         """
-        Compatibility with the "C{with}" Python statement.
+        Compatibility with the ``with`` Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
             print("ENTER HANDLE %r" % self)
@@ -633,7 +633,7 @@ class Handle:
 
     def __exit__(self, type, value, traceback):
         """
-        Compatibility with the "C{with}" Python statement.
+        Compatibility with the ``with`` Python statement.
         """
         if Handle.__bLeakDetection:     # XXX DEBUG
             print("EXIT HANDLE %r" % self)
@@ -646,8 +646,8 @@ class Handle:
         """
         Duplicates the Win32 handle when copying the Python object.
 
-        @rtype:  L{Handle}
-        @return: A new handle to the same Win32 object.
+        :rtype:  :class:`Handle`
+        :return: A new handle to the same Win32 object.
         """
         return self.dup()
 
@@ -655,8 +655,8 @@ class Handle:
         """
         Duplicates the Win32 handle when copying the Python object.
 
-        @rtype:  L{Handle}
-        @return: A new handle to the same win32 object.
+        :rtype:  :class:`Handle`
+        :return: A new handle to the same win32 object.
         """
         return self.dup()
 
@@ -674,8 +674,8 @@ class Handle:
         Compatibility with ctypes.
         Allows passing transparently a Handle object to an API call.
 
-        @type  value: int
-        @param value: Numeric handle value.
+        :type  value: int
+        :param value: Numeric handle value.
         """
         return HANDLE(value)
 
@@ -700,8 +700,8 @@ class Handle:
 
     def dup(self):
         """
-        @rtype:  L{Handle}
-        @return: A new handle to the same Win32 object.
+        :rtype:  :class:`Handle`
+        :return: A new handle to the same Win32 object.
         """
         if self.value is None:
             raise ValueError("Closed handles can't be duplicated!")
@@ -726,9 +726,9 @@ class Handle:
         """
         Wait for the Win32 object to be signaled.
 
-        @type  dwMilliseconds: int
-        @param dwMilliseconds: (Optional) Timeout value in milliseconds.
-            Use C{INFINITE} or C{None} for no timeout.
+        :type  dwMilliseconds: int
+        :param dwMilliseconds: (Optional) Timeout value in milliseconds.
+            Use ``INFINITE`` or ``None`` for no timeout.
         """
         if self.value is None:
             raise ValueError("Handle is already closed!")
@@ -770,13 +770,13 @@ class Handle:
 class UserModeHandle (Handle):
     """
     Base class for non-kernel handles. Generally this means they are closed
-    by special Win32 API functions instead of CloseHandle() and some standard
+    by special Win32 API functions instead of ``CloseHandle()`` and some standard
     operations (synchronizing, duplicating, inheritance) are not supported.
 
-    @type _TYPE: C type
-    @cvar _TYPE: C type to translate this handle to.
+    :type _TYPE: C type
+    :cvar _TYPE: C type to translate this handle to.
         Subclasses should override this.
-        Defaults to L{HANDLE}.
+        Defaults to :data:`HANDLE`.
     """
 
     # Subclasses should override this.
@@ -818,31 +818,31 @@ class ProcessHandle (Handle):
     """
     Win32 process handle.
 
-    @type dwAccess: int
-    @ivar dwAccess: Current access flags to this handle.
-            This is the same value passed to L{OpenProcess}.
-            Can only be C{None} if C{aHandle} is also C{None}.
-            Defaults to L{PROCESS_ALL_ACCESS}.
+    :type dwAccess: int
+    :ivar dwAccess: Current access flags to this handle.
+            This is the same value passed to :func:`OpenProcess`.
+            Can only be ``None`` if ``aHandle`` is also ``None``.
+            Defaults to :data:`PROCESS_ALL_ACCESS`.
 
-    @see: L{Handle}
+    .. seealso:: :class:`Handle`
     """
 
     def __init__(self, aHandle = None, bOwnership = True,
                        dwAccess = PROCESS_ALL_ACCESS):
         """
-        @type  aHandle: int
-        @param aHandle: Win32 handle value.
+        :type  aHandle: int
+        :param aHandle: Win32 handle value.
 
-        @type  bOwnership: bool
-        @param bOwnership:
-           C{True} if we own the handle and we need to close it.
-           C{False} if someone else will be calling L{CloseHandle}.
+        :type  bOwnership: bool
+        :param bOwnership:
+           ``True`` if we own the handle and we need to close it.
+           ``False`` if someone else will be calling :func:`CloseHandle`.
 
-        @type  dwAccess: int
-        @param dwAccess: Current access flags to this handle.
-            This is the same value passed to L{OpenProcess}.
-            Can only be C{None} if C{aHandle} is also C{None}.
-            Defaults to L{PROCESS_ALL_ACCESS}.
+        :type  dwAccess: int
+        :param dwAccess: Current access flags to this handle.
+            This is the same value passed to :func:`OpenProcess`.
+            Can only be ``None`` if ``aHandle`` is also ``None``.
+            Defaults to :data:`PROCESS_ALL_ACCESS`.
         """
         if aHandle is None:
             aHandle = GetCurrentProcess()
@@ -860,8 +860,8 @@ class ProcessHandle (Handle):
 
     def get_pid(self):
         """
-        @rtype:  int
-        @return: Process global ID.
+        :rtype:  int
+        :return: Process global ID.
         """
         return GetProcessId(self.value)
 
@@ -869,31 +869,31 @@ class ThreadHandle (Handle):
     """
     Win32 thread handle.
 
-    @type dwAccess: int
-    @ivar dwAccess: Current access flags to this handle.
-            This is the same value passed to L{OpenThread}.
-            Can only be C{None} if C{aHandle} is also C{None}.
-            Defaults to L{THREAD_ALL_ACCESS}.
+    :type dwAccess: int
+    :ivar dwAccess: Current access flags to this handle.
+            This is the same value passed to :func:`OpenThread`.
+            Can only be ``None`` if ``aHandle`` is also ``None``.
+            Defaults to :data:`THREAD_ALL_ACCESS`.
 
-    @see: L{Handle}
+    .. seealso:: :class:`Handle`
     """
 
     def __init__(self, aHandle = None, bOwnership = True,
                        dwAccess = THREAD_ALL_ACCESS):
         """
-        @type  aHandle: int
-        @param aHandle: Win32 handle value.
+        :type  aHandle: int
+        :param aHandle: Win32 handle value.
 
-        @type  bOwnership: bool
-        @param bOwnership:
-           C{True} if we own the handle and we need to close it.
-           C{False} if someone else will be calling L{CloseHandle}.
+        :type  bOwnership: bool
+        :param bOwnership:
+           ``True`` if we own the handle and we need to close it.
+           ``False`` if someone else will be calling :func:`CloseHandle`.
 
-        @type  dwAccess: int
-        @param dwAccess: Current access flags to this handle.
-            This is the same value passed to L{OpenThread}.
-            Can only be C{None} if C{aHandle} is also C{None}.
-            Defaults to L{THREAD_ALL_ACCESS}.
+        :type  dwAccess: int
+        :param dwAccess: Current access flags to this handle.
+            This is the same value passed to :func:`OpenThread`.
+            Can only be ``None`` if ``aHandle`` is also ``None``.
+            Defaults to :data:`THREAD_ALL_ACCESS`.
         """
         if aHandle is None:
             aHandle = GetCurrentThread()
@@ -911,8 +911,8 @@ class ThreadHandle (Handle):
 
     def get_tid(self):
         """
-        @rtype:  int
-        @return: Thread global ID.
+        :rtype:  int
+        :return: Thread global ID.
         """
         return GetThreadId(self.value)
 
@@ -920,13 +920,13 @@ class FileHandle (Handle):
     """
     Win32 file handle.
 
-    @see: L{Handle}
+    .. seealso:: :class:`Handle`
     """
 
     def get_filename(self):
         """
-        @rtype:  None or str
-        @return: Name of the open file, or C{None} if unavailable.
+        :rtype:  None or str
+        :return: Name of the open file, or ``None`` if unavailable.
         """
         #
         # XXX BUG
@@ -969,7 +969,7 @@ class FileMappingHandle (Handle):
     """
     File mapping handle.
 
-    @see: L{Handle}
+    .. seealso:: :class:`Handle`
     """
     pass
 
@@ -978,7 +978,7 @@ class SnapshotHandle (Handle):
     """
     Toolhelp32 snapshot handle.
 
-    @see: L{Handle}
+    .. seealso:: :class:`Handle`
     """
     pass
 
@@ -986,7 +986,7 @@ class SnapshotHandle (Handle):
 
 class ProcessInformation:
     """
-    Process information object returned by L{CreateProcess}.
+    Process information object returned by :func:`CreateProcess`.
     """
 
     def __init__(self, pi):
@@ -998,7 +998,7 @@ class ProcessInformation:
 
 class MemoryBasicInformation:
     """
-    Memory information object returned by L{VirtualQueryEx}.
+    Memory information object returned by :func:`VirtualQueryEx`.
     """
 
     READABLE = (
@@ -1036,9 +1036,9 @@ class MemoryBasicInformation:
 
     def __init__(self, mbi=None):
         """
-        @type  mbi: L{MEMORY_BASIC_INFORMATION} or L{MemoryBasicInformation}
-        @param mbi: Either a L{MEMORY_BASIC_INFORMATION} structure or another
-            L{MemoryBasicInformation} instance.
+        :type  mbi: :class:`MEMORY_BASIC_INFORMATION` or :class:`MemoryBasicInformation`
+        :param mbi: Either a :class:`MEMORY_BASIC_INFORMATION` structure or another
+            :class:`MemoryBasicInformation` instance.
         """
         if mbi is None:
             self.BaseAddress        = None
@@ -1069,111 +1069,114 @@ class MemoryBasicInformation:
         """
         Test if the given memory address falls within this memory region.
 
-        @type  address: int
-        @param address: Memory address to test.
+        :type  address: int
+        :param address: Memory address to test.
 
-        @rtype:  bool
-        @return: C{True} if the given memory address falls within this memory
-            region, C{False} otherwise.
+        :rtype:  bool
+        :return: ``True`` if the given memory address falls within this memory
+            region, ``False`` otherwise.
         """
         return self.BaseAddress <= address < (self.BaseAddress + self.RegionSize)
 
     def is_free(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region is free.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region is free.
         """
         return self.State == MEM_FREE
 
     def is_reserved(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region is reserved.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region is reserved.
         """
         return self.State == MEM_RESERVE
 
     def is_commited(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region is commited.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region is commited.
         """
         return self.State == MEM_COMMIT
 
     def is_image(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region belongs to an executable
+        :rtype:  bool
+        :return: ``True`` if the memory in this region belongs to an executable
             image.
         """
         return self.Type == MEM_IMAGE
 
     def is_mapped(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region belongs to a mapped file.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region belongs to a mapped file.
         """
         return self.Type == MEM_MAPPED
 
     def is_private(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region is private.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region is private.
         """
         return self.Type == MEM_PRIVATE
 
     def is_guard(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are guard pages.
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are guard pages.
         """
         return self.is_commited() and bool(self.Protect & PAGE_GUARD)
 
     def has_content(self):
         """
-        @rtype:  bool
-        @return: C{True} if the memory in this region has any data in it.
+        :rtype:  bool
+        :return: ``True`` if the memory in this region has any data in it.
         """
         return self.is_commited() and not bool(self.Protect & (PAGE_GUARD | PAGE_NOACCESS))
 
     def is_readable(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are readable.
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are readable.
         """
         return self.has_content() and bool(self.Protect & self.READABLE)
 
     def is_writeable(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are writeable.
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are writeable.
         """
         return self.has_content() and bool(self.Protect & self.WRITEABLE)
 
     def is_copy_on_write(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are marked as
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are marked as
             copy-on-write. This means the pages are writeable, but changes
             are not propagated to disk.
-        @note:
+
+        .. note::
             Typically data sections in executable images are marked like this.
         """
         return self.has_content() and bool(self.Protect & self.COPY_ON_WRITE)
 
     def is_executable(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are executable.
-        @note: Executable pages are always readable.
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are executable.
+
+        .. note:: Executable pages are always readable.
         """
         return self.has_content() and bool(self.Protect & self.EXECUTABLE)
 
     def is_executable_and_writeable(self):
         """
-        @rtype:  bool
-        @return: C{True} if all pages in this region are executable and
+        :rtype:  bool
+        :return: ``True`` if all pages in this region are executable and
             writeable.
-        @note: The presence of such pages make memory corruption
+
+        .. note:: The presence of such pages make memory corruption
             vulnerabilities much easier to exploit.
         """
         return self.has_content() and bool(self.Protect & self.EXECUTABLE_AND_WRITEABLE)
@@ -1182,24 +1185,24 @@ class ProcThreadAttributeList:
     """
     Extended process and thread attribute support.
 
-    To be used with L{STARTUPINFOEX}.
+    To be used with :class:`STARTUPINFOEX`.
     Only available for Windows Vista and above.
 
-    @type AttributeList: list of tuple( int, ctypes-compatible object )
-    @ivar AttributeList: List of (Attribute, Value) pairs.
+    :type AttributeList: list of tuple( int, ctypes-compatible object )
+    :ivar AttributeList: List of (Attribute, Value) pairs.
 
-    @type AttributeListBuffer: L{LPPROC_THREAD_ATTRIBUTE_LIST}
-    @ivar AttributeListBuffer: Memory buffer used to store the attribute list.
-        L{InitializeProcThreadAttributeList},
-        L{UpdateProcThreadAttribute},
-        L{DeleteProcThreadAttributeList} and
-        L{STARTUPINFOEX}.
+    :type AttributeListBuffer: :class:`LPPROC_THREAD_ATTRIBUTE_LIST`
+    :ivar AttributeListBuffer: Memory buffer used to store the attribute list.
+        :func:`InitializeProcThreadAttributeList`,
+        :func:`UpdateProcThreadAttribute`,
+        :func:`DeleteProcThreadAttributeList` and
+        :class:`STARTUPINFOEX`.
     """
 
     def __init__(self, AttributeList):
         """
-        @type  AttributeList: list of tuple( int, ctypes-compatible object )
-        @param AttributeList: List of (Attribute, Value) pairs.
+        :type  AttributeList: list of tuple( int, ctypes-compatible object )
+        :param AttributeList: List of (Attribute, Value) pairs.
         """
         self.AttributeList = AttributeList
         self.AttributeListBuffer = InitializeProcThreadAttributeList(
@@ -4647,10 +4650,10 @@ def Wow64SuspendThread(hThread):
 def Wow64EnableWow64FsRedirection(Wow64FsEnableRedirection):
     """
     This function may not work reliably when there are nested calls. Therefore,
-    this function has been replaced by the L{Wow64DisableWow64FsRedirection}
-    and L{Wow64RevertWow64FsRedirection} functions.
+    this function has been replaced by the :func:`Wow64DisableWow64FsRedirection`
+    and :func:`Wow64RevertWow64FsRedirection` functions.
 
-    @see: U{http://msdn.microsoft.com/en-us/library/windows/desktop/aa365744(v=vs.85).aspx}
+    .. seealso:: http://msdn.microsoft.com/en-us/library/windows/desktop/aa365744(v=vs.85).aspx
     """
     _Wow64EnableWow64FsRedirection = windll.kernel32.Wow64EnableWow64FsRedirection
     _Wow64EnableWow64FsRedirection.argtypes = [BOOLEAN]

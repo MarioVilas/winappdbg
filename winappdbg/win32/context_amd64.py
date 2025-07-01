@@ -29,7 +29,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-CONTEXT structure for amd64.
+AMD64 (x86-64) processor context structures and functions.
+
+This module provides the CONTEXT structure definitions and related functions
+for AMD64 (x86-64) architecture, including:
+
+* Thread context manipulation (get/set context)
+* LDT (Local Descriptor Table) entry management
+* WOW64 context support for 32-bit processes on 64-bit systems
+* Floating point and MMX register handling
+
+The main classes include:
+
+* :class:`CONTEXT` - The main context structure for AMD64 threads
+* :class:`Context` - A dictionary-like wrapper for context data
+* :class:`XMM_SAVE_AREA32` - Extended floating point save area
+* :class:`LDT_ENTRY` - Local Descriptor Table entry structure
+
+The module also provides Win32 API wrappers for context operations:
+
+* :func:`GetThreadContext` / :func:`SetThreadContext`
+* :func:`Wow64GetThreadContext` / :func:`Wow64SetThreadContext`
+* :func:`GetThreadSelectorEntry` / :func:`Wow64GetThreadSelectorEntry`
+
+.. note::
+   This module is specific to AMD64/x86-64 architecture. For i386 support,
+   see :mod:`context_i386`.
 """
 
 from .defines import *  # NOQA
@@ -93,6 +118,38 @@ INITIAL_FPCSR = 0x027f            # initial FPCSR value
 #     BYTE  Reserved4[96];
 # } XMM_SAVE_AREA32, *PXMM_SAVE_AREA32;
 class XMM_SAVE_AREA32(Structure):
+    """
+    XMM floating point save area for 32-bit compatibility mode.
+
+    This structure represents the floating point and SSE register state
+    that can be saved and restored. It corresponds to the Windows
+    XMM_SAVE_AREA32 structure.
+
+    :ivar ControlWord: FPU control word
+    :vartype ControlWord: int
+    :ivar StatusWord: FPU status word
+    :vartype StatusWord: int
+    :ivar TagWord: FPU tag word
+    :vartype TagWord: int
+    :ivar ErrorOpcode: Last FPU instruction opcode
+    :vartype ErrorOpcode: int
+    :ivar ErrorOffset: FPU instruction pointer offset
+    :vartype ErrorOffset: int
+    :ivar ErrorSelector: FPU instruction pointer selector
+    :vartype ErrorSelector: int
+    :ivar DataOffset: FPU operand pointer offset
+    :vartype DataOffset: int
+    :ivar DataSelector: FPU operand pointer selector
+    :vartype DataSelector: int
+    :ivar MxCsr: MXCSR register (SSE control/status)
+    :vartype MxCsr: int
+    :ivar MxCsr_Mask: MXCSR mask
+    :vartype MxCsr_Mask: int
+    :ivar FloatRegisters: FPU/MMX registers (ST0-ST7/MM0-MM7)
+    :vartype FloatRegisters: tuple
+    :ivar XmmRegisters: SSE registers (XMM0-XMM15)
+    :vartype XmmRegisters: tuple
+    """
     _pack_ = 1
     _fields_ = [
         ('ControlWord',     WORD),
@@ -285,6 +342,19 @@ LPXMM_SAVE_AREA32 = PXMM_SAVE_AREA32
 # } CONTEXT, *PCONTEXT;
 
 class _CONTEXT_FLTSAVE_STRUCT(Structure):
+    """
+    Alternative floating point state structure for CONTEXT.
+
+    This structure provides an alternative layout for accessing
+    floating point registers within the CONTEXT structure.
+
+    :ivar Header: Header information for floating point state
+    :vartype Header: tuple
+    :ivar Legacy: Legacy FPU registers (ST0-ST7)
+    :vartype Legacy: tuple
+    :ivar Xmm0-Xmm15: Individual SSE registers
+    :vartype Xmm0-Xmm15: int
+    """
     _fields_ = [
         ('Header',                  M128A * 2),
         ('Legacy',                  M128A * 8),
@@ -320,6 +390,17 @@ class _CONTEXT_FLTSAVE_STRUCT(Structure):
         return d
 
 class _CONTEXT_FLTSAVE_UNION(Union):
+    """
+    Union for floating point state in CONTEXT structure.
+
+    This union allows access to floating point state either through
+    the XMM_SAVE_AREA32 structure or through individual register fields.
+
+    :ivar flt: Access via XMM_SAVE_AREA32 structure
+    :vartype flt: XMM_SAVE_AREA32
+    :ivar xmm: Access via individual register fields
+    :vartype xmm: _CONTEXT_FLTSAVE_STRUCT
+    """
     _fields_ = [
         ('flt',                     XMM_SAVE_AREA32),
         ('xmm',                     _CONTEXT_FLTSAVE_STRUCT),
@@ -335,6 +416,82 @@ class _CONTEXT_FLTSAVE_UNION(Union):
         return d
 
 class CONTEXT(Structure):
+    """
+    AMD64 thread context structure.
+
+    This structure contains the processor state for an AMD64 thread, including
+    all general-purpose registers, segment registers, floating point state,
+    debug registers, and control flags.
+
+    The context can be used with :func:`GetThreadContext` and :func:`SetThreadContext`
+    to save and restore thread state. The ``ContextFlags`` field controls which
+    parts of the context are valid.
+
+    **Context Flags:**
+
+    * ``CONTEXT_CONTROL`` - Control registers (SegSs, Rsp, SegCs, Rip, EFlags)
+    * ``CONTEXT_INTEGER`` - Integer registers (Rax, Rcx, Rdx, Rbx, Rbp, Rsi, Rdi, R8-R15)
+    * ``CONTEXT_SEGMENTS`` - Segment registers (SegDs, SegEs, SegFs, SegGs)
+    * ``CONTEXT_FLOATING_POINT`` - Floating point and SSE registers
+    * ``CONTEXT_DEBUG_REGISTERS`` - Debug registers (Dr0-Dr7)
+    * ``CONTEXT_FULL`` - Control + Integer + Floating Point
+    * ``CONTEXT_ALL`` - All of the above
+
+    **Register Groups:**
+
+    * **Integer registers:** Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8-R15
+    * **Control registers:** Rip (instruction pointer), EFlags (flags register)
+    * **Segment registers:** SegCs, SegDs, SegEs, SegFs, SegGs, SegSs
+    * **Debug registers:** Dr0-Dr3 (breakpoint addresses), Dr6 (status), Dr7 (control)
+    * **Floating point:** XMM registers, control/status words
+
+    :ivar ContextFlags: Flags indicating which context parts are valid
+    :vartype ContextFlags: int
+    :ivar Rax: RAX general purpose register
+    :vartype Rax: int
+    :ivar Rbx: RBX general purpose register
+    :vartype Rbx: int
+    :ivar Rcx: RCX general purpose register
+    :vartype Rcx: int
+    :ivar Rdx: RDX general purpose register
+    :vartype Rdx: int
+    :ivar Rsi: RSI source index register
+    :vartype Rsi: int
+    :ivar Rdi: RDI destination index register
+    :vartype Rdi: int
+    :ivar Rbp: RBP base pointer register
+    :vartype Rbp: int
+    :ivar Rsp: RSP stack pointer register
+    :vartype Rsp: int
+    :ivar R8-R15: Extended general purpose registers
+    :vartype R8-R15: int
+    :ivar Rip: RIP instruction pointer
+    :vartype Rip: int
+    :ivar EFlags: EFLAGS processor flags
+    :vartype EFlags: int
+    :ivar SegCs: CS code segment
+    :vartype SegCs: int
+    :ivar SegDs: DS data segment
+    :vartype SegDs: int
+    :ivar SegEs: ES extra segment
+    :vartype SegEs: int
+    :ivar SegFs: FS segment
+    :vartype SegFs: int
+    :ivar SegGs: GS segment
+    :vartype SegGs: int
+    :ivar SegSs: SS stack segment
+    :vartype SegSs: int
+    :ivar Dr0-Dr3: Debug address registers
+    :vartype Dr0-Dr3: int
+    :ivar Dr6: Debug status register
+    :vartype Dr6: int
+    :ivar Dr7: Debug control register
+    :vartype Dr7: int
+    :ivar FltSave: Floating point and SSE state
+    :vartype FltSave: _CONTEXT_FLTSAVE_UNION
+    :ivar VectorRegister: AVX vector registers
+    :vartype VectorRegister: tuple
+    """
     arch = ARCH_AMD64
 
     _pack_ = 16
@@ -422,7 +579,6 @@ class CONTEXT(Structure):
 
     @classmethod
     def from_dict(cls, ctx):
-        'Instance a new structure from a Python native type.'
         ctx = Context(ctx)
         s = cls()
         ContextFlags = ctx['ContextFlags']
@@ -495,28 +651,69 @@ LPCONTEXT = PCONTEXT
 
 class Context(dict):
     """
-    Register context dictionary for the amd64 architecture.
+    Register context dictionary for the AMD64 architecture.
+
+    This class provides a convenient dictionary interface for working with
+    thread context data. It extends the standard Python dictionary with
+    properties for common register access patterns.
+
+    The dictionary can contain any of the register fields from the :class:`CONTEXT`
+    structure, and provides convenient properties for the most commonly accessed
+    registers:
+
+    * :attr:`pc` - Program Counter (Rip register)
+    * :attr:`sp` - Stack Pointer (Rsp register)
+    * :attr:`fp` - Frame Pointer (Rbp register)
+
+    :Example:
+
+    .. code-block:: python
+
+        # Create a context and access registers
+        ctx = Context()
+        ctx['Rax'] = 0x1234567890ABCDEF
+        ctx.pc = 0x401000  # Set instruction pointer
+
+        # Use with GetThreadContext
+        context = GetThreadContext(hThread)
+        print(f"PC: {hex(context.pc)}")
+        print(f"SP: {hex(context.sp)}")
     """
 
     arch = CONTEXT.arch
 
     def __get_pc(self):
+        """Program counter (instruction pointer) register."""
         return self['Rip']
     def __set_pc(self, value):
         self['Rip'] = value
-    pc = property(__get_pc, __set_pc)
+    pc = property(__get_pc, __set_pc, doc="""
+        Program counter (Rip register).
+
+        :type: int
+        """)
 
     def __get_sp(self):
+        """Stack pointer register."""
         return self['Rsp']
     def __set_sp(self, value):
         self['Rsp'] = value
-    sp = property(__get_sp, __set_sp)
+    sp = property(__get_sp, __set_sp, doc="""
+        Stack pointer (Rsp register).
+
+        :type: int
+        """)
 
     def __get_fp(self):
+        """Frame pointer register."""
         return self['Rbp']
     def __set_fp(self, value):
         self['Rbp'] = value
-    fp = property(__get_fp, __set_fp)
+    fp = property(__get_fp, __set_fp, doc="""
+        Frame pointer (Rbp register).
+
+        :type: int
+        """)
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -578,6 +775,23 @@ class _LDT_ENTRY_HIGHWORD_(Union):
     ]
 
 class LDT_ENTRY(Structure):
+    """
+    Local Descriptor Table (LDT) entry structure.
+
+    This structure represents an entry in the Local Descriptor Table,
+    which contains segment descriptors for the current process.
+    It corresponds to the Windows LDT_ENTRY structure.
+
+    :ivar LimitLow: Low 16 bits of segment limit
+    :vartype LimitLow: int
+    :ivar BaseLow: Low 16 bits of segment base address
+    :vartype BaseLow: int
+    :ivar HighWord: High-order fields containing additional segment information
+    :vartype HighWord: _LDT_ENTRY_HIGHWORD_
+
+    The HighWord union provides access to segment attributes either as
+    individual bytes or as bit fields for fine-grained control.
+    """
     _pack_ = 1
     _fields_ = [
         ('LimitLow',        WORD),

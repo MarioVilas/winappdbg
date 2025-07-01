@@ -3245,7 +3245,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises NotImplementedError:
             The target platform is not supported.
             Currently calling a procedure in the library is only supported in
-            the I{i386} architecture.
+            the i386 architecture.
         :raises WindowsError: An exception is raised on error.
         """
 
@@ -3774,8 +3774,8 @@ class _ProcessContainer:
                   cryptographic keys and credentials. Only available since
                   Windows XP and 2003, desktop editions.
              - 1: Normal trust. Run with the same privileges as a normal
-                  user, that is, one that doesn't have the I{Administrator} or
-                  I{Power User} user rights. Only available since Windows XP
+                  user, that is, one that doesn't have the *Administrator* or
+                  *Power User* user rights. Only available since Windows XP
                   and 2003, desktop editions.
              - 2: Full trust. Run with the exact same privileges as the
                   current user. This is the default value.

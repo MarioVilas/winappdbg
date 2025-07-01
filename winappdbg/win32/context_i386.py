@@ -29,7 +29,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-CONTEXT structure for i386.
+i386 (x86) processor context structures and functions.
+
+This module provides the CONTEXT structure definitions and related functions
+for i386 (x86) architecture, including:
+
+* Thread context manipulation (get/set context)
+* LDT (Local Descriptor Table) entry management
+* Floating point register handling
+* Extended register support
+
+The main classes include:
+
+* :class:`CONTEXT` - The main context structure for i386 threads
+* :class:`Context` - A dictionary-like wrapper for context data
+* :class:`FLOATING_SAVE_AREA` - Floating point register save area
+* :class:`LDT_ENTRY` - Local Descriptor Table entry structure
+
+The module also provides Win32 API wrappers for context operations:
+
+* :func:`GetThreadContext` / :func:`SetThreadContext`
+* :func:`GetThreadSelectorEntry`
+
+.. note::
+   This module is specific to i386/x86 architecture. For AMD64 support,
+   see :mod:`context_amd64`.
 """
 
 from .defines import *  # NOQA
@@ -81,6 +105,32 @@ MAXIMUM_SUPPORTED_EXTENSION = 512
 #     DWORD   Cr0NpxState;
 # } FLOATING_SAVE_AREA;
 class FLOATING_SAVE_AREA(Structure):
+    """
+    Floating point register save area for i386 architecture.
+
+    This structure represents the floating point register state that can be
+    saved and restored. It corresponds to the Windows FLOATING_SAVE_AREA
+    structure and contains the complete state of the x87 FPU.
+
+    :ivar ControlWord: FPU control word
+    :vartype ControlWord: int
+    :ivar StatusWord: FPU status word
+    :vartype StatusWord: int
+    :ivar TagWord: FPU tag word
+    :vartype TagWord: int
+    :ivar ErrorOffset: FPU instruction pointer offset
+    :vartype ErrorOffset: int
+    :ivar ErrorSelector: FPU instruction pointer selector
+    :vartype ErrorSelector: int
+    :ivar DataOffset: FPU operand pointer offset
+    :vartype DataOffset: int
+    :ivar DataSelector: FPU operand pointer selector
+    :vartype DataSelector: int
+    :ivar RegisterArea: FPU register stack (ST0-ST7)
+    :vartype RegisterArea: tuple
+    :ivar Cr0NpxState: CR0 NPX state
+    :vartype Cr0NpxState: int
+    """
     _pack_ = 1
     _fields_ = [
         ('ControlWord',     DWORD),
@@ -98,7 +148,6 @@ class FLOATING_SAVE_AREA(Structure):
 
     @classmethod
     def from_dict(cls, fsa):
-        'Instance a new structure from a Python dictionary.'
         fsa = dict(fsa)
         s = cls()
         for key in cls._integer_members:
@@ -110,7 +159,6 @@ class FLOATING_SAVE_AREA(Structure):
         return s
 
     def to_dict(self):
-        'Convert a structure into a Python dictionary.'
         fsa = dict()
         for key in self._integer_members:
             fsa[key] = getattr(self, key)
@@ -150,6 +198,81 @@ LPFLOATING_SAVE_AREA = PFLOATING_SAVE_AREA
 #     BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
 # } CONTEXT;
 class CONTEXT(Structure):
+    """
+    i386 thread context structure.
+
+    This structure contains the processor state for an i386 thread, including
+    all general-purpose registers, segment registers, floating point state,
+    debug registers, and control flags.
+
+    The context can be used with :func:`GetThreadContext` and :func:`SetThreadContext`
+    to save and restore thread state. The ``ContextFlags`` field controls which
+    parts of the context are valid.
+
+    **Context Flags:**
+
+    * ``CONTEXT_CONTROL`` - Control registers (SegSs, Esp, SegCs, Eip, EFlags, Ebp)
+    * ``CONTEXT_INTEGER`` - Integer registers (Eax, Ebx, Ecx, Edx, Esi, Edi)
+    * ``CONTEXT_SEGMENTS`` - Segment registers (SegDs, SegEs, SegFs, SegGs)
+    * ``CONTEXT_FLOATING_POINT`` - Floating point registers (x87 FPU state)
+    * ``CONTEXT_DEBUG_REGISTERS`` - Debug registers (Dr0-Dr7)
+    * ``CONTEXT_EXTENDED_REGISTERS`` - Extended registers (MMX, SSE)
+    * ``CONTEXT_FULL`` - Control + Integer + Segments
+    * ``CONTEXT_ALL`` - All of the above
+
+    **Register Groups:**
+
+    * **Integer registers:** Eax, Ebx, Ecx, Edx, Esi, Edi, Ebp, Esp
+    * **Control registers:** Eip (instruction pointer), EFlags (flags register)
+    * **Segment registers:** SegCs, SegDs, SegEs, SegFs, SegGs, SegSs
+    * **Debug registers:** Dr0-Dr3 (breakpoint addresses), Dr6 (status), Dr7 (control)
+    * **Floating point:** x87 FPU registers and state
+
+    :ivar ContextFlags: Flags indicating which context parts are valid
+    :vartype ContextFlags: int
+    :ivar Eax: EAX general purpose register
+    :vartype Eax: int
+    :ivar Ebx: EBX general purpose register
+    :vartype Ebx: int
+    :ivar Ecx: ECX general purpose register
+    :vartype Ecx: int
+    :ivar Edx: EDX general purpose register
+    :vartype Edx: int
+    :ivar Esi: ESI source index register
+    :vartype Esi: int
+    :ivar Edi: EDI destination index register
+    :vartype Edi: int
+    :ivar Ebp: EBP base pointer register
+    :vartype Ebp: int
+    :ivar Esp: ESP stack pointer register
+    :vartype Esp: int
+    :ivar Eip: EIP instruction pointer
+    :vartype Eip: int
+    :ivar EFlags: EFLAGS processor flags
+    :vartype EFlags: int
+    :ivar SegCs: CS code segment
+    :vartype SegCs: int
+    :ivar SegDs: DS data segment
+    :vartype SegDs: int
+    :ivar SegEs: ES extra segment
+    :vartype SegEs: int
+    :ivar SegFs: FS segment
+    :vartype SegFs: int
+    :ivar SegGs: GS segment
+    :vartype SegGs: int
+    :ivar SegSs: SS stack segment
+    :vartype SegSs: int
+    :ivar Dr0-Dr3: Debug address registers
+    :vartype Dr0-Dr3: int
+    :ivar Dr6: Debug status register
+    :vartype Dr6: int
+    :ivar Dr7: Debug control register
+    :vartype Dr7: int
+    :ivar FloatSave: Floating point register state
+    :vartype FloatSave: FLOATING_SAVE_AREA
+    :ivar ExtendedRegisters: Extended processor registers (MMX, SSE)
+    :vartype ExtendedRegisters: tuple
+    """
     arch = ARCH_I386
 
     _pack_ = 1
@@ -240,7 +363,6 @@ class CONTEXT(Structure):
 
     @classmethod
     def from_dict(cls, ctx):
-        'Instance a new structure from a Python dictionary.'
         ctx = Context(ctx)
         s = cls()
         ContextFlags = ctx['ContextFlags']
@@ -267,7 +389,6 @@ class CONTEXT(Structure):
         return s
 
     def to_dict(self):
-        'Convert a structure into a Python native type.'
         ctx = Context()
         ContextFlags = self.ContextFlags
         ctx['ContextFlags'] = ContextFlags
@@ -297,27 +418,68 @@ LPCONTEXT = PCONTEXT
 class Context(dict):
     """
     Register context dictionary for the i386 architecture.
+
+    This class provides a convenient dictionary interface for working with
+    thread context data. It extends the standard Python dictionary with
+    properties for common register access patterns.
+
+    The dictionary can contain any of the register fields from the :class:`CONTEXT`
+    structure, and provides convenient properties for the most commonly accessed
+    registers:
+
+    * :attr:`pc` - Program Counter (Eip register)
+    * :attr:`sp` - Stack Pointer (Esp register)
+    * :attr:`fp` - Frame Pointer (Ebp register)
+
+    :Example:
+
+    .. code-block:: python
+
+        # Create a context and access registers
+        ctx = Context()
+        ctx['Eax'] = 0x12345678
+        ctx.pc = 0x401000  # Set instruction pointer
+
+        # Use with GetThreadContext
+        context = GetThreadContext(hThread)
+        print(f"PC: {hex(context.pc)}")
+        print(f"SP: {hex(context.sp)}")
     """
 
     arch = CONTEXT.arch
 
     def __get_pc(self):
+        """Program counter (instruction pointer) register."""
         return self['Eip']
     def __set_pc(self, value):
         self['Eip'] = value
-    pc = property(__get_pc, __set_pc)
+    pc = property(__get_pc, __set_pc, doc="""
+        Program counter (Eip register).
+
+        :type: int
+        """)
 
     def __get_sp(self):
+        """Stack pointer register."""
         return self['Esp']
     def __set_sp(self, value):
         self['Esp'] = value
-    sp = property(__get_sp, __set_sp)
+    sp = property(__get_sp, __set_sp, doc="""
+        Stack pointer (Esp register).
+
+        :type: int
+        """)
 
     def __get_fp(self):
+        """Frame pointer register."""
         return self['Ebp']
     def __set_fp(self, value):
         self['Ebp'] = value
-    fp = property(__get_fp, __set_fp)
+    fp = property(__get_fp, __set_fp, doc="""
+        Frame pointer (Ebp register).
+
+        :type: int
+        """)
 
 #--- LDT_ENTRY structure ------------------------------------------------------
 
@@ -379,6 +541,23 @@ class _LDT_ENTRY_HIGHWORD_(Union):
     ]
 
 class LDT_ENTRY(Structure):
+    """
+    Local Descriptor Table (LDT) entry structure.
+
+    This structure represents an entry in the Local Descriptor Table,
+    which contains segment descriptors for the current process.
+    It corresponds to the Windows LDT_ENTRY structure.
+
+    :ivar LimitLow: Low 16 bits of segment limit
+    :vartype LimitLow: int
+    :ivar BaseLow: Low 16 bits of segment base address
+    :vartype BaseLow: int
+    :ivar HighWord: High-order fields containing additional segment information
+    :vartype HighWord: _LDT_ENTRY_HIGHWORD_
+
+    The HighWord union provides access to segment attributes either as
+    individual bytes or as bit fields for fine-grained control.
+    """
     _pack_ = 1
     _fields_ = [
         ('LimitLow',        WORD),

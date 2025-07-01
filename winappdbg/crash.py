@@ -612,7 +612,7 @@ class Crash:
         """
         Value of the program counter register.
 
-        @rtype:  int
+        :rtype: int
         """
         try:
             return self.registers['Eip']        # i386
@@ -624,7 +624,7 @@ class Crash:
         """
         Value of the stack pointer register.
 
-        @rtype:  int
+        :rtype: int
         """
         try:
             return self.registers['Esp']        # i386
@@ -636,7 +636,7 @@ class Crash:
         """
         Value of the frame pointer register.
 
-        @rtype:  int
+        :rtype: int
         """
         try:
             return self.registers['Ebp']        # i386
@@ -648,7 +648,7 @@ class Crash:
 
     def key(self):
         """
-        Alias of L{signature}. Deprecated since WinAppDbg 1.5.
+        Alias of :attr:`signature`. Deprecated since WinAppDbg 1.5.
         """
         warnings.warn("Crash.key() method was deprecated in WinAppDbg 1.5",
                       DeprecationWarning)
@@ -850,8 +850,8 @@ class Crash:
 
     def briefReport(self):
         """
-        @rtype:  str
-        @return: Short description of the event.
+        :rtype:  str
+        :returns: Short description of the event.
         """
         if self.exceptionCode is not None:
             if self.exceptionCode == win32.EXCEPTION_BREAKPOINT:
@@ -901,11 +901,9 @@ class Crash:
 
     def fullReport(self, bShowNotes = True):
         """
-        @type  bShowNotes: bool
-        @param bShowNotes: C{True} to show the user notes, C{False} otherwise.
-
-        @rtype:  str
-        @return: Long description of the event.
+        :param bool bShowNotes: ``True`` to show the user notes, ``False`` otherwise.
+        :rtype: str
+        :return: Long description of the event.
         """
         msg  = self.briefReport()
         msg += '\n'
@@ -1004,8 +1002,8 @@ class Crash:
 
     def environmentReport(self):
         """
-        @rtype: str
-        @return: The process environment variables,
+        :rtype: str
+        :return: The process environment variables,
             merged and formatted for a report.
         """
         msg = ''
@@ -1016,8 +1014,8 @@ class Crash:
 
     def notesReport(self):
         """
-        @rtype:  str
-        @return: All notes, merged and formatted for a report.
+        :rtype: str
+        :return: All notes, merged and formatted for a report.
         """
         msg = ''
         if self.notes:
@@ -1036,8 +1034,7 @@ class Crash:
         """
         Add a note to the crash event.
 
-        @type msg:  str
-        @param msg: Note text.
+        :param str msg: Note text.
         """
         self.notes.append(msg)
 
@@ -1051,8 +1048,8 @@ class Crash:
         """
         Get the list of notes of this crash event.
 
-        @rtype:  list( str )
-        @return: List of notes.
+        :rtype: list[str]
+        :return: List of notes.
         """
         return self.notes
 
@@ -1060,15 +1057,15 @@ class Crash:
         """
         Iterate the notes of this crash event.
 
-        @rtype:  listiterator
-        @return: Iterator of the list of notes.
+        :rtype: iterator
+        :return: Iterator of the list of notes.
         """
         return self.notes.__iter__()
 
     def hasNotes(self):
         """
-        @rtype:  bool
-        @return: C{True} if there are notes for this crash event.
+        :rtype: bool
+        :return: ``True`` if there are notes for this crash event.
         """
         return bool( self.notes )
 
@@ -1076,30 +1073,25 @@ class Crash:
 
 class CrashDictionary(object):
     """
-    Dictionary-like persistence interface for L{Crash} objects.
+    Dictionary-like persistence interface for :class:`Crash` objects.
 
-    Currently the only implementation is through L{sql.CrashDAO}.
+    Currently the only implementation is through :class:`sql.CrashDAO`.
     """
 
     def __init__(self, url, creator = None, allowRepeatedKeys = True):
         """
-        @type  url: str
-        @param url: Connection URL of the crash database.
-            See L{sql.CrashDAO.__init__} for more details.
-
-        @type  creator: callable
-        @param creator: (Optional) Callback function that creates the SQL
+        :param str url: Connection URL of the crash database.
+            See :meth:`sql.CrashDAO.__init__` for more details.
+        :param callable creator: (Optional) Callback function that creates the SQL
             database connection.
 
             Normally it's not necessary to use this argument. However in some
             odd cases you may need to customize the database connection, for
             example when using the integrated authentication in MSSQL.
+        :param bool allowRepeatedKeys:
+            If ``True`` all :class:`Crash` objects are stored.
 
-        @type  allowRepeatedKeys: bool
-        @param allowRepeatedKeys:
-            If C{True} all L{Crash} objects are stored.
-
-            If C{False} any L{Crash} object with the same signature as a
+            If ``False`` any :class:`Crash` object with the same signature as a
             previously existing object will be ignored.
         """
 
@@ -1120,14 +1112,13 @@ class CrashDictionary(object):
         """
         Adds a new crash to the container.
 
-        @note:
-            When the C{allowRepeatedKeys} parameter of the constructor
-            is set to C{False}, duplicated crashes are ignored.
+        .. note::
+            When the ``allowRepeatedKeys`` parameter of the constructor
+            is set to ``False``, duplicated crashes are ignored.
 
-        @see: L{Crash.key}
+        .. seealso:: :meth:`Crash.key`
 
-        @type  crash: L{Crash}
-        @param crash: Crash object to add.
+        :param Crash crash: Crash object to add.
         """
         self._dao.add(crash, self._allowRepeatedKeys)
 
@@ -1135,15 +1126,15 @@ class CrashDictionary(object):
         """
         Retrieves a crash from the container.
 
-        @type  key: L{Crash} signature.
-        @param key: Heuristic signature of the crash to get.
-
-        @rtype:  L{Crash} object.
-        @return: Crash matching the given signature. If more than one is found,
+        :param key: Heuristic signature of the crash to get.
+        :type key: :class:`Crash` signature
+        :rtype: :class:`Crash`
+        :return: Crash matching the given signature. If more than one is found,
             retrieve the newest one.
 
-        @see:     L{iterkeys}
-        @warning: A B{copy} of each object is returned,
+        .. seealso:: :meth:`iterkeys`
+
+        .. warning:: A **copy** of each object is returned,
             so any changes made to them will be lost.
 
             To preserve changes do the following:
@@ -1158,8 +1149,8 @@ class CrashDictionary(object):
 
     def __iter__(self):
         """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
+        :rtype: iterator
+        :return: Iterator of the contained :class:`Crash` objects.
         """
         offset = 0
         limit  = 10
@@ -1173,50 +1164,47 @@ class CrashDictionary(object):
 
     def itervalues(self):
         """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} objects.
+        :rtype: iterator
+        :return: Iterator of the contained :class:`Crash` objects.
         """
         return self.__iter__()
 
     def iterkeys(self):
         """
-        @rtype:  iterator
-        @return: Iterator of the contained L{Crash} heuristic signatures.
+        :rtype: iterator
+        :return: Iterator of the contained :class:`Crash` heuristic signatures.
         """
         for crash in self:
             yield crash.signature       # FIXME this gives repeated results!
 
     def __contains__(self, crash):
         """
-        @type  crash: L{Crash}
-        @param crash: Crash object.
-
-        @rtype:  bool
-        @return: C{True} if the Crash object is in the container.
+        :param Crash crash: Crash object.
+        :rtype: bool
+        :return: ``True`` if the Crash object is in the container.
         """
         return self._dao.count(signature=crash.signature) > 0
 
     def has_key(self, key):
         """
-        @type  key: L{Crash} signature.
-        @param key: Heuristic signature of the crash to get.
-
-        @rtype:  bool
-        @return: C{True} if a matching L{Crash} object is in the container.
+        :param key: Heuristic signature of the crash to get.
+        :type key: :class:`Crash` signature
+        :rtype: bool
+        :return: ``True`` if a matching :class:`Crash` object is in the container.
         """
         return self._dao.count(signature=key) > 0
 
     def __len__(self):
         """
-        @rtype:  int
-        @return: Count of L{Crash} elements in the container.
+        :rtype: int
+        :return: Count of :class:`Crash` elements in the container.
         """
         return self._dao.count()
 
     def __bool__(self):
         """
-        @rtype:  bool
-        @return: C{False} if the container is empty.
+        :rtype: bool
+        :return: ``False`` if the container is empty.
         """
         return bool( len(self) )
 

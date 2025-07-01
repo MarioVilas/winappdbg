@@ -70,13 +70,13 @@ metadata = {
 
     # Metadata
     'name'              : 'winappdbg',
-    'version'           : '1.6',
+    'version'           : '1.7',
     'description'       : 'Windows application debugging engine',
     'long_description'  : long_description,
     'author'            : 'Mario Vilas',
     'author_email'      : 'mvilas@gmail.com',
     'url'               : 'http://winappdbg.readthedocs.io/en/latest/',
-    'download_url'      : 'https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.6.tar.gz',
+    'download_url'      : 'https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.7.tar.gz',
     'platforms'         : ['win32', 'win64'],
     'classifiers'       : [
                         'License :: OSI Approved :: BSD License',

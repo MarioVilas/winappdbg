@@ -8,7 +8,7 @@ This is what you need to know to download, install and begin to use *WinAppDbg*:
 Latest version
 --------------
 
-The latest version is **1.6**. You can get the bleeding-edge version from the `Github repository <https://github.com/MarioVilas/winappdbg>`_.
+The latest version is **1.7**. You can get the bleeding-edge version from the `Github repository <https://github.com/MarioVilas/winappdbg>`_.
 
 Dependencies
 ------------

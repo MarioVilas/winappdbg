@@ -393,21 +393,22 @@ LPGUITHREADINFO = PGUITHREADINFO
 
 class Point:
     """
-    Python wrapper over the L{POINT} class.
+    Python wrapper over the :class:`POINT` class.
 
-    @type x: int
-    @ivar x: Horizontal coordinate
-    @type y: int
-    @ivar y: Vertical coordinate
+    :type x: int
+    :ivar x: Horizontal coordinate
+    :type y: int
+    :ivar y: Vertical coordinate
     """
 
     def __init__(self, x = 0, y = 0):
         """
-        @see: L{POINT}
-        @type  x: int
-        @param x: Horizontal coordinate
-        @type  y: int
-        @param y: Vertical coordinate
+        .. seealso:: :class:`POINT`
+
+        :type  x: int
+        :param x: Horizontal coordinate
+        :type  y: int
+        :param y: Vertical coordinate
         """
         self.x = x
         self.y = y
@@ -441,13 +442,13 @@ class Point:
         """
         Translates window screen coordinates to client coordinates.
 
-        @see: L{client_to_screen}, L{translate}
+        .. seealso:: :func:`client_to_screen`, :func:`translate`
 
-        @type  hWnd: int or L{HWND} or L{system.Window}
-        @param hWnd: Window handle.
+        :type  hWnd: int or :class:`HWND` or :class:`system.Window`
+        :param hWnd: Window handle.
 
-        @rtype:  L{Point}
-        @return: New object containing the translated coordinates.
+        :rtype:  :class:`Point`
+        :returns: New object containing the translated coordinates.
         """
         return ScreenToClient(hWnd, self)
 
@@ -455,13 +456,13 @@ class Point:
         """
         Translates window client coordinates to screen coordinates.
 
-        @see: L{screen_to_client}, L{translate}
+        .. seealso:: :func:`screen_to_client`, :func:`translate`
 
-        @type  hWnd: int or L{HWND} or L{system.Window}
-        @param hWnd: Window handle.
+        :type  hWnd: int or :class:`HWND` or :class:`system.Window`
+        :param hWnd: Window handle.
 
-        @rtype:  L{Point}
-        @return: New object containing the translated coordinates.
+        :rtype:  :class:`Point`
+        :returns: New object containing the translated coordinates.
         """
         return ClientToScreen(hWnd, self)
 
@@ -469,54 +470,55 @@ class Point:
         """
         Translate coordinates from one window to another.
 
-        @note: To translate multiple points it's more efficient to use the
-            L{MapWindowPoints} function instead.
+        .. note:: To translate multiple points it's more efficient to use the
+            :func:`MapWindowPoints` function instead.
 
-        @see: L{client_to_screen}, L{screen_to_client}
+        .. seealso:: :func:`client_to_screen`, :func:`screen_to_client`
 
-        @type  hWndFrom: int or L{HWND} or L{system.Window}
-        @param hWndFrom: Window handle to translate from.
-            Use C{HWND_DESKTOP} for screen coordinates.
+        :type  hWndFrom: int or :class:`HWND` or :class:`system.Window`
+        :param hWndFrom: Window handle to translate from.
+               Use ``HWND_DESKTOP`` for screen coordinates.
 
-        @type  hWndTo: int or L{HWND} or L{system.Window}
-        @param hWndTo: Window handle to translate to.
-            Use C{HWND_DESKTOP} for screen coordinates.
+        :type  hWndTo: int or :class:`HWND` or :class:`system.Window`
+        :param hWndTo: Window handle to translate to.
+               Use ``HWND_DESKTOP`` for screen coordinates.
 
-        @rtype:  L{Point}
-        @return: New object containing the translated coordinates.
+        :rtype:  :class:`Point`
+        :returns: New object containing the translated coordinates.
         """
         return MapWindowPoints(hWndFrom, hWndTo, [self])
 
 class Rect:
     """
-    Python wrapper over the L{RECT} class.
+    Python wrapper over the :class:`RECT` class.
 
-    @type   left: int
-    @ivar   left: Horizontal coordinate for the top left corner.
-    @type    top: int
-    @ivar    top: Vertical coordinate for the top left corner.
-    @type  right: int
-    @ivar  right: Horizontal coordinate for the bottom right corner.
-    @type bottom: int
-    @ivar bottom: Vertical coordinate for the bottom right corner.
+    :type   left: int
+    :ivar   left: Horizontal coordinate for the top left corner.
+    :type    top: int
+    :ivar    top: Vertical coordinate for the top left corner.
+    :type  right: int
+    :ivar  right: Horizontal coordinate for the bottom right corner.
+    :type bottom: int
+    :ivar bottom: Vertical coordinate for the bottom right corner.
 
-    @type  width: int
-    @ivar  width: Width in pixels. Same as C{right - left}.
-    @type height: int
-    @ivar height: Height in pixels. Same as C{bottom - top}.
+    :type  width: int
+    :ivar  width: Width in pixels. Same as ``right - left``.
+    :type height: int
+    :ivar height: Height in pixels. Same as ``bottom - top``.
     """
 
     def __init__(self, left = 0, top = 0, right = 0, bottom = 0):
         """
-        @see: L{RECT}
-        @type    left: int
-        @param   left: Horizontal coordinate for the top left corner.
-        @type     top: int
-        @param    top: Vertical coordinate for the top left corner.
-        @type   right: int
-        @param  right: Horizontal coordinate for the bottom right corner.
-        @type  bottom: int
-        @param bottom: Vertical coordinate for the bottom right corner.
+        .. seealso:: :class:`RECT`
+
+        :type    left: int
+        :param   left: Horizontal coordinate for the top left corner.
+        :type     top: int
+        :param    top: Vertical coordinate for the top left corner.
+        :type   right: int
+        :param  right: Horizontal coordinate for the bottom right corner.
+        :type  bottom: int
+        :param bottom: Vertical coordinate for the bottom right corner.
         """
         self.left   = left
         self.top    = top
@@ -571,13 +573,13 @@ class Rect:
         """
         Translates window screen coordinates to client coordinates.
 
-        @see: L{client_to_screen}, L{translate}
+        .. seealso:: :func:`client_to_screen`, :func:`translate`
 
-        @type  hWnd: int or L{HWND} or L{system.Window}
-        @param hWnd: Window handle.
+        :type  hWnd: int or :class:`HWND` or :class:`system.Window`
+        :param hWnd: Window handle.
 
-        @rtype:  L{Rect}
-        @return: New object containing the translated coordinates.
+        :rtype:  :class:`Rect`
+        :returns: New object containing the translated coordinates.
         """
         topleft     = ScreenToClient(hWnd, (self.left,   self.top))
         bottomright = ScreenToClient(hWnd, (self.bottom, self.right))
@@ -587,13 +589,13 @@ class Rect:
         """
         Translates window client coordinates to screen coordinates.
 
-        @see: L{screen_to_client}, L{translate}
+        .. seealso:: :func:`screen_to_client`, :func:`translate`
 
-        @type  hWnd: int or L{HWND} or L{system.Window}
-        @param hWnd: Window handle.
+        :type  hWnd: int or :class:`HWND` or :class:`system.Window`
+        :param hWnd: Window handle.
 
-        @rtype:  L{Rect}
-        @return: New object containing the translated coordinates.
+        :rtype:  :class:`Rect`
+        :returns: New object containing the translated coordinates.
         """
         topleft     = ClientToScreen(hWnd, (self.left,   self.top))
         bottomright = ClientToScreen(hWnd, (self.bottom, self.right))
@@ -603,31 +605,34 @@ class Rect:
         """
         Translate coordinates from one window to another.
 
-        @see: L{client_to_screen}, L{screen_to_client}
+        .. note:: To translate multiple points it's more efficient to use the
+            :func:`MapWindowPoints` function instead.
 
-        @type  hWndFrom: int or L{HWND} or L{system.Window}
-        @param hWndFrom: Window handle to translate from.
-            Use C{HWND_DESKTOP} for screen coordinates.
+        .. seealso:: :func:`client_to_screen`, :func:`screen_to_client`
 
-        @type  hWndTo: int or L{HWND} or L{system.Window}
-        @param hWndTo: Window handle to translate to.
-            Use C{HWND_DESKTOP} for screen coordinates.
+        :type  hWndFrom: int or :class:`HWND` or :class:`system.Window`
+        :param hWndFrom: Window handle to translate from.
+               Use ``HWND_DESKTOP`` for screen coordinates.
 
-        @rtype:  L{Rect}
-        @return: New object containing the translated coordinates.
+        :type  hWndTo: int or :class:`HWND` or :class:`system.Window`
+        :param hWndTo: Window handle to translate to.
+               Use ``HWND_DESKTOP`` for screen coordinates.
+
+        :rtype:  :class:`Rect`
+        :returns: New object containing the translated coordinates.
         """
         points = [ (self.left, self.top), (self.right, self.bottom) ]
         return MapWindowPoints(hWndFrom, hWndTo, points)
 
 class WindowPlacement:
     """
-    Python wrapper over the L{WINDOWPLACEMENT} class.
+    Python wrapper over the :class:`WINDOWPLACEMENT` class.
     """
 
     def __init__(self, wp = None):
         """
-        @type  wp: L{WindowPlacement} or L{WINDOWPLACEMENT}
-        @param wp: Another window placement object.
+        :type  wp: :class:`WindowPlacement` or :class:`WINDOWPLACEMENT`
+        :param wp: Another window placement object.
         """
 
         # Initialize all properties with empty values.

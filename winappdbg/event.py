@@ -151,15 +151,6 @@ class Event:
         self.raw            = raw
         self.continueStatus = win32.DBG_EXCEPTION_NOT_HANDLED
 
-##    @property
-##    def debug(self):
-##        """
-##        @rtype  debug: L{Debug}
-##        @return debug:
-##            Debug object that received the event.
-##        """
-##        return self.__debug()
-
     def get_event_name(self):
         """
         :rtype:  str

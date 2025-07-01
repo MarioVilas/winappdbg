@@ -567,66 +567,77 @@ class WaitChainNodeInfo:
     """
     Represents a node in the wait chain.
 
-    It's a wrapper on the L{WAITCHAIN_NODE_INFO} structure.
+    It's a wrapper on the :class:`WAITCHAIN_NODE_INFO` structure.
 
     The following members are defined only
-    if the node is of L{WctThreadType} type:
-     - C{ProcessId}
-     - C{ThreadId}
-     - C{WaitTime}
-     - C{ContextSwitches}
+    if the node is of :data:`WctThreadType` type:
 
-    @see: L{GetThreadWaitChain}
+    - ``ProcessId``
+    - ``ThreadId``
+    - ``WaitTime``
+    - ``ContextSwitches``
 
-    @type ObjectName: unicode
-    @ivar ObjectName: Object name. May be an empty string.
+    :seealso: :func:`GetThreadWaitChain`
 
-    @type ObjectType: int
-    @ivar ObjectType: Object type.
-        Should be one of the following values:
-         - L{WctCriticalSectionType}
-         - L{WctSendMessageType}
-         - L{WctMutexType}
-         - L{WctAlpcType}
-         - L{WctComType}
-         - L{WctThreadWaitType}
-         - L{WctProcessWaitType}
-         - L{WctThreadType}
-         - L{WctComActivationType}
-         - L{WctUnknownType}
+    .. attribute:: ObjectName
+       :type: unicode
 
-    @type ObjectStatus: int
-    @ivar ObjectStatus: Wait status.
-        Should be one of the following values:
-         - L{WctStatusNoAccess} I{(ACCESS_DENIED for this object)}
-         - L{WctStatusRunning} I{(Thread status)}
-         - L{WctStatusBlocked} I{(Thread status)}
-         - L{WctStatusPidOnly} I{(Thread status)}
-         - L{WctStatusPidOnlyRpcss} I{(Thread status)}
-         - L{WctStatusOwned} I{(Dispatcher object status)}
-         - L{WctStatusNotOwned} I{(Dispatcher object status)}
-         - L{WctStatusAbandoned} I{(Dispatcher object status)}
-         - L{WctStatusUnknown} I{(All objects)}
-         - L{WctStatusError} I{(All objects)}
+       Object name. May be an empty string.
 
-    @type ProcessId: int
-    @ivar ProcessId: Process global ID.
+    .. attribute:: ObjectType
+       :type: int
 
-    @type ThreadId: int
-    @ivar ThreadId: Thread global ID.
+       Object type.
+       Should be one of the following values:
 
-    @type WaitTime: int
-    @ivar WaitTime: Wait time.
+       - :data:`WctCriticalSectionType`
+       - :data:`WctSendMessageType`
+       - :data:`WctMutexType`
+       - :data:`WctAlpcType`
+       - :data:`WctComType`
+       - :data:`WctThreadWaitType`
+       - :data:`WctProcessWaitType`
+       - :data:`WctThreadType`
+       - :data:`WctComActivationType`
+       - :data:`WctUnknownType`
 
-    @type ContextSwitches: int
-    @ivar ContextSwitches: Number of context switches.
+    .. attribute:: ObjectStatus
+       :type: int
+
+       Wait status.
+       Should be one of the following values:
+
+       - :data:`WctStatusNoAccess` *(ACCESS_DENIED for this object)*
+       - :data:`WctStatusRunning` *(Thread status)*
+       - :data:`WctStatusBlocked` *(Thread status)*
+       - :data:`WctStatusPidOnly` *(Thread status)*
+       - :data:`WctStatusPidOnlyRpcss` *(Thread status)*
+       - :data:`WctStatusOwned` *(Dispatcher object status)*
+       - :data:`WctStatusNotOwned` *(Dispatcher object status)*
+       - :data:`WctStatusAbandoned` *(Dispatcher object status)*
+       - :data:`WctStatusUnknown` *(All objects)*
+       - :data:`WctStatusError` *(All objects)*
+
+    .. attribute:: ProcessId
+       :type: int
+
+       Process global ID.
+
+    .. attribute:: ThreadId
+       :type: int
+
+       Thread global ID.
+
+    .. attribute:: WaitTime
+       :type: int
+
+       Wait time.
+
+    .. attribute:: ContextSwitches
+       :type: int
+
+       Number of context switches.
     """
-
-    #@type Timeout: int
-    #@ivar Timeout: Currently not documented in MSDN.
-    #
-    #@type Alertable: bool
-    #@ivar Alertable: Currently not documented in MSDN.
 
     # TODO: __repr__
 
@@ -648,15 +659,14 @@ class ThreadWaitChainSessionHandle (Handle):
     """
     Thread wait chain session handle.
 
-    Returned by L{OpenThreadWaitChainSession}.
+    Returned by :func:`OpenThreadWaitChainSession`.
 
-    @see: L{Handle}
+    :seealso: :class:`Handle`
     """
 
     def __init__(self, aHandle = None):
         """
-        @type  aHandle: int
-        @param aHandle: Win32 handle value.
+        :param int aHandle: Win32 handle value.
         """
         super().__init__(aHandle, bOwnership = True)
 
@@ -927,13 +937,12 @@ LPENUM_SERVICE_STATUS_PROCESSW = POINTER(ENUM_SERVICE_STATUS_PROCESSW)
 
 class ServiceStatus(object):
     """
-    Wrapper for the L{SERVICE_STATUS} structure.
+    Wrapper for the :class:`SERVICE_STATUS` structure.
     """
 
     def __init__(self, raw):
         """
-        @type  raw: L{SERVICE_STATUS}
-        @param raw: Raw structure for this service status data.
+        :param SERVICE_STATUS raw: Raw structure for this service status data.
         """
         self.ServiceType             = raw.dwServiceType
         self.CurrentState            = raw.dwCurrentState
@@ -945,13 +954,12 @@ class ServiceStatus(object):
 
 class ServiceStatusProcess(object):
     """
-    Wrapper for the L{SERVICE_STATUS_PROCESS} structure.
+    Wrapper for the :class:`SERVICE_STATUS_PROCESS` structure.
     """
 
     def __init__(self, raw):
         """
-        @type  raw: L{SERVICE_STATUS_PROCESS}
-        @param raw: Raw structure for this service status data.
+        :param SERVICE_STATUS_PROCESS raw: Raw structure for this service status data.
         """
         self.ServiceType             = raw.dwServiceType
         self.CurrentState            = raw.dwCurrentState
@@ -965,13 +973,13 @@ class ServiceStatusProcess(object):
 
 class ServiceStatusEntry(object):
     """
-    Service status entry returned by L{EnumServicesStatus}.
+    Service status entry returned by :func:`EnumServicesStatus`.
     """
 
     def __init__(self, raw):
         """
-        @type  raw: L{ENUM_SERVICE_STATUSA} or L{ENUM_SERVICE_STATUSW}
-        @param raw: Raw structure for this service status entry.
+        :param raw: Raw structure for this service status entry.
+        :type raw: ENUM_SERVICE_STATUSA or ENUM_SERVICE_STATUSW
         """
         self.ServiceName             = raw.lpServiceName
         self.DisplayName             = raw.lpDisplayName
@@ -1011,13 +1019,13 @@ class ServiceStatusEntry(object):
 
 class ServiceStatusProcessEntry(object):
     """
-    Service status entry returned by L{EnumServicesStatusEx}.
+    Service status entry returned by :func:`EnumServicesStatusEx`.
     """
 
     def __init__(self, raw):
         """
-        @type  raw: L{ENUM_SERVICE_STATUS_PROCESSA} or L{ENUM_SERVICE_STATUS_PROCESSW}
-        @param raw: Raw structure for this service status entry.
+        :param raw: Raw structure for this service status entry.
+        :type raw: ENUM_SERVICE_STATUS_PROCESSA or ENUM_SERVICE_STATUS_PROCESSW
         """
         self.ServiceName             = raw.lpServiceName
         self.DisplayName             = raw.lpDisplayName
@@ -1067,7 +1075,7 @@ class TokenHandle (Handle):
     """
     Access token handle.
 
-    @see: L{Handle}
+    :seealso: :class:`Handle`
     """
     pass
 
@@ -1085,7 +1093,7 @@ class SaferLevelHandle (UserModeHandle):
     """
     Safer level handle.
 
-    @see: U{http://msdn.microsoft.com/en-us/library/ms722425(VS.85).aspx}
+    :seealso: http://msdn.microsoft.com/en-us/library/ms722425(VS.85).aspx
     """
 
     _TYPE = SAFER_LEVEL_HANDLE
@@ -1097,7 +1105,7 @@ class ServiceHandle (UserModeHandle):
     """
     Service handle.
 
-    @see: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms684330(v=vs.85).aspx}
+    :seealso: http://msdn.microsoft.com/en-us/library/windows/desktop/ms684330(v=vs.85).aspx
     """
 
     _TYPE = SC_HANDLE
@@ -1109,7 +1117,7 @@ class ServiceControlManagerHandle (UserModeHandle):
     """
     Service Control Manager (SCM) handle.
 
-    @see: U{http://msdn.microsoft.com/en-us/library/windows/desktop/ms684323(v=vs.85).aspx}
+    :seealso: http://msdn.microsoft.com/en-us/library/windows/desktop/ms684323(v=vs.85).aspx
     """
 
     _TYPE = SC_HANDLE
