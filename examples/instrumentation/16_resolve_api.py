@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Process, System
+from winappdbg.process import Process
+from winappdbg.system import System
 
 def print_api_address( pid, modName, procName ):
 

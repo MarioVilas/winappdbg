@@ -28,7 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Debug, EventHandler, HexDump, win32
+from winappdbg.debug import Debug
+from winappdbg.event import EventHandler
+from winappdbg.textio import HexDump
+from winappdbg import win32
 
 
 class MyHook:

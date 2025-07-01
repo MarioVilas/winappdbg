@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Process, HexDump
+from winappdbg.process import Process
+from winappdbg.textio import HexDump
 
 def print_threads_and_modules( pid ):
 

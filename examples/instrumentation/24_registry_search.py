@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import System, Color
+from winappdbg.system import System
+from winappdbg.textio import Color
 
 def reg_search( search ):
 
@@ -62,7 +63,7 @@ def reg_search( search ):
             highlight( search, path )
 
         # For each Registry value...
-        for name in key.iterkeys():
+        for name in key.keys():
 
             # Try to get the value. On error ignore it.
             try:

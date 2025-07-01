@@ -28,7 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import *  # NOQA
+from winappdbg.debug import Debug
+from winappdbg.system import System
+from winappdbg import win32
+
 from time import time
 from sys import argv
 

@@ -28,7 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Thread, CrashDump, System
+from winappdbg.thread import Thread
+from winappdbg.crash import CrashDump
+from winappdbg.system import System
 
 def print_thread_disassembly( tid ):
 

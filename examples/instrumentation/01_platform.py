@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import System, version
+from winappdbg import version
+from winappdbg.system import System
 
 # Show the Windows version and the current architecture.
 print("WinAppDbg %s" % version)

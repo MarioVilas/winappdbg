@@ -31,13 +31,20 @@
 import sys
 import zlib
 import ntpath
-import winappdbg
+
+from winappdbg.system import System
+from winappdbg.textio import HexDump
 from winappdbg import win32
 
 import sqlite3
 
+# Error out if no arguments were given.
+if len(sys.argv) < 2:
+    print("No running executable file given!")
+    exit(1)
+
 # Create a snaphot of running processes.
-system = winappdbg.System()
+system = System()
 system.request_debug_privileges()
 system.scan_processes()
 
@@ -153,8 +160,8 @@ for filename in sys.argv[1:]:
             Data = None
             if mbi.has_content():
                 print('Reading %s-%s' % (
-                    winappdbg.HexDump.address(BaseAddress, bits),
-                    winappdbg.HexDump.address(BaseAddress + RegionSize, bits)
+                    HexDump.address(BaseAddress, bits),
+                    HexDump.address(BaseAddress + RegionSize, bits)
                 ))
                 Data = process.read(BaseAddress, RegionSize)
                 Data = zlib.compress(Data, zlib.Z_BEST_COMPRESSION)

@@ -28,7 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import win32, Process, HexDump
+from winappdbg import win32
+from winappdbg.process import Process
+from winappdbg.textio import HexDump
 
 def print_memory_map( pid ):
 

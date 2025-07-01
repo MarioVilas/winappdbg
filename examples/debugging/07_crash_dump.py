@@ -28,10 +28,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import win32, Debug, HexDump, Crash
+from winappdbg import win32
+from winappdbg.debug import Debug
+from winappdbg.textio import HexDump
+from winappdbg.crash import Crash
 
 try:
-    from winappdbg import CrashDAO
+    from winappdbg.sql import CrashDAO
 except ImportError:
     raise ImportError("Error: SQLAlchemy is not installed!")
 

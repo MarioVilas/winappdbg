@@ -33,7 +33,8 @@
 import warnings
 warnings.simplefilter("ignore")
 
-from winappdbg import Process, HexDump
+from winappdbg.process import Process
+from winappdbg.textio import HexDump
 
 def memory_search( pid, bytestr ):
 

@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import System, Table
+from winappdbg.system import System
+from winappdbg.textio import Table
 from winappdbg.win32 import PROCESS_DEP_ENABLE, \
                             PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION, \
                             ERROR_ACCESS_DENIED

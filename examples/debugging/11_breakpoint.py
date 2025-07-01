@@ -28,7 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Debug, EventHandler, HexDump
+from winappdbg.debug import Debug
+from winappdbg.event import EventHandler
+from winappdbg.textio import HexDump
 
 
 # This function will be called when our breakpoint is hit.

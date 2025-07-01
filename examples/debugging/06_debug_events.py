@@ -28,7 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Debug, HexDump, win32
+from winappdbg.debug import Debug
+from winappdbg.textio import HexDump
+from winappdbg import win32
 
 def my_event_handler( event ):
 

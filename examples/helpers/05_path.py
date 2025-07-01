@@ -30,7 +30,7 @@
 
 import sys
 
-from winappdbg import PathOperations
+from winappdbg.util import PathOperations
 
 # Get the command line argument.
 path = sys.argv[ 1 ]

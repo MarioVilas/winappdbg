@@ -30,7 +30,9 @@
 
 from sys import argv
 
-from winappdbg import Disassembler, HexInput, CrashDump
+from winappdbg.disasm import Disassembler
+from winappdbg.textio import HexInput
+from winappdbg.crash import CrashDump
 
 # If there are no command line arguments...
 if len( argv ) == 1:

@@ -30,7 +30,8 @@
 
 from time import sleep
 
-from winappdbg import System, win32
+from winappdbg.system import System
+from winappdbg import win32
 
 
 # Function that restarts a service.

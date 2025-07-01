@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import System, HexDump
+from winappdbg.system import System
+from winappdbg.textio import HexDump
 
 
 def show_window_tree( window, indent = 0 ):

@@ -28,7 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import HexDump, CrashDump, System
+from winappdbg.textio import HexDump
+from winappdbg.crash import CrashDump
+from winappdbg.system import System
 
 def print_state( process_name ):
 

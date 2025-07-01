@@ -28,7 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import Debug, EventHandler, EventSift
+from winappdbg.debug import Debug
+from winappdbg.event import EventHandler, EventSift
 
 
 # This class was written assuming only one process is attached.

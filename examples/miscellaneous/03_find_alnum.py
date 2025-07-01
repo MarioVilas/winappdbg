@@ -36,7 +36,10 @@
 # then only test the higher 16 bits of the address for each memory region.
 
 from struct import pack
-from winappdbg import System, Process, HexDump
+
+from winappdbg.system import System
+from winappdbg.process import Process
+from winappdbg.textio import HexDump
 
 # Iterator of alphanumeric executable addresses.
 def iterate_alnum_jump_addresses(process):

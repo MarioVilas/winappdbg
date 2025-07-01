@@ -30,7 +30,8 @@
 
 import struct
 
-from winappdbg import System, win32
+from winappdbg.system import System
+from winappdbg import win32
 
 #RegistryEditorVersion = "REGEDIT4"  # for Windows 95
 RegistryEditorVersion = "Windows Registry Editor Version 5.00"
