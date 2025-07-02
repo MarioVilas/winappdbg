@@ -56,19 +56,19 @@ def reg_export( reg_path, filename ):
     with open(filename, "w", encoding="utf-16") as output:
 
         # Write the file format header.
-        output.write( "%s\r\n" % RegistryEditorVersion )
+        output.write( "%s\n" % RegistryEditorVersion )
 
         # For each registry key in the queue...
         while queue:
             key = queue.pop()
 
             # Write the key path.
-            output.write( "\r\n[%s]\r\n" % key.path )
+            output.write( "\n[%s]\n" % key.path )
 
             # If there's a default value, write it.
             default = str(key)
             if default:
-                output.write( "@=\"%s\"\r\n" % default )
+                output.write( "@=\"%s\"\n" % default )
 
             # For each value in the key...
             for name, value in key.items():
@@ -110,7 +110,10 @@ def reg_export( reg_path, filename ):
                         s_value = reg_hexa(new_value, t_value)
 
                 # Write the name and value.
-                output.write( "%s=%s\r\n" % (s_name, s_value) )
+                output.write( "%s=%s\n" % (s_name, s_value) )
+
+            # Add the subkeys to the queue.
+            queue.extend( key.children() )
 
 # When invoked from the command line,
 # the first argument is a registry key to read from,

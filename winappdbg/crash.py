@@ -537,9 +537,8 @@ class Crash:
 
         # Get the environment variables for the target process.
         try:
-            self.environmentData = process.get_environment_data()
-            self.environment     = process.parse_environment_data(
-                                                        self.environmentData)
+            self.environmentData = process.get_environment_block()
+            self.environment     = process.get_environment()
         except Exception as e:
             warnings.warn("Cannot get environment, reason: %s" % str(e),
                           CrashWarning)

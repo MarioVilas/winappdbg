@@ -1,0 +1,14 @@
+# Optional dependencies
+# To install them all: pip install -r requirements.txt
+
+# For disassembly
+capstone
+#distorm3
+#BeaEnginePython
+
+# For database support
+sqlalchemy
+sqlite3
+
+# Improved regular expression parsing.
+regex

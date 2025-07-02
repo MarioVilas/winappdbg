@@ -549,7 +549,7 @@ class Module:
         """
         result = None
         symbols = self.get_symbols()
-        symbols.sort()
+        symbols.sort(key=lambda x: x[1])
         for SymbolName, SymbolAddress, SymbolSize in symbols:
             if SymbolAddress > address:
                 break
@@ -594,25 +594,24 @@ class Module:
         function    = None
         offset      = address - self.get_base()
 
-        # Make the label relative to the entrypoint if no other match is found.
-        # Skip if the entry point is unknown.
-        start = self.get_entry_point()
-        if start and start <= address:
-            function    = "start"
-            offset      = address - start
-
-        # Enumerate exported functions and debug symbols,
-        # then find the closest match, if possible.
+        # First check for debug symbols.
         try:
             symbol = self.get_symbol_at_address(address)
             if symbol:
                 (SymbolName, SymbolAddress, SymbolSize) = symbol
                 new_offset = address - SymbolAddress
                 if new_offset <= offset:
-                    function    = SymbolName
-                    offset      = new_offset
+                    function = SymbolName
+                    offset = new_offset
         except WindowsError:
             pass
+
+        # If no debug symbol matches, try the entry point.
+        if function is None:
+            start = self.get_entry_point()
+            if start and start <= address:
+                function = "start"
+                offset = address - start
 
         # Parse the label and return it.
         return _ModuleContainer.parse_label(module, function, offset)

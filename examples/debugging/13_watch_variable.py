@@ -50,7 +50,7 @@ def entering( event ):
     if bits == 32:
         return_address, hModule, lpProcName = thread.read_stack_dwords( 3 )
     else:
-        return_address = thread.read_stack_qwords( 1 )
+        return_address = thread.read_stack_qwords( 1 )[ 0 ]
         registers  = thread.get_context()
         hModule    = registers['Rcx']
         lpProcName = registers['Rdx']

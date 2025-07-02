@@ -93,8 +93,7 @@ def show(search = None, wide = True):
         s.scan_process_filenames()
     except WindowsError:
         s.scan_processes_fast()
-    pid_list = s.get_process_ids()
-    pid_list.sort()
+    pid_list = sorted(s.get_process_ids())
     if not pid_list:
         print("Unknown error enumerating processes!")
         return

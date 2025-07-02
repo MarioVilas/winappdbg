@@ -1215,7 +1215,7 @@ def StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord,
 
     if ContextRecord is None:
         raise ValueError("ContextRecord cannot be None")
-    pContextRecord = ctypes.cast(ContextRecord, PVOID)
+    pContextRecord = ctypes.c_void_p(ctypes.addressof(ContextRecord))
 
     #this function *DOESN'T* set last error [GetLastError()] properly most of the time.
     ret = _StackWalk64(MachineType, hProcess, hThread, byref(StackFrame),

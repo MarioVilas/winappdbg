@@ -30,6 +30,7 @@
 
 from winappdbg.system import System
 from winappdbg.textio import HexDump
+from winappdbg import win32
 
 import sys
 

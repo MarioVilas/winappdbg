@@ -691,7 +691,8 @@ class Window:
 
         :raises WindowsError: An error occured while processing this request.
         """
-        self.post(win32.WM_QUIT)
+        #self.post(win32.WM_QUIT)
+        win32.PostThreadMessage(self.get_tid(), win32.WM_QUIT, 0, 0)
 
     def send(self, uMsg, wParam = None, lParam = None, dwTimeout = None):
         """

@@ -28,6 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
 from winappdbg.system import System
 from winappdbg.textio import HexDump
 
@@ -39,4 +41,9 @@ for window in system.get_windows():
     handle  = HexDump.integer( window.get_handle() )
     caption = window.get_text()
     if caption is not None:
-        print("%s:\t%s" % ( handle, caption ))
+        try:
+            print("%s:\t%s" % (handle, caption))
+        except UnicodeEncodeError:
+            # Handle encoding errors by replacing problematic characters
+            print("%s:\t%s" % (handle, caption.encode(sys.stdout.encoding or 'utf-8',
+                                                     errors='replace').decode(sys.stdout.encoding or 'utf-8')))

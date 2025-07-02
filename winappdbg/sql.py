@@ -41,7 +41,7 @@ from functools import wraps
 import json
 
 from sqlalchemy import create_engine, Column, ForeignKey, Sequence, inspect
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, deferred
 from sqlalchemy.orm.exc import NoResultFound
@@ -189,7 +189,7 @@ class BaseDAO:
         """
 
         # Parse the connection URL.
-        parsed_url = URL(url)
+        parsed_url = make_url(url)
         schema = parsed_url.drivername
         if '+' in schema:
             dialect, driver = schema.split('+')
@@ -199,14 +199,12 @@ class BaseDAO:
         driver = driver.strip()
 
         # Prepare the database engine arguments.
-        arguments = {'echo' : self._echo}
-        if dialect == 'sqlite':
-            arguments['module'] = sqlite3.dbapi2
+        arguments = {'echo' : self._echo}   # for debugging this module
         if creator is not None:
             arguments['creator'] = creator
 
         # Load the database engine.
-        engine = create_engine(url, **arguments)
+        engine = create_engine(url, future=True, **arguments)
 
         # Create a new session.
         session = self._new_session(bind = engine)
