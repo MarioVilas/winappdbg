@@ -28,8 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"WinAppDbg test suite"
-
 import os
 import ntpath
 import warnings
@@ -39,17 +37,18 @@ def test(title, fn):
     print(title, end="")
     try:
         fn()
-        print("\tOK")
+        print("OK")
         return True
     except Exception as e:
-        print("\tFAIL: %s" % str(e))
+        print("FAIL: %s" % str(e))
         return False
 
 def test_module_load():
     import winappdbg  # NOQA
 
 def test_disassembler_load():
-    from winappdbg import Disassembler, win32
+    from winappdbg.disasm import Disassembler
+    from winappdbg import win32
     Disassembler(win32.ARCH_I386)
     Disassembler(win32.ARCH_AMD64)
 
@@ -59,7 +58,8 @@ def test_sqlalchemy_load():
         from winappdbg import sql  # NOQA
 
 def test_windbg_version():
-    from winappdbg import System, win32
+    from winappdbg.system import System
+    from winappdbg import win32
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         dbghelp = System.load_dbghelp()
