@@ -258,8 +258,8 @@ class PDebug (ConsoleDebugger):
 
 #==============================================================================
 
-def main(argv):
-    return PDebug().run(argv)
+def main():
+    return PDebug().run(sys.argv)
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

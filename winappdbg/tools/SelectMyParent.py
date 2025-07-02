@@ -41,7 +41,8 @@ import os
 import sys
 import ntpath
 
-def main(argv):
+def main():
+    argv = sys.argv
 
     # print(the banner.)
     print("SelectMyParent: Start a program with a selected parent process")
@@ -115,4 +116,4 @@ def main(argv):
     return dwProcessId
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

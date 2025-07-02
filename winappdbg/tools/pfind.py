@@ -433,8 +433,8 @@ class Main:
 
 #------------------------------------------------------------------------------
 
-def main(argv):
-    return Main(argv).run()
+def main():
+    return Main(sys.argv).run()
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

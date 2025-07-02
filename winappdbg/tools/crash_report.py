@@ -126,12 +126,12 @@ def print_crash_report(cc, options):
         print(report, end='')
         print('-' * 79)
 
-def main(argv):
+def main():
     print("Crash logger report")
     print("by Mario Vilas (mvilas at gmail.com)")
     print()
 
-    (options, parameters) = parse_cmdline(argv)
+    (options, parameters) = parse_cmdline(sys.argv)
 
     parameters = filter_duplicates(parameters)
     parameters = filter_inexistent_files(parameters)
@@ -141,4 +141,4 @@ def main(argv):
         print_report_for_database(cc, options)
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

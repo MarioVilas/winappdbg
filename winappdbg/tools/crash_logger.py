@@ -1247,12 +1247,12 @@ class CrashLogger:
                 if not options.ignore_errors:
                     raise
 
-def main(argv):
+def main():
     try:
         cl = CrashLogger()
-        return cl.run_from_cmdline(argv)
+        return cl.run_from_cmdline(sys.argv)
     except KeyboardInterrupt:
         print("Interrupted by the user!")
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

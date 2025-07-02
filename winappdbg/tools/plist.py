@@ -57,6 +57,7 @@ from winappdbg.system import System
 from winappdbg.util import PathOperations
 from winappdbg.textio import Table
 
+import sys
 import optparse
 
 def parse_cmdline(argv):
@@ -78,7 +79,7 @@ def parse_cmdline(argv):
         parser.error("unexpected parameter: %s" % argv[1])
     return (options, argv)
 
-def main(argv):
+def main():
     'Main function.'
 
     # print(the banner.)
@@ -87,6 +88,7 @@ def main(argv):
     print()
 
     # Parse the command line options.
+    argv             = sys.argv
     (options, argv)  = parse_cmdline(argv)
     showFilenameOnly = not options.full_path
     searchString     = options.search
@@ -264,5 +266,4 @@ def main(argv):
         table.show()
 
 if __name__ == '__main__':
-    import sys
-    main(sys.argv)
+    main()

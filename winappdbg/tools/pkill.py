@@ -42,7 +42,8 @@ import os
 import sys
 from sys import exit
 
-def main(argv):
+def main():
+    argv = sys.argv
     script = os.path.basename(argv[0])
     params = argv[1:]
 
@@ -179,4 +180,4 @@ def main(argv):
     exit()
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

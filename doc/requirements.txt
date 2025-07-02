@@ -1,10 +1,10 @@
-# Optional dependencies
-# To install them all: pip install -r requirements.txt
+# Sphinx to generate the docs
+Sphinx
 
 # For disassembly
 capstone
-#distorm3
-#BeaEnginePython
+distorm3
+BeaEnginePython
 
 # For database support
 sqlalchemy

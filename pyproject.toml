@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "winappdbg"
+version = "1.7"
+description = "Windows application debugging engine"
+readme = "README.md"
+authors = [
+    {name = "Mario Vilas", email = "mvilas@gmail.com"}
+]
+license = "BSD-3-Clause"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+]
+urls = {Homepage = "http://winappdbg.readthedocs.io/en/latest/", Download = "https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.7.tar.gz"}
+requires-python = ">=3.0"
+
+[project.scripts]
+crash_logger = "winappdbg.tools.crash_logger:main"
+crash_report = "winappdbg.tools.crash_report:main"
+hexdump = "winappdbg.tools.hexdump:main"
+pdebug = "winappdbg.tools.pdebug:main"
+pfind = "winappdbg.tools.pfind:main"
+pinject = "winappdbg.tools.pinject:main"
+pkill = "winappdbg.tools.pkill:main"
+plist = "winappdbg.tools.plist:main"
+pmap = "winappdbg.tools.pmap:main"
+pread = "winappdbg.tools.pread:main"
+ptrace = "winappdbg.tools.ptrace:main"
+pwrite = "winappdbg.tools.pwrite:main"
+SelectMyParent = "winappdbg.tools.SelectMyParent:main"
+service = "winappdbg.tools.service:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["winappdbg"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"winappdbg/tools/example.cfg" = "winappdbg/tools/example.cfg"

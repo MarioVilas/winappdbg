@@ -134,10 +134,10 @@ class Tracer( EventHandler ):
 
 #------------------------------------------------------------------------------
 
-def main( argv ):
+def main():
 
     # Parse the command line arguments
-    options = parse_cmdline(argv)
+    options = parse_cmdline(sys.argv)
 
     # Create the event handler object
     eventHandler = Tracer()
@@ -397,4 +397,4 @@ def callback_execute_target(option, opt_str, value, parser):
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Hex dumper
 # Copyright (c) 2009-2025, Mario Vilas
 # All rights reserved.
 #
@@ -29,33 +28,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.textio import HexDump
+"""
+Tools package for WinAppDbg.
 
-def main(argv):
-    print("Hex dumper using WinAppDbg")
-    print("by Mario Vilas (mvilas at gmail.com)")
-    print()
-    if len(argv) != 2:
-        import os
-        script = os.path.basename(argv[0])
-        print("  %s <filename>" % script)
-        return
-    with open(argv[1], 'rb') as fd:
-        fd.seek(0, 2)
-        size = fd.tell()
-        fd.seek(0, 0)
-        if size.bit_length() > 32:
-            width = 8
-        else:
-            width = 16
-        address = 0
-        while True:
-            data = fd.read(16)
-            if not data:
-                break
-            print(HexDump.hexblock(data, address=address, width=width))
-            address = address + len(data)
-
-if __name__ == '__main__':
-    import sys
-    main(sys.argv)
+Users are not really meant to use these as part of the API. They exist only
+so that these scripts are invokable from the command line.
+"""

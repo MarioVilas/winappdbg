@@ -36,7 +36,7 @@ from winappdbg import win32
 
 import optparse, time
 
-def main(argv):
+def main():
     'Main function.'
 
     # print(the banner.)
@@ -48,7 +48,7 @@ def main(argv):
     parser = optparse.OptionParser()
     parser.add_option("-w", "--wide", action="store_true", default=False,
                       help="show list of services in wide format")
-    (options, argv) = parser.parse_args(argv)
+    (options, argv) = parser.parse_args(sys.argv)
 
     # Parse the command line options.
     if not argv:
