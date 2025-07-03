@@ -12,3 +12,6 @@ sqlite3
 
 # Improved regular expression parsing
 regex
+
+# TOML parser for pyproject.toml
+toml; python_version < "3.11"

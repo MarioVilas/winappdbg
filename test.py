@@ -52,10 +52,10 @@ def test_disassembler_load():
     Disassembler(win32.ARCH_I386)
     Disassembler(win32.ARCH_AMD64)
 
-def test_sqlalchemy_load():
+def test_db_load():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        from winappdbg import sql  # NOQA
+        from winappdbg import db  # NOQA
 
 def test_windbg_version():
     from winappdbg.system import System
@@ -79,5 +79,5 @@ def test_windbg_version():
 if __name__ == '__main__':
     if test("module load", test_module_load):
         test("disassembler", test_disassembler_load)
-        test("SQL support", test_sqlalchemy_load)
+        test("DB support", test_db_load)
         test("WinDbg integration", test_windbg_version)

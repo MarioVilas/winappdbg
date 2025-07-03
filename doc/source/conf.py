@@ -12,13 +12,15 @@
 # serve to show the default.
 
 import sys, os
+try:
+    import tomllib
+except ImportError:
+    import toml as tomllib
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.append(os.path.abspath(os.path.join('..','..')))
-
-import setup as _winappdbg_setup
 
 # -- General configuration -----------------------------------------------------
 
@@ -47,7 +49,9 @@ copyright = u'2009-2018, Mario Vilas'
 # built documents.
 
 # The full version, including alpha/beta/rc tags.
-release = _winappdbg_setup.metadata['version']
+with open('../../pyproject.toml', 'rb') as f:
+    _project_meta = tomllib.load(f)
+release = _project_meta['project']['version']
 
 # The short X.Y version.
 if '-' in release:

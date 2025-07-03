@@ -220,8 +220,6 @@ Now, the next step would be storing the crash dump somewhere for later examinati
 
 A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <https://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
 
-Old versions of **WinAppDbg** (1.5 and older) supported DBM databases through the *CrashContainer* class, SQLite databases with the *CrashTable* class, and SQL Server databases with the *CrashTableMSSQL* class. They are now deprecated and, while still present for backwards compatibility (for the time being) its use is not recommended.
-
 Example #7: saving crash dumps
 ++++++++++++++++++++++++++++++
 

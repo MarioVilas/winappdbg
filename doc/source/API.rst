@@ -10,6 +10,7 @@ This section contains the full API documentation for WinAppDbg.
 
    api/breakpoint
    api/crash
+   api/db
    api/debug
    api/disasm
    api/event
@@ -18,7 +19,6 @@ This section contains the full API documentation for WinAppDbg.
    api/process
    api/registry
    api/search
-   api/sql
    api/system
    api/textio
    api/thread

@@ -2,7 +2,6 @@ winappdbg.win32
 ===============
 
 .. automodule:: winappdbg.win32
-   :members:
 
 .. toctree::
    :maxdepth: 1

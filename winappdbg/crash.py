@@ -64,10 +64,10 @@ import time
 import warnings
 import json
 import base64
+import hashlib
 
 # lazy imports
-sql = None
-anydbm = None
+db = None
 
 #==============================================================================
 
@@ -78,8 +78,13 @@ def crash_encode(obj):
         return d
     if isinstance(obj, win32.MemoryBasicInformation):
         d = {
-            field: getattr(obj, field)
-            for field, _ in obj._fields_
+            'BaseAddress': obj.BaseAddress,
+            'AllocationBase': obj.AllocationBase,
+            'AllocationProtect': obj.AllocationProtect,
+            'RegionSize': obj.RegionSize,
+            'State': obj.State,
+            'Protect': obj.Protect,
+            'Type': obj.Type,
         }
         if hasattr(obj, 'filename'):
             d['filename'] = obj.filename
@@ -104,11 +109,14 @@ def crash_decode(d):
     if type == 'MemoryBasicInformation':
         obj = win32.MemoryBasicInformation()
         del d['__type__']
-        for field, _ in obj._fields_:
+        # Set the standard fields
+        standard_fields = ['BaseAddress', 'AllocationBase', 'AllocationProtect',
+                          'RegionSize', 'State', 'Protect', 'Type']
+        for field in standard_fields:
             if field in d:
                 setattr(obj, field, d[field])
                 del d[field]
-        # For filename and content
+        # For filename and content and any other remaining fields
         for key, value in d.items():
             setattr(obj, key, value)
         return obj
@@ -207,13 +215,13 @@ class Crash:
 
     :vartype timeStamp: float
     :ivar timeStamp: Timestamp as returned by :func:`time.time`.
-    :vartype signature: object
+    :vartype signature: str
     :ivar signature:
-        Approximately unique signature for the Crash object.
+        SHA256 hash-based signature for the Crash object.
 
         This signature can be used as an heuristic to determine if two crashes
-        were caused by the same software error. Ideally it should be treated as
-        as opaque serializable object that can be tested for equality.
+        were caused by the same software error. It is a stable hash based on
+        key crash attributes that can be used for deduplication.
     :vartype notes: list[str]
     :ivar notes: List of strings, each string is a note.
     :vartype eventCode: int
@@ -655,6 +663,15 @@ class Crash:
 
     @property
     def signature(self):
+        """
+        Create a stable hash-based signature for crash deduplication.
+
+        Returns a SHA256 hash based on key crash attributes that determine
+        if two crashes are likely caused by the same bug.
+
+        :rtype: str
+        :return: SHA256 hash as hexadecimal string
+        """
         if self.labelPC:
             pc = self.labelPC
         else:
@@ -663,16 +680,18 @@ class Crash:
             trace = self.stackTraceLabels
         else:
             trace = self.stackTracePC
-        return  (
-                self.arch,
-                self.eventCode,
-                self.exceptionCode,
-                pc,
-                trace,
-                self.debugString,
-                )
-        # TODO
-        # add the name and version of the binary where the crash happened?
+
+        signature_components = (
+            self.arch,
+            self.eventCode,
+            self.exceptionCode,
+            pc,
+            trace,
+            self.debugString,
+        )
+
+        signature_bytes = repr(signature_components).encode('utf-8')
+        return hashlib.sha256(signature_bytes).hexdigest()
 
     def isExploitable(self):
         """
@@ -1074,13 +1093,13 @@ class CrashDictionary(object):
     """
     Dictionary-like persistence interface for :class:`Crash` objects.
 
-    Currently the only implementation is through :class:`sql.CrashDAO`.
+    Currently the only implementation is through :class:`db.CrashDAO`.
     """
 
     def __init__(self, url, creator = None, allowRepeatedKeys = True):
         """
         :param str url: Connection URL of the crash database.
-            See :meth:`sql.CrashDAO.__init__` for more details.
+            See :meth:`db.CrashDAO.__init__` for more details.
         :param callable creator: (Optional) Callback function that creates the SQL
             database connection.
 
@@ -1094,18 +1113,16 @@ class CrashDictionary(object):
             previously existing object will be ignored.
         """
 
-        # Lazy import of the winappdbg.sql submodule.
-        # We need to ignore all warnings from this module because SQLAlchemy
-        # became really picky in its latest versions regarding what we send it.
-        global sql
-        if sql is None:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                import sql
+        # Lazy import of the winappdbg.db submodule.
+        global db
+        if db is None:
+            #with warnings.catch_warnings():
+            #    warnings.simplefilter("ignore")
+                import db
 
         # Initialize the private members of the class.
         self._allowRepeatedKeys = allowRepeatedKeys
-        self._dao = sql.CrashDAO(url, creator)
+        self._dao = db.CrashDAO(url, creator)
 
     def add(self, crash):
         """

@@ -34,7 +34,7 @@ from winappdbg.textio import HexDump
 from winappdbg.crash import Crash
 
 try:
-    from winappdbg.sql import CrashDAO
+    from winappdbg.db import CrashDAO
 except ImportError:
     raise ImportError("Error: SQLAlchemy is not installed!")
 
@@ -73,14 +73,15 @@ def my_event_handler( event ):
         crash = Crash( event )
 
         # You can turn it into a full crash dump (recommended).
-        # crash.fetch_extra_data( event, takeMemorySnapshot = 0 ) # no memory dump
+        crash.fetch_extra_data( event, takeMemorySnapshot = 0 ) # no memory dump
         # crash.fetch_extra_data( event, takeMemorySnapshot = 1 ) # small memory dump
-        crash.fetch_extra_data( event, takeMemorySnapshot = 2 ) # full memory dump
+        # crash.fetch_extra_data( event, takeMemorySnapshot = 2 ) # full memory dump
 
         # Connect to the database. You can use any URL supported by SQLAlchemy.
-        # For more details see the reference documentation.
+        # MongoDB is supported too. For more details see the reference documentation.
         dao = CrashDAO( "sqlite:///crashes.sqlite" )
         #dao = CrashDAO( "mysql+MySQLdb://root:toor@localhost/crashes" )
+        #dao = CrashDAO( "mongodb://localhost:27017/crashes?directConnection=true" )
 
         # Store the crash dump in the database.
         dao.add( crash )

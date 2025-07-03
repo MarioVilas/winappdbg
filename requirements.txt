@@ -10,5 +10,8 @@ capstone
 sqlalchemy
 sqlite3
 
+# For MongoDB support
+pymongo
+
 # Improved regular expression parsing
 regex
