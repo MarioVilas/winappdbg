@@ -1,0 +1,46 @@
+name: Test the code
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  lint:
+    name: Running ruff linter
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+        with:
+          src: "winappdbg/"
+      - name: Run ruff check --fix
+        if: always()
+        run: ruff check --fix
+      - name: Run ruff format
+        if: always()
+        run: ruff format --exit-non-zero-on-format
+  unittest:
+    name: Running tests for Python v${{ matrix.version }}
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.version }}
+      - run: python -m pip install .[disasm,db,search,test]
+      - run: pytest tests
+  docs:
+    name: Building docs
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - run: python -m pip install -U .[disasm,db,search,docs]
+      - run: sphinx-build -W docs/source/ build
