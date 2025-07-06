@@ -15,19 +15,15 @@ Dependencies
 
 Naturally you need the `Python interpreter <https://www.python.org/downloads/>`_. You'll have to install the 32 bit VM to debug 32 bit targets and the 64 bit VM for 64 bit targets. Both interpreters can be installed on the same machine.
 
-The following packages provide extra features and are very recommended, but not mandatory. You can install them all at once using the ``requirements.txt`` file, or pick and choose only the ones you need.
-
-.. code-block:: bat
-
-    pip install -r requirements.txt
+There are optional dependencies listed in the package, which are needed to enable some extra features such as database support, disassemblers and other stuff. You can install them using pip as well.
 
 Disassembler
 ++++++++++++
 
 *WinAppDbg* itself doesn't come with a disassembler, but all of the following are compatible. *WinAppDbg* will pick the most suitable one automatically when needed, but you can also decide which one to use.
 
-* The `diStorm <https://github.com/gdabah/distorm>`_ disassembler by Gil Dabah.
 * The `Capstone <http://www.capstone-engine.org/>`_ disassembler by Nguyen Anh Quynh.
+* The `diStorm <https://github.com/gdabah/distorm>`_ disassembler by Gil Dabah.
 * The `BeaEngine <https://github.com/BeaEngine/beaengine>`_ disassembler by BeatriX.
 
 Debugging Symbols
@@ -39,6 +35,8 @@ Database storage
 ++++++++++++++++
 
 The `SQL Alchemy <https://www.sqlalchemy.org/>`_ ORM module gives *WinAppDbg* the ability to use a SQL database to store and find crash dumps. Most major database engines are supported.
+
+To use MongoDB databases, you will need to install `PyMongo <https://pymongo.readthedocs.io/en/stable/>_`.
 
 Install
 -------
