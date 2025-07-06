@@ -56,7 +56,6 @@ __all__ = [
 from .textio import HexDump
 from . import win32
 
-import ctypes
 import warnings
 
 # lazy imports

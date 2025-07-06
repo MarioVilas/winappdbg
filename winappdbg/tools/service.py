@@ -34,7 +34,8 @@ from winappdbg.util import PathOperations
 from winappdbg.textio import Table
 from winappdbg import win32
 
-import optparse, time
+import optparse
+import time
 
 def main():
     'Main function.'
@@ -143,8 +144,8 @@ def show(search = None, wide = True):
 
         # Filter out services that don't match the search string if given.
         if search is not None and \
-            not search in descriptor.ServiceName.lower() and \
-            not search in descriptor.DisplayName.lower():
+            search not in descriptor.ServiceName.lower() and \
+            search not in descriptor.DisplayName.lower():
                 continue
 
         # Status.

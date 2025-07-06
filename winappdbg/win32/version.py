@@ -457,7 +457,7 @@ SM_CARETBLINKINGENABLED = 0x2002
 
 # Values used by Wine
 # Documented values at MSDN are marked with an asterisk
-PROCESSOR_ARCHITECTURE_UNKNOWN        = 0xFFFF; # Unknown architecture.
+PROCESSOR_ARCHITECTURE_UNKNOWN        = 0xFFFF  # Unknown architecture
 PROCESSOR_ARCHITECTURE_INTEL          = 0       # x86 (AMD or Intel) *
 PROCESSOR_ARCHITECTURE_MIPS           = 1       # MIPS
 PROCESSOR_ARCHITECTURE_ALPHA          = 2       # Alpha

@@ -35,7 +35,6 @@ from __future__ import with_statement
 __all__ = ['System']
 
 from . import win32
-from .win32 import version
 from .registry import Registry
 from .util import MemoryAddresses, DebugRegister, classproperty
 from .process import _ProcessContainer

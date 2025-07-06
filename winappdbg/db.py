@@ -41,7 +41,6 @@ import datetime
 import warnings
 from functools import wraps
 import json
-import base64
 
 # SQLAlchemy imports
 try:

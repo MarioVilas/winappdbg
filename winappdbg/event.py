@@ -100,7 +100,6 @@ from .process import Process
 from .textio import HexDump
 from .util import StaticClass, PathOperations
 
-import ctypes
 import warnings
 import traceback
 
@@ -1790,7 +1789,7 @@ class EventDispatcher:
             if bCallHandler and self.__eventHandler is not None:
                 try:
                     returnValue = self.__eventHandler(event)
-                except Exception as e:
+                except Exception:
                     msg = ("Event handler pre-callback %r"
                            " raised an exception: %s")
                     msg = msg % (self.__eventHandler, traceback.format_exc())

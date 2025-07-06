@@ -685,7 +685,7 @@ class DebugRegister (StaticClass):
 
     try:
         registerMask = win32.SIZE_T(-1).value
-    except TypeError as e:
+    except TypeError:
         if win32.SIZEOF(win32.SIZE_T) == 4:
             registerMask = 0xFFFFFFFF
         elif win32.SIZEOF(win32.SIZE_T) == 8:

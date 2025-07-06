@@ -58,11 +58,10 @@ __all__ = [
 from . import win32
 from .system import System
 from .textio import HexDump, CrashDump
-from .util import StaticClass, MemoryAddresses, PathOperations
+from .util import MemoryAddresses, PathOperations
 
 import time
 import warnings
-import json
 import base64
 import hashlib
 
@@ -569,7 +568,7 @@ class Crash:
         try:
             self.stackFrame = thread.get_stack_frame()
             stackFrame = self.stackFrame
-        except Exception as e:
+        except Exception:
             self.stackFrame = thread.peek_stack_data()
             stackFrame = self.stackFrame[:64]
         if stackFrame:

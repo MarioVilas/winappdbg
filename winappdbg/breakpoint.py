@@ -3170,7 +3170,7 @@ class _BreakpointContainer:
                 bCondition       = False
                 hwbpList = [ bp for bp in self.__hardwareBP[tid] ]
                 for bp in hwbpList:
-                    if not bp in self.__hardwareBP[tid]:
+                    if bp not in self.__hardwareBP[tid]:
                         continue    # it was removed by a user-defined callback
                     slot = bp.get_slot()
                     if (slot is not None) and \
@@ -3833,7 +3833,7 @@ class _BreakpointContainer:
                     bp = self.get_page_breakpoint(pid, page_addr)
                     if bp not in bset:
                         condition = bp.get_condition()
-                        if not condition in cset:
+                        if condition not in cset:
                             if not isinstance(condition,_BufferWatchCondition):
                                 # this shouldn't happen unless you tinkered
                                 # with it or defined your own page breakpoints
@@ -4053,7 +4053,7 @@ class _BreakpointContainer:
         :type thread: :class:`~winappdbg.thread.Thread`
         """
         tid = thread.get_tid()
-        if not tid in self.__tracing:
+        if tid not in self.__tracing:
             thread.set_tf()
             self.__tracing.add(tid)
 

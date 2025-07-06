@@ -44,7 +44,6 @@ from .breakpoint import _BreakpointContainer
 from .event import Event, EventDispatcher, EventFactory
 from .interactive import ConsoleDebugger
 
-from time import time
 
 import warnings
 ##import traceback
