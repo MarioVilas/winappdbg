@@ -75,7 +75,7 @@ Known issues
 
 * Debugging 32 bit processes from a 64 bit Python VM does not work very well. Debugging 64 bit processes from a 32 bit Python VM does not work at all. This is in part because the Win32 API makes it difficult, but there's also a design problem in WinAppDbg: most of the C struct definitions change from 32 to 64 bits and there's currently no support for having both definitions at the same time. The effort is probably not worth it - if you need to debug both 32 and 64 bits simultaneously, it's best to have two scripts running in two different interpreters talking to each other via IPC.
 
-* Setting hardware breakpoints in the main thread before the process has finished initializing does not work. This is not supported by the Windows API itself, and is not a limitation of WinAppDbg. Future versions of WinAppDbg will try to detect this error and warn about it.
+* Some operations, most notably setting hardware breakpoints in the main thread, before the process has finished initializing, does not work. This is not supported by the Windows API itself, and is not a limitation of WinAppDbg. Future versions of WinAppDbg will try to detect this error and warn about it.
 
 License
 -------

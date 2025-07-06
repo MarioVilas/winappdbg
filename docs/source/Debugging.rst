@@ -218,7 +218,7 @@ Crashes are exceptions a program can't recover from (also known as second-chance
 
 Now, the next step would be storing the crash dump somewhere for later examination. The most crude way to do this is using the standard *pickle* module. This is easy and guaranteed to work, but not very comfortable! Crash dumps stored that way are hard to read outside Python.
 
-A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <https://www.sqlalchemy.org/>`_ to connect to any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
+A more flexible way to store crash dumps is using the *CrashDAO* class. It uses `SQLAlchemy <https://www.sqlalchemy.org/>`_ and `PyMongo <https://pymongo.readthedocs.io/en/stable/>`_ to connect to MongoDB or any supported SQL database, create the required tables if needed, and store multiple crash dumps in it. This is the preferred method, since it's easier to access and manipulate the information outside Python, and you can store crashes from multiple machines into the same database.
 
 Example #7: saving crash dumps
 ++++++++++++++++++++++++++++++
