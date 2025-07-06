@@ -7,17 +7,21 @@ version: 2
 
 # Set the version of Python and other tools you might need
 build:
-  os: ubuntu-22.04
+  os: ubuntu-lts-latest
   tools:
-    python: "3.9"
+    python: "3.12"
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - disasm
+        - db
+        - search
+        - docs
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
-  configuration: doc/source/conf.py
-
-# Optionally declare the Python requirements required to build your docs
-python:
-  install:
-    - requirements: requirements.txt
-    - method: pip
-      path: doc/
+  fail_on_warning: true
+  configuration: docs/source/conf.py

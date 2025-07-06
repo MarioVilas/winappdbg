@@ -8,7 +8,7 @@ version = "1.7"
 description = "Windows application debugging engine"
 readme = "README.md"
 authors = [
-    {name = "Mario Vilas", email = "mvilas@gmail.com"}
+    { name = "Mario Vilas", email = "mvilas@gmail.com" }
 ]
 license = "BSD-3-Clause"
 classifiers = [
@@ -23,8 +23,22 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
 ]
-urls = {Homepage = "http://winappdbg.readthedocs.io/en/latest/", Download = "https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.7.tar.gz"}
+urls = { Homepage = "http://winappdbg.readthedocs.io/en/latest/", Download = "https://github.com/MarioVilas/winappdbg/archive/winappdbg_v1.7.tar.gz" }
 requires-python = ">=3.0"
+
+[project.optional-dependencies]
+test = ["pytest"]
+docs = ["Sphinx>=7",
+    "sphinx-autodoc-annotation",
+    "sphinx-autodoc-typehints",
+    "toml; python_version < '3.11'"
+]
+disasm = ["capstone"]
+db = [
+    "sqlalchemy",
+    "pymongo"
+]
+search = ["regex"]
 
 [project.scripts]
 crash_logger = "winappdbg.tools.crash_logger:main"
