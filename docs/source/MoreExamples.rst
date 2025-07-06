@@ -69,16 +69,3 @@ This example shows you how to list the supported disassembler engines for the de
 
 .. literalinclude:: ../../examples/miscellaneous/05_disasm.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-
-.. _atoms:
-
-Enumerate all named global atoms
-++++++++++++++++++++++++++++++++
-
-Global atoms are WORD numeric values that can be associated to arbitrary strings. They are used primarily for IPC purposes on Windows XP (Vista and 7 don't seem to be using them anymore). This example shows how to retrieve the string from any atom value.
-
-:download:`Download <../../examples/miscellaneous/06_atoms.py>`
-
-.. literalinclude:: ../../examples/miscellaneous/06_atoms.py
-   :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: # When invoked from the command line,
