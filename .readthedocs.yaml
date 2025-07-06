@@ -7,12 +7,21 @@ version: 2
 
 # Set the version of Python and other tools you might need
 build:
-  os: ubuntu-22.04
+  os: ubuntu-lts-latest
   tools:
     python: "3.12"
-  commands:
-    - pip install .[disasm,db,search]
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - disasm
+        - db
+        - search
+        - docs
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
+  fail_on_warning: true
   configuration: docs/source/conf.py
