@@ -1334,7 +1334,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         return struct.unpack(format, packed)[0]
 
     def __write_c_type(self, address, format, unpacked):
-        packed = struct.pack('@L', unpacked)
+        packed = struct.pack(format, unpacked)
         self.write(address, packed)
 
     # XXX TODO
