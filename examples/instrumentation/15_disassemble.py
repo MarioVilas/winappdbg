@@ -28,25 +28,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.thread import Thread
 from winappdbg.crash import CrashDump
 from winappdbg.system import System
+from winappdbg.thread import Thread
 
-def print_thread_disassembly( tid ):
 
+def print_thread_disassembly(tid):
     # Request debug privileges.
     System.request_debug_privileges()
 
     # Instance a Thread object.
-    thread = Thread( tid )
+    thread = Thread(tid)
 
     # Suspend the thread execution.
     thread.suspend()
 
     # Get the thread's currently running code.
     try:
-        eip  = thread.get_pc()
-        code = thread.disassemble_around( eip )
+        eip = thread.get_pc()
+        code = thread.disassemble_around(eip)
 
         # You can also do this:
         # code = thread.disassemble_around_pc()
@@ -61,12 +61,14 @@ def print_thread_disassembly( tid ):
 
     # Display the disassembled code.
     print()
-    print(CrashDump.dump_code( code, eip ), end='')
+    print(CrashDump.dump_code(code, eip), end="")
+
 
 # When invoked from the command line,
 # the first argument is a thread ID
 # (use example #4 to enumerate threads).
 if __name__ == "__main__":
     import sys
-    tid = int( sys.argv[1] )
-    print_thread_disassembly( tid )
+
+    tid = int(sys.argv[1])
+    print_thread_disassembly(tid)

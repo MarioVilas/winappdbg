@@ -32,26 +32,22 @@ from winappdbg.textio import Color
 
 # Can we use colors?
 if Color.can_use_colors():
-
     # Let's be polite: put everything in a try/except block
     # so we can reset the console colors before quitting.
     try:
-
         # Set black background.
         Color.bk_black()
 
         # For each color...
-        for color in ( "red", "green", "blue", "cyan", "magenta", "yellow", "white" ):
-
+        for color in ("red", "green", "blue", "cyan", "magenta", "yellow", "white"):
             # Set the color.
-            function = getattr( Color, color )
+            function = getattr(Color, color)
             function()
 
             # For each intensity...
-            for intensity in ( "light", "dark" ):
-
+            for intensity in ("light", "dark"):
                 # Set the intensity.
-                function = getattr( Color, intensity )
+                function = getattr(Color, intensity)
                 function()
 
                 # Print a message.
@@ -61,17 +57,15 @@ if Color.can_use_colors():
         Color.black()
 
         # For each color...
-        for color in ( "red", "green", "blue", "cyan", "magenta", "yellow", "white" ):
-
+        for color in ("red", "green", "blue", "cyan", "magenta", "yellow", "white"):
             # Set the background color.
-            function = getattr( Color, "bk_" + color )
+            function = getattr(Color, "bk_" + color)
             function()
 
             # For each intensity...
-            for intensity in ( "light", "dark" ):
-
+            for intensity in ("light", "dark"):
                 # Set the background intensity.
-                function = getattr( Color, "bk_" + intensity )
+                function = getattr(Color, "bk_" + intensity)
                 function()
 
                 # Print a message.

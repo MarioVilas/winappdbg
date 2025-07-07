@@ -29,17 +29,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from winappdbg import win32
+from winappdbg.crash import Crash
 from winappdbg.debug import Debug
 from winappdbg.textio import HexDump
-from winappdbg.crash import Crash
 
 try:
     from winappdbg.db import CrashDAO
 except ImportError:
     raise ImportError("Error: SQLAlchemy is not installed!")
 
-def my_event_handler( event ):
 
+def my_event_handler(event):
     # Get the event name.
     name = event.get_event_name()
 
@@ -58,11 +58,13 @@ def my_event_handler( event ):
     # Show something to the user.
     bits = event.get_process().get_bits()
     format_string = "%s (%s) at address %s, process %d, thread %d"
-    message = format_string % ( name,
-                                HexDump.integer(code, bits),
-                                HexDump.address(pc, bits),
-                                pid,
-                                tid )
+    message = format_string % (
+        name,
+        HexDump.integer(code, bits),
+        HexDump.address(pc, bits),
+        pid,
+        tid,
+    )
     print(message)
 
     # If the event is a crash...
@@ -70,21 +72,21 @@ def my_event_handler( event ):
         print("Crash detected, storing crash dump in database...")
 
         # Generate a minimal crash dump.
-        crash = Crash( event )
+        crash = Crash(event)
 
         # You can turn it into a full crash dump (recommended).
-        crash.fetch_extra_data( event, takeMemorySnapshot = 0 ) # no memory dump
+        crash.fetch_extra_data(event, takeMemorySnapshot=0)  # no memory dump
         # crash.fetch_extra_data( event, takeMemorySnapshot = 1 ) # small memory dump
         # crash.fetch_extra_data( event, takeMemorySnapshot = 2 ) # full memory dump
 
         # Connect to the database. You can use any URL supported by SQLAlchemy.
         # MongoDB is supported too. For more details see the reference documentation.
-        dao = CrashDAO( "sqlite:///crashes.sqlite" )
-        #dao = CrashDAO( "mysql+MySQLdb://root:toor@localhost/crashes" )
-        #dao = CrashDAO( "mongodb://localhost:27017/crashes?directConnection=true" )
+        dao = CrashDAO("sqlite:///crashes.sqlite")
+        # dao = CrashDAO( "mysql+MySQLdb://root:toor@localhost/crashes" )
+        # dao = CrashDAO( "mongodb://localhost:27017/crashes?directConnection=true" )
 
         # Store the crash dump in the database.
-        dao.add( crash )
+        dao.add(crash)
 
         # If you do this instead, heuristics are used to detect duplicated
         # crashes so they aren't added to the database.
@@ -96,14 +98,13 @@ def my_event_handler( event ):
         # Kill the process.
         event.get_process().kill()
 
-def simple_debugger( argv ):
 
+def simple_debugger(argv):
     # Instance a Debug object, passing it the event handler callback.
-    debug = Debug( my_event_handler, bKillOnExit = True )
+    debug = Debug(my_event_handler, bKillOnExit=True)
     try:
-
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Wait for the debugee to finish.
         debug.loop()
@@ -112,9 +113,11 @@ def simple_debugger( argv ):
     finally:
         debug.stop()
 
+
 # When invoked from the command line,
 # the first argument is an executable file,
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    simple_debugger( sys.argv[1:] )
+
+    simple_debugger(sys.argv[1:])

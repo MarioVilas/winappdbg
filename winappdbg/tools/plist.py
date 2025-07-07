@@ -53,34 +53,54 @@
 # Also to show processes run by SYSTEM or other users with different colors.
 # Can be done with colorama/termcolor or raw win32 api if it's easy enough.
 
-from winappdbg.system import System
-from winappdbg.util import PathOperations
-from winappdbg.textio import Table
-
-import sys
 import optparse
+import sys
+
+from winappdbg.system import System
+from winappdbg.textio import Table
+from winappdbg.util import PathOperations
+
 
 def parse_cmdline(argv):
-    'Parse the command line options.'
+    "Parse the command line options."
     parser = optparse.OptionParser()
-    parser.add_option("--format", action="store", default="auto",
-                      choices=("auto", "wide", "long"),
-                      help="display format [default: auto]")
-    parser.add_option("-f", "--full-path", action="store_true", default=False,
-                      help="show full pathnames")
-    parser.add_option("-w", "--windows", action="store_true", default=False,
-                      help="show window captions for each process")
-    parser.add_option("-d", "--services", action="store_true", default=False,
-                      help="show services running on each process")
-    parser.add_option("-s", "--search", metavar="STRING",
-                      help="optional search string")
+    parser.add_option(
+        "--format",
+        action="store",
+        default="auto",
+        choices=("auto", "wide", "long"),
+        help="display format [default: auto]",
+    )
+    parser.add_option(
+        "-f",
+        "--full-path",
+        action="store_true",
+        default=False,
+        help="show full pathnames",
+    )
+    parser.add_option(
+        "-w",
+        "--windows",
+        action="store_true",
+        default=False,
+        help="show window captions for each process",
+    )
+    parser.add_option(
+        "-d",
+        "--services",
+        action="store_true",
+        default=False,
+        help="show services running on each process",
+    )
+    parser.add_option("-s", "--search", metavar="STRING", help="optional search string")
     (options, argv) = parser.parse_args(argv)
     if len(argv) > 1:
         parser.error("unexpected parameter: %s" % argv[1])
     return (options, argv)
 
+
 def main():
-    'Main function.'
+    "Main function."
 
     # print(the banner.)
     print("Process enumerator")
@@ -88,10 +108,10 @@ def main():
     print()
 
     # Parse the command line options.
-    argv             = sys.argv
-    (options, argv)  = parse_cmdline(argv)
+    argv = sys.argv
+    (options, argv) = parse_cmdline(argv)
     showFilenameOnly = not options.full_path
-    searchString     = options.search
+    searchString = options.search
 
     # Windows filenames are case insensitive.
     if searchString:
@@ -147,7 +167,7 @@ def main():
             continue
 
         # Remember the filename.
-        if isinstance(fileName,bytes):
+        if isinstance(fileName, bytes):
             fileName = fileName.decode()
         filenames[pid] = fileName
 
@@ -160,7 +180,7 @@ def main():
                 pid = w.get_pid()
                 text = w.get_text()
                 if text != "":
-                    text = text.decode('utf-8', "replace")
+                    text = text.decode("utf-8", "replace")
             except WindowsError:
                 continue
             try:
@@ -199,42 +219,41 @@ def main():
         for pid in pid_list:
             if pid in filenames:
                 fileName = filenames[pid]
-                caplist = sorted( captions.get(pid, set()) )
-                srvlist = sorted( services.get(pid, set()) )
+                caplist = sorted(captions.get(pid, set()))
+                srvlist = sorted(services.get(pid, set()))
                 if options.windows and options.services:
                     if len(caplist) < len(srvlist):
-                        caplist.extend( [''] * (len(srvlist) - len(caplist)) )
+                        caplist.extend([""] * (len(srvlist) - len(caplist)))
                     elif len(srvlist) < len(caplist):
-                        srvlist.extend( [''] * (len(caplist) - len(srvlist)) )
+                        srvlist.extend([""] * (len(caplist) - len(srvlist)))
                     if len(caplist):
-                        table.addRow(' %d' % pid, fileName, caplist[0], srvlist[0])
+                        table.addRow(" %d" % pid, fileName, caplist[0], srvlist[0])
                         for i in range(1, len(caplist)):
-                            table.addRow('', '', caplist[i], srvlist[i])
+                            table.addRow("", "", caplist[i], srvlist[i])
                     else:
-                        table.addRow(' %d' % pid, fileName, '', '')
+                        table.addRow(" %d" % pid, fileName, "", "")
                 elif options.windows:
                     if len(caplist):
-                        table.addRow(' %d' % pid, fileName, caplist[0])
+                        table.addRow(" %d" % pid, fileName, caplist[0])
                         for i in range(1, len(caplist)):
-                            table.addRow('', '', caplist[i])
+                            table.addRow("", "", caplist[i])
                     else:
-                        table.addRow(' %d' % pid, fileName, '')
+                        table.addRow(" %d" % pid, fileName, "")
                 elif options.services:
                     if len(srvlist):
-                        table.addRow(' %d' % pid, fileName, srvlist[0])
+                        table.addRow(" %d" % pid, fileName, srvlist[0])
                         for i in range(1, len(srvlist)):
-                            table.addRow('', '', srvlist[i])
+                            table.addRow("", "", srvlist[i])
                     else:
-                        table.addRow(' %d' % pid, fileName, '')
+                        table.addRow(" %d" % pid, fileName, "")
                 else:
-                    table.addRow(' %d' % pid, fileName)
+                    table.addRow(" %d" % pid, fileName)
         table.justify(0, 1)
         if options.format == "auto" and table.getWidth() >= 80:
             options.format = "long"
         else:
             table.show()
     if options.format == "long":
-
         # If it doesn't fit, build a new table of only two rows. The first row
         # contains the headers and the second row the data. Insert an empty row
         # between each process.
@@ -250,20 +269,21 @@ def main():
                 fileName = filenames[pid]
                 if fileName:
                     table.addRow("Filename:", fileName)
-                caplist = sorted( captions.get(pid, set()) )
+                caplist = sorted(captions.get(pid, set()))
                 if caplist:
                     caption = caplist.pop(0)
                     table.addRow("Windows:", caption)
                     for caption in caplist:
-                        table.addRow('', caption)
-                srvlist = sorted( services.get(pid, set()) )
+                        table.addRow("", caption)
+                srvlist = sorted(services.get(pid, set()))
                 if srvlist:
                     srvname = srvlist.pop(0)
                     table.addRow("Services:", srvname)
                     for srvname in srvlist:
-                        table.addRow('', srvname)
+                        table.addRow("", srvname)
         table.justify(0, 1)
         table.show()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

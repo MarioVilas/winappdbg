@@ -46,24 +46,25 @@ Binary code disassembly.
 from __future__ import with_statement
 
 __all__ = [
-    'Disassembler',
-    'Engine',
-    'BeaEngine',
-    'CapstoneEngine',
-    'DistormEngine',
+    "Disassembler",
+    "Engine",
+    "BeaEngine",
+    "CapstoneEngine",
+    "DistormEngine",
 ]
 
-from .textio import HexDump
-from . import win32
-
 import warnings
+
+from . import win32
+from .textio import HexDump
 
 # lazy imports
 bea_disasm = None
 distorm3 = None
 capstone = None
 
-#==============================================================================
+# ==============================================================================
+
 
 class Engine:
     """
@@ -79,10 +80,10 @@ class Engine:
 
     name = "<insert engine name here>"
     desc = "<insert engine description here>"
-    url  = "<insert download url here>"
+    url = "<insert download url here>"
     supported = set()
 
-    def __init__(self, arch = None):
+    def __init__(self, arch=None):
         """
         :param str arch: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
@@ -98,7 +99,7 @@ class Engine:
             msg = msg % (self.name, self.url)
             raise NotImplementedError(msg)
 
-    def _validate_arch(self, arch = None):
+    def _validate_arch(self, arch=None):
         """
         :param str arch: Name of the processor architecture.
             If not provided the current processor architecture is assumed.
@@ -150,21 +151,25 @@ class Engine:
         """
         raise NotImplementedError()
 
-#==============================================================================
 
-class BeaEngine (Engine):
+# ==============================================================================
+
+
+class BeaEngine(Engine):
     """
     Integration with the BeaEngine disassembler by Beatrix.
     """
 
     name = "BeaEngine"
     desc = "BeaEngine disassembler by Beatrix"
-    url  = "https://github.com/BeaEngine/beaengine"
+    url = "https://github.com/BeaEngine/beaengine"
 
-    supported = set((
-        win32.ARCH_I386,
-        win32.ARCH_AMD64,
-    ))
+    supported = set(
+        (
+            win32.ARCH_I386,
+            win32.ARCH_AMD64,
+        )
+    )
 
     @classmethod
     def _import_dependencies(cls):
@@ -172,6 +177,7 @@ class BeaEngine (Engine):
         if bea_disasm is None:
             # Lazy import.
             from BeaEnginePython import Disasm
+
             bea_disasm = Disasm
 
     def __init__(self, arch=None):
@@ -210,43 +216,46 @@ class BeaEngine (Engine):
                         offset += size
                     else:
                         # Couldn't disassemble, treat as one byte.
-                        dump = code[offset:offset+1].hex()
-                        disasm = 'db 0x%s' % dump
+                        dump = code[offset : offset + 1].hex()
+                        disasm = "db 0x%s" % dump
                         result.append((current_address, 1, disasm, dump))
                         offset += 1
                 except Exception:
                     # Couldn't disassemble, treat as one byte.
-                    dump = code[offset:offset+1].hex()
-                    disasm = 'db 0x%s' % dump
+                    dump = code[offset : offset + 1].hex()
+                    disasm = "db 0x%s" % dump
                     result.append((current_address, 1, disasm, dump))
                     offset += 1
         return result
 
-#==============================================================================
 
-class DistormEngine (Engine):
+# ==============================================================================
+
+
+class DistormEngine(Engine):
     """
     Integration with the diStorm disassembler by Gil Dabah.
     """
 
     name = "diStorm"
     desc = "diStorm disassembler by Gil Dabah"
-    url  = "https://github.com/gdabah/distorm"
+    url = "https://github.com/gdabah/distorm"
 
-    supported = set((
-        win32.ARCH_I386,
-        win32.ARCH_AMD64,
-    ))
+    supported = set(
+        (
+            win32.ARCH_I386,
+            win32.ARCH_AMD64,
+        )
+    )
 
     @classmethod
     def _import_dependencies(cls):
-
         # Load the distorm bindings.
         global distorm3
         if distorm3 is None:
             import distorm3
 
-    def __init__(self, arch = None):
+    def __init__(self, arch=None):
         super().__init__(arch)
 
         # Load the decoder function.
@@ -254,65 +263,65 @@ class DistormEngine (Engine):
 
         # Load the bits flag.
         self.__flag = {
-            win32.ARCH_I386:  distorm3.Decode32Bits,
+            win32.ARCH_I386: distorm3.Decode32Bits,
             win32.ARCH_AMD64: distorm3.Decode64Bits,
         }[self.arch]
 
     def decode(self, address, code):
         return self.__decode(address, code, self.__flag)
 
-#==============================================================================
 
-class CapstoneEngine (Engine):
+# ==============================================================================
+
+
+class CapstoneEngine(Engine):
     """
     Integration with the Capstone disassembler by Nguyen Anh Quynh.
     """
 
     name = "Capstone"
     desc = "Capstone disassembler by Nguyen Anh Quynh"
-    url  = "http://www.capstone-engine.org/"
+    url = "http://www.capstone-engine.org/"
 
-    supported = set((
-        win32.ARCH_I386,
-        win32.ARCH_AMD64,
-        win32.ARCH_THUMB,
-        win32.ARCH_ARM,
-        win32.ARCH_ARM64,
-    ))
+    supported = set(
+        (
+            win32.ARCH_I386,
+            win32.ARCH_AMD64,
+            win32.ARCH_THUMB,
+            win32.ARCH_ARM,
+            win32.ARCH_ARM64,
+        )
+    )
 
     @classmethod
     def _import_dependencies(cls):
-
         # Load the Capstone bindings.
         global capstone
         if capstone is None:
             import capstone
 
-    def __init__(self, arch = None):
+    def __init__(self, arch=None):
         super().__init__(arch)
 
         # Load the constants for the requested architecture.
         self.__constants = {
-            win32.ARCH_I386:
-                (capstone.CS_ARCH_X86,   capstone.CS_MODE_32),
-            win32.ARCH_AMD64:
-                (capstone.CS_ARCH_X86,   capstone.CS_MODE_64),
-            win32.ARCH_THUMB:
-                (capstone.CS_ARCH_ARM,   capstone.CS_MODE_THUMB),
-            win32.ARCH_ARM:
-                (capstone.CS_ARCH_ARM,   capstone.CS_MODE_ARM),
-            win32.ARCH_ARM64:
-                (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
+            win32.ARCH_I386: (capstone.CS_ARCH_X86, capstone.CS_MODE_32),
+            win32.ARCH_AMD64: (capstone.CS_ARCH_X86, capstone.CS_MODE_64),
+            win32.ARCH_THUMB: (capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB),
+            win32.ARCH_ARM: (capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM),
+            win32.ARCH_ARM64: (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
         }
 
         # Test for the bug in early versions of Capstone.
         # If found, warn the user about it.
         try:
             self.__bug = not isinstance(
-                list(capstone.cs_disasm_quick(
-                    capstone.CS_ARCH_X86, capstone.CS_MODE_32, b"\x90", 1
-                ))[0],
-                capstone.capstone.CsInsn
+                list(
+                    capstone.cs_disasm_quick(
+                        capstone.CS_ARCH_X86, capstone.CS_MODE_32, b"\x90", 1
+                    )
+                )[0],
+                capstone.capstone.CsInsn,
             )
         except AttributeError:
             self.__bug = False
@@ -320,11 +329,11 @@ class CapstoneEngine (Engine):
             warnings.warn(
                 "This version of the Capstone bindings is unstable,"
                 " please upgrade to a newer one!",
-                RuntimeWarning, stacklevel=4)
-
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
     def decode(self, address, code):
-
         # Get the constants for the requested architecture.
         arch, mode = self.__constants[self.arch]
 
@@ -350,30 +359,28 @@ class CapstoneEngine (Engine):
         result = []
         offset = 0
         while offset < len(code):
-
             # Disassemble a single instruction, because disassembling multiple
             # instructions may cause excessive memory usage (Capstone allocates
             # approximately 1K of metadata per each decoded instruction).
             instr = None
             try:
-                instr = list(decoder(
-                    code[offset:offset+64], address+offset, 1
-                ))[0]
+                instr = list(decoder(code[offset : offset + 64], address + offset, 1))[
+                    0
+                ]
             except IndexError:
-                pass   # No instructions decoded.
+                pass  # No instructions decoded.
             except CsError:
-                pass   # Any other error.
+                pass  # Any other error.
 
             # On success add the decoded instruction.
             if instr is not None:
-
                 # Get the instruction length, mnemonic and operands.
                 # Copy the values quickly before someone overwrites them,
                 # if using the buggy version of the bindings (otherwise it's
                 # irrelevant in which order we access the properties).
-                length   = instr[1]
+                length = instr[1]
                 mnemonic = instr[2]
-                op_str   = instr[3]
+                op_str = instr[3]
 
                 # Concatenate the mnemonic and the operands.
                 if op_str:
@@ -382,12 +389,11 @@ class CapstoneEngine (Engine):
                     disasm = mnemonic
 
                 # Get the instruction bytes as a hexadecimal dump.
-                hexdump = HexDump.hexadecimal( code[offset:offset+length] )
+                hexdump = HexDump.hexadecimal(code[offset : offset + length])
 
             # On error add a "define constant" instruction.
             # The exact instruction depends on the architecture.
             else:
-
                 # The number of bytes to skip depends on the architecture.
                 # On Intel processors we'll skip one byte, since we can't
                 # really know the instruction length. On the rest of the
@@ -398,7 +404,7 @@ class CapstoneEngine (Engine):
                     length = 4
 
                 # Get the skipped bytes as a hexadecimal dump.
-                skipped = code[offset:offset+length]
+                skipped = code[offset : offset + length]
                 hexdump = HexDump.hexadecimal(skipped)
 
                 # Build the "define constant" instruction.
@@ -421,12 +427,14 @@ class CapstoneEngine (Engine):
                     disasm = op_str
 
             # Add the decoded instruction to the list.
-            result.append((
-                address + offset,
-                length,
-                disasm,
-                hexdump,
-            ))
+            result.append(
+                (
+                    address + offset,
+                    length,
+                    disasm,
+                    hexdump,
+                )
+            )
 
             # Update the offset.
             offset += length
@@ -434,10 +442,12 @@ class CapstoneEngine (Engine):
         # Return the list of decoded instructions.
         return result
 
-#==============================================================================
+
+# ==============================================================================
 
 # TODO: use a lock to access __decoder
 # TODO: look in sys.modules for whichever disassembler is already loaded
+
 
 class Disassembler:
     """
@@ -451,9 +461,9 @@ class Disassembler:
 
     # These are the supported disassembly engines.
     engines = (
-        CapstoneEngine, # most likely to be up to date along with diStorm
+        CapstoneEngine,  # most likely to be up to date along with diStorm
         DistormEngine,  # diStorm needs to be compiled, so less likely to work
-        BeaEngine,      # pip install may fail silently so I'm putting it last
+        BeaEngine,  # pip install may fail silently so I'm putting it last
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.
@@ -465,7 +475,7 @@ class Disassembler:
     # Cache of already loaded disassemblers.
     __decoder = {}
 
-    def __new__(cls, arch = None, engine = None):
+    def __new__(cls, arch=None, engine=None):
         """
         Factory class. You can't really instance a :class:`Disassembler`
         object, instead one of the adapter :class:`Engine` subclasses is

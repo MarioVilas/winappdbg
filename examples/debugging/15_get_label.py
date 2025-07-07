@@ -28,31 +28,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.system import System
 from winappdbg.process import Process
+from winappdbg.system import System
 
-def print_label( pid, address ):
 
+def print_label(pid, address):
     # Request debug privileges.
     System.request_debug_privileges()
 
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # Lookup it's modules.
     process.scan_modules()
 
     # Resolve the requested label address.
-    label = process.get_label_at_address( address )
+    label = process.get_label_at_address(address)
 
     # Print the label.
-    print("%s == 0x%.08x" % ( label, address ))
+    print("%s == 0x%.08x" % (label, address))
+
 
 # When invoked from the command line,
 # the first argument is a process ID,
 # the second argument is a remote pointer (in hexadecimal).
 if __name__ == "__main__":
     import sys
-    pid     = int( sys.argv[1] )
-    address = int( sys.argv[2], 16 )
-    print_label( pid, address )
+
+    pid = int(sys.argv[1])
+    address = int(sys.argv[2], 16)
+    print_label(pid, address)

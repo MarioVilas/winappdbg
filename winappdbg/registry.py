@@ -35,13 +35,15 @@ Registry access.
     Registry, RegistryKey
 """
 
-__all__ = ['Registry']
+__all__ = ["Registry"]
 
-from . import win32
 import collections
 import warnings
 
-#==============================================================================
+from . import win32
+
+# ==============================================================================
+
 
 class _RegistryContainer:
     """
@@ -51,6 +53,7 @@ class _RegistryContainer:
     # Dummy object to detect empty arguments.
     class __EmptyArgument:
         pass
+
     __emptyArgument = __EmptyArgument()
 
     def __init__(self):
@@ -70,7 +73,9 @@ class _RegistryContainer:
     def __iter__(self):
         return self.keys()
 
-#==============================================================================
+
+# ==============================================================================
+
 
 class RegistryKey(_RegistryContainer):
     """
@@ -91,9 +96,9 @@ class RegistryKey(_RegistryContainer):
         :param ~win32.RegistryKeyHandle handle: Registry key handle.
         """
         super().__init__()
-        if path.endswith('\\'):
+        if path.endswith("\\"):
             path = path[:-1]
-        self._path   = path
+        self._path = path
         self._handle = handle
 
     @property
@@ -102,7 +107,7 @@ class RegistryKey(_RegistryContainer):
 
     @property
     def handle(self):
-        #if not self._handle:
+        # if not self._handle:
         #    msg = "This Registry key handle has already been closed."
         #    raise RuntimeError(msg)
         return self._handle
@@ -198,9 +203,9 @@ class RegistryKey(_RegistryContainer):
 
     def __str__(self):
         try:
-            return str(self[''])
+            return str(self[""])
         except KeyError:
-            return ''
+            return ""
 
     def __repr__(self):
         return '<Registry key: "%s">' % self._path
@@ -238,7 +243,7 @@ class RegistryKey(_RegistryContainer):
         :rtype: :class:`RegistryKey`
         :return: Subkey.
         """
-        path = self._path + '\\' + subkey
+        path = self._path + "\\" + subkey
         handle = win32.RegOpenKey(self.handle, subkey)
         return RegistryKey(path, handle)
 
@@ -254,7 +259,8 @@ class RegistryKey(_RegistryContainer):
         """
         win32.RegFlushKey(self.handle)
 
-#==============================================================================
+
+# ==============================================================================
 
 # TODO: possibly cache the RegistryKey objects
 # to avoid opening and closing handles many times on code sequences like this:
@@ -274,6 +280,7 @@ class RegistryKey(_RegistryContainer):
 # Apparently RegDeleteTree won't work remotely from Win7 to WinXP, and the only
 # solution is to recursively call RegDeleteKey.
 
+
 class Registry(_RegistryContainer):
     """
     Exposes the Windows Registry as a Python container.
@@ -284,36 +291,34 @@ class Registry(_RegistryContainer):
     """
 
     _hives_by_name = {
-
         # Short names
-        'HKCR' : win32.HKEY_CLASSES_ROOT,
-        'HKCU' : win32.HKEY_CURRENT_USER,
-        'HKLM' : win32.HKEY_LOCAL_MACHINE,
-        'HKU'  : win32.HKEY_USERS,
-        'HKPD' : win32.HKEY_PERFORMANCE_DATA,
-        'HKCC' : win32.HKEY_CURRENT_CONFIG,
-
+        "HKCR": win32.HKEY_CLASSES_ROOT,
+        "HKCU": win32.HKEY_CURRENT_USER,
+        "HKLM": win32.HKEY_LOCAL_MACHINE,
+        "HKU": win32.HKEY_USERS,
+        "HKPD": win32.HKEY_PERFORMANCE_DATA,
+        "HKCC": win32.HKEY_CURRENT_CONFIG,
         # Long names
-        'HKEY_CLASSES_ROOT'     : win32.HKEY_CLASSES_ROOT,
-        'HKEY_CURRENT_USER'     : win32.HKEY_CURRENT_USER,
-        'HKEY_LOCAL_MACHINE'    : win32.HKEY_LOCAL_MACHINE,
-        'HKEY_USERS'            : win32.HKEY_USERS,
-        'HKEY_PERFORMANCE_DATA' : win32.HKEY_PERFORMANCE_DATA,
-        'HKEY_CURRENT_CONFIG'   : win32.HKEY_CURRENT_CONFIG,
+        "HKEY_CLASSES_ROOT": win32.HKEY_CLASSES_ROOT,
+        "HKEY_CURRENT_USER": win32.HKEY_CURRENT_USER,
+        "HKEY_LOCAL_MACHINE": win32.HKEY_LOCAL_MACHINE,
+        "HKEY_USERS": win32.HKEY_USERS,
+        "HKEY_PERFORMANCE_DATA": win32.HKEY_PERFORMANCE_DATA,
+        "HKEY_CURRENT_CONFIG": win32.HKEY_CURRENT_CONFIG,
     }
 
     _hives_by_value = {
-        win32.HKEY_CLASSES_ROOT     : 'HKEY_CLASSES_ROOT',
-        win32.HKEY_CURRENT_USER     : 'HKEY_CURRENT_USER',
-        win32.HKEY_LOCAL_MACHINE    : 'HKEY_LOCAL_MACHINE',
-        win32.HKEY_USERS            : 'HKEY_USERS',
-        win32.HKEY_PERFORMANCE_DATA : 'HKEY_PERFORMANCE_DATA',
-        win32.HKEY_CURRENT_CONFIG   : 'HKEY_CURRENT_CONFIG',
+        win32.HKEY_CLASSES_ROOT: "HKEY_CLASSES_ROOT",
+        win32.HKEY_CURRENT_USER: "HKEY_CURRENT_USER",
+        win32.HKEY_LOCAL_MACHINE: "HKEY_LOCAL_MACHINE",
+        win32.HKEY_USERS: "HKEY_USERS",
+        win32.HKEY_PERFORMANCE_DATA: "HKEY_PERFORMANCE_DATA",
+        win32.HKEY_CURRENT_CONFIG: "HKEY_CURRENT_CONFIG",
     }
 
     _hives = sorted(_hives_by_value.values())
 
-    def __init__(self, machine = None):
+    def __init__(self, machine=None):
         """
         Opens a local or remote registry.
 
@@ -342,14 +347,14 @@ class Registry(_RegistryContainer):
              - :const:`~.win32.HKEY_PERFORMANCE_DATA`
              - :const:`~.win32.HKEY_CURRENT_CONFIG`
         """
-        if '\\' in path:
-            p = path.find('\\')
+        if "\\" in path:
+            p = path.find("\\")
             hive = path[:p]
-            path = path[p+1:]
+            path = path[p + 1 :]
         else:
             hive = path
             path = None
-        handle = self._hives_by_name[ hive.upper() ]
+        handle = self._hives_by_name[hive.upper()]
         return handle, path
 
     def _parse_path(self, path):
@@ -386,7 +391,7 @@ class Registry(_RegistryContainer):
         """
         path = self._hives_by_value[hive]
         if subkey:
-            path = path + '\\' + subkey
+            path = path + "\\" + subkey
         return path
 
     def _sanitize_path(self, path):
@@ -397,7 +402,7 @@ class Registry(_RegistryContainer):
         :rtype: str
         :return: Registry path.
         """
-        return self._join_path( *self._split_path(path) )
+        return self._join_path(*self._split_path(path))
 
     def _connect_hive(self, hive):
         """
@@ -449,7 +454,7 @@ class Registry(_RegistryContainer):
     def __repr__(self):
         if self._machine:
             return '<Remote Registry at "%s">' % self._machine
-        return '<Local Registry>'
+        return "<Local Registry>"
 
     def __contains__(self, path):
         hive, subpath = self._parse_path(path)
@@ -494,7 +499,8 @@ class Registry(_RegistryContainer):
         if not subpath:
             raise TypeError(
                 "Are you SURE you want to wipe out an entire hive?!"
-                " Call win32.RegDeleteTree() directly if you must...")
+                " Call win32.RegDeleteTree() directly if you must..."
+            )
         try:
             win32.RegDeleteTree(hive, subpath)
         except WindowsError as e:
@@ -544,7 +550,7 @@ class Registry(_RegistryContainer):
         :return: Recursive iterator that returns Registry key paths.
         :raises KeyError: The specified path does not exist.
         """
-        if path.endswith('\\'):
+        if path.endswith("\\"):
             path = path[:-1]
         if path not in self:
             raise KeyError(path)
@@ -568,6 +574,6 @@ class Registry(_RegistryContainer):
                 subkeys = self.subkeys(path)
             except WindowsError:
                 continue
-            prefix = path + '\\'
+            prefix = path + "\\"
             subkeys = [prefix + name for name in subkeys]
             stack.extendleft(subkeys)

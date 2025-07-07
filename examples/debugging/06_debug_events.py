@@ -28,12 +28,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from winappdbg import win32
 from winappdbg.debug import Debug
 from winappdbg.textio import HexDump
-from winappdbg import win32
 
-def my_event_handler( event ):
 
+def my_event_handler(event):
     # Get the process ID where the event occured.
     pid = event.get_pid()
 
@@ -54,7 +54,6 @@ def my_event_handler( event ):
 
     # If the event is an exception...
     if code == win32.EXCEPTION_DEBUG_EVENT:
-
         # Get the exception user-friendly description.
         name = event.get_exception_description()
 
@@ -69,34 +68,36 @@ def my_event_handler( event ):
 
     # If the event is a process creation or destruction,
     # or a DLL being loaded or unloaded...
-    elif code in ( win32.CREATE_PROCESS_DEBUG_EVENT,
-                   win32.EXIT_PROCESS_DEBUG_EVENT,
-                   win32.LOAD_DLL_DEBUG_EVENT,
-                   win32.UNLOAD_DLL_DEBUG_EVENT ):
-
+    elif code in (
+        win32.CREATE_PROCESS_DEBUG_EVENT,
+        win32.EXIT_PROCESS_DEBUG_EVENT,
+        win32.LOAD_DLL_DEBUG_EVENT,
+        win32.UNLOAD_DLL_DEBUG_EVENT,
+    ):
         # Get the filename.
         filename = event.get_filename()
         if filename:
-            name = "%s [%s]" % ( name, filename )
+            name = "%s [%s]" % (name, filename)
 
     # Show a descriptive message to the user.
     print("-" * 79)
     format_string = "%s (0x%s) at address 0x%s, process %d, thread %d"
-    message = format_string % ( name,
-                                HexDump.integer(code, bits),
-                                HexDump.address(address, bits),
-                                pid,
-                                tid )
+    message = format_string % (
+        name,
+        HexDump.integer(code, bits),
+        HexDump.address(address, bits),
+        pid,
+        tid,
+    )
     print(message)
 
-def simple_debugger( argv ):
 
+def simple_debugger(argv):
     # Instance a Debug object, passing it the event handler callback.
-    debug = Debug( my_event_handler, bKillOnExit = True )
+    debug = Debug(my_event_handler, bKillOnExit=True)
     try:
-
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Wait for the debugee to finish.
         debug.loop()
@@ -105,9 +106,11 @@ def simple_debugger( argv ):
     finally:
         debug.stop()
 
+
 # When invoked from the command line,
 # the first argument is an executable file,
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    simple_debugger( sys.argv[1:] )
+
+    simple_debugger(sys.argv[1:])

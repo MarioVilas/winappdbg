@@ -28,19 +28,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.debug import Debug
-
 import sys
 
+from winappdbg.debug import Debug
+
 # Get the process ID from the command line.
-pid = int( sys.argv[1] )
+pid = int(sys.argv[1])
 
 # Instance a Debug object.
 debug = Debug()
 try:
-
     # Attach to a running process.
-    debug.attach( pid )
+    debug.attach(pid)
 
     # Wait for the debugee to finish.
     debug.loop()

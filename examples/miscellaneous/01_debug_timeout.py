@@ -28,16 +28,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from sys import argv
+from time import time
+
+from winappdbg import win32
 from winappdbg.debug import Debug
 from winappdbg.system import System
-from winappdbg import win32
-
-from time import time
-from sys import argv
 
 # Using the Debug object in a "with" context ensures proper cleanup.
 with Debug(bKillOnExit=True) as dbg:
-
     # Run the target program.
     dbg.execv(argv[1:])
 
@@ -51,7 +50,6 @@ with Debug(bKillOnExit=True) as dbg:
     # Loop while calc.exe is alive and the time limit wasn't reached.
     while dbg and time() < maxTime:
         try:
-
             # Get the next debug event.
             dbg.wait(1000)  # 1 second accuracy
 
@@ -61,8 +59,7 @@ with Debug(bKillOnExit=True) as dbg:
         # If wait() times out just try again.
         # On any other error stop debugging.
         except WindowsError as e:
-            if e.winerror in (win32.ERROR_SEM_TIMEOUT,
-                              win32.WAIT_TIMEOUT):
+            if e.winerror in (win32.ERROR_SEM_TIMEOUT, win32.WAIT_TIMEOUT):
                 continue
             raise
 

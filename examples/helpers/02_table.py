@@ -34,21 +34,21 @@ from winappdbg.textio import Table
 table = Table()
 
 # Add a few rows.
-table.addRow( "Right justified column text", "Left justified column text" )
-table.addRow( "---------------------------", "--------------------------" )
-table.addRow( "example", "text" )
-table.addRow( "jabberwocky", "snark" )
-table.addRow( "Trillian", "Zaphod", "Arthur Dent" )     # one extra!
-table.addRow( "Dalek", "Cyberman" )
+table.addRow("Right justified column text", "Left justified column text")
+table.addRow("---------------------------", "--------------------------")
+table.addRow("example", "text")
+table.addRow("jabberwocky", "snark")
+table.addRow("Trillian", "Zaphod", "Arthur Dent")  # one extra!
+table.addRow("Dalek", "Cyberman")
 
 # By default all columns are left justified. Let's change that.
-table.justify( 0, 1 )  # column 0 is now right justified
+table.justify(0, 1)  # column 0 is now right justified
 
 # Let's find out how wide the table is.
 print("Table width: %d" % table.getWidth())
 
 # Let's find out how many bytes would it be if written to a file.
-print("Text size in characters: %d" % len( table.getOutput() ))
+print("Text size in characters: %d" % len(table.getOutput()))
 
 # Show the table contents on screen.
 print()

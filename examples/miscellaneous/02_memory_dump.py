@@ -28,15 +28,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import ntpath
+import sqlite3
 import sys
 import zlib
-import ntpath
 
+from winappdbg import win32
 from winappdbg.system import System
 from winappdbg.textio import HexDump
-from winappdbg import win32
-
-import sqlite3
 
 # Error out if no arguments were given.
 if len(sys.argv) < 2:
@@ -52,16 +51,16 @@ system.scan_processes()
 for filename in sys.argv[1:]:
     print("Looking for: %s" % filename)
     for process, pathname in system.find_processes_by_filename(filename):
-        pid  = process.get_pid()
+        pid = process.get_pid()
         bits = process.get_bits()
         print("Dumping memory for process ID %d (%d bits)" % (pid, bits))
 
         # Parse the database filename.
-        dbfile   = '%d.db' % pid
+        dbfile = "%d.db" % pid
         if ntpath.exists(dbfile):
             counter = 1
             while True:
-                dbfile = '%d_%.3d.db' % (pid, counter)
+                dbfile = "%d_%.3d.db" % (pid, counter)
                 if not ntpath.exists(dbfile):
                     break
                 counter += 1
@@ -70,7 +69,7 @@ for filename in sys.argv[1:]:
 
         # Connect to the database and get a cursor.
         database = sqlite3.connect(dbfile)
-        cursor   = database.cursor()
+        cursor = database.cursor()
 
         # Create the table for the memory map.
         cursor.execute("""
@@ -86,31 +85,30 @@ for filename in sys.argv[1:]:
         """)
 
         # Get a memory map of the process.
-        memoryMap       = process.get_memory_map()
+        memoryMap = process.get_memory_map()
         mappedFilenames = process.get_mapped_filenames(memoryMap)
 
         # For each memory block in the map...
         for mbi in memoryMap:
-
             # Address and size of memory block.
             BaseAddress = mbi.BaseAddress
-            RegionSize  = mbi.RegionSize
+            RegionSize = mbi.RegionSize
 
             # State (free or allocated).
-            if   mbi.State == win32.MEM_RESERVE:
-                State   = "Reserved"
+            if mbi.State == win32.MEM_RESERVE:
+                State = "Reserved"
             elif mbi.State == win32.MEM_COMMIT:
-                State   = "Commited"
+                State = "Commited"
             elif mbi.State == win32.MEM_FREE:
-                State   = "Free"
+                State = "Free"
             else:
-                State   = "Unknown"
+                State = "Unknown"
 
             # Page protection bits (R/W/X/G).
             if mbi.State != win32.MEM_COMMIT:
                 Protect = ""
             else:
-                if   mbi.Protect & win32.PAGE_NOACCESS:
+                if mbi.Protect & win32.PAGE_NOACCESS:
                     Protect = "--- "
                 elif mbi.Protect & win32.PAGE_READONLY:
                     Protect = "R-- "
@@ -128,30 +126,30 @@ for filename in sys.argv[1:]:
                     Protect = "RCX "
                 else:
                     Protect = "??? "
-                if   mbi.Protect & win32.PAGE_GUARD:
+                if mbi.Protect & win32.PAGE_GUARD:
                     Protect += "G"
                 else:
                     Protect += "-"
-                if   mbi.Protect & win32.PAGE_NOCACHE:
+                if mbi.Protect & win32.PAGE_NOCACHE:
                     Protect += "N"
                 else:
                     Protect += "-"
-                if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+                if mbi.Protect & win32.PAGE_WRITECOMBINE:
                     Protect += "W"
                 else:
                     Protect += "-"
 
             # Type (file mapping, executable image, or private memory).
-            if   mbi.Type == win32.MEM_IMAGE:
-                Type    = "Image"
+            if mbi.Type == win32.MEM_IMAGE:
+                Type = "Image"
             elif mbi.Type == win32.MEM_MAPPED:
-                Type    = "Mapped"
+                Type = "Mapped"
             elif mbi.Type == win32.MEM_PRIVATE:
-                Type    = "Private"
+                Type = "Private"
             elif mbi.Type == 0:
-                Type    = ""
+                Type = ""
             else:
-                Type    = "Unknown"
+                Type = "Unknown"
 
             # Mapped file name, if any.
             FileName = mappedFilenames.get(BaseAddress, None)
@@ -159,17 +157,20 @@ for filename in sys.argv[1:]:
             # Read the data contained in the memory block, if any.
             Data = None
             if mbi.has_content():
-                print('Reading %s-%s' % (
-                    HexDump.address(BaseAddress, bits),
-                    HexDump.address(BaseAddress + RegionSize, bits)
-                ))
+                print(
+                    "Reading %s-%s"
+                    % (
+                        HexDump.address(BaseAddress, bits),
+                        HexDump.address(BaseAddress + RegionSize, bits),
+                    )
+                )
                 Data = process.read(BaseAddress, RegionSize)
                 Data = zlib.compress(Data, zlib.Z_BEST_COMPRESSION)
 
             # Output a row in the table.
             cursor.execute(
-                'INSERT INTO MemoryMap VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (BaseAddress, RegionSize, State, Protect, Type, FileName, Data)
+                "INSERT INTO MemoryMap VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (BaseAddress, RegionSize, State, Protect, Type, FileName, Data),
             )
 
         # Commit the changes, close the cursor and the database.

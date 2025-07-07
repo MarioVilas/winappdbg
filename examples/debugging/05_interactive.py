@@ -30,14 +30,13 @@
 
 from winappdbg.debug import Debug
 
-def simple_debugger( argv ):
 
+def simple_debugger(argv):
     # Instance a Debug object.
     debug = Debug()
     try:
-
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Launch the interactive debugger.
         debug.interactive()
@@ -46,9 +45,11 @@ def simple_debugger( argv ):
     finally:
         debug.stop()
 
+
 # When invoked from the command line,
 # the first argument is an executable file,
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    simple_debugger( sys.argv[1:] )
+
+    simple_debugger(sys.argv[1:])

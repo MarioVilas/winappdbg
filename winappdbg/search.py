@@ -33,20 +33,20 @@
 Process memory search.
 """
 
-__all__ =   [
-                'Search',
-                'Pattern',
-                'StringPattern',
-                'IStringPattern',
-                'HexPattern',
-                'MemoryAccessWarning',
-            ]
-
-from .textio import HexInput, HexDump
-from .util import StaticClass, MemoryAddresses
-from . import win32
+__all__ = [
+    "Search",
+    "Pattern",
+    "StringPattern",
+    "IStringPattern",
+    "HexPattern",
+    "MemoryAccessWarning",
+]
 
 import warnings
+
+from . import win32
+from .textio import HexDump, HexInput
+from .util import MemoryAddresses, StaticClass
 
 try:
     # http://pypi.python.org/pypi/regex
@@ -54,7 +54,8 @@ try:
 except ImportError:
     import re
 
-#==============================================================================
+# ==============================================================================
+
 
 class MemoryAccessWarning(RuntimeWarning):
     """
@@ -62,7 +63,9 @@ class MemoryAccessWarning(RuntimeWarning):
     be safely ignored in most cases.
     """
 
-#==============================================================================
+
+# ==============================================================================
+
 
 class Pattern:
     """
@@ -82,22 +85,22 @@ class Pattern:
             Its exact meaning and format depends on the subclass.
         """
         self.pattern = pattern
-        self.start   = None
-        self.end     = None
-        self.data    = None
-        self.result  = None
-        self.pos     = 0
+        self.start = None
+        self.end = None
+        self.data = None
+        self.result = None
+        self.pos = 0
 
     def reset(self):
         """
         Used internally to reset the internal state of the search engine.
         Subclasses don't normally need to reimplement this method.
         """
-        self.start   = None
-        self.end     = None
-        self.data    = None
-        self.result  = None
-        self.pos     = 0
+        self.start = None
+        self.end = None
+        self.data = None
+        self.result = None
+        self.pos = 0
 
     def shift(self, delta):
         """
@@ -107,11 +110,11 @@ class Pattern:
         :type  delta: int
         :param delta: Delta offset.
         """
-        self.start   = None
-        self.end     = None
-        self.data    = None
-        self.result  = None
-        self.pos     = self.pos - delta
+        self.start = None
+        self.end = None
+        self.data = None
+        self.result = None
+        self.pos = self.pos - delta
         if self.pos < 0:
             self.pos = 0
 
@@ -137,7 +140,7 @@ class Pattern:
             self.reset()
         else:
             self.end = self.start + len(self)
-            self.result = (address + self.start, data[ self.start : self.end ])
+            self.result = (address + self.start, data[self.start : self.end])
             if overlapping:
                 self.pos = self.start + 1
             else:
@@ -161,7 +164,9 @@ class Pattern:
         """
         raise NotImplementedError()
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+
 
 class StringPattern(Pattern):
     """
@@ -180,7 +185,9 @@ class StringPattern(Pattern):
     def next_match(self):
         return self.data.find(self.pattern, self.pos)
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+
 
 class IStringPattern(Pattern):
     """
@@ -199,7 +206,9 @@ class IStringPattern(Pattern):
     def next_match(self):
         return self.data.lower().find(self.pattern, self.pos)
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+
 
 class HexPattern(Pattern):
     """
@@ -245,21 +254,23 @@ class HexPattern(Pattern):
         super().__init__(pattern)
         if not HexInput.is_pattern(pattern):
             raise ValueError("Invalid hexadecimal pattern: %r" % pattern)
-        self.length   = HexInput.get_pattern_length(pattern)
-        self.compiled = re.compile( HexInput.pattern(pattern), re.DOTALL )
+        self.length = HexInput.get_pattern_length(pattern)
+        self.compiled = re.compile(HexInput.pattern(pattern), re.DOTALL)
 
     def __len__(self):
         return self.length
 
     def next_match(self):
-        match = self.compiled.search( self.data[ self.pos : ] )
+        match = self.compiled.search(self.data[self.pos :])
         if match is not None:
             return match.start() + self.pos
         return -1
 
-#==============================================================================
 
-class Search (StaticClass):
+# ==============================================================================
+
+
+class Search(StaticClass):
     """
     Static class to group the search functionality.
 
@@ -267,10 +278,15 @@ class Search (StaticClass):
     """
 
     @classmethod
-    def search_process(cls, process, patterns, minAddr = None,
-                                               maxAddr = None,
-                                               bufferPages = None,
-                                               overlapping = True):
+    def search_process(
+        cls,
+        process,
+        patterns,
+        minAddr=None,
+        maxAddr=None,
+        bufferPages=None,
+        overlapping=True,
+    ):
         """
         Search for the given string or pattern within the process memory.
 
@@ -351,9 +367,8 @@ class Search (StaticClass):
         # Get a list of allocated memory regions.
         memory = list()
         for mbi in process.get_memory_map(minAddr, maxAddr):
-            if mbi.State == win32.MEM_COMMIT and \
-                                        not mbi.Protect & win32.PAGE_GUARD:
-                memory.append( (mbi.BaseAddress, mbi.RegionSize) )
+            if mbi.State == win32.MEM_COMMIT and not mbi.Protect & win32.PAGE_GUARD:
+                memory.append((mbi.BaseAddress, mbi.RegionSize))
 
         # If default buffer allocation is requested, calculate it.
         # We want one more page than the minimum required to allocate the
@@ -362,23 +377,25 @@ class Search (StaticClass):
         # (We can't do it with 1 page - the target may be between pages!)
         if bufferPages is None or bufferPages == 0:
             bufferPages = MemoryAddresses.get_buffer_size_in_pages(
-                0, sorted(map(len, patterns))[-1] + 1)
+                0, sorted(map(len, patterns))[-1] + 1
+            )
 
         # If no allocation limit is set,
         # read entire regions and search on them.
         if bufferPages <= 0:
-            for (address, size) in memory:
+            for address, size in memory:
                 try:
                     data = process.read(address, size)
                 except WindowsError as e:
                     begin = HexDump.address(address)
-                    end   = HexDump.address(address + size)
-                    msg   = "Error reading %s-%s: %s"
-                    msg   = msg % (begin, end, str(e))
+                    end = HexDump.address(address + size)
+                    msg = "Error reading %s-%s: %s"
+                    msg = msg % (begin, end, str(e))
                     warnings.warn(msg, MemoryAccessWarning)
                     continue
                 for result in cls._search_block(
-                            process, patterns, data, address, 0, overlapping):
+                    process, patterns, data, address, 0, overlapping
+                ):
                     yield result
 
         # If an allocation limit is set,
@@ -386,27 +403,27 @@ class Search (StaticClass):
         else:
             step = MemoryAddresses.pageSize
             size = step * bufferPages
-            for (address, total_size) in memory:
+            for address, total_size in memory:
                 try:
-                    end    = address + total_size
-                    shift  = 0
+                    end = address + total_size
+                    shift = 0
                     buffer = process.read(address, min(size, total_size))
                     while True:
                         for result in cls._search_block(
-                                    process, patterns, buffer,
-                                    address, shift, overlapping):
+                            process, patterns, buffer, address, shift, overlapping
+                        ):
                             yield result
-                        shift   = step
+                        shift = step
                         address = address + step
                         if address >= end:
                             break
-                        buffer  = buffer[step:]
-                        buffer  = buffer + process.read(address, step)
+                        buffer = buffer[step:]
+                        buffer = buffer + process.read(address, step)
                 except WindowsError as e:
                     begin = HexDump.address(address)
-                    end   = HexDump.address(address + total_size)
-                    msg   = "Error reading %s-%s: %s"
-                    msg   = msg % (begin, end, str(e))
+                    end = HexDump.address(address + total_size)
+                    msg = "Error reading %s-%s: %s"
+                    msg = msg % (begin, end, str(e))
                     warnings.warn(msg, MemoryAccessWarning)
 
     @staticmethod

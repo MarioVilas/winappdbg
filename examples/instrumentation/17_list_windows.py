@@ -38,12 +38,19 @@ system = System()
 
 # Now we can enumerate the top-level windows.
 for window in system.get_windows():
-    handle  = HexDump.integer( window.get_handle() )
+    handle = HexDump.integer(window.get_handle())
     caption = window.get_text()
     if caption is not None:
         try:
             print("%s:\t%s" % (handle, caption))
         except UnicodeEncodeError:
             # Handle encoding errors by replacing problematic characters
-            print("%s:\t%s" % (handle, caption.encode(sys.stdout.encoding or 'utf-8',
-                                                     errors='replace').decode(sys.stdout.encoding or 'utf-8')))
+            print(
+                "%s:\t%s"
+                % (
+                    handle,
+                    caption.encode(
+                        sys.stdout.encoding or "utf-8", errors="replace"
+                    ).decode(sys.stdout.encoding or "utf-8"),
+                )
+            )

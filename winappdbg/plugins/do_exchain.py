@@ -30,7 +30,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg import HexDump, Table
+from winappdbg.textio import HexDump, Table
+
 
 def do(self, arg):
     """.exchain - Show the SEH chain
@@ -43,9 +44,9 @@ def do(self, arg):
     table = Table()
     table.addRow("Block", "Function")
     bits = thread.get_bits()
-    for (seh, seh_func) in thread.get_seh_chain():
+    for seh, seh_func in thread.get_seh_chain():
         if seh is not None:
-            seh      = HexDump.address(seh, bits)
+            seh = HexDump.address(seh, bits)
         if seh_func is not None:
             seh_func = HexDump.address(seh_func, bits)
         table.addRow(seh, seh_func)

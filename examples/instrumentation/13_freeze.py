@@ -31,13 +31,13 @@
 from winappdbg.process import Process
 from winappdbg.system import System
 
-def freeze_threads( pid ):
 
+def freeze_threads(pid):
     # Request debug privileges.
     System.request_debug_privileges()
 
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # This would also do the trick...
     #
@@ -50,17 +50,16 @@ def freeze_threads( pid ):
 
     # For each thread in the process...
     for thread in process.iter_threads():
-
         # Suspend the thread execution.
         thread.suspend()
 
-def unfreeze_threads( pid ):
 
+def unfreeze_threads(pid):
     # Request debug privileges.
     System.request_debug_privileges()
 
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # This would also do the trick...
     #
@@ -73,21 +72,22 @@ def unfreeze_threads( pid ):
 
     # For each thread in the process...
     for thread in process.iter_threads():
-
         # Resume the thread execution.
         thread.resume()
+
 
 # When invoked from the command line,
 # the first argument is either "f" or "u"
 # the second argument is a process ID.
 if __name__ == "__main__":
     import sys
+
     command = sys.argv[1][0].lower()
-    pid = int( sys.argv[2] )
-    if command == 'f':
-        freeze_threads( pid )
-    elif command == 'u':
-        unfreeze_threads( pid )   # to reverse the effect
+    pid = int(sys.argv[2])
+    if command == "f":
+        freeze_threads(pid)
+    elif command == "u":
+        unfreeze_threads(pid)  # to reverse the effect
     else:
         script = sys.argv[0]
         print("%s f <pid> - freeze a process" % script)

@@ -33,14 +33,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import os
+import sys
+from sys import exit
+
 from winappdbg import win32
 from winappdbg.process import Process
 from winappdbg.system import System
 from winappdbg.textio import HexInput
 
-import os
-import sys
-from sys import exit
 
 def main():
     argv = sys.argv
@@ -51,12 +52,13 @@ def main():
     print("by Mario Vilas (mvilas at gmail.com)")
     print()
 
-    if len(params) == 0 or '-h' in params or '--help' in params or \
-                                                     '/?' in params:
+    if len(params) == 0 or "-h" in params or "--help" in params or "/?" in params:
         print("Usage:")
         print("    %s <process ID or name> [process ID or name...]" % script)
         print()
-        print("If a process name is given instead of an ID all matching processes are killed.")
+        print(
+            "If a process name is given instead of an ID all matching processes are killed."
+        )
         exit()
 
     # Scan for active processes.
@@ -80,7 +82,7 @@ def main():
             if not matched:
                 print("Error: process not found: %s" % token)
                 exit()
-            for (process, name) in matched:
+            for process, name in matched:
                 targets.add(process.get_pid())
         else:
             if not s.has_process(pid):
@@ -123,17 +125,23 @@ def main():
             process = Process(pid)
             process.scan_modules()
             try:
-                module = process.get_module_by_name('kernel32')
-                pExitProcess = module.resolve('ExitProcess')
+                module = process.get_module_by_name("kernel32")
+                pExitProcess = module.resolve("ExitProcess")
                 try:
                     process.start_thread(pExitProcess, -1)
                     next_targets.pop()
                     count += 1
                     print("Forced process %d exit" % pid)
                 except WindowsError as e:
-                    print("Warning: call to CreateRemoteThread() failed %d: %s" % (pid, str(e)))
+                    print(
+                        "Warning: call to CreateRemoteThread() failed %d: %s"
+                        % (pid, str(e))
+                    )
             except WindowsError as e:
-                print("Warning: resolving address of ExitProcess() failed %d: %s" % (pid, str(e)))
+                print(
+                    "Warning: resolving address of ExitProcess() failed %d: %s"
+                    % (pid, str(e))
+                )
         except WindowsError as e:
             print("Warning: scanning for loaded modules failed %d: %s" % (pid, str(e)))
     targets = next_targets
@@ -179,5 +187,6 @@ def main():
     # This will kill all the processes we have attached to.
     exit()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

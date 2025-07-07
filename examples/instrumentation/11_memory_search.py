@@ -31,27 +31,29 @@
 # The WinAppDbg search engine will issue a warning if there is some part of
 # the process memory that cannot be read. We will ignore them for now.
 import warnings
-warnings.simplefilter("ignore")
 
 from winappdbg.process import Process
 from winappdbg.textio import HexDump
 
-def memory_search( pid, bytestr ):
+warnings.simplefilter("ignore")
 
+
+def memory_search(pid, bytestr):
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # Search for the string in the process memory.
-    for address in process.search_bytes( bytestr ):
-
+    for address in process.search_bytes(bytestr):
         # Print the memory address where it was found.
-        print(HexDump.address( address ))
+        print(HexDump.address(address))
+
 
 # When invoked from the command line,
 # the first argument is a process ID,
 # the second argument is a DLL filename.
 if __name__ == "__main__":
     import sys
-    pid   = int( sys.argv[1] )
-    bytestr = sys.argv[2].encode('latin-1')
-    memory_search( pid, bytestr )
+
+    pid = int(sys.argv[1])
+    bytestr = sys.argv[2].encode("latin-1")
+    memory_search(pid, bytestr)

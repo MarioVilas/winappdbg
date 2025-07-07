@@ -30,60 +30,59 @@
 
 import struct
 
-from winappdbg.system import System
 from winappdbg import win32
+from winappdbg.system import System
 
-#RegistryEditorVersion = "REGEDIT4"  # for Windows 95
+# RegistryEditorVersion = "REGEDIT4"  # for Windows 95
 RegistryEditorVersion = "Windows Registry Editor Version 5.00"
+
 
 # Helper function to serialize data to hexadecimal format.
 def reg_hexa(value, type):
-    return "hex(%x):%s" % (type, ",".join( ["%.2x" % x for x in value] ))
+    return "hex(%x):%s" % (type, ",".join(["%.2x" % x for x in value]))
+
 
 # Registry export function.
-def reg_export( reg_path, filename ):
-
+def reg_export(reg_path, filename):
     # Queue of registry keys to visit.
     queue = []
 
     # Get the registry key the user requested.
-    key = System.registry[ reg_path ]
+    key = System.registry[reg_path]
 
     # Add it to the queue.
-    queue.append( key )
+    queue.append(key)
 
     # Open the output file.
     with open(filename, "w", encoding="utf-16") as output:
-
         # Write the file format header.
-        output.write( "%s\n" % RegistryEditorVersion )
+        output.write("%s\n" % RegistryEditorVersion)
 
         # For each registry key in the queue...
         while queue:
             key = queue.pop()
 
             # Write the key path.
-            output.write( "\n[%s]\n" % key.path )
+            output.write("\n[%s]\n" % key.path)
 
             # If there's a default value, write it.
             default = str(key)
             if default:
-                output.write( "@=\"%s\"\n" % default )
+                output.write('@="%s"\n' % default)
 
             # For each value in the key...
             for name, value in key.items():
-
                 # Skip the default value since we already wrote it.
                 if not name:
                     continue
 
                 # Serialize the name.
-                s_name = "\"%s\"" % name
+                s_name = '"%s"' % name
 
                 # Serialize the value.
                 t_value = key.get_value_type(name)
                 if t_value == win32.REG_SZ and isinstance(value, str):
-                    s_value = "\"%s\"" % value.replace("\"", "\\\"")
+                    s_value = '"%s"' % value.replace('"', '\\"')
                 elif t_value == win32.REG_DWORD:
                     s_value = "dword:%.8X" % value
                 else:
@@ -98,7 +97,7 @@ def reg_export( reg_path, filename ):
                         # The value is a list of strings.
                         # It must be encoded as a sequence of null-terminated
                         # UTF-16LE strings, terminated by a final null character.
-                        new_value = ('\0'.join(value) + '\0\0').encode('utf-16le')
+                        new_value = ("\0".join(value) + "\0\0").encode("utf-16le")
 
                     if isinstance(new_value, str):
                         # This will handle REG_EXPAND_SZ and any other
@@ -110,16 +109,18 @@ def reg_export( reg_path, filename ):
                         s_value = reg_hexa(new_value, t_value)
 
                 # Write the name and value.
-                output.write( "%s=%s\n" % (s_name, s_value) )
+                output.write("%s=%s\n" % (s_name, s_value))
 
             # Add the subkeys to the queue.
-            queue.extend( key.children() )
+            queue.extend(key.children())
+
 
 # When invoked from the command line,
 # the first argument is a registry key to read from,
 # the second argument is a filename to write to.
 if __name__ == "__main__":
     import sys
+
     reg_path = sys.argv[1]
     filename = sys.argv[2]
-    reg_export( reg_path, filename )
+    reg_export(reg_path, filename)

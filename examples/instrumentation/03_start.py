@@ -28,18 +28,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.system import System
-
 import sys
+
+from winappdbg.system import System
 
 # Instance a System object.
 system = System()
 
 # Get the target application.
-command_line = system.argv_to_cmdline( sys.argv[ 1 : ] )
+command_line = system.argv_to_cmdline(sys.argv[1:])
 
 # Start a new process.
-process = system.start_process( command_line ) # see the docs for more options
+process = system.start_process(command_line)  # see the docs for more options
 
 # Show info on the new process.
-print("Started process %d (%d bits)" % ( process.get_pid(), process.get_bits() ))
+print("Started process %d (%d bits)" % (process.get_pid(), process.get_bits()))

@@ -31,17 +31,16 @@
 from winappdbg.system import System
 from winappdbg.textio import Color
 
-def reg_search( search ):
 
+def reg_search(search):
     # Show the user what we're searching for.
     print("Searching for: %r" % search)
 
     # For each Registry key...
     for path in System.registry.iterkeys():
-
         # Try to open the key. On error skip it.
         try:
-            key = System.registry[ path ]
+            key = System.registry[path]
         except Exception:
             continue
 
@@ -55,16 +54,15 @@ def reg_search( search ):
 
         # Does the default value match?
         if search in default:
-            text = "%s\\@: %s" % ( path, default )
-            highlight( search, text )
+            text = "%s\\@: %s" % (path, default)
+            highlight(search, text)
 
         # Does the key match?
-        elif search in path[ path.rfind("\\") : ]:
-            highlight( search, path )
+        elif search in path[path.rfind("\\") :]:
+            highlight(search, path)
 
         # For each Registry value...
         for name in key.keys():
-
             # Try to get the value. On error ignore it.
             try:
                 value = key[name]
@@ -78,24 +76,25 @@ def reg_search( search ):
 
             # Do the name or value match?
             if search in name or search in value:
-                text = "%s\\%s: %r" % ( path, name, value )
-                highlight( search, text )
+                text = "%s\\%s: %r" % (path, name, value)
+                highlight(search, text)
+
 
 # Helper function to print text with a highlighted search string.
-def highlight( search, text ):
+def highlight(search, text):
     if can_highlight:
         try:
             Color.default()
             p = 0
             while p < len(text):
-                q = text.find( search, p )
+                q = text.find(search, p)
                 if q == -1:
-                    sys.stdout.write( text[p:] )
+                    sys.stdout.write(text[p:])
                     break
-                sys.stdout.write( text[ p : q ] )
+                sys.stdout.write(text[p:q])
                 Color.red()
                 Color.light()
-                sys.stdout.write( search )
+                sys.stdout.write(search)
                 Color.default()
                 p = q + len(search)
             sys.stdout.write("\r\n")
@@ -103,6 +102,7 @@ def highlight( search, text ):
             Color.default()
     else:
         print(text)
+
 
 # Determine if the output is a console or a file.
 # Trying to use colors fails if the output is not the console.
@@ -112,5 +112,6 @@ can_highlight = Color.can_use_colors()
 # the first argument is a search string.
 if __name__ == "__main__":
     import sys
+
     search = sys.argv[1]
-    reg_search( search )
+    reg_search(search)
