@@ -57,6 +57,7 @@ from .shell32 import *  # NOQA
 from .shlwapi import *  # NOQA
 from .user32 import *  # NOQA
 from .wtsapi32 import *  # NOQA
+from .version import *  # NOQA
 
 # This calculates the list of exported symbols.
 _all = set()
