@@ -32,9 +32,9 @@
 Wrapper for advapi32.dll in ctypes.
 """
 
-from .defines import *  # NOQA
-from .kernel32 import *  # NOQA
-
+import ctypes
+from .defines import STANDARD_RIGHTS_READ, STANDARD_RIGHTS_REQUIRED, Structure, LONG, DWORD, POINTER, PVOID, LPDWORD, LPWSTR, PSID, LPSTR, HANDLE, byref, BOOL, REGSAM, RaiseIfZero, DefaultStringType, sizeof, HKEY, GuessStringType, PHKEY, MAX_PATH, INVALID_HANDLE_VALUE, RaiseIfNotZero, TRUE, NULL, RaiseIfNotErrorSuccess, LPVOID, ERROR_SUCCESS, ERROR_MORE_DATA, BOOLEAN, LONGLONG, ERROR_INSUFFICIENT_BUFFER, WCHAR, PLONG, QWORD, Union, FALSE, PDWORD, SIZEOF, MakeANSIVersion, LPBOOL, CHAR, DWORD_PTR, windll, PHANDLE, ERROR_NO_MORE_ITEMS, WINFUNCTYPE
+from .kernel32 import GetLastError, RaiseIfLastError, PROCESS_INFORMATION, STARTUPINFO, LPSECURITY_ATTRIBUTES, UserModeHandle, LPPROCESS_INFORMATION, SetLastError, ProcessInformation, Handle, LocalFree, STARTUPINFOW
 # XXX TODO
 # + add transacted registry operations
 
@@ -1548,11 +1548,11 @@ def AdjustTokenPrivileges(TokenHandle, NewState = ()):
         for (privilege, enabled) in NewState:
             if not isinstance(privilege, LUID):
                 privilege = LookupPrivilegeValue(NULL, privilege)
-            if enabled == True:
+            if enabled is True:
                 flags = SE_PRIVILEGE_ENABLED
-            elif enabled == False:
+            elif enabled is False:
                 flags = SE_PRIVILEGE_REMOVED
-            elif enabled == None:
+            elif enabled is None:
                 flags = 0
             else:
                 flags = enabled
@@ -3127,7 +3127,8 @@ def EnumServicesStatusA(hSCManager, dwServiceType = SERVICE_DRIVER | SERVICE_WIN
         lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUSA)
         for index in range(0, ServicesReturned.value):
             Services.append( ServiceStatusEntry(lpServicesArray[index]) )
-        if success: break
+        if success:
+            break
     if not success:
         raise ctypes.WinError()
 
@@ -3156,7 +3157,8 @@ def EnumServicesStatusW(hSCManager, dwServiceType = SERVICE_DRIVER | SERVICE_WIN
         lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUSW)
         for index in range(0, ServicesReturned.value):
             Services.append( ServiceStatusEntry(lpServicesArray[index]) )
-        if success: break
+        if success:
+            break
     if not success:
         raise ctypes.WinError()
 
@@ -3203,7 +3205,8 @@ def EnumServicesStatusExA(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServic
         lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUS_PROCESSA)
         for index in range(0, ServicesReturned.value):
             Services.append( ServiceStatusProcessEntry(lpServicesArray[index]) )
-        if success: break
+        if success:
+            break
     if not success:
         raise ctypes.WinError()
 
@@ -3235,7 +3238,8 @@ def EnumServicesStatusExW(hSCManager, InfoLevel = SC_ENUM_PROCESS_INFO, dwServic
         lpServicesArray = ctypes.cast(ctypes.cast(ctypes.pointer(ServicesBuffer), ctypes.c_void_p), LPENUM_SERVICE_STATUS_PROCESSW)
         for index in range(0, ServicesReturned.value):
             Services.append( ServiceStatusProcessEntry(lpServicesArray[index]) )
-        if success: break
+        if success:
+            break
     if not success:
         raise ctypes.WinError()
 

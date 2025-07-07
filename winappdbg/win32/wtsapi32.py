@@ -32,8 +32,8 @@
 Wrapper for wtsapi32.dll in ctypes.
 """
 
-from .defines import *  # NOQA
-from .advapi32 import *  # NOQA
+import ctypes
+from .defines import Structure, DWORD, LPSTR, POINTER, LPWSTR, PSID, HANDLE, PDWORD, PVOID, byref, RaiseIfZero, DefaultStringType, windll
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

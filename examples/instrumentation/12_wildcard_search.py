@@ -31,10 +31,9 @@
 # The WinAppDbg search engine will issue a warning if there is some part of
 # the process memory that cannot be read. We will ignore them for now.
 import warnings
-warnings.simplefilter("ignore")
-
 from winappdbg.process import Process
 from winappdbg.textio import HexDump
+warnings.simplefilter("ignore")
 
 def wildcard_search( pid, pattern ):
 

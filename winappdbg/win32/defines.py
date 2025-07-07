@@ -319,7 +319,7 @@ def MakeANSIVersion(fn):
                 if v_types[index] == t_ansi:
                     argv[index] = argv[index].decode('mbcs')
             for key, value in argd.items():
-                if type(value) == t_ansi:
+                if isinstance(value, t_ansi):
                     argd[key] = value.decode('mbcs')
         return fn(*argv, **argd)
     return wrapper
@@ -343,7 +343,7 @@ def MakeWideVersion(fn):
                 if v_types[index] == t_unicode:
                     argv[index] = argv[index].encode('mbcs')
             for key, value in argd.items():
-                if type(value) == t_unicode:
+                if isinstance(value, t_unicode):
                     argd[key] = value.encode('mbcs')
         return fn(*argv, **argd)
     return wrapper

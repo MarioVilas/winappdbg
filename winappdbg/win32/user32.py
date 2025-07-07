@@ -31,10 +31,10 @@
 """
 Wrapper for user32.dll in ctypes.
 """
-
-from .defines import *  # NOQA
+import ctypes
+from .defines import LPVOID, TRUE, LPARAM, Structure, WINFUNCTYPE, BOOL, HWND, PVOID, UINT, POINTER, DWORD, sizeof, windll, HDC, RaiseIfZero, LPSTR, ERROR_SUCCESS, LPWSTR, GuessStringType, CHAR, WCHAR, SIZE_T, DefaultStringType, LPDWORD, byref, NULL, ERROR_NO_MORE_FILES, WPARAM, LRESULT, PDWORD_PTR, DWORD_PTR, INFINITE, HANDLE
 from .version import bits
-from .kernel32 import GetLastError, SetLastError
+from .kernel32 import GetLastError, SetLastError, WAIT_FAILED
 from .gdi32 import POINT, LPPOINT, RECT, LPRECT
 
 #==============================================================================

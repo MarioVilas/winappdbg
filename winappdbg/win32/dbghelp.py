@@ -31,10 +31,9 @@
 """
 Wrapper for dbghelp.dll in ctypes.
 """
-
-from .defines import *  # NOQA
-from .version import *  # NOQA
-from .kernel32 import *  # NOQA
+import ctypes
+from .defines import Structure, DWORD, CHAR, POINTER, DWORD64, MAX_PATH, GUID, BOOL, WCHAR, windll, LPSTR, RaiseIfZero, MakeWideVersion, GuessStringType, HANDLE, LPWSTR, HWND, ERROR_SUCCESS, NULL, sizeof, byref, WINFUNCTYPE, PVOID, LPVOID, ULONG, ULONG64, PDWORD64, SIZE_T, PSTR, PDWORD, USHORT, WORD, LPDWORD
+from .kernel32 import SetLastError, GetLastError
 
 # DbgHelp versions and features list:
 # http://msdn.microsoft.com/en-us/library/windows/desktop/ms679294(v=vs.85).aspx

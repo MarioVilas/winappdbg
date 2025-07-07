@@ -34,8 +34,8 @@ Detect the current architecture and operating system.
 Some functions here are really from .kernel32.dll, others from version.dll.
 """
 
-from .defines import *  # NOQA
-
+import ctypes
+from .defines import RaiseIfNotErrorSuccess, Structure, DWORD, POINTER, LPVOID, LPSTR, RaiseIfZero, byref, LPWSTR, UINT, CHAR, WCHAR, WORD, BYTE, DWORD_PTR, Union, GuessStringType, SIZE_T, HANDLE, PBOOL, BOOL, FALSE, PDWORD, DWORDLONG, HMODULE, ULONGLONG, MAX_PATH, HKEY, PHKEY, LONG, INVALID_HANDLE_VALUE, sizeof, windll
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
 _all = None

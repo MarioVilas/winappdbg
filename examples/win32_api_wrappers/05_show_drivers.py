@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.win32 import *  # NOQA
+from winappdbg.win32 import sizeof, SIZE_T, DWORD, EnumDeviceDrivers, GetDeviceDriverBaseName, GetDeviceDriverFileName
 
 def print_drivers( fFullPath = False ):
 

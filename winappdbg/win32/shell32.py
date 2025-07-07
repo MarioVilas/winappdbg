@@ -36,7 +36,8 @@ Wrapper for shell32.dll in ctypes.
 # * Add a class wrapper to SHELLEXECUTEINFO
 # * More logic into ShellExecuteEx
 
-from .defines import *  # NOQA
+import ctypes
+from .defines import Structure, DWORD, ULONG, HWND, LPSTR, HINSTANCE, LPVOID, HKEY, HANDLE, LPWSTR, POINTER, byref, NULL, GuessStringType, INT, windll, BOOL, RaiseIfZero, MAX_PATH, HRESULT, RaiseIfNotZero, DefaultStringType
 from .kernel32 import LocalFree
 
 #==============================================================================
@@ -281,7 +282,7 @@ def ShellExecuteA(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
     if not nShowCmd:
         nShowCmd = 0
     success = _ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-    success = ctypes.cast(success, c_int)
+    success = ctypes.cast(success, ctypes.c_int)
     success = success.value
     if not success > 32:    # weird! isn't it?
         raise ctypes.WinError(success)
@@ -294,7 +295,7 @@ def ShellExecuteW(hwnd = None, lpOperation = None, lpFile = None, lpParameters =
     if not nShowCmd:
         nShowCmd = 0
     success = _ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-    success = ctypes.cast(success, c_int)
+    success = ctypes.cast(success, ctypes.c_int)
     success = success.value
     if not success > 32:    # weird! isn't it?
         raise ctypes.WinError(success)

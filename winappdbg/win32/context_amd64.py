@@ -57,7 +57,8 @@ The module also provides Win32 API wrappers for context operations:
    see :mod:`context_i386`.
 """
 
-from .defines import *  # NOQA
+import ctypes
+from .defines import Structure, WORD, BYTE, DWORD, M128A, sizeof, Union, DWORD64, POINTER, windll, HANDLE, RaiseIfZero, byref
 from .version import ARCH_AMD64
 from . import context_i386
 

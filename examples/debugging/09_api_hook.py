@@ -30,7 +30,7 @@
 
 from winappdbg.debug import Debug
 from winappdbg.event import EventHandler
-from winappdbg.win32 import *  # NOQA
+from winappdbg.win32 import PVOID, DWORD, HANDLE, HKEY, REGSAM
 
 
 class MyEventHandler( EventHandler ):

@@ -33,8 +33,8 @@ Wrapper for kernel32.dll in ctypes.
 """
 
 import warnings
-
-from .defines import *  # NOQA
+import ctypes
+from .defines import BYTE, ERROR_SUCCESS, INVALID_HANDLE_VALUE, INFINITE, LPVOID, PVOID, ULONG_PTR, BOOL, ULONGLONG, SIZE_T, LPSTR, LPWSTR, ULONG64, WCHAR, CHAR, SHORT,LONG, TCHAR, HMODULE, MAX_MODULE_NAME32, MAX_PATH, UINT, LPDWORD, LPHANDLE, HLOCAL, NULL, GuessStringType, MakeWideVersion, PDWORD,addressof, DefaultStringType, PBOOL, ERROR_SEM_TIMEOUT, ERROR_INSUFFICIENT_BUFFER, ERROR_FILE_NOT_FOUND, ERROR_PARTIAL_COPY, PSIZE_T, DWORD_PTR, PDWORD_PTR, ERROR_NO_MORE_FILES, ATOM, BOOLEAN, PPVOID, HANDLE, DWORD, sizeof, Structure, Union, POINTER, WORD, DWORD64, windll, RaiseIfZero, byref
 
 from . import context_i386  # NOQA
 from . import context_amd64  # NOQA
@@ -46,7 +46,7 @@ _all = set(vars().keys())
 _all.add('version')
 #==============================================================================
 
-from .version import *
+from .version import ARCH_I386, ARCH_AMD64, NTDDI_VERSION, NTDDI_VISTA, bits, arch, GetCurrentProcess, GetCurrentThread
 
 #------------------------------------------------------------------------------
 
@@ -72,12 +72,12 @@ def RaiseIfLastError(result, func = None, arguments = ()):
 ContextArchMask = 0x0FFF0000    # just guessing here! seems to work, though
 
 if   arch == ARCH_I386:
-    from .context_i386 import *
+    from .context_i386 import EXCEPTION_READ_FAULT, EXCEPTION_WRITE_FAULT, EXCEPTION_EXECUTE_FAULT
 elif arch == ARCH_AMD64:
     if bits == 64:
-        from .context_amd64 import *
+        from .context_amd64 import EXCEPTION_READ_FAULT, EXCEPTION_WRITE_FAULT, EXCEPTION_EXECUTE_FAULT
     else:
-        from .context_i386 import *
+        from .context_i386 import EXCEPTION_READ_FAULT, EXCEPTION_WRITE_FAULT, EXCEPTION_EXECUTE_FAULT
 else:
     warnings.warn("Unknown or unsupported architecture: %s" % arch)
 
@@ -2595,7 +2595,7 @@ def GetProcAddressA(hModule, lpProcName):
         lpProcName = LPVOID(lpProcName)
         if lpProcName.value & (~0xFFFF):
             raise ValueError('Ordinal number too large: %d' % lpProcName.value)
-    elif type(lpProcName) == type(""):
+    elif isinstance(lpProcName, str):
         lpProcName = ctypes.c_char_p(lpProcName.encode())
     return _GetProcAddress(hModule, lpProcName)
 

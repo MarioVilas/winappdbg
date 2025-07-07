@@ -36,6 +36,8 @@ Here is the logic for handling DLL libraries loaded by debugees.
 
 __all__ = ['Module', 'DebugSymbolsWarning']
 
+import warnings
+import traceback
 from . import win32
 from .textio import HexInput, HexDump
 from .util import PathOperations
@@ -43,8 +45,6 @@ from .util import PathOperations
 # delayed imports
 Process = None
 
-import warnings
-import traceback
 
 #==============================================================================
 

@@ -32,8 +32,8 @@
 Wrapper for psapi.dll in ctypes.
 """
 
-from .defines import *  # NOQA
-
+import ctypes
+from .defines import Structure, LPVOID, DWORD, POINTER, windll, LPDWORD, RaiseIfZero, sizeof, byref, HANDLE, HMODULE, LPSTR, MAX_PATH, LPWSTR, GuessStringType
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
 _all = None

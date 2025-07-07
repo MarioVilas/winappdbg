@@ -36,7 +36,7 @@ from winappdbg.module import Module
 from winappdbg.process import Process
 from winappdbg.system import System
 from winappdbg.textio import Logger, HexDump, HexInput
-from winappdbg import win32
+from winappdbg import win32, version
 
 import re
 import os
@@ -740,7 +740,8 @@ class CrashLogger:
 
                 # Read a line
                 line = fd.readline()
-                if not line: break
+                if not line:
+                    break
                 number += 1
 
                 # Strip the extra whitespace
@@ -981,8 +982,8 @@ class CrashLogger:
         # Show the banner
         print("WinAppDbg crash logger")
         print("by Mario Vilas (mvilas at gmail.com)")
-        print(winappdbg.version)
-        print
+        print(version)
+        print()
 
         # TODO: use optparse for this!
         # TODO: move crash_report.py here

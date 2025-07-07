@@ -32,9 +32,9 @@
 Wrapper for shlwapi.dll in ctypes.
 """
 
-from .defines import *  # NOQA
-from .kernel32 import *  # NOQA
-
+import ctypes
+from .defines import windll, DWORD, HINSTANCE, LPVOID, WINFUNCTYPE, LPSTR,MAX_PATH, NULL,LPWSTR,GuessStringType,RaiseIfZero, ERROR_INVALID_PARAMETER
+from .kernel32 import FILE_ATTRIBUTE_DIRECTORY, GetFullPathNameA, GetCurrentDirectoryA, SetLastError, GetFullPathNameW, GetCurrentDirectoryW
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.
 _all = None

@@ -40,6 +40,7 @@ __all__ = ['CrashDAO', 'CrashDAO_SQL', 'CrashDAO_Mongo']
 import datetime
 import warnings
 from functools import wraps
+from urllib.parse import urlparse
 import json
 
 # SQLAlchemy imports
@@ -59,9 +60,6 @@ except ImportError:
 # MongoDB imports
 try:
     from pymongo import MongoClient
-    from pymongo.errors import PyMongoError
-    from bson import ObjectId, encode as bson_encode
-    from urllib.parse import urlparse
     MONGODB_AVAILABLE = True
 except ImportError:
     MONGODB_AVAILABLE = False
@@ -918,10 +916,6 @@ class CrashDAO_Mongo:
         if not MONGODB_AVAILABLE:
             raise ImportError("pymongo is required for MongoDB support. "
                             "Install it with: pip install pymongo")
-
-        # Parse the MongoDB URL and connect.
-        from pymongo import MongoClient
-        from urllib.parse import urlparse
 
         parsed = urlparse(url)
 

@@ -213,7 +213,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         window_list = list()
         while True:
             hCurWnd = win32.FindWindowEx(None, hCurWnd, None, None)
-            if hCurWnd == None:
+            if hCurWnd is None:
                 break
             sdwThreadId, dwProcessId = \
                             win32.GetWindowThreadProcessId(hCurWnd)
@@ -3639,7 +3639,7 @@ class _ProcessContainer:
         window_list = list()
         while True:
             hCurWnd = win32.FindWindowEx(None, hCurWnd, None, None)
-            if hCurWnd == None:
+            if hCurWnd is None:
                 break
             window_list.append(Window(hCurWnd))
         return window_list

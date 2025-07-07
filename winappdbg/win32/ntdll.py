@@ -31,9 +31,9 @@
 """
 Wrapper for ntdll.dll in ctypes.
 """
-
-from .defines import *  # NOQA
-from .peb_teb import *
+import ctypes
+from .defines import DWORD, Structure, SIZE_T, PVOID, KAFFINITY, SDWORD, ULONG_PTR, NTSTATUS, ULONG, WCHAR, ULONGLONG, POINTER, windll, PULONG, sizeof, byref, ERROR_BAD_LENGTH, HANDLE, UNICODE_STRING, BOOLEAN, LONGLONG, addressof
+from .peb_teb import CLIENT_ID
 
 #==============================================================================
 # This is used later on to calculate the list of exported symbols.

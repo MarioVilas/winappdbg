@@ -32,7 +32,7 @@
 PEB and TEB structures, constants and data types.
 """
 
-from .defines import *  # NOQA
+from .defines import Structure, PVOID, BYTE, UNICODE_STRING, LIST_ENTRY, ULONG, SHORT, BOOLEAN, USHORT, LONG, WORD, POINTER, UCHAR, HANDLE, LONGLONG, DWORD, ULONGLONG, QWORD, sizeof, SIZE_T, CHAR, Union, LPVOID, NTSTATUS, WCHAR, GUID, SDWORD, BOOL
 from .version import os
 
 #==============================================================================
