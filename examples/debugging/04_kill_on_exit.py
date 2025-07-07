@@ -28,19 +28,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.debug import Debug
-
 import sys
 
+from winappdbg.debug import Debug
+
 # Instance a Debug object, set the kill on exit property to True.
-debug = Debug( bKillOnExit = True )
+debug = Debug(bKillOnExit=True)
 
 # The user can stop debugging with Control-C.
 try:
     print("Hit Control-C to stop debugging...")
 
     # Start a new process for debugging.
-    debug.execv( sys.argv[ 1 : ] )
+    debug.execv(sys.argv[1:])
 
     # Wait for the debugee to finish.
     debug.loop()

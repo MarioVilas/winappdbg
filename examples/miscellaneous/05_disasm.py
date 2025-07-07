@@ -30,13 +30,12 @@
 
 from sys import argv
 
+from winappdbg.crash import CrashDump
 from winappdbg.disasm import Disassembler
 from winappdbg.textio import HexInput
-from winappdbg.crash import CrashDump
 
 # If there are no command line arguments...
-if len( argv ) == 1:
-
+if len(argv) == 1:
     # Show the help message.
     print("Usage:")
     print("  %s <file> [offset] [size] [arch] [engine]" % argv[0])
@@ -51,19 +50,18 @@ if len( argv ) == 1:
         print("Name: %s" % engine.name)
         print("Description: %s" % engine.desc)
         print("Available: %s" % ("YES" if engine in available else "NO"))
-        print("Supported architectures: %s" % ", ".join( engine.supported ))
+        print("Supported architectures: %s" % ", ".join(engine.supported))
 
 # If there are command line arguments...
 else:
-
     # Get the arguments from the command line.
     filename = argv[1]
     try:
-        offset = HexInput.address( argv[2] )
+        offset = HexInput.address(argv[2])
     except IndexError:
         offset = 0
     try:
-        size = HexInput.integer( argv[3] )
+        size = HexInput.integer(argv[3])
     except IndexError:
         size = 0
     try:
@@ -76,18 +74,18 @@ else:
         engine = None
 
     # Load the requested disassembler engine.
-    disasm = Disassembler( arch, engine )
+    disasm = Disassembler(arch, engine)
 
     # Load the binary code.
-    with open( filename, 'rb' ) as fd:
-        fd.seek( offset )
+    with open(filename, "rb") as fd:
+        fd.seek(offset)
         if size:
-            code = fd.read( size )
+            code = fd.read(size)
         else:
             code = fd.read()
 
     # Disassemble the code.
-    disassembly = disasm.decode( offset, code )
+    disassembly = disasm.decode(offset, code)
 
     # Show the disassembly.
-    print(CrashDump.dump_code( disassembly, offset ))
+    print(CrashDump.dump_code(disassembly, offset))

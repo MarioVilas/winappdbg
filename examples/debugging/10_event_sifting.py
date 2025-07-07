@@ -35,8 +35,7 @@ from winappdbg.event import EventHandler, EventSift
 # This class was written assuming only one process is attached.
 # If you used it directly it would break when attaching to another
 # process, or when a child process is spawned.
-class MyEventHandler (EventHandler):
-
+class MyEventHandler(EventHandler):
     def create_process(self, event):
         self.first = True
         self.name = event.get_process().get_filename()
@@ -54,9 +53,8 @@ class MyEventHandler (EventHandler):
 # Now when debugging we use the EventForwarder to be able to work with
 # multiple processes while keeping our code simple. :)
 def simple_debugger():
-
     handler = EventSift(MyEventHandler)
-    #handler = MyEventHandler()  # try uncommenting this line...
+    # handler = MyEventHandler()  # try uncommenting this line...
     with Debug(handler) as debug:
         debug.execl("calc.exe")
         debug.execl("notepad.exe")

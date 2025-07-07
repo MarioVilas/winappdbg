@@ -32,11 +32,10 @@ from winappdbg.system import System
 from winappdbg.textio import HexDump
 
 
-def show_window_tree( window, indent = 0 ):
-
+def show_window_tree(window, indent=0):
     # Show this window's handle and caption.
     # Use some ASCII art to show the layout. :)
-    handle  = HexDump.integer( window.get_handle() )
+    handle = HexDump.integer(window.get_handle())
     caption = window.get_text()
     line = ""
     if indent > 0:
@@ -52,11 +51,10 @@ def show_window_tree( window, indent = 0 ):
 
     # Recursively show the child windows.
     for child in window.get_children():
-        show_window_tree( child, indent + 1 )
+        show_window_tree(child, indent + 1)
 
 
 def main():
-
     # Create a system snaphot.
     system = System()
 
@@ -70,5 +68,6 @@ def main():
     # tree = root.get_tree()
     # print tree
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

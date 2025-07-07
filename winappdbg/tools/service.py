@@ -29,16 +29,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.system import System
-from winappdbg.util import PathOperations
-from winappdbg.textio import Table
-from winappdbg import win32
-
 import optparse
 import time
 
+from winappdbg import win32
+from winappdbg.system import System
+from winappdbg.textio import Table
+from winappdbg.util import PathOperations
+
+
 def main():
-    'Main function.'
+    "Main function."
 
     # print(the banner.)
     print("Service tool")
@@ -47,44 +48,50 @@ def main():
 
     # Parse the command line options.
     parser = optparse.OptionParser()
-    parser.add_option("-w", "--wide", action="store_true", default=False,
-                      help="show list of services in wide format")
+    parser.add_option(
+        "-w",
+        "--wide",
+        action="store_true",
+        default=False,
+        help="show list of services in wide format",
+    )
     (options, argv) = parser.parse_args(sys.argv)
 
     # Parse the command line options.
     if not argv:
-        command = 'list'
+        command = "list"
     else:
         command = argv[0].strip().lower()
-    if command not in ('list', 'start', 'stop', 'pause', 'resume'):
+    if command not in ("list", "start", "stop", "pause", "resume"):
         parser.error("unknown command: %s" % command)
     try:
         target = argv[1].strip().lower()
     except IndexError:
         target = None
-        if command != 'list':
+        if command != "list":
             parser.error("missing argument for the %s command" % command)
-    if command == 'start':
+    if command == "start":
         target_args = argv[2:]
     elif len(argv) > 2:
         parser.error("extra arguments")
 
     # Run the command.
-    if   command == 'list':
+    if command == "list":
         show(target, options.wide)
-    elif command == 'start':
+    elif command == "start":
         start(target, target_args)
-    elif command == 'stop':
+    elif command == "stop":
         stop(target)
-    elif command == 'pause':
+    elif command == "pause":
         pause(target)
-    elif command == 'resume':
+    elif command == "resume":
         resume(target)
     else:
         parser.error("internal error")
 
-def show(search = None, wide = True):
-    'show a table with the list of services'
+
+def show(search=None, wide=True):
+    "show a table with the list of services"
 
     # Take a snapshot of the running processes.
     s = System()
@@ -141,15 +148,16 @@ def show(search = None, wide = True):
     # Convert the list of services to a list of rows.
     data = []
     for descriptor in services:
-
         # Filter out services that don't match the search string if given.
-        if search is not None and \
-            search not in descriptor.ServiceName.lower() and \
-            search not in descriptor.DisplayName.lower():
-                continue
+        if (
+            search is not None
+            and search not in descriptor.ServiceName.lower()
+            and search not in descriptor.DisplayName.lower()
+        ):
+            continue
 
         # Status.
-        if   descriptor.CurrentState == win32.SERVICE_CONTINUE_PENDING:
+        if descriptor.CurrentState == win32.SERVICE_CONTINUE_PENDING:
             status = "Resuming..."
         elif descriptor.CurrentState == win32.SERVICE_PAUSE_PENDING:
             status = "Pausing..."
@@ -165,14 +173,14 @@ def show(search = None, wide = True):
             status = "Stopped"
 
         # Type.
-        if   descriptor.ServiceType & win32.SERVICE_INTERACTIVE_PROCESS:
-            type = 'Win32 GUI'
+        if descriptor.ServiceType & win32.SERVICE_INTERACTIVE_PROCESS:
+            type = "Win32 GUI"
         elif descriptor.ServiceType & win32.SERVICE_WIN32:
-            type = 'Win32'
+            type = "Win32"
         elif descriptor.ServiceType & win32.SERVICE_DRIVER:
-            type = 'Driver'
+            type = "Driver"
         else:
-            type = 'Unknown'
+            type = "Unknown"
 
         # Process ID.
         try:
@@ -189,8 +197,16 @@ def show(search = None, wide = True):
         fileName = filenames.get(pid, "")
 
         # Append the row.
-        data.append( (descriptor.ServiceName, descriptor.DisplayName,
-                      status, type, pidStr, fileName) )
+        data.append(
+            (
+                descriptor.ServiceName,
+                descriptor.DisplayName,
+                status,
+                type,
+                pidStr,
+                fileName,
+            )
+        )
 
     # Sort the rows.
     data = sorted(data)
@@ -200,14 +216,14 @@ def show(search = None, wide = True):
         headers = ("Service", "Display name", "Status", "Type", "PID", "Path")
         table = Table()
         table.addRow(*headers)
-        separator = ['-' * len(x) for x in headers]
+        separator = ["-" * len(x) for x in headers]
         table.addRow(*separator)
         for row in data:
             table.addRow(*row)
         table.show()
     else:
         need_empty_line = False
-        for (name, disp, status, type, pidStr, path) in data:
+        for name, disp, status, type, pidStr, path in data:
             if need_empty_line:
                 print()
             else:
@@ -223,8 +239,9 @@ def show(search = None, wide = True):
             if path:
                 print("Host filename:  %s" % path)
 
+
 def copypasta(action, params, wait_state, doing_verb, done_verb):
-    'common code in a lot of methods here :)'
+    "common code in a lot of methods here :)"
     try:
         target = params[0]
 
@@ -234,7 +251,7 @@ def copypasta(action, params, wait_state, doing_verb, done_verb):
             name = System.get_service_display_name(target)
         except WindowsError:
             name = target
-        print("%s service \"%s\"..." % (doing_verb, name))
+        print('%s service "%s"...' % (doing_verb, name))
         action(*params)
 
         # Wait for it to finish.
@@ -256,26 +273,52 @@ def copypasta(action, params, wait_state, doing_verb, done_verb):
         print(str(e))
         return
 
+
 def start(target, target_args):
-    'start a service'
-    copypasta(System.start_service, (target, target_args),
-              win32.SERVICE_START_PENDING, "Starting", "started")
+    "start a service"
+    copypasta(
+        System.start_service,
+        (target, target_args),
+        win32.SERVICE_START_PENDING,
+        "Starting",
+        "started",
+    )
+
 
 def stop(target):
-    'stop a service'
-    copypasta(System.stop_service, (target,),
-              win32.SERVICE_STOP_PENDING, "Stopping", "stopped")
+    "stop a service"
+    copypasta(
+        System.stop_service,
+        (target,),
+        win32.SERVICE_STOP_PENDING,
+        "Stopping",
+        "stopped",
+    )
+
 
 def pause(target):
-    'resume a service'
-    copypasta(System.resume_service, (target,),
-              win32.SERVICE_PAUSE_PENDING, "Pausing", "paused")
+    "resume a service"
+    copypasta(
+        System.resume_service,
+        (target,),
+        win32.SERVICE_PAUSE_PENDING,
+        "Pausing",
+        "paused",
+    )
+
 
 def resume(target):
-    'resume a service'
-    copypasta(System.resume_service, (target,),
-              win32.SERVICE_CONTINUE_PENDING, "Resuming", "resumed")
+    "resume a service"
+    copypasta(
+        System.resume_service,
+        (target,),
+        win32.SERVICE_CONTINUE_PENDING,
+        "Resuming",
+        "resumed",
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import sys
+
     main(sys.argv[1:])

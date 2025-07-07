@@ -28,10 +28,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.win32 import CreateToolhelp32Snapshot, Module32First, Module32Next, TH32CS_SNAPMODULE, sizeof, SIZE_T, DWORD
+from winappdbg.win32 import (
+    DWORD,
+    SIZE_T,
+    TH32CS_SNAPMODULE,
+    CreateToolhelp32Snapshot,
+    Module32First,
+    Module32Next,
+    sizeof,
+)
 
-def print_modules( pid ):
 
+def print_modules(pid):
     # Determine if we have 32 bit or 64 bit pointers.
     if sizeof(SIZE_T) == sizeof(DWORD):
         fmt = "%.8x    %.8x    %s"
@@ -46,25 +54,31 @@ def print_modules( pid ):
     print(hdr % ("Address", "Size", "Path"))
 
     # Create a snapshot of the process, only take the heap list.
-    hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid )
+    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid)
 
     # Enumerate the modules.
-    module = Module32First( hSnapshot )
+    module = Module32First(hSnapshot)
     while module is not None:
-
         # Print the module address, size and pathname.
-        print(fmt % ( module.modBaseAddr,
-                      module.modBaseSize,
-                      module.szExePath.decode("latin-1") ))
+        print(
+            fmt
+            % (
+                module.modBaseAddr,
+                module.modBaseSize,
+                module.szExePath.decode("latin-1"),
+            )
+        )
 
         # Next module in the process.
-        module = Module32Next( hSnapshot )
+        module = Module32Next(hSnapshot)
 
     # No need to call CloseHandle, the handle is closed automatically when it goes out of scope.
     return
+
 
 # When invoked from the command line,
 # take the first argument as a process ID.
 if __name__ == "__main__":
     import sys
-    print_modules( int( sys.argv[1] ) )
+
+    print_modules(int(sys.argv[1]))

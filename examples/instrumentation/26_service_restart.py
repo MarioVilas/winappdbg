@@ -30,46 +30,44 @@
 
 from time import sleep
 
-from winappdbg.system import System
 from winappdbg import win32
+from winappdbg.system import System
 
 
 # Function that restarts a service.
 # Requires UAC elevation in Windows Vista and above.
-def restart_service( service ):
+def restart_service(service):
     try:
-
         # Get the display name.
         try:
-            display_name = System.get_service_display_name( service )
+            display_name = System.get_service_display_name(service)
         except WindowsError:
             display_name = service
 
         # Get the service descriptor.
-        descriptor = System.get_service( service )
+        descriptor = System.get_service(service)
 
         # Is the service running?
         if descriptor.CurrentState != win32.SERVICE_STOPPED:
-
             # Tell the service to stop.
-            print("Stopping service \"%s\"..." % display_name)
-            System.stop_service( service )
+            print('Stopping service "%s"...' % display_name)
+            System.stop_service(service)
 
             # Wait for the service to stop.
-            wait_for_service( service, win32.SERVICE_STOP_PENDING )
+            wait_for_service(service, win32.SERVICE_STOP_PENDING)
             print("Service stopped successfully.")
 
         # Tell the service to start.
-        print("Starting service \"%s\"..." % display_name)
-        System.start_service( service )
+        print('Starting service "%s"...' % display_name)
+        System.start_service(service)
 
         # Wait for the service to start.
-        wait_for_service( service, win32.SERVICE_START_PENDING )
+        wait_for_service(service, win32.SERVICE_START_PENDING)
         print("Service started successfully.")
 
         # Show the new process ID.
         # This feature requires Windows XP and above.
-        descriptor = System.get_service( service )
+        descriptor = System.get_service(service)
         try:
             print("New process ID is: %d" % descriptor.ProcessId)
         except AttributeError:
@@ -84,19 +82,20 @@ def restart_service( service ):
 
 
 # Helper function to wait for the service to change its state.
-def wait_for_service( service, wait_state, timeout = 20 ):
-    descriptor = System.get_service( service )
+def wait_for_service(service, wait_state, timeout=20):
+    descriptor = System.get_service(service)
     while descriptor.CurrentState == wait_state:
         timeout -= 1
         if timeout <= 0:
-            raise RuntimeError( "Error: timed out." )
-        sleep( 0.5 )
-        descriptor = System.get_service( service )
+            raise RuntimeError("Error: timed out.")
+        sleep(0.5)
+        descriptor = System.get_service(service)
 
 
 # When invoked from the command line,
 # the first argument is a service name.
 if __name__ == "__main__":
     import sys
+
     service = sys.argv[1]
-    restart_service( service )
+    restart_service(service)

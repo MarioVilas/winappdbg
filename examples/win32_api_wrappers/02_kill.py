@@ -28,21 +28,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sys
 import _thread as thread
+import sys
 
 from winappdbg import win32
 
-def processKiller(dwProcessId):
 
+def processKiller(dwProcessId):
     # Attach to the process.
-    win32.DebugActiveProcess( dwProcessId )
+    win32.DebugActiveProcess(dwProcessId)
 
     # Quit the current thread.
     thread.exit()
 
+
 # When invoked from the command line,
 # take the first argument as a process ID.
 if __name__ == "__main__":
-    dwProcessId = int( sys.argv[1] )
-    processKiller( dwProcessId )
+    dwProcessId = int(sys.argv[1])
+    processKiller(dwProcessId)

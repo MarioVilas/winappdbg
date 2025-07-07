@@ -33,28 +33,30 @@ Debugging API wrappers in ctypes.
 """
 
 # Import all submodules into this namespace.
-from . import defines
-from . import kernel32
-from . import user32
-from . import advapi32
-from . import wtsapi32
-from . import shell32
-from . import shlwapi
-from . import psapi
-from . import dbghelp
-from . import ntdll
+from . import (
+    advapi32,
+    dbghelp,
+    defines,
+    kernel32,
+    ntdll,
+    psapi,
+    shell32,
+    shlwapi,
+    user32,
+    wtsapi32,
+)
+from .advapi32 import *  # NOQA
+from .dbghelp import *  # NOQA
 
 # Import all symbols from submodules into this namespace.
-from .defines    import *  # NOQA
-from .kernel32   import *  # NOQA
-from .user32     import *  # NOQA
-from .advapi32   import *  # NOQA
-from .wtsapi32   import *  # NOQA
-from .shell32    import *  # NOQA
-from .shlwapi    import *  # NOQA
-from .psapi      import *  # NOQA
-from .dbghelp    import *  # NOQA
-from .ntdll      import *  # NOQA
+from .defines import *  # NOQA
+from .kernel32 import *  # NOQA
+from .ntdll import *  # NOQA
+from .psapi import *  # NOQA
+from .shell32 import *  # NOQA
+from .shlwapi import *  # NOQA
+from .user32 import *  # NOQA
+from .wtsapi32 import *  # NOQA
 
 # This calculates the list of exported symbols.
 _all = set()
@@ -68,5 +70,5 @@ _all.update(shlwapi._all)
 _all.update(psapi._all)
 _all.update(dbghelp._all)
 _all.update(ntdll._all)
-__all__ = [_x for _x in _all if not _x.startswith('_')]
+__all__ = [_x for _x in _all if not _x.startswith("_")]
 __all__.sort()

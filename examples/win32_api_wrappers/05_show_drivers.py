@@ -28,10 +28,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.win32 import sizeof, SIZE_T, DWORD, EnumDeviceDrivers, GetDeviceDriverBaseName, GetDeviceDriverFileName
+from winappdbg.win32 import (
+    DWORD,
+    SIZE_T,
+    EnumDeviceDrivers,
+    GetDeviceDriverBaseName,
+    GetDeviceDriverFileName,
+    sizeof,
+)
 
-def print_drivers( fFullPath = False ):
 
+def print_drivers(fFullPath=False):
     # Determine if we have 32 bit or 64 bit pointers.
     if sizeof(SIZE_T) == sizeof(DWORD):
         fmt = "%.08x\t%s"
@@ -64,7 +71,6 @@ def print_drivers( fFullPath = False ):
 
     # For each valid device driver...
     for ImageBase in ValidDrivers:
-
         # Get the device driver filename.
         if fFullPath:
             DriverName = GetDeviceDriverFileName(ImageBase)
@@ -74,9 +80,11 @@ def print_drivers( fFullPath = False ):
         # Print the device driver image base and filename.
         print(fmt % (ImageBase, DriverName))
 
+
 # When invoked from the command line,
 # -f means show full pathnames instead of base filenames.
 if __name__ == "__main__":
     import sys
-    fFullPath = '-f' in sys.argv[1:]
-    print_drivers( fFullPath )
+
+    fFullPath = "-f" in sys.argv[1:]
+    print_drivers(fFullPath)

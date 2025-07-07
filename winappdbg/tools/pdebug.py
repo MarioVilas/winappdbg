@@ -33,18 +33,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import winappdbg
+import optparse
+import sys
 
-from winappdbg.system import System
+import winappdbg
 from winappdbg.debug import Debug
 from winappdbg.interactive import ConsoleDebugger
+from winappdbg.system import System
 
-import sys
-import optparse
 
-class PDebug (ConsoleDebugger):
-    history_file = '.pdebug'    # backwards compatibility with WinAppDbg 1.4
-    confirm_quit = True         # confirm before quitting
+class PDebug(ConsoleDebugger):
+    history_file = ".pdebug"  # backwards compatibility with WinAppDbg 1.4
+    confirm_quit = True  # confirm before quitting
 
     # Override the help message.
     def do_quit(self, arg):
@@ -56,8 +56,8 @@ class PDebug (ConsoleDebugger):
 
     do_q = do_quit
 
-#------------------------------------------------------------------------------
-# Run from the command line
+    # ------------------------------------------------------------------------------
+    # Run from the command line
 
     # Run the debugger.
     # This is the first method called.
@@ -76,23 +76,23 @@ class PDebug (ConsoleDebugger):
         self.create_debugger()
         self.queue_initial_commands()
         self.load_history()
-##        self.set_control_c_handler()
+
+    ##        self.set_control_c_handler()
 
     # Clean up when closing the debugger.
     def finalize(self):
-##        self.remove_control_c_handler()
+        ##        self.remove_control_c_handler()
         if hasattr(self, "options"):
             self.destroy_debugger(self.options.autodetach)
         self.save_history()
 
     # Instance a Debug object and start using it.
     def create_debugger(self):
-
         # Instance a debugger
-        debug = Debug(self, bHostileCode = self.options.hostile)
+        debug = Debug(self, bHostileCode=self.options.hostile)
 
         # Make sure the remote symbol store is set
-        System.fix_symbol_store_path(remote = True, force = False)
+        System.fix_symbol_store_path(remote=True, force=False)
 
         # Populate the snapshot of processes
         debug.system.scan()
@@ -106,93 +106,130 @@ class PDebug (ConsoleDebugger):
         print("by Mario Vilas (mvilas at gmail.com)")
         print()
 
-#------------------------------------------------------------------------------
-# Command line parsing
+    # ------------------------------------------------------------------------------
+    # Command line parsing
 
-# TODO
-# * add an option to show python tracebacks of all errors, disabled by default
+    # TODO
+    # * add an option to show python tracebacks of all errors, disabled by default
 
     # Define the command line parser and parse the command line.
     def parse_cmdline(self):
-
         # Define the command line parser
         usage = (
-                "\n"
-                "\n"
-                "  Just show the prompt:\n"
-                "    %prog\n"
-                "\n"
-                "  Create a new process:\n"
-                "    %prog [options] -c \"console_target.exe optional parameters...\"\n"
-                "    %prog [options] -w \"windowed_target.exe optional parameters...\"\n"
-                "\n"
-                "  Attach to a running process (by filename):\n"
-                "    %prog [options] -a \"executable\"\n"
-                "\n"
-                "  Attach to a running process (by ID):\n"
-                "    %prog [options] -a pid"
-                )
+            "\n"
+            "\n"
+            "  Just show the prompt:\n"
+            "    %prog\n"
+            "\n"
+            "  Create a new process:\n"
+            '    %prog [options] -c "console_target.exe optional parameters..."\n'
+            '    %prog [options] -w "windowed_target.exe optional parameters..."\n'
+            "\n"
+            "  Attach to a running process (by filename):\n"
+            '    %prog [options] -a "executable"\n'
+            "\n"
+            "  Attach to a running process (by ID):\n"
+            "    %prog [options] -a pid"
+        )
         self.parser = optparse.OptionParser(
-                                        usage=usage,
-                                        version=winappdbg.version,
-                                      )
+            usage=usage,
+            version=winappdbg.version,
+        )
         commands = optparse.OptionGroup(self.parser, "Commands")
-        commands.add_option("-a", "--attach", action="append", type="string",
-                            metavar="PROCESS",
-                            help="Attach to a running process")
-        commands.add_option("-w", "--windowed", action="callback", type="string",
-                            metavar="CMDLINE", callback=self.callback_execute_target,
-                            help="Create a new windowed process")
-        commands.add_option("-c", "--console", action="callback", type="string",
-                            metavar="CMDLINE", callback=self.callback_execute_target,
-                            help="Create a new console process [default]")
+        commands.add_option(
+            "-a",
+            "--attach",
+            action="append",
+            type="string",
+            metavar="PROCESS",
+            help="Attach to a running process",
+        )
+        commands.add_option(
+            "-w",
+            "--windowed",
+            action="callback",
+            type="string",
+            metavar="CMDLINE",
+            callback=self.callback_execute_target,
+            help="Create a new windowed process",
+        )
+        commands.add_option(
+            "-c",
+            "--console",
+            action="callback",
+            type="string",
+            metavar="CMDLINE",
+            callback=self.callback_execute_target,
+            help="Create a new console process [default]",
+        )
         self.parser.add_option_group(commands)
         debugging = optparse.OptionGroup(self.parser, "Debugging options")
-        debugging.add_option("--autodetach", action="store_true",
-                   help="automatically detach from debugees on exit [default]")
-        debugging.add_option("--follow", action="store_true",
-                      help="automatically attach to child processes [default]")
-        debugging.add_option("--trusted", action="store_false",
-                                                                dest="hostile",
-                      help="treat debugees as trusted code [default]")
-        debugging.add_option("--dont-autodetach", action="store_false",
-                                                             dest="autodetach",
-                   help="don't automatically detach from debugees on exit")
-        debugging.add_option("--dont-follow", action="store_false",
-                                                                 dest="follow",
-                          help="don't automatically attach to child processes")
-        debugging.add_option("--hostile", action="store_true",
-                      help="treat debugees as hostile code")
+        debugging.add_option(
+            "--autodetach",
+            action="store_true",
+            help="automatically detach from debugees on exit [default]",
+        )
+        debugging.add_option(
+            "--follow",
+            action="store_true",
+            help="automatically attach to child processes [default]",
+        )
+        debugging.add_option(
+            "--trusted",
+            action="store_false",
+            dest="hostile",
+            help="treat debugees as trusted code [default]",
+        )
+        debugging.add_option(
+            "--dont-autodetach",
+            action="store_false",
+            dest="autodetach",
+            help="don't automatically detach from debugees on exit",
+        )
+        debugging.add_option(
+            "--dont-follow",
+            action="store_false",
+            dest="follow",
+            help="don't automatically attach to child processes",
+        )
+        debugging.add_option(
+            "--hostile", action="store_true", help="treat debugees as hostile code"
+        )
         self.parser.add_option_group(debugging)
 
         # Set the default values
         self.parser.set_defaults(
-            attach      = [],
-            console     = [],
-            windowed    = [],
-            autodetach  = True,
-            follow      = True,
-            hostile     = False,
+            attach=[],
+            console=[],
+            windowed=[],
+            autodetach=True,
+            follow=True,
+            hostile=False,
         )
 
         # Parse the command line
         (self.options, args) = self.parser.parse_args(self.argv)
         args = args[1:]
-        if not self.options.windowed and not self.options.console and not self.options.attach:
+        if (
+            not self.options.windowed
+            and not self.options.console
+            and not self.options.attach
+        ):
             if args:
-                self.options.console = [ args ]
+                self.options.console = [args]
         else:
             if args:
-                self.parser.error("don't know what to do with extra parameters: %s" % args)
+                self.parser.error(
+                    "don't know what to do with extra parameters: %s" % args
+                )
 
     # Callback to parse -c and -w command line switches
     @staticmethod
     def callback_execute_target(option, opt_str, value, parser):
-
         # Get the destination variable name.
         dest_name = option.dest
         if dest_name is None:
-            dest_name = option.get_opt_string().replace('-', '')
+            dest_name = option.get_opt_string().replace("-", "")
 
         # Get the destination list to append.
         # Create a new list if needed.
@@ -217,7 +254,6 @@ class PDebug (ConsoleDebugger):
         # Get the value from the command line arguments.
         value = []
         for arg in parser.rargs:
-
             # Stop on --foo like options but not on -- alone.
             if arg[:2] == "--" and len(arg) > 2:
                 break
@@ -229,37 +265,39 @@ class PDebug (ConsoleDebugger):
             value.append(arg)
 
         # Delete the command line arguments we consumed so they're not parsed again.
-        del parser.rargs[:len(value)]
+        del parser.rargs[: len(value)]
 
         # Append the value to the destination list.
         destination.append(value)
 
     # Queue the startup commands when running from command line.
     def queue_initial_commands(self):
-
         # Queue the attach commands, if needed
         if self.options.attach:
-            cmd = 'attach %s' % self.join_tokens(self.options.attach)
+            cmd = "attach %s" % self.join_tokens(self.options.attach)
             self.cmdqueue.append(cmd)
 
         # Queue the windowed commands, if needed
         for argv in self.options.windowed:
             cmdline = System.argv_to_cmdline(argv)
-            self.cmdqueue.append( 'windowed %s' % cmdline )
+            self.cmdqueue.append("windowed %s" % cmdline)
 
         # Queue the console commands, if needed
         for argv in self.options.console:
             cmdline = System.argv_to_cmdline(argv)
-            self.cmdqueue.append( 'console %s' % cmdline )
+            self.cmdqueue.append("console %s" % cmdline)
 
         # Queue the continue command, if other commands were queued before
         if len(self.cmdqueue) > 0:
-            self.cmdqueue.append('continue')
+            self.cmdqueue.append("continue")
 
-#==============================================================================
+
+# ==============================================================================
+
 
 def main():
     return PDebug().run(sys.argv)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

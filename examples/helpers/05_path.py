@@ -33,23 +33,23 @@ import sys
 from winappdbg.util import PathOperations
 
 # Get the command line argument.
-path = sys.argv[ 1 ]
+path = sys.argv[1]
 print("Path: %s" % path)
 
 # If it's a relative path...
-if PathOperations.path_is_relative( path ):
+if PathOperations.path_is_relative(path):
     print("Path is relative.")
 
     # Convert to absolute.
-    absolute = PathOperations.make_absolute( path )
+    absolute = PathOperations.make_absolute(path)
     print("Absolute path: %s" % absolute)
 
 # If it's an absolute path...
-elif PathOperations.path_is_absolute( path ):
+elif PathOperations.path_is_absolute(path):
     print("Path is absolute.")
 
     # Convert to relative.
-    relative = PathOperations.make_relative( path )
+    relative = PathOperations.make_relative(path)
     print("Relative path: %s" % relative)
 
 # If it's neither...

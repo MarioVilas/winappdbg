@@ -28,17 +28,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.thread import Thread
 from winappdbg.crash import CrashDump
 from winappdbg.system import System
+from winappdbg.thread import Thread
 
-def print_thread_context( tid ):
 
+def print_thread_context(tid):
     # Request debug privileges.
     System.request_debug_privileges()
 
     # Instance a Thread object.
-    thread = Thread( tid )
+    thread = Thread(tid)
 
     # Suspend the thread execution.
     thread.suspend()
@@ -53,12 +53,14 @@ def print_thread_context( tid ):
 
     # Display the thread context.
     print()
-    print(CrashDump.dump_registers( context ), end='')
+    print(CrashDump.dump_registers(context), end="")
+
 
 # When invoked from the command line,
 # the first argument is a thread ID
 # (use example number 3 to enumerate threads).
 if __name__ == "__main__":
     import sys
-    tid = int( sys.argv[1] )
-    print_thread_context( tid )
+
+    tid = int(sys.argv[1])
+    print_thread_context(tid)

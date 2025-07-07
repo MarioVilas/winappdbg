@@ -40,77 +40,79 @@ Warnings:
 """
 
 __all__ = [
-
     # Object that represents a crash in the debugee.
-    'Crash',
-
+    "Crash",
     # Crash storage.
-    'CrashDictionary',
-
+    "CrashDictionary",
     # Warnings.
-    'CrashWarning',
-
+    "CrashWarning",
     # JSON serialization helpers.
-    'crash_encode',
-    'crash_decode',
+    "crash_encode",
+    "crash_decode",
 ]
+
+import base64
+import hashlib
+import time
+import warnings
 
 from . import win32
 from .system import System
-from .textio import HexDump, CrashDump
+from .textio import CrashDump, HexDump
 from .util import MemoryAddresses, PathOperations
-
-import time
-import warnings
-import base64
-import hashlib
 
 # lazy imports
 db = None
 
-#==============================================================================
+# ==============================================================================
+
 
 def crash_encode(obj):
     if isinstance(obj, Crash):
         d = vars(obj).copy()
-        d['__type__'] = 'Crash'
+        d["__type__"] = "Crash"
         return d
     if isinstance(obj, win32.MemoryBasicInformation):
         d = {
-            'BaseAddress': obj.BaseAddress,
-            'AllocationBase': obj.AllocationBase,
-            'AllocationProtect': obj.AllocationProtect,
-            'RegionSize': obj.RegionSize,
-            'State': obj.State,
-            'Protect': obj.Protect,
-            'Type': obj.Type,
+            "BaseAddress": obj.BaseAddress,
+            "AllocationBase": obj.AllocationBase,
+            "AllocationProtect": obj.AllocationProtect,
+            "RegionSize": obj.RegionSize,
+            "State": obj.State,
+            "Protect": obj.Protect,
+            "Type": obj.Type,
         }
-        if hasattr(obj, 'filename'):
-            d['filename'] = obj.filename
-        if hasattr(obj, 'content') and obj.content is not None:
-            d['content'] = obj.content
-        d['__type__'] = 'MemoryBasicInformation'
+        if hasattr(obj, "filename"):
+            d["filename"] = obj.filename
+        if hasattr(obj, "content") and obj.content is not None:
+            d["content"] = obj.content
+        d["__type__"] = "MemoryBasicInformation"
         return d
     if isinstance(obj, bytes):
-        return {
-            '__type__': 'bytes',
-            'data': base64.b64encode(obj).decode('ascii')
-        }
+        return {"__type__": "bytes", "data": base64.b64encode(obj).decode("ascii")}
     raise TypeError("%r is not JSON serializable" % obj)
 
+
 def crash_decode(d):
-    type = d.get('__type__')
-    if type == 'Crash':
+    type = d.get("__type__")
+    if type == "Crash":
         obj = object.__new__(Crash)
-        del d['__type__']
+        del d["__type__"]
         obj.__dict__.update(d)
         return obj
-    if type == 'MemoryBasicInformation':
+    if type == "MemoryBasicInformation":
         obj = win32.MemoryBasicInformation()
-        del d['__type__']
+        del d["__type__"]
         # Set the standard fields
-        standard_fields = ['BaseAddress', 'AllocationBase', 'AllocationProtect',
-                          'RegionSize', 'State', 'Protect', 'Type']
+        standard_fields = [
+            "BaseAddress",
+            "AllocationBase",
+            "AllocationProtect",
+            "RegionSize",
+            "State",
+            "Protect",
+            "Type",
+        ]
         for field in standard_fields:
             if field in d:
                 setattr(obj, field, d[field])
@@ -119,19 +121,23 @@ def crash_decode(d):
         for key, value in d.items():
             setattr(obj, key, value)
         return obj
-    if type == 'bytes':
-        return base64.b64decode(d['data'])
+    if type == "bytes":
+        return base64.b64decode(d["data"])
     return d
 
-#==============================================================================
 
-class CrashWarning (Warning):
+# ==============================================================================
+
+
+class CrashWarning(Warning):
     """
     An error occurred while gathering crash data.
     Some data may be incomplete or missing.
     """
 
-#==============================================================================
+
+# ==============================================================================
+
 
 # Crash object. Must be serializable.
 class Crash:
@@ -392,59 +398,59 @@ class Crash:
         """
 
         # First of all, take the timestamp.
-        self.timeStamp          = time.time()
+        self.timeStamp = time.time()
 
         # Notes are initially empty.
-        self.notes              = list()
+        self.notes = list()
 
         # Get the process and thread, but dont't store them in the DB.
         process = event.get_process()
-        thread  = event.get_thread()
+        thread = event.get_thread()
 
         # Determine the architecture.
-        self.os                 = System.os
-        self.arch               = process.get_arch()
-        self.bits               = process.get_bits()
+        self.os = System.os
+        self.arch = process.get_arch()
+        self.bits = process.get_bits()
 
         # The following properties are always retrieved for all events.
-        self.eventCode          = event.get_event_code()
-        self.eventName          = event.get_event_name()
-        self.pid                = event.get_pid()
-        self.tid                = event.get_tid()
-        self.registers          = dict(thread.get_context())
-        self.labelPC            = process.get_label_at_address(self.pc)
+        self.eventCode = event.get_event_code()
+        self.eventName = event.get_event_name()
+        self.pid = event.get_pid()
+        self.tid = event.get_tid()
+        self.registers = dict(thread.get_context())
+        self.labelPC = process.get_label_at_address(self.pc)
 
         # The following properties are only retrieved for some events.
-        self.commandLine        = None
-        self.environment        = None
-        self.environmentData    = None
-        self.registersPeek      = None
-        self.debugString        = None
-        self.modFileName        = None
-        self.lpBaseOfDll        = None
-        self.exceptionCode      = None
-        self.exceptionName      = None
+        self.commandLine = None
+        self.environment = None
+        self.environmentData = None
+        self.registersPeek = None
+        self.debugString = None
+        self.modFileName = None
+        self.lpBaseOfDll = None
+        self.exceptionCode = None
+        self.exceptionName = None
         self.exceptionDescription = None
-        self.exceptionAddress   = None
-        self.exceptionLabel     = None
-        self.firstChance        = None
-        self.faultType          = None
-        self.faultAddress       = None
-        self.faultLabel         = None
-        self.isOurBreakpoint    = None
+        self.exceptionAddress = None
+        self.exceptionLabel = None
+        self.firstChance = None
+        self.faultType = None
+        self.faultAddress = None
+        self.faultLabel = None
+        self.isOurBreakpoint = None
         self.isSystemBreakpoint = None
-        self.stackTrace         = None
-        self.stackTracePC       = None
-        self.stackTraceLabels   = None
-        self.stackTracePretty   = None
-        self.stackRange         = None
-        self.stackFrame         = None
-        self.stackPeek          = None
-        self.faultCode          = None
-        self.faultMem           = None
-        self.faultPeek          = None
-        self.faultDisasm        = None
-        self.memoryMap          = None
+        self.stackTrace = None
+        self.stackTracePC = None
+        self.stackTraceLabels = None
+        self.stackTracePretty = None
+        self.stackRange = None
+        self.stackFrame = None
+        self.stackPeek = None
+        self.faultCode = None
+        self.faultMem = None
+        self.faultPeek = None
+        self.faultDisasm = None
+        self.memoryMap = None
 
         # Get information for debug string events.
         if self.eventCode == win32.OUTPUT_DEBUG_STRING_EVENT:
@@ -453,10 +459,12 @@ class Crash:
         # Get information for module load and unload events.
         # For create and exit process events, get the information
         # for the main module.
-        elif self.eventCode in (win32.CREATE_PROCESS_DEBUG_EVENT,
-                                win32.EXIT_PROCESS_DEBUG_EVENT,
-                                win32.LOAD_DLL_DEBUG_EVENT,
-                                win32.UNLOAD_DLL_DEBUG_EVENT):
+        elif self.eventCode in (
+            win32.CREATE_PROCESS_DEBUG_EVENT,
+            win32.EXIT_PROCESS_DEBUG_EVENT,
+            win32.LOAD_DLL_DEBUG_EVENT,
+            win32.UNLOAD_DLL_DEBUG_EVENT,
+        ):
             aModule = event.get_module()
             self.modFileName = event.get_filename()
             if not self.modFileName:
@@ -468,28 +476,29 @@ class Crash:
         # Get some information for exception events.
         # To get the remaining information call fetch_extra_data().
         elif self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
-
             # Exception information.
-            self.exceptionCode          = event.get_exception_code()
-            self.exceptionName          = event.get_exception_name()
-            self.exceptionDescription   = event.get_exception_description()
-            self.exceptionAddress       = event.get_exception_address()
-            self.firstChance            = event.is_first_chance()
-            self.exceptionLabel         = process.get_label_at_address(
-                                                         self.exceptionAddress)
-            if self.exceptionCode in (win32.EXCEPTION_ACCESS_VIOLATION,
-                                      win32.EXCEPTION_GUARD_PAGE,
-                                      win32.EXCEPTION_IN_PAGE_ERROR):
-                self.faultType    = event.get_fault_type()
+            self.exceptionCode = event.get_exception_code()
+            self.exceptionName = event.get_exception_name()
+            self.exceptionDescription = event.get_exception_description()
+            self.exceptionAddress = event.get_exception_address()
+            self.firstChance = event.is_first_chance()
+            self.exceptionLabel = process.get_label_at_address(self.exceptionAddress)
+            if self.exceptionCode in (
+                win32.EXCEPTION_ACCESS_VIOLATION,
+                win32.EXCEPTION_GUARD_PAGE,
+                win32.EXCEPTION_IN_PAGE_ERROR,
+            ):
+                self.faultType = event.get_fault_type()
                 self.faultAddress = event.get_fault_address()
-                self.faultLabel   = process.get_label_at_address(
-                                                            self.faultAddress)
-            elif self.exceptionCode in (win32.EXCEPTION_BREAKPOINT,
-                                        win32.EXCEPTION_SINGLE_STEP):
-                self.isOurBreakpoint = hasattr(event, 'breakpoint') \
-                                       and event.breakpoint
-                self.isSystemBreakpoint = \
-                    process.is_system_defined_breakpoint(self.exceptionAddress)
+                self.faultLabel = process.get_label_at_address(self.faultAddress)
+            elif self.exceptionCode in (
+                win32.EXCEPTION_BREAKPOINT,
+                win32.EXCEPTION_SINGLE_STEP,
+            ):
+                self.isOurBreakpoint = hasattr(event, "breakpoint") and event.breakpoint
+                self.isSystemBreakpoint = process.is_system_defined_breakpoint(
+                    self.exceptionAddress
+                )
 
             # Stack trace.
             try:
@@ -497,19 +506,22 @@ class Crash:
             except Exception as e:
                 warnings.warn(
                     "Cannot get stack trace with labels, reason: %s" % str(e),
-                    CrashWarning)
+                    CrashWarning,
+                )
             try:
-                self.stackTrace     = thread.get_stack_trace()
-                stackTracePC        = [ ra for (_,ra,_) in self.stackTrace ]
-                self.stackTracePC   = tuple(stackTracePC)
-                stackTraceLabels    = [ process.get_label_at_address(ra) \
-                                             for ra in self.stackTracePC ]
+                self.stackTrace = thread.get_stack_trace()
+                stackTracePC = [ra for (_, ra, _) in self.stackTrace]
+                self.stackTracePC = tuple(stackTracePC)
+                stackTraceLabels = [
+                    process.get_label_at_address(ra) for ra in self.stackTracePC
+                ]
                 self.stackTraceLabels = tuple(stackTraceLabels)
             except Exception as e:
-                warnings.warn("Cannot get stack trace, reason: %s" % str(e),
-                              CrashWarning)
+                warnings.warn(
+                    "Cannot get stack trace, reason: %s" % str(e), CrashWarning
+                )
 
-    def fetch_extra_data(self, event, takeMemorySnapshot = 0):
+    def fetch_extra_data(self, event, takeMemorySnapshot=0):
         """
         Fetch extra data from the :class:`~winappdbg.event.Event` object.
 
@@ -533,22 +545,20 @@ class Crash:
 
         # Get the process and thread, we'll use them below.
         process = event.get_process()
-        thread  = event.get_thread()
+        thread = event.get_thread()
 
         # Get the command line for the target process.
         try:
             self.commandLine = process.get_command_line()
         except Exception as e:
-            warnings.warn("Cannot get command line, reason: %s" % str(e),
-                          CrashWarning)
+            warnings.warn("Cannot get command line, reason: %s" % str(e), CrashWarning)
 
         # Get the environment variables for the target process.
         try:
             self.environmentData = process.get_environment_block()
-            self.environment     = process.get_environment()
+            self.environment = process.get_environment()
         except Exception as e:
-            warnings.warn("Cannot get environment, reason: %s" % str(e),
-                          CrashWarning)
+            warnings.warn("Cannot get environment, reason: %s" % str(e), CrashWarning)
 
         # Data pointed to by registers.
         self.registersPeek = thread.peek_pointers_in_registers()
@@ -563,8 +573,7 @@ class Crash:
         try:
             self.stackRange = thread.get_stack_range()
         except Exception as e:
-            warnings.warn("Cannot get stack range, reason: %s" % str(e),
-                          CrashWarning)
+            warnings.warn("Cannot get stack range, reason: %s" % str(e), CrashWarning)
         try:
             self.stackFrame = thread.get_stack_frame()
             stackFrame = self.stackFrame
@@ -575,28 +584,26 @@ class Crash:
             self.stackPeek = process.peek_pointers_in_data(stackFrame)
 
         # Code being executed.
-        self.faultCode   = thread.peek_code_bytes()
+        self.faultCode = thread.peek_code_bytes()
         try:
             self.faultDisasm = thread.disassemble_around_pc(32)
         except Exception as e:
-            warnings.warn("Cannot disassemble, reason: %s" % str(e),
-                          CrashWarning)
+            warnings.warn("Cannot disassemble, reason: %s" % str(e), CrashWarning)
 
         # For memory related exceptions, get the memory contents
         # of the location that caused the exception to be raised.
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             if self.pc != self.exceptionAddress and self.exceptionCode in (
-                        win32.EXCEPTION_ACCESS_VIOLATION,
-                        win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,
-                        win32.EXCEPTION_DATATYPE_MISALIGNMENT,
-                        win32.EXCEPTION_IN_PAGE_ERROR,
-                        win32.EXCEPTION_STACK_OVERFLOW,
-                        win32.EXCEPTION_GUARD_PAGE,
-                        ):
+                win32.EXCEPTION_ACCESS_VIOLATION,
+                win32.EXCEPTION_ARRAY_BOUNDS_EXCEEDED,
+                win32.EXCEPTION_DATATYPE_MISALIGNMENT,
+                win32.EXCEPTION_IN_PAGE_ERROR,
+                win32.EXCEPTION_STACK_OVERFLOW,
+                win32.EXCEPTION_GUARD_PAGE,
+            ):
                 self.faultMem = process.peek(self.exceptionAddress, 64)
                 if self.faultMem:
-                    self.faultPeek = process.peek_pointers_in_data(
-                                                                 self.faultMem)
+                    self.faultPeek = process.peek_pointers_in_data(self.faultMem)
 
         # TODO: maybe add names and versions of DLLs and EXE?
 
@@ -607,7 +614,7 @@ class Crash:
             mappedFilenames = process.get_mapped_filenames(self.memoryMap)
             for mbi in self.memoryMap:
                 mbi.filename = mappedFilenames.get(mbi.BaseAddress, None)
-                mbi.content  = None
+                mbi.content = None
         elif takeMemorySnapshot == 2:
             self.memoryMap = process.take_memory_snapshot()
         elif takeMemorySnapshot == 3:
@@ -621,9 +628,9 @@ class Crash:
         :rtype: int
         """
         try:
-            return self.registers['Eip']        # i386
+            return self.registers["Eip"]  # i386
         except KeyError:
-            return self.registers['Rip']        # amd64
+            return self.registers["Rip"]  # amd64
 
     @property
     def sp(self):
@@ -633,9 +640,9 @@ class Crash:
         :rtype: int
         """
         try:
-            return self.registers['Esp']        # i386
+            return self.registers["Esp"]  # i386
         except KeyError:
-            return self.registers['Rsp']        # amd64
+            return self.registers["Rsp"]  # amd64
 
     @property
     def fp(self):
@@ -645,9 +652,9 @@ class Crash:
         :rtype: int
         """
         try:
-            return self.registers['Ebp']        # i386
+            return self.registers["Ebp"]  # i386
         except KeyError:
-            return self.registers['Rbp']        # amd64
+            return self.registers["Rbp"]  # amd64
 
     def __str__(self):
         return self.fullReport()
@@ -656,8 +663,9 @@ class Crash:
         """
         Alias of :attr:`signature`. Deprecated since WinAppDbg 1.5.
         """
-        warnings.warn("Crash.key() method was deprecated in WinAppDbg 1.5",
-                      DeprecationWarning)
+        warnings.warn(
+            "Crash.key() method was deprecated in WinAppDbg 1.5", DeprecationWarning
+        )
         return self.signature
 
     @property
@@ -689,7 +697,7 @@ class Crash:
             self.debugString,
         )
 
-        signature_bytes = repr(signature_components).encode('utf-8')
+        signature_bytes = repr(signature_components).encode("utf-8")
         return hashlib.sha256(signature_bytes).hexdigest()
 
     def isExploitable(self):
@@ -728,57 +736,136 @@ class Crash:
         # Terminal rules
 
         if self.eventCode != win32.EXCEPTION_DEBUG_EVENT:
-            return ("Not an exception", "NotAnException", "The event is not an exception.")
+            return (
+                "Not an exception",
+                "NotAnException",
+                "The event is not an exception.",
+            )
 
-        if self.stackRange and self.pc is not None and self.stackRange[0] <= self.pc < self.stackRange[1]:
-            return ("Exploitable", "StackCodeExecution", "Code execution from the stack is considered exploitable.")
+        if (
+            self.stackRange
+            and self.pc is not None
+            and self.stackRange[0] <= self.pc < self.stackRange[1]
+        ):
+            return (
+                "Exploitable",
+                "StackCodeExecution",
+                "Code execution from the stack is considered exploitable.",
+            )
 
         # This rule is NOT from !exploitable
-        if self.stackRange and self.sp is not None and not (self.stackRange[0] <= self.sp < self.stackRange[1]):
-            return ("Exploitable", "StackPointerCorruption", "Stack pointer corruption is considered exploitable.")
+        if (
+            self.stackRange
+            and self.sp is not None
+            and not (self.stackRange[0] <= self.sp < self.stackRange[1])
+        ):
+            return (
+                "Exploitable",
+                "StackPointerCorruption",
+                "Stack pointer corruption is considered exploitable.",
+            )
 
         if self.exceptionCode == win32.EXCEPTION_ILLEGAL_INSTRUCTION:
-            return ("Exploitable", "IllegalInstruction", "An illegal instruction exception indicates that the attacker controls execution flow.")
+            return (
+                "Exploitable",
+                "IllegalInstruction",
+                "An illegal instruction exception indicates that the attacker controls execution flow.",
+            )
 
         if self.exceptionCode == win32.EXCEPTION_PRIV_INSTRUCTION:
-            return ("Exploitable", "PrivilegedInstruction", "A privileged instruction exception indicates that the attacker controls execution flow.")
+            return (
+                "Exploitable",
+                "PrivilegedInstruction",
+                "A privileged instruction exception indicates that the attacker controls execution flow.",
+            )
 
         if self.exceptionCode == win32.EXCEPTION_GUARD_PAGE:
-            return ("Exploitable", "GuardPage", "A guard page violation indicates a stack overflow has occured, and the stack of another thread was reached (possibly the overflow length is not controlled by the attacker).")
+            return (
+                "Exploitable",
+                "GuardPage",
+                "A guard page violation indicates a stack overflow has occured, and the stack of another thread was reached (possibly the overflow length is not controlled by the attacker).",
+            )
 
         if self.exceptionCode == win32.STATUS_STACK_BUFFER_OVERRUN:
-            return ("Exploitable", "GSViolation", "An overrun of a protected stack buffer has been detected. This is considered exploitable, and must be fixed.")
+            return (
+                "Exploitable",
+                "GSViolation",
+                "An overrun of a protected stack buffer has been detected. This is considered exploitable, and must be fixed.",
+            )
 
         if self.exceptionCode == win32.STATUS_HEAP_CORRUPTION:
-            return ("Exploitable", "HeapCorruption", "Heap Corruption has been detected. This is considered exploitable, and must be fixed.")
+            return (
+                "Exploitable",
+                "HeapCorruption",
+                "Heap Corruption has been detected. This is considered exploitable, and must be fixed.",
+            )
 
         if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
-            nearNull      = self.faultAddress is None or MemoryAddresses.align_address_to_page_start(self.faultAddress) == 0
-            controlFlow   = self.__is_control_flow()
+            nearNull = (
+                self.faultAddress is None
+                or MemoryAddresses.align_address_to_page_start(self.faultAddress) == 0
+            )
+            controlFlow = self.__is_control_flow()
             blockDataMove = self.__is_block_data_move()
             if self.faultType == win32.EXCEPTION_EXECUTE_FAULT:
                 if nearNull:
-                    return ("Probably exploitable", "DEPViolation", "User mode DEP access violations are probably exploitable if near NULL.")
+                    return (
+                        "Probably exploitable",
+                        "DEPViolation",
+                        "User mode DEP access violations are probably exploitable if near NULL.",
+                    )
                 else:
-                    return ("Exploitable", "DEPViolation", "User mode DEP access violations are exploitable.")
+                    return (
+                        "Exploitable",
+                        "DEPViolation",
+                        "User mode DEP access violations are exploitable.",
+                    )
             elif self.faultType == win32.EXCEPTION_WRITE_FAULT:
                 if nearNull:
-                    return ("Probably exploitable", "WriteAV", "User mode write access violations that are near NULL are probably exploitable.")
+                    return (
+                        "Probably exploitable",
+                        "WriteAV",
+                        "User mode write access violations that are near NULL are probably exploitable.",
+                    )
                 else:
-                    return ("Exploitable", "WriteAV", "User mode write access violations that are not near NULL are exploitable.")
+                    return (
+                        "Exploitable",
+                        "WriteAV",
+                        "User mode write access violations that are not near NULL are exploitable.",
+                    )
             elif self.faultType == win32.EXCEPTION_READ_FAULT:
                 if self.faultAddress == self.pc:
                     if nearNull:
-                        return ("Probably exploitable", "ReadAVonIP", "Access violations at the instruction pointer are probably exploitable if near NULL.")
+                        return (
+                            "Probably exploitable",
+                            "ReadAVonIP",
+                            "Access violations at the instruction pointer are probably exploitable if near NULL.",
+                        )
                     else:
-                        return ("Exploitable", "ReadAVonIP", "Access violations at the instruction pointer are exploitable if not near NULL.")
+                        return (
+                            "Exploitable",
+                            "ReadAVonIP",
+                            "Access violations at the instruction pointer are exploitable if not near NULL.",
+                        )
                 if controlFlow:
                     if nearNull:
-                        return ("Probably exploitable", "ReadAVonControlFlow", "Access violations near null in control flow instructions are considered probably exploitable.")
+                        return (
+                            "Probably exploitable",
+                            "ReadAVonControlFlow",
+                            "Access violations near null in control flow instructions are considered probably exploitable.",
+                        )
                     else:
-                        return ("Exploitable", "ReadAVonControlFlow", "Access violations not near null in control flow instructions are considered exploitable.")
+                        return (
+                            "Exploitable",
+                            "ReadAVonControlFlow",
+                            "Access violations not near null in control flow instructions are considered exploitable.",
+                        )
                 if blockDataMove:
-                    return ("Probably exploitable", "ReadAVonBlockMove", "This is a read access violation in a block data move, and is therefore classified as probably exploitable.")
+                    return (
+                        "Probably exploitable",
+                        "ReadAVonBlockMove",
+                        "This is a read access violation in a block data move, and is therefore classified as probably exploitable.",
+                    )
 
                 # Rule: Tainted information used to control branch addresses is considered probably exploitable
                 # Rule: Tainted information used to control the target of a later write is probably exploitable
@@ -794,16 +881,35 @@ class Crash:
         if self.exceptionCode == win32.EXCEPTION_ACCESS_VIOLATION:
             if self.faultType == win32.EXCEPTION_READ_FAULT:
                 if nearNull:
-                    result = ("Not likely exploitable", "ReadAVNearNull", "This is a user mode read access violation near null, and is probably not exploitable.")
+                    result = (
+                        "Not likely exploitable",
+                        "ReadAVNearNull",
+                        "This is a user mode read access violation near null, and is probably not exploitable.",
+                    )
 
         elif self.exceptionCode == win32.EXCEPTION_INT_DIVIDE_BY_ZERO:
-            result = ("Not likely exploitable", "DivideByZero", "This is an integer divide by zero, and is probably not exploitable.")
+            result = (
+                "Not likely exploitable",
+                "DivideByZero",
+                "This is an integer divide by zero, and is probably not exploitable.",
+            )
 
         elif self.exceptionCode == win32.EXCEPTION_FLT_DIVIDE_BY_ZERO:
-            result = ("Not likely exploitable", "DivideByZero", "This is a floating point divide by zero, and is probably not exploitable.")
+            result = (
+                "Not likely exploitable",
+                "DivideByZero",
+                "This is a floating point divide by zero, and is probably not exploitable.",
+            )
 
-        elif self.exceptionCode in (win32.EXCEPTION_BREAKPOINT, win32.STATUS_WX86_BREAKPOINT):
-            result = ("Unknown", "Breakpoint", "While a breakpoint itself is probably not exploitable, it may also be an indication that an attacker is testing a target. In either case breakpoints should not exist in production code.")
+        elif self.exceptionCode in (
+            win32.EXCEPTION_BREAKPOINT,
+            win32.STATUS_WX86_BREAKPOINT,
+        ):
+            result = (
+                "Unknown",
+                "Breakpoint",
+                "While a breakpoint itself is probably not exploitable, it may also be an indication that an attacker is testing a target. In either case breakpoints should not exist in production code.",
+            )
 
         # Rule: If the stack contains unknown symbols in user mode, call that out
         # Rule: Tainted information used to control the source of a later block move unknown, but called out explicitly
@@ -820,15 +926,45 @@ class Crash:
         Currently only works for x86 and amd64 architectures.
         """
         jump_instructions = (
-            'jmp', 'jecxz', 'jcxz',
-            'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je',
-            'jz', 'jnc', 'jne', 'jnz', 'jnp', 'jpo', 'jp', 'jpe', 'jg', 'jnle',
-            'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'
+            "jmp",
+            "jecxz",
+            "jcxz",
+            "ja",
+            "jnbe",
+            "jae",
+            "jnb",
+            "jb",
+            "jnae",
+            "jbe",
+            "jna",
+            "jc",
+            "je",
+            "jz",
+            "jnc",
+            "jne",
+            "jnz",
+            "jnp",
+            "jpo",
+            "jp",
+            "jpe",
+            "jg",
+            "jnle",
+            "jge",
+            "jnl",
+            "jl",
+            "jnge",
+            "jle",
+            "jng",
+            "jno",
+            "jns",
+            "jo",
+            "js",
         )
-        call_instructions = ( 'call', 'ret', 'retn' )
-        loop_instructions = ( 'loop', 'loopz', 'loopnz', 'loope', 'loopne' )
-        control_flow_instructions = call_instructions + loop_instructions + \
-                                    jump_instructions
+        call_instructions = ("call", "ret", "retn")
+        loop_instructions = ("loop", "loopz", "loopnz", "loope", "loopne")
+        control_flow_instructions = (
+            call_instructions + loop_instructions + jump_instructions
+        )
         isControlFlow = False
         instruction = None
         if self.pc is not None and self.faultDisasm:
@@ -850,7 +986,7 @@ class Crash:
 
         Currently only works for x86 and amd64 architectures.
         """
-        block_data_move_instructions = ('movs', 'stos', 'lods')
+        block_data_move_instructions = ("movs", "stos", "lods")
         isBlockDataMove = False
         instruction = None
         if self.pc is not None and self.faultDisasm:
@@ -883,12 +1019,11 @@ class Crash:
             elif self.exceptionName:
                 what = self.exceptionName
             else:
-                what = "Exception %s" % \
-                            HexDump.integer(self.exceptionCode, self.bits)
+                what = "Exception %s" % HexDump.integer(self.exceptionCode, self.bits)
             if self.firstChance:
-                chance = 'first'
+                chance = "first"
             else:
-                chance = 'second'
+                chance = "second"
             if self.exceptionLabel:
                 where = self.exceptionLabel
             elif self.exceptionAddress:
@@ -910,20 +1045,20 @@ class Crash:
             else:
                 where = HexDump.address(self.pc, self.bits)
             msg = "%s (%s) at %s" % (
-                        self.eventName,
-                        HexDump.integer(self.eventCode, self.bits),
-                        where
-                       )
+                self.eventName,
+                HexDump.integer(self.eventCode, self.bits),
+                where,
+            )
         return msg
 
-    def fullReport(self, bShowNotes = True):
+    def fullReport(self, bShowNotes=True):
         """
         :param bool bShowNotes: ``True`` to show the user notes, ``False`` otherwise.
         :rtype: str
         :return: Long description of the event.
         """
-        msg  = self.briefReport()
-        msg += '\n'
+        msg = self.briefReport()
+        msg += "\n"
 
         if self.bits == 32:
             width = 16
@@ -932,89 +1067,90 @@ class Crash:
 
         if self.eventCode == win32.EXCEPTION_DEBUG_EVENT:
             (exploitability, expcode, expdescription) = self.isExploitable()
-            msg += '\nSecurity risk level: %s\n' % exploitability
-            msg += '  %s\n' % expdescription
+            msg += "\nSecurity risk level: %s\n" % exploitability
+            msg += "  %s\n" % expdescription
 
         if bShowNotes and self.notes:
-            msg += '\nNotes:\n'
+            msg += "\nNotes:\n"
             msg += self.notesReport()
 
         if self.commandLine:
-            msg += '\nCommand line: %s\n' % self.commandLine
+            msg += "\nCommand line: %s\n" % self.commandLine
 
         if self.environment:
-            msg += '\nEnvironment:\n'
+            msg += "\nEnvironment:\n"
             msg += self.environmentReport()
 
         if not self.labelPC:
             base = HexDump.address(self.lpBaseOfDll, self.bits)
             if self.modFileName:
-                fn   = PathOperations.pathname_to_filename(self.modFileName)
-                msg += '\nRunning in %s (%s)\n' % (fn, base)
+                fn = PathOperations.pathname_to_filename(self.modFileName)
+                msg += "\nRunning in %s (%s)\n" % (fn, base)
             else:
-                msg += '\nRunning in module at %s\n' % base
+                msg += "\nRunning in module at %s\n" % base
 
         if self.registers:
-            msg += '\nRegisters:\n'
+            msg += "\nRegisters:\n"
             msg += CrashDump.dump_registers(self.registers)
             if self.registersPeek:
-                msg += '\n'
-                msg += CrashDump.dump_registers_peek(self.registers,
-                                                     self.registersPeek,
-                                                     width = width)
+                msg += "\n"
+                msg += CrashDump.dump_registers_peek(
+                    self.registers, self.registersPeek, width=width
+                )
 
         if self.faultDisasm:
-            msg += '\nCode disassembly:\n'
-            msg += CrashDump.dump_code(self.faultDisasm, self.pc,
-                                       bits = self.bits)
+            msg += "\nCode disassembly:\n"
+            msg += CrashDump.dump_code(self.faultDisasm, self.pc, bits=self.bits)
 
         if self.stackTrace:
-            msg += '\nStack trace:\n'
+            msg += "\nStack trace:\n"
             if self.stackTracePretty:
                 msg += CrashDump.dump_stack_trace_with_labels(
-                                        self.stackTracePretty,
-                                        bits = self.bits)
+                    self.stackTracePretty, bits=self.bits
+                )
             else:
-                msg += CrashDump.dump_stack_trace(self.stackTrace,
-                                                  bits = self.bits)
+                msg += CrashDump.dump_stack_trace(self.stackTrace, bits=self.bits)
 
         if self.stackFrame:
             if self.stackPeek:
-                msg += '\nStack pointers:\n'
-                msg += CrashDump.dump_stack_peek(self.stackPeek, width = width)
-            msg += '\nStack dump:\n'
-            msg += HexDump.hexblock(self.stackFrame, self.sp,
-                                    bits = self.bits, width = width)
+                msg += "\nStack pointers:\n"
+                msg += CrashDump.dump_stack_peek(self.stackPeek, width=width)
+            msg += "\nStack dump:\n"
+            msg += HexDump.hexblock(
+                self.stackFrame, self.sp, bits=self.bits, width=width
+            )
 
         if self.faultCode and not self.modFileName:
-            msg += '\nCode dump:\n'
-            msg += HexDump.hexblock(self.faultCode, self.pc,
-                                    bits = self.bits, width = width)
+            msg += "\nCode dump:\n"
+            msg += HexDump.hexblock(
+                self.faultCode, self.pc, bits=self.bits, width=width
+            )
 
         if self.faultMem:
             if self.faultPeek:
-                msg += '\nException address pointers:\n'
-                msg += CrashDump.dump_data_peek(self.faultPeek,
-                                                self.exceptionAddress,
-                                                bits  = self.bits,
-                                                width = width)
-            msg += '\nException address dump:\n'
-            msg += HexDump.hexblock(self.faultMem, self.exceptionAddress,
-                                    bits = self.bits, width = width)
+                msg += "\nException address pointers:\n"
+                msg += CrashDump.dump_data_peek(
+                    self.faultPeek, self.exceptionAddress, bits=self.bits, width=width
+                )
+            msg += "\nException address dump:\n"
+            msg += HexDump.hexblock(
+                self.faultMem, self.exceptionAddress, bits=self.bits, width=width
+            )
 
         if self.memoryMap:
-            msg += '\nMemory map:\n'
+            msg += "\nMemory map:\n"
             mappedFileNames = dict()
             for mbi in self.memoryMap:
-                if hasattr(mbi, 'filename') and mbi.filename:
+                if hasattr(mbi, "filename") and mbi.filename:
                     mappedFileNames[mbi.BaseAddress] = mbi.filename
-            msg += CrashDump.dump_memory_map(self.memoryMap, mappedFileNames,
-                                             bits = self.bits)
+            msg += CrashDump.dump_memory_map(
+                self.memoryMap, mappedFileNames, bits=self.bits
+            )
 
-        if not msg.endswith('\n\n'):
-            if not msg.endswith('\n'):
-                msg += '\n'
-            msg += '\n'
+        if not msg.endswith("\n\n"):
+            if not msg.endswith("\n"):
+                msg += "\n"
+            msg += "\n"
         return msg
 
     def environmentReport(self):
@@ -1023,10 +1159,10 @@ class Crash:
         :return: The process environment variables,
             merged and formatted for a report.
         """
-        msg = ''
+        msg = ""
         if self.environment:
             for key, value in self.environment.items():
-                msg += '  %s=%s\n' % (key, value)
+                msg += "  %s=%s\n" % (key, value)
         return msg
 
     def notesReport(self):
@@ -1034,17 +1170,17 @@ class Crash:
         :rtype: str
         :return: All notes, merged and formatted for a report.
         """
-        msg = ''
+        msg = ""
         if self.notes:
             for n in self.notes:
-                n = n.strip('\n')
-                if '\n' in n:
-                    n = n.strip('\n')
-                    msg += ' * %s\n' % n.pop(0)
+                n = n.strip("\n")
+                if "\n" in n:
+                    n = n.strip("\n")
+                    msg += " * %s\n" % n.pop(0)
                     for x in n:
-                        msg += '   %s\n' % x
+                        msg += "   %s\n" % x
                 else:
-                    msg += ' * %s\n' % n
+                    msg += " * %s\n" % n
         return msg
 
     def addNote(self, msg):
@@ -1084,9 +1220,11 @@ class Crash:
         :rtype: bool
         :return: ``True`` if there are notes for this crash event.
         """
-        return bool( self.notes )
+        return bool(self.notes)
 
-#==============================================================================
+
+# ==============================================================================
+
 
 class CrashDictionary(object):
     """
@@ -1095,7 +1233,7 @@ class CrashDictionary(object):
     Currently the only implementation is through :class:`db.CrashDAO`.
     """
 
-    def __init__(self, url, creator = None, allowRepeatedKeys = True):
+    def __init__(self, url, creator=None, allowRepeatedKeys=True):
         """
         :param str url: Connection URL of the crash database.
             See :meth:`db.CrashDAO.__init__` for more details.
@@ -1115,9 +1253,9 @@ class CrashDictionary(object):
         # Lazy import of the winappdbg.db submodule.
         global db
         if db is None:
-            #with warnings.catch_warnings():
+            # with warnings.catch_warnings():
             #    warnings.simplefilter("ignore")
-                import db
+            import db
 
         # Initialize the private members of the class.
         self._allowRepeatedKeys = allowRepeatedKeys
@@ -1168,7 +1306,7 @@ class CrashDictionary(object):
         :return: Iterator of the contained :class:`Crash` objects.
         """
         offset = 0
-        limit  = 10
+        limit = 10
         while True:
             found = self._dao.find(offset=offset, limit=limit)
             if not found:
@@ -1190,7 +1328,7 @@ class CrashDictionary(object):
         :return: Iterator of the contained :class:`Crash` heuristic signatures.
         """
         for crash in self:
-            yield crash.signature       # FIXME this gives repeated results!
+            yield crash.signature  # FIXME this gives repeated results!
 
     def __contains__(self, crash):
         """
@@ -1221,6 +1359,7 @@ class CrashDictionary(object):
         :rtype: bool
         :return: ``False`` if the container is empty.
         """
-        return bool( len(self) )
+        return bool(len(self))
 
-#==============================================================================
+
+# ==============================================================================

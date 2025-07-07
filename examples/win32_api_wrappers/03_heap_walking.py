@@ -28,10 +28,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.win32 import sizeof, SIZE_T, DWORD, CreateToolhelp32Snapshot, TH32CS_SNAPHEAPLIST, Heap32ListFirst, Heap32First, Heap32Next, Heap32ListNext
+from winappdbg.win32 import (
+    DWORD,
+    SIZE_T,
+    TH32CS_SNAPHEAPLIST,
+    CreateToolhelp32Snapshot,
+    Heap32First,
+    Heap32ListFirst,
+    Heap32ListNext,
+    Heap32Next,
+    sizeof,
+)
 
-def print_heap_blocks( pid ):
 
+def print_heap_blocks(pid):
     # Determine if we have 32 bit or 64 bit pointers.
     if sizeof(SIZE_T) == sizeof(DWORD):
         fmt = "%.8x\t%.8x\t%.8x"
@@ -45,30 +55,30 @@ def print_heap_blocks( pid ):
     print(hdr % ("Heap ID", "Address", "Size"))
 
     # Create a snapshot of the process, only take the heap list.
-    hSnapshot = CreateToolhelp32Snapshot( TH32CS_SNAPHEAPLIST, pid )
+    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, pid)
 
     # Enumerate the heaps.
-    heap = Heap32ListFirst( hSnapshot )
+    heap = Heap32ListFirst(hSnapshot)
     while heap is not None:
-
         # For each heap, enumerate the entries.
-        entry = Heap32First( heap.th32ProcessID, heap.th32HeapID )
+        entry = Heap32First(heap.th32ProcessID, heap.th32HeapID)
         while entry is not None:
-
             # Print the heap id and the entry address and size.
             print(fmt % (entry.th32HeapID, entry.dwAddress, entry.dwBlockSize))
 
             # Next entry in the heap.
-            entry = Heap32Next( entry )
+            entry = Heap32Next(entry)
 
         # Next heap in the list.
-        heap = Heap32ListNext( hSnapshot )
+        heap = Heap32ListNext(hSnapshot)
 
     # No need to call CloseHandle, the handle is closed automatically when it goes out of scope.
     return
+
 
 # When invoked from the command line,
 # take the first argument as a process ID.
 if __name__ == "__main__":
     import sys
-    print_heap_blocks( int( sys.argv[1] ) )
+
+    print_heap_blocks(int(sys.argv[1]))

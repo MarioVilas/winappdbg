@@ -28,28 +28,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
 import ntpath
+import os
 import warnings
 
 
 def test_module_load():
     import winappdbg  # NOQA
 
+
 def test_disassembler_load():
-    from winappdbg.disasm import Disassembler
     from winappdbg import win32
+    from winappdbg.disasm import Disassembler
+
     Disassembler(win32.ARCH_I386)
     Disassembler(win32.ARCH_AMD64)
+
 
 def test_db_load():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         from winappdbg import db  # NOQA
 
+
 def test_windbg_version():
-    from winappdbg.system import System
     from winappdbg import win32
+    from winappdbg.system import System
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         dbghelp = System.load_dbghelp()
@@ -61,7 +66,7 @@ def test_windbg_version():
         sysroot = os.getenv("SYSTEMROOT")
     system = ntpath.join(sysroot, "System32")
     syswow = ntpath.join(sysroot, "SysWoW64")
-    if (pathname.lower().startswith(system.lower()) or
-        pathname.lower().startswith(syswow.lower())
+    if pathname.lower().startswith(system.lower()) or pathname.lower().startswith(
+        syswow.lower()
     ):
         raise RuntimeError("Microsoft SDK not found")

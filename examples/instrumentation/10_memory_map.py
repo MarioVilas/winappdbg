@@ -32,10 +32,10 @@ from winappdbg import win32
 from winappdbg.process import Process
 from winappdbg.textio import HexDump
 
-def print_memory_map( pid ):
 
+def print_memory_map(pid):
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # Find out if it's a 32 or 64 bit process.
     bits = process.get_bits()
@@ -53,27 +53,26 @@ def print_memory_map( pid ):
     # For each memory block in the map...
     print("Address   \tSize      \tState     \tAccess    \tType")
     for mbi in memoryMap:
-
         # Address and size of memory block.
         BaseAddress = HexDump.address(mbi.BaseAddress, bits)
-        RegionSize  = HexDump.address(mbi.RegionSize,  bits)
+        RegionSize = HexDump.address(mbi.RegionSize, bits)
 
         # State (free or allocated).
-        if   mbi.State == win32.MEM_RESERVE:
-            State   = "Reserved  "
+        if mbi.State == win32.MEM_RESERVE:
+            State = "Reserved  "
         elif mbi.State == win32.MEM_COMMIT:
-            State   = "Commited  "
+            State = "Commited  "
         elif mbi.State == win32.MEM_FREE:
-            State   = "Free      "
+            State = "Free      "
         else:
-            State   = "Unknown   "
+            State = "Unknown   "
 
         # Page protection bits (R/W/X/G).
         if mbi.State != win32.MEM_COMMIT:
             Protect = "          "
         else:
-##            Protect = "0x%.08x" % mbi.Protect
-            if   mbi.Protect & win32.PAGE_NOACCESS:
+            ##            Protect = "0x%.08x" % mbi.Protect
+            if mbi.Protect & win32.PAGE_NOACCESS:
                 Protect = "--- "
             elif mbi.Protect & win32.PAGE_READONLY:
                 Protect = "R-- "
@@ -91,38 +90,40 @@ def print_memory_map( pid ):
                 Protect = "RCX "
             else:
                 Protect = "??? "
-            if   mbi.Protect & win32.PAGE_GUARD:
+            if mbi.Protect & win32.PAGE_GUARD:
                 Protect += "G"
             else:
                 Protect += "-"
-            if   mbi.Protect & win32.PAGE_NOCACHE:
+            if mbi.Protect & win32.PAGE_NOCACHE:
                 Protect += "N"
             else:
                 Protect += "-"
-            if   mbi.Protect & win32.PAGE_WRITECOMBINE:
+            if mbi.Protect & win32.PAGE_WRITECOMBINE:
                 Protect += "W"
             else:
                 Protect += "-"
             Protect += "   "
 
         # Type (file mapping, executable image, or private memory).
-        if   mbi.Type == win32.MEM_IMAGE:
-            Type    = "Image     "
+        if mbi.Type == win32.MEM_IMAGE:
+            Type = "Image     "
         elif mbi.Type == win32.MEM_MAPPED:
-            Type    = "Mapped    "
+            Type = "Mapped    "
         elif mbi.Type == win32.MEM_PRIVATE:
-            Type    = "Private   "
+            Type = "Private   "
         elif mbi.Type == 0:
-            Type    = "Free      "
+            Type = "Free      "
         else:
-            Type    = "Unknown   "
+            Type = "Unknown   "
 
         # Print the memory block information.
         fmt = "%s\t%s\t%s\t%s\t%s"
-        print(fmt % ( BaseAddress, RegionSize, State, Protect, Type ))
+        print(fmt % (BaseAddress, RegionSize, State, Protect, Type))
+
 
 # When invoked from the command line,
 # the first argument is a process ID.
 if __name__ == "__main__":
     import sys
-    print_memory_map( int( sys.argv[1] ) )
+
+    print_memory_map(int(sys.argv[1]))

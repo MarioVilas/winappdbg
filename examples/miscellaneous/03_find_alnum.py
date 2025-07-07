@@ -37,18 +37,18 @@
 
 from struct import pack
 
-from winappdbg.system import System
 from winappdbg.process import Process
+from winappdbg.system import System
 from winappdbg.textio import HexDump
+
 
 # Iterator of alphanumeric executable addresses.
 def iterate_alnum_jump_addresses(process):
-
     # Determine the size of a pointer for this process.
     if process.get_bits() == 32:
-        fmt = 'L'
+        fmt = "L"
     elif process.get_bits() == 64:
-        fmt = 'Q'
+        fmt = "Q"
         print("Warning! 64 bit addresses are not likely to be alphanumeric!")
     else:
         raise NotImplementedError
@@ -58,14 +58,13 @@ def iterate_alnum_jump_addresses(process):
 
     # Iterate the memory regions of the target process.
     for mbi in iterator:
-
         # Discard non executable memory.
         if not mbi.is_executable():
             continue
 
         # Get the module that owns this memory region, if any.
         address = mbi.BaseAddress
-        module  = process.get_module_at_address(address)
+        module = process.get_module_at_address(address)
 
         # Yield each alphanumeric address in this memory region.
         max_address = address + mbi.RegionSize
@@ -75,9 +74,9 @@ def iterate_alnum_jump_addresses(process):
                 yield address, packed, module
             address = address + 1
 
+
 # Iterate and print alphanumeric executable addresses.
 def print_alnum_jump_addresses(pid):
-
     # Request debug privileges so we can inspect the memory of services too.
     System.request_debug_privileges()
 
@@ -85,13 +84,11 @@ def print_alnum_jump_addresses(pid):
     process = Process(pid)
     process.suspend()
     try:
-
         # For each executable alphanumeric address...
         for address, packed, module in iterate_alnum_jump_addresses(process):
-
             # Format the address for printing.
             numeric = HexDump.address(address, process.get_bits())
-            ascii   = repr(packed)
+            ascii = repr(packed)
 
             # Format the module name for printing.
             if module:
@@ -114,10 +111,12 @@ def print_alnum_jump_addresses(pid):
     finally:
         process.resume()
 
+
 # When invoked from the command line,
 # the first argument is the process ID.
-if __name__ == '__main__':
+if __name__ == "__main__":
     from sys import argv
+
     pid = int(argv[1])
     try:
         print_alnum_jump_addresses(pid)
@@ -125,4 +124,5 @@ if __name__ == '__main__':
         print("Interrupted by the user.")
     except Exception:
         import traceback
+
         traceback.print_exc()

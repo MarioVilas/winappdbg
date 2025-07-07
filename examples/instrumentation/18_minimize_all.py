@@ -35,7 +35,6 @@ system = System()
 
 # Enumerate the top-level windows.
 for window in system.get_top_level_windows():
-
     # Minimize the window.
     if window.is_visible() and not window.is_minimized():
         window.minimize()

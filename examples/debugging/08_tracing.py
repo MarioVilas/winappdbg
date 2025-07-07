@@ -33,42 +33,33 @@ from winappdbg.event import EventHandler
 from winappdbg.textio import HexDump
 
 
-class MyEventHandler( EventHandler ):
-
-
+class MyEventHandler(EventHandler):
     # Create process events go here.
-    def create_process( self, event ):
-
+    def create_process(self, event):
         # Start tracing the main thread.
-        event.debug.start_tracing( event.get_tid() )
-
+        event.debug.start_tracing(event.get_tid())
 
     # Create thread events go here.
-    def create_thread( self, event ):
-
+    def create_thread(self, event):
         # Start tracing the new thread.
-        event.debug.start_tracing( event.get_tid() )
-
+        event.debug.start_tracing(event.get_tid())
 
     # Single step events go here.
-    def single_step( self, event ):
-
+    def single_step(self, event):
         # Show the user where we're running.
         thread = event.get_thread()
-        pc     = thread.get_pc()
-        code   = thread.disassemble( pc, 0x10 ) [0]
-        bits   = event.get_process().get_bits()
-        print("%s: %s" % ( HexDump.address(code[0], bits), code[2].lower() ))
+        pc = thread.get_pc()
+        code = thread.disassemble(pc, 0x10)[0]
+        bits = event.get_process().get_bits()
+        print("%s: %s" % (HexDump.address(code[0], bits), code[2].lower()))
 
 
-def simple_debugger( argv ):
-
+def simple_debugger(argv):
     # Instance a Debug object using the "with" statement.
     # Note how we don't need to call "debug.stop()" anymore.
-    with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
-
+    with Debug(MyEventHandler(), bKillOnExit=True) as debug:
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Wait for the debugee to finish.
         debug.loop()
@@ -79,4 +70,5 @@ def simple_debugger( argv ):
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    simple_debugger( sys.argv[1:] )
+
+    simple_debugger(sys.argv[1:])

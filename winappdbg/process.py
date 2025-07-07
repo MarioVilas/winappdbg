@@ -42,31 +42,29 @@ from __future__ import with_statement
 # The solution appears to be to run the debugger from a user account that
 # belongs to the VMware group. I haven't confirmed this yet.
 
-__all__ = ['Process']
+__all__ = ["Process"]
 
-from . import win32
-from .textio import HexDump, HexInput
-from .util import Regenerator, PathOperations, MemoryAddresses
-from .module import _ModuleContainer
-from .thread import Thread, _ThreadContainer
-from .search import Search, \
-                   Pattern, StringPattern, IStringPattern, HexPattern
-from .disasm import Disassembler
-from .window import Window
-
-import re
 import ctypes
 import ntpath
+import re
 import struct
-import warnings
 import traceback
-
+import warnings
 from os import getenv
+
+from . import win32
+from .disasm import Disassembler
+from .module import _ModuleContainer
+from .search import HexPattern, IStringPattern, Pattern, Search, StringPattern
+from .textio import HexDump, HexInput
+from .thread import Thread, _ThreadContainer
+from .util import MemoryAddresses, PathOperations, Regenerator
+from .window import Window
 
 # delayed import
 System = None
 
-#==============================================================================
+# ==============================================================================
 
 # TODO
 # * Remote GetLastError()
@@ -75,7 +73,8 @@ System = None
 #   retrieve the original memory contents where code breakpoints are enabled.
 # * A memory cache could be implemented here.
 
-class Process (_ThreadContainer, _ModuleContainer):
+
+class Process(_ThreadContainer, _ModuleContainer):
     """
     Interface to a process. Contains threads and modules snapshots.
 
@@ -87,7 +86,7 @@ class Process (_ThreadContainer, _ModuleContainer):
     :type fileName: str
     """
 
-    def __init__(self, dwProcessId, hProcess = None, fileName = None):
+    def __init__(self, dwProcessId, hProcess=None, fileName=None):
         """
         :param dwProcessId: Global process ID.
         :type  dwProcessId: int
@@ -100,8 +99,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         _ModuleContainer.__init__(self)
 
         self.dwProcessId = dwProcessId
-        self.hProcess    = hProcess
-        self.fileName    = fileName
+        self.hProcess = hProcess
+        self.fileName = fileName
 
     def get_pid(self):
         """
@@ -118,10 +117,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         if not self.fileName:
             self.fileName = self.get_image_name()
         if isinstance(self.fileName, bytes):
-            self.fileName = self.fileName.decode('mbcs', 'ignore')
+            self.fileName = self.fileName.decode("mbcs", "ignore")
         return self.fileName
 
-    def open_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
+    def open_handle(self, dwDesiredAccess=win32.PROCESS_ALL_ACCESS):
         """
         Opens a new handle to the process.
 
@@ -146,8 +145,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             self.close_handle()
         except Exception:
-            warnings.warn(
-                "Failed to close process handle: %s" % traceback.format_exc())
+            warnings.warn("Failed to close process handle: %s" % traceback.format_exc())
 
         self.hProcess = hProcess
 
@@ -163,14 +161,17 @@ class Process (_ThreadContainer, _ModuleContainer):
             setting :attr:`hProcess` to ``None`` should be enough.
         """
         try:
-            if hasattr(self.hProcess, 'close'):
+            if hasattr(self.hProcess, "close"):
                 self.hProcess.close()
-            elif self.hProcess is not None and self.hProcess != win32.INVALID_HANDLE_VALUE:
+            elif (
+                self.hProcess is not None
+                and self.hProcess != win32.INVALID_HANDLE_VALUE
+            ):
                 win32.CloseHandle(self.hProcess)
         finally:
             self.hProcess = None
 
-    def get_handle(self, dwDesiredAccess = win32.PROCESS_ALL_ACCESS):
+    def get_handle(self, dwDesiredAccess=win32.PROCESS_ALL_ACCESS):
         """
         Returns a handle to the process with *at least* the access rights
         requested.
@@ -215,13 +216,12 @@ class Process (_ThreadContainer, _ModuleContainer):
             hCurWnd = win32.FindWindowEx(None, hCurWnd, None, None)
             if hCurWnd is None:
                 break
-            sdwThreadId, dwProcessId = \
-                            win32.GetWindowThreadProcessId(hCurWnd)
+            sdwThreadId, dwProcessId = win32.GetWindowThreadProcessId(hCurWnd)
             if dwProcessId == self.dwProcessId:
                 window_list.append(Window(hCurWnd))
         return window_list
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def __contains__(self, anObject):
         """
@@ -235,8 +235,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :rtype:  bool
         :return: ``True`` if the requested object was found in the snapshot.
         """
-        return _ThreadContainer.__contains__(self, anObject) or \
-               _ModuleContainer.__contains__(self, anObject)
+        return _ThreadContainer.__contains__(
+            self, anObject
+        ) or _ModuleContainer.__contains__(self, anObject)
 
     def __len__(self):
         """
@@ -244,8 +245,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :rtype: int
         :return: Count of :class:`~.Thread` and :class:`~.Module` objects in this snapshot.
         """
-        return _ThreadContainer.__len__(self) + \
-               _ModuleContainer.__len__(self)
+        return _ThreadContainer.__len__(self) + _ModuleContainer.__len__(self)
 
     class __ThreadsAndModulesIterator:
         """
@@ -259,8 +259,8 @@ class Process (_ThreadContainer, _ModuleContainer):
             :type  container: :class:`~.Process`
             """
             self.__container = container
-            self.__iterator  = None
-            self.__state     = 0
+            self.__iterator = None
+            self.__state = 0
 
         def __iter__(self):
             return self
@@ -268,19 +268,19 @@ class Process (_ThreadContainer, _ModuleContainer):
         def __next__(self):
             if self.__state == 0:
                 self.__iterator = self.__container.iter_threads()
-                self.__state    = 1
+                self.__state = 1
             if self.__state == 1:
                 try:
                     return next(self.__iterator)
                 except StopIteration:
                     self.__iterator = self.__container.iter_modules()
-                    self.__state    = 2
+                    self.__state = 2
             if self.__state == 2:
                 try:
                     return next(self.__iterator)
                 except StopIteration:
                     self.__iterator = None
-                    self.__state    = 3
+                    self.__state = 3
             raise StopIteration
 
     def __iter__(self):
@@ -292,9 +292,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         return self.__ThreadsAndModulesIterator(self)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def wait(self, dwTimeout = None):
+    def wait(self, dwTimeout=None):
         """
         Waits for the process to finish executing.
 
@@ -302,7 +302,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         self.get_handle(win32.SYNCHRONIZE).wait(dwTimeout)
 
-    def kill(self, dwExitCode = 0):
+    def kill(self, dwExitCode=0):
         """
         Terminates the execution of the process.
 
@@ -317,7 +317,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         :raises WindowsError: On error an exception is raised.
         """
-        self.scan_threads() # force refresh the snapshot
+        self.scan_threads()  # force refresh the snapshot
         suspended = list()
         try:
             for aThread in self.iter_threads():
@@ -338,7 +338,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises WindowsError: On error an exception is raised.
         """
         if self.get_thread_count() == 0:
-            self.scan_threads() # only refresh the snapshot if empty
+            self.scan_threads()  # only refresh the snapshot if empty
         resumed = list()
         try:
             for aThread in self.iter_threads():
@@ -399,13 +399,13 @@ class Process (_ThreadContainer, _ModuleContainer):
             handle object and then call the ``wait`` method on it to wait
             until the process finishes running.
         """
-        if hasattr(win32, 'PROCESS_QUERY_LIMITED_INFORMATION'):
+        if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
             dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
         else:
             dwAccess = win32.PROCESS_QUERY_INFORMATION
         return win32.GetExitCodeProcess(self.get_handle(dwAccess))
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def scan(self):
         """
@@ -426,10 +426,10 @@ class Process (_ThreadContainer, _ModuleContainer):
         finally:
             self.close_handle()
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # Regular expression to find hexadecimal values of any size.
-    __hexa_parameter = re.compile('0x[0-9A-Fa-f]+')
+    __hexa_parameter = re.compile("0x[0-9A-Fa-f]+")
 
     def __fixup_labels(self, disasm):
         """
@@ -448,7 +448,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 s, e = m.span()
                 value = text[s:e]
                 try:
-                    label = self.get_label_at_address( int(value, 0x10) )
+                    label = self.get_label_at_address(int(value, 0x10))
                 except Exception:
                     label = None
                 if label:
@@ -478,7 +478,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         try:
             disasm = self.__disasm
         except AttributeError:
-            disasm = self.__disasm = Disassembler( self.get_arch() )
+            disasm = self.__disasm = Disassembler(self.get_arch())
         return disasm.decode(lpAddress, code)
 
     def disassemble(self, lpAddress, dwSize):
@@ -496,14 +496,14 @@ class Process (_ThreadContainer, _ModuleContainer):
             - Disassembly line of instruction.
             - Hexadecimal dump of instruction.
         """
-        data   = self.read(lpAddress, dwSize)
+        data = self.read(lpAddress, dwSize)
         disasm = self.disassemble_string(lpAddress, data)
         self.__fixup_labels(disasm)
         return disasm
 
     # FIXME
     # This algorithm really sucks, I've got to write a better one :P
-    def disassemble_around(self, lpAddress, dwSize = 64):
+    def disassemble_around(self, lpAddress, dwSize=64):
         """
         Disassemble around the given address.
 
@@ -520,21 +520,21 @@ class Process (_ThreadContainer, _ModuleContainer):
             - Disassembly line of instruction.
             - Hexadecimal dump of instruction.
         """
-        dwDelta  = int(float(dwSize) / 2.0)
-        addr_1   = lpAddress - dwDelta
-        addr_2   = lpAddress
-        size_1   = dwDelta
-        #size_2   = dwSize - dwDelta
-        data     = self.read(addr_1, dwSize)
-        data_1   = data[:size_1]
-        data_2   = data[size_1:]
+        dwDelta = int(float(dwSize) / 2.0)
+        addr_1 = lpAddress - dwDelta
+        addr_2 = lpAddress
+        size_1 = dwDelta
+        # size_2   = dwSize - dwDelta
+        data = self.read(addr_1, dwSize)
+        data_1 = data[:size_1]
+        data_2 = data[size_1:]
         disasm_1 = self.disassemble_string(addr_1, data_1)
         disasm_2 = self.disassemble_string(addr_2, data_2)
-        disasm   = disasm_1 + disasm_2
+        disasm = disasm_1 + disasm_2
         self.__fixup_labels(disasm)
         return disasm
 
-    def disassemble_around_pc(self, dwThreadId, dwSize = 64):
+    def disassemble_around_pc(self, dwThreadId, dwSize=64):
         """
         Disassemble around the program counter of the given thread.
 
@@ -586,7 +586,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         aThread = self.get_thread(dwThreadId)
         return self.disassemble_instruction(aThread.get_pc())
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def flush_instruction_cache(self):
         """
@@ -603,7 +603,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Maybe PROCESS_VM_OPERATION ???
         # In any case we're only calling this from the debugger,
         # so it should be fine (we already have PROCESS_ALL_ACCESS).
-        win32.FlushInstructionCache( self.get_handle() )
+        win32.FlushInstructionCache(self.get_handle())
 
     def debug_break(self):
         """
@@ -614,7 +614,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # The exception is raised by a new thread.
         # When continuing the exception, the thread dies by itself.
         # This thread is hidden from the debugger.
-        win32.DebugBreakProcess( self.get_handle() )
+        win32.DebugBreakProcess(self.get_handle())
 
     def is_wow64(self):
         """
@@ -639,7 +639,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             if win32.bits == 32 and not win32.wow64:
                 wow64 = False
             else:
-                if hasattr(win32, 'PROCESS_QUERY_LIMITED_INFORMATION'):
+                if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
                     dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
                 else:
                     dwAccess = win32.PROCESS_QUERY_INFORMATION
@@ -686,13 +686,11 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # Are we in a 32 bit machine?
         if win32.bits == 32 and not win32.wow64:
-
             # All processes are 32 bits.
             return 32
 
         # Is the process inside WOW64?
         if self.is_wow64():
-
             # The process is 32 bits.
             return 32
 
@@ -702,7 +700,7 @@ class Process (_ThreadContainer, _ModuleContainer):
     # TODO: get_os, to test compatibility run
     # See: http://msdn.microsoft.com/en-us/library/windows/desktop/ms683224(v=vs.85).aspx
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def get_start_time(self):
         """
@@ -711,7 +709,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :rtype: :class:`~win32.SYSTEMTIME`
         :return: Process start time.
         """
-        if hasattr(win32, 'PROCESS_QUERY_LIMITED_INFORMATION'):
+        if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
             dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
         else:
             dwAccess = win32.PROCESS_QUERY_INFORMATION
@@ -730,7 +728,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         if self.is_alive():
             ExitTime = win32.GetSystemTimeAsFileTime()
         else:
-            if hasattr(win32, 'PROCESS_QUERY_LIMITED_INFORMATION'):
+            if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
                 dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
             else:
                 dwAccess = win32.PROCESS_QUERY_INFORMATION
@@ -745,7 +743,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :rtype: int
         :return: Process running time in milliseconds.
         """
-        if hasattr(win32, 'PROCESS_QUERY_LIMITED_INFORMATION'):
+        if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
             dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
         else:
             dwAccess = win32.PROCESS_QUERY_INFORMATION
@@ -754,14 +752,14 @@ class Process (_ThreadContainer, _ModuleContainer):
         if self.is_alive():
             ExitTime = win32.GetSystemTimeAsFileTime()
         CreationTime = CreationTime.dwLowDateTime + (CreationTime.dwHighDateTime << 32)
-        ExitTime     =     ExitTime.dwLowDateTime + (    ExitTime.dwHighDateTime << 32)
-        RunningTime  = ExitTime - CreationTime
-        return RunningTime // 10000 # 100 nanoseconds steps => milliseconds
+        ExitTime = ExitTime.dwLowDateTime + (ExitTime.dwHighDateTime << 32)
+        RunningTime = ExitTime - CreationTime
+        return RunningTime // 10000  # 100 nanoseconds steps => milliseconds
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def __load_System_class(self):
-        global System      # delayed import
+        global System  # delayed import
         if System is None:
             from .system import System
 
@@ -779,7 +777,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         pid = self.get_pid()
         return [d for d in System.get_active_services() if d.ProcessId == pid]
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def get_dep_policy(self):
         """
@@ -814,7 +812,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             msg = "This method is only available in Windows XP SP3 and above."
             raise NotImplementedError(msg)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def get_peb(self):
         """
@@ -825,8 +823,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: PEB structure.
         :raises WindowsError: An exception is raised on error.
         """
-        self.get_handle( win32.PROCESS_VM_READ |
-                         win32.PROCESS_QUERY_INFORMATION )
+        self.get_handle(win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION)
         return self.read_structure(self.get_peb_address(), win32.PEB)
 
     def get_peb_address(self):
@@ -841,8 +838,9 @@ class Process (_ThreadContainer, _ModuleContainer):
             return self._peb_ptr
         except AttributeError:
             hProcess = self.get_handle(win32.PROCESS_QUERY_INFORMATION)
-            pbi = win32.NtQueryInformationProcess(hProcess,
-                                                win32.ProcessBasicInformation)
+            pbi = win32.NtQueryInformationProcess(
+                hProcess, win32.ProcessBasicInformation
+            )
             address = pbi.PebBaseAddress
             self._peb_ptr = address
             return address
@@ -891,18 +889,17 @@ class Process (_ThreadContainer, _ModuleContainer):
             if not name:
                 name = None
         except (KeyError, AttributeError, WindowsError):
-##            traceback.print_exc()                               # XXX DEBUG
+            ##            traceback.print_exc()                               # XXX DEBUG
             name = None
 
         # Method 2: QueryFullProcessImageName()
         # Not implemented until Windows Vista.
         if not name:
             try:
-                hProcess = self.get_handle(
-                                    win32.PROCESS_QUERY_LIMITED_INFORMATION)
+                hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
                 name = win32.QueryFullProcessImageName(hProcess)
             except (AttributeError, WindowsError):
-##                traceback.print_exc()                           # XXX DEBUG
+                ##                traceback.print_exc()                           # XXX DEBUG
                 name = None
 
         # Method 3: GetProcessImageFileName()
@@ -919,7 +916,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 else:
                     name = None
             except (AttributeError, WindowsError):
-##                traceback.print_exc()                           # XXX DEBUG
+                ##                traceback.print_exc()                           # XXX DEBUG
                 if not name:
                     name = None
 
@@ -930,20 +927,20 @@ class Process (_ThreadContainer, _ModuleContainer):
         # in usermode space (see http://www.ragestorm.net/blogs/?p=163).
         if not name:
             try:
-                hProcess = self.get_handle( win32.PROCESS_VM_READ |
-                                            win32.PROCESS_QUERY_INFORMATION )
+                hProcess = self.get_handle(
+                    win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION
+                )
                 try:
                     name = win32.GetModuleFileNameEx(hProcess)
                 except WindowsError:
-##                    traceback.print_exc()                       # XXX DEBUG
-                    name = win32.GetModuleFileNameEx(
-                                            hProcess, self.get_image_base())
+                    ##                    traceback.print_exc()                       # XXX DEBUG
+                    name = win32.GetModuleFileNameEx(hProcess, self.get_image_base())
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
                 else:
                     name = None
             except (AttributeError, WindowsError):
-##                traceback.print_exc()                           # XXX DEBUG
+                ##                traceback.print_exc()                           # XXX DEBUG
                 if not name:
                     name = None
 
@@ -956,17 +953,19 @@ class Process (_ThreadContainer, _ModuleContainer):
         if not name:
             try:
                 peb = self.get_peb()
-                pp = self.read_structure(peb.ProcessParameters,
-                                             win32.RTL_USER_PROCESS_PARAMETERS)
+                pp = self.read_structure(
+                    peb.ProcessParameters, win32.RTL_USER_PROCESS_PARAMETERS
+                )
                 s = pp.ImagePathName
-                name = self.peek_string(s.Buffer,
-                                    dwMaxSize=s.MaximumLength, fUnicode=True)
+                name = self.peek_string(
+                    s.Buffer, dwMaxSize=s.MaximumLength, fUnicode=True
+                )
                 if name:
                     name = PathOperations.native_to_win32_pathname(name)
                 else:
                     name = None
             except (AttributeError, WindowsError):
-##                traceback.print_exc()                           # XXX DEBUG
+                ##                traceback.print_exc()                           # XXX DEBUG
                 name = None
 
         # Method 6: Module.get_filename()
@@ -981,7 +980,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 if not name:
                     name = None
             except (AttributeError, WindowsError):
-##                traceback.print_exc()                           # XXX DEBUG
+                ##                traceback.print_exc()                           # XXX DEBUG
                 name = None
 
         # Remember the filename.
@@ -989,7 +988,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             mainModule.fileName = name
 
         if isinstance(name, bytes):
-            name = name.decode('mbcs', 'ignore')
+            name = name.decode("mbcs", "ignore")
 
         # Return the image filename, or None on error.
         return name
@@ -1005,8 +1004,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises WindowsError: On error an exception is raised.
         """
         peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters,
-                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        pp = self.read_structure(
+            peb.ProcessParameters, win32.RTL_USER_PROCESS_PARAMETERS
+        )
         s = pp.CommandLine
         return (s.Buffer, s.MaximumLength)
 
@@ -1027,8 +1027,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises WindowsError: On error an exception is raised.
         """
         peb = self.get_peb()
-        pp = self.read_structure(peb.ProcessParameters,
-                                             win32.RTL_USER_PROCESS_PARAMETERS)
+        pp = self.read_structure(
+            peb.ProcessParameters, win32.RTL_USER_PROCESS_PARAMETERS
+        )
         Environment = pp.Environment
         try:
             EnvironmentSize = pp.EnvironmentSize
@@ -1046,8 +1047,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises WindowsError: On error an exception is raised.
         """
         (Buffer, MaximumLength) = self.get_command_line_block()
-        CommandLine = self.peek_string(Buffer, dwMaxSize=MaximumLength,
-                                                            fUnicode=True)
+        CommandLine = self.peek_string(Buffer, dwMaxSize=MaximumLength, fUnicode=True)
         return CommandLine
 
     def get_environment_variables(self):
@@ -1075,8 +1075,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         # renders garbage.
 
         # Read the environment block contents.
-        eb_address,eb_size = self.get_environment_block()
-        data = self.peek(eb_address,eb_size)
+        eb_address, eb_size = self.get_environment_block()
+        data = self.peek(eb_address, eb_size)
 
         # Put them into a Unicode buffer.
         tmp = ctypes.create_string_buffer(data)
@@ -1086,26 +1086,23 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # Skip until the first Unicode null char is found.
         pos = 0
-        while buffer[pos] != u'\0':
+        while buffer[pos] != "\0":
             pos += 1
         pos += 1
 
         # Loop for each environment variable...
         environment = []
-        while buffer[pos] != u'\0':
-
+        while buffer[pos] != "\0":
             # Until we find a null char...
             env_name_pos = pos
-            env_name = u''
+            env_name = ""
             found_name = False
-            while buffer[pos] != u'\0':
-
+            while buffer[pos] != "\0":
                 # Get the current char.
                 char = buffer[pos]
 
                 # Is it an equal sign?
-                if char == u'=':
-
+                if char == "=":
                     # Skip leading equal signs.
                     if env_name_pos == pos:
                         env_name_pos += 1
@@ -1128,8 +1125,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                 break
 
             # Read the variable value until we find a null char.
-            env_value = u''
-            while buffer[pos] != u'\0':
+            env_value = ""
+            while buffer[pos] != "\0":
                 env_value += buffer[pos]
                 pos += 1
 
@@ -1137,7 +1134,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             pos += 1
 
             # Add to the list of environment variables found.
-            environment.append( (env_name, env_value) )
+            environment.append((env_name, env_value))
 
         # Remove the last entry, it's garbage.
         if environment:
@@ -1146,7 +1143,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Return the environment variables.
         return environment
 
-    def get_environment(self, fUnicode = None):
+    def get_environment(self, fUnicode=None):
         """
         Retrieves the environment with which the program is running.
 
@@ -1176,26 +1173,28 @@ class Process (_ThreadContainer, _ModuleContainer):
             gst = win32.GuessStringType
             fUnicode = gst.t_default == gst.t_unicode
         if not fUnicode:
-            variables = [ ( key.encode('cp1252'), value.encode('cp1252') ) \
-                        for (key, value) in variables ]
+            variables = [
+                (key.encode("cp1252"), value.encode("cp1252"))
+                for (key, value) in variables
+            ]
 
         # Add the variables to a dictionary, concatenating duplicates.
         environment = dict()
         for key, value in variables:
             if key in environment:
                 if isinstance(key, bytes):
-                    environment[key] = environment[key] + b'\0' + value
+                    environment[key] = environment[key] + b"\0" + value
                 else:
-                    environment[key] = environment[key] + u'\0' + value
+                    environment[key] = environment[key] + "\0" + value
             else:
                 environment[key] = value
 
         # Return the dictionary.
         return environment
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def search(self, pattern, minAddr = None, maxAddr = None):
+    def search(self, pattern, minAddr=None, maxAddr=None):
         """
         Search for the given string or pattern within the process memory.
 
@@ -1218,18 +1217,15 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         if isinstance(pattern, str):
             if HexInput.is_pattern(pattern):
-                return Search.search_process(
-                    self, [pattern], minAddr, maxAddr)
+                return Search.search_process(self, [pattern], minAddr, maxAddr)
             return self.search_bytes(pattern, minAddr, maxAddr)
         if isinstance(pattern, bytes):
-            return self.search_bytes(
-                pattern, minAddr, maxAddr)
+            return self.search_bytes(pattern, minAddr, maxAddr)
         if isinstance(pattern, Pattern):
-            return Search.search_process(
-                self, [pattern], minAddr, maxAddr)
+            return Search.search_process(self, [pattern], minAddr, maxAddr)
         raise TypeError("Unknown pattern type: %r" % type(pattern))
 
-    def search_bytes(self, bytes, minAddr = None, maxAddr = None):
+    def search_bytes(self, bytes, minAddr=None, maxAddr=None):
         """
         Search for the given byte pattern within the process memory.
 
@@ -1246,13 +1242,11 @@ class Process (_ThreadContainer, _ModuleContainer):
             process memory.
         """
         pattern = StringPattern(bytes)
-        return (x[0] for x in Search.search_process(
-                    self, [pattern], minAddr, maxAddr))
+        return (x[0] for x in Search.search_process(self, [pattern], minAddr, maxAddr))
 
-    def search_text(self, text, encoding = "utf-16le",
-                                caseSensitive = False,
-                                minAddr = None,
-                                maxAddr = None):
+    def search_text(
+        self, text, encoding="utf-16le", caseSensitive=False, minAddr=None, maxAddr=None
+    ):
         """
         Search for the given text within the process memory.
 
@@ -1287,7 +1281,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             pattern = IStringPattern(bytes)
         return Search.search_process(self, [pattern], minAddr, maxAddr)
 
-    def search_hexa(self, hexa, minAddr = None, maxAddr = None):
+    def search_hexa(self, hexa, minAddr=None, maxAddr=None):
         """
         Search for the given hexadecimal pattern within the process memory.
 
@@ -1324,7 +1318,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         pattern = HexPattern(hexa)
         return Search.search_process(self, [pattern], minAddr, maxAddr)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def __read_c_type(self, address, format, c_type):
         size = ctypes.sizeof(c_type)
@@ -1351,8 +1345,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Bytes read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        hProcess = self.get_handle( win32.PROCESS_VM_READ |
-                                    win32.PROCESS_QUERY_INFORMATION )
+        hProcess = self.get_handle(
+            win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION
+        )
         if not self.is_buffer(lpBaseAddress, nSize):
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
         data = win32.ReadProcessMemory(hProcess, lpBaseAddress, nSize)
@@ -1418,7 +1413,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@l', ctypes.c_int)
+        return self.__read_c_type(lpBaseAddress, "@l", ctypes.c_int)
 
     def write_int(self, lpBaseAddress, unpackedValue):
         """
@@ -1434,7 +1429,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '@l', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "@l", unpackedValue)
 
     def read_uint(self, lpBaseAddress):
         """
@@ -1447,7 +1442,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@L', ctypes.c_uint)
+        return self.__read_c_type(lpBaseAddress, "@L", ctypes.c_uint)
 
     def write_uint(self, lpBaseAddress, unpackedValue):
         """
@@ -1463,7 +1458,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '@L', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "@L", unpackedValue)
 
     def read_float(self, lpBaseAddress):
         """
@@ -1476,7 +1471,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Floating point value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@f', ctypes.c_float)
+        return self.__read_c_type(lpBaseAddress, "@f", ctypes.c_float)
 
     def write_float(self, lpBaseAddress, unpackedValue):
         """
@@ -1492,7 +1487,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param float unpackedValue: Floating point value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '@f', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "@f", unpackedValue)
 
     def read_double(self, lpBaseAddress):
         """
@@ -1505,7 +1500,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Floating point value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@d', ctypes.c_double)
+        return self.__read_c_type(lpBaseAddress, "@d", ctypes.c_double)
 
     def write_double(self, lpBaseAddress, unpackedValue):
         """
@@ -1521,7 +1516,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param float unpackedValue: Floating point value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '@d', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "@d", unpackedValue)
 
     def read_pointer(self, lpBaseAddress):
         """
@@ -1534,7 +1529,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Pointer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '@P', ctypes.c_void_p)
+        return self.__read_c_type(lpBaseAddress, "@P", ctypes.c_void_p)
 
     def write_pointer(self, lpBaseAddress, unpackedValue):
         """
@@ -1550,7 +1545,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '@P', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "@P", unpackedValue)
 
     def read_word(self, lpBaseAddress):
         """
@@ -1563,7 +1558,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '=H', win32.WORD)
+        return self.__read_c_type(lpBaseAddress, "=H", win32.WORD)
 
     def write_word(self, lpBaseAddress, unpackedValue):
         """
@@ -1579,7 +1574,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '=H', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "=H", unpackedValue)
 
     def read_dword(self, lpBaseAddress):
         """
@@ -1592,7 +1587,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '=L', win32.DWORD)
+        return self.__read_c_type(lpBaseAddress, "=L", win32.DWORD)
 
     def write_dword(self, lpBaseAddress, unpackedValue):
         """
@@ -1608,7 +1603,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '=L', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "=L", unpackedValue)
 
     def read_qword(self, lpBaseAddress):
         """
@@ -1621,7 +1616,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
         :raises WindowsError: On error an exception is raised.
         """
-        return self.__read_c_type(lpBaseAddress, '=Q', win32.QWORD)
+        return self.__read_c_type(lpBaseAddress, "=Q", win32.QWORD)
 
     def write_qword(self, lpBaseAddress, unpackedValue):
         """
@@ -1637,7 +1632,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :param int unpackedValue: Value to write.
         :raises WindowsError: On error an exception is raised.
         """
-        self.__write_c_type(lpBaseAddress, '=Q', unpackedValue)
+        self.__write_c_type(lpBaseAddress, "=Q", unpackedValue)
 
     def read_structure(self, lpBaseAddress, stype):
         """
@@ -1657,10 +1652,10 @@ class Process (_ThreadContainer, _ModuleContainer):
             lpBaseAddress = ctypes.cast(lpBaseAddress, ctypes.c_void_p).value
         data = self.read(lpBaseAddress, ctypes.sizeof(stype))
         buff = ctypes.create_string_buffer(data)
-        ptr  = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
+        ptr = ctypes.cast(ctypes.pointer(buff), ctypes.POINTER(stype))
         return ptr.contents
 
-    def read_string(self, lpBaseAddress, nChars, fUnicode = False):
+    def read_string(self, lpBaseAddress, nChars, fUnicode=False):
         """
         Reads an ASCII or Unicode string
         from the address space of the process.
@@ -1676,19 +1671,18 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: String read from the process memory space.
         :raises WindowsError: On error an exception is raised.
         """
-        szString = b''
+        szString = b""
         if nChars is None:
             memory = []
             if not self.is_buffer(lpBaseAddress, 1):
                 raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
 
             for mbi in self.get_memory_map(lpBaseAddress):
-                if mbi.State == win32.MEM_COMMIT and \
-                                            not mbi.Protect & win32.PAGE_GUARD:
-                    memory.append( (mbi.BaseAddress, mbi.RegionSize) )
+                if mbi.State == win32.MEM_COMMIT and not mbi.Protect & win32.PAGE_GUARD:
+                    memory.append((mbi.BaseAddress, mbi.RegionSize))
 
             char_size = 2 if fUnicode else 1
-            null_char = b'\0\0' if fUnicode else b'\0'
+            null_char = b"\0\0" if fUnicode else b"\0"
 
             for lpBasePage, sizePage in memory:
                 page = self.read(lpBasePage, sizePage)
@@ -1699,8 +1693,8 @@ class Process (_ThreadContainer, _ModuleContainer):
                         szString += char
                     else:
                         if fUnicode:
-                            return szString.decode('utf-16le', 'ignore')
-                        return szString.decode('latin-1', 'ignore')
+                            return szString.decode("utf-16le", "ignore")
+                        return szString.decode("latin-1", "ignore")
                     offset_in_page += char_size
                     lpBaseAddress += char_size
         else:
@@ -1711,12 +1705,12 @@ class Process (_ThreadContainer, _ModuleContainer):
             szString = self.read(lpBaseAddress, nBytes)
 
         if fUnicode:
-            szString = szString.decode('utf-16le','ignore')
+            szString = szString.decode("utf-16le", "ignore")
         else:
-            szString = szString.decode('latin-1','ignore')
+            szString = szString.decode("latin-1", "ignore")
         return szString
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # FIXME this won't work properly with a different endianness!
     def __peek_c_type(self, address, format, c_type):
@@ -1724,13 +1718,13 @@ class Process (_ThreadContainer, _ModuleContainer):
         packed = self.peek(address, size)
 
         if len(packed) < size:
-            packed = b'\0' * (size - len(packed)) + packed
+            packed = b"\0" * (size - len(packed)) + packed
         elif len(packed) > size:
             packed = packed[:size]
         return struct.unpack(format, packed)[0]
 
     def __poke_c_type(self, address, format, unpacked):
-        packed = struct.pack('@L', unpacked)
+        packed = struct.pack("@L", unpacked)
         return self.poke(address, packed)
 
     def peek(self, lpBaseAddress, nSize):
@@ -1749,24 +1743,21 @@ class Process (_ThreadContainer, _ModuleContainer):
         # + Maybe change page permissions before trying to read?
         # + Maybe use mquery instead of get_memory_map?
         #   (less syscalls if we break out of the loop earlier)
-        data = b''
+        data = b""
         if nSize > 0:
             try:
-                hProcess = self.get_handle( win32.PROCESS_VM_READ |
-                                            win32.PROCESS_QUERY_INFORMATION )
-                for mbi in self.get_memory_map(lpBaseAddress,
-                                               lpBaseAddress + nSize):
+                hProcess = self.get_handle(
+                    win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION
+                )
+                for mbi in self.get_memory_map(lpBaseAddress, lpBaseAddress + nSize):
                     if not mbi.is_readable():
                         nSize = mbi.BaseAddress - lpBaseAddress
                         break
                 if nSize > 0:
-                    data = win32.ReadProcessMemory(
-                                    hProcess, lpBaseAddress, nSize)
+                    data = win32.ReadProcessMemory(hProcess, lpBaseAddress, nSize)
             except WindowsError as e:
                 msg = "Error reading process %d address %s: %s"
-                msg %= (self.get_pid(),
-                        HexDump.address(lpBaseAddress),
-                        e.strerror)
+                msg %= (self.get_pid(), HexDump.address(lpBaseAddress), e.strerror)
                 warnings.warn(msg)
         return data
 
@@ -1786,9 +1777,11 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        hProcess = self.get_handle( win32.PROCESS_VM_WRITE |
-                                    win32.PROCESS_VM_OPERATION |
-                                    win32.PROCESS_QUERY_INFORMATION )
+        hProcess = self.get_handle(
+            win32.PROCESS_VM_WRITE
+            | win32.PROCESS_VM_OPERATION
+            | win32.PROCESS_QUERY_INFORMATION
+        )
         mbi = self.mquery(lpBaseAddress)
         if not mbi.has_content():
             raise ctypes.WinError(win32.ERROR_INVALID_ADDRESS)
@@ -1805,11 +1798,14 @@ class Process (_ThreadContainer, _ModuleContainer):
                 self.mprotect(lpBaseAddress, len(lpBuffer), prot)
             except Exception:
                 prot = None
-                msg = ("Failed to adjust page permissions"
-                       " for process %s at address %s: %s")
-                msg = msg % (self.get_pid(),
-                             HexDump.address(lpBaseAddress, self.get_bits()),
-                             traceback.format_exc())
+                msg = (
+                    "Failed to adjust page permissions for process %s at address %s: %s"
+                )
+                msg = msg % (
+                    self.get_pid(),
+                    HexDump.address(lpBaseAddress, self.get_bits()),
+                    traceback.format_exc(),
+                )
                 warnings.warn(msg, RuntimeWarning)
         try:
             r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
@@ -1863,7 +1859,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '@l', ctypes.c_int)
+        return self.__peek_c_type(lpBaseAddress, "@l", ctypes.c_int)
 
     def poke_int(self, lpBaseAddress, unpackedValue):
         """
@@ -1881,7 +1877,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '@l', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "@l", unpackedValue)
 
     def peek_uint(self, lpBaseAddress):
         """
@@ -1894,7 +1890,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '@L', ctypes.c_uint)
+        return self.__peek_c_type(lpBaseAddress, "@L", ctypes.c_uint)
 
     def poke_uint(self, lpBaseAddress, unpackedValue):
         """
@@ -1912,7 +1908,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '@L', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "@L", unpackedValue)
 
     def peek_float(self, lpBaseAddress):
         """
@@ -1925,7 +1921,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '@f', ctypes.c_float)
+        return self.__peek_c_type(lpBaseAddress, "@f", ctypes.c_float)
 
     def poke_float(self, lpBaseAddress, unpackedValue):
         """
@@ -1943,7 +1939,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '@f', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "@f", unpackedValue)
 
     def peek_double(self, lpBaseAddress):
         """
@@ -1956,7 +1952,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '@d', ctypes.c_double)
+        return self.__peek_c_type(lpBaseAddress, "@d", ctypes.c_double)
 
     def poke_double(self, lpBaseAddress, unpackedValue):
         """
@@ -1974,7 +1970,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '@d', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "@d", unpackedValue)
 
     def peek_dword(self, lpBaseAddress):
         """
@@ -1987,7 +1983,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '=L', win32.DWORD)
+        return self.__peek_c_type(lpBaseAddress, "=L", win32.DWORD)
 
     def poke_dword(self, lpBaseAddress, unpackedValue):
         """
@@ -2005,7 +2001,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '=L', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "=L", unpackedValue)
 
     def peek_qword(self, lpBaseAddress):
         """
@@ -2018,7 +2014,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Integer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '=Q', win32.QWORD)
+        return self.__peek_c_type(lpBaseAddress, "=Q", win32.QWORD)
 
     def poke_qword(self, lpBaseAddress, unpackedValue):
         """
@@ -2036,7 +2032,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '=Q', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "=Q", unpackedValue)
 
     def peek_pointer(self, lpBaseAddress):
         """
@@ -2049,7 +2045,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Pointer value read from the process memory.
             Returns zero on error.
         """
-        return self.__peek_c_type(lpBaseAddress, '@P', ctypes.c_void_p)
+        return self.__peek_c_type(lpBaseAddress, "@P", ctypes.c_void_p)
 
     def poke_pointer(self, lpBaseAddress, unpackedValue):
         """
@@ -2067,9 +2063,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Number of bytes written.
             May be less than the number of bytes to write.
         """
-        return self.__poke_c_type(lpBaseAddress, '@P', unpackedValue)
+        return self.__poke_c_type(lpBaseAddress, "@P", unpackedValue)
 
-    def peek_string(self, lpBaseAddress, fUnicode = False, dwMaxSize = 0x1000):
+    def peek_string(self, lpBaseAddress, fUnicode=False, dwMaxSize=0x1000):
         """
         Tries to read an ASCII or Unicode string
         from the address space of the process.
@@ -2089,8 +2085,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Validate the parameters.
         if not lpBaseAddress or dwMaxSize == 0:
             if fUnicode:
-                return ''
-            return b''
+                return ""
+            return b""
         if not dwMaxSize:
             dwMaxSize = 0x1000
 
@@ -2099,21 +2095,19 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # If the string is Unicode...
         if fUnicode:
-
             # Decode the string.
             if isinstance(szString, bytes):
-                szString = szString.decode('utf-16le','replace')
+                szString = szString.decode("utf-16le", "replace")
 
             # Truncate the string when the first null char is found.
-            null_pos = szString.find('\0')
+            null_pos = szString.find("\0")
             if null_pos != -1:
                 szString = szString[:null_pos]
 
         # If the string is ANSI...
         else:
-
             # Truncate the string when the first null char is found.
-            null_pos = szString.find(b'\0')
+            null_pos = szString.find(b"\0")
             if null_pos != -1:
                 szString = szString[:null_pos]
 
@@ -2122,7 +2116,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
     # TODO
     # try to avoid reading the same page twice by caching it
-    def peek_pointers_in_data(self, data, peekSize = 16, peekStep = 1):
+    def peek_pointers_in_data(self, data, peekSize=16, peekStep=1):
         """
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
@@ -2141,23 +2135,23 @@ class Process (_ThreadContainer, _ModuleContainer):
         result = dict()
         ptrSize = win32.sizeof(win32.LPVOID)
         if ptrSize == 4:
-            ptrFmt = '<L'
+            ptrFmt = "<L"
         else:
-            ptrFmt = '<Q'
+            ptrFmt = "<Q"
         if len(data) > 0:
             for i in range(0, len(data), peekStep):
-                packed          = data[i:i+ptrSize]
+                packed = data[i : i + ptrSize]
                 if len(packed) == ptrSize:
-                    address     = struct.unpack(ptrFmt, packed)[0]
-##                    if not address & (~0xFFFF): continue
-                    peek_data   = self.peek(address, peekSize)
+                    address = struct.unpack(ptrFmt, packed)[0]
+                    ##                    if not address & (~0xFFFF): continue
+                    peek_data = self.peek(address, peekSize)
                     if peek_data:
                         result[i] = peek_data
         return result
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def malloc(self, dwSize, lpAddress = None):
+    def malloc(self, dwSize, lpAddress=None):
         """
         Allocates memory into the address space of the process.
 
@@ -2219,7 +2213,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         hProcess = self.get_handle(win32.PROCESS_VM_OPERATION)
         win32.VirtualFreeEx(hProcess, lpAddress)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def is_pointer(self, address):
         """
@@ -2653,7 +2647,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             size = size - mbi.RegionSize
         return True
 
-    def get_memory_map(self, minAddr = None, maxAddr = None):
+    def get_memory_map(self, minAddr=None, maxAddr=None):
         """
         Produces a memory map to the process address space.
 
@@ -2668,7 +2662,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         return list(self.iter_memory_map(minAddr, maxAddr))
 
-    def generate_memory_map(self, minAddr = None, maxAddr = None):
+    def generate_memory_map(self, minAddr=None, maxAddr=None):
         """
         Returns a :class:`Regenerator` that can iterate indefinitely over the memory
         map to the process address space.
@@ -2684,7 +2678,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         return Regenerator(self.iter_memory_map, minAddr, maxAddr)
 
-    def iter_memory_map(self, minAddr = None, maxAddr = None):
+    def iter_memory_map(self, minAddr=None, maxAddr=None):
         """
         Produces an iterator over the memory map to the process address space.
 
@@ -2697,8 +2691,8 @@ class Process (_ThreadContainer, _ModuleContainer):
         :rtype: iterator[win32.MemoryBasicInformation]
         :return: List of memory region information objects.
         """
-        minAddr, maxAddr = MemoryAddresses.align_address_range(minAddr,maxAddr)
-        prevAddr    = minAddr - 1
+        minAddr, maxAddr = MemoryAddresses.align_address_range(minAddr, maxAddr)
+        prevAddr = minAddr - 1
         currentAddr = minAddr
         while prevAddr < currentAddr < maxAddr:
             try:
@@ -2708,10 +2702,10 @@ class Process (_ThreadContainer, _ModuleContainer):
                     break
                 raise
             yield mbi
-            prevAddr    = currentAddr
+            prevAddr = currentAddr
             currentAddr = mbi.BaseAddress + mbi.RegionSize
 
-    def get_mapped_filenames(self, memoryMap = None):
+    def get_mapped_filenames(self, memoryMap=None):
         """
         Retrieves the filenames for memory mapped files in the debugee.
 
@@ -2722,8 +2716,9 @@ class Process (_ThreadContainer, _ModuleContainer):
         :return: Dictionary mapping memory addresses to file names.
             Native filenames are converted to Win32 filenames when possible.
         """
-        hProcess = self.get_handle( win32.PROCESS_VM_READ |
-                                    win32.PROCESS_QUERY_INFORMATION )
+        hProcess = self.get_handle(
+            win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION
+        )
         if not memoryMap:
             memoryMap = self.get_memory_map()
         mappedFilenames = dict()
@@ -2731,23 +2726,23 @@ class Process (_ThreadContainer, _ModuleContainer):
             if mbi.Type not in (win32.MEM_IMAGE, win32.MEM_MAPPED):
                 continue
             baseAddress = mbi.BaseAddress
-            fileName    = ""
+            fileName = ""
             try:
                 fileName = win32.GetMappedFileName(hProcess, baseAddress)
                 fileName = PathOperations.native_to_win32_pathname(fileName)
             except WindowsError as e:  # NOQA
-                #try:
+                # try:
                 #    msg = "Can't get mapped file name at address %s in process " \
                 #          "%d, reason: %s" % (HexDump.address(baseAddress),
                 #                              self.get_pid(),
                 #                              e.strerror)
                 #    warnings.warn(msg, Warning)
-                #except Exception:
-                    pass
+                # except Exception:
+                pass
             mappedFilenames[baseAddress] = fileName
         return mappedFilenames
 
-    def generate_memory_snapshot(self, minAddr = None, maxAddr = None):
+    def generate_memory_snapshot(self, minAddr=None, maxAddr=None):
         """
         Returns a :class:`Regenerator` that allows you to iterate through the memory
         contents of a process indefinitely.
@@ -2790,7 +2785,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         return Regenerator(self.iter_memory_snapshot, minAddr, maxAddr)
 
-    def iter_memory_snapshot(self, minAddr = None, maxAddr = None):
+    def iter_memory_snapshot(self, minAddr=None, maxAddr=None):
         """
         Returns an iterator that allows you to go through the memory contents
         of a process.
@@ -2859,7 +2854,7 @@ class Process (_ThreadContainer, _ModuleContainer):
             minAddr = MemoryAddresses.align_address_to_page_start(minAddr)
             mbi = memory[0]
             if mbi.BaseAddress < minAddr:
-                mbi.RegionSize  = mbi.BaseAddress + mbi.RegionSize - minAddr
+                mbi.RegionSize = mbi.BaseAddress + mbi.RegionSize - minAddr
                 mbi.BaseAddress = minAddr
 
         # Trim the last memory information block if needed.
@@ -2872,7 +2867,7 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # Read the contents of each block and yield it.
         while memory:
-            mbi = memory.pop(0) # so the garbage collector can take it
+            mbi = memory.pop(0)  # so the garbage collector can take it
             mbi.filename = filenames.get(mbi.BaseAddress, None)
             if mbi.has_content():
                 mbi.content = self.read(mbi.BaseAddress, mbi.RegionSize)
@@ -2880,7 +2875,7 @@ class Process (_ThreadContainer, _ModuleContainer):
                 mbi.content = None
             yield mbi
 
-    def take_memory_snapshot(self, minAddr = None, maxAddr = None):
+    def take_memory_snapshot(self, minAddr=None, maxAddr=None):
         """
         Takes a snapshot of the memory contents of the process.
 
@@ -2918,11 +2913,11 @@ class Process (_ThreadContainer, _ModuleContainer):
             - ``filename``: Mapped filename, or ``None``.
             - ``content``: Memory contents, or ``None``.
         """
-        return list( self.iter_memory_snapshot(minAddr, maxAddr) )
+        return list(self.iter_memory_snapshot(minAddr, maxAddr))
 
-    def restore_memory_snapshot(self, snapshot,
-                                bSkipMappedFiles = True,
-                                bSkipOnError = False):
+    def restore_memory_snapshot(
+        self, snapshot, bSkipMappedFiles=True, bSkipOnError=False
+    ):
         """
         Attempts to restore the memory state as it was when the given snapshot
         was taken.
@@ -2953,42 +2948,48 @@ class Process (_ThreadContainer, _ModuleContainer):
         :raises RuntimeError: An error occured while restoring the snapshot.
         :raises TypeError: A snapshot of the wrong type was passed.
         """
-        if not snapshot or not isinstance(snapshot, list) \
-                or not isinstance(snapshot[0], win32.MemoryBasicInformation):
-            raise TypeError( "Only snapshots returned by " \
-                             "take_memory_snapshot() can be used here." )
+        if (
+            not snapshot
+            or not isinstance(snapshot, list)
+            or not isinstance(snapshot[0], win32.MemoryBasicInformation)
+        ):
+            raise TypeError(
+                "Only snapshots returned by take_memory_snapshot() can be used here."
+            )
 
         # Get the process handle.
-        hProcess = self.get_handle( win32.PROCESS_VM_WRITE          |
-                                    win32.PROCESS_VM_OPERATION      |
-                                    win32.PROCESS_SUSPEND_RESUME    |
-                                    win32.PROCESS_QUERY_INFORMATION )
+        hProcess = self.get_handle(
+            win32.PROCESS_VM_WRITE
+            | win32.PROCESS_VM_OPERATION
+            | win32.PROCESS_SUSPEND_RESUME
+            | win32.PROCESS_QUERY_INFORMATION
+        )
 
         # Freeze the process.
         self.suspend()
         try:
-
             # For each memory region in the snapshot...
             for old_mbi in snapshot:
-
                 # If the region matches, restore it directly.
                 new_mbi = self.mquery(old_mbi.BaseAddress)
-                if new_mbi.BaseAddress == old_mbi.BaseAddress and \
-                                    new_mbi.RegionSize == old_mbi.RegionSize:
-                    self.__restore_mbi(hProcess, new_mbi, old_mbi,
-                                       bSkipMappedFiles, bSkipOnError)
+                if (
+                    new_mbi.BaseAddress == old_mbi.BaseAddress
+                    and new_mbi.RegionSize == old_mbi.RegionSize
+                ):
+                    self.__restore_mbi(
+                        hProcess, new_mbi, old_mbi, bSkipMappedFiles, bSkipOnError
+                    )
 
                 # If the region doesn't match, restore it page by page.
                 else:
-
                     # We need a copy so we don't corrupt the snapshot.
                     old_mbi = win32.MemoryBasicInformation(old_mbi)
 
                     # Get the overlapping range of pages.
                     old_start = old_mbi.BaseAddress
-                    old_end   = old_start + old_mbi.RegionSize
+                    old_end = old_start + old_mbi.RegionSize
                     new_start = new_mbi.BaseAddress
-                    new_end   = new_start + new_mbi.RegionSize
+                    new_end = new_start + new_mbi.RegionSize
                     if old_start > new_start:
                         start = old_start
                     else:
@@ -3006,114 +3007,116 @@ class Process (_ThreadContainer, _ModuleContainer):
                     while address < end:
                         old_mbi.BaseAddress = address
                         new_mbi.BaseAddress = address
-                        self.__restore_mbi(hProcess, new_mbi, old_mbi,
-                                           bSkipMappedFiles, bSkipOnError)
+                        self.__restore_mbi(
+                            hProcess, new_mbi, old_mbi, bSkipMappedFiles, bSkipOnError
+                        )
                         address = address + step
 
         # Resume execution.
         finally:
             self.resume()
 
-    def __restore_mbi(self, hProcess, new_mbi, old_mbi, bSkipMappedFiles,
-                      bSkipOnError):
+    def __restore_mbi(self, hProcess, new_mbi, old_mbi, bSkipMappedFiles, bSkipOnError):
         """
         Used internally by :meth:`restore_memory_snapshot`.
         """
 
-##        print("Restoring %s-%s" % ()
-##            HexDump.address(old_mbi.BaseAddress, self.get_bits()),
-##            HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize,
-##                            self.get_bits()))
+        ##        print("Restoring %s-%s" % ()
+        ##            HexDump.address(old_mbi.BaseAddress, self.get_bits()),
+        ##            HexDump.address(old_mbi.BaseAddress + old_mbi.RegionSize,
+        ##                            self.get_bits()))
 
         try:
-
             # Restore the region state.
             if new_mbi.State != old_mbi.State:
                 if new_mbi.is_free():
                     if old_mbi.is_reserved():
-
                         # Free -> Reserved
-                        address = win32.VirtualAllocEx(hProcess,
-                                                       old_mbi.BaseAddress,
-                                                       old_mbi.RegionSize,
-                                                       win32.MEM_RESERVE,
-                                                       old_mbi.Protect)
+                        address = win32.VirtualAllocEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_RESERVE,
+                            old_mbi.Protect,
+                        )
                         if address != old_mbi.BaseAddress:
                             self.free(address)
                             msg = "Error restoring region at address %s"
-                            msg = msg % HexDump(old_mbi.BaseAddress,
-                                                self.get_bits())
+                            msg = msg % HexDump(old_mbi.BaseAddress, self.get_bits())
                             raise RuntimeError(msg)
                         # permissions already restored
                         new_mbi.Protect = old_mbi.Protect
 
-                    else:   # elif old_mbi.is_commited():
-
+                    else:  # elif old_mbi.is_commited():
                         # Free -> Commited
-                        address = win32.VirtualAllocEx(hProcess,
-                                                       old_mbi.BaseAddress,
-                                                       old_mbi.RegionSize,
-                                                       win32.MEM_RESERVE | \
-                                                       win32.MEM_COMMIT,
-                                                       old_mbi.Protect)
+                        address = win32.VirtualAllocEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_RESERVE | win32.MEM_COMMIT,
+                            old_mbi.Protect,
+                        )
                         if address != old_mbi.BaseAddress:
                             self.free(address)
                             msg = "Error restoring region at address %s"
-                            msg = msg % HexDump(old_mbi.BaseAddress,
-                                                self.get_bits())
+                            msg = msg % HexDump(old_mbi.BaseAddress, self.get_bits())
                             raise RuntimeError(msg)
                         # permissions already restored
                         new_mbi.Protect = old_mbi.Protect
 
                 elif new_mbi.is_reserved():
                     if old_mbi.is_commited():
-
                         # Reserved -> Commited
-                        address = win32.VirtualAllocEx(hProcess,
-                                                       old_mbi.BaseAddress,
-                                                       old_mbi.RegionSize,
-                                                       win32.MEM_COMMIT,
-                                                       old_mbi.Protect)
+                        address = win32.VirtualAllocEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_COMMIT,
+                            old_mbi.Protect,
+                        )
                         if address != old_mbi.BaseAddress:
                             self.free(address)
                             msg = "Error restoring region at address %s"
-                            msg = msg % HexDump(old_mbi.BaseAddress,
-                                                self.get_bits())
+                            msg = msg % HexDump(old_mbi.BaseAddress, self.get_bits())
                             raise RuntimeError(msg)
                         # permissions already restored
                         new_mbi.Protect = old_mbi.Protect
 
-                    else:   # elif old_mbi.is_free():
-
+                    else:  # elif old_mbi.is_free():
                         # Reserved -> Free
-                        win32.VirtualFreeEx(hProcess,
-                                            old_mbi.BaseAddress,
-                                            old_mbi.RegionSize,
-                                            win32.MEM_RELEASE)
+                        win32.VirtualFreeEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_RELEASE,
+                        )
 
-                else:   # elif new_mbi.is_commited():
+                else:  # elif new_mbi.is_commited():
                     if old_mbi.is_reserved():
-
                         # Commited -> Reserved
-                        win32.VirtualFreeEx(hProcess,
-                                            old_mbi.BaseAddress,
-                                            old_mbi.RegionSize,
-                                            win32.MEM_DECOMMIT)
+                        win32.VirtualFreeEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_DECOMMIT,
+                        )
 
-                    else:   # elif old_mbi.is_free():
-
+                    else:  # elif old_mbi.is_free():
                         # Commited -> Free
-                        win32.VirtualFreeEx(hProcess,
-                                            old_mbi.BaseAddress,
-                                            old_mbi.RegionSize,
-                                            win32.MEM_DECOMMIT | win32.MEM_RELEASE)
+                        win32.VirtualFreeEx(
+                            hProcess,
+                            old_mbi.BaseAddress,
+                            old_mbi.RegionSize,
+                            win32.MEM_DECOMMIT | win32.MEM_RELEASE,
+                        )
 
             new_mbi.State = old_mbi.State
 
             # Restore the region permissions.
             if old_mbi.is_commited() and old_mbi.Protect != new_mbi.Protect:
-                win32.VirtualProtectEx(hProcess, old_mbi.BaseAddress,
-                                       old_mbi.RegionSize, old_mbi.Protect)
+                win32.VirtualProtectEx(
+                    hProcess, old_mbi.BaseAddress, old_mbi.RegionSize, old_mbi.Protect
+                )
                 new_mbi.Protect = old_mbi.Protect
 
             # Restore the region data.
@@ -3133,12 +3136,13 @@ class Process (_ThreadContainer, _ModuleContainer):
             msg = "Error restoring region at address %s: %s"
             msg = msg % (
                 HexDump(old_mbi.BaseAddress, self.get_bits()),
-                traceback.format_exc())
+                traceback.format_exc(),
+            )
             warnings.warn(msg, RuntimeWarning)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def inject_code(self, payload, lpParameter = 0):
+    def inject_code(self, payload, lpParameter=0):
         """
         Injects relocatable code into the process memory and executes it.
 
@@ -3160,20 +3164,18 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
 
         # Uncomment for debugging...
-##        payload = '\xCC' + payload
+        ##        payload = '\xCC' + payload
 
         # Allocate the memory for the shellcode.
         lpStartAddress = self.malloc(len(payload))
 
         # Catch exceptions so we can free the memory on error.
         try:
-
             # Write the shellcode to our memory location.
             self.write(lpStartAddress, payload)
 
             # Start a new thread for the shellcode to run.
-            aThread = self.start_thread(lpStartAddress, lpParameter,
-                                                            bSuspended = False)
+            aThread = self.start_thread(lpStartAddress, lpParameter, bSuspended=False)
 
             # Remember the shellcode address.
             #  It will be freed ONLY by the Thread.kill() method
@@ -3194,8 +3196,9 @@ class Process (_ThreadContainer, _ModuleContainer):
     # The shellcode should check for errors, otherwise it just crashes
     # when the DLL can't be loaded or the procedure can't be found.
     # On error the shellcode should execute an int3 instruction.
-    def inject_dll(self, dllname, procname = None, lpParameter = 0,
-                                               bWait = True, dwTimeout = None):
+    def inject_dll(
+        self, dllname, procname=None, lpParameter=0, bWait=True, dwTimeout=None
+    ):
         """
         Injects a DLL into the process memory.
 
@@ -3250,13 +3253,12 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
 
         # Resolve kernel32.dll
-        aModule = self.get_module_by_name('kernel32.dll')
+        aModule = self.get_module_by_name("kernel32.dll")
         if aModule is None:
             self.scan_modules()
-            aModule = self.get_module_by_name('kernel32.dll')
+            aModule = self.get_module_by_name("kernel32.dll")
         if aModule is None:
-            raise RuntimeError(
-                "Cannot resolve kernel32.dll in the remote process")
+            raise RuntimeError("Cannot resolve kernel32.dll in the remote process")
 
         # Old method, using shellcode.
         if procname:
@@ -3265,88 +3267,92 @@ class Process (_ThreadContainer, _ModuleContainer):
             dllname = str(dllname)
 
             # Resolve kernel32.dll!LoadLibraryA
-            pllib = aModule.resolve('LoadLibraryA')
+            pllib = aModule.resolve("LoadLibraryA")
             if not pllib:
                 raise RuntimeError(
-                    "Cannot resolve kernel32.dll!LoadLibraryA"
-                    " in the remote process")
+                    "Cannot resolve kernel32.dll!LoadLibraryA in the remote process"
+                )
 
             # Resolve kernel32.dll!GetProcAddress
-            pgpad = aModule.resolve('GetProcAddress')
+            pgpad = aModule.resolve("GetProcAddress")
             if not pgpad:
                 raise RuntimeError(
-                    "Cannot resolve kernel32.dll!GetProcAddress"
-                    " in the remote process")
+                    "Cannot resolve kernel32.dll!GetProcAddress in the remote process"
+                )
 
             # Resolve kernel32.dll!VirtualFree
-            pvf = aModule.resolve('VirtualFree')
+            pvf = aModule.resolve("VirtualFree")
             if not pvf:
                 raise RuntimeError(
-                    "Cannot resolve kernel32.dll!VirtualFree"
-                    " in the remote process")
+                    "Cannot resolve kernel32.dll!VirtualFree in the remote process"
+                )
 
             # Shellcode follows...
-            code  = b''
+            code = b""
 
             # push dllname
-            code += b'\xe8' + struct.pack('<L', len(dllname) + 1) + dllname.encode('ascii') + b'\0'
+            code += (
+                b"\xe8"
+                + struct.pack("<L", len(dllname) + 1)
+                + dllname.encode("ascii")
+                + b"\0"
+            )
 
             # mov eax, LoadLibraryA
-            code += b'\xb8' + struct.pack('<L', pllib)
+            code += b"\xb8" + struct.pack("<L", pllib)
 
             # call eax
-            code += b'\xff\xd0'
+            code += b"\xff\xd0"
 
             if procname:
-
                 # push procname
-                code += b'\xe8' + struct.pack('<L', len(procname) + 1)
-                code += procname.encode('ascii') + b'\0'
+                code += b"\xe8" + struct.pack("<L", len(procname) + 1)
+                code += procname.encode("ascii") + b"\0"
 
                 # push eax
-                code += b'\x50'
+                code += b"\x50"
 
                 # mov eax, GetProcAddress
-                code += b'\xb8' + struct.pack('<L', pgpad)
+                code += b"\xb8" + struct.pack("<L", pgpad)
 
                 # call eax
-                code += b'\xff\xd0'
+                code += b"\xff\xd0"
 
                 # mov ebp, esp      ; preserve stack pointer
-                code += b'\x8b\xec'
+                code += b"\x8b\xec"
 
                 # push lpParameter
-                code += b'\x68' + struct.pack('<L', lpParameter)
+                code += b"\x68" + struct.pack("<L", lpParameter)
 
                 # call eax
-                code += b'\xff\xd0'
+                code += b"\xff\xd0"
 
                 # mov esp, ebp      ; restore stack pointer
-                code += b'\x8b\xe5'
+                code += b"\x8b\xe5"
 
             # pop edx       ; our own return address
-            code += b'\x5a'
+            code += b"\x5a"
 
             # push MEM_RELEASE  ; dwFreeType
-            code += b'\x68' + struct.pack('<L', win32.MEM_RELEASE)
+            code += b"\x68" + struct.pack("<L", win32.MEM_RELEASE)
 
             # push 0x1000       ; dwSize, shellcode max size 4096 bytes
-            code += b'\x68' + struct.pack('<L', 0x1000)
+            code += b"\x68" + struct.pack("<L", 0x1000)
 
             # call $+5
-            code += b'\xe8\x00\x00\x00\x00'
+            code += b"\xe8\x00\x00\x00\x00"
 
             # and dword ptr [esp], 0xFFFFF000   ; align to page boundary
-            code += b'\x81\x24\x24\x00\xf0\xff\xff'
+            code += b"\x81\x24\x24\x00\xf0\xff\xff"
 
             # mov eax, VirtualFree
-            code += b'\xb8' + struct.pack('<L', pvf)
+            code += b"\xb8" + struct.pack("<L", pvf)
 
             # push edx      ; our own return address
-            code += b'\x52'
+            code += b"\x52"
 
             # jmp eax   ; VirtualFree will return to our own return address
-            code += b'\xff\xe0'
+            code += b"\xff\xe0"
 
             # Inject the shellcode.
             # There's no need to free the memory,
@@ -3355,14 +3361,13 @@ class Process (_ThreadContainer, _ModuleContainer):
 
         # New method, not using shellcode.
         else:
-
             # Resolve kernel32.dll!LoadLibrary (A/W)
             if isinstance(dllname, str):
-                pllibname = 'LoadLibraryW'
-                dllname_bytes = dllname.encode('utf-16le') + b'\0\0'
+                pllibname = "LoadLibraryW"
+                dllname_bytes = dllname.encode("utf-16le") + b"\0\0"
             else:
-                pllibname = 'LoadLibraryA'
-                dllname_bytes = dllname + b'\0'
+                pllibname = "LoadLibraryA"
+                dllname_bytes = dllname + b"\0"
             bufferlen = len(dllname_bytes)
 
             pllib = aModule.resolve(pllibname)
@@ -3410,7 +3415,7 @@ class Process (_ThreadContainer, _ModuleContainer):
         # Return the thread object.
         return aThread
 
-    def clean_exit(self, dwExitCode = 0, bWait = False, dwTimeout = None):
+    def clean_exit(self, dwExitCode=0, bWait=False, dwTimeout=None):
         """
         Injects a new thread to call ExitProcess().
         Optionally waits for the injected thread to finish.
@@ -3431,12 +3436,12 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         if not dwExitCode:
             dwExitCode = 0
-        pExitProcess = self.resolve_label('kernel32!ExitProcess')
+        pExitProcess = self.resolve_label("kernel32!ExitProcess")
         aThread = self.start_thread(pExitProcess, dwExitCode)
         if bWait:
             aThread.wait(dwTimeout)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def _notify_create_process(self, event):
         """
@@ -3451,11 +3456,14 @@ class Process (_ThreadContainer, _ModuleContainer):
         """
         # Do not use super() here.
         bCallHandler = _ThreadContainer._notify_create_process(self, event)
-        bCallHandler = bCallHandler and \
-                           _ModuleContainer._notify_create_process(self, event)
+        bCallHandler = bCallHandler and _ModuleContainer._notify_create_process(
+            self, event
+        )
         return bCallHandler
 
-#==============================================================================
+
+# ==============================================================================
+
 
 class _ProcessContainer:
     """
@@ -3518,10 +3526,10 @@ class _ProcessContainer:
         """
         if not self.__processDict:
             try:
-                self.scan_processes()       # remote desktop api (relative fn)
+                self.scan_processes()  # remote desktop api (relative fn)
             except Exception:
                 self.scan_processes_fast()  # psapi (no filenames)
-            self.scan_process_filenames()   # get the pathnames when possible
+            self.scan_process_filenames()  # get the pathnames when possible
 
     def __contains__(self, anObject):
         """
@@ -3619,7 +3627,7 @@ class _ProcessContainer:
         self.__initialize_snapshot()
         return len(self.__processDict)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX TODO
     # Support for string searches on the window captions.
@@ -3630,10 +3638,10 @@ class _ProcessContainer:
         :return: Returns a list of windows
             handled by all processes in this snapshot.
         """
-        '''window_list = dict()
+        """window_list = dict()
         for process in self.iter_processes():
             window_list.extend( process.get_windows() )
-        return window_list'''
+        return window_list"""
 
         hCurWnd = None
         window_list = list()
@@ -3654,23 +3662,27 @@ class _ProcessContainer:
         :raises KeyError: The thread does not exist.
         """
         try:
-
             # No good, because in XP and below it tries to get the PID
             # through the toolhelp API, and that's slow. We don't want
             # to scan for threads over and over for each call.
-##            dwProcessId = Thread(dwThreadId).get_pid()
+            ##            dwProcessId = Thread(dwThreadId).get_pid()
 
             # This API only exists in Windows 2003, Vista and above.
             try:
                 hThread = win32.OpenThread(
-                    win32.THREAD_QUERY_LIMITED_INFORMATION, False, dwThreadId)
+                    win32.THREAD_QUERY_LIMITED_INFORMATION, False, dwThreadId
+                )
             except (WindowsError, AttributeError) as e:
                 try:
                     # Fallback for older systems
                     hThread = win32.OpenThread(
-                        win32.THREAD_QUERY_INFORMATION, False, dwThreadId)
+                        win32.THREAD_QUERY_INFORMATION, False, dwThreadId
+                    )
                 except WindowsError as e2:
-                    if hasattr(e, 'winerror') and e.winerror != win32.ERROR_ACCESS_DENIED:
+                    if (
+                        hasattr(e, "winerror")
+                        and e.winerror != win32.ERROR_ACCESS_DENIED
+                    ):
                         raise
                     raise e2
 
@@ -3701,7 +3713,7 @@ class _ProcessContainer:
         msg = "Unknown thread ID %d" % dwThreadId
         raise KeyError(msg)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     @staticmethod
     def argv_to_cmdline(argv):
@@ -3720,13 +3732,10 @@ class _ProcessContainer:
             else:
                 if '"' in token:
                     token = token.replace('"', '\\"')
-                if  ' ' in token  or \
-                    '\t' in token or \
-                    '\n' in token or \
-                    '\r' in token:
-                        token = '"%s"' % token
+                if " " in token or "\t" in token or "\n" in token or "\r" in token:
+                    token = '"%s"' % token
             cmdline.append(token)
-        return ' '.join(cmdline)
+        return " ".join(cmdline)
 
     @staticmethod
     def cmdline_to_argv(lpCmdLine):
@@ -3804,14 +3813,14 @@ class _ProcessContainer:
         """
 
         # Get the flags.
-        bConsole            = kwargs.pop('bConsole', False)
-        bDebug              = kwargs.pop('bDebug', False)
-        bFollow             = kwargs.pop('bFollow', False)
-        bSuspended          = kwargs.pop('bSuspended', False)
-        bInheritHandles     = kwargs.pop('bInheritHandles', False)
-        dwParentProcessId   = kwargs.pop('dwParentProcessId', None)
-        iTrustLevel         = kwargs.pop('iTrustLevel', 2)
-        bAllowElevation     = kwargs.pop('bAllowElevation', True)
+        bConsole = kwargs.pop("bConsole", False)
+        bDebug = kwargs.pop("bDebug", False)
+        bFollow = kwargs.pop("bFollow", False)
+        bSuspended = kwargs.pop("bSuspended", False)
+        bInheritHandles = kwargs.pop("bInheritHandles", False)
+        dwParentProcessId = kwargs.pop("dwParentProcessId", None)
+        iTrustLevel = kwargs.pop("iTrustLevel", 2)
+        bAllowElevation = kwargs.pop("bAllowElevation", True)
         if kwargs:
             raise TypeError("Unknown keyword arguments: %s" % list(kwargs.keys()))
         if not lpCmdLine:
@@ -3828,16 +3837,17 @@ class _ProcessContainer:
             bAllowElevation = True
             warnings.warn(
                 "UAC elevation is only available in Windows Vista and above",
-                RuntimeWarning)
+                RuntimeWarning,
+            )
 
         # Calculate the process creation flags.
-        dwCreationFlags  = 0
+        dwCreationFlags = 0
         dwCreationFlags |= win32.CREATE_DEFAULT_ERROR_MODE
         dwCreationFlags |= win32.CREATE_BREAKAWAY_FROM_JOB
         ##dwCreationFlags |= win32.CREATE_UNICODE_ENVIRONMENT
         if not bConsole:
             dwCreationFlags |= win32.DETACHED_PROCESS
-            #dwCreationFlags |= win32.CREATE_NO_WINDOW   # weird stuff happens
+            # dwCreationFlags |= win32.CREATE_NO_WINDOW   # weird stuff happens
         if bSuspended:
             dwCreationFlags |= win32.CREATE_SUSPENDED
         if bDebug:
@@ -3856,21 +3866,22 @@ class _ProcessContainer:
                 else:
                     ParentProcess = Process(dwParentProcessId)
                 ParentProcessHandle = ParentProcess.get_handle(
-                                        win32.PROCESS_CREATE_PROCESS)
+                    win32.PROCESS_CREATE_PROCESS
+                )
                 AttributeListData = (
                     (
                         win32.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-                        ParentProcessHandle._as_parameter_
+                        ParentProcessHandle._as_parameter_,
                     ),
                 )
                 AttributeList = win32.ProcThreadAttributeList(AttributeListData)
-                StartupInfoEx           = win32.STARTUPINFOEX()
-                StartupInfo             = StartupInfoEx.StartupInfo
-                StartupInfo.cb          = win32.sizeof(win32.STARTUPINFOEX)
-                StartupInfo.lpReserved  = 0
-                StartupInfo.lpDesktop   = 0
-                StartupInfo.lpTitle     = 0
-                StartupInfo.dwFlags     = 0
+                StartupInfoEx = win32.STARTUPINFOEX()
+                StartupInfo = StartupInfoEx.StartupInfo
+                StartupInfo.cb = win32.sizeof(win32.STARTUPINFOEX)
+                StartupInfo.lpReserved = 0
+                StartupInfo.lpDesktop = 0
+                StartupInfo.lpTitle = 0
+                StartupInfo.dwFlags = 0
                 StartupInfo.cbReserved2 = 0
                 StartupInfo.lpReserved2 = 0
                 StartupInfoEx.lpAttributeList = AttributeList.value
@@ -3879,17 +3890,18 @@ class _ProcessContainer:
 
         pi = None
         try:
-
             # Create the process the easy way.
             if iTrustLevel >= 2 and bAllowElevation:
-                pi = win32.CreateProcess(None, lpCmdLine,
-                                            bInheritHandles = bInheritHandles,
-                                            dwCreationFlags = dwCreationFlags,
-                                            lpStartupInfo   = lpStartupInfo)
+                pi = win32.CreateProcess(
+                    None,
+                    lpCmdLine,
+                    bInheritHandles=bInheritHandles,
+                    dwCreationFlags=dwCreationFlags,
+                    lpStartupInfo=lpStartupInfo,
+                )
 
             # Create the process the hard way...
             else:
-
                 # If we allow elevation, use the current process token.
                 # If not, get the token from the current shell process.
                 hToken = None
@@ -3898,17 +3910,20 @@ class _ProcessContainer:
                         if bFollow:
                             msg = (
                                 "Child processes can't be autofollowed"
-                                " when dropping UAC elevation.")
+                                " when dropping UAC elevation."
+                            )
                             raise NotImplementedError(msg)
                         if bConsole:
                             msg = (
                                 "Child processes can't inherit the debugger's"
-                                " console when dropping UAC elevation.")
+                                " console when dropping UAC elevation."
+                            )
                             raise NotImplementedError(msg)
                         if bInheritHandles:
                             msg = (
                                 "Child processes can't inherit the debugger's"
-                                " handles when dropping UAC elevation.")
+                                " handles when dropping UAC elevation."
+                            )
                             raise NotImplementedError(msg)
                         try:
                             hWnd = self.get_shell_window()
@@ -3916,8 +3931,7 @@ class _ProcessContainer:
                             hWnd = self.get_desktop_window()
                         shell = hWnd.get_process()
                         try:
-                            hShell = shell.get_handle(
-                                            win32.PROCESS_QUERY_INFORMATION)
+                            hShell = shell.get_handle(win32.PROCESS_QUERY_INFORMATION)
                             with win32.OpenProcessToken(hShell) as hShellToken:
                                 hToken = win32.DuplicateTokenEx(hShellToken)
                         finally:
@@ -3929,9 +3943,10 @@ class _ProcessContainer:
                             dwLevelId = win32.SAFER_LEVELID_NORMALUSER
                         else:
                             dwLevelId = win32.SAFER_LEVELID_UNTRUSTED
-                        with win32.SaferCreateLevel(dwLevelId = dwLevelId) as hSafer:
+                        with win32.SaferCreateLevel(dwLevelId=dwLevelId) as hSafer:
                             hSaferToken = win32.SaferComputeTokenFromLevel(
-                                                            hSafer, hToken)[0]
+                                hSafer, hToken
+                            )[0]
                             try:
                                 if hToken is not None:
                                     hToken.close()
@@ -3943,11 +3958,12 @@ class _ProcessContainer:
                     # If we have a computed token, call CreateProcessAsUser().
                     if bAllowElevation:
                         pi = win32.CreateProcessAsUser(
-                                    hToken          = hToken,
-                                    lpCommandLine   = lpCmdLine,
-                                    bInheritHandles = bInheritHandles,
-                                    dwCreationFlags = dwCreationFlags,
-                                    lpStartupInfo   = lpStartupInfo)
+                            hToken=hToken,
+                            lpCommandLine=lpCmdLine,
+                            bInheritHandles=bInheritHandles,
+                            dwCreationFlags=dwCreationFlags,
+                            lpStartupInfo=lpStartupInfo,
+                        )
 
                     # If we have a primary token call CreateProcessWithToken().
                     # The problem is, there are many flags CreateProcess() and
@@ -3955,7 +3971,6 @@ class _ProcessContainer:
                     # and CreateProcessWithLogonW() don't, so we need to work
                     # around them.
                     else:
-
                         # Remove the debug flags.
                         dwCreationFlags &= ~win32.DEBUG_PROCESS
                         dwCreationFlags &= ~win32.DEBUG_ONLY_THIS_PROCESS
@@ -3968,11 +3983,12 @@ class _ProcessContainer:
 
                         # Create the process using the new primary token.
                         pi = win32.CreateProcessWithToken(
-                                    hToken          = hToken,
-                                    dwLogonFlags    = win32.LOGON_WITH_PROFILE,
-                                    lpCommandLine   = lpCmdLine,
-                                    dwCreationFlags = dwCreationFlags,
-                                    lpStartupInfo   = lpStartupInfo)
+                            hToken=hToken,
+                            dwLogonFlags=win32.LOGON_WITH_PROFILE,
+                            lpCommandLine=lpCmdLine,
+                            dwCreationFlags=dwCreationFlags,
+                            lpStartupInfo=lpStartupInfo,
+                        )
 
                         # Attach as a debugger, if requested.
                         if bDebug:
@@ -3990,7 +4006,7 @@ class _ProcessContainer:
             # Wrap the new process and thread in Process and Thread objects,
             # and add them to the corresponding snapshots.
             aProcess = Process(pi.dwProcessId, pi.hProcess)
-            aThread  = Thread (pi.dwThreadId,  pi.hThread)
+            aThread = Thread(pi.dwThreadId, pi.hThread)
             aProcess._add_thread(aThread)
             self._add_process(aProcess)
 
@@ -4020,15 +4036,15 @@ class _ProcessContainer:
         except Exception:
             exp = None
         if not exp:
-            exp = getenv('SystemRoot')
+            exp = getenv("SystemRoot")
         if exp:
-            exp = ntpath.join(exp, 'explorer.exe')
+            exp = ntpath.join(exp, "explorer.exe")
             exp_list = self.find_processes_by_filename(exp)
             if exp_list:
                 return exp_list[0][0].get_pid()
         return None
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX this methods musn't end up calling __initialize_snapshot by accident!
 
@@ -4050,13 +4066,11 @@ class _ProcessContainer:
         has_threads = True
         try:
             try:
-
                 # Try using the Toolhelp API
                 # to scan for processes and threads.
                 self.scan_processes_and_threads()
 
             except Exception:
-
                 # On error, try using the PSAPI to scan for process IDs only.
                 self.scan_processes_fast()
 
@@ -4069,7 +4083,6 @@ class _ProcessContainer:
                             has_threads = False
 
         finally:
-
             # Try using the Remote Desktop API to scan for processes only.
             # This will update the filenames when it's not possible
             # to obtain them from the Toolhelp API.
@@ -4106,8 +4119,8 @@ class _ProcessContainer:
         # since this information resides in usermode space.
         # See: http://www.ragestorm.net/blogs/?p=163
 
-        our_pid    = win32.GetCurrentProcessId()
-        dead_pids  = set( self.__processDict.keys() )
+        our_pid = win32.GetCurrentProcessId()
+        dead_pids = set(self.__processDict.keys())
         found_tids = set()
 
         # Ignore our own process if it's in the snapshot for some reason
@@ -4115,9 +4128,8 @@ class _ProcessContainer:
             dead_pids.remove(our_pid)
 
         # Take a snapshot of all processes and threads
-        dwFlags   = win32.TH32CS_SNAPPROCESS | win32.TH32CS_SNAPTHREAD
+        dwFlags = win32.TH32CS_SNAPPROCESS | win32.TH32CS_SNAPTHREAD
         with win32.CreateToolhelp32Snapshot(dwFlags) as hSnapshot:
-
             # Add all the processes (excluding our own)
             pe = win32.Process32First(hSnapshot)
             while pe is not None:
@@ -4127,7 +4139,7 @@ class _ProcessContainer:
                         dead_pids.remove(dwProcessId)
                     fileName = pe.szExeFile
                     if isinstance(fileName, bytes):
-                        fileName = fileName.decode('mbcs', 'ignore')
+                        fileName = fileName.decode("mbcs", "ignore")
                     if dwProcessId not in self.__processDict:
                         aProcess = Process(dwProcessId, fileName=fileName)
                         self._add_process(aProcess)
@@ -4152,7 +4164,7 @@ class _ProcessContainer:
                     dwThreadId = te.th32ThreadID
                     found_tids.add(dwThreadId)
                     if not aProcess._has_thread_id(dwThreadId):
-                        aThread = Thread(dwThreadId, process = aProcess)
+                        aThread = Thread(dwThreadId, process=aProcess)
                         aProcess._add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
 
@@ -4162,7 +4174,7 @@ class _ProcessContainer:
 
         # Remove dead threads
         for aProcess in self.__processDict.values():
-            dead_tids = set( aProcess._get_thread_ids() )
+            dead_tids = set(aProcess._get_thread_ids())
             dead_tids.difference_update(found_tids)
             for tid in dead_tids:
                 aProcess._del_thread(tid)
@@ -4220,8 +4232,8 @@ class _ProcessContainer:
 
         # Get the previous list of PIDs.
         # We'll be removing live PIDs from it as we find them.
-        our_pid   = win32.GetCurrentProcessId()
-        dead_pids  = set( self.__processDict.keys() )
+        our_pid = win32.GetCurrentProcessId()
+        dead_pids = set(self.__processDict.keys())
 
         # Ignore our own PID.
         if our_pid in dead_pids:
@@ -4231,15 +4243,16 @@ class _ProcessContainer:
         pProcessInfo = None
         try:
             pProcessInfo, dwCount = win32.WTSEnumerateProcesses(
-                                            win32.WTS_CURRENT_SERVER_HANDLE)
+                win32.WTS_CURRENT_SERVER_HANDLE
+            )
 
             # For each process found...
             for index in range(dwCount):
                 sProcessInfo = pProcessInfo[index]
 
-##                # Ignore processes belonging to other sessions.
-##                if sProcessInfo.SessionId != win32.WTS_CURRENT_SESSION:
-##                    continue
+                ##                # Ignore processes belonging to other sessions.
+                ##                if sProcessInfo.SessionId != win32.WTS_CURRENT_SESSION:
+                ##                    continue
 
                 # Ignore our own PID.
                 pid = sProcessInfo.ProcessId
@@ -4255,11 +4268,11 @@ class _ProcessContainer:
                 # (The MSDN docs aren't very clear about this API call).
                 fileName = sProcessInfo.pProcessName
                 if isinstance(fileName, bytes):
-                    fileName = fileName.decode('mbcs', 'ignore')
+                    fileName = fileName.decode("mbcs", "ignore")
 
                 # If the process is new, add a new Process object.
                 if pid not in self.__processDict:
-                    aProcess = Process(pid, fileName = fileName)
+                    aProcess = Process(pid, fileName=fileName)
                     self._add_process(aProcess)
 
                 # If the process was already in the snapshot, and the
@@ -4301,11 +4314,11 @@ class _ProcessContainer:
         """
 
         # Get the new and old list of pids
-        new_pids = set( win32.EnumProcesses() )
-        old_pids = set( self.__processDict.keys() )
+        new_pids = set(win32.EnumProcesses())
+        old_pids = set(self.__processDict.keys())
 
         # Ignore our own pid
-        our_pid  = win32.GetCurrentProcessId()
+        our_pid = win32.GetCurrentProcessId()
         if our_pid in new_pids:
             new_pids.remove(our_pid)
         if our_pid in old_pids:
@@ -4313,7 +4326,7 @@ class _ProcessContainer:
 
         # Add newly found pids
         for pid in new_pids.difference(old_pids):
-            self._add_process( Process(pid) )
+            self._add_process(Process(pid))
 
         # Remove missing pids
         for pid in old_pids.difference(new_pids):
@@ -4357,7 +4370,7 @@ class _ProcessContainer:
                 complete = False
         return complete
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def clear_dead_processes(self):
         """
@@ -4415,7 +4428,7 @@ class _ProcessContainer:
         """
         Removes all :class:`Process`, :class:`Thread` and :class:`Module` objects in this snapshot.
         """
-        #self.close_process_and_thread_handles()
+        # self.close_process_and_thread_handles()
         for aProcess in list(self.iter_processes()):
             aProcess.clear()
         self.__processDict = dict()
@@ -4428,7 +4441,7 @@ class _ProcessContainer:
         """
         self.clear_processes()
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # Docs for these methods are taken from the _ThreadContainer class.
 
@@ -4457,12 +4470,12 @@ class _ProcessContainer:
             count += aProcess.get_thread_count()
         return count
 
-    has_thread.__doc__       = _ThreadContainer.has_thread.__doc__
-    get_thread.__doc__       = _ThreadContainer.get_thread.__doc__
-    get_thread_ids.__doc__   = _ThreadContainer.get_thread_ids.__doc__
+    has_thread.__doc__ = _ThreadContainer.has_thread.__doc__
+    get_thread.__doc__ = _ThreadContainer.get_thread.__doc__
+    get_thread_ids.__doc__ = _ThreadContainer.get_thread_ids.__doc__
     get_thread_count.__doc__ = _ThreadContainer.get_thread_count.__doc__
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # Docs for these methods are taken from the _ModuleContainer class.
 
@@ -4474,7 +4487,7 @@ class _ProcessContainer:
 
     get_module_count.__doc__ = _ModuleContainer.get_module_count.__doc__
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def find_modules_by_base(self, lpBaseOfDll):
         """
@@ -4486,7 +4499,7 @@ class _ProcessContainer:
         for aProcess in self.iter_processes():
             if aProcess.has_module(lpBaseOfDll):
                 aModule = aProcess.get_module(lpBaseOfDll)
-                found.append( (aProcess, aModule) )
+                found.append((aProcess, aModule))
         return found
 
     def find_modules_by_name(self, fileName):
@@ -4499,7 +4512,7 @@ class _ProcessContainer:
         for aProcess in self.iter_processes():
             aModule = aProcess.get_module_by_name(fileName)
             if aModule is not None:
-                found.append( (aProcess, aModule) )
+                found.append((aProcess, aModule))
         return found
 
     def find_modules_by_address(self, address):
@@ -4512,27 +4525,27 @@ class _ProcessContainer:
         for aProcess in self.iter_processes():
             aModule = aProcess.get_module_at_address(address)
             if aModule is not None:
-                found.append( (aProcess, aModule) )
+                found.append((aProcess, aModule))
         return found
 
     def __find_processes_by_filename(self, filename):
         """
         Internally used by :meth:`find_processes_by_filename`.
         """
-        found    = list()
+        found = list()
         filename = filename.lower()
         if PathOperations.path_is_absolute(filename):
             for aProcess in self.iter_processes():
                 imagename = aProcess.get_filename()
                 if imagename and imagename.lower() == filename:
-                    found.append( (aProcess, imagename) )
+                    found.append((aProcess, imagename))
         else:
             for aProcess in self.iter_processes():
                 imagename = aProcess.get_filename()
                 if imagename:
                     imagename = PathOperations.pathname_to_filename(imagename)
                     if imagename.lower() == filename:
-                        found.append( (aProcess, imagename) )
+                        found.append((aProcess, imagename))
         return found
 
     def find_processes_by_filename(self, fileName):
@@ -4550,11 +4563,11 @@ class _ProcessContainer:
         if not found:
             fn, ext = PathOperations.split_extension(fileName)
             if not ext:
-                fileName = '%s.exe' % fn
-                found    = self.__find_processes_by_filename(fileName)
+                fileName = "%s.exe" % fn
+                found = self.__find_processes_by_filename(fileName)
         return found
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX _notify_* methods should not trigger a scan
 
@@ -4580,7 +4593,7 @@ class _ProcessContainer:
             msg = "Unknown process ID %d" % dwProcessId
             warnings.warn(msg, RuntimeWarning)
         if aProcess is not None:
-            aProcess.clear()    # remove circular references
+            aProcess.clear()  # remove circular references
         return aProcess
 
     # Notify the creation of a new process.
@@ -4596,15 +4609,15 @@ class _ProcessContainer:
         :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwProcessId = event.get_pid()
-        hProcess    = event.get_process_handle()
-##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
+        hProcess = event.get_process_handle()
+        ##        if not self.has_process(dwProcessId): # XXX this would trigger a scan
         if dwProcessId not in self.__processDict:
             aProcess = Process(dwProcessId, hProcess)
             self._add_process(aProcess)
             aProcess.fileName = event.get_filename()
         else:
             aProcess = self.get_process(dwProcessId)
-            #if hProcess != win32.INVALID_HANDLE_VALUE:
+            # if hProcess != win32.INVALID_HANDLE_VALUE:
             #    aProcess.hProcess = hProcess    # may have more privileges
             if not aProcess.fileName:
                 fileName = event.get_filename()
@@ -4624,7 +4637,7 @@ class _ProcessContainer:
         :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwProcessId = event.get_pid()
-##        if self.has_process(dwProcessId): # XXX this would trigger a scan
+        ##        if self.has_process(dwProcessId): # XXX this would trigger a scan
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True

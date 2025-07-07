@@ -29,31 +29,43 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import optparse
 import os
 import sys
 import time
-import optparse
-
-from winappdbg.crash import CrashDictionary
 
 from crash_logger import CrashLogger
 
+from winappdbg.crash import CrashDictionary
+
+
 def parse_cmdline(argv):
-    'Parse the command line options.'
+    "Parse the command line options."
     if len(argv) == 1:
-        argv = argv + ['--help']
-    usage  = (
-             "\n    %prog <configuration file> [more configuration files...]\n"
-             "\n"
-             "Produces a full report of each crash found by crash_logger.py"
-             )
+        argv = argv + ["--help"]
+    usage = (
+        "\n    %prog <configuration file> [more configuration files...]\n"
+        "\n"
+        "Produces a full report of each crash found by crash_logger.py"
+    )
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-v", "--verbose", action="store_true",  dest="verbose",
-                                                help="produces a full report")
-    parser.add_option("-q", "--quiet",   action="store_false", dest="verbose",
-                                                help="produces a brief report")
+    parser.add_option(
+        "-v",
+        "--verbose",
+        action="store_true",
+        dest="verbose",
+        help="produces a full report",
+    )
+    parser.add_option(
+        "-q",
+        "--quiet",
+        action="store_false",
+        dest="verbose",
+        help="produces a brief report",
+    )
     (options, argv) = parser.parse_args(argv)
     return (options, argv[1:])
+
 
 def filter_duplicates(old_list):
     new_list = list()
@@ -64,6 +76,7 @@ def filter_duplicates(old_list):
             print("Skipping duplicate file: %s" % filename)
     return new_list
 
+
 def filter_inexistent_files(old_list):
     new_list = list()
     for filename in old_list:
@@ -72,6 +85,7 @@ def filter_inexistent_files(old_list):
         else:
             print("Cannot find file: %s" % filename)
     return new_list
+
 
 def open_database(filename):
     cc = None
@@ -86,7 +100,7 @@ def open_database(filename):
         if not options.database:
             print("Warning: no database configured here, ignored")
             return
-        elif options.database.startswith('dbm://'):
+        elif options.database.startswith("dbm://"):
             print("Warning: DBM databases are no longer supported, ignored")
             return
         else:
@@ -99,6 +113,7 @@ def open_database(filename):
     # Return the crash container.
     return cc
 
+
 def print_report_for_database(cc, options):
     if cc is not None:
         count = cc.__len__()
@@ -106,25 +121,27 @@ def print_report_for_database(cc, options):
             print("No crashes to report.")
         else:
             print("Found %d crashes:" % count)
-            print('-' * 79)
+            print("-" * 79)
             print_crash_report(cc, options)
 
+
 def print_crash_report(cc, options):
-    ccl = [(c.timeStamp, c) for c in cc]      # XXX may use a lot of memory
-    ccl.sort()           # XXX may be inaccurate if timestamps are repeated
-    for (timeStamp, c) in ccl:
+    ccl = [(c.timeStamp, c) for c in cc]  # XXX may use a lot of memory
+    ccl.sort()  # XXX may be inaccurate if timestamps are repeated
+    for timeStamp, c in ccl:
         local = time.localtime(timeStamp)
         ldate = time.strftime("%x", local)
         ltime = time.strftime("%X", local)
         msecs = (c.timeStamp % 1) * 1000
-        msg = '%s %s.%04d' % (ldate, ltime, msecs)
+        msg = "%s %s.%04d" % (ldate, ltime, msecs)
         print(msg)
         if options.verbose:
             report = c.fullReport()
         else:
-            report = c.briefReport() + '\n'
-        print(report, end='')
-        print('-' * 79)
+            report = c.briefReport() + "\n"
+        print(report, end="")
+        print("-" * 79)
+
 
 def main():
     print("Crash logger report")
@@ -140,5 +157,6 @@ def main():
         cc = open_database(filename)
         print_report_for_database(cc, options)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

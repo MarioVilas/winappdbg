@@ -31,12 +31,14 @@
 # The WinAppDbg search engine will issue a warning if there is some part of
 # the process memory that cannot be read. We will ignore them for now.
 import warnings
+
 from winappdbg.process import Process
 from winappdbg.textio import HexDump
+
 warnings.simplefilter("ignore")
 
-def wildcard_search( pid, pattern ):
 
+def wildcard_search(pid, pattern):
     #
     # Hex patterns must be in this form:
     #     "68 65 6c 6c 6f 20 77 6f 72 6c 64"  # "hello world"
@@ -51,19 +53,20 @@ def wildcard_search( pid, pattern ):
     #
 
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # Search for the hexadecimal pattern in the process memory.
-    for address, data in process.search_hexa( pattern ):
-
+    for address, data in process.search_hexa(pattern):
         # Print a hex dump for each memory location found.
-        print(HexDump.hexblock(data, address = address))
+        print(HexDump.hexblock(data, address=address))
+
 
 # When invoked from the command line,
 # the first argument is a process ID,
 # the second argument is a DLL filename.
 if __name__ == "__main__":
     import sys
-    pid   = int( sys.argv[1] )
+
+    pid = int(sys.argv[1])
     pattern = sys.argv[2]
-    wildcard_search( pid, pattern )
+    wildcard_search(pid, pattern)

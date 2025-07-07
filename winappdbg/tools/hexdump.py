@@ -33,6 +33,7 @@ import sys
 
 from winappdbg.textio import HexDump
 
+
 def main():
     print("Hex dumper using WinAppDbg")
     print("by Mario Vilas (mvilas at gmail.com)")
@@ -40,10 +41,11 @@ def main():
     argv = sys.argv
     if len(argv) != 2:
         import os
+
         script = os.path.basename(argv[0])
         print("  %s <filename>" % script)
         return
-    with open(argv[1], 'rb') as fd:
+    with open(argv[1], "rb") as fd:
         fd.seek(0, 2)
         size = fd.tell()
         fd.seek(0, 0)
@@ -59,5 +61,6 @@ def main():
             print(HexDump.hexblock(data, address=address, width=width))
             address = address + len(data)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
