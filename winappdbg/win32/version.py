@@ -1062,6 +1062,7 @@ def _get_arch():
 
         - :data:`ARCH_I386` (``"i386"``) for Intel 32-bit x86 processor or compatible.
         - :data:`ARCH_AMD64` (``"amd64"``) for Intel 64-bit x86_64 processor or compatible.
+        - :data:`ARCH_ARM64` (``"arm64"``) for ARM64 compatible processors.
 
         May also return one of the following values if you get both Python and
         WinAppDbg to work in such machines... let me know if you do! :)
@@ -1071,16 +1072,11 @@ def _get_arch():
         - :data:`ARCH_PPC` (``"ppc"``) for PowerPC compatible processors.
         - :data:`ARCH_SHX` (``"shx"``) for Hitachi SH processors.
         - :data:`ARCH_ARM` (``"arm"``) for ARM compatible processors.
+        - :data:`ARCH_THUMB` (``"thumb"``) for ARM Thumb processors.
         - :data:`ARCH_IA64` (``"ia64"``) for Intel Itanium processor or compatible.
         - :data:`ARCH_ALPHA64` (``"alpha64"``) for Alpha64 processors.
         - :data:`ARCH_MSIL` (``"msil"``) for the .NET virtual machine.
         - :data:`ARCH_SPARC` (``"sparc"``) for Sun Sparc processors.
-
-        Probably IronPython returns ``ARCH_MSIL`` but I haven't tried it. Python
-        on Windows CE and Windows Mobile should return ``ARCH_ARM``. Python on
-        Solaris using Wine would return ``ARCH_SPARC``. Python in an Itanium
-        machine should return ``ARCH_IA64`` both on Wine and proper Windows.
-        All other values should only be returned on Linux using Wine.
     """
     try:
         si = GetNativeSystemInfo()
