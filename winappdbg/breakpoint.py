@@ -1455,7 +1455,6 @@ class _Hook_amd64 (Hook):
     def _get_return_value(self, aThread):
         ctx = aThread.get_context(win32.CONTEXT_INTEGER)
         return ctx['Rax']
-
 #------------------------------------------------------------------------------
 
 # This class acts as a factory of Hook objects, one per target process.
@@ -2967,11 +2966,10 @@ class _BreakpointContainer:
         bCallHandler    = True
 
         # Align address to page boundary.
-        mask = ~(MemoryAddresses.pageSize - 1)
-        address = address & mask
+        page_address = MemoryAddresses.align_address_to_page_start(address)
 
         # Do we have an active page breakpoint there?
-        key = (pid, address)
+        key = (pid, page_address)
         if key in self.__pageBP:
             bp = self.__pageBP[key]
             if bp.is_enabled() or bp.is_one_shot():
@@ -3807,6 +3805,21 @@ class _BreakpointContainer:
         if size < 1:
             raise ValueError("Bad size for buffer watch: %r" % size)
 
+        # Check if the address is on the stack of the current thread.
+        # This is because the OS may silently ignore setting guard pages
+        # on the stack, as it's already using them for stack growth.
+        # TODO: do this by checking all threads in the target process.
+        try:
+            aThread = self.lastEvent.get_thread()
+            stack_min, stack_max = aThread.get_stack_range()
+            if address >= stack_min and address < stack_max:
+                text = "Buffer at address 0x%x is on the stack of thread %d. "
+                text += "The OS may ignore this memory watchpoint."
+                text = text % (address, aThread.get_tid())
+                warnings.warn(text, BreakpointWarning)
+        except Exception:
+            pass
+
         # Create the buffer watch identifier.
         bw = BufferWatch(pid, address, address + size, action, bOneShot)
 
@@ -3878,6 +3891,9 @@ class _BreakpointContainer:
         # For each condition object, add the new buffer.
         for condition in cset:
             condition.add(bw)
+
+        # Return the buffer watch identifier.
+        return bw
 
     def __clear_buffer_watch_old_method(self, pid, address, size):
         """
@@ -3980,7 +3996,7 @@ class _BreakpointContainer:
         :rtype:  :class:`BufferWatch`
         :return: Buffer watch identifier.
         """
-        self.__set_buffer_watch(pid, address, size, action, False)
+        return self.__set_buffer_watch(pid, address, size, action, False)
 
     def stalk_buffer(self, pid, address, size, action = None):
         """
@@ -3997,7 +4013,7 @@ class _BreakpointContainer:
         :rtype:  :class:`BufferWatch`
         :return: Buffer watch identifier.
         """
-        self.__set_buffer_watch(pid, address, size, action, True)
+        return self.__set_buffer_watch(pid, address, size, action, True)
 
     def dont_watch_buffer(self, bw, *argv, **argd):
         """

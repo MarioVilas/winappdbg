@@ -1054,7 +1054,7 @@ class Debug (EventDispatcher, _BreakpointContainer):
             event handler raises an exception nobody catches.
         """
         try:
-            event = self.wait()  # NOQA
+            self.wait()
         except Exception:
             self.stop()
             raise
