@@ -28,11 +28,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.system import System
 from winappdbg import win32
+from winappdbg.system import System
+
 
 def show_services():
-
     # Get the list of services.
     services = System.get_services()
 
@@ -41,20 +41,19 @@ def show_services():
 
     # For each service descriptor...
     for descriptor in services:
-
         # Print the service information, the easy way.
         # print str(descriptor)
 
         # You can also do it the hard way, accessing its members.
         print("Service name: %s" % descriptor.ServiceName)
         print("Display name: %s" % descriptor.DisplayName)
-        if   descriptor.ServiceType & win32.SERVICE_INTERACTIVE_PROCESS:
+        if descriptor.ServiceType & win32.SERVICE_INTERACTIVE_PROCESS:
             print("Service type: Win32 GUI")
         elif descriptor.ServiceType & win32.SERVICE_WIN32:
             print("Service type: Win32")
         elif descriptor.ServiceType & win32.SERVICE_DRIVER:
             print("Service type: Driver")
-        if   descriptor.CurrentState == win32.SERVICE_CONTINUE_PENDING:
+        if descriptor.CurrentState == win32.SERVICE_CONTINUE_PENDING:
             print("Current status: RESTARTING...")
         elif descriptor.CurrentState == win32.SERVICE_PAUSE_PENDING:
             print("Current status: PAUSING...")
@@ -69,6 +68,7 @@ def show_services():
         elif descriptor.CurrentState == win32.SERVICE_STOPPED:
             print("Current status: STOPPED")
         print()
+
 
 # When invoked from the command line,
 # call the show_services() function.

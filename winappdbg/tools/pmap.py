@@ -36,24 +36,26 @@
 import os
 import sys
 
+from winappdbg.crash import CrashDump
 from winappdbg.process import Process
 from winappdbg.system import System
-from winappdbg.crash import CrashDump
 from winappdbg.textio import HexInput
+
 
 def number(value):
     value = str(value)
     if len(value) % 3:
-        value = ' ' * (3 - (len(value) % 3)) + value
-    value = ','.join([value[i:i+3] for i in range(0, len(value), 3)])
+        value = " " * (3 - (len(value) % 3)) + value
+    value = ",".join([value[i : i + 3] for i in range(0, len(value), 3)])
     return value
+
 
 def main():
     print("Process memory map")
     print("by Mario Vilas (mvilas at gmail.com)")
     print()
 
-    if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
+    if len(sys.argv) < 2 or "-h" in sys.argv or "--help" in sys.argv:
         script = os.path.basename(sys.argv[0])
         print("Usage:")
         print("  %s <pid>..." % script)
@@ -77,7 +79,7 @@ def main():
             if not pl:
                 print("Process not found: %s" % token)
                 return
-            for p,n in pl:
+            for p, n in pl:
                 pid = p.get_pid()
                 targets.add(pid)
 
@@ -85,25 +87,25 @@ def main():
     targets.sort()
 
     for pid in targets:
-        process         = Process(pid)
-        fileName        = process.get_filename()
-        memoryMap       = process.get_memory_map()
+        process = Process(pid)
+        fileName = process.get_filename()
+        memoryMap = process.get_memory_map()
         mappedFilenames = process.get_mapped_filenames()
         if fileName:
             print("Memory map for %d (%s):" % (pid, fileName))
         else:
             print("Memory map for %d:" % pid)
         print()
-##        print(CrashDump.dump_memory_map(memoryMap),)
+        ##        print(CrashDump.dump_memory_map(memoryMap),)
         print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
 
-        readable    = 0
-        writeable   = 0
-        executable  = 0
-        private     = 0
-        mapped      = 0
-        image       = 0
-        total       = 0
+        readable = 0
+        writeable = 0
+        executable = 0
+        private = 0
+        mapped = 0
+        image = 0
+        total = 0
         for mbi in memoryMap:
             size = mbi.RegionSize
             if not mbi.is_free():
@@ -130,5 +132,6 @@ def main():
         print(("  %%%ds bytes of total memory" % width) % number(total))
         print()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

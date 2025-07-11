@@ -36,7 +36,7 @@
 Interactive debugging console.
 """
 
-__all__ = [ 'ConsoleDebugger', 'CmdError' ]
+__all__ = ["ConsoleDebugger", "CmdError"]
 
 # TODO document this module with docstrings.
 # TODO command to set a last error breakpoint.
@@ -45,30 +45,30 @@ __all__ = [ 'ConsoleDebugger', 'CmdError' ]
 #      should only work on breakpoints created during the interactive
 #      session, and *not* on any breakpoints set before that!
 
-from . import win32
-from .util import PathOperations
-from .event import EventHandler, NoEvent
-from .textio import HexInput, HexOutput, HexDump, CrashDump
-
-import os
-import sys
 import code
 import ntpath
-import warnings
+import os
+import sys
 import traceback
-
-from os import getenv
-from importlib import reload
+import warnings
 
 # too many variables named "cmd" to have a module by the same name :P
 from cmd import Cmd
+from importlib import reload
+from os import getenv
+
+from . import win32
+from .event import EventHandler, NoEvent
+from .textio import CrashDump, HexDump, HexInput, HexOutput
+from .util import PathOperations
 
 # lazy imports
 readline = None
 
-#==============================================================================
+# ==============================================================================
 
-class DummyEvent (NoEvent):
+
+class DummyEvent(NoEvent):
     "Dummy event object used internally by :class:`ConsoleDebugger`."
 
     def get_pid(self):
@@ -83,25 +83,29 @@ class DummyEvent (NoEvent):
     def get_thread(self):
         return self._thread
 
-#==============================================================================
 
-class CmdError (Exception):
+# ==============================================================================
+
+
+class CmdError(Exception):
     """
     Exception raised when a command parsing error occurs.
     Used internally by :class:`ConsoleDebugger`.
     """
 
-#==============================================================================
 
-class ConsoleDebugger (Cmd, EventHandler):
+# ==============================================================================
+
+
+class ConsoleDebugger(Cmd, EventHandler):
     """
     Interactive console debugger.
 
     .. seealso:: :meth:`winappdbg.debug.Debug.interactive`
     """
 
-#------------------------------------------------------------------------------
-# Class variables
+    # ------------------------------------------------------------------------------
+    # Class variables
 
     # Exception to raise when an error occurs executing a command.
     command_error_exception = CmdError
@@ -110,30 +114,36 @@ class ConsoleDebugger (Cmd, EventHandler):
     dwMilliseconds = 100
 
     # History file name.
-    history_file = '.winappdbg_history'
+    history_file = ".winappdbg_history"
 
     # Confirm before quitting?
     confirm_quit = True
 
     # Valid plugin name characters.
-    valid_plugin_name_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXY' \
-                              'abcdefghijklmnopqrstuvwxy' \
-                              '012345678'                 \
-                              '_'
+    valid_plugin_name_chars = (
+        "ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy012345678_"
+    )
 
     # Names of the registers.
-    segment_names               = ( 'cs', 'ds', 'es', 'fs', 'gs' )
+    segment_names = ("cs", "ds", "es", "fs", "gs")
 
-    register_alias_64_to_32     = {
-        'eax':'Rax', 'ebx':'Rbx', 'ecx':'Rcx', 'edx':'Rdx',
-        'eip':'Rip', 'ebp':'Rbp', 'esp':'Rsp', 'esi':'Rsi', 'edi':'Rdi'
+    register_alias_64_to_32 = {
+        "eax": "Rax",
+        "ebx": "Rbx",
+        "ecx": "Rcx",
+        "edx": "Rdx",
+        "eip": "Rip",
+        "ebp": "Rbp",
+        "esp": "Rsp",
+        "esi": "Rsi",
+        "edi": "Rdi",
     }
-    register_alias_64_to_16     = { 'ax':'Rax', 'bx':'Rbx', 'cx':'Rcx', 'dx':'Rdx' }
-    register_alias_64_to_8_low  = { 'al':'Rax', 'bl':'Rbx', 'cl':'Rcx', 'dl':'Rdx' }
-    register_alias_64_to_8_high = { 'ah':'Rax', 'bh':'Rbx', 'ch':'Rcx', 'dh':'Rdx' }
-    register_alias_32_to_16     = { 'ax':'Eax', 'bx':'Ebx', 'cx':'Ecx', 'dx':'Edx' }
-    register_alias_32_to_8_low  = { 'al':'Eax', 'bl':'Ebx', 'cl':'Ecx', 'dl':'Edx' }
-    register_alias_32_to_8_high = { 'ah':'Eax', 'bh':'Ebx', 'ch':'Ecx', 'dh':'Edx' }
+    register_alias_64_to_16 = {"ax": "Rax", "bx": "Rbx", "cx": "Rcx", "dx": "Rdx"}
+    register_alias_64_to_8_low = {"al": "Rax", "bl": "Rbx", "cl": "Rcx", "dl": "Rdx"}
+    register_alias_64_to_8_high = {"ah": "Rax", "bh": "Rbx", "ch": "Rcx", "dh": "Rdx"}
+    register_alias_32_to_16 = {"ax": "Eax", "bx": "Ebx", "cx": "Ecx", "dx": "Edx"}
+    register_alias_32_to_8_low = {"al": "Eax", "bl": "Ebx", "cl": "Ecx", "dl": "Edx"}
+    register_alias_32_to_8_high = {"ah": "Eax", "bh": "Ebx", "ch": "Ecx", "dh": "Edx"}
 
     register_aliases_full_32 = list(segment_names)
     register_aliases_full_32.extend(list(register_alias_32_to_16.keys()))
@@ -150,18 +160,48 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Names of the control flow instructions.
     jump_instructions = (
-        'jmp', 'jecxz', 'jcxz',
-        'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jc', 'je',
-        'jz', 'jnc', 'jne', 'jnz', 'jnp', 'jpo', 'jp', 'jpe', 'jg', 'jnle',
-        'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'jno', 'jns', 'jo', 'js'
+        "jmp",
+        "jecxz",
+        "jcxz",
+        "ja",
+        "jnbe",
+        "jae",
+        "jnb",
+        "jb",
+        "jnae",
+        "jbe",
+        "jna",
+        "jc",
+        "je",
+        "jz",
+        "jnc",
+        "jne",
+        "jnz",
+        "jnp",
+        "jpo",
+        "jp",
+        "jpe",
+        "jg",
+        "jnle",
+        "jge",
+        "jnl",
+        "jl",
+        "jnge",
+        "jle",
+        "jng",
+        "jno",
+        "jns",
+        "jo",
+        "js",
     )
-    call_instructions = ( 'call', 'ret', 'retn' )
-    loop_instructions = ( 'loop', 'loopz', 'loopnz', 'loope', 'loopne' )
-    control_flow_instructions = call_instructions + loop_instructions + \
-                                jump_instructions
+    call_instructions = ("call", "ret", "retn")
+    loop_instructions = ("loop", "loopz", "loopnz", "loope", "loopne")
+    control_flow_instructions = (
+        call_instructions + loop_instructions + jump_instructions
+    )
 
-#------------------------------------------------------------------------------
-# Instance variables
+    # ------------------------------------------------------------------------------
+    # Instance variables
 
     def __init__(self):
         """
@@ -181,12 +221,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         # Last executed command.
         self.__lastcmd = ""
 
-#------------------------------------------------------------------------------
-# Debugger
+    # ------------------------------------------------------------------------------
+    # Debugger
 
     # Use this Debug object.
     def start_using_debugger(self, debug):
-
         # Clear the previous Debug object.
         self.stop_using_debugger()
 
@@ -199,7 +238,7 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Stop using the Debug object given by start_using_debugger().
     # Circular references must be removed, or the destructors never get called.
     def stop_using_debugger(self):
-        if hasattr(self, 'debug'):
+        if hasattr(self, "debug"):
             debug = self.debug
             debug.set_event_handler(self.prevHandler)
             del self.prevHandler
@@ -208,7 +247,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         return None
 
     # Destroy the Debug object.
-    def destroy_debugger(self, autodetach = True):
+    def destroy_debugger(self, autodetach=True):
         debug = self.stop_using_debugger()
         if debug is not None:
             if autodetach:
@@ -228,27 +267,28 @@ class ConsoleDebugger (Cmd, EventHandler):
             self.debug.lastEvent = DummyEvent(self.debug)
             self.debug.lastEvent._process = process
             self.debug.lastEvent._thread = process.get_thread(
-                                                process.get_thread_ids()[0])
+                process.get_thread_ids()[0]
+            )
             self.debug.lastEvent._pid = process.get_pid()
             self.debug.lastEvent._tid = self.lastEvent._thread.get_tid()
 
-#------------------------------------------------------------------------------
-# Input
+    # ------------------------------------------------------------------------------
+    # Input
 
-# TODO
-# * try to guess breakpoints when insufficient data is given
-# * child Cmd instances will have to be used for other prompts, for example
-#   when assembling or editing memory - it may also be a good idea to think
-#   if it's possible to make the main Cmd instance also a child, instead of
-#   the debugger itself - probably the same goes for the EventHandler, maybe
-#   it can be used as a contained object rather than a parent class.
+    # TODO
+    # * try to guess breakpoints when insufficient data is given
+    # * child Cmd instances will have to be used for other prompts, for example
+    #   when assembling or editing memory - it may also be a good idea to think
+    #   if it's possible to make the main Cmd instance also a child, instead of
+    #   the debugger itself - probably the same goes for the EventHandler, maybe
+    #   it can be used as a contained object rather than a parent class.
 
     # Join a token list into an argument string.
     def join_tokens(self, token_list):
         return self.debug.system.argv_to_cmdline(token_list)
 
     # Split an argument string into a token list.
-    def split_tokens(self, arg, min_count = 0, max_count = None):
+    def split_tokens(self, arg, min_count=0, max_count=None):
         token_list = self.debug.system.cmdline_to_argv(arg)
         if len(token_list) < min_count:
             raise CmdError("missing parameters.")
@@ -258,21 +298,21 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Token is a thread ID or name.
     def input_thread(self, token):
-        targets = self.input_thread_list( [token] )
+        targets = self.input_thread_list([token])
         if len(targets) == 0:
             raise CmdError("missing thread name or ID")
         if len(targets) > 1:
             msg = "more than one thread with that name:\n"
             for tid in targets:
                 msg += "\t%d\n" % tid
-            msg = msg[:-len("\n")]
+            msg = msg[: -len("\n")]
             raise CmdError(msg)
         return targets[0]
 
     # Token list is a list of thread IDs or names.
     def input_thread_list(self, token_list):
         targets = set()
-        system  = self.debug.system
+        system = self.debug.system
         for token in token_list:
             try:
                 tid = self.input_integer(token)
@@ -282,32 +322,32 @@ class ConsoleDebugger (Cmd, EventHandler):
             except ValueError:
                 found = set()
                 for process in system.iter_processes():
-                    found.update( system.find_threads_by_name(token) )
+                    found.update(system.find_threads_by_name(token))
                 if not found:
                     raise CmdError("thread not found (%s)" % token)
                 for thread in found:
-                    targets.add( thread.get_tid() )
+                    targets.add(thread.get_tid())
         targets = list(targets)
         targets.sort()
         return targets
 
     # Token is a process ID or name.
     def input_process(self, token):
-        targets = self.input_process_list( [token] )
+        targets = self.input_process_list([token])
         if len(targets) == 0:
             raise CmdError("missing process name or ID")
         if len(targets) > 1:
             msg = "more than one process with that name:\n"
             for pid in targets:
                 msg += "\t%d\n" % pid
-            msg = msg[:-len("\n")]
+            msg = msg[: -len("\n")]
             raise CmdError(msg)
         return targets[0]
 
     # Token list is a list of process IDs or names.
     def input_process_list(self, token_list):
         targets = set()
-        system  = self.debug.system
+        system = self.debug.system
         for token in token_list:
             try:
                 pid = self.input_integer(token)
@@ -318,8 +358,8 @@ class ConsoleDebugger (Cmd, EventHandler):
                 found = system.find_processes_by_filename(token)
                 if not found:
                     raise CmdError("process not found (%s)" % token)
-                for (process, _) in found:
-                    targets.add( process.get_pid() )
+                for process, _ in found:
+                    targets.add(process.get_pid())
         targets = list(targets)
         targets.sort()
         return targets
@@ -332,7 +372,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         fname = argv[0]
         if not ntpath.exists(fname):
             try:
-                fname, _ = win32.SearchPath(None, fname, '.exe')
+                fname, _ = win32.SearchPath(None, fname, ".exe")
             except WindowsError:
                 raise CmdError("file not found: %s" % fname)
             argv[0] = fname
@@ -348,11 +388,12 @@ class ConsoleDebugger (Cmd, EventHandler):
     # It can be in any supported format.
     def input_integer(self, token):
         return HexInput.integer(token)
-##    input_integer = input_hexadecimal_integer
+
+    ##    input_integer = input_hexadecimal_integer
 
     # Token is an address.
     # The address can be a integer, a label or a register.
-    def input_address(self, token, pid = None, tid = None):
+    def input_address(self, token, pid=None, tid=None):
         address = None
         if self.is_register(token):
             if tid is None:
@@ -384,7 +425,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Token is an address range, or a single address.
     # The addresses can be integers, labels or registers.
-    def input_address_range(self, token_list, pid = None, tid = None):
+    def input_address_range(self, token_list, pid=None, tid=None):
         if len(token_list) == 2:
             token_1, token_2 = token_list
             address = self.input_address(token_1, pid, tid)
@@ -394,40 +435,40 @@ class ConsoleDebugger (Cmd, EventHandler):
                 raise CmdError("bad address range: %s %s" % (token_1, token_2))
         elif len(token_list) == 1:
             token = token_list[0]
-            if '-' in token:
+            if "-" in token:
                 try:
-                    token_1, token_2 = token.split('-')
+                    token_1, token_2 = token.split("-")
                 except Exception:
                     raise CmdError("bad address range: %s" % token)
                 address = self.input_address(token_1, pid, tid)
-                size    = self.input_address(token_2, pid, tid) - address
+                size = self.input_address(token_2, pid, tid) - address
             else:
                 address = self.input_address(token, pid, tid)
-                size    = None
+                size = None
         return address, size
 
     # XXX TODO
     # Support non-integer registers here.
     def is_register(self, token):
-        if win32.arch == 'i386':
+        if win32.arch == "i386":
             if token in self.register_aliases_full_32:
                 return True
             token = token.title()
-            for (name, typ) in win32.CONTEXT._fields_:
+            for name, typ in win32.CONTEXT._fields_:
                 if name == token:
                     return win32.sizeof(typ) == win32.sizeof(win32.DWORD)
-        elif win32.arch == 'amd64':
+        elif win32.arch == "amd64":
             if token in self.register_aliases_full_64:
                 return True
             token = token.title()
-            for (name, typ) in win32.CONTEXT._fields_:
+            for name, typ in win32.CONTEXT._fields_:
                 if name == token:
                     return win32.sizeof(typ) == win32.sizeof(win32.DWORD64)
         return False
 
     # The token is a register name.
     # Returns None if no register name is matched.
-    def input_register(self, token, tid = None):
+    def input_register(self, token, tid=None):
         if tid is None:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
@@ -440,45 +481,43 @@ class ConsoleDebugger (Cmd, EventHandler):
         title = token.title()
 
         if title in ctx:
-            return ctx.get(title)   # eax -> Eax
+            return ctx.get(title)  # eax -> Eax
 
-        if ctx.arch == 'i386':
-
+        if ctx.arch == "i386":
             if token in self.segment_names:
-                return ctx.get( 'Seg%s' % title )   # cs -> SegCs
+                return ctx.get("Seg%s" % title)  # cs -> SegCs
 
             if token in self.register_alias_32_to_16.keys():
-                return ctx.get( self.register_alias_32_to_16[token] ) & 0xFFFF
+                return ctx.get(self.register_alias_32_to_16[token]) & 0xFFFF
 
             if token in self.register_alias_32_to_8_low.keys():
-                return ctx.get( self.register_alias_32_to_8_low[token] ) & 0xFF
+                return ctx.get(self.register_alias_32_to_8_low[token]) & 0xFF
 
             if token in self.register_alias_32_to_8_high.keys():
-                return (ctx.get( self.register_alias_32_to_8_high[token] ) & 0xFF00) >> 8
+                return (ctx.get(self.register_alias_32_to_8_high[token]) & 0xFF00) >> 8
 
-        elif ctx.arch == 'amd64':
-
+        elif ctx.arch == "amd64":
             if token in self.segment_names:
-                return ctx.get( 'Seg%s' % title )   # cs -> SegCs
+                return ctx.get("Seg%s" % title)  # cs -> SegCs
 
             if token in self.register_alias_64_to_32.keys():
-                return ctx.get( self.register_alias_64_to_32[token] ) & 0xFFFFFFFF
+                return ctx.get(self.register_alias_64_to_32[token]) & 0xFFFFFFFF
 
             if token in self.register_alias_64_to_16.keys():
-                return ctx.get( self.register_alias_64_to_16[token] ) & 0xFFFF
+                return ctx.get(self.register_alias_64_to_16[token]) & 0xFFFF
 
             if token in self.register_alias_64_to_8_low.keys():
-                return ctx.get( self.register_alias_64_to_8_low[token] ) & 0xFF
+                return ctx.get(self.register_alias_64_to_8_low[token]) & 0xFF
 
             if token in self.register_alias_64_to_8_high.keys():
-                return (ctx.get( self.register_alias_64_to_8_high[token] ) & 0xFF00) >> 8
+                return (ctx.get(self.register_alias_64_to_8_high[token]) & 0xFF00) >> 8
 
         return None
 
     # Token list contains an address or address range.
     # The prefix is also parsed looking for process and thread IDs.
     def input_full_address_range(self, token_list):
-        pid, tid      = self.get_process_and_thread_ids_from_prefix()
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
         address, size = self.input_address_range(token_list, pid, tid)
         return pid, tid, address, size
 
@@ -491,7 +530,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Token list contains a memory address, and optional size and process.
     # Sets the results as the default for the next display command.
-    def input_display(self, token_list, default_size = 64):
+    def input_display(self, token_list, default_size=64):
         pid, tid, address, size = self.input_full_address_range(token_list)
         if not size:
             size = default_size
@@ -499,34 +538,34 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.default_display_target = next_address
         return pid, tid, address, size
 
-#------------------------------------------------------------------------------
-# Output
+    # ------------------------------------------------------------------------------
+    # Output
 
     # Tell the user a module was loaded.
     def print_module_load(self, event):
-        mod  = event.get_module()
+        mod = event.get_module()
         base = mod.get_base()
         name = mod.get_filename()
         if not name:
-            name = ''
+            name = ""
         msg = "Loaded module (%s) %s"
         msg = msg % (HexDump.address(base), name)
         print(msg)
 
     # Tell the user a module was unloaded.
     def print_module_unload(self, event):
-        mod  = event.get_module()
+        mod = event.get_module()
         base = mod.get_base()
         name = mod.get_filename()
         if not name:
-            name = ''
+            name = ""
         msg = "Unloaded module (%s) %s"
         msg = msg % (HexDump.address(base), name)
         print(msg)
 
     # Tell the user a process was started.
     def print_process_start(self, event):
-        pid   = event.get_pid()
+        pid = event.get_pid()
         start = event.get_start_address()
         if start:
             start = HexOutput.address(start)
@@ -536,7 +575,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Tell the user a thread was started.
     def print_thread_start(self, event):
-        tid   = event.get_tid()
+        tid = event.get_tid()
         start = event.get_start_address()
         if start:
             with warnings.catch_warnings():
@@ -548,25 +587,25 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Tell the user a process has finished.
     def print_process_end(self, event):
-        pid  = event.get_pid()
+        pid = event.get_pid()
         code = event.get_exit_code()
         print("Process %d terminated, exit code %d" % (pid, code))
 
     # Tell the user a thread has finished.
     def print_thread_end(self, event):
-        tid  = event.get_tid()
+        tid = event.get_tid()
         code = event.get_exit_code()
         print("Thread %d terminated, exit code %d" % (tid, code))
 
     # print(debug strings.)
     def print_debug_string(self, event):
-        tid    = event.get_tid()
+        tid = event.get_tid()
         string = event.get_debug_string()
         print("Thread %d says: %r" % (tid, string))
 
     # Inform the user of any other debugging event.
     def print_event(self, event):
-        code = HexDump.integer( event.get_event_code() )
+        code = HexDump.integer(event.get_event_code())
         name = event.get_event_name()
         desc = event.get_event_description()
         if code in desc:
@@ -579,13 +618,13 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Stop on exceptions and prompt for commands.
     def print_exception(self, event):
-        address = HexDump.address( event.get_exception_address() )
-        code    = HexDump.integer( event.get_exception_code() )
-        desc    = event.get_exception_description()
+        address = HexDump.address(event.get_exception_address())
+        code = HexDump.integer(event.get_exception_code())
+        desc = event.get_exception_description()
         if event.is_first_chance():
-            chance = 'first'
+            chance = "first"
         else:
-            chance = 'second'
+            chance = "second"
         if code in desc:
             msg = "%s at address %s (%s chance)" % (desc, address, chance)
         else:
@@ -597,18 +636,18 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Show the current location in the code.
     def print_event_location(self, event):
         process = event.get_process()
-        thread  = event.get_thread()
+        thread = event.get_thread()
         self.print_current_location(process, thread)
 
     # Show the current location in the code.
     def print_breakpoint_location(self, event):
         process = event.get_process()
-        thread  = event.get_thread()
+        thread = event.get_thread()
         pc = event.get_exception_address()
         self.print_current_location(process, thread, pc)
 
     # Show the current location in any process and thread.
-    def print_current_location(self, process = None, thread = None, pc = None):
+    def print_current_location(self, process=None, thread=None, pc=None):
         if not process:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
@@ -616,7 +655,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not thread:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
-            thread  = self.lastEvent.get_thread()
+            thread = self.lastEvent.get_thread()
         thread.suspend()
         try:
             if pc is None:
@@ -632,34 +671,34 @@ class ConsoleDebugger (Cmd, EventHandler):
         except NotImplementedError:
             disasm = None
         print()
-        print(CrashDump.dump_registers(ctx), end=' ')
+        print(CrashDump.dump_registers(ctx), end=" ")
         print("%s:" % label)
         if disasm:
-            print(CrashDump.dump_code_line(disasm[0], pc, bShowDump = True))
+            print(CrashDump.dump_code_line(disasm[0], pc, bShowDump=True))
         else:
             try:
                 data = process.peek(pc, 15)
             except Exception:
                 data = None
             if data:
-                print('%s: %s' % (HexDump.address(pc), HexDump.hexblock_byte(data)))
+                print("%s: %s" % (HexDump.address(pc), HexDump.hexblock_byte(data)))
             else:
-                print('%s: ???' % HexDump.address(pc))
+                print("%s: ???" % HexDump.address(pc))
 
     # Display memory contents using a given method.
     def print_memory_display(self, arg, method):
         if not arg:
             arg = self.default_display_target
-        token_list              = self.split_tokens(arg, 1, 2)
+        token_list = self.split_tokens(arg, 1, 2)
         pid, tid, address, size = self.input_display(token_list)
-        label                   = self.get_process(pid).get_label_at_address(address)
-        data                    = self.read_memory(address, size, pid)
+        label = self.get_process(pid).get_label_at_address(address)
+        data = self.read_memory(address, size, pid)
         if data:
             print("%s:" % label)
-            print(method(data, address), end=' ')
+            print(method(data, address), end=" ")
 
-#------------------------------------------------------------------------------
-# Debugging
+    # ------------------------------------------------------------------------------
+    # Debugging
 
     # Get the process ID from the prefix or the last event.
     def get_process_id_from_prefix(self):
@@ -714,12 +753,12 @@ class ConsoleDebugger (Cmd, EventHandler):
     # Get the process and thread from the prefix or the last event.
     def get_process_and_thread_from_prefix(self):
         pid, tid = self.get_process_and_thread_ids_from_prefix()
-        process  = self.get_process(pid)
-        thread   = self.get_thread(tid)
+        process = self.get_process(pid)
+        thread = self.get_thread(tid)
         return process, thread
 
     # Get the process object.
-    def get_process(self, pid = None):
+    def get_process(self, pid=None):
         if pid is None:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
@@ -734,7 +773,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         return process
 
     # Get the thread object.
-    def get_thread(self, tid = None):
+    def get_thread(self, tid=None):
         if tid is None:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
@@ -749,7 +788,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         return thread
 
     # Read the process memory.
-    def read_memory(self, address, size, pid = None):
+    def read_memory(self, address, size, pid=None):
         process = self.get_process(pid)
         try:
             data = process.peek(address, size)
@@ -762,7 +801,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         return data
 
     # Write the process memory.
-    def write_memory(self, address, data, pid = None):
+    def write_memory(self, address, data, pid=None):
         process = self.get_process(pid)
         try:
             process.write(address, data)
@@ -775,8 +814,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError(msg)
 
     # Change a register value.
-    def change_register(self, register, value, tid = None):
-
+    def change_register(self, register, value, tid=None):
         # Get the thread.
         if tid is None:
             if self.lastEvent is None:
@@ -792,14 +830,13 @@ class ConsoleDebugger (Cmd, EventHandler):
         try:
             value = self.input_integer(value)
         except ValueError:
-            pid   = thread.get_pid()
+            pid = thread.get_pid()
             value = self.input_address(value, pid, tid)
 
         # Suspend the thread.
         # The finally clause ensures the thread is resumed before returning.
         thread.suspend()
         try:
-
             # Get the current context.
             ctx = thread.get_context()
 
@@ -808,30 +845,30 @@ class ConsoleDebugger (Cmd, EventHandler):
 
             # Integer 32 bits registers.
             if register in self.register_names:
-                register = register.title()                 # eax -> Eax
+                register = register.title()  # eax -> Eax
 
             # Segment (16 bit) registers.
             if register in self.segment_names:
-                register = 'Seg%s' % register.title()       # cs -> SegCs
-                value    = value & 0x0000FFFF
+                register = "Seg%s" % register.title()  # cs -> SegCs
+                value = value & 0x0000FFFF
 
             # Integer 16 bits registers.
             if register in self.register_alias_16.keys():
                 register = self.register_alias_16[register]
                 previous = ctx.get(register) & 0xFFFF0000
-                value    = (value & 0x0000FFFF) | previous
+                value = (value & 0x0000FFFF) | previous
 
             # Integer 8 bits registers (low part).
             if register in self.register_alias_8_low.keys():
                 register = self.register_alias_8_low[register]
                 previous = ctx.get(register) % 0xFFFFFF00
-                value    = (value & 0x000000FF) | previous
+                value = (value & 0x000000FF) | previous
 
             # Integer 8 bits registers (high part).
             if register in self.register_alias_8_high.keys():
                 register = self.register_alias_8_high[register]
                 previous = ctx.get(register) % 0xFFFF00FF
-                value    = ((value & 0x000000FF) << 8) | previous
+                value = ((value & 0x000000FF) << 8) | previous
 
             # Set the new context.
             ctx.__setitem__(register, value)
@@ -848,7 +885,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             if mbi.State != win32.MEM_COMMIT or mbi.Protect & win32.PAGE_GUARD:
                 continue
             address = mbi.BaseAddress
-            size    = mbi.RegionSize
+            size = mbi.RegionSize
             try:
                 data = process.read(address, size)
             except WindowsError:
@@ -859,8 +896,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             p = data.find(query)
             while p >= 0:
                 q = p + len(query)
-                d = data[ p : min(q, p + width) ]
-                h = HexDump.hexline(d, width = width)
+                d = data[p : min(q, p + width)]
+                h = HexDump.hexline(d, width=width)
                 a = HexDump.address(address + p)
                 print("%s: %s" % (a, h))
                 p = data.find(query, q)
@@ -889,8 +926,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         except Exception:
             print("Error trying to kill thread (%d)" % tid)
 
-#------------------------------------------------------------------------------
-# Command prompt input
+    # ------------------------------------------------------------------------------
+    # Command prompt input
 
     # Prompt the user for commands.
     def prompt_user(self):
@@ -902,14 +939,15 @@ class ConsoleDebugger (Cmd, EventHandler):
                 print("*** Error: %s" % str(e))
             except Exception as e:
                 traceback.print_exc(e)
-##                self.debuggerExit = True
+
+    ##                self.debuggerExit = True
 
     # Prompt the user for a YES/NO kind of question.
-    def ask_user(self, msg, prompt = "Are you sure? (y/N): "):
+    def ask_user(self, msg, prompt="Are you sure? (y/N): "):
         print(msg)
         answer = input(prompt)
         answer = answer.strip()[:1].lower()
-        return answer == 'y'
+        return answer == "y"
 
     # Autocomplete the given command when not ambiguous.
     # Convert it to lowercase (so commands are seen as case insensitive).
@@ -928,42 +966,41 @@ class ConsoleDebugger (Cmd, EventHandler):
     def get_help(self, commands):
         msg = set()
         for name in commands:
-            if name != 'do_help':
+            if name != "do_help":
                 try:
-                    doc = getattr(self, name).__doc__.split('\n')
+                    doc = getattr(self, name).__doc__.split("\n")
                 except Exception:
-                    return ( "No help available when Python"
-                             " is run with the -OO switch." )
+                    return "No help available when Python is run with the -OO switch."
                 for x in doc:
                     x = x.strip()
                     if x:
-                        msg.add('  %s' % x)
+                        msg.add("  %s" % x)
         msg = list(msg)
         msg.sort()
-        msg = '\n'.join(msg)
+        msg = "\n".join(msg)
         return msg
 
     # Parse the prefix and remove it from the command line.
     def split_prefix(self, line):
         prefix = None
-        if line.startswith('~'):
-            pos         = line.find(' ')
+        if line.startswith("~"):
+            pos = line.find(" ")
             if pos == 1:
-                pos     = line.find(' ', pos + 1)
+                pos = line.find(" ", pos + 1)
             if not pos < 0:
-                prefix  = line[ 1 : pos ].strip()
-                line    = line[ pos : ].strip()
+                prefix = line[1:pos].strip()
+                line = line[pos:].strip()
         return prefix, line
 
-#------------------------------------------------------------------------------
-# Cmd() hacks
+    # ------------------------------------------------------------------------------
+    # Cmd() hacks
 
     # Header for help page.
-    doc_header = 'Available commands (type help * or help <command>)'
+    doc_header = "Available commands (type help * or help <command>)"
 
-##    # Read and write directly to stdin and stdout.
-##    # This prevents the use of raw_input and print.
-##    use_rawinput = False
+    ##    # Read and write directly to stdin and stdout.
+    ##    # This prevents the use of raw_input and print.
+    ##    use_rawinput = False
 
     @property
     def prompt(self):
@@ -971,15 +1008,15 @@ class ConsoleDebugger (Cmd, EventHandler):
             pid = self.lastEvent.get_pid()
             tid = self.lastEvent.get_tid()
             if self.debug.is_debugee(pid):
-##                return '~%d(%d)> ' % (tid, pid)
-                return '%d:%d> ' % (pid, tid)
-        return '> '
+                ##                return '~%d(%d)> ' % (tid, pid)
+                return "%d:%d> " % (pid, tid)
+        return "> "
 
     # Return a sorted list of method names.
     # Only returns the methods that implement commands.
     def get_names(self):
         names = super().get_names()
-        names = [ x for x in set(names) if x.startswith('do_') ]
+        names = [x for x in set(names) if x.startswith("do_")]
         names.sort()
         return names
 
@@ -990,40 +1027,42 @@ class ConsoleDebugger (Cmd, EventHandler):
         self.cmdprefix, line = self.split_prefix(line)
         line = line.strip()
         if line:
-            if line[0] == '.':
-                line = 'plugin ' + line[1:]
-            elif line[0] == '#':
-                line = 'python ' + line[1:]
+            if line[0] == ".":
+                line = "plugin " + line[1:]
+            elif line[0] == "#":
+                line = "python " + line[1:]
         cmd, arg, line = Cmd.parseline(self, line)
         if cmd:
             cmd = self.autocomplete(cmd)
         return cmd, arg, line
 
-##    # Don't repeat the last executed command.
-##    def emptyline(self):
-##        pass
+    ##    # Don't repeat the last executed command.
+    ##    def emptyline(self):
+    ##        pass
 
     # Reset the defaults for some commands.
     def preloop(self):
-        self.default_disasm_target  = 'eip'
-        self.default_display_target = 'eip'
-        self.last_display_command   = self.do_db
+        self.default_disasm_target = "eip"
+        self.default_display_target = "eip"
+        self.last_display_command = self.do_db
 
     # Put the prefix back in the command line.
     def get_lastcmd(self):
         return self.__lastcmd
+
     def set_lastcmd(self, lastcmd):
         if self.cmdprefix:
-            lastcmd = '~%s %s' % (self.cmdprefix, lastcmd)
+            lastcmd = "~%s %s" % (self.cmdprefix, lastcmd)
         self.__lastcmd = lastcmd
+
     lastcmd = property(get_lastcmd, set_lastcmd)
 
     # Quit the command prompt if the debuggerExit flag is on.
     def postcmd(self, stop, line):
         return stop or self.debuggerExit
 
-#------------------------------------------------------------------------------
-# Commands
+    # ------------------------------------------------------------------------------
+    # Commands
 
     # Each command contains a docstring with it's help text.
     # The help text consist of independent text lines,
@@ -1045,23 +1084,23 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if not arg:
             Cmd.do_help(self, arg)
-        elif arg in ('?', 'help'):
+        elif arg in ("?", "help"):
             # An easter egg :)
             print("  Help! I need somebody...")
             print("  Help! Not just anybody...")
             print("  Help! You know, I need someone...")
             print("  Heeelp!")
         else:
-            if arg == '*':
+            if arg == "*":
                 commands = self.get_names()
-                commands = [ x for x in commands if x.startswith('do_') ]
+                commands = [x for x in commands if x.startswith("do_")]
             else:
                 commands = set()
-                for x in arg.split(' '):
+                for x in arg.split(" "):
                     x = x.strip()
                     if x:
                         for n in self.completenames(x):
-                            commands.add( 'do_%s' % n )
+                            commands.add("do_%s" % n)
                 commands = list(commands)
                 commands.sort()
             print(self.get_help(commands))
@@ -1080,15 +1119,15 @@ class ConsoleDebugger (Cmd, EventHandler):
         # If not found, it's usually OK to just use the filename,
         # since cmd.exe is one of those "magic" programs that
         # can be automatically found by CreateProcess.
-        shell = getenv('ComSpec', 'cmd.exe')
+        shell = getenv("ComSpec", "cmd.exe")
 
         # When given a command, run it and return.
         # When no command is given, spawn a shell.
         if arg:
-            arg = '%s /c %s' % (shell, arg)
+            arg = "%s /c %s" % (shell, arg)
         else:
             arg = shell
-        process = self.debug.system.start_process(arg, bConsole = True)
+        process = self.debug.system.start_process(arg, bConsole=True)
         process.wait()
 
     # This hack fixes a bug in Python, the interpreter console is closing the
@@ -1096,29 +1135,36 @@ class ConsoleDebugger (Cmd, EventHandler):
     class _PythonExit:
         def __repr__(self):
             return "Use exit() or Ctrl-Z plus Return to exit"
+
         def __call__(self):
             raise SystemExit()
+
     _python_exit = _PythonExit()
 
     # Spawns a Python shell with some handy local variables and the winappdbg
     # module already imported. Also the console banner is improved.
     def _spawn_python_shell(self, arg):
         import winappdbg
-        banner = ('Python %s on %s\nType "help", "copyright", '
-                 '"credits" or "license" for more information.\n')
+
+        banner = (
+            'Python %s on %s\nType "help", "copyright", '
+            '"credits" or "license" for more information.\n'
+        )
         platform = winappdbg.version.lower()
-        platform = 'WinAppDbg %s' % platform
+        platform = "WinAppDbg %s" % platform
         banner = banner % (sys.version, platform)
         local = {}
         local.update(vars(__builtins__))
-        local.update({
-            '__name__'  : '__console__',
-            '__doc__'   : None,
-            'exit'      : self._python_exit,
-            'self'      : self,
-            'arg'       : arg,
-            'winappdbg' : winappdbg,
-        })
+        local.update(
+            {
+                "__name__": "__console__",
+                "__doc__": None,
+                "exit": self._python_exit,
+                "self": self,
+                "arg": arg,
+                "winappdbg": winappdbg,
+            }
+        )
         try:
             code.interact(banner=banner, local=local)
         except SystemExit:
@@ -1148,7 +1194,8 @@ class ConsoleDebugger (Cmd, EventHandler):
                 self._spawn_python_shell(arg)
             except Exception as e:
                 raise CmdError(
-                    "unhandled exception when running Python console: %s" % e)
+                    "unhandled exception when running Python console: %s" % e
+                )
 
     # The plugins interface is quite simple.
     #
@@ -1167,22 +1214,22 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~prefix] .<name> [arguments] - run a plugin command
         [~prefix] plugin <name> [arguments] - run a plugin command
         """
-        pos = arg.find(' ')
+        pos = arg.find(" ")
         if pos < 0:
             name = arg
-            arg  = ''
+            arg = ""
         else:
             name = arg[:pos]
-            arg  = arg[pos:].strip()
+            arg = arg[pos:].strip()
         if not name:
             raise CmdError("missing plugin name")
         for c in name:
             if c not in self.valid_plugin_name_chars:
                 raise CmdError("invalid plugin name: %r" % name)
-        name = 'winappdbg.plugins.do_%s' % name
+        name = "winappdbg.plugins.do_%s" % name
         try:
             plugin = __import__(name)
-            components = name.split('.')
+            components = name.split(".")
             for comp in components[1:]:
                 plugin = getattr(plugin, comp)
                 reload(plugin)
@@ -1193,7 +1240,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         except CmdError:
             raise
         except Exception as e:
-##            traceback.print_exc(e)      # XXX DEBUG
+            ##            traceback.print_exc(e)      # XXX DEBUG
             raise CmdError("unhandled exception in plugin: %s" % e)
 
     def do_quit(self, arg):
@@ -1225,7 +1272,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if self.cmdprefix:
             raise CmdError("prefix not allowed")
-        targets = self.input_process_list( self.split_tokens(arg, 1) )
+        targets = self.input_process_list(self.split_tokens(arg, 1))
         if not targets:
             print("Error: missing parameters")
         else:
@@ -1243,7 +1290,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         detach - detach from the current process
         detach <target> [target...] - detach from the given process(es)
         """
-        debug   = self.debug
+        debug = self.debug
         token_list = self.split_tokens(arg)
         if self.cmdprefix:
             token_list.insert(0, self.cmdprefix)
@@ -1251,7 +1298,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not targets:
             if self.lastEvent is None:
                 raise CmdError("no current process set")
-            targets = [ self.lastEvent.get_pid() ]
+            targets = [self.lastEvent.get_pid()]
         for pid in targets:
             try:
                 debug.detach(pid)
@@ -1267,9 +1314,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         self.input_command_line(arg)
         try:
-            process = self.debug.execl(arg,
-                                                bConsole = False,
-                                                 bFollow = self.options.follow)
+            process = self.debug.execl(arg, bConsole=False, bFollow=self.options.follow)
             print("Spawned process (%d)" % process.get_pid())
         except Exception:
             raise CmdError("can't execute")
@@ -1283,9 +1328,7 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         self.input_command_line(arg)
         try:
-            process = self.debug.execl(arg,
-                                                bConsole = True,
-                                                 bFollow = self.options.follow)
+            process = self.debug.execl(arg, bConsole=True, bFollow=self.options.follow)
             print("Spawned process (%d)" % process.get_pid())
         except Exception:
             raise CmdError("can't execute")
@@ -1304,7 +1347,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if self.debug.get_debugee_count() > 0:
             return True
 
-    do_g  = do_continue
+    do_g = do_continue
     do_go = do_continue
 
     def do_gh(self, arg):
@@ -1353,12 +1396,12 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         if arg:
             raise CmdError("too many arguments")
-        system   = self.debug.system
+        system = self.debug.system
         pid_list = self.debug.get_debugee_pids()
         if pid_list:
             print("Process ID   File name")
             for pid in pid_list:
-                if   pid == 0:
+                if pid == 0:
                     filename = "System Idle Process"
                 elif pid == 4:
                     filename = "System"
@@ -1379,18 +1422,18 @@ class ConsoleDebugger (Cmd, EventHandler):
         if self.cmdprefix:
             process = self.get_process_from_prefix()
             for thread in process.iter_threads():
-                tid  = thread.get_tid()
+                tid = thread.get_tid()
                 name = thread.get_name()
                 print("%-12d %s" % (tid, name))
         else:
-            system   = self.debug.system
+            system = self.debug.system
             pid_list = self.debug.get_debugee_pids()
             if pid_list:
                 print("Thread ID    Thread name")
                 for pid in pid_list:
                     process = system.get_process(pid)
                     for thread in process.iter_threads():
-                        tid  = thread.get_tid()
+                        tid = thread.get_tid()
                         name = thread.get_name()
                         print("%-12d %s" % (tid, name))
 
@@ -1405,7 +1448,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         kill <processes and/or threads...> - kill the given processes and threads
         """
         if arg:
-            if arg == '*':
+            if arg == "*":
                 target_pids = self.debug.get_debugee_pids()
                 target_tids = list()
             else:
@@ -1433,7 +1476,7 @@ class ConsoleDebugger (Cmd, EventHandler):
                 target_pids.sort()
                 target_tids.sort()
             msg = "You are about to kill %d processes and %d threads."
-            msg = msg % ( len(target_pids), len(target_tids) )
+            msg = msg % (len(target_pids), len(target_tids))
             if self.ask_user(msg):
                 for pid in target_pids:
                     self.kill_process(pid)
@@ -1469,7 +1512,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] modload <filename.dll> - load a DLL module
         """
         filename = self.split_tokens(arg, 1, 1)[0]
-        process  = self.get_process_from_prefix()
+        process = self.get_process_from_prefix()
         try:
             process.inject_dll(filename, bWait=False)
         except RuntimeError:
@@ -1482,15 +1525,15 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~thread] k - show the stack trace
         [~thread] stack - show the stack trace
         """
-        if arg:     # XXX TODO add depth parameter
+        if arg:  # XXX TODO add depth parameter
             raise CmdError("too many arguments")
-        pid, tid        = self.get_process_and_thread_ids_from_prefix()
-        process         = self.get_process(pid)
-        thread          = process.get_thread(tid)
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
+        process = self.get_process(pid)
+        thread = process.get_thread(tid)
         try:
             stack_trace = thread.get_stack_trace_with_labels()
             if stack_trace:
-                print(CrashDump.dump_stack_trace_with_labels(stack_trace), end=' ')
+                print(CrashDump.dump_stack_trace_with_labels(stack_trace), end=" ")
             else:
                 print("No stack trace available for thread (%d)" % tid)
         except WindowsError:
@@ -1503,9 +1546,9 @@ class ConsoleDebugger (Cmd, EventHandler):
         break - force a debug break in all debugees
         break <process> [process...] - force a debug break
         """
-        debug   = self.debug
-        system  = debug.system
-        targets = self.input_process_list( self.split_tokens(arg) )
+        debug = self.debug
+        system = debug.system
+        targets = self.input_process_list(self.split_tokens(arg))
         if not targets:
             targets = debug.get_debugee_pids()
             targets.sort()
@@ -1531,20 +1574,20 @@ class ConsoleDebugger (Cmd, EventHandler):
             raise CmdError("prefix not allowed")
         if self.lastEvent is None:
             raise CmdError("no current process set")
-        if arg:     # XXX this check is to be removed
+        if arg:  # XXX this check is to be removed
             raise CmdError("too many arguments")
-        pid     = self.lastEvent.get_pid()
-        thread  = self.lastEvent.get_thread()
-        pc      = thread.get_pc()
-        code    = thread.disassemble(pc, 16)[0]
-        size    = code[1]
-        opcode  = code[2].lower()
-        if ' ' in opcode:
-            opcode  = opcode[ : opcode.find(' ') ]
-        if opcode in self.jump_instructions or opcode in ('int', 'ret', 'retn'):
+        pid = self.lastEvent.get_pid()
+        thread = self.lastEvent.get_thread()
+        pc = thread.get_pc()
+        code = thread.disassemble(pc, 16)[0]
+        size = code[1]
+        opcode = code[2].lower()
+        if " " in opcode:
+            opcode = opcode[: opcode.find(" ")]
+        if opcode in self.jump_instructions or opcode in ("int", "ret", "retn"):
             return self.do_trace(arg)
         address = pc + size
-##        print(hex(pc), hex(address), size   # XXX DEBUG)
+        ##        print(hex(pc), hex(address), size   # XXX DEBUG)
         self.debug.stalk_at(pid, address)
         return True
 
@@ -1556,7 +1599,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         t - trace at the current assembly instruction
         trace - trace at the current assembly instruction
         """
-        if arg:     # XXX this check is to be removed
+        if arg:  # XXX this check is to be removed
             raise CmdError("too many arguments")
         if self.lastEvent is None:
             raise CmdError("no current thread set")
@@ -1592,37 +1635,37 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         [~thread] ba <a|w|e> <1|2|4|8> <address> - set hardware breakpoint
         """
-        debug      = self.debug
-        thread     = self.get_thread_from_prefix()
-        pid        = thread.get_pid()
-        tid        = thread.get_tid()
+        debug = self.debug
+        thread = self.get_thread_from_prefix()
+        pid = thread.get_pid()
+        tid = thread.get_tid()
         if not debug.is_debugee(pid):
             raise CmdError("target thread is not being debugged")
         token_list = self.split_tokens(arg, 3, 3)
-        access     = token_list[0].lower()
-        size       = token_list[1]
-        address    = token_list[2]
-        if   access == 'a':
+        access = token_list[0].lower()
+        size = token_list[1]
+        address = token_list[2]
+        if access == "a":
             access = debug.BP_BREAK_ON_ACCESS
-        elif access == 'w':
+        elif access == "w":
             access = debug.BP_BREAK_ON_WRITE
-        elif access == 'e':
+        elif access == "e":
             access = debug.BP_BREAK_ON_EXECUTION
         else:
             raise CmdError("bad access type: %s" % token_list[0])
-        if   size == '1':
+        if size == "1":
             size = debug.BP_WATCH_BYTE
-        elif size == '2':
+        elif size == "2":
             size = debug.BP_WATCH_WORD
-        elif size == '4':
+        elif size == "4":
             size = debug.BP_WATCH_DWORD
-        elif size == '8':
+        elif size == "8":
             size = debug.BP_WATCH_QWORD
         else:
             raise CmdError("bad breakpoint size: %s" % size)
-        thread  = self.get_thread_from_prefix()
-        tid     = thread.get_tid()
-        pid     = thread.get_pid()
+        thread = self.get_thread_from_prefix()
+        tid = thread.get_tid()
+        pid = thread.get_pid()
         if not debug.is_debugee(pid):
             raise CmdError("target process is not being debugged")
         address = self.input_address(address, pid)
@@ -1638,7 +1681,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         pid = self.get_process_id_from_prefix()
         if not self.debug.is_debugee(pid):
             raise CmdError("target process is not being debugged")
-        token_list    = self.split_tokens(arg, 1, 2)
+        token_list = self.split_tokens(arg, 1, 2)
         address, size = self.input_address_range(token_list[0], pid)
         self.debug.watch_buffer(pid, address, size)
 
@@ -1650,18 +1693,18 @@ class ConsoleDebugger (Cmd, EventHandler):
         bl <process> [process...] - list the breakpoints for each given process
         """
         debug = self.debug
-        if arg == '*':
+        if arg == "*":
             if self.cmdprefix:
                 raise CmdError("prefix not supported")
             targets = debug.get_debugee_pids()
         else:
-            targets = self.input_process_list( self.split_tokens(arg) )
+            targets = self.input_process_list(self.split_tokens(arg))
             if self.cmdprefix:
                 targets.insert(0, self.input_process(self.cmdprefix))
             if not targets:
                 if self.lastEvent is None:
                     raise CmdError("no current process is set")
-                targets = [ self.lastEvent.get_pid() ]
+                targets = [self.lastEvent.get_pid()]
         for pid in targets:
             bplist = debug.get_process_code_breakpoints(pid)
             printed_process_banner = False
@@ -1670,20 +1713,20 @@ class ConsoleDebugger (Cmd, EventHandler):
                     print("Process %d:" % pid)
                     printed_process_banner = True
                 for bp in bplist:
-                    address = repr(bp)[1:-1].replace('remote address ','')
+                    address = repr(bp)[1:-1].replace("remote address ", "")
                     print("  %s" % address)
             dbplist = debug.get_process_deferred_code_breakpoints(pid)
             if dbplist:
                 if not printed_process_banner:
                     print("Process %d:" % pid)
                     printed_process_banner = True
-                for (label, action, oneshot) in dbplist:
+                for label, action, oneshot in dbplist:
                     if oneshot:
-                        address = "  Deferred unconditional one-shot" \
-                              " code breakpoint at %s"
+                        address = (
+                            "  Deferred unconditional one-shot code breakpoint at %s"
+                        )
                     else:
-                        address = "  Deferred unconditional" \
-                              " code breakpoint at %s"
+                        address = "  Deferred unconditional code breakpoint at %s"
                     address = address % label
                     print("  %s" % address)
             bplist = debug.get_process_page_breakpoints(pid)
@@ -1692,14 +1735,14 @@ class ConsoleDebugger (Cmd, EventHandler):
                     print("Process %d:" % pid)
                     printed_process_banner = True
                 for bp in bplist:
-                    address = repr(bp)[1:-1].replace('remote address ','')
+                    address = repr(bp)[1:-1].replace("remote address ", "")
                     print("  %s" % address)
             for tid in debug.system.get_process(pid).iter_thread_ids():
                 bplist = debug.get_thread_hardware_breakpoints(tid)
                 if bplist:
                     print("Thread %d:" % tid)
                     for bp in bplist:
-                        address = repr(bp)[1:-1].replace('remote address ','')
+                        address = repr(bp)[1:-1].replace("remote address ", "")
                         print("  %s" % address)
 
     def do_bo(self, arg):
@@ -1819,26 +1862,26 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if not arg:
             arg = self.default_disasm_target
-        token_list      = self.split_tokens(arg, 1, 1)
-        pid, tid        = self.get_process_and_thread_ids_from_prefix()
-        process         = self.get_process(pid)
-        address         = self.input_address(token_list[0], pid, tid)
+        token_list = self.split_tokens(arg, 1, 1)
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
+        process = self.get_process(pid)
+        address = self.input_address(token_list[0], pid, tid)
         try:
-            code = process.disassemble(address, 15*8)[:8]
+            code = process.disassemble(address, 15 * 8)[:8]
         except Exception:
             msg = "can't disassemble address %s"
             msg = msg % HexDump.address(address)
             raise CmdError(msg)
         if code:
-            label        = process.get_label_at_address(address)
-            last_code    = code[-1]
+            label = process.get_label_at_address(address)
+            last_code = code[-1]
             next_address = last_code[0] + last_code[1]
             next_address = HexOutput.integer(next_address)
             self.default_disasm_target = next_address
             print("%s:" % label)
-##            print(CrashDump.dump_code(code))
+            ##            print(CrashDump.dump_code(code))
             for line in code:
-                print(CrashDump.dump_code_line(line, bShowDump = False))
+                print(CrashDump.dump_code_line(line, bShowDump=False))
 
     do_u = do_disassemble
 
@@ -1848,8 +1891,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] search [address-address] <search string>
         """
         token_list = self.split_tokens(arg, 1, 3)
-        pid, tid   = self.get_process_and_thread_ids_from_prefix()
-        process    = self.get_process(pid)
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
+        process = self.get_process(pid)
         if len(token_list) == 1:
             pattern = token_list[0]
             minAddr = None
@@ -1860,7 +1903,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             minAddr = addr
             maxAddr = addr + size
         iter = process.search_bytes(
-                pattern.encode('latin-1'), minAddr = minAddr, maxAddr = maxAddr)
+            pattern.encode("latin-1"), minAddr=minAddr, maxAddr=maxAddr
+        )
         if process.get_bits() == 32:
             addr_width = 8
         else:
@@ -1877,8 +1921,8 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] searchhex [address-address] <hexadecimal pattern>
         """
         token_list = self.split_tokens(arg, 1, 3)
-        pid, tid   = self.get_process_and_thread_ids_from_prefix()
-        process    = self.get_process(pid)
+        pid, tid = self.get_process_and_thread_ids_from_prefix()
+        process = self.get_process(pid)
         if len(token_list) == 1:
             pattern = token_list[0]
             minAddr = None
@@ -1888,27 +1932,28 @@ class ConsoleDebugger (Cmd, EventHandler):
             addr, size = self.input_address_range(token_list[:-1], pid, tid)
             minAddr = addr
             maxAddr = addr + size
-        iter = process.search_hexa(
-                pattern, minAddr = minAddr, maxAddr = maxAddr)
+        iter = process.search_hexa(pattern, minAddr=minAddr, maxAddr=maxAddr)
         if process.get_bits() == 32:
             addr_width = 8
         else:
             addr_width = 16
         for addr, bytes in iter:
-            print(HexDump.hexblock(bytes, addr, addr_width),)
+            print(
+                HexDump.hexblock(bytes, addr, addr_width),
+            )
 
     do_sh = do_searchhex
 
-##    def do_strings(self, arg):
-##        """
-##        [~process] strings - extract ASCII strings from memory
-##        """
-##        if arg:
-##            raise CmdError("too many arguments")
-##        pid, tid   = self.get_process_and_thread_ids_from_prefix()
-##        process    = self.get_process(pid)
-##        for addr, size, data in process.strings():
-##            print("%s: %r" % (HexDump.address(addr), data))
+    ##    def do_strings(self, arg):
+    ##        """
+    ##        [~process] strings - extract ASCII strings from memory
+    ##        """
+    ##        if arg:
+    ##            raise CmdError("too many arguments")
+    ##        pid, tid   = self.get_process_and_thread_ids_from_prefix()
+    ##        process    = self.get_process(pid)
+    ##        for addr, size, data in process.strings():
+    ##            print("%s: %r" % (HexDump.address(addr), data))
 
     def do_d(self, arg):
         """
@@ -1979,10 +2024,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if not arg:
             arg = self.default_display_target
-        token_list              = self.split_tokens(arg, 1, 1)
+        token_list = self.split_tokens(arg, 1, 1)
         pid, tid, address, size = self.input_display(token_list, 256)
-        process                 = self.get_process(pid)
-        data                    = process.peek_string(address, False, size)
+        process = self.get_process(pid)
+        data = process.peek_string(address, False, size)
         if data:
             print(repr(data))
         self.last_display_command = self.do_ds
@@ -1994,10 +2039,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         if not arg:
             arg = self.default_display_target
-        token_list              = self.split_tokens(arg, 1, 2)
+        token_list = self.split_tokens(arg, 1, 2)
         pid, tid, address, size = self.input_display(token_list, 256)
-        process                 = self.get_process(pid)
-        data                    = process.peek_string(address, True, size)
+        process = self.get_process(pid)
+        data = process.peek_string(address, True, size)
         if data:
             print(repr(data))
         self.last_display_command = self.do_du
@@ -2015,22 +2060,22 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not arg:
             self.print_current_location()
         else:
-            equ = arg.find('=')
+            equ = arg.find("=")
             if equ >= 0:
                 register = arg[:equ].strip()
-                value    = arg[equ+1:].strip()
+                value = arg[equ + 1 :].strip()
                 if not value:
-                    value = '0'
+                    value = "0"
                 self.change_register(register, value)
             else:
                 value = self.input_register(arg)
                 if value is None:
                     raise CmdError("unknown register: %s" % arg)
                 try:
-                    label   = None
-                    thread  = self.get_thread_from_prefix()
+                    label = None
+                    thread = self.get_thread_from_prefix()
                     process = thread.get_process()
-                    module  = process.get_module_at_address(value)
+                    module = process.get_module_at_address(value)
                     if module:
                         label = module.get_label_at_address(value)
                 except RuntimeError:
@@ -2050,10 +2095,10 @@ class ConsoleDebugger (Cmd, EventHandler):
         """
         # TODO
         # data parameter should be optional, use a child Cmd here
-        pid        = self.get_process_id_from_prefix()
+        pid = self.get_process_id_from_prefix()
         token_list = self.split_tokens(arg, 2)
-        address    = self.input_address(token_list[0], pid)
-        data       = HexInput.hexadecimal(' '.join(token_list[1:]))
+        address = self.input_address(token_list[0], pid)
+        data = HexInput.hexadecimal(" ".join(token_list[1:]))
         self.write_memory(address, data, pid)
 
     # XXX TODO
@@ -2067,7 +2112,7 @@ class ConsoleDebugger (Cmd, EventHandler):
         if not arg:
             raise CmdError("missing parameter: string")
         process = self.get_process_from_prefix()
-        self.find_in_memory(arg.encode('latin-1'), process)
+        self.find_in_memory(arg.encode("latin-1"), process)
 
     do_f = do_find
 
@@ -2076,11 +2121,11 @@ class ConsoleDebugger (Cmd, EventHandler):
         [~process] m - show the process memory map
         [~process] memory - show the process memory map
         """
-        if arg:     # TODO: take min and max addresses
+        if arg:  # TODO: take min and max addresses
             raise CmdError("too many arguments")
         process = self.get_process_from_prefix()
         try:
-            memoryMap       = process.get_memory_map()
+            memoryMap = process.get_memory_map()
             mappedFilenames = process.get_mapped_filenames()
             print()
             print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
@@ -2090,11 +2135,11 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     do_m = do_memory
 
-#------------------------------------------------------------------------------
-# Event handling
+    # ------------------------------------------------------------------------------
+    # Event handling
 
-# TODO
-# * add configurable stop/don't stop behavior on events and exceptions
+    # TODO
+    # * add configurable stop/don't stop behavior on events and exceptions
 
     # Stop for all events, unless stated otherwise.
     def event(self, event):
@@ -2108,7 +2153,7 @@ class ConsoleDebugger (Cmd, EventHandler):
 
     # Stop for breakpoint exceptions.
     def breakpoint(self, event):
-        if hasattr(event, 'breakpoint') and event.breakpoint:
+        if hasattr(event, "breakpoint") and event.breakpoint:
             self.print_breakpoint_location(event)
         else:
             self.print_exception(event)
@@ -2162,8 +2207,8 @@ class ConsoleDebugger (Cmd, EventHandler):
     def output_string(self, event):
         self.print_debug_string(event)
 
-#------------------------------------------------------------------------------
-# History file
+    # ------------------------------------------------------------------------------
+    # History file
 
     def load_history(self):
         global readline
@@ -2173,15 +2218,14 @@ class ConsoleDebugger (Cmd, EventHandler):
             except ImportError:
                 return
         if self.history_file_full_path is None:
-            folder = os.environ.get('USERPROFILE', '')
+            folder = os.environ.get("USERPROFILE", "")
             if not folder:
-                folder = os.environ.get('HOME', '')
+                folder = os.environ.get("HOME", "")
             if not folder:
                 folder = os.path.split(sys.argv[0])[1]
             if not folder:
                 folder = os.path.curdir
-            self.history_file_full_path = os.path.join(folder,
-                                                       self.history_file)
+            self.history_file_full_path = os.path.join(folder, self.history_file)
         try:
             if os.path.exists(self.history_file_full_path):
                 readline.read_history_file(self.history_file_full_path)
@@ -2201,8 +2245,8 @@ class ConsoleDebugger (Cmd, EventHandler):
             except IOError as e:
                 warnings.warn("Cannot save history file, reason: %s" % str(e))
 
-#------------------------------------------------------------------------------
-# Main loop
+    # ------------------------------------------------------------------------------
+    # Main loop
 
     # Debugging loop.
     def loop(self):
@@ -2211,14 +2255,12 @@ class ConsoleDebugger (Cmd, EventHandler):
 
         # Stop on the initial event, if any.
         if self.lastEvent is not None:
-            self.cmdqueue.append('r')
+            self.cmdqueue.append("r")
             self.prompt_user()
 
         # Loop until the debugger is told to quit.
         while not self.debuggerExit:
-
             try:
-
                 # If for some reason the last event wasn't continued,
                 # continue it here. This won't be done more than once
                 # for a given Event instance, though.
@@ -2233,7 +2275,6 @@ class ConsoleDebugger (Cmd, EventHandler):
                 # Some debug events may cause the command prompt to be shown.
                 if self.debug.get_debugee_count() > 0:
                     try:
-
                         # Get the next debug event.
                         debug.wait()
 
@@ -2269,4 +2310,4 @@ class ConsoleDebugger (Cmd, EventHandler):
                 except:
                     traceback.print_exc()
                 if not success:
-                    raise   # This should never happen!
+                    raise  # This should never happen!

@@ -32,22 +32,23 @@
 Thread instrumentation.
 """
 
-__all__ = ['Thread']
+__all__ = ["Thread"]
+
+import struct
+import warnings
 
 from . import win32
 from .textio import HexDump
 from .window import Window
 
-import struct
-import warnings
-
 # delayed imports
 Process = None
 
-#==============================================================================
+# ==============================================================================
 
 # TODO
 # + fetch special registers (MMX, XMM, 3DNow!, etc)
+
 
 class Thread:
     """
@@ -71,7 +72,7 @@ class Thread:
     :type pInjectedMemory: int
     """
 
-    def __init__(self, dwThreadId, hThread = None, process = None):
+    def __init__(self, dwThreadId, hThread=None, process=None):
         """
         :type  dwThreadId: int
         :param dwThreadId: Global thread ID.
@@ -82,15 +83,15 @@ class Thread:
         :type  process: ~winappdbg.process.Process
         :param process: (Optional) Parent Process object.
         """
-        self.dwProcessId     = None
-        self.dwThreadId      = dwThreadId
-        self.hThread         = hThread
+        self.dwProcessId = None
+        self.dwThreadId = dwThreadId
+        self.hThread = hThread
         self.pInjectedMemory = None
         self.set_name(None)
         self.set_process(process)
 
     def __load_Process_class(self):
-        global Process      # delayed import
+        global Process  # delayed import
         if Process is None:
             from .process import Process
 
@@ -106,7 +107,7 @@ class Thread:
         self.__process = Process(self.get_pid())
         return self.__process
 
-    def set_process(self, process = None):
+    def set_process(self, process=None):
         """
         Manually set the parent Process object. Use with care!
 
@@ -115,11 +116,11 @@ class Thread:
         """
         if process is None:
             self.dwProcessId = None
-            self.__process   = None
+            self.__process = None
         else:
             self.__load_Process_class()
             if not isinstance(process, Process):
-                msg  = "Parent process must be a Process instance, "
+                msg = "Parent process must be a Process instance, "
                 msg += "got %s instead" % type(process)
                 raise TypeError(msg)
             self.dwProcessId = process.get_pid()
@@ -143,8 +144,7 @@ class Thread:
                 try:
                     # I wish this had been implemented before Vista...
                     # XXX TODO find the real ntdll call under this api
-                    hThread = self.get_handle(
-                                        win32.THREAD_QUERY_LIMITED_INFORMATION)
+                    hThread = self.get_handle(win32.THREAD_QUERY_LIMITED_INFORMATION)
                     self.dwProcessId = win32.GetProcessIdOfThread(hThread)
                 except AttributeError:
                     # This method really sucks :P
@@ -152,7 +152,7 @@ class Thread:
         return self.dwProcessId
 
     def __get_pid_by_scanning(self):
-        'Internally used by get_pid().'
+        "Internally used by get_pid()."
         dwProcessId = None
         dwThreadId = self.get_tid()
         with win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD) as hSnapshot:
@@ -181,7 +181,7 @@ class Thread:
         """
         return self.name
 
-    def set_name(self, name = None):
+    def set_name(self, name=None):
         """
         Sets the thread's name.
 
@@ -190,9 +190,9 @@ class Thread:
         """
         self.name = name
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def open_handle(self, dwDesiredAccess = win32.THREAD_ALL_ACCESS):
+    def open_handle(self, dwDesiredAccess=win32.THREAD_ALL_ACCESS):
         """
         Opens a new handle to the thread, closing the previous one.
 
@@ -215,7 +215,7 @@ class Thread:
 
         # In case hThread was set to an actual handle value instead of a Handle
         # object. This shouldn't happen unless the user tinkered with it.
-        if not hasattr(self.hThread, '__del__'):
+        if not hasattr(self.hThread, "__del__"):
             self.close_handle()
 
         self.hThread = hThread
@@ -229,14 +229,14 @@ class Thread:
             collector claims them.
         """
         try:
-            if hasattr(self.hThread, 'close'):
+            if hasattr(self.hThread, "close"):
                 self.hThread.close()
             elif self.hThread not in (None, win32.INVALID_HANDLE_VALUE):
                 win32.CloseHandle(self.hThread)
         finally:
             self.hThread = None
 
-    def get_handle(self, dwDesiredAccess = win32.THREAD_ALL_ACCESS):
+    def get_handle(self, dwDesiredAccess=win32.THREAD_ALL_ACCESS):
         """
         Returns a handle to the thread with *at least* the access rights
         requested.
@@ -275,9 +275,9 @@ class Thread:
         finally:
             self.close_handle()
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def wait(self, dwTimeout = None):
+    def wait(self, dwTimeout=None):
         """
         Waits for the thread to finish executing.
 
@@ -287,7 +287,7 @@ class Thread:
         """
         self.get_handle(win32.SYNCHRONIZE).wait(dwTimeout)
 
-    def kill(self, dwExitCode = 0):
+    def kill(self, dwExitCode=0):
         """
         Terminates the thread execution.
 
@@ -307,7 +307,7 @@ class Thread:
                 self.get_process().free(self.pInjectedMemory)
                 self.pInjectedMemory = None
             except Exception:
-##                raise           # XXX DEBUG
+                ##                raise           # XXX DEBUG
                 pass
 
     # XXX TODO
@@ -366,9 +366,9 @@ class Thread:
             dwAccess = win32.THREAD_QUERY_LIMITED_INFORMATION
         else:
             dwAccess = win32.THREAD_QUERY_INFORMATION
-        return win32.GetExitCodeThread( self.get_handle(dwAccess) )
+        return win32.GetExitCodeThread(self.get_handle(dwAccess))
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX TODO
     # Support for string searches on the window captions.
@@ -383,15 +383,15 @@ class Thread:
         except Exception:
             process = None
         return [
-                Window( hWnd, process, self ) \
-                for hWnd in win32.EnumThreadWindows( self.get_tid() )
-                ]
+            Window(hWnd, process, self)
+            for hWnd in win32.EnumThreadWindows(self.get_tid())
+        ]
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # TODO
     # A registers cache could be implemented here.
-    def get_context(self, ContextFlags = None, bSuspend = False, bRaw = False):
+    def get_context(self, ContextFlags=None, bSuspend=False, bRaw=False):
         """
         Retrieves the execution context (i.e. the registers values) for this
         thread.
@@ -454,37 +454,32 @@ class Thread:
 
         # If an exception is raised, make sure the thread execution is resumed.
         try:
-
             if win32.bits == self.get_bits():
-
                 # 64 bit debugger attached to 64 bit process, or
                 # 32 bit debugger attached to 32 bit process.
                 ctx = win32.GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
             else:
                 if self.is_wow64():
-
                     # 64 bit debugger attached to 32 bit process.
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
-                        ContextFlags |=  win32.WOW64_CONTEXT_i386
-                    ctx = win32.Wow64GetThreadContext(
-                        hThread, ContextFlags, raw = bRaw)
+                        ContextFlags |= win32.WOW64_CONTEXT_i386
+                    ctx = win32.Wow64GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
                 else:
-
                     # 32 bit debugger attached to 64 bit process.
                     # XXX only i386/AMD64 is supported in this particular case
                     if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
                         raise NotImplementedError()
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
-                        ContextFlags |=  win32.context_amd64.CONTEXT_AMD64
+                        ContextFlags |= win32.context_amd64.CONTEXT_AMD64
                     ctx = win32.context_amd64.GetThreadContext(
-                        hThread, ContextFlags, raw = bRaw)
+                        hThread, ContextFlags, raw=bRaw
+                    )
 
         finally:
-
             # Resume the thread if we suspended it.
             if bSuspend:
                 self.resume()
@@ -492,7 +487,7 @@ class Thread:
         # Return the context.
         return ctx
 
-    def set_context(self, context, bSuspend = False):
+    def set_context(self, context, bSuspend=False):
         """
         Sets the values of the registers.
 
@@ -545,7 +540,7 @@ class Thread:
         :rtype:  int
         :return: Value of the requested register.
         """
-        'Returns the value of a specific register.'
+        "Returns the value of a specific register."
         context = self.get_context()
         return context[register]
 
@@ -563,7 +558,7 @@ class Thread:
         context[register] = value
         self.set_context(context)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # TODO: a metaclass would do a better job instead of checking the platform
     #       during module import, also would support mixing 32 and 64 bits
@@ -629,26 +624,27 @@ class Thread:
             context.fp = fp
             self.set_context(context)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
         class Flags:
-            'Commonly used processor flags'
-            Overflow    = 0x800
-            Direction   = 0x400
-            Interrupts  = 0x200
-            Trap        = 0x100
-            Sign        = 0x80
-            Zero        = 0x40
-            # 0x20 ???
-            Auxiliary   = 0x10
-            # 0x8 ???
-            Parity      = 0x4
-            # 0x2 ???
-            Carry       = 0x1
+            "Commonly used processor flags"
 
-        def get_flags(self, FlagMask = 0xFFFFFFFF):
+            Overflow = 0x800
+            Direction = 0x400
+            Interrupts = 0x200
+            Trap = 0x100
+            Sign = 0x80
+            Zero = 0x40
+            # 0x20 ???
+            Auxiliary = 0x10
+            # 0x8 ???
+            Parity = 0x4
+            # 0x2 ???
+            Carry = 0x1
+
+        def get_flags(self, FlagMask=0xFFFFFFFF):
             """
             :type  FlagMask: int
             :param FlagMask: (Optional) Bitwise-AND mask.
@@ -657,9 +653,9 @@ class Thread:
             :return: Flags register contents, optionally masking out some bits.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            return context['EFlags'] & FlagMask
+            return context["EFlags"] & FlagMask
 
-        def set_flags(self, eflags, FlagMask = 0xFFFFFFFF):
+        def set_flags(self, eflags, FlagMask=0xFFFFFFFF):
             """
             Sets the flags register, optionally masking some bits.
 
@@ -670,7 +666,7 @@ class Thread:
             :param FlagMask: (Optional) Bitwise-AND mask.
             """
             context = self.get_context(win32.CONTEXT_CONTROL)
-            context['EFlags'] = (context['EFlags'] & FlagMask) | eflags
+            context["EFlags"] = (context["EFlags"] & FlagMask) | eflags
             self.set_context(context)
 
         def get_flag_value(self, FlagBit):
@@ -681,7 +677,7 @@ class Thread:
             :rtype:  bool
             :return: Boolean value of the requested flag.
             """
-            return bool( self.get_flags(FlagBit) )
+            return bool(self.get_flags(FlagBit))
 
         def set_flag_value(self, FlagBit, FlagValue):
             """
@@ -736,46 +732,46 @@ class Thread:
             return self.get_flag_value(self.Flags.Trap)
 
         def clear_zf(self):
-            'Clears the Zero flag.'
+            "Clears the Zero flag."
             self.set_flag_value(self.Flags.Zero, False)
 
         def clear_cf(self):
-            'Clears the Carry flag.'
+            "Clears the Carry flag."
             self.set_flag_value(self.Flags.Carry, False)
 
         def clear_sf(self):
-            'Clears the Sign flag.'
+            "Clears the Sign flag."
             self.set_flag_value(self.Flags.Sign, False)
 
         def clear_df(self):
-            'Clears the Direction flag.'
+            "Clears the Direction flag."
             self.set_flag_value(self.Flags.Direction, False)
 
         def clear_tf(self):
-            'Clears the Trap flag.'
+            "Clears the Trap flag."
             self.set_flag_value(self.Flags.Trap, False)
 
         def set_zf(self):
-            'Sets the Zero flag.'
+            "Sets the Zero flag."
             self.set_flag_value(self.Flags.Zero, True)
 
         def set_cf(self):
-            'Sets the Carry flag.'
+            "Sets the Carry flag."
             self.set_flag_value(self.Flags.Carry, True)
 
         def set_sf(self):
-            'Sets the Sign flag.'
+            "Sets the Sign flag."
             self.set_flag_value(self.Flags.Sign, True)
 
         def set_df(self):
-            'Sets the Direction flag.'
+            "Sets the Direction flag."
             self.set_flag_value(self.Flags.Direction, True)
 
         def set_tf(self):
-            'Sets the Trap flag.'
+            "Sets the Trap flag."
             self.set_flag_value(self.Flags.Trap, True)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     def is_wow64(self):
         """
@@ -797,7 +793,7 @@ class Thread:
         try:
             wow64 = self.__wow64
         except AttributeError:
-            if (win32.bits == 32 and not win32.wow64):
+            if win32.bits == 32 and not win32.wow64:
                 wow64 = False
             else:
                 wow64 = self.get_process().is_wow64()
@@ -840,8 +836,9 @@ class Thread:
             events, and thus said events won't be sent to the debugger.
         """
         return win32.NtQueryInformationThread(
-                    self.get_handle(),      # XXX what permissions do I need?
-                    win32.ThreadHideFromDebugger)
+            self.get_handle(),  # XXX what permissions do I need?
+            win32.ThreadHideFromDebugger,
+        )
 
     def get_teb(self):
         """
@@ -852,8 +849,7 @@ class Thread:
         :return: TEB structure.
         :raise WindowsError: An exception is raised on error.
         """
-        return self.get_process().read_structure( self.get_teb_address(),
-                                                  win32.TEB )
+        return self.get_process().read_structure(self.get_teb_address(), win32.TEB)
 
     def get_teb_address(self):
         """
@@ -868,11 +864,12 @@ class Thread:
         except AttributeError:
             try:
                 hThread = self.get_handle(win32.THREAD_QUERY_INFORMATION)
-                tbi = win32.NtQueryInformationThread( hThread,
-                                                win32.ThreadBasicInformation)
+                tbi = win32.NtQueryInformationThread(
+                    hThread, win32.ThreadBasicInformation
+                )
                 address = tbi.TebBaseAddress
             except WindowsError:
-                address = self.get_linear_address('SegFs', 0)   # fs:[0]
+                address = self.get_linear_address("SegFs", 0)  # fs:[0]
                 if not address:
                     raise
             self._teb_ptr = address
@@ -917,26 +914,28 @@ class Thread:
         else:
             raise ValueError("Argument 'segment' must be a string or a DWORD.")
 
-        hThread  = self.get_handle(win32.THREAD_QUERY_INFORMATION)
-        ldt      = win32.GetThreadSelectorEntry(hThread, selector)
-        BaseLow  = ldt.BaseLow
-        BaseMid  = ldt.HighWord.Bytes.BaseMid << 16
-        BaseHi   = ldt.HighWord.Bytes.BaseHi  << 24
-        Base     = BaseLow | BaseMid | BaseHi
+        hThread = self.get_handle(win32.THREAD_QUERY_INFORMATION)
+        ldt = win32.GetThreadSelectorEntry(hThread, selector)
+        BaseLow = ldt.BaseLow
+        BaseMid = ldt.HighWord.Bytes.BaseMid << 16
+        BaseHi = ldt.HighWord.Bytes.BaseHi << 24
+        Base = BaseLow | BaseMid | BaseHi
         LimitLow = ldt.LimitLow
-        LimitHi  = ldt.HighWord.Bits.LimitHi  << 16
-        Limit    = LimitLow | LimitHi
+        LimitHi = ldt.HighWord.Bits.LimitHi << 16
+        Limit = LimitLow | LimitHi
         if address > Limit:
             msg = None
 
             if isinstance(segment, str):
                 msg = "Address %s too large for segment %s (selector %d)"
-                msg = msg % (HexDump.address(address, self.get_bits()),
-                            segment, selector)
+                msg = msg % (
+                    HexDump.address(address, self.get_bits()),
+                    segment,
+                    selector,
+                )
             else:
                 msg = "Address %s too large for segment with selector %d"
-                msg = msg % (HexDump.address(address, self.get_bits()),
-                            selector)
+                msg = msg % (HexDump.address(address, self.get_bits()), selector)
 
             raise ValueError(msg)
         return Base + address
@@ -946,7 +945,7 @@ class Thread:
         :rtype:  str
         :return: Label that points to the instruction currently being executed.
         """
-        return self.get_process().get_label_at_address( self.get_pc() )
+        return self.get_process().get_label_at_address(self.get_pc())
 
     def get_seh_chain_pointer(self):
         """
@@ -962,11 +961,12 @@ class Thread:
         """
         if win32.arch != win32.ARCH_I386:
             raise NotImplementedError(
-                "SEH chain parsing is only supported in 32-bit Windows.")
+                "SEH chain parsing is only supported in 32-bit Windows."
+            )
 
         process = self.get_process()
-        address = self.get_linear_address( 'SegFs', 0 )
-        return process.read_pointer( address )
+        address = self.get_linear_address("SegFs", 0)
+        return process.read_pointer(address)
 
     def set_seh_chain_pointer(self, value):
         """
@@ -982,11 +982,12 @@ class Thread:
         """
         if win32.arch != win32.ARCH_I386:
             raise NotImplementedError(
-                "SEH chain parsing is only supported in 32-bit Windows.")
+                "SEH chain parsing is only supported in 32-bit Windows."
+            )
 
         process = self.get_process()
-        address = self.get_linear_address( 'SegFs', 0 )
-        process.write_pointer( address, value )
+        address = self.get_linear_address("SegFs", 0)
+        process.write_pointer(address, value)
 
     def get_seh_chain(self):
         """
@@ -1008,11 +1009,11 @@ class Thread:
             process = self.get_process()
             seh = self.get_seh_chain_pointer()
             while seh != 0xFFFFFFFF:
-                seh_func = process.read_pointer( seh + 4 )
-                seh_chain.append( (seh, seh_func) )
-                seh = process.read_pointer( seh )
+                seh_func = process.read_pointer(seh + 4)
+                seh_chain.append((seh, seh_func))
+                seh = process.read_pointer(seh)
         except WindowsError:
-            seh_chain.append( (seh, None) )
+            seh_chain.append((seh, None))
         return seh_chain
 
     def get_wait_chain(self):
@@ -1030,7 +1031,7 @@ class Thread:
             http://msdn.microsoft.com/en-us/library/ms681622%28VS.85%29.aspx
         """
         with win32.OpenThreadWaitChainSession() as hWct:
-            return win32.GetThreadWaitChain(hWct, ThreadId = self.get_tid())
+            return win32.GetThreadWaitChain(hWct, ThreadId=self.get_tid())
 
     def get_stack_range(self):
         """
@@ -1044,10 +1045,9 @@ class Thread:
         # TODO use teb.DeallocationStack too (max. possible stack size)
         teb = self.get_teb()
         tib = teb.NtTib
-        return ( tib.StackLimit, tib.StackBase )    # top, bottom
+        return (tib.StackLimit, tib.StackBase)  # top, bottom
 
-    def __get_stack_trace(self, depth = 16, bUseLabels = True,
-                                                           bMakePretty = True):
+    def __get_stack_trace(self, depth=16, bUseLabels=True, bMakePretty=True):
         """
         Tries to get a stack trace for the current function using the debug
         helper API (dbghelp.dll).
@@ -1090,19 +1090,23 @@ class Thread:
             msg = "Stack walking is not available for this architecture: %s"
             raise NotImplementedError(msg % arch)
 
-        hProcess = aProcess.get_handle( win32.PROCESS_VM_READ |
-                                        win32.PROCESS_QUERY_INFORMATION )
-        hThread = self.get_handle( win32.THREAD_GET_CONTEXT |
-                                   win32.THREAD_QUERY_INFORMATION )
-        ContextRecord = self.get_context( bRaw = True )
+        hProcess = aProcess.get_handle(
+            win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION
+        )
+        hThread = self.get_handle(
+            win32.THREAD_GET_CONTEXT | win32.THREAD_QUERY_INFORMATION
+        )
+        ContextRecord = self.get_context(bRaw=True)
 
         StackFrame = win32.STACKFRAME64()
-        StackFrame.AddrPC    = win32.ADDRESS64( self.get_pc() )
-        StackFrame.AddrFrame = win32.ADDRESS64( self.get_fp() )
-        StackFrame.AddrStack = win32.ADDRESS64( self.get_sp() )
+        StackFrame.AddrPC = win32.ADDRESS64(self.get_pc())
+        StackFrame.AddrFrame = win32.ADDRESS64(self.get_fp())
+        StackFrame.AddrStack = win32.ADDRESS64(self.get_sp())
 
         trace = list()
-        while win32.StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord):
+        while win32.StackWalk64(
+            MachineType, hProcess, hThread, StackFrame, ContextRecord
+        ):
             if depth <= 0:
                 break
             fp = StackFrame.AddrFrame.Offset
@@ -1120,15 +1124,14 @@ class Thread:
             if bUseLabels:
                 label = aProcess.get_label_at_address(ra)
                 if bMakePretty:
-                    label = '%s (%s)' % (HexDump.address(ra, bits), label)
-                trace.append( (fp, label) )
+                    label = "%s (%s)" % (HexDump.address(ra, bits), label)
+                trace.append((fp, label))
             else:
-                trace.append( (fp, ra, lib) )
+                trace.append((fp, ra, lib))
             fp = aProcess.peek_pointer(fp)
         return tuple(trace)
 
-    def __get_stack_trace_manually(self, depth = 16, bUseLabels = True,
-                                                           bMakePretty = True):
+    def __get_stack_trace_manually(self, depth=16, bUseLabels=True, bMakePretty=True):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
@@ -1157,9 +1160,9 @@ class Thread:
         :raise WindowsError: Raises an exception on error.
         """
         aProcess = self.get_process()
-        st, sb   = self.get_stack_range()   # top, bottom
-        fp       = self.get_fp()
-        trace    = list()
+        st, sb = self.get_stack_range()  # top, bottom
+        fp = self.get_fp()
+        trace = list()
         if aProcess.get_module_count() == 0:
             aProcess.scan_modules()
         bits = aProcess.get_bits()
@@ -1168,7 +1171,7 @@ class Thread:
                 break
             if not st <= fp < sb:
                 break
-            ra  = aProcess.peek_pointer(fp + 4)
+            ra = aProcess.peek_pointer(fp + 4)
             if ra == 0:
                 break
             lib = aProcess.get_module_at_address(ra)
@@ -1182,14 +1185,14 @@ class Thread:
             if bUseLabels:
                 label = aProcess.get_label_at_address(ra)
                 if bMakePretty:
-                    label = '%s (%s)' % (HexDump.address(ra, bits), label)
-                trace.append( (fp, label) )
+                    label = "%s (%s)" % (HexDump.address(ra, bits), label)
+                trace.append((fp, label))
             else:
-                trace.append( (fp, ra, lib) )
+                trace.append((fp, ra, lib))
             fp = aProcess.peek_pointer(fp)
         return tuple(trace)
 
-    def get_stack_trace(self, depth = 16):
+    def get_stack_trace(self, depth=16):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
@@ -1207,13 +1210,14 @@ class Thread:
             trace = self.__get_stack_trace(depth, False)
         except Exception:
             import traceback
+
             traceback.print_exc()
             trace = ()
         if not trace:
             trace = self.__get_stack_trace_manually(depth, False)
         return trace
 
-    def get_stack_trace_with_labels(self, depth = 16, bMakePretty = True):
+    def get_stack_trace_with_labels(self, depth=16, bMakePretty=True):
         """
         Tries to get a stack trace for the current function.
         Only works for functions with standard prologue and epilogue.
@@ -1239,6 +1243,7 @@ class Thread:
             trace = self.__get_stack_trace(depth, True, bMakePretty)
         except Exception:
             import traceback
+
             traceback.print_exc()
             trace = ()
         if not trace:
@@ -1260,18 +1265,18 @@ class Thread:
 
         :raise WindowsError: An error occured when getting the thread context.
         """
-        st, sb = self.get_stack_range()   # top, bottom
-        sp     = self.get_sp()
-        fp     = self.get_fp()
+        st, sb = self.get_stack_range()  # top, bottom
+        sp = self.get_sp()
+        fp = self.get_fp()
         if not st <= sp < sb:
-            raise RuntimeError('Stack pointer lies outside the stack')
+            raise RuntimeError("Stack pointer lies outside the stack")
         if not st <= fp < sb:
-            raise RuntimeError('Frame pointer lies outside the stack')
+            raise RuntimeError("Frame pointer lies outside the stack")
         if sp > fp:
-            raise RuntimeError('No valid stack frame found')
+            raise RuntimeError("No valid stack frame found")
         return (sp, fp)
 
-    def get_stack_frame(self, max_size = None):
+    def get_stack_frame(self, max_size=None):
         """
         Reads the contents of the current stack frame.
         Only works for functions with standard prologue and epilogue.
@@ -1291,13 +1296,13 @@ class Thread:
         :raise WindowsError: An error occured when getting the thread context
             or reading data from the process memory.
         """
-        sp, fp   = self.get_stack_frame_range()
-        size     = fp - sp
+        sp, fp = self.get_stack_frame_range()
+        size = fp - sp
         if max_size and size > max_size:
             size = max_size
         return self.get_process().peek(sp, size)
 
-    def read_stack_data(self, size = 128, offset = 0):
+    def read_stack_data(self, size=128, offset=0):
         """
         Reads the contents of the top of the stack.
 
@@ -1315,7 +1320,7 @@ class Thread:
         aProcess = self.get_process()
         return aProcess.read(self.get_sp() + offset, size)
 
-    def peek_stack_data(self, size = 128, offset = 0):
+    def peek_stack_data(self, size=128, offset=0):
         """
         Tries to read the contents of the top of the stack.
 
@@ -1332,7 +1337,7 @@ class Thread:
         aProcess = self.get_process()
         return aProcess.peek(self.get_sp() + offset, size)
 
-    def read_stack_dwords(self, count, offset = 0):
+    def read_stack_dwords(self, count, offset=0):
         """
         Reads DWORDs from the top of the stack.
 
@@ -1349,10 +1354,10 @@ class Thread:
         """
         if count > 0:
             stackData = self.read_stack_data(count * 4, offset)
-            return struct.unpack('<'+('L'*count), stackData)
+            return struct.unpack("<" + ("L" * count), stackData)
         return ()
 
-    def peek_stack_dwords(self, count, offset = 0):
+    def peek_stack_dwords(self, count, offset=0):
         """
         Tries to read DWORDs from the top of the stack.
 
@@ -1368,12 +1373,12 @@ class Thread:
         """
         stackData = self.peek_stack_data(count * 4, offset)
         if len(stackData) & 3:
-            stackData = stackData[:-len(stackData) & 3]
+            stackData = stackData[: -len(stackData) & 3]
         if not stackData:
             return ()
-        return struct.unpack('<'+('L'*count), stackData)
+        return struct.unpack("<" + ("L" * count), stackData)
 
-    def read_stack_qwords(self, count, offset = 0):
+    def read_stack_qwords(self, count, offset=0):
         """
         Reads QWORDs from the top of the stack.
 
@@ -1389,9 +1394,9 @@ class Thread:
         :raise WindowsError: Could not read the requested data.
         """
         stackData = self.read_stack_data(count * 8, offset)
-        return struct.unpack('<'+('Q'*count), stackData)
+        return struct.unpack("<" + ("Q" * count), stackData)
 
-    def peek_stack_qwords(self, count, offset = 0):
+    def peek_stack_qwords(self, count, offset=0):
         """
         Tries to read QWORDs from the top of the stack.
 
@@ -1407,12 +1412,12 @@ class Thread:
         """
         stackData = self.peek_stack_data(count * 8, offset)
         if len(stackData) & 7:
-            stackData = stackData[:-len(stackData) & 7]
+            stackData = stackData[: -len(stackData) & 7]
         if not stackData:
             return ()
-        return struct.unpack('<'+('Q'*count), stackData)
+        return struct.unpack("<" + ("Q" * count), stackData)
 
-    def read_stack_structure(self, structure, offset = 0):
+    def read_stack_structure(self, structure, offset=0):
         """
         Reads the given structure at the top of the stack.
 
@@ -1427,12 +1432,13 @@ class Thread:
         :return: Tuple of elements read from the stack. The type of each
             element matches the types in the stack frame structure.
         """
-        aProcess  = self.get_process()
+        aProcess = self.get_process()
         stackData = aProcess.read_structure(self.get_sp() + offset, structure)
-        return tuple([ stackData.__getattribute__(name)
-                       for (name, type) in stackData._fields_ ])
+        return tuple(
+            [stackData.__getattribute__(name) for (name, type) in stackData._fields_]
+        )
 
-    def read_stack_frame(self, structure, offset = 0):
+    def read_stack_frame(self, structure, offset=0):
         """
         Reads the stack frame of the thread.
 
@@ -1447,12 +1453,13 @@ class Thread:
         :return: Tuple of elements read from the stack frame. The type of each
             element matches the types in the stack frame structure.
         """
-        aProcess  = self.get_process()
+        aProcess = self.get_process()
         stackData = aProcess.read_structure(self.get_fp() + offset, structure)
-        return tuple([ stackData.__getattribute__(name)
-                       for (name, type) in stackData._fields_ ])
+        return tuple(
+            [stackData.__getattribute__(name) for (name, type) in stackData._fields_]
+        )
 
-    def read_code_bytes(self, size = 128, offset = 0):
+    def read_code_bytes(self, size=128, offset=0):
         """
         Tries to read some bytes of the code currently being executed.
 
@@ -1469,7 +1476,7 @@ class Thread:
         """
         return self.get_process().read(self.get_pc() + offset, size)
 
-    def peek_code_bytes(self, size = 128, offset = 0):
+    def peek_code_bytes(self, size=128, offset=0):
         """
         Tries to read some bytes of the code currently being executed.
 
@@ -1485,7 +1492,7 @@ class Thread:
         """
         return self.get_process().peek(self.get_pc() + offset, size)
 
-    def peek_pointers_in_registers(self, peekSize = 16, context = None):
+    def peek_pointers_in_registers(self, peekSize=16, context=None):
         """
         Tries to guess which values in the registers are valid pointers,
         and reads some data from them.
@@ -1501,15 +1508,12 @@ class Thread:
         :rtype:  dict( str -> bytes )
         :return: Dictionary mapping register names to the data they point to.
         """
-        peekable_registers = (
-            'Eax', 'Ebx', 'Ecx', 'Edx', 'Esi', 'Edi', 'Ebp'
-        )
+        peekable_registers = ("Eax", "Ebx", "Ecx", "Edx", "Esi", "Edi", "Ebp")
         if not context:
-            context = self.get_context(win32.CONTEXT_CONTROL | \
-                                       win32.CONTEXT_INTEGER)
-        aProcess    = self.get_process()
-        data        = dict()
-        for (reg_name, reg_value) in context.items():
+            context = self.get_context(win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER)
+        aProcess = self.get_process()
+        data = dict()
+        for reg_name, reg_value in context.items():
             if reg_name not in peekable_registers:
                 continue
             reg_data = aProcess.peek(reg_value, peekSize)
@@ -1519,7 +1523,7 @@ class Thread:
 
     # TODO
     # try to avoid reading the same page twice by caching it
-    def peek_pointers_in_data(self, data, peekSize = 16, peekStep = 1):
+    def peek_pointers_in_data(self, data, peekSize=16, peekStep=1):
         """
         Tries to guess which values in the given data are valid pointers,
         and reads some data from them.
@@ -1542,7 +1546,7 @@ class Thread:
         aProcess = self.get_process()
         return aProcess.peek_pointers_in_data(data, peekSize, peekStep)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # TODO
     # The disassemble_around and disassemble_around_pc methods
@@ -1592,7 +1596,7 @@ class Thread:
         aProcess = self.get_process()
         return aProcess.disassemble(lpAddress, dwSize)
 
-    def disassemble_around(self, lpAddress, dwSize = 64):
+    def disassemble_around(self, lpAddress, dwSize=64):
         """
         Disassemble around the given address.
 
@@ -1615,7 +1619,7 @@ class Thread:
         aProcess = self.get_process()
         return aProcess.disassemble_around(lpAddress, dwSize)
 
-    def disassemble_around_pc(self, dwSize = 64):
+    def disassemble_around_pc(self, dwSize=64):
         """
         Disassemble around the program counter of the given thread.
 
@@ -1667,9 +1671,11 @@ class Thread:
              - Disassembly line of instruction.
              - Hexadecimal dump of instruction.
         """
-        return self.disassemble_instruction( self.get_pc() )
+        return self.disassemble_instruction(self.get_pc())
 
-#==============================================================================
+
+# ==============================================================================
+
 
 class _ThreadContainer:
     """
@@ -1779,9 +1785,9 @@ class _ThreadContainer:
         self.__initialize_snapshot()
         return len(self.__threadDict)
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def find_threads_by_name(self, name, bExactMatch = True):
+    def find_threads_by_name(self, name, bExactMatch=True):
         """
         Find threads by name, using different search methods.
 
@@ -1821,7 +1827,7 @@ class _ThreadContainer:
 
         return found_threads
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX TODO
     # Support for string searches on the window captions.
@@ -1833,12 +1839,12 @@ class _ThreadContainer:
         """
         window_list = list()
         for thread in self.iter_threads():
-            window_list.extend( thread.get_windows() )
+            window_list.extend(thread.get_windows())
         return window_list
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
-    def start_thread(self, lpStartAddress, lpParameter=0,  bSuspended = False):
+    def start_thread(self, lpStartAddress, lpParameter=0, bSuspended=False):
         """
         Remotely creates a new thread in the process.
 
@@ -1856,18 +1862,21 @@ class _ThreadContainer:
             dwCreationFlags = win32.CREATE_SUSPENDED
         else:
             dwCreationFlags = 0
-        hProcess = self.get_handle( win32.PROCESS_CREATE_THREAD     |
-                                    win32.PROCESS_QUERY_INFORMATION |
-                                    win32.PROCESS_VM_OPERATION      |
-                                    win32.PROCESS_VM_WRITE          |
-                                    win32.PROCESS_VM_READ           )
+        hProcess = self.get_handle(
+            win32.PROCESS_CREATE_THREAD
+            | win32.PROCESS_QUERY_INFORMATION
+            | win32.PROCESS_VM_OPERATION
+            | win32.PROCESS_VM_WRITE
+            | win32.PROCESS_VM_READ
+        )
         hThread, dwThreadId = win32.CreateRemoteThread(
-                hProcess, 0, 0, lpStartAddress, lpParameter, dwCreationFlags)
+            hProcess, 0, 0, lpStartAddress, lpParameter, dwCreationFlags
+        )
         aThread = Thread(dwThreadId, hThread, self)
         self._add_thread(aThread)
         return aThread
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # TODO
     # maybe put all the toolhelp code into their own set of classes?
@@ -1891,10 +1900,9 @@ class _ThreadContainer:
         if dwProcessId in (0, 4, 8):
             return
 
-##        dead_tids = set( self.get_thread_ids() ) # XXX triggers a scan
+        ##        dead_tids = set( self.get_thread_ids() ) # XXX triggers a scan
         dead_tids = self._get_thread_ids()
-        hSnapshot = win32.CreateToolhelp32Snapshot(
-                                        win32.TH32CS_SNAPTHREAD, dwProcessId)
+        hSnapshot = win32.CreateToolhelp32Snapshot(win32.TH32CS_SNAPTHREAD, dwProcessId)
         try:
             te = win32.Thread32First(hSnapshot)
             while te is not None:
@@ -1902,9 +1910,9 @@ class _ThreadContainer:
                     dwThreadId = te.th32ThreadID
                     if dwThreadId in dead_tids:
                         dead_tids.remove(dwThreadId)
-##                    if not self.has_thread(dwThreadId): # XXX triggers a scan
+                    ##                    if not self.has_thread(dwThreadId): # XXX triggers a scan
                     if not self._has_thread_id(dwThreadId):
-                        aThread = Thread(dwThreadId, process = self)
+                        aThread = Thread(dwThreadId, process=self)
                         self._add_thread(aThread)
                 te = win32.Thread32Next(hSnapshot)
         finally:
@@ -1945,7 +1953,7 @@ class _ThreadContainer:
                 except Exception:
                     pass
 
-#------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     # XXX _notify_* methods should not trigger a scan
 
@@ -1975,7 +1983,7 @@ class _ThreadContainer:
             msg = "Unknown thread ID %d" % dwThreadId
             warnings.warn(msg, RuntimeWarning)
         if aThread:
-            aThread.clear()     # remove circular references
+            aThread.clear()  # remove circular references
 
     def _has_thread_id(self, dwThreadId):
         """
@@ -1998,12 +2006,12 @@ class _ThreadContainer:
         :type  event: Event
         :param event: Event object.
         """
-        dwThreadId  = event.get_tid()
-        hThread     = event.get_thread_handle()
-##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
+        dwThreadId = event.get_tid()
+        hThread = event.get_thread_handle()
+        ##        if not self.has_thread(dwThreadId):   # XXX this would trigger a scan
         if not self._has_thread_id(dwThreadId):
             aThread = Thread(dwThreadId, hThread, self)
-            teb_ptr = event.get_teb()   # remember the TEB pointer
+            teb_ptr = event.get_teb()  # remember the TEB pointer
             if teb_ptr:
                 aThread._teb_ptr = teb_ptr
             self._add_thread(aThread)
@@ -2054,7 +2062,7 @@ class _ThreadContainer:
         :return: ``True`` to call the user-defined handle, ``False`` otherwise.
         """
         dwThreadId = event.get_tid()
-##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
+        ##        if self.has_thread(dwThreadId):   # XXX this would trigger a scan
         if self._has_thread_id(dwThreadId):
             self._del_thread(dwThreadId)
         return True

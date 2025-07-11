@@ -218,7 +218,7 @@ Example #19: traverse the windows tree
 
 .. literalinclude:: ../../examples/instrumentation/19_show_window_tree.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: if __name__ == '__main__':
+   :end-before: if __name__ == "__main__":
 
 Example #20: get windows by screen position
 +++++++++++++++++++++++++++++++++++++++++++
@@ -235,7 +235,7 @@ Example #21: find windows by class and caption
 
 .. literalinclude:: ../../examples/instrumentation/21_find_window.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
-   :end-before: if __name__ == '__main__':
+   :end-before: if __name__ == "__main__":
 
 Example #22: kill a program using its window
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -244,7 +244,7 @@ Example #22: kill a program using its window
 
 .. literalinclude:: ../../examples/instrumentation/22_kill.py
    :start-after: # ...begins just like the previous example...
-   :end-before: if __name__ == '__main__':
+   :end-before: if __name__ == "__main__":
 
 .. _back-to-the-system-class:
 

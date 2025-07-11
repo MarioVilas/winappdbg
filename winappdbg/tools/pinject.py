@@ -40,6 +40,7 @@ from winappdbg.process import Process
 from winappdbg.system import System
 from winappdbg.textio import HexInput
 
+
 def main():
     print("Process DLL injector")
     print("by Mario Vilas (mvilas at gmail.com)")
@@ -65,8 +66,8 @@ def main():
             return
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
-            for p,n in pl:
-                print("\t%12d: %s" % (p.get_pid(),n))
+            for p, n in pl:
+                print("\t%12d: %s" % (p.get_pid(), n))
             return
         pid = pl[0][0].get_pid()
     print("Using PID %d (0x%x)" % (pid, pid))
@@ -85,5 +86,6 @@ def main():
     p.scan_modules()
     p.inject_dll(dll)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

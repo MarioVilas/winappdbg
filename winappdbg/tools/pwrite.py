@@ -33,12 +33,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from winappdbg.process import Process
-from winappdbg.system import System
-from winappdbg.textio import HexInput, HexDump
-
 import os
 import sys
+
+from winappdbg.process import Process
+from winappdbg.system import System
+from winappdbg.textio import HexDump, HexInput
+
 
 def main():
     print("Process memory writer")
@@ -64,8 +65,8 @@ def main():
             return
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
-            for p,n in pl:
-                print("\t%s: %s" % (HexDump.integer(p.get_pid()),n))
+            for p, n in pl:
+                print("\t%s: %s" % (HexDump.integer(p.get_pid()), n))
             return
         pid = pl[0][0].get_pid()
 
@@ -75,9 +76,9 @@ def main():
         print("Invalid value for address: %s" % sys.argv[2])
         return
 
-    filename = ' '.join(sys.argv[3:])
+    filename = " ".join(sys.argv[3:])
     if os.path.exists(filename):
-        with open(filename, 'rb') as fd:
+        with open(filename, "rb") as fd:
             data = fd.read()
         print("Read %d bytes from %s" % (len(data), filename))
     else:
@@ -91,5 +92,6 @@ def main():
     p.write(address, data)
     print("Written %d bytes to PID %d" % (len(data), pid))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

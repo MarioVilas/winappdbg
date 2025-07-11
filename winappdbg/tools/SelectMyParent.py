@@ -33,13 +33,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import ntpath
+import os
+import sys
+
 from winappdbg import win32
 from winappdbg.system import System
 from winappdbg.textio import HexInput
 
-import os
-import sys
-import ntpath
 
 def main():
     argv = sys.argv
@@ -66,7 +67,7 @@ def main():
     except ValueError:
         dwParentProcessId = None
     if dwParentProcessId is not None:
-        dwMyProcessId = win32.GetProcessId( win32.GetCurrentProcess() )
+        dwMyProcessId = win32.GetProcessId(win32.GetCurrentProcess())
         if dwParentProcessId != dwMyProcessId:
             system.scan_processes_fast()
             if not system.has_process(dwParentProcessId):
@@ -89,7 +90,7 @@ def main():
     filename = argv[2]
     if not ntpath.exists(filename):
         try:
-            filename = win32.SearchPath(None, filename, '.exe')[0]
+            filename = win32.SearchPath(None, filename, ".exe")[0]
         except WindowsError as e:
             print("Error searching for %s: %s" % (filename, str(e)))
             return
@@ -98,10 +99,12 @@ def main():
 
     # Start the new process.
     try:
-        process = system.start_process(system.argv_to_cmdline(argv[2:]),
-                                       bConsole          = True,
-                                       bInheritHandles   = True,
-                                       dwParentProcessId = dwParentProcessId)
+        process = system.start_process(
+            system.argv_to_cmdline(argv[2:]),
+            bConsole=True,
+            bInheritHandles=True,
+            dwParentProcessId=dwParentProcessId,
+        )
         dwProcessId = process.get_pid()
     except AttributeError as e:
         if "InitializeProcThreadAttributeList" in str(e):
@@ -115,5 +118,6 @@ def main():
     print("Process created: %d" % dwProcessId)
     return dwProcessId
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

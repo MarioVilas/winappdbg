@@ -41,6 +41,7 @@ from winappdbg.process import Process
 from winappdbg.system import System
 from winappdbg.textio import HexDump, HexInput
 
+
 def main():
     print("Process memory reader")
     print("by Mario Vilas (mvilas at gmail.com)")
@@ -65,8 +66,8 @@ def main():
             return
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
-            for p,n in pl:
-                print("\t%s: %s" % (HexDump.integer(p),n))
+            for p, n in pl:
+                print("\t%s: %s" % (HexDump.integer(p), n))
             return
         pid = pl[0][0].get_pid()
 
@@ -84,12 +85,12 @@ def main():
 
     p = Process(pid)
     data = p.read(address, size)
-##    data = p.peek(address, size)
+    ##    data = p.peek(address, size)
     print("Read %d bytes from PID %d" % (len(data), pid))
 
     if len(sys.argv) == 5:
         filename = sys.argv[4]
-        open(filename, 'wb').write(data)
+        open(filename, "wb").write(data)
         print("Written %d bytes to %s" % (len(data), filename))
     else:
         if win32.sizeof(win32.LPVOID) == win32.sizeof(win32.DWORD):
@@ -97,7 +98,8 @@ def main():
         else:
             width = 8
         print()
-        print(HexDump.hexblock(data, address, width = width))
+        print(HexDump.hexblock(data, address, width=width))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

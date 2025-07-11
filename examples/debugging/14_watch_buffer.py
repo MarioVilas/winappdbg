@@ -28,59 +28,66 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from winappdbg import win32
 from winappdbg.debug import Debug
 from winappdbg.event import EventHandler
 from winappdbg.textio import HexDump
-from winappdbg import win32
 
 
 class MyHook:
-
     # Keep record of the buffers we watch.
     def __init__(self):
-        self.__watched  = dict()
+        self.__watched = dict()
         self.__previous = None
 
-
     # This function will be called when entering the hooked function.
-    def entering( self, event, ra, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped ):
-
+    def entering(
+        self,
+        event,
+        ra,
+        hFile,
+        lpBuffer,
+        nNumberOfBytesToRead,
+        lpNumberOfBytesRead,
+        lpOverlapped,
+    ):
         # Ignore calls using a NULL pointer.
         if not lpBuffer:
             return
 
         # Show a message to the user.
-        print("\nReadFile:\n\tHandle %x\n\tExpected bytes: %d" % ( hFile, nNumberOfBytesToRead ))
+        print(
+            "\nReadFile:\n\tHandle %x\n\tExpected bytes: %d"
+            % (hFile, nNumberOfBytesToRead)
+        )
 
         # Stop watching the previous buffer.
         if self.__previous:
-            event.debug.dont_watch_buffer( self.__previous )
+            event.debug.dont_watch_buffer(self.__previous)
             self.__previous = None
 
         # Remember the location of the buffer and its size.
-        self.__watched[ event.get_tid() ] = ( lpBuffer, lpNumberOfBytesRead )
-
+        self.__watched[event.get_tid()] = (lpBuffer, lpNumberOfBytesRead)
 
     # This function will be called when leaving the hooked function.
-    def leaving( self, event, return_value ):
-
+    def leaving(self, event, return_value):
         # If the function call failed ignore it.
         if return_value == 0:
             print("\nReadFile:\n\tStatus: FAIL")
             return
 
         # Get the buffer location and size.
-        tid     = event.get_tid()
+        tid = event.get_tid()
         process = event.get_process()
-        ( lpBuffer, lpNumberOfBytesRead ) = self.__watched[ tid ]
-        del self.__watched[ tid ]
+        (lpBuffer, lpNumberOfBytesRead) = self.__watched[tid]
+        del self.__watched[tid]
 
         # Watch the buffer for access.
-        pid     = event.get_pid()
+        pid = event.get_pid()
         address = lpBuffer
-        size    = process.read_dword( lpNumberOfBytesRead )
-        action  = self.accessed
-        self.__previous = event.debug.watch_buffer( pid, address, size, action )
+        size = process.read_dword(lpNumberOfBytesRead)
+        action = self.accessed
+        self.__previous = event.debug.watch_buffer(pid, address, size, action)
 
         # Use stalk_buffer instead of watch_buffer to be notified
         # only of the first access to the buffer.
@@ -90,57 +97,55 @@ class MyHook:
         # Show a message to the user.
         print("\nReadFile:\n\tStatus: SUCCESS\n\tRead bytes: %d" % size)
 
-
     # This function will be called every time the procedure name buffer is accessed.
-    def accessed( self, event ):
-
+    def accessed(self, event):
         # Show the user where we're running.
         thread = event.get_thread()
-        pc     = thread.get_pc()
-        code   = thread.disassemble( pc, 0x10 ) [0]
-        print("%s: %s" % (
-            HexDump.address(code[0], thread.get_bits()),
-            code[2].lower()
-        ))
+        pc = thread.get_pc()
+        code = thread.disassemble(pc, 0x10)[0]
+        print("%s: %s" % (HexDump.address(code[0], thread.get_bits()), code[2].lower()))
 
 
-class MyEventHandler( EventHandler ):
-
+class MyEventHandler(EventHandler):
     # Called on guard page exceptions NOT raised by our breakpoints.
-    def guard_page( self, event ):
+    def guard_page(self, event):
         print(event.get_exception_name())
 
     # Called on DLL load events.
-    def load_dll( self, event ):
-
+    def load_dll(self, event):
         # Get the new module object.
         module = event.get_module()
 
         # If it's kernel32...
-        if module.match_name( "kernel32.dll" ):
-
+        if module.match_name("kernel32.dll"):
             # Get the process ID.
             pid = event.get_pid()
 
             # Get the address of the function to hook.
-            address = module.resolve( "ReadFile" )
+            address = module.resolve("ReadFile")
 
             # This is an approximated signature of the function.
             # Pointers must be void so ctypes doesn't try to read from them.
-            signature = ( win32.HANDLE, win32.PVOID, win32.DWORD, win32.PVOID, win32.PVOID )
+            signature = (
+                win32.HANDLE,
+                win32.PVOID,
+                win32.DWORD,
+                win32.PVOID,
+                win32.PVOID,
+            )
 
             # Hook the function.
             hook = MyHook()
-            event.debug.hook_function( pid, address, hook.entering, hook.leaving, signature = signature )
+            event.debug.hook_function(
+                pid, address, hook.entering, hook.leaving, signature=signature
+            )
 
 
-def simple_debugger( argv ):
-
+def simple_debugger(argv):
     # Instance a Debug object, passing it the MyEventHandler instance.
-    with Debug( MyEventHandler(), bKillOnExit = True ) as debug:
-
+    with Debug(MyEventHandler(), bKillOnExit=True) as debug:
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Wait for the debugee to finish.
         debug.loop()
@@ -151,4 +156,5 @@ def simple_debugger( argv ):
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    simple_debugger( sys.argv[1:] )
+
+    simple_debugger(sys.argv[1:])

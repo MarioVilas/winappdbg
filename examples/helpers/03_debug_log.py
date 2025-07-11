@@ -33,40 +33,39 @@ from ntpath import basename, splitext
 from winappdbg.debug import Debug
 from winappdbg.textio import Logger
 
-def main( argv ):
 
+def main(argv):
     # The log file name will be based on the target executable file name.
-    logfile = basename( argv[ 0 ] )
-    logfile = splitext( logfile )[ 0 ] + ".log"
+    logfile = basename(argv[0])
+    logfile = splitext(logfile)[0] + ".log"
 
     # Instance a global Logger object.
     global logger
-    logger = Logger( logfile )
+    logger = Logger(logfile)
 
     # Launch the debugger.
     try:
-        simple_debugger( argv )
+        simple_debugger(argv)
 
     # On error log the exception and quit.
     except:
         logger.log_exc()
 
-def my_event_handler( event ):
 
+def my_event_handler(event):
     # Get the Logger object.
     global logger
 
     # Log the event.
-    logger.log_event( event )
+    logger.log_event(event)
 
-def simple_debugger( argv ):
 
+def simple_debugger(argv):
     # Instance a Debug object, passing it the event handler callback.
-    debug = Debug( my_event_handler, bKillOnExit = True )
+    debug = Debug(my_event_handler, bKillOnExit=True)
     try:
-
         # Start a new process for debugging.
-        debug.execv( argv )
+        debug.execv(argv)
 
         # Wait for the debugee to finish.
         debug.loop()
@@ -75,9 +74,11 @@ def simple_debugger( argv ):
     finally:
         debug.stop()
 
+
 # When invoked from the command line,
 # the first argument is an executable file,
 # and the remaining arguments are passed to the newly created process.
 if __name__ == "__main__":
     import sys
-    main( sys.argv[1:] )
+
+    main(sys.argv[1:])

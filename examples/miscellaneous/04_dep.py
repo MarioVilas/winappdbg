@@ -30,16 +30,18 @@
 
 from winappdbg.system import System
 from winappdbg.textio import Table
-from winappdbg.win32 import PROCESS_DEP_ENABLE, \
-                            PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION, \
-                            ERROR_ACCESS_DENIED
+from winappdbg.win32 import (
+    ERROR_ACCESS_DENIED,
+    PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION,
+    PROCESS_DEP_ENABLE,
+)
 
 # Prepare the table.
-header = ( " PID ", "DEP ", "DEP-ATL ", "Permanent ", "Filename " )
-separator = [ " " * len(x) for x in header ]
+header = (" PID ", "DEP ", "DEP-ATL ", "Permanent ", "Filename ")
+separator = [" " * len(x) for x in header]
 table = Table()
-table.addRow( *header )
-table.addRow( *separator )
+table.addRow(*header)
+table.addRow(*separator)
 
 # Request debug privileges.
 System.request_debug_privileges()
@@ -48,14 +50,13 @@ System.request_debug_privileges()
 system = System()
 try:
     system.scan_processes()
-    #system.scan_process_filenames()
+    # system.scan_process_filenames()
 except WindowsError:
     system.scan_processes_fast()
 
 # For each running process...
 for process in system.iter_processes():
     try:
-
         # Get the process ID.
         pid = process.get_pid()
 
@@ -98,7 +99,7 @@ for process in system.iter_processes():
     filename = process.get_filename()
 
     # Add the process to the table.
-    table.addRow( pid, dep, atl, perm, filename )
+    table.addRow(pid, dep, atl, perm, filename)
 
 # Print the table.
 table.show()

@@ -30,22 +30,24 @@
 
 from winappdbg.process import Process
 
-def show_environment( pid ):
 
+def show_environment(pid):
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
 
     # Get its environment variables.
     environment = process.get_environment()
 
     # Print the environment variables.
-    for variable, value in sorted( environment.items() ):
+    for variable, value in sorted(environment.items()):
         print("%s=%s" % (variable, value))
+
 
 # When invoked from the command line,
 # the first argument is a process ID,
 # the second argument is a DLL filename.
 if __name__ == "__main__":
     import sys
-    pid = int( sys.argv[1] )
-    show_environment( pid )
+
+    pid = int(sys.argv[1])
+    show_environment(pid)

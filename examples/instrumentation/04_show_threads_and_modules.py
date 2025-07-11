@@ -31,10 +31,10 @@
 from winappdbg.process import Process
 from winappdbg.textio import HexDump
 
-def print_threads_and_modules( pid ):
 
+def print_threads_and_modules(pid):
     # Instance a Process object.
-    process = Process( pid )
+    process = Process(pid)
     print("Process %d" % process.get_pid())
 
     # Now we can enumerate the threads in the process...
@@ -46,14 +46,16 @@ def print_threads_and_modules( pid ):
     print("Modules:")
     bits = process.get_bits()
     for module in process.iter_modules():
-        print("\t%s\t%s" % (
-            HexDump.address( module.get_base(), bits ),
-            module.get_filename()
-        ))
+        print(
+            "\t%s\t%s"
+            % (HexDump.address(module.get_base(), bits), module.get_filename())
+        )
+
 
 # When invoked from the command line,
 # the first argument is a process ID.
 if __name__ == "__main__":
     import sys
-    pid = int( sys.argv[1] )
-    print_threads_and_modules( pid )
+
+    pid = int(sys.argv[1])
+    print_threads_and_modules(pid)

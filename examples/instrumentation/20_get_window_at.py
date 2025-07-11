@@ -28,31 +28,30 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
 from winappdbg.system import System
 from winappdbg.textio import HexDump
 
-import sys
-
 try:
-
     # Get the coordinates from the command line.
-    x = int( sys.argv[1] )
-    y = int( sys.argv[2] )
+    x = int(sys.argv[1])
+    y = int(sys.argv[2])
 
     # Get the window at the requested position.
-    window   = System.get_window_at( x, y )
+    window = System.get_window_at(x, y)
 
     # Get the window coordinates.
-    rect     = window.get_screen_rect()
+    rect = window.get_screen_rect()
     position = (rect.left, rect.top, rect.right, rect.bottom)
-    size     = (rect.right - rect.left, rect.bottom - rect.top)
+    size = (rect.right - rect.left, rect.bottom - rect.top)
 
     # Print the window information.
-    print("Handle:   %s" % HexDump.integer( window.get_handle() ))
+    print("Handle:   %s" % HexDump.integer(window.get_handle()))
     print("Caption:  %s" % window.text)
     print("Class:    %s" % window.classname)
-    print("Style:    %s" % HexDump.integer( window.style ))
-    print("ExStyle:  %s" % HexDump.integer( window.exstyle ))
+    print("Style:    %s" % HexDump.integer(window.style))
+    print("ExStyle:  %s" % HexDump.integer(window.exstyle))
     print("Position: (%i, %i) - (%i, %i)" % position)
     print("Size:     (%i, %i)" % size)
 

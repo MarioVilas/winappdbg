@@ -28,58 +28,56 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
 from winappdbg.system import System
 from winappdbg.textio import HexDump
 
-import sys
-
 
 def find_window():
-
     # If two arguments are given, the first is the classname
     # and the second is the caption text.
     if len(sys.argv) > 2:
         classname = sys.argv[1]
-        caption   = sys.argv[2]
+        caption = sys.argv[2]
         if not classname:
             classname = None
         if not caption:
-            caption   = None
-        window = System.find_window( classname, caption )
+            caption = None
+        window = System.find_window(classname, caption)
 
     # If only one argument is given, try the caption text, then the classname.
     else:
         try:
-            window = System.find_window( windowName = sys.argv[1] )
+            window = System.find_window(windowName=sys.argv[1])
         except WindowsError:
-            window = System.find_window( className = sys.argv[1] )
+            window = System.find_window(className=sys.argv[1])
 
     return window
 
 
-def show_window( window ):
-
+def show_window(window):
     # Get the window coordinates.
-    rect     = window.get_screen_rect()
+    rect = window.get_screen_rect()
     position = (rect.left, rect.top, rect.right, rect.bottom)
-    size     = (rect.right - rect.left, rect.bottom - rect.top)
+    size = (rect.right - rect.left, rect.bottom - rect.top)
 
     # Print the window information.
-    print("Handle:   %s" % HexDump.integer( window.get_handle() ))
+    print("Handle:   %s" % HexDump.integer(window.get_handle()))
     print("Caption:  %s" % window.text)
     print("Class:    %s" % window.classname)
-    print("Style:    %s" % HexDump.integer( window.style ))
-    print("ExStyle:  %s" % HexDump.integer( window.exstyle ))
+    print("Style:    %s" % HexDump.integer(window.style))
+    print("ExStyle:  %s" % HexDump.integer(window.exstyle))
     print("Position: (%i, %i) - (%i, %i)" % position)
     print("Size:     (%i, %i)" % size)
 
 
 def main():
     try:
-        show_window( find_window() )
+        show_window(find_window())
     except WindowsError:
         print("No window found!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
