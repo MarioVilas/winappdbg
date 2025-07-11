@@ -147,33 +147,17 @@ def RaiseIfLastError(result, func=None, arguments=()):
 
 ContextArchMask = 0x0FFF0000  # just guessing here! seems to work, though
 
-if arch == ARCH_I386:
-    from .context_i386 import (
-        EXCEPTION_EXECUTE_FAULT,
-        EXCEPTION_READ_FAULT,
-        EXCEPTION_WRITE_FAULT,
-    )
-elif arch == ARCH_AMD64:
-    if bits == 64:
-        from .context_amd64 import (
-            EXCEPTION_EXECUTE_FAULT,
-            EXCEPTION_READ_FAULT,
-            EXCEPTION_WRITE_FAULT,
-        )
-    else:
-        from .context_i386 import (
-            EXCEPTION_EXECUTE_FAULT,
-            EXCEPTION_READ_FAULT,
-            EXCEPTION_WRITE_FAULT,
-        )
-elif arch == ARCH_ARM64:
-    from .context_arm64 import (
-        EXCEPTION_EXECUTE_FAULT,
-        EXCEPTION_READ_FAULT,
-        EXCEPTION_WRITE_FAULT,
-    )
-else:
-    warnings.warn("Unknown or unsupported architecture: %s" % arch)
+# These seem to be identical in all platforms.
+# But the Windows SDK re-defines them every time.
+# If some weird architecture in the future changes them,
+# I'll rethink this part.
+
+# The following values specify the type of access in the first parameter
+# of the exception record when the exception code specifies an access
+# violation.
+EXCEPTION_READ_FAULT = 0  # exception caused by a read
+EXCEPTION_WRITE_FAULT = 1  # exception caused by a write
+EXCEPTION_EXECUTE_FAULT = 8  # exception caused by an instruction fetch
 
 # --- Constants ----------------------------------------------------------------
 

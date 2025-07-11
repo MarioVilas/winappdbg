@@ -624,10 +624,6 @@ class Thread:
             context.fp = fp
             self.set_context(context)
 
-    # ------------------------------------------------------------------------------
-
-    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-
         class Flags:
             "Commonly used processor flags"
 
@@ -770,6 +766,190 @@ class Thread:
         def set_tf(self):
             "Sets the Trap flag."
             self.set_flag_value(self.Flags.Trap, True)
+
+    # ------------------------------------------------------------------------------
+
+    if win32.arch == win32.ARCH_ARM64:
+
+        def get_pc(self):
+            """
+            :rtype:  int
+            :return: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context.pc
+
+        def set_pc(self, pc):
+            """
+            Sets the value of the program counter register.
+
+            :type  pc: int
+            :param pc: Value of the program counter register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context.pc = pc
+            self.set_context(context)
+
+        def get_sp(self):
+            """
+            :rtype:  int
+            :return: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context.sp
+
+        def set_sp(self, sp):
+            """
+            Sets the value of the stack pointer register.
+
+            :type  sp: int
+            :param sp: Value of the stack pointer register.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context.sp = sp
+            self.set_context(context)
+
+        def get_fp(self):
+            """
+            :rtype:  int
+            :return: Value of the frame pointer register.
+            """
+            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+            context = self.get_context(flags)
+            return context.fp
+
+        def set_fp(self, fp):
+            """
+            Sets the value of the frame pointer register.
+
+            :type  fp: int
+            :param fp: Value of the frame pointer register.
+            """
+            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+            context = self.get_context(flags)
+            context.fp = fp
+            self.set_context(context)
+
+        class CpsrFlags:
+            "Commonly used ARM64 processor flags (CPSR/NZCV)"
+
+            # ARM64 CPSR condition flags
+            Negative = 0x80000000  # N flag (bit 31)
+            Zero = 0x40000000      # Z flag (bit 30)
+            Carry = 0x20000000     # C flag (bit 29)
+            Overflow = 0x10000000  # V flag (bit 28)
+
+        def get_flags(self, FlagMask=0xFFFFFFFF):
+            """
+            :type  FlagMask: int
+            :param FlagMask: (Optional) Bitwise-AND mask.
+
+            :rtype:  int
+            :return: CPSR register contents, optionally masking out some bits.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            return context["Cpsr"] & FlagMask
+
+        def set_flags(self, cpsr, FlagMask=0xFFFFFFFF):
+            """
+            Sets the CPSR register, optionally masking some bits.
+
+            :type  cpsr: int
+            :param cpsr: CPSR register contents.
+
+            :type  FlagMask: int
+            :param FlagMask: (Optional) Bitwise-AND mask.
+            """
+            context = self.get_context(win32.CONTEXT_CONTROL)
+            context["Cpsr"] = (context["Cpsr"] & FlagMask) | cpsr
+            self.set_context(context)
+
+        def get_flag_value(self, FlagBit):
+            """
+            :type  FlagBit: int
+            :param FlagBit: One of the :attr:`CpsrFlags`.
+
+            :rtype:  bool
+            :return: Boolean value of the requested flag.
+            """
+            return bool(self.get_flags(FlagBit))
+
+        def set_flag_value(self, FlagBit, FlagValue):
+            """
+            Sets a single flag, leaving the others intact.
+
+            :type  FlagBit: int
+            :param FlagBit: One of the :attr:`CpsrFlags`.
+
+            :type  FlagValue: bool
+            :param FlagValue: Boolean value of the flag.
+            """
+            if FlagValue:
+                cpsr = FlagBit
+            else:
+                cpsr = 0
+            FlagMask = 0xFFFFFFFF ^ FlagBit
+            self.set_flags(cpsr, FlagMask)
+
+        def get_zf(self):
+            """
+            :rtype:  bool
+            :return: Boolean value of the Zero flag.
+            """
+            return self.get_flag_value(self.CpsrFlags.Zero)
+
+        def get_cf(self):
+            """
+            :rtype:  bool
+            :return: Boolean value of the Carry flag.
+            """
+            return self.get_flag_value(self.CpsrFlags.Carry)
+
+        def get_nf(self):
+            """
+            :rtype:  bool
+            :return: Boolean value of the Negative flag.
+            """
+            return self.get_flag_value(self.CpsrFlags.Negative)
+
+        def get_vf(self):
+            """
+            :rtype:  bool
+            :return: Boolean value of the Overflow flag.
+            """
+            return self.get_flag_value(self.CpsrFlags.Overflow)
+
+        def clear_zf(self):
+            "Clears the Zero flag."
+            self.set_flag_value(self.CpsrFlags.Zero, False)
+
+        def clear_cf(self):
+            "Clears the Carry flag."
+            self.set_flag_value(self.CpsrFlags.Carry, False)
+
+        def clear_nf(self):
+            "Clears the Negative flag."
+            self.set_flag_value(self.CpsrFlags.Negative, False)
+
+        def clear_vf(self):
+            "Clears the Overflow flag."
+            self.set_flag_value(self.CpsrFlags.Overflow, False)
+
+        def set_zf(self):
+            "Sets the Zero flag."
+            self.set_flag_value(self.CpsrFlags.Zero, True)
+
+        def set_cf(self):
+            "Sets the Carry flag."
+            self.set_flag_value(self.CpsrFlags.Carry, True)
+
+        def set_nf(self):
+            "Sets the Negative flag."
+            self.set_flag_value(self.CpsrFlags.Negative, True)
+
+        def set_vf(self):
+            "Sets the Overflow flag."
+            self.set_flag_value(self.CpsrFlags.Overflow, True)
 
     # ------------------------------------------------------------------------------
 

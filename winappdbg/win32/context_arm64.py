@@ -55,12 +55,6 @@ _all = None
 _all = set(vars().keys())
 # ==============================================================================
 
-# --- Exception information types -----------------------------------------------
-
-EXCEPTION_READ_FAULT = 0       # exception caused by a read
-EXCEPTION_WRITE_FAULT = 1      # exception caused by a write
-EXCEPTION_EXECUTE_FAULT = 8    # exception caused by an instruction fetch
-
 # --- CONTEXT structures and constants -----------------------------------------
 
 CONTEXT_ARM64 = 0x00400000
