@@ -35,8 +35,10 @@ Wrapper for kernel32.dll in ctypes.
 import ctypes
 import warnings
 
-from . import context_amd64  # NOQA
-from . import context_i386  # NOQA
+from . import context_amd64
+from . import context_arm64
+from . import context_i386
+
 from .defines import (
     ATOM,
     BOOL,
