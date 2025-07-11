@@ -105,6 +105,7 @@ _all.add("version")
 
 from .version import (
     ARCH_AMD64,
+    ARCH_ARM64,
     ARCH_I386,
     NTDDI_VERSION,
     NTDDI_VISTA,
@@ -113,6 +114,13 @@ from .version import (
     arch,
     bits,
 )
+
+if arch == ARCH_I386:
+    from .context_i386 import GetThreadContext
+elif arch == ARCH_AMD64:
+    from .context_amd64 import GetThreadContext, Wow64GetThreadContext
+elif arch == ARCH_ARM64:
+    from .context_arm64 import GetThreadContext
 
 # ------------------------------------------------------------------------------
 
@@ -158,6 +166,12 @@ elif arch == ARCH_AMD64:
             EXCEPTION_READ_FAULT,
             EXCEPTION_WRITE_FAULT,
         )
+elif arch == ARCH_ARM64:
+    from .context_arm64 import (
+        EXCEPTION_EXECUTE_FAULT,
+        EXCEPTION_READ_FAULT,
+        EXCEPTION_WRITE_FAULT,
+    )
 else:
     warnings.warn("Unknown or unsupported architecture: %s" % arch)
 
