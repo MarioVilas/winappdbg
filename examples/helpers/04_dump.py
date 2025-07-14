@@ -31,39 +31,45 @@
 from winappdbg.crash import CrashDump
 from winappdbg.system import System
 from winappdbg.textio import HexDump
+from winappdbg.win32.version import arch, bits
 
 
 def print_state(process_name):
     # Request debug privileges.
     System.request_debug_privileges()
 
-    # Find the first process that matches the requested name.
+    # Find every process that matches the requested name.
     system = System()
-    process, filename = system.find_processes_by_filename(process_name)[0]
+    for process, filename in system.find_processes_by_filename(process_name):
 
-    # Suspend the process execution.
-    process.suspend()
-    try:
-        # For each thread in the process...
-        for thread in process.iter_threads():
-            # Get the thread state.
-            tid = thread.get_tid()
-            eip = thread.get_pc()
-            code = thread.disassemble_around(eip)
-            context = thread.get_context()
+        # Skip processes that don't match our architecture or bits.
+        if process.get_arch() != arch or process.get_bits() != bits:
+            print("Skipping: %s" % filename)
+            continue
 
-            # Display the thread state.
-            print()
-            print("-" * 79)
-            print("Thread: %s" % HexDump.integer(tid))
-            print()
-            print(CrashDump.dump_registers(context))
-            print(CrashDump.dump_code(code, eip))
-            print("-" * 79)
+        # Suspend the process execution.
+        process.suspend()
+        try:
+            # For each thread in the process...
+            for thread in process.iter_threads():
+                # Get the thread state.
+                tid = thread.get_tid()
+                eip = thread.get_pc()
+                code = thread.disassemble_around(eip)
+                context = thread.get_context()
 
-    # Resume the process execution.
-    finally:
-        process.resume()
+                # Display the thread state.
+                print()
+                print("-" * 79)
+                print("Thread: %s" % HexDump.integer(tid))
+                print()
+                print(CrashDump.dump_registers(context))
+                print(CrashDump.dump_code(code, eip))
+                print("-" * 79)
+
+        # Resume the process execution.
+        finally:
+            process.resume()
 
 
 # When invoked from the command line,

@@ -79,9 +79,11 @@ from .defines import (
     SIZE_T,
     TCHAR,
     UINT,
+    ULONG,
     ULONG64,
     ULONG_PTR,
     ULONGLONG,
+    USHORT,
     WCHAR,
     WORD,
     DefaultStringType,
@@ -1723,6 +1725,123 @@ class PROCESS_INFORMATION(Structure):
 
 
 LPPROCESS_INFORMATION = POINTER(PROCESS_INFORMATION)
+
+# --- GetProcessInformation constants and structures ---------------------------
+
+# PROCESS_INFORMATION_CLASS constants for GetProcessInformation
+# (Different from NT PROCESS_INFORMATION_CLASS in ntdll.py)
+class PROCESS_INFORMATION_CLASS_KERNEL32:
+    ProcessMemoryPriority = 0
+    ProcessMemoryExhaustionInfo = 1
+    ProcessAppMemoryInfo = 2
+    ProcessInPrivateInfo = 3
+    ProcessPowerThrottling = 4
+    ProcessReserved1 = 5
+    ProcessTelemetryCoverageInfo = 6
+    ProcessProtectionLevelInfo = 7
+    ProcessLeapSecondInfo = 8
+    ProcessMachineTypeInfo = 9
+    ProcessInformationClassMax = 10
+
+# Memory priority values
+MEMORY_PRIORITY_VERY_LOW = 1
+MEMORY_PRIORITY_LOW = 2
+MEMORY_PRIORITY_MEDIUM = 3
+MEMORY_PRIORITY_BELOW_NORMAL = 4
+MEMORY_PRIORITY_NORMAL = 5
+
+# Power throttling states
+PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1
+PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4
+
+# typedef struct _MEMORY_PRIORITY_INFORMATION {
+#     ULONG MemoryPriority;
+# } MEMORY_PRIORITY_INFORMATION, *PMEMORY_PRIORITY_INFORMATION;
+class MEMORY_PRIORITY_INFORMATION(Structure):
+    _fields_ = [
+        ("MemoryPriority", ULONG),
+    ]
+
+# typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO {
+#     USHORT Version;
+#     USHORT Reserved;
+#     PROCESS_MEMORY_EXHAUSTION_TYPE Type;
+#     ULONG_PTR Value;
+# } PROCESS_MEMORY_EXHAUSTION_INFO, *PPROCESS_MEMORY_EXHAUSTION_INFO;
+class PROCESS_MEMORY_EXHAUSTION_INFO(Structure):
+    _fields_ = [
+        ("Version", USHORT),
+        ("Reserved", USHORT),
+        ("Type", ULONG),
+        ("Value", ULONG_PTR),
+    ]
+
+# typedef struct _APP_MEMORY_INFORMATION {
+#     ULONG64 AvailableCommit;
+#     ULONG64 PrivateCommitUsage;
+#     ULONG64 PeakPrivateCommitUsage;
+#     ULONG64 TotalCommitUsage;
+# } APP_MEMORY_INFORMATION, *PAPP_MEMORY_INFORMATION;
+class APP_MEMORY_INFORMATION(Structure):
+    _fields_ = [
+        ("AvailableCommit", ULONG64),
+        ("PrivateCommitUsage", ULONG64),
+        ("PeakPrivateCommitUsage", ULONG64),
+        ("TotalCommitUsage", ULONG64),
+    ]
+
+# typedef struct _PROCESS_POWER_THROTTLING_STATE {
+#     ULONG Version;
+#     ULONG ControlMask;
+#     ULONG StateMask;
+# } PROCESS_POWER_THROTTLING_STATE, *PPROCESS_POWER_THROTTLING_STATE;
+class PROCESS_POWER_THROTTLING_STATE(Structure):
+    _fields_ = [
+        ("Version", ULONG),
+        ("ControlMask", ULONG),
+        ("StateMask", ULONG),
+    ]
+
+# typedef struct _PROCESS_PROTECTION_LEVEL_INFORMATION {
+#     DWORD ProtectionLevel;
+# } PROCESS_PROTECTION_LEVEL_INFORMATION, *PPROCESS_PROTECTION_LEVEL_INFORMATION;
+class PROCESS_PROTECTION_LEVEL_INFORMATION(Structure):
+    _fields_ = [
+        ("ProtectionLevel", DWORD),
+    ]
+
+# typedef struct _PROCESS_LEAP_SECOND_INFO {
+#     ULONG Flags;
+#     ULONG Reserved;
+# } PROCESS_LEAP_SECOND_INFO, *PPROCESS_LEAP_SECOND_INFO;
+class PROCESS_LEAP_SECOND_INFO(Structure):
+    _fields_ = [
+        ("Flags", ULONG),
+        ("Reserved", ULONG),
+    ]
+
+# typedef struct _PROCESS_MACHINE_INFORMATION {
+#     USHORT ProcessMachine;
+#     USHORT Res0;
+#     ULONG MachineTypeAttributes;
+# } PROCESS_MACHINE_INFORMATION, *PPROCESS_MACHINE_INFORMATION;
+class PROCESS_MACHINE_INFORMATION(Structure):
+    _fields_ = [
+        ("ProcessMachine", USHORT),
+        ("Res0", USHORT),
+        ("MachineTypeAttributes", ULONG),
+    ]
+
+# Map information class to structure type
+_process_info_class_map = {
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMemoryPriority: MEMORY_PRIORITY_INFORMATION,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMemoryExhaustionInfo: PROCESS_MEMORY_EXHAUSTION_INFO,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessAppMemoryInfo: APP_MEMORY_INFORMATION,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessPowerThrottling: PROCESS_POWER_THROTTLING_STATE,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessProtectionLevelInfo: PROCESS_PROTECTION_LEVEL_INFORMATION,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessLeapSecondInfo: PROCESS_LEAP_SECOND_INFO,
+    PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMachineTypeInfo: PROCESS_MACHINE_INFORMATION,
+}
 
 # --- STARTUPINFO and STARTUPINFOEX structures ---------------------------------
 
@@ -4833,6 +4952,33 @@ def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
     _SetProcessAffinityMask.restype = bool
     _SetProcessAffinityMask.errcheck = RaiseIfZero
     _SetProcessAffinityMask(hProcess, dwProcessAffinityMask)
+
+
+# BOOL GetProcessInformation(
+#   __in HANDLE                    hProcess,
+#   __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+#        LPVOID                    ProcessInformation,
+#   __in DWORD                     ProcessInformationSize
+# );
+if hasattr(windll.kernel32, "GetProcessInformation"):
+    def GetProcessInformation(hProcess, ProcessInformationClass):
+        _GetProcessInformation = windll.kernel32.GetProcessInformation
+        _GetProcessInformation.argtypes = [HANDLE, DWORD, LPVOID, DWORD]
+        _GetProcessInformation.restype = bool
+        _GetProcessInformation.errcheck = RaiseIfZero
+
+        try:
+            structure_type = _process_info_class_map[ProcessInformationClass]
+        except KeyError:
+            raise ValueError(f"Unsupported ProcessInformationClass: {ProcessInformationClass}")
+        process_information = structure_type()
+        _GetProcessInformation(
+            hProcess,
+            ProcessInformationClass,
+            byref(process_information),
+            sizeof(structure_type)
+        )
+        return process_information
 
 
 # ------------------------------------------------------------------------------
