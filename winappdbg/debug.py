@@ -239,6 +239,17 @@ class Debug(EventDispatcher, _BreakpointContainer):
             )
             warnings.warn(msg, MixedBitsWarning)
 
+        # Warn when mixing architectures. This happens when you
+        # run emulated x86/64 binaries on ARM versions of Windows.
+        # This also allows the user to stop attaching altogether,
+        # depending on how the warnings are configured.
+        if System.arch != aProcess.get_arch():
+            msg = (
+                "Mixture of architectures (emulation) is considered experimental."
+                " Use at your own risk!"
+            )
+            warnings.warn(msg, MixedArchWarning)
+
         # Attach to the process.
         win32.DebugActiveProcess(dwProcessId)
 
@@ -501,13 +512,23 @@ class Debug(EventDispatcher, _BreakpointContainer):
             # Warn when mixing 32 and 64 bits.
             # This also allows the user to stop attaching altogether,
             # depending on how the warnings are configured.
-            BITS_WARNING_FLAG = False
-            if System.bits != aProcess.get_bits() and BITS_WARNING_FLAG:
+            if System.bits != aProcess.get_bits():
                 msg = (
                     "Mixture of 32 and 64 bits is considered experimental."
                     " Use at your own risk!"
                 )
                 warnings.warn(msg, MixedBitsWarning)
+
+            # Warn when mixing architectures. This happens when you
+            # run emulated x86/64 binaries on ARM versions of Windows.
+            # This also allows the user to stop attaching altogether,
+            # depending on how the warnings are configured.
+            if System.arch != aProcess.get_arch():
+                msg = (
+                    "Mixture of architectures (emulation) is"
+                    " considered experimental. Use at your own risk!"
+                )
+                warnings.warn(msg, MixedArchWarning)
 
             # Add the new PID to the set of debugees.
             self.__startedDebugees.add(dwProcessId)
