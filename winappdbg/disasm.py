@@ -54,6 +54,7 @@ __all__ = [
     "MiasmEngine",
 ]
 
+import logging
 import warnings
 
 from . import win32
@@ -451,6 +452,9 @@ class CapstoneEngine(Engine):
 class MiasmEngine(Engine):
     """
     Integration with the Miasm disassembler by CEA-SEC.
+
+    Note: All Miasm logging is disabled by default to prevent verbose warnings
+    during disassembly. Users can control logging with the :meth:`set_logging` method.
     """
 
     name = "Miasm"
@@ -471,18 +475,65 @@ class MiasmEngine(Engine):
     def _import_dependencies(cls):
         global miasm
         if miasm is None:
-            # Lazy import - collect all required modules
             import miasm.analysis.binary
             import miasm.analysis.machine
             import miasm.core.locationdb
-
-            # Store the modules in a namespace object
             class MiasmModules:
                 Container = miasm.analysis.binary.Container
                 Machine = miasm.analysis.machine.Machine
                 LocationDB = miasm.core.locationdb.LocationDB
-
             miasm = MiasmModules()
+            cls.set_logging(False)
+
+    @classmethod
+    def set_logging(cls, enabled=True):
+        """
+        Enable or disable Miasm logging.
+
+        :param bool enabled: Whether to enable Miasm logging.
+
+        Example:
+            # Enable Miasm logging.
+            MiasmEngine.set_logging(True)
+
+            # Disable all Miasm logging (default state).
+            MiasmEngine.set_logging(False)
+        """
+        miasm_loggers = [
+            # Core disassembly loggers.
+            "asmblock", "cpuhelper",
+
+            # Architecture-specific loggers.
+            "aarch64dis", "x86_arch", "armdis", "mips32dis",
+            "msp430dis", "ppcdis",
+
+            # Analysis and processing loggers.
+            "binary", "expr_reduce", "exprsimp", "symbexec",
+            "analysis", "simplifier", "cst_propag",
+
+            # JIT engine loggers.
+            "jit_x86", "jit_arm", "jit_aarch64", "jit_mips32",
+            "jit_msp430", "jit_ppc", "jit_mep",
+
+            # Loader loggers.
+            "loader_elf", "loader_pe", "loader_common",
+            "jitload.py", "jit function call",
+
+            # Parser loggers.
+            "elfparse", "peparse", "pepy",
+
+            # OS-specific loggers.
+            "environment", "syscalls", "seh_helper", "win_api_x86_32",
+
+            # Translator loggers..
+            "translator_z3", "translator_smt2",
+
+            # Semantic analysis loggers.
+            "x86_sem",
+        ]
+        for logger_name in miasm_loggers:
+            logger = logging.getLogger(logger_name)
+            logger.disabled = not enabled
 
     def __init__(self, arch=None):
         super().__init__(arch)
