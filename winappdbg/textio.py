@@ -1867,7 +1867,6 @@ class DebugLog(StaticClass):
                 where = address
             text = "%s at %s" % (what, where)
         text = "pid %d tid %d: %s" % (event.get_pid(), event.get_tid(), text)
-        # text = 'pid %d tid %d:\t%s' % (event.get_pid(), event.get_tid(), text)     # text CSV
         return cls.log_text(text)
 
 
