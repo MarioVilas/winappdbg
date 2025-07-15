@@ -38,7 +38,7 @@ import struct
 import warnings
 
 from . import win32
-from .win32 import context_amd64, context_arm64, context_i386
+from .win32 import kernel32, context_amd64, context_arm64, context_i386
 from .textio import HexDump
 from .window import Window
 
@@ -438,20 +438,6 @@ class Thread:
         # http://zachsaw.blogspot.com.es/2010/11/wow64-bug-getthreadcontext-may-return.html
         # http://stackoverflow.com/questions/3444190/windows-suspendthread-doesnt-getthreadcontext-fails
 
-        # Get the corresponding function for the target architecture.
-        arch = self.get_arch()
-        if arch == win32.ARCH_AMD64:
-            GetThreadContext = context_amd64.GetThreadContext
-            Wow64GetThreadContext = context_amd64.Wow64GetThreadContext
-        elif arch == win32.ARCH_ARM64:
-            GetThreadContext = context_arm64.GetThreadContext
-            Wow64GetThreadContext = context_amd64.Wow64GetThreadContext
-        elif arch == win32.ARCH_I386:
-            GetThreadContext = context_i386.GetThreadContext
-        else:
-            raise NotImplementedError(
-                "Getting the thread context is not supported for architecture: %s" % arch)
-
         # Get the thread handle.
         dwAccess = win32.THREAD_GET_CONTEXT
         if bSuspend:
@@ -467,33 +453,53 @@ class Thread:
                 # arrives, but you can still get the context.
                 bSuspend = False
 
-        # If an exception is raised, make sure the thread execution is resumed.
         try:
-            if win32.bits == self.get_bits():
-                # 64 bit debugger attached to 64 bit process, or
-                # 32 bit debugger attached to 32 bit process.
-                ctx = GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
+            # WOW64 asssumes i386 architecture always.
+            if self.is_wow64():
+                if ContextFlags is not None:
+                    ContextFlags &= ~win32.ContextArchMask
+                    ContextFlags |= win32.WOW64_CONTEXT_i386
+                ctx = kernel32.Wow64GetThreadContext(hThread, ContextFlags, raw=bRaw)
+
+            # If *we* are in WOW64, we may get away with getting the real context.
+            # Things do tend to break anyway down the line, but let's make an effort.
+            elif win32.wow64:
+                if win32.arch != win32.ARCH_I386:
+                    raise NotImplementedError(
+                        "Mixing bits its not supported for architecture: %s" % win32.arch)
+                if ContextFlags is not None:
+                    ContextFlags &= ~win32.ContextArchMask
+                    ContextFlags |= win32.context_amd64.CONTEXT_AMD64
+                ctx = win32.context_amd64.GetThreadContext(
+                    hThread, ContextFlags, raw=bRaw
+                )
+
+            # Either we have two native processes, two emulated ones, or mixed architectures.
+            # Since we don't have direct access to the emulated context from the native
+            # environment, we can only debug the JIT emulator itself in that case.
+            # I tried using the emulated architecture bits for GetThreadContext() but
+            # the API behaves in a strange manner when you do this... instead of either
+            # working or returning an error, it "succeeds" with a zeroed out structure.
+            # According to sources online this was intentional to keep debuggers from
+            # breaking - if true, this is a *monumentally* stupid idea from Microsoft.
+            #
+            # *sigh*
+            #
+            # In any case, as when mixing bits, it's a good idea... not to mix.
+            # If you want to debug an emulated process, use an emulated Python too.
             else:
-                if self.is_wow64():
-                    # 64 bit debugger attached to 32 bit process.
-                    if ContextFlags is not None:
+                if ContextFlags is not None:
+                    if win32.arch == win32.ARCH_AMD64:
                         ContextFlags &= ~win32.ContextArchMask
-                        ContextFlags |= win32.WOW64_CONTEXT_i386
-                    ctx = Wow64GetThreadContext(hThread, ContextFlags, raw=bRaw)
-
-                else:
-                    # 32 bit debugger attached to 64 bit process.
-                    # XXX only i386/AMD64 is supported in this particular case
-                    if arch != win32.ARCH_I386:
-                        raise NotImplementedError(
-                            "Mixing bits its not supported for architecture: %s" % arch)
-                    if ContextFlags is not None:
+                        ContextFlags |= win32.CONTEXT_AMD64
+                    elif win32.arch == win32.ARCH_ARM64:
                         ContextFlags &= ~win32.ContextArchMask
-                        ContextFlags |= win32.context_amd64.CONTEXT_AMD64
-                    ctx = win32.context_amd64.GetThreadContext(
-                        hThread, ContextFlags, raw=bRaw
-                    )
+                        ContextFlags |= win32.CONTEXT_ARM64
+                    elif win32.arch == win32.ARCH_I386:
+                        ContextFlags &= ~win32.ContextArchMask
+                        ContextFlags |= win32.CONTEXT_i386
+                ctx = kernel32.GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
         finally:
             # Resume the thread if we suspended it.
@@ -524,20 +530,6 @@ class Thread:
             always. This behavior was changed in version 1.5.
         """
 
-        # Get the corresponding function for the target architecture.
-        arch = self.get_arch()
-        if arch == win32.ARCH_AMD64:
-            SetThreadContext = context_amd64.SetThreadContext
-            Wow64SetThreadContext = context_amd64.Wow64SetThreadContext
-        elif arch == win32.ARCH_ARM64:
-            SetThreadContext = context_arm64.SetThreadContext
-            Wow64SetThreadContext = context_amd64.Wow64SetThreadContext
-        elif arch == win32.ARCH_I386:
-            SetThreadContext = context_i386.SetThreadContext
-        else:
-            raise NotImplementedError(
-                "Getting the thread context is not supported for architecture: %s" % arch)
-
         # Get the thread handle.
         dwAccess = win32.THREAD_SET_CONTEXT
         if bSuspend:
@@ -553,9 +545,9 @@ class Thread:
         # Set the thread context.
         try:
             if win32.bits == 64 and self.is_wow64():
-                win32.Wow64SetThreadContext(hThread, context)
+                kernel32.Wow64SetThreadContext(hThread, context)
             else:
-                win32.SetThreadContext(hThread, context)
+                kernel32.SetThreadContext(hThread, context)
 
         # Resume the thread if we suspended it.
         finally:
