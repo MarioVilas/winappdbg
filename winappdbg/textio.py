@@ -1237,16 +1237,31 @@ class CrashDump(StaticClass):
             "rax=%(Rax).16x rbx=%(Rbx).16x rcx=%(Rcx).16x\n"
             "rdx=%(Rdx).16x rsi=%(Rsi).16x rdi=%(Rdi).16x\n"
             "rip=%(Rip).16x rsp=%(Rsp).16x rbp=%(Rbp).16x\n"
-            " r8=%(R8).16x  r9=%(R9).16x r10=%(R10).16x\n"
+            " r8=%(R8).16x  r9=%(R9).16x   r10=%(R10).16x\n"
             "r11=%(R11).16x r12=%(R12).16x r13=%(R13).16x\n"
             "r14=%(R14).16x r15=%(R15).16x\n"
             "%(efl_dump)s\n"
             "cs=%(SegCs).4x  ss=%(SegSs).4x  ds=%(SegDs).4x  es=%(SegEs).4x  fs=%(SegFs).4x  gs=%(SegGs).4x             efl=%(EFlags).8x\n"
         ),
+        win32.ARCH_ARM64: (
+            " x0=%(X0).16x  x1=%(X1).16x   x2=%(X2).16x\n"
+            " x3=%(X3).16x  x4=%(X4).16x   x5=%(X5).16x\n"
+            " x6=%(X6).16x  x7=%(X7).16x   x8=%(X8).16x\n"
+            " x9=%(X9).16x  x10=%(X10).16x x11=%(X11).16x\n"
+            "x12=%(X12).16x  x13=%(X13).16x x14=%(X14).16x\n"
+            "x15=%(X15).16x  x16=%(X16).16x x17=%(X17).16x\n"
+            "x18=%(X18).16x  x19=%(X19).16x x20=%(X20).16x\n"
+            "x21=%(X21).16x  x22=%(X22).16x x23=%(X23).16x\n"
+            "x24=%(X24).16x  x25=%(X25).16x x26=%(X26).16x\n"
+            "x27=%(X27).16x  x28=%(X28).16x\n"
+            " fp=%(Fp).16x   lr=%(Lr).16x\n"
+            " pc=%(Pc).16x   sp=%(Sp).16x\n"
+            " cpsr=%(Cpsr).8x         %(cpsr_dump)s\n"
+        ),
     }
 
     @staticmethod
-    def dump_flags(efl):
+    def dump_x86_flags(efl):
         """
         Dump the x86 processor flags.
         The output mimics that of the WinDBG debugger.
@@ -1307,6 +1322,67 @@ class CrashDump(StaticClass):
             efl_dump += " nc"  # No carry
         return efl_dump
 
+    @staticmethod
+    def dump_arm_flags(cpsr):
+        """
+        Dump the ARM64 processor status register flags.
+        The output format is similar to the x86 flags dump.
+        Used by :meth:`dump_registers`.
+
+        :param cpsr: Value of the CPSR register.
+        :type  cpsr: int
+
+        :return: Text suitable for logging.
+        :rtype:  str
+        """
+        if cpsr is None:
+            return ""
+
+        # Extract flag bits
+        flag_dump = ""
+
+        # Condition flags (NZCV)
+        if cpsr & 0x80000000:  # N flag (bit 31)
+            flag_dump += " ng"  # Negative
+        else:
+            flag_dump += " pl"  # Positive
+
+        if cpsr & 0x40000000:  # Z flag (bit 30)
+            flag_dump += " zr"  # Zero
+        else:
+            flag_dump += " nz"  # Non-zero
+
+        if cpsr & 0x20000000:  # C flag (bit 29)
+            flag_dump += " cy"  # Carry
+        else:
+            flag_dump += " nc"  # No carry
+
+        if cpsr & 0x10000000:  # V flag (bit 28)
+            flag_dump += " ov"  # Overflow
+        else:
+            flag_dump += " nv"  # No overflow
+
+        # Exception level and stack pointer selection
+        el = (cpsr >> 2) & 0x3  # EL[1:0] bits 3:2
+        sp_sel = cpsr & 0x1     # SPSel bit 0
+        flag_dump += f" el{el}"
+        if sp_sel:
+            flag_dump += " spx"  # Use SPx
+        else:
+            flag_dump += " sp0"  # Use SP0
+
+        # Interrupt masks
+        if cpsr & 0x200:  # D flag (bit 9) - Debug exception mask
+            flag_dump += " dbg"
+        if cpsr & 0x100:  # A flag (bit 8) - SError interrupt mask
+            flag_dump += " serr"
+        if cpsr & 0x80:   # I flag (bit 7) - IRQ interrupt mask
+            flag_dump += " irq"
+        if cpsr & 0x40:   # F flag (bit 6) - FIQ interrupt mask
+            flag_dump += " fiq"
+
+        return flag_dump.strip()
+
     @classmethod
     def dump_registers(cls, registers, arch=None):
         """
@@ -1323,6 +1399,7 @@ class CrashDump(StaticClass):
 
              - :const:`winappdbg.win32.ARCH_I386`
              - :const:`winappdbg.win32.ARCH_AMD64`
+             - :const:`winappdbg.win32.ARCH_ARM64`
         :type  arch: str
 
         :return: Text suitable for logging.
@@ -1330,18 +1407,22 @@ class CrashDump(StaticClass):
         """
         if registers is None:
             return ""
+        registers = registers.copy()
         if arch is None:
             if "Eax" in registers:
                 arch = win32.ARCH_I386
+                registers["efl_dump"] = cls.dump_x86_flags(registers["EFlags"])
             elif "Rax" in registers:
                 arch = win32.ARCH_AMD64
+                registers["efl_dump"] = cls.dump_x86_flags(registers["EFlags"])
+            elif "X0" in registers:
+                arch = win32.ARCH_ARM64
+                registers["cpsr_dump"] = cls.dump_arm_flags(registers["Cpsr"])
             else:
                 arch = "Unknown"
         if arch not in cls.reg_template:
             msg = "Don't know how to dump the registers for architecture: %s"
             raise NotImplementedError(msg % arch)
-        registers = registers.copy()
-        registers["efl_dump"] = cls.dump_flags(registers["EFlags"])
         return cls.reg_template[arch] % registers
 
     @staticmethod
