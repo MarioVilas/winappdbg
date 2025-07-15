@@ -123,6 +123,8 @@ elif arch == ARCH_AMD64:
     from .context_amd64 import GetThreadContext, Wow64GetThreadContext
 elif arch == ARCH_ARM64:
     from .context_arm64 import GetThreadContext
+    from .context_amd64 import Wow64GetThreadContext
+
 
 # ------------------------------------------------------------------------------
 
