@@ -38,6 +38,7 @@ import struct
 import warnings
 
 from . import win32
+from .win32 import context_amd64, context_arm64, context_i386
 from .textio import HexDump
 from .window import Window
 
@@ -437,6 +438,20 @@ class Thread:
         # http://zachsaw.blogspot.com.es/2010/11/wow64-bug-getthreadcontext-may-return.html
         # http://stackoverflow.com/questions/3444190/windows-suspendthread-doesnt-getthreadcontext-fails
 
+        # Get the corresponding function for the target architecture.
+        arch = self.get_arch()
+        if arch == win32.ARCH_AMD64:
+            GetThreadContext = context_amd64.GetThreadContext
+            Wow64GetThreadContext = context_amd64.Wow64GetThreadContext
+        elif arch == win32.ARCH_ARM64:
+            GetThreadContext = context_arm64.GetThreadContext
+            Wow64GetThreadContext = context_amd64.Wow64GetThreadContext
+        elif arch == win32.ARCH_I386:
+            GetThreadContext = context_i386.GetThreadContext
+        else:
+            raise NotImplementedError(
+                "Getting the thread context is not supported for architecture: %s" % arch)
+
         # Get the thread handle.
         dwAccess = win32.THREAD_GET_CONTEXT
         if bSuspend:
@@ -457,7 +472,7 @@ class Thread:
             if win32.bits == self.get_bits():
                 # 64 bit debugger attached to 64 bit process, or
                 # 32 bit debugger attached to 32 bit process.
-                ctx = win32.GetThreadContext(hThread, ContextFlags, raw=bRaw)
+                ctx = GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
             else:
                 if self.is_wow64():
@@ -465,13 +480,14 @@ class Thread:
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
                         ContextFlags |= win32.WOW64_CONTEXT_i386
-                    ctx = win32.Wow64GetThreadContext(hThread, ContextFlags, raw=bRaw)
+                    ctx = Wow64GetThreadContext(hThread, ContextFlags, raw=bRaw)
 
                 else:
                     # 32 bit debugger attached to 64 bit process.
                     # XXX only i386/AMD64 is supported in this particular case
-                    if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
-                        raise NotImplementedError()
+                    if arch != win32.ARCH_I386:
+                        raise NotImplementedError(
+                            "Mixing bits its not supported for architecture: %s" % arch)
                     if ContextFlags is not None:
                         ContextFlags &= ~win32.ContextArchMask
                         ContextFlags |= win32.context_amd64.CONTEXT_AMD64
@@ -507,6 +523,20 @@ class Thread:
             Note that WinAppDbg 1.4 used to suspend the thread automatically
             always. This behavior was changed in version 1.5.
         """
+
+        # Get the corresponding function for the target architecture.
+        arch = self.get_arch()
+        if arch == win32.ARCH_AMD64:
+            SetThreadContext = context_amd64.SetThreadContext
+            Wow64SetThreadContext = context_amd64.Wow64SetThreadContext
+        elif arch == win32.ARCH_ARM64:
+            SetThreadContext = context_arm64.SetThreadContext
+            Wow64SetThreadContext = context_amd64.Wow64SetThreadContext
+        elif arch == win32.ARCH_I386:
+            SetThreadContext = context_i386.SetThreadContext
+        else:
+            raise NotImplementedError(
+                "Getting the thread context is not supported for architecture: %s" % arch)
 
         # Get the thread handle.
         dwAccess = win32.THREAD_SET_CONTEXT
@@ -560,396 +590,138 @@ class Thread:
 
     # ------------------------------------------------------------------------------
 
-    # TODO: a metaclass would do a better job instead of checking the platform
-    #       during module import, also would support mixing 32 and 64 bits
-
-    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-
-        def get_pc(self):
-            """
-            :rtype:  int
-            :return: Value of the program counter register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.pc
-
-        def set_pc(self, pc):
-            """
-            Sets the value of the program counter register.
-
-            :type  pc: int
-            :param pc: Value of the program counter register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.pc = pc
-            self.set_context(context)
-
-        def get_sp(self):
-            """
-            :rtype:  int
-            :return: Value of the stack pointer register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.sp
-
-        def set_sp(self, sp):
-            """
-            Sets the value of the stack pointer register.
-
-            :type  sp: int
-            :param sp: Value of the stack pointer register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.sp = sp
-            self.set_context(context)
-
-        def get_fp(self):
-            """
-            :rtype:  int
-            :return: Value of the frame pointer register.
-            """
-            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
-            context = self.get_context(flags)
-            return context.fp
-
-        def set_fp(self, fp):
-            """
-            Sets the value of the frame pointer register.
-
-            :type  fp: int
-            :param fp: Value of the frame pointer register.
-            """
-            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
-            context = self.get_context(flags)
-            context.fp = fp
-            self.set_context(context)
-
-        class Flags:
-            "Commonly used processor flags"
-
-            Overflow = 0x800
-            Direction = 0x400
-            Interrupts = 0x200
-            Trap = 0x100
-            Sign = 0x80
-            Zero = 0x40
-            # 0x20 ???
-            Auxiliary = 0x10
-            # 0x8 ???
-            Parity = 0x4
-            # 0x2 ???
-            Carry = 0x1
-
-        def get_flags(self, FlagMask=0xFFFFFFFF):
-            """
-            :type  FlagMask: int
-            :param FlagMask: (Optional) Bitwise-AND mask.
-
-            :rtype:  int
-            :return: Flags register contents, optionally masking out some bits.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context["EFlags"] & FlagMask
-
-        def set_flags(self, eflags, FlagMask=0xFFFFFFFF):
-            """
-            Sets the flags register, optionally masking some bits.
-
-            :type  eflags: int
-            :param eflags: Flags register contents.
-
-            :type  FlagMask: int
-            :param FlagMask: (Optional) Bitwise-AND mask.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context["EFlags"] = (context["EFlags"] & FlagMask) | eflags
-            self.set_context(context)
-
-        def get_flag_value(self, FlagBit):
-            """
-            :type  FlagBit: int
-            :param FlagBit: One of the :attr:`Flags`.
-
-            :rtype:  bool
-            :return: Boolean value of the requested flag.
-            """
-            return bool(self.get_flags(FlagBit))
-
-        def set_flag_value(self, FlagBit, FlagValue):
-            """
-            Sets a single flag, leaving the others intact.
-
-            :type  FlagBit: int
-            :param FlagBit: One of the :attr:`Flags`.
-
-            :type  FlagValue: bool
-            :param FlagValue: Boolean value of the flag.
-            """
-            if FlagValue:
-                eflags = FlagBit
-            else:
-                eflags = 0
-            FlagMask = 0xFFFFFFFF ^ FlagBit
-            self.set_flags(eflags, FlagMask)
-
-        def get_zf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Zero flag.
-            """
-            return self.get_flag_value(self.Flags.Zero)
-
-        def get_cf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Carry flag.
-            """
-            return self.get_flag_value(self.Flags.Carry)
-
-        def get_sf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Sign flag.
-            """
-            return self.get_flag_value(self.Flags.Sign)
-
-        def get_df(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Direction flag.
-            """
-            return self.get_flag_value(self.Flags.Direction)
-
-        def get_tf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Trap flag.
-            """
-            return self.get_flag_value(self.Flags.Trap)
-
-        def clear_zf(self):
-            "Clears the Zero flag."
-            self.set_flag_value(self.Flags.Zero, False)
-
-        def clear_cf(self):
-            "Clears the Carry flag."
-            self.set_flag_value(self.Flags.Carry, False)
-
-        def clear_sf(self):
-            "Clears the Sign flag."
-            self.set_flag_value(self.Flags.Sign, False)
-
-        def clear_df(self):
-            "Clears the Direction flag."
-            self.set_flag_value(self.Flags.Direction, False)
-
-        def clear_tf(self):
-            "Clears the Trap flag."
-            self.set_flag_value(self.Flags.Trap, False)
-
-        def set_zf(self):
-            "Sets the Zero flag."
-            self.set_flag_value(self.Flags.Zero, True)
-
-        def set_cf(self):
-            "Sets the Carry flag."
-            self.set_flag_value(self.Flags.Carry, True)
-
-        def set_sf(self):
-            "Sets the Sign flag."
-            self.set_flag_value(self.Flags.Sign, True)
-
-        def set_df(self):
-            "Sets the Direction flag."
-            self.set_flag_value(self.Flags.Direction, True)
-
-        def set_tf(self):
-            "Sets the Trap flag."
-            self.set_flag_value(self.Flags.Trap, True)
-
-    # ------------------------------------------------------------------------------
-
-    if win32.arch == win32.ARCH_ARM64:
-
-        def get_pc(self):
-            """
-            :rtype:  int
-            :return: Value of the program counter register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.pc
-
-        def set_pc(self, pc):
-            """
-            Sets the value of the program counter register.
-
-            :type  pc: int
-            :param pc: Value of the program counter register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.pc = pc
-            self.set_context(context)
-
-        def get_sp(self):
-            """
-            :rtype:  int
-            :return: Value of the stack pointer register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context.sp
-
-        def set_sp(self, sp):
-            """
-            Sets the value of the stack pointer register.
-
-            :type  sp: int
-            :param sp: Value of the stack pointer register.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context.sp = sp
-            self.set_context(context)
-
-        def get_fp(self):
-            """
-            :rtype:  int
-            :return: Value of the frame pointer register.
-            """
-            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
-            context = self.get_context(flags)
-            return context.fp
-
-        def set_fp(self, fp):
-            """
-            Sets the value of the frame pointer register.
-
-            :type  fp: int
-            :param fp: Value of the frame pointer register.
-            """
-            flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
-            context = self.get_context(flags)
-            context.fp = fp
-            self.set_context(context)
-
-        class CpsrFlags:
-            "Commonly used ARM64 processor flags (CPSR/NZCV)"
-
-            # ARM64 CPSR condition flags
-            Negative = 0x80000000  # N flag (bit 31)
-            Zero = 0x40000000      # Z flag (bit 30)
-            Carry = 0x20000000     # C flag (bit 29)
-            Overflow = 0x10000000  # V flag (bit 28)
-
-        def get_flags(self, FlagMask=0xFFFFFFFF):
-            """
-            :type  FlagMask: int
-            :param FlagMask: (Optional) Bitwise-AND mask.
-
-            :rtype:  int
-            :return: CPSR register contents, optionally masking out some bits.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            return context["Cpsr"] & FlagMask
-
-        def set_flags(self, cpsr, FlagMask=0xFFFFFFFF):
-            """
-            Sets the CPSR register, optionally masking some bits.
-
-            :type  cpsr: int
-            :param cpsr: CPSR register contents.
-
-            :type  FlagMask: int
-            :param FlagMask: (Optional) Bitwise-AND mask.
-            """
-            context = self.get_context(win32.CONTEXT_CONTROL)
-            context["Cpsr"] = (context["Cpsr"] & FlagMask) | cpsr
-            self.set_context(context)
-
-        def get_flag_value(self, FlagBit):
-            """
-            :type  FlagBit: int
-            :param FlagBit: One of the :attr:`CpsrFlags`.
-
-            :rtype:  bool
-            :return: Boolean value of the requested flag.
-            """
-            return bool(self.get_flags(FlagBit))
-
-        def set_flag_value(self, FlagBit, FlagValue):
-            """
-            Sets a single flag, leaving the others intact.
-
-            :type  FlagBit: int
-            :param FlagBit: One of the :attr:`CpsrFlags`.
-
-            :type  FlagValue: bool
-            :param FlagValue: Boolean value of the flag.
-            """
-            if FlagValue:
-                cpsr = FlagBit
-            else:
-                cpsr = 0
-            FlagMask = 0xFFFFFFFF ^ FlagBit
-            self.set_flags(cpsr, FlagMask)
-
-        def get_zf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Zero flag.
-            """
-            return self.get_flag_value(self.CpsrFlags.Zero)
-
-        def get_cf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Carry flag.
-            """
-            return self.get_flag_value(self.CpsrFlags.Carry)
-
-        def get_nf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Negative flag.
-            """
-            return self.get_flag_value(self.CpsrFlags.Negative)
-
-        def get_vf(self):
-            """
-            :rtype:  bool
-            :return: Boolean value of the Overflow flag.
-            """
-            return self.get_flag_value(self.CpsrFlags.Overflow)
-
-        def clear_zf(self):
-            "Clears the Zero flag."
-            self.set_flag_value(self.CpsrFlags.Zero, False)
-
-        def clear_cf(self):
-            "Clears the Carry flag."
-            self.set_flag_value(self.CpsrFlags.Carry, False)
-
-        def clear_nf(self):
-            "Clears the Negative flag."
-            self.set_flag_value(self.CpsrFlags.Negative, False)
-
-        def clear_vf(self):
-            "Clears the Overflow flag."
-            self.set_flag_value(self.CpsrFlags.Overflow, False)
-
-        def set_zf(self):
-            "Sets the Zero flag."
-            self.set_flag_value(self.CpsrFlags.Zero, True)
-
-        def set_cf(self):
-            "Sets the Carry flag."
-            self.set_flag_value(self.CpsrFlags.Carry, True)
-
-        def set_nf(self):
-            "Sets the Negative flag."
-            self.set_flag_value(self.CpsrFlags.Negative, True)
-
-        def set_vf(self):
-            "Sets the Overflow flag."
-            self.set_flag_value(self.CpsrFlags.Overflow, True)
+    def get_pc(self):
+        """
+        :rtype:  int
+        :return: Value of the program counter register.
+        """
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        return context.pc
+
+    def set_pc(self, pc):
+        """
+        Sets the value of the program counter register.
+
+        :type  pc: int
+        :param pc: Value of the program counter register.
+        """
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        context.pc = pc
+        self.set_context(context)
+
+    def get_sp(self):
+        """
+        :rtype:  int
+        :return: Value of the stack pointer register.
+        """
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        return context.sp
+
+    def set_sp(self, sp):
+        """
+        Sets the value of the stack pointer register.
+
+        :type  sp: int
+        :param sp: Value of the stack pointer register.
+        """
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        context.sp = sp
+        self.set_context(context)
+
+    def get_fp(self):
+        """
+        :rtype:  int
+        :return: Value of the frame pointer register.
+        """
+        flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+        context = self.get_context(flags)
+        return context.fp
+
+    def set_fp(self, fp):
+        """
+        Sets the value of the frame pointer register.
+
+        :type  fp: int
+        :param fp: Value of the frame pointer register.
+        """
+        flags = win32.CONTEXT_CONTROL | win32.CONTEXT_INTEGER
+        context = self.get_context(flags)
+        context.fp = fp
+        self.set_context(context)
+
+    def get_flags(self, FlagMask=0xFFFFFFFF):
+        """
+        :type  FlagMask: int
+        :param FlagMask: (Optional) Bitwise-AND mask.
+
+        :rtype:  int
+        :return: Flag register contents, optionally masking out some bits.
+        """
+        arch = self.get_arch()
+        if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
+            name = "EFlags"
+        elif arch == win32.ARCH_AMD64:
+            name = "Cpsr"
+        else:
+            raise NotImplementedError(
+                "Gettings flags for architecture %s is not supported" % arch)
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        return context[name] & FlagMask
+
+    def set_flags(self, value, FlagMask=0xFFFFFFFF):
+        """
+        Sets the flags register, optionally masking some bits.
+
+        :type  value: int
+        :param value: Flag register contents.
+
+        :type  FlagMask: int
+        :param FlagMask: (Optional) Bitwise-AND mask.
+        """
+        arch = self.get_arch()
+        if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
+            name = "EFlags"
+        elif arch == win32.ARCH_AMD64:
+            name = "Cpsr"
+        else:
+            raise NotImplementedError(
+                "Settings flags for architecture %s is not supported" % arch)
+        context = self.get_context(win32.CONTEXT_CONTROL)
+        context[name] = (context[name] & FlagMask) | value
+        self.set_context(context)
+
+    def get_tf(self):
+        "Gets the Trap flag."
+        if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
+            bit = 0x100
+        elif arch == win32.ARCH_AMD64:
+            bit = 0x200000
+        else:
+            raise NotImplementedError(
+                "Settings flags for architecture %s is not supported" % arch)
+        return bool(self.get_flags(bit))
+
+    def set_tf(self):
+        "Sets the Trap flag."
+        if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
+            bit = 0x100
+        elif arch == win32.ARCH_AMD64:
+            bit = 0x200000
+        else:
+            raise NotImplementedError(
+                "Settings flags for architecture %s is not supported" % arch)
+        self.set_flags(bit, 0xFFFFFFFF ^ bit)
+
+    def clear_tf(self):
+        "Clears the Trap flag."
+        if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
+            bit = 0x100
+        elif arch == win32.ARCH_AMD64:
+            bit = 0x200000
+        else:
+            raise NotImplementedError(
+                "Settings flags for architecture %s is not supported" % arch)
+        self.set_flags(0, 0xFFFFFFFF ^ bit)
 
     # ------------------------------------------------------------------------------
 
@@ -973,10 +745,7 @@ class Thread:
         try:
             wow64 = self.__wow64
         except AttributeError:
-            if win32.bits == 32 and not win32.wow64:
-                wow64 = False
-            else:
-                wow64 = self.get_process().is_wow64()
+            wow64 = self.get_process().is_wow64()
             self.__wow64 = wow64
         return wow64
 
@@ -988,9 +757,12 @@ class Thread:
             architecture returned by this method will be ``win32.ARCH_I386``,
             but the value of ``System.arch`` will be ``win32.ARCH_AMD64``.
         """
-        if win32.bits == 32 and not win32.wow64:
-            return win32.arch
-        return self.get_process().get_arch()
+        try:
+            arch = self.__arch
+        except AttributeError:
+            arch = self.get_process().get_arch()
+            self.__arch = arch
+        return arch
 
     def get_bits(self):
         """
@@ -1000,9 +772,12 @@ class Thread:
             machine, the number of bits returned by this method will be ``32``,
             but the value of ``System.arch`` will be ``64``.
         """
-        if win32.bits == 32 and not win32.wow64:
-            return 32
-        return self.get_process().get_bits()
+        try:
+            bits = self.__bits
+        except AttributeError:
+            bits = self.get_process().get_bits()
+            self.__bits = bits
+        return bits
 
     def is_hidden(self):
         """
