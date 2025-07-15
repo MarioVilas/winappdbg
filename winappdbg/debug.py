@@ -67,6 +67,14 @@ class MixedArchWarning(RuntimeWarning):
     This warning is issued when mixing architectures.
     """
 
+# If you set this warning to be considered as an error, you can stop the
+# debugger from attaching to emulated processes (for example ARM64 processes
+# running in an ARM64 version of Windows).
+class EmulatedDebuggerWarning(RuntimeWarning):
+    """
+    This warning is issued when the debugger itself is being emulated.
+    """
+
 
 # ==============================================================================
 
@@ -159,6 +167,26 @@ class Debug(EventDispatcher, _BreakpointContainer):
             # degrade performance severely.
             self.system.fix_symbol_store_path(remote=False, force=False)
 
+            # Now, this is a tricky one. The scenario is this: you're
+            # running an x86/x64 Python interpreter to debug a x86/x64
+            # process. So far so good, right? BUT, your ACTUAL architecture
+            # is ARM64. So both the debugger and debuguee are emulated.
+            # Since emulation is not 100% accurate, things like hardware
+            # breakpoints won't work, and other random things may fail.
+            # Let's give the user a fair chance to realize this with a
+            # warning. Mostly so troubleshooting is less of a PITA.
+            self._hw_bp_available = True
+            if System.arch in (win32.ARCH_AMD64, win32.ARCH_I386):
+                me = Thread(win32.GetCurrentThreadId())
+                ctx = me.get_context(win32.CONTEXT_DEBUG_REGISTERS)
+                if ctx["ContextFlags"] & win32.CONTEXT_DEBUG_REGISTERS == 0:
+                    self._hw_bp_available = False
+                    msg = (
+                        "Running the debugger in an emulated x86/x64 process"
+                        " is considered experimental. Use at your own risk!"
+                    )
+                    warnings.warn(msg, EmulatedDebuggerWarning
+
     ##    # It's hard not to create circular references,
     ##    # and if we have a destructor, we can end up leaking everything.
     ##    # It's best to code the debugging loop properly to always
@@ -245,8 +273,8 @@ class Debug(EventDispatcher, _BreakpointContainer):
         # depending on how the warnings are configured.
         if System.arch != aProcess.get_arch():
             msg = (
-                "Mixture of architectures (emulation) is considered experimental."
-                " Use at your own risk!"
+                "Mixture of architectures (emulation)"
+                " is considered experimental. Use at your own risk!"
             )
             warnings.warn(msg, MixedArchWarning)
 
