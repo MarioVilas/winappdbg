@@ -46,14 +46,13 @@ __all__ = [
     "WriteableAddressIterator",
     "ExecutableAndWriteableAddressIterator",
     # Debug registers manipulation
-    "DebugRegister",
+    "IntelDebugRegister",
     # Miscellaneous
     "Regenerator",
     "pretty_ctypes",
     "dump_ctypes",
 ]
 
-import optparse
 import os
 import ctypes
 from collections import namedtuple
@@ -169,18 +168,6 @@ class classproperty(property):
 
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
-
-
-class BannerHelpFormatter(optparse.IndentedHelpFormatter):
-    "Just a small tweak to optparse to be able to print a banner."
-
-    def __init__(self, banner, *argv, **argd):
-        self.banner = banner
-        optparse.IndentedHelpFormatter.__init__(self, *argv, **argd)
-
-    def format_usage(self, usage):
-        msg = optparse.IndentedHelpFormatter.format_usage(self, usage)
-        return "%s\n%s" % (self.banner, msg)
 
 
 # See Process.generate_memory_snapshot()
@@ -516,8 +503,6 @@ class MemoryAddresses(StaticClass):
             size = -size
             address = address - size
         begin, end = cls.align_address_range(address, address + size)
-        # XXX FIXME
-        # I think this rounding fails at least for address 0xFFFFFFFF size 1
         return (end - begin) // cls.pageSize
 
     @staticmethod
@@ -708,9 +693,9 @@ def ExecutableAndWriteableAddressIterator(memory_map):
 # ==============================================================================
 
 
-class DebugRegister(StaticClass):
+class IntelIntelDebugRegister(StaticClass):
     """
-    Class to manipulate debug registers.
+    Class to manipulate x86/x64 debug registers.
     Used by :class:`HardwareBreakpoint`.
 
     .. rubric:: Trigger flags used by HardwareBreakpoint

@@ -44,7 +44,7 @@ from os import getenv
 from . import win32
 from .process import _ProcessContainer
 from .registry import Registry
-from .util import DebugRegister, MemoryAddresses, classproperty
+from .util import IntelDebugRegister, MemoryAddresses, classproperty
 from .window import Window
 
 # ==============================================================================
@@ -933,8 +933,8 @@ class System(_ProcessContainer):
             no extensive testing was made so far.
         """
         cls.write_msr(
-            DebugRegister.DebugCtlMSR,
-            DebugRegister.BranchTrapFlag | DebugRegister.LastBranchRecord,
+            IntelDebugRegister.DebugCtlMSR,
+            IntelDebugRegister.BranchTrapFlag | IntelDebugRegister.LastBranchRecord,
         )
 
     @classmethod
@@ -961,8 +961,8 @@ class System(_ProcessContainer):
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
-        LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
-        LastBranchToIP = cls.read_msr(DebugRegister.LastBranchToIP)
+        LastBranchFromIP = cls.read_msr(IntelDebugRegister.LastBranchFromIP)
+        LastBranchToIP = cls.read_msr(IntelDebugRegister.LastBranchToIP)
         return (LastBranchFromIP, LastBranchToIP)
 
     # ------------------------------------------------------------------------------
