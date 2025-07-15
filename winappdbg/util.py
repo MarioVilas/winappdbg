@@ -49,12 +49,105 @@ __all__ = [
     "DebugRegister",
     # Miscellaneous
     "Regenerator",
+    "pretty_ctypes",
+    "dump_ctypes",
 ]
 
 import optparse
 import os
+import ctypes
+from collections import namedtuple
 
 from . import win32
+
+
+# ==============================================================================
+
+
+_FieldInfo = namedtuple("_FieldInfo", "name ctype value")
+
+def _iter_fields(c_obj):
+    for fname, ftype in c_obj._fields_:
+        yield _FieldInfo(
+            name=fname,
+            ctype=ftype,
+            value=getattr(c_obj, fname)
+        )
+
+def _describe_ctype(ctype):
+    if issubclass(ctype, ctypes.Array):
+        return f"{_describe_ctype(ctype._type_)}[{ctype._length_}]"
+    if issubclass(ctype, ctypes._Pointer):
+        return f"{_describe_ctype(ctype._type_)}*"
+    return ctype.__name__
+
+def pretty_ctypes(c_obj, *, indent=0, _visited=None):
+    """
+    Recursively format any ctypes Structure/Union/array/pointer for pretty-printing.
+
+    :type c_obj: ctypes.Structure or ctypes.Union or ctypes.Array or ctypes._Pointer
+    :param c_obj: The ctypes object to pretty print
+
+    :type indent: int
+    :param indent: Current indentation level (used internally)
+
+    :type _visited: set
+    :param _visited: Set to avoid infinite recursion on self-referential structs (used internally)
+
+    :rtype: str
+    :return: A formatted string representation of the ctypes object with proper indentation and structure
+    """
+    tab = "    " * indent
+    if _visited is None:
+        _visited = set()
+
+    # Pointers: show address & dereference if possible.
+    if isinstance(c_obj, ctypes._Pointer):
+        addr = ctypes.addressof(c_obj.contents) if c_obj else 0
+        if not addr:
+            return f"{tab}{c_obj.__class__.__name__}(NULL)"
+        if addr in _visited:
+            return f"{tab}{c_obj.__class__.__name__}({hex(addr)}) /*…recursion…*/"
+        _visited.add(addr)
+        inner = pretty_ctypes(c_obj.contents, indent=indent, _visited=_visited)
+        return f"{tab}{c_obj.__class__.__name__}({hex(addr)}) →\n{inner}"
+
+    # Arrays: iterate elements.
+    if isinstance(c_obj, ctypes.Array):
+        lines = [f"{tab}{_describe_ctype(c_obj.__class__)} = ["]
+        for i, elem in enumerate(c_obj):
+            lines.append(f"{tab}  [{i}] {pretty_ctypes(elem, indent=indent+1, _visited=_visited).lstrip()}")
+        lines.append(f"{tab}]")
+        return "\n".join(lines)
+
+    # Primitive scalars.
+    if not hasattr(c_obj.__class__, "_fields_"):
+        return f"{tab}{c_obj!r}"
+
+    # Structures / Unions.
+    header = f"{tab}{c_obj.__class__.__name__} {{"
+    body = []
+    for fi in _iter_fields(c_obj):
+        val_repr = pretty_ctypes(fi.value, indent=indent+1, _visited=_visited).lstrip()
+        body.append(f"{tab}  {fi.name:<15} : {_describe_ctype(fi.ctype):<20} = {val_repr}")
+    footer = f"{tab}}}"
+    return "\n".join([header, *body, footer])
+
+def dump_ctypes(obj, **kw):
+    """
+    Recursively pretty-print any ctypes Structure/Union/array/pointer.
+
+    :type c_obj: ctypes.Structure or ctypes.Union or ctypes.Array or ctypes._Pointer
+    :param c_obj: The ctypes object to pretty print
+
+    :type indent: int
+    :param indent: Current indentation level (used internally)
+
+    :type _visited: set
+    :param _visited: Set to avoid infinite recursion on self-referential structs (used internally)
+    """
+    print(pretty_ctypes(obj, **kw))
+
 
 # ==============================================================================
 
