@@ -1237,7 +1237,7 @@ class CrashDump(StaticClass):
             "rax=%(Rax).16x rbx=%(Rbx).16x rcx=%(Rcx).16x\n"
             "rdx=%(Rdx).16x rsi=%(Rsi).16x rdi=%(Rdi).16x\n"
             "rip=%(Rip).16x rsp=%(Rsp).16x rbp=%(Rbp).16x\n"
-            " r8=%(R8).16x  r9=%(R9).16x   r10=%(R10).16x\n"
+            " r8=%(R8).16x  r9=%(R9).16x r10=%(R10).16x\n"
             "r11=%(R11).16x r12=%(R12).16x r13=%(R13).16x\n"
             "r14=%(R14).16x r15=%(R15).16x\n"
             "%(efl_dump)s\n"
@@ -1408,6 +1408,7 @@ class CrashDump(StaticClass):
         if registers is None:
             return ""
         registers = registers.copy()
+
         if arch is None:
             if "Eax" in registers:
                 arch = win32.ARCH_I386
@@ -1423,6 +1424,17 @@ class CrashDump(StaticClass):
         if arch not in cls.reg_template:
             msg = "Don't know how to dump the registers for architecture: %s"
             raise NotImplementedError(msg % arch)
+
+        # Handle missing segment registers in x86/x64 architectures.
+        # Use sentinel value 0xFFFF to indicate unavailable registers.
+        # This will happen when running in x86-on-ARM emulation.
+        if arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+            sentinel_value = 0xFFFF  # Clearly invalid segment value
+            segment_registers = ['SegCs', 'SegSs', 'SegDs', 'SegEs', 'SegFs', 'SegGs']
+            for seg in segment_registers:
+                if seg not in registers:
+                    registers[seg] = sentinel_value
+
         return cls.reg_template[arch] % registers
 
     @staticmethod
