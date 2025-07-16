@@ -479,7 +479,9 @@ class CodeBreakpoint(Breakpoint):
     typeName = "code breakpoint"
 
     if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = b"\xcc"
+        bpInstruction = b"\xcc"              # INT 3
+    elif win32.arch == win32.ARCH_ARM64:
+        bpInstruction = b"\x00\x00\x20\xd4"  # BRK #0
 
     def __init__(self, address, condition=True, action=None):
         """
@@ -953,7 +955,8 @@ class Hook:
             return _Hook_i386(**argd)
         if arch == win32.ARCH_AMD64:
             return _Hook_amd64(**argd)
-        return object.__new__(cls, *argv, **argd)
+        raise NotImplementedError(
+            "Hooks not supported for architecture: %s" % arch)
 
     # XXX FIXME
     #
