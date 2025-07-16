@@ -46,6 +46,7 @@ _all = set(vars().keys())
 
 # Some stuff from ctypes we'll be using very frequently.
 addressof = ctypes.addressof
+byref = ctypes.byref
 sizeof = ctypes.sizeof
 SIZEOF = ctypes.sizeof
 POINTER = ctypes.POINTER

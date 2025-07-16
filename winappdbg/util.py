@@ -693,7 +693,7 @@ def ExecutableAndWriteableAddressIterator(memory_map):
 # ==============================================================================
 
 
-class IntelIntelDebugRegister(StaticClass):
+class IntelDebugRegister(StaticClass):
     """
     Class to manipulate x86/x64 debug registers.
     Used by :class:`HardwareBreakpoint`.

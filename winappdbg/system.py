@@ -564,7 +564,7 @@ class System(_ProcessContainer):
                 debugger_arch = "arm64"
             elif win32.arch == win32.ARCH_I386:
                 debugger_arch = "x86"
-            elif win32.arch == win32.ARCH_AMD64
+            elif win32.arch == win32.ARCH_AMD64:
                 debugger_arch = "x64"
             if debugger_arch is not None:
 
