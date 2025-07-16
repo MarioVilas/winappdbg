@@ -8,6 +8,7 @@ This section contains the full API documentation for WinAppDbg.
 .. toctree::
    :maxdepth: 2
 
+   api/winappdbg
    api/breakpoint
    api/crash
    api/db

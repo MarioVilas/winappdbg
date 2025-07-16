@@ -38,18 +38,19 @@ Project: https://github.com/MarioVilas/winappdbg/
 Web:     http://winappdbg.readthedocs.io/en/latest/
 
 Blog:    http://breakingcode.wordpress.com
-
-:type version_number: float
-:var  version_number: This WinAppDbg major and minor version,
-    as a floating point number. Use this for compatibility checking.
-
-:type version: str
-:var  version: This WinAppDbg release version,
-    as a printable string. Use this to show to the user.
 """
 
 # Library version
+#: This WinAppDbg major and minor version, as a floating point number.
+#: Use this for compatibility checking.
+#:
+#: :type: float
 version_number = 2.0
+
+#: This WinAppDbg release version, as a printable string.
+#: Use this to show to the user.
+#:
+#: :type: str
 version = "Version %s" % version_number
 
 # Early error if this was somehow installed on a non-Windows machine.
