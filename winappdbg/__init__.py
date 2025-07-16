@@ -49,7 +49,7 @@ Blog:    http://breakingcode.wordpress.com
 """
 
 # Library version
-version_number = 1.7
+version_number = 2.0
 version = "Version %s" % version_number
 
 # Early error if this was somehow installed on a non-Windows machine.
