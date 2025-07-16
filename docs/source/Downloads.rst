@@ -64,7 +64,7 @@ Recommended platform:
 
 It might work, but was not tested, under *Wine* and *ReactOS*, and some bugs and missing features are to be expected in these platforms (mainly due to missing APIs or Python itself not working well).
 
-Interpreters other than CPython such as *Jython*, *IronPython* or *PyPy* are considered experimental - try at your own risk.
+Interpreters other than CPython such as *Stackless* and *PyPy* are considered experimental - try at your own risk. WinAppDbg is known *not* to work on *Jython* and *IronPython*, and there are currently no plans to support them.
 
 If you find a bug or have a feature suggestion, don't hesitate to  `open a new issue <https://github.com/MarioVilas/winappdbg/issues>`_. Both comments and complaints are welcome! :)
 
