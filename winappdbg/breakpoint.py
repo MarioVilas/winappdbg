@@ -507,7 +507,7 @@ class CodeBreakpoint(Breakpoint):
 
             Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
-        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
+        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64, win32.ARCH_ARM64):
             msg = "Code breakpoints not supported for %s" % win32.arch
             raise NotImplementedError(msg)
         super().__init__(address, len(self.bpInstruction), condition, action)
