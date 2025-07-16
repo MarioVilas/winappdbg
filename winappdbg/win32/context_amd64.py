@@ -85,13 +85,6 @@ _all = set(vars().keys())
 
 # --- CONTEXT structures and constants -----------------------------------------
 
-# The following values specify the type of access in the first parameter
-# of the exception record when the exception code specifies an access
-# violation.
-EXCEPTION_READ_FAULT = 0  # exception caused by a read
-EXCEPTION_WRITE_FAULT = 1  # exception caused by a write
-EXCEPTION_EXECUTE_FAULT = 8  # exception caused by an instruction fetch
-
 CONTEXT_AMD64 = 0x00100000
 
 CONTEXT_CONTROL = CONTEXT_AMD64 | 0x1

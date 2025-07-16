@@ -53,6 +53,7 @@ import warnings
 from os import getenv
 
 from . import win32
+from .win32.version import _machine_to_arch_map
 from .disasm import Disassembler
 from .module import _ModuleContainer
 from .search import HexPattern, IStringPattern, Pattern, Search, StringPattern
@@ -639,14 +640,18 @@ class Process(_ThreadContainer, _ModuleContainer):
             if win32.bits == 32 and not win32.wow64:
                 wow64 = False
             else:
-                if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
-                    dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
-                else:
-                    dwAccess = win32.PROCESS_QUERY_INFORMATION
-                hProcess = self.get_handle(dwAccess)
                 try:
-                    wow64 = win32.IsWow64Process(hProcess)
-                except AttributeError:
+                    if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
+                        dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+                    else:
+                        dwAccess = win32.PROCESS_QUERY_INFORMATION
+                    hProcess = self.get_handle(dwAccess)
+                    try:
+                        wow64 = win32.IsWow64Process(hProcess)
+                    except AttributeError:
+                        wow64 = False
+                except WindowsError:
+                    # Can't access the process, assume not WOW64.
                     wow64 = False
             self.__wow64 = wow64
         return wow64
@@ -658,26 +663,59 @@ class Process(_ThreadContainer, _ModuleContainer):
             For example, if running a 32 bit binary in a 64 bit machine, the
             architecture returned by this method will be :data:`~winappdbg.win32.ARCH_I386`,
             but the value of ``System.arch`` will be :data:`~winappdbg.win32.ARCH_AMD64`.
+
+            On ARM64 systems, this can detect:
+            - Native ARM64 processes
+            - x64 processes running under emulation
+            - x86 processes running under emulation
         """
 
-        # Are we in a 32 bit machine?
-        if win32.bits == 32 and not win32.wow64:
-            return win32.arch
+        # Try to use the newer GetProcessInformation API first (Windows 8+).
+        # This is the most accurate method and works correctly on ARM64 systems.
+        try:
+            if hasattr(win32, "PROCESS_QUERY_LIMITED_INFORMATION"):
+                dwAccess = win32.PROCESS_QUERY_LIMITED_INFORMATION
+            else:
+                dwAccess = win32.PROCESS_QUERY_INFORMATION
+            hProcess = self.get_handle(dwAccess)
 
-        # Is the process outside of WOW64?
-        if not self.is_wow64():
-            return win32.arch
+            # Use GetProcessInformation with ProcessMachineTypeInfo.
+            if hasattr(win32, 'GetProcessInformation') and hasattr(win32, 'PROCESS_INFORMATION_CLASS_KERNEL32'):
+                machine_info = win32.GetProcessInformation(
+                    hProcess,
+                    win32.PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMachineTypeInfo
+                )
 
-        # In WOW64, "amd64" becomes "i386".
-        if win32.arch == win32.ARCH_AMD64:
+                # Get the process architecture from the machine type.
+                process_arch = _machine_to_arch_map.get(machine_info.ProcessMachine)
+                if process_arch is not None:
+                    return process_arch
+                raise NotImplementedError(f"Unsupported process machine type: 0x{machine_info.ProcessMachine:04X}")
+
+        except (AttributeError, WindowsError):
+            # Fall back to the older methods if GetProcessInformation fails.
+            pass
+
+        # Fall back to the legacy logic for older systems.
+        if win32.arch == win32.ARCH_AMD64 or win32.arch == win32.ARCH_I386:
+
+            # Are we in a 32 bit machine?
+            if win32.bits == 32 and not win32.wow64:
+                return win32.arch
+
+            # Is the process outside of WOW64?
+            if not self.is_wow64():
+                return win32.arch
+
+            # Traditional x86 on x64.
             return win32.ARCH_I386
 
-        # We don't know the translation for other architectures.
-        raise NotImplementedError()
+        # Add support for more architectures as needed.
+        raise NotImplementedError("Architecture detection not implemented for %s" % win32.arch)
 
     def get_bits(self):
         """
-        :rtype: str
+        :rtype: int
         :return: The number of bits in which this process believes to be
             running. For example, if running a 32 bit binary in a 64 bit
             machine, the number of bits returned by this method will be ``32``,

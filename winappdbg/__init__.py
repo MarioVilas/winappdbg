@@ -51,3 +51,13 @@ Blog:    http://breakingcode.wordpress.com
 # Library version
 version_number = 1.7
 version = "Version %s" % version_number
+
+# Early error if this was somehow installed on a non-Windows machine.
+try:
+    import ctypes
+    ctypes.WINFUNCTYPE
+    _is_windows = True
+except AttributeError:
+    _is_windows = False
+if not _is_windows:
+    raise ImportError("WinAppDbg only works on Windows")

@@ -1602,6 +1602,7 @@ class _ModuleContainer:
                 self.__system_breakpoints["ntdll!g_dwLastErrorToBreakOn"] = address
         return address
 
+    # TODO: maybe use a bit more finesse here...
     def is_system_defined_breakpoint(self, address):
         """
         :param int address: Memory address.
@@ -1613,11 +1614,10 @@ class _ModuleContainer:
         if address:
             module = self.get_module_at_address(address)
             if module:
-                return module.match_name("ntdll") or module.match_name("kernel32")
+                system_modules = ["ntdll", "kernel32", "kernelbase", "xtajit64"]
+                return any(module.match_name(name) for name in system_modules)
         return False
 
-    # FIXME
-    # In Wine, the system breakpoint seems to be somewhere in kernel32.
     def get_system_breakpoint(self):
         """
         :returns: Memory address of the system breakpoint

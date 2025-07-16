@@ -44,7 +44,7 @@ from os import getenv
 from . import win32
 from .process import _ProcessContainer
 from .registry import Registry
-from .util import DebugRegister, MemoryAddresses, classproperty
+from .util import IntelDebugRegister, MemoryAddresses, classproperty
 from .window import Window
 
 # ==============================================================================
@@ -532,29 +532,43 @@ class System(_ProcessContainer):
             # There may be more than one, so we'll sort out later which one to load.
             candidates = []
 
-            # The Microsoft SDK always seems to be installed in the "Program Files (x86)" folder on
-            # Intel 64 bit machines, and "Program Files" on every other platform.
-            sysdrive = getenv("SystemDrive", "C:")
-            if win32.arch == win32.ARCH_AMD64:
-                basedir = "%s\\Program Files (x86)" % sysdrive
-                basedir = getenv("ProgramFiles(x86)", basedir)
-            else:
-                basedir = "%s\\Program Files" % sysdrive
-                basedir = getenv("ProgramFiles", basedir)
+            if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
 
-            # Let's try the oldest known location for dbghelp.dll.
-            # Oh, those were the days, when this was the same across all versions.
-            candidates.append(
-                ntpath.join(basedir, "Debugging Tools for Windows (x86)", "dbghelp.dll")
-            )
+                # Gather round children, it's story time with your grandpa Mario.
+                # In the Olden Days, the debugger was distributed as a standalone package.
+                # The Microsoft SDK always was to be installed in the "Program Files (x86)" folder on
+                # Intel 64 bit machines, and "Program Files" on every other platform.
+                sysdrive = getenv("SystemDrive", "C:")
+                if win32.arch == win32.ARCH_AMD64:
+                    basedir = "%s\\Program Files (x86)" % sysdrive
+                    basedir = getenv("ProgramFiles(x86)", basedir)
+                else:
+                    basedir = "%s\\Program Files" % sysdrive
+                    basedir = getenv("ProgramFiles", basedir)
+
+                # Let's try the oldest known location for dbghelp.dll.
+                # Oh, those were the days, when this was the same across all versions.
+                candidates.append(
+                    ntpath.join(basedir, "Debugging Tools for Windows (x86)", "dbghelp.dll")
+                )
 
             # Then the debugger got embedded into the SDK. This path is different for each version.
             # The format is different too. And they bundled 32 and 64 bits together.
-            # Then on later versions there's also binaries for other, incompatible architectures too???
-            # I gave up on trying to make sense of it, let's just try all combinations to be safe.
-            # (We only support x86 and x64 though. In the future we may have to update this.)
+            # Then on later versions there's also binaries for other architectures like ARM64.
+            # We now support x86, x64, and ARM64 architectures.
             # This StackOverflow answer helped me a lot: https://stackoverflow.com/a/24478856
-            if win32.bits == 32:
+
+            # Determine the appropriate debugger subdirectory based on architecture.
+            debugger_arch = None
+            if win32.arch == win32.ARCH_ARM64:
+                debugger_arch = "arm64"
+            elif win32.arch == win32.ARCH_I386:
+                debugger_arch = "x86"
+            elif win32.arch == win32.ARCH_AMD64
+                debugger_arch = "x64"
+            if debugger_arch is not None:
+
+                # Search in Windows Kits.
                 candidates.extend(
                     glob.glob(
                         ntpath.join(
@@ -562,25 +576,13 @@ class System(_ProcessContainer):
                             "Windows Kits",
                             "*",
                             "Debuggers",
-                            "x86",
+                            debugger_arch,
                             "dbghelp.dll",
                         )
                     )
                 )
-            else:
-                candidates.extend(
-                    glob.glob(
-                        ntpath.join(
-                            basedir,
-                            "Windows Kits",
-                            "*",
-                            "Debuggers",
-                            "x64",
-                            "dbghelp.dll",
-                        )
-                    )
-                )
-            if win32.bits == 32:
+
+                # Search in Microsoft SDKs.
                 candidates.extend(
                     glob.glob(
                         ntpath.join(
@@ -589,26 +591,13 @@ class System(_ProcessContainer):
                             "Windows",
                             "*",
                             "Debuggers",
-                            "x86",
+                            debugger_arch,
                             "dbghelp.dll",
                         )
                     )
                 )
-            else:
-                candidates.extend(
-                    glob.glob(
-                        ntpath.join(
-                            basedir,
-                            "Microsoft SDKs",
-                            "Windows",
-                            "*",
-                            "Debuggers",
-                            "x64",
-                            "dbghelp.dll",
-                        )
-                    )
-                )
-            if win32.bits == 32:
+
+                # Search in Microsoft/Microsoft SDKs.
                 candidates.extend(
                     glob.glob(
                         ntpath.join(
@@ -618,22 +607,7 @@ class System(_ProcessContainer):
                             "Windows",
                             "*",
                             "Debuggers",
-                            "x86",
-                            "dbghelp.dll",
-                        )
-                    )
-                )
-            else:
-                candidates.extend(
-                    glob.glob(
-                        ntpath.join(
-                            basedir,
-                            "Microsoft",
-                            "Microsoft SDKs",
-                            "Windows",
-                            "*",
-                            "Debuggers",
-                            "x64",
+                            debugger_arch,
                             "dbghelp.dll",
                         )
                     )
@@ -706,14 +680,21 @@ class System(_ProcessContainer):
 
                 # If no library could be loaded, fail with an exception.
                 if dbghelp is None:
-                    msg = "Could not find a compatible dbghelp.dll in the system. Tried the following: %r"
-                    msg = msg % (candidates + [pathname],)
+                    candidates.append(pathname)
+                    msg = "Could not find a compatible dbghelp.dll in the system. Tried the following:\n"
+                    msg = msg + "\n".join("  " + x for x in candidates)
                     raise NotImplementedError(msg)
 
                 # If we loaded the system default, issue a warning.
-                warnings.warn(
-                    "Microsoft SDK not found, using the system default dbghelp.dll."
-                )
+                # Subtlety here: if we're trying to run WinAppDbg
+                # in an unsupported architecture, we don't want the
+                # warning, because... well, it's unsupported, let's
+                # not lie to the user and say they need to install
+                # the SDK if we're not gonna use it anyway.
+                if debugger_arch is not None:
+                    warnings.warn(
+                        "Microsoft SDK not found, using the system default dbghelp.dll."
+                    )
 
         # Set it globally as the library to be used.
         ctypes.windll.dbghelp = dbghelp
@@ -797,7 +778,7 @@ class System(_ProcessContainer):
                 if remote:
                     symbol_store_path = (
                         "cache*;SRV*" + local_path + "*"
-                        "http://msdl.microsoft.com/download/symbols"
+                        "https://msdl.microsoft.com/download/symbols"
                     )
                 else:
                     symbol_store_path = "cache*;SRV*" + local_path
@@ -933,8 +914,8 @@ class System(_ProcessContainer):
             no extensive testing was made so far.
         """
         cls.write_msr(
-            DebugRegister.DebugCtlMSR,
-            DebugRegister.BranchTrapFlag | DebugRegister.LastBranchRecord,
+            IntelDebugRegister.DebugCtlMSR,
+            IntelDebugRegister.BranchTrapFlag | IntelDebugRegister.LastBranchRecord,
         )
 
     @classmethod
@@ -961,8 +942,8 @@ class System(_ProcessContainer):
             Maybe it fails in other virtualization/emulation environments,
             no extensive testing was made so far.
         """
-        LastBranchFromIP = cls.read_msr(DebugRegister.LastBranchFromIP)
-        LastBranchToIP = cls.read_msr(DebugRegister.LastBranchToIP)
+        LastBranchFromIP = cls.read_msr(IntelDebugRegister.LastBranchFromIP)
+        LastBranchToIP = cls.read_msr(IntelDebugRegister.LastBranchToIP)
         return (LastBranchFromIP, LastBranchToIP)
 
     # ------------------------------------------------------------------------------

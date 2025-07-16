@@ -51,8 +51,10 @@ __all__ = [
     "BeaEngine",
     "CapstoneEngine",
     "DistormEngine",
+    "MiasmEngine",
 ]
 
+import logging
 import warnings
 
 from . import win32
@@ -62,6 +64,7 @@ from .textio import HexDump
 bea_disasm = None
 distorm3 = None
 capstone = None
+miasm = None
 
 # ==============================================================================
 
@@ -445,6 +448,222 @@ class CapstoneEngine(Engine):
 
 # ==============================================================================
 
+
+class MiasmEngine(Engine):
+    """
+    Integration with the Miasm disassembler by CEA-SEC.
+
+    Note: All Miasm logging is disabled by default to prevent verbose warnings
+    during disassembly. Users can control logging with the :meth:`set_logging` method.
+    """
+
+    name = "Miasm"
+    desc = "Miasm disassembler by CEA-SEC"
+    url = "https://github.com/cea-sec/miasm"
+
+    supported = set(
+        (
+            win32.ARCH_I386,
+            win32.ARCH_AMD64,
+            win32.ARCH_ARM,
+            win32.ARCH_ARM64,
+            win32.ARCH_THUMB,
+        )
+    )
+
+    @classmethod
+    def _import_dependencies(cls):
+        global miasm
+        if miasm is None:
+            import miasm.analysis.binary
+            import miasm.analysis.machine
+            import miasm.core.locationdb
+            class MiasmModules:
+                Container = miasm.analysis.binary.Container
+                Machine = miasm.analysis.machine.Machine
+                LocationDB = miasm.core.locationdb.LocationDB
+            miasm = MiasmModules()
+            cls.set_logging(False)
+
+    @classmethod
+    def set_logging(cls, enabled=True):
+        """
+        Enable or disable Miasm logging.
+
+        :param bool enabled: Whether to enable Miasm logging.
+
+        Example:
+            # Enable Miasm logging.
+            MiasmEngine.set_logging(True)
+
+            # Disable all Miasm logging (default state).
+            MiasmEngine.set_logging(False)
+        """
+        miasm_loggers = [
+            # Core disassembly loggers.
+            "asmblock", "cpuhelper",
+
+            # Architecture-specific loggers.
+            "aarch64dis", "x86_arch", "armdis", "mips32dis",
+            "msp430dis", "ppcdis",
+
+            # Analysis and processing loggers.
+            "binary", "expr_reduce", "exprsimp", "symbexec",
+            "analysis", "simplifier", "cst_propag",
+
+            # JIT engine loggers.
+            "jit_x86", "jit_arm", "jit_aarch64", "jit_mips32",
+            "jit_msp430", "jit_ppc", "jit_mep",
+
+            # Loader loggers.
+            "loader_elf", "loader_pe", "loader_common",
+            "jitload.py", "jit function call",
+
+            # Parser loggers.
+            "elfparse", "peparse", "pepy",
+
+            # OS-specific loggers.
+            "environment", "syscalls", "seh_helper", "win_api_x86_32",
+
+            # Translator loggers..
+            "translator_z3", "translator_smt2",
+
+            # Semantic analysis loggers.
+            "x86_sem",
+        ]
+        for logger_name in miasm_loggers:
+            logger = logging.getLogger(logger_name)
+            logger.disabled = not enabled
+
+    def __init__(self, arch=None):
+        super().__init__(arch)
+
+        # Map WinAppDbg architectures to Miasm architecture names
+        self._arch_map = {
+            win32.ARCH_I386: "x86_32",
+            win32.ARCH_AMD64: "x86_64",
+            win32.ARCH_ARM: "arml",
+            win32.ARCH_ARM64: "aarch64l",
+            win32.ARCH_THUMB: "armtl",
+        }
+
+        # Get the Miasm architecture name
+        self._miasm_arch = self._arch_map[self.arch]
+
+    def decode(self, address, code):
+        """
+        Decode machine code using Miasm.
+
+        :param int address: Memory address where the code was read from.
+        :param str code: Machine code to disassemble.
+        :return: List of tuples (address, size, disasm, hexdump)
+        :rtype: list[tuple(int, int, str, str)]
+        """
+        result = []
+
+        try:
+            # Create location database
+            loc_db = miasm.LocationDB()
+
+            # Create container from raw bytes
+            cont = miasm.Container.from_string(code, loc_db)
+
+            # Create machine for the target architecture
+            machine = miasm.Machine(self._miasm_arch)
+
+            # Get disassembler engine
+            mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
+
+            # Disassemble each instruction
+            offset = 0
+            addr = address
+
+            while offset < len(code):
+                try:
+                    # Disassemble one instruction
+                    instr = mdis.dis_instr(offset)
+
+                    if instr is not None:
+                        # Extract instruction info
+                        disasm = str(instr)
+                        size = instr.l
+                        hexdump = HexDump.hexadecimal(code[offset:offset + size])
+
+                        result.append((addr, size, disasm, hexdump))
+                        offset += size
+                        addr += size
+                    else:
+                        # Fallback: treat as data
+                        # The exact instruction depends on the architecture
+                        if self.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+                            size = 1
+                            mnemonic = "db"
+                        else:
+                            size = 4
+                            mnemonic = "dcb"
+
+                        # Don't go beyond the code buffer
+                        size = min(size, len(code) - offset)
+
+                        # Get the data bytes
+                        data_bytes = code[offset:offset + size]
+                        hexdump = HexDump.hexadecimal(data_bytes)
+
+                        # Build the "define constant" instruction
+                        b = []
+                        for byte in data_bytes:
+                            if isinstance(byte, int):
+                                char_val = byte
+                            else:
+                                char_val = ord(byte)
+
+                            if 32 <= char_val <= 126:  # printable ASCII
+                                b.append("'%s'" % chr(char_val))
+                            else:
+                                b.append("0x%02x" % char_val)
+
+                        disasm = "%s %s" % (mnemonic, ", ".join(b))
+
+                        result.append((addr, size, disasm, hexdump))
+                        offset += size
+                        addr += size
+
+                except Exception:
+                    # Final fallback: single byte
+                    if offset < len(code):
+                        size = 1
+                        data_bytes = code[offset:offset + size]
+                        hexdump = HexDump.hexadecimal(data_bytes)
+
+                        byte_val = data_bytes[0]
+                        if isinstance(byte_val, int):
+                            char_val = byte_val
+                        else:
+                            char_val = ord(byte_val)
+
+                        if 32 <= char_val <= 126:  # printable ASCII
+                            disasm = "db '%s'" % chr(char_val)
+                        else:
+                            disasm = "db 0x%02x" % char_val
+
+                        result.append((addr, size, disasm, hexdump))
+                        offset += size
+                        addr += size
+                    else:
+                        break
+
+        except Exception:
+            # Ultimate fallback: treat entire code as data
+            if code:
+                hexdump = HexDump.hexadecimal(code)
+                disasm = "db %s" % ", ".join("0x%02x" % (b if isinstance(b, int) else ord(b)) for b in code)
+                result.append((address, len(code), disasm, hexdump))
+
+        return result
+
+
+# ==============================================================================
+
 # TODO: use a lock to access __decoder
 # TODO: look in sys.modules for whichever disassembler is already loaded
 
@@ -461,9 +680,10 @@ class Disassembler:
 
     # These are the supported disassembly engines.
     engines = (
-        CapstoneEngine,  # most likely to be up to date along with diStorm
-        DistormEngine,  # diStorm needs to be compiled, so less likely to work
-        BeaEngine,  # pip install may fail silently so I'm putting it last
+        MiasmEngine,        # https://github.com/cea-sec/miasm
+        CapstoneEngine,     # https://github.com/capstone-engine/capstone
+        DistormEngine,      # https://github.com/gdabah/distorm
+        BeaEngine,          # https://github.com/BeaEngine/beaengine
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.

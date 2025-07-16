@@ -1282,8 +1282,6 @@ class EventHandler:
     - *stack_overflow*
     - *wow64_breakpoint*
 
-
-
     :cvar dict(str, list(tuple(str, int))) apiHooks:
         Dictionary that maps module names to lists of
         tuples of ( procedure name, parameter count ).

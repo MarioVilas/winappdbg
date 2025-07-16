@@ -55,7 +55,7 @@ import warnings
 from . import win32
 from .process import Process, Thread
 from .textio import HexDump
-from .util import DebugRegister, MemoryAddresses
+from .util import IntelDebugRegister, MemoryAddresses
 
 # ==============================================================================
 
@@ -718,14 +718,14 @@ class HardwareBreakpoint(Breakpoint):
 
     typeName = "hardware breakpoint"
 
-    BREAK_ON_EXECUTION = DebugRegister.BREAK_ON_EXECUTION
-    BREAK_ON_WRITE = DebugRegister.BREAK_ON_WRITE
-    BREAK_ON_ACCESS = DebugRegister.BREAK_ON_ACCESS
+    BREAK_ON_EXECUTION = IntelDebugRegister.BREAK_ON_EXECUTION
+    BREAK_ON_WRITE = IntelDebugRegister.BREAK_ON_WRITE
+    BREAK_ON_ACCESS = IntelDebugRegister.BREAK_ON_ACCESS
 
-    WATCH_BYTE = DebugRegister.WATCH_BYTE
-    WATCH_WORD = DebugRegister.WATCH_WORD
-    WATCH_DWORD = DebugRegister.WATCH_DWORD
-    WATCH_QWORD = DebugRegister.WATCH_QWORD
+    WATCH_BYTE = IntelDebugRegister.WATCH_BYTE
+    WATCH_WORD = IntelDebugRegister.WATCH_WORD
+    WATCH_DWORD = IntelDebugRegister.WATCH_DWORD
+    WATCH_QWORD = IntelDebugRegister.WATCH_QWORD
 
     validTriggers = (
         BREAK_ON_EXECUTION,
@@ -813,7 +813,7 @@ class HardwareBreakpoint(Breakpoint):
             aThread.suspend()
             try:
                 ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
-                DebugRegister.clear_bp(ctx, self.__slot)
+                IntelDebugRegister.clear_bp(ctx, self.__slot)
                 aThread.set_context(ctx)
                 self.__slot = None
             finally:
@@ -824,12 +824,12 @@ class HardwareBreakpoint(Breakpoint):
             aThread.suspend()
             try:
                 ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
-                self.__slot = DebugRegister.find_slot(ctx)
+                self.__slot = IntelDebugRegister.find_slot(ctx)
                 if self.__slot is None:
                     msg = "No available hardware breakpoint slots for thread ID %d"
                     msg = msg % aThread.get_tid()
                     raise RuntimeError(msg)
-                DebugRegister.set_bp(
+                IntelDebugRegister.set_bp(
                     ctx, self.__slot, self.get_address(), self.__trigger, self.__watch
                 )
                 aThread.set_context(ctx)
@@ -3205,7 +3205,7 @@ class _BreakpointContainer:
             if tid in self.__hardwareBP:
                 ctx = aThread.get_context(win32.CONTEXT_DEBUG_REGISTERS)
                 Dr6 = ctx["Dr6"]
-                ctx["Dr6"] = Dr6 & DebugRegister.clearHitMask
+                ctx["Dr6"] = Dr6 & IntelDebugRegister.clearHitMask
                 aThread.set_context(ctx)
                 bFoundBreakpoint = False
                 bCondition = False
@@ -3214,7 +3214,7 @@ class _BreakpointContainer:
                     if bp not in self.__hardwareBP[tid]:
                         continue  # it was removed by a user-defined callback
                     slot = bp.get_slot()
-                    if (slot is not None) and (Dr6 & DebugRegister.hitMask[slot]):
+                    if (slot is not None) and (Dr6 & IntelDebugRegister.hitMask[slot]):
                         if not bFoundBreakpoint:  # set before actions are called
                             if not bFakeSingleStep:
                                 event.continueStatus = win32.DBG_CONTINUE

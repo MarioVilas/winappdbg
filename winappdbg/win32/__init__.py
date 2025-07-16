@@ -59,6 +59,17 @@ from .user32 import *  # NOQA
 from .wtsapi32 import *  # NOQA
 from .version import *  # NOQA
 
+# Import the appropriate context module based on detected architecture.
+if arch == ARCH_I386:
+    from .context_i386 import *  # NOQA
+    from . import context_i386 as _context_module
+elif arch == ARCH_AMD64:
+    from .context_amd64 import *  # NOQA
+    from . import context_amd64 as _context_module
+elif arch == ARCH_ARM64:
+    from .context_arm64 import *  # NOQA
+    from . import context_arm64 as _context_module
+
 # This calculates the list of exported symbols.
 _all = set()
 _all.update(defines._all)
@@ -71,5 +82,5 @@ _all.update(shlwapi._all)
 _all.update(psapi._all)
 _all.update(dbghelp._all)
 _all.update(ntdll._all)
-__all__ = [_x for _x in _all if not _x.startswith("_")]
-__all__.sort()
+_all.update(_context_module._all)
+__all__ = sorted([_x for _x in _all if not _x.startswith("_")])
