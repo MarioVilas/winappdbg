@@ -185,7 +185,7 @@ class Debug(EventDispatcher, _BreakpointContainer):
                         "Running the debugger in an emulated x86/x64 process"
                         " is considered experimental. Use at your own risk!"
                     )
-                    warnings.warn(msg, EmulatedDebuggerWarning
+                    warnings.warn(msg, EmulatedDebuggerWarning)
 
     ##    # It's hard not to create circular references,
     ##    # and if we have a destructor, we can end up leaking everything.
