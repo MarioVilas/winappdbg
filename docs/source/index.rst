@@ -11,7 +11,7 @@ Welcome to WinAppDbg |version|!
     Some quick links for the impatient:
 
     * `Homepage <https://github.com/MarioVilas/winappdbg/>`_
-    * `Source code <https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v1.7>`_
+    * `Source code <https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v2.0>`_
     * `Documentation <http://winappdbg.readthedocs.io/en/latest/>`_
 
 Introduction
