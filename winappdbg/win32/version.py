@@ -1075,12 +1075,6 @@ def _get_arch():
         - :data:`ARCH_ALPHA64` (``"alpha64"``) for Alpha64 processors.
         - :data:`ARCH_MSIL` (``"msil"``) for the .NET virtual machine.
         - :data:`ARCH_SPARC` (``"sparc"``) for Sun Sparc processors.
-
-        Probably IronPython returns ``ARCH_MSIL`` but I haven't tried it. Python
-        on Windows CE and Windows Mobile should return ``ARCH_ARM``. Python on
-        Solaris using Wine would return ``ARCH_SPARC``. Python in an Itanium
-        machine should return ``ARCH_IA64`` both on Wine and proper Windows.
-        All other values should only be returned on Linux using Wine.
     """
     try:
         si = GetNativeSystemInfo()

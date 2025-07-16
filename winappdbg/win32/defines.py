@@ -54,23 +54,16 @@ windll = ctypes.windll
 
 
 # Automatically disable padding of structs and unions on 32 bits.
+# XXX FIXME: some specific structures may have different padding.
+#            this is not documented and can only be determined by
+#            reading winnt.sh and other SDK headers.
 class Structure(ctypes.Structure):
     if sizeof(ctypes.c_void_p) == 4:
         _pack_ = 1
-
-
 class Union(ctypes.Union):
     if sizeof(ctypes.c_void_p) == 4:
         _pack_ = 1
 
-
-# The IronPython implementation of byref() was giving some problems,
-# so it's best to replace it with the slower pointer() function.
-try:
-    ctypes.c_void_p(ctypes.byref(ctypes.c_char()))  # this fails in IronPython
-    byref = ctypes.byref
-except TypeError:
-    byref = ctypes.pointer
 
 # XXX DEBUG
 # The following code can be enabled to make the Win32 API wrappers log to
