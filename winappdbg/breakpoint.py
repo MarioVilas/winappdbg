@@ -478,12 +478,13 @@ class CodeBreakpoint(Breakpoint):
 
     typeName = "code breakpoint"
 
-    if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-        bpInstruction = b"\xcc"              # INT 3
-    elif win32.arch == win32.ARCH_ARM64:
-        bpInstruction = b"\x00\x00\x20\xd4"  # BRK #0
+    bpInstructions = {
+        win32.ARCH_I386: b"\xcc",               # INT 3
+        win32.ARCH_AMD64: b"\xcc",              # INT 3
+        win32.ARCH_ARM64: b"\x00\x00\x20\xd4",  # BRK #0
+    }
 
-    def __init__(self, address, condition=True, action=None):
+    def __init__(self, address, arch=None, condition=True, action=None):
         """
         Code breakpoint object.
 
@@ -497,6 +498,11 @@ class CodeBreakpoint(Breakpoint):
             Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean (``True`` to dispatch the event,
             ``False`` otherwise).
+
+        :param str arch: Architecture of the target process.
+            This is used to know how to assemble a breakpoint instruction.
+            If the value is None, the default architecture is assumed.
+
         :param callable action: Optional action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
@@ -507,11 +513,15 @@ class CodeBreakpoint(Breakpoint):
 
             Where ``event`` is an :class:`~winappdbg.event.Event` object.
         """
-        if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64, win32.ARCH_ARM64):
-            msg = "Code breakpoints not supported for %s" % win32.arch
+        if not arch:
+            arch = win32.arch
+        code = self.bpInstructions.get(arch)
+        if not code:
+            msg = "Code breakpoints not supported for %s" % arch
             raise NotImplementedError(msg)
-        super().__init__(address, len(self.bpInstruction), condition, action)
-        self.__previousValue = self.bpInstruction
+        super().__init__(address, len(code), condition, action)
+        self.__bpInstruction = code
+        self.__previousValue = code
 
     def __set_bp(self, aProcess):
         """
@@ -520,12 +530,12 @@ class CodeBreakpoint(Breakpoint):
         :param Process aProcess: Process object.
         """
         address = self.get_address()
-        self.__previousValue = aProcess.read(address, len(self.bpInstruction))
-        if self.__previousValue == self.bpInstruction:
+        self.__previousValue = aProcess.read(address, len(self.__bpInstruction))
+        if self.__previousValue == self.__bpInstruction:
             msg = "Possible overlapping code breakpoints at %s"
             msg = msg % HexDump.address(address)
             warnings.warn(msg, BreakpointWarning)
-        aProcess.write(address, self.bpInstruction)
+        aProcess.write(address, self.__bpInstruction)
 
     def __clear_bp(self, aProcess):
         """
@@ -534,8 +544,8 @@ class CodeBreakpoint(Breakpoint):
         :param Process aProcess: Process object.
         """
         address = self.get_address()
-        currentValue = aProcess.read(address, len(self.bpInstruction))
-        if currentValue == self.bpInstruction:
+        currentValue = aProcess.read(address, len(self.__bpInstruction))
+        if currentValue == self.__bpInstruction:
             # Only restore the previous value if the int3 is still there.
             aProcess.write(self.get_address(), self.__previousValue)
         else:
@@ -2119,7 +2129,8 @@ class _BreakpointContainer:
         :rtype:  :class:`CodeBreakpoint`
         :return: The code breakpoint object.
         """
-        bp = CodeBreakpoint(address, condition, action)
+        arch = Process(dwProcessId).get_arch()
+        bp = CodeBreakpoint(address, arch, condition, action)
         key = (dwProcessId, bp.get_address())
         if key in self.__codeBP:
             msg = "Already exists (PID %d) : %r"
