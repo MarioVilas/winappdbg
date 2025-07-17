@@ -531,8 +531,9 @@ class CodeBreakpoint(Breakpoint):
         """
         address = self.get_address()
         self.__previousValue = aProcess.read(address, len(self.__bpInstruction))
+        # XXX FIXME this needs to account for larger than 1 byte breakpoints
         if self.__previousValue == self.__bpInstruction:
-            msg = "Possible overlapping code breakpoints at %s"
+            msg = "Possibly overlapping code breakpoints at %s"
             msg = msg % HexDump.address(address)
             warnings.warn(msg, BreakpointWarning)
         aProcess.write(address, self.__bpInstruction)
@@ -547,6 +548,7 @@ class CodeBreakpoint(Breakpoint):
         currentValue = aProcess.read(address, len(self.__bpInstruction))
         if currentValue == self.__bpInstruction:
             # Only restore the previous value if the int3 is still there.
+            # XXX FIXME this needs to account for larger than 1 byte breakpoints
             aProcess.write(self.get_address(), self.__previousValue)
         else:
             self.__previousValue = currentValue
@@ -574,6 +576,12 @@ class CodeBreakpoint(Breakpoint):
     # the breakpoint is in RUNNING state, we'll miss it. There
     # is a solution to this but it's somewhat complicated, so
     # I'm leaving it for another version of the debugger. :(
+    #
+    # 2025 edit: reading this feels like finding Fermat's Last Theorem.
+    # Not cause it's smart, but because I have no fucking clue what the
+    # solution is supposed to be. Also, I'm doing this in my free time,
+    # so fuck it. If someone else can fix it, be my guest. I sure won't.
+    # I'm old and tired now.
     def running(self, aProcess, aThread):
         if self.is_enabled():
             self.__clear_bp(aProcess)
@@ -702,6 +710,8 @@ class PageBreakpoint(Breakpoint):
 # ==============================================================================
 
 
+# TODO: ARM does support hardware breakpoints, but that involves refactoring
+#       this whole class, or possibly writing a separate class entirely.
 class HardwareBreakpoint(Breakpoint):
     """
     Hardware breakpoint (using debug registers).
@@ -3754,6 +3764,10 @@ class _BreakpointContainer:
         # We should merge the breakpoints instead of overwriting them.
         # We'll have the same problem as watch_buffer and we'll need to change
         # the API again.
+
+        # This check relies on being subclassed by Debug.
+        if not getattr(self, "_hw_bp_available", True):
+            raise NotImplementedError("Hardware breakpoints not available")
 
         if size == 1:
             sizeFlag = self.BP_WATCH_BYTE
