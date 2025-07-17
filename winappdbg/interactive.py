@@ -145,6 +145,26 @@ class ConsoleDebugger(Cmd, EventHandler):
     register_alias_32_to_8_low = {"al": "Eax", "bl": "Ebx", "cl": "Ecx", "dl": "Edx"}
     register_alias_32_to_8_high = {"ah": "Eax", "bh": "Ebx", "ch": "Ecx", "dh": "Edx"}
 
+    # ARM64 register aliases (64-bit to 32-bit)
+    register_alias_arm64_to_32 = {
+        "w0": "X0", "w1": "X1", "w2": "X2", "w3": "X3", "w4": "X4",
+        "w5": "X5", "w6": "X6", "w7": "X7", "w8": "X8", "w9": "X9",
+        "w10": "X10", "w11": "X11", "w12": "X12", "w13": "X13", "w14": "X14",
+        "w15": "X15", "w16": "X16", "w17": "X17", "w18": "X18", "w19": "X19",
+        "w20": "X20", "w21": "X21", "w22": "X22", "w23": "X23", "w24": "X24",
+        "w25": "X25", "w26": "X26", "w27": "X27", "w28": "X28",
+        "wfp": "Fp", "wlr": "Lr", "wsp": "Sp",
+    }
+
+    # ARM64 common register aliases
+    register_alias_arm64_common = {
+        "fp": "Fp",    # frame pointer (alias for x29)
+        "lr": "Lr",    # link register (alias for x30)
+        "sp": "Sp",    # stack pointer
+        "pc": "Pc",    # program counter
+        "cpsr": "Cpsr", # current program status register
+    }
+
     register_aliases_full_32 = list(segment_names)
     register_aliases_full_32.extend(list(register_alias_32_to_16.keys()))
     register_aliases_full_32.extend(list(register_alias_32_to_8_low.keys()))
@@ -157,6 +177,10 @@ class ConsoleDebugger(Cmd, EventHandler):
     register_aliases_full_64.extend(list(register_alias_64_to_8_low.keys()))
     register_aliases_full_64.extend(list(register_alias_64_to_8_high.keys()))
     register_aliases_full_64 = tuple(register_aliases_full_64)
+
+    register_aliases_full_arm64 = list(register_alias_arm64_to_32.keys())
+    register_aliases_full_arm64.extend(list(register_alias_arm64_common.keys()))
+    register_aliases_full_arm64 = tuple(register_aliases_full_arm64)
 
     # Names of the control flow instructions.
     jump_instructions = (
@@ -464,6 +488,13 @@ class ConsoleDebugger(Cmd, EventHandler):
             for name, typ in win32.CONTEXT._fields_:
                 if name == token:
                     return win32.sizeof(typ) == win32.sizeof(win32.DWORD64)
+        elif win32.arch == "arm64":
+            if token in self.register_aliases_full_arm64:
+                return True
+            token = token.title()
+            for name, typ in win32.CONTEXT._fields_:
+                if name == token:
+                    return win32.sizeof(typ) == win32.sizeof(win32.DWORD64)
         return False
 
     # The token is a register name.
@@ -511,6 +542,13 @@ class ConsoleDebugger(Cmd, EventHandler):
 
             if token in self.register_alias_64_to_8_high.keys():
                 return (ctx.get(self.register_alias_64_to_8_high[token]) & 0xFF00) >> 8
+
+        elif ctx.arch == "arm64":
+            if token in self.register_alias_arm64_common.keys():
+                return ctx.get(self.register_alias_arm64_common[token])
+
+            if token in self.register_alias_arm64_to_32.keys():
+                return ctx.get(self.register_alias_arm64_to_32[token]) & 0xFFFFFFFF
 
         return None
 
@@ -1905,10 +1943,7 @@ class ConsoleDebugger(Cmd, EventHandler):
         iter = process.search_bytes(
             pattern.encode("latin-1"), minAddr=minAddr, maxAddr=maxAddr
         )
-        if process.get_bits() == 32:
-            addr_width = 8
-        else:
-            addr_width = 16
+        addr_width = process.get_bits() // 4
         # TODO: need a prettier output here!
         for addr in iter:
             print(HexDump.address(addr, addr_width))
@@ -1933,10 +1968,7 @@ class ConsoleDebugger(Cmd, EventHandler):
             minAddr = addr
             maxAddr = addr + size
         iter = process.search_hexa(pattern, minAddr=minAddr, maxAddr=maxAddr)
-        if process.get_bits() == 32:
-            addr_width = 8
-        else:
-            addr_width = 16
+        addr_width = process.get_bits() // 4
         for addr, bytes in iter:
             print(
                 HexDump.hexblock(bytes, addr, addr_width),
