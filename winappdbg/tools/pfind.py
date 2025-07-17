@@ -3,7 +3,7 @@
 
 # Acknowledgements:
 #  Nicolas Economou, for his ptool suite on which this tool is inspired.
-#  http://tinyurl.com/nicolaseconomou
+#  https://www.linkedin.com/in/nicolas-alejandro-economou-51468743/
 
 # Process memory finder
 # Copyright (c) 2009-2025, Mario Vilas
