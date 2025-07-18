@@ -1373,9 +1373,9 @@ class Hook:
 
         # For hardware breakpoints, we need to set them on every thread.
         if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
-            process = debug.get_process()
+            process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.I386 or arch == win32.AMD64:
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
                 size = 1
             else:
                 size = process.get_bits() // 8
@@ -1389,9 +1389,9 @@ class Hook:
 
         # For page breakpoints we set a buffer watch on the first instruction.
         if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
-            process = debug.get_process()
+            process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.I386 or arch == win32.AMD64:
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
                 size = 1    # TODO: maybe disassemble and get the real size?
             else:
                 size = process.get_bits() // 8
@@ -1399,6 +1399,47 @@ class Hook:
 
         # Code breakpoints are the default.
         return debug.break_at(pid, address, self)
+
+    def stalk(self, debug, pid, address):
+        """
+        Convenience method to set the hook as a one shot breakpoint.
+
+        :param debug: Debugger object.
+        :type debug: :class:`~winappdbg.debug.Debug`
+        :param int pid: Process ID.
+        :param int address: Address to hook.
+        :return: The new breakpoint object.
+        :rtype: :class:`Breakpoint`
+        """
+
+        # For hardware breakpoints, we need to set them on every thread.
+        if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
+            process = Process(pid)
+            arch = process.get_arch()
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
+                size = 1
+            else:
+                size = process.get_bits() // 8
+            bp_list = []
+            for thread in process.iter_threads():
+                tid = thread.get_tid()
+                bp_list.append(debug.stalk_variable(tid, address, size, self))
+            if len(bp_list) == 1:
+                return bp_list[0]
+            return bp_list
+
+        # For page breakpoints we set a buffer watch on the first instruction.
+        if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
+            process = Process(pid)
+            arch = process.get_arch()
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
+                size = 1    # TODO: maybe disassemble and get the real size?
+            else:
+                size = process.get_bits() // 8
+            return debug.stalk_buffer(pid, address, size, self)
+
+        # Code breakpoints are the default.
+        return debug.stalk_at(pid, address, self)
 
     def unhook(self, debug, pid, address):
         """
@@ -1410,9 +1451,9 @@ class Hook:
         :param int address: Address of the hook.
         """
         if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
-            process = debug.get_process()
+            process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.I386 or arch == win32.AMD64:
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
                 size = 1
             else:
                 size = process.get_bits() // 8
@@ -1420,9 +1461,9 @@ class Hook:
                 tid = thread.get_tid()
                 debug.dont_watch_variable(tid, address, size)
         if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
-            process = debug.get_process()
+            process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.I386 or arch == win32.AMD64:
+            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
                 size = 1
             else:
                 size = process.get_bits() // 8
@@ -3655,6 +3696,8 @@ class _BreakpointContainer:
         signature=None,
         preCBArgs=None,
         postCBArgs=None,
+        bpTypeEntry=None,
+        bpTypeReturn=None,
     ):
         """
         Sets a function hook at the given address.
@@ -3709,9 +3752,8 @@ class _BreakpointContainer:
             hooked function signature. When the function is called, this will
             be used to parse the arguments from the stack. Overrides the
             ``paramCount`` argument.
-        :rtype:  bool
-        :return: ``True`` if the hook was set immediately, or ``False`` if
-            it was deferred.
+        :rtype:  Hook
+        :return: Hook object.
         """
         try:
             aProcess = self.system.get_process(pid)
@@ -3719,13 +3761,24 @@ class _BreakpointContainer:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
         hookObj = HookFactory(
-            preCB, postCB, paramCount, signature, arch, preCBArgs, postCBArgs
+            preCB, postCB, paramCount, signature, arch,
+            preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn
         )
-        bp = self.break_at(pid, address, hookObj)
+        bp = hookObj.hook(self, pid, address)
         return bp is not None
 
     def stalk_function(
-        self, pid, address, preCB=None, postCB=None, paramCount=None, signature=None
+        self,
+        pid,
+        address,
+        preCB=None,
+        postCB=None,
+        paramCount=None,
+        signature=None,
+        preCBArgs=None,
+        postCBArgs=None,
+        bpTypeEntry=None,
+        bpTypeReturn=None,
     ):
         """
         Sets a one-shot function hook at the given address.
@@ -3780,47 +3833,20 @@ class _BreakpointContainer:
             hooked function signature. When the function is called, this will
             be used to parse the arguments from the stack. Overrides the
             ``paramCount`` argument.
-        :rtype:  bool
-        :return: ``True`` if the breakpoint was set immediately, or ``False`` if
-            it was deferred.
+        :rtype:  Hook
+        :return: Hook object.
         """
         try:
             aProcess = self.system.get_process(pid)
         except KeyError:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
-        hookObj = HookFactory(preCB, postCB, paramCount, signature, arch)
-        bp = self.stalk_at(pid, address, hookObj)
-        return bp is not None
-
-    def dont_hook_function(self, pid, address):
-        """
-        Removes a function hook set by :meth:`hook_function`.
-
-        :param int pid: Process global ID.
-        :param address:
-            Memory address of code instruction to break at. It can be an
-            integer value for the actual address or a string with a label
-            to be resolved.
-        :type address: int or str
-        """
-        self.dont_break_at(pid, address)
-
-    # alias
-    unhook_function = dont_hook_function
-
-    def dont_stalk_function(self, pid, address):
-        """
-        Removes a function hook set by :meth:`stalk_function`.
-
-        :param int pid: Process global ID.
-        :param address:
-            Memory address of code instruction to break at. It can be an
-            integer value for the actual address or a string with a label
-            to be resolved.
-        :type address: int or str
-        """
-        self.dont_stalk_at(pid, address)
+        hookObj = HookFactory(
+            preCB, postCB, paramCount, signature, arch,
+            preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn
+        )
+        hookObj.stalk(self, pid, address)
+        return hookObj
 
     # ------------------------------------------------------------------------------
 

@@ -82,8 +82,8 @@ int main(int argc, char* argv[]) {
         printf("Formatted string: %s\n", narrowBuffer);
     }
 
-    printf("Dummy program finishing. Sleeping for 5 seconds...\n");
-    Sleep(5000); // Sleep for 5 seconds
+    //printf("Dummy program finishing. Sleeping for 5 seconds...\n");
+    //Sleep(5000); // Sleep for 5 seconds
 
     return 0;
 }

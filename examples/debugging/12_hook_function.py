@@ -29,6 +29,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from winappdbg.debug import Debug
+from winappdbg.breakpoint import Breakpoint
 from winappdbg.event import EventHandler
 from winappdbg.win32 import PVOID
 
@@ -76,7 +77,15 @@ class MyEventHandler(EventHandler):
             # Use stalk_function instead of hook_function
             # to be notified only the first time the function is called.
             #
-            # event.debug.stalk_function( pid, address, wsprintf, signature = signature)
+            # event.debug.stalk_function(pid, address, wsprintf, signature=signature)
+
+            # We can optionally define the type of breakpoint the hook will use.
+            # By default it uses code breakpoints, but if we're tracing malware
+            # we may want to be sneakier than that.
+            #
+            # event.debug.hook_function(
+            #     pid, address, wsprintf, signature=signature,
+            #     bpTypeEntry=Breakpoint.PAGE_BREAKPOINT)
 
 
 def simple_debugger(argv):
