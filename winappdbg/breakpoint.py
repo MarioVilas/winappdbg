@@ -1287,7 +1287,7 @@ class Hook:
 
         # Forget the parameters.
         finally:
-            self.__pop_params(tid)
+            self.__pop_params(event.get_tid())
 
     def __callHandler(self, callback, event, *params):
         """

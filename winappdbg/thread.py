@@ -684,6 +684,7 @@ class Thread:
 
     def get_tf(self):
         "Gets the Trap flag."
+        arch = self.get_arch()
         if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
             bit = 0x100
         elif arch == win32.ARCH_AMD64:
@@ -695,6 +696,7 @@ class Thread:
 
     def set_tf(self):
         "Sets the Trap flag."
+        arch = self.get_arch()
         if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
             bit = 0x100
         elif arch == win32.ARCH_AMD64:
@@ -706,6 +708,7 @@ class Thread:
 
     def clear_tf(self):
         "Clears the Trap flag."
+        arch = self.get_arch()
         if arch == win32.ARCH_AMD64 or arch == win32.ARCH_I386:
             bit = 0x100
         elif arch == win32.ARCH_AMD64:

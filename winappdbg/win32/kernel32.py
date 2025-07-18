@@ -118,12 +118,13 @@ from .version import (
 )
 
 if arch == ARCH_I386:
-    from .context_i386 import GetThreadContext
+    from .context_i386 import GetThreadContext, SetThreadContext
 elif arch == ARCH_AMD64:
-    from .context_amd64 import GetThreadContext, Wow64GetThreadContext
+    from .context_amd64 import GetThreadContext, SetThreadContext
+    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext
 elif arch == ARCH_ARM64:
-    from .context_arm64 import GetThreadContext
-    from .context_amd64 import Wow64GetThreadContext
+    from .context_arm64 import GetThreadContext, SetThreadContext
+    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext
 
 
 # ------------------------------------------------------------------------------
