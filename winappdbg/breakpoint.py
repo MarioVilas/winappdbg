@@ -952,7 +952,7 @@ class HookFactory:
     sets a breakpoint at the return address and retrieves the return value
     from the function call.
 
-    .. seealso:: :class:`_Hook_i386`, :class:`_Hook_amd64`
+    .. seealso:: :class:`_Hook_i386`, :class:`_Hook_amd64`, :class:`_Hook_arm64`
     """
 
     def __new__(cls,
@@ -974,6 +974,10 @@ class HookFactory:
                 preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
         if arch == win32.ARCH_AMD64:
             return _Hook_amd64(
+                preCB, postCB, paramCount, signature, arch,
+                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
+        if arch == win32.ARCH_ARM64:
+            return _Hook_arm64(
                 preCB, postCB, paramCount, signature, arch,
                 preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
         raise NotImplementedError(
@@ -1548,7 +1552,7 @@ class _Hook_amd64(Hook):
                         "Hook signatures don't support structures"
                         " within the first 4 arguments of a function"
                         " for the %s architecture"
-                    ) % win32.arch
+                    ) % win32.ARCH_AMD64
                     raise NotImplementedError(msg)
 
         if reg_int_sig:
@@ -1629,10 +1633,152 @@ class _Hook_amd64(Hook):
     def _get_return_value(self, aThread):
         return aThread.get_context(win32.CONTEXT_INTEGER)["Rax"]
 
+
+class _Hook_arm64(Hook):
+    """Implementation details for :class:`Hook` on the
+    :data:`~winappdbg.win32.ARCH_ARM64` architecture.
+    """
+
+    # Make a list of floating point types.
+    __float_types = (
+        ctypes.c_double,
+        ctypes.c_float,
+    )
+    # Long doubles are not supported in old versions of ctypes!
+    try:
+        __float_types += (ctypes.c_longdouble,)
+    except AttributeError:
+        pass
+
+    def _calc_signature(self, signature):
+        self._cast_signature_pointers_to_void(signature)
+
+        float_types = self.__float_types
+        c_sizeof = ctypes.sizeof
+        reg_size = c_sizeof(ctypes.c_size_t)
+
+        reg_int_sig = []
+        reg_float_sig = []
+        stack_sig = []
+
+        int_arg_count = 0
+        float_arg_count = 0
+
+        for i in range(len(signature)):
+            arg = signature[i]
+            name = "arg_%d" % i
+            stack_sig.append((name, arg))
+            if type(arg) in float_types:
+                if float_arg_count < 8:
+                    reg_float_sig.append((name, arg))
+                float_arg_count += 1
+            elif c_sizeof(arg) <= reg_size:
+                if int_arg_count < 8:
+                    reg_int_sig.append((name, arg))
+                int_arg_count += 1
+            else:
+                msg = (
+                    "Hook signatures don't support structures"
+                    " as register arguments for the %s architecture"
+                ) % win32.ARCH_ARM64
+                raise NotImplementedError(msg)
+
+        if reg_int_sig:
+            class RegisterArguments(ctypes.Structure):
+                _fields_ = reg_int_sig
+        else:
+            RegisterArguments = None
+
+        if reg_float_sig:
+            class FloatArguments(ctypes.Structure):
+                _fields_ = reg_float_sig
+        else:
+            FloatArguments = None
+
+        if stack_sig:
+            class StackArguments(ctypes.Structure):
+                _fields_ = stack_sig
+        else:
+            StackArguments = None
+
+        return (len(signature), RegisterArguments, FloatArguments, StackArguments)
+
+    def _get_return_address(self, aProcess, aThread):
+        # On ARM64, the return address is in the Link Register (LR), which is X30.
+        # When a function call occurs, the address of the next instruction is stored in LR.
+        ctx = aThread.get_context(win32.CONTEXT_CONTROL)
+        return ctx["Lr"]
+
+    def _get_function_arguments(self, aProcess, aThread):
+        if self._signature:
+            (args_count, RegisterArguments, FloatArguments, StackArguments) = (
+                self._signature
+            )
+            arguments = {}
+
+            if StackArguments:
+                address = aThread.get_sp()
+                stack_struct = aProcess.read_structure(address, StackArguments)
+                stack_args = dict(
+                    [
+                        (name, stack_struct.__getattribute__(name))
+                        for (name, type) in stack_struct._fields_
+                    ]
+                )
+                arguments.update(stack_args)
+
+            flags = 0
+            if RegisterArguments:
+                flags = flags | win32.CONTEXT_INTEGER
+            if FloatArguments:
+                flags = flags | win32.CONTEXT_FLOATING_POINT
+
+            if flags:
+                ctx = aThread.get_context(flags)
+                if RegisterArguments:
+                    # First 8 integer arguments are in X0-X7 registers.
+                    buffer = (win32.QWORD * 8)(
+                        ctx["X0"], ctx["X1"], ctx["X2"], ctx["X3"],
+                        ctx["X4"], ctx["X5"], ctx["X6"], ctx["X7"],
+                    )
+                    reg_args = self._get_arguments_from_buffer(
+                        buffer, RegisterArguments
+                    )
+                    arguments.update(reg_args)
+                if FloatArguments:
+                    # First 8 floating-point arguments are in V0-V7 registers.
+                    buffer = (win32.NEON128 * 8)(
+                        ctx["V0"], ctx["V1"], ctx["V2"], ctx["V3"],
+                        ctx["V4"], ctx["V5"], ctx["V6"], ctx["V7"],
+                    )
+                    float_args = self._get_arguments_from_buffer(buffer, FloatArguments)
+                    arguments.update(float_args)
+            params = tuple([arguments["arg_%d" % i] for i in range(args_count)])
+        else:
+            params = ()
+        return params
+
+    def _get_arguments_from_buffer(self, buffer, structure):
+        b_ptr = ctypes.pointer(buffer)
+        v_ptr = ctypes.cast(b_ptr, ctypes.c_void_p)
+        s_ptr = ctypes.cast(v_ptr, ctypes.POINTER(structure))
+        struct = s_ptr.contents
+        return dict(
+            [(name, struct.__getattribute__(name)) for (name, type) in struct._fields_]
+        )
+
+    def _get_return_value(self, aThread):
+        # Integer return values are in X0.
+        # Floating point return values are in V0.
+        # Since the signature doesn't tell us the type of the return value,
+        # we retrieve both and let the user decide which one to use.
+        ctx = aThread.get_context(win32.CONTEXT_INTEGER | win32.CONTEXT_FLOATING_POINT)
+        return (ctx["X0"], ctx["V0"])
+
+
 #------------------------------------------------------------------------------
 # This class acts as a factory of Hook objects, one per target process.
 # Said objects are deleted by the unhook() method.
-
 
 class ApiHook:
     """Used by :class:`~winappdbg.event.EventHandler`.
