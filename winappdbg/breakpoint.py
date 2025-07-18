@@ -40,7 +40,7 @@ __all__ = [
     "PageBreakpoint",
     "HardwareBreakpoint",
     # Hooks and watches
-    "Hook",
+    "HookFactory",
     "ApiHook",
     "BufferWatch",
     # Warnings
@@ -104,6 +104,11 @@ class Breakpoint:
     ENABLED = 1
     ONESHOT = 2
     RUNNING = 3
+
+    # Breakpoint type constants.
+    CODE_BREAKPOINT = 0
+    HARDWARE_BREAKPOINT = 1
+    PAGE_BREAKPOINT = 2
 
     typeName = "breakpoint"
 
@@ -933,10 +938,7 @@ class HardwareBreakpoint(Breakpoint):
 # minor issue since when you're fuzzing a function for overflows you're usually
 # not interested in the return value anyway.
 
-# TODO: an API to modify the hooked function's arguments
-
-
-class Hook:
+class HookFactory:
     """
     Factory class to produce hook objects. Used by
     :meth:`~winappdbg.debug.Debug.hook_function` and
@@ -945,51 +947,43 @@ class Hook:
     When you try to instance this class, one of the architecture specific
     implementations is returned instead.
 
-    Instances act as an action callback for code breakpoints set at the
-    beginning of a function. It automatically retrieves the parameters from
-    the stack, sets a breakpoint at the return address and retrieves the
-    return value from the function call.
+    Instances act as an action callback for breakpoints set at the beginning
+    of a function. It automatically retrieves the parameters from the stack,
+    sets a breakpoint at the return address and retrieves the return value
+    from the function call.
 
     .. seealso:: :class:`_Hook_i386`, :class:`_Hook_amd64`
-
-    :cvar useHardwareBreakpoints: ``True`` to try to use hardware breakpoints,
-        ``False`` otherwise.
-    :type useHardwareBreakpoints: bool
     """
 
-    # This is a factory class that returns
-    # the architecture specific implementation.
-    def __new__(cls, *argv, **argd):
-        try:
-            arch = argd["arch"]
-            del argd["arch"]
-        except KeyError:
-            try:
-                arch = argv[4]
-                argv = argv[:4] + argv[5:]
-            except IndexError:
-                raise TypeError("Missing 'arch' argument!")
+    def __new__(cls,
+        preCB=None,
+        postCB=None,
+        paramCount=None,
+        signature=None,
+        arch=None,
+        preCBArgs=None,
+        postCBArgs=None,
+        bpTypeEntry=None,
+        bpTypeReturn=None,
+    ):
         if arch is None:
             arch = win32.arch
         if arch == win32.ARCH_I386:
-            return _Hook_i386(**argd)
+            return _Hook_i386(
+                preCB, postCB, paramCount, signature, arch,
+                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
         if arch == win32.ARCH_AMD64:
-            return _Hook_amd64(**argd)
+            return _Hook_amd64(
+                preCB, postCB, paramCount, signature, arch,
+                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
         raise NotImplementedError(
             "Hooks not supported for architecture: %s" % arch)
 
-    # XXX FIXME
-    #
-    # Hardware breakpoints don't work correctly (or al all) in old VirtualBox
-    # versions (3.0 and below).
-    #
-    # Maybe there should be a way to autodetect the buggy VirtualBox versions
-    # and tell Hook objects not to use hardware breakpoints?
-    #
-    # For now the workaround is to manually set this variable to True when
-    # WinAppDbg is installed on a physical machine.
-    #
-    useHardwareBreakpoints = False
+
+class Hook:
+    """
+    Base class for hooks.
+    """
 
     def __init__(
         self,
@@ -1000,6 +994,8 @@ class Hook:
         arch=None,
         preCBArgs=None,
         postCBArgs=None,
+        bpTypeEntry=None,
+        bpTypeReturn=None,
     ):
         """
         Hook object.
@@ -1023,12 +1019,14 @@ class Hook:
             library from being "too helpful" and trying to dereference the
             pointer. To get the actual data being pointed to, use one of the
             :meth:`~winappdbg.process.Process.read` methods.
+
         :param callable postCB: Optional callback triggered on function exit.
             The signature for the callback should be something like this::
 
                 def post_LoadLibraryEx(event, return_value):
 
                     # (...)
+
         :param int paramCount: Optional number of parameters for the ``preCB``
             callback, not counting the return address. Parameters are read from
             the stack and assumed to be DWORDs in 32 bits and QWORDs in 64.
@@ -1039,23 +1037,41 @@ class Hook:
 
             For a more reliable and cross-platform way of hooking use the
             ``signature`` argument instead.
+
         :param tuple signature: Optional tuple of ``ctypes`` data types that
             constitute the hooked function signature. When the function is
             called, this will be used to parse the arguments from the stack.
             Overrides the ``paramCount`` argument.
-        :param str arch: Optional architecture string.
+
+        :param str arch: Target architecture for the hooked function.
             See :data:`winappdbg.win32.arch`.
+
         :param tuple preCBArgs: Optional tuple of extra arguments to ``preCB``.
+
         :param tuple postCBArgs: Optional tuple of extra arguments to ``postCB``.
+
+        :param str bpTypeEntry: Optionally set the type of breakpoints to use
+            for the function entrypoint.
+
+            Defaults to :data:`Breakpoint.CODE_BREAKPOINT`. For hostile targets
+            (that is, for malware analysis) you may want instead to use
+            :data:`Breakpoint.PAGE_BREAKPOINT`. There will be a performance
+            cost if you do this, of course.
+
+        :param str bpTypeReturn: Optionally set the type of breakpoints to use
+            for the function return address.
+
+            Defaults to :data:`Breakpoint.CODE_BREAKPOINT` for compatibility, but
+            if possible it's best to use :data:`Breakpoint.HARDWARE_BREAKPOINT`.
+            The reason for this is hardware breakpoints are thread specific,
+            so they eliminate any potential race conditions if multiple threads
+            are calling the same hooked function at the same time.
         """
         self.__preCB = preCB
         self.__postCB = postCB
         self.__paramStack = dict()  # tid -> list of tuple( arg, arg, arg... )
 
         self._paramCount = paramCount
-
-        if win32.arch != win32.ARCH_I386:
-            self.useHardwareBreakpoints = False
 
         if win32.bits == 64 and paramCount and not signature:
             signature = (win32.QWORD,) * paramCount
@@ -1067,6 +1083,14 @@ class Hook:
 
         self.__preCBArgs = preCBArgs
         self.__postCBArgs = postCBArgs
+
+        if bpTypeEntry is None:
+            bpTypeEntry = Breakpoint.CODE_BREAKPOINT
+        if bpTypeReturn is None:
+            bpTypeReturn = Breakpoint.CODE_BREAKPOINT
+
+        self.__bpTypeEntry = bpTypeEntry
+        self.__bpTypeReturn = bpTypeReturn
 
     def _cast_signature_pointers_to_void(self, signature):
         c_void_p = ctypes.c_void_p
@@ -1099,13 +1123,6 @@ class Hook:
     def _get_return_value(self, aThread):
         return None
 
-    # By using break_at() to set a process-wide breakpoint on the function's
-    # return address, we might hit a race condition when more than one thread
-    # is being debugged.
-    #
-    # Hardware breakpoints should be used instead. But since a thread can run
-    # out of those, we need to fall back to this method when needed.
-
     def __call__(self, event):
         """
         Handles the breakpoint event on entry of the function.
@@ -1131,31 +1148,35 @@ class Hook:
         # If we need to hook the return from the function...
         bHookedReturn = False
         if ra is not None and self.__postCB is not None:
-            # Try to set a one shot hardware breakpoint at the return address.
-            useHardwareBreakpoints = self.useHardwareBreakpoints
-            if useHardwareBreakpoints:
+
+            # Set a breakpoint at the return address.
+            # On failure, fallback to code breakpoints.
+            # We can use a one-shot breakpoint if it's a hardware breakpoint,
+            # but other types need to be a regular breakpoint because we need
+            # to check if it was hit by the correct thread.
+            if self.__bpTypeReturn == Breakpoint.HARDWARE_BREAKPOINT:
                 try:
-                    debug.define_hardware_breakpoint(
-                        dwThreadId,
-                        ra,
-                        event.debug.BP_BREAK_ON_EXECUTION,
-                        event.debug.BP_WATCH_BYTE,
-                        True,
-                        self.__postCallAction_hwbp,
-                    )
-                    debug.enable_one_shot_hardware_breakpoint(dwThreadId, ra)
+                    debug.stalk_variable(
+                        dwThreadId, ra, aProcess.get_bits() // 8, self.__postCallAction_hwbp)
                     bHookedReturn = True
                 except Exception:
-                    useHardwareBreakpoints = False
                     msg = (
-                        "Failed to set hardware breakpoint"
-                        " at address %s for thread ID %d"
+                        "Failed to set hardware breakpoint at address %s for thread ID %d"
                     )
                     msg = msg % (HexDump.address(ra), dwThreadId)
                     warnings.warn(msg, BreakpointWarning)
-
-            # If not possible, set a code breakpoint instead.
-            if not useHardwareBreakpoints:
+            elif self.__bpTypeReturn == Breakpoint.PAGE_BREAKPOINT:
+                try:
+                    debug.watch_buffer(
+                        dwProcessId, ra, aProcess.get_bits() // 8, self.__postCallAction_pagebp)
+                    bHookedReturn = True
+                except Exception:
+                    msg = (
+                        "Failed to set page breakpoint at address %s for process ID %d"
+                    )
+                    msg = msg % (HexDump.address(ra), dwProcessId)
+                    warnings.warn(msg, BreakpointWarning)
+            if not bHookedReturn:   # code bp is the fallback
                 try:
                     debug.break_at(dwProcessId, ra, self.__postCallAction_codebp)
                     bHookedReturn = True
@@ -1172,6 +1193,7 @@ class Hook:
                 self.__callHandler(self.__preCB, event, ra, self.__preCBArgs, *params)
             else:
                 self.__callHandler(self.__preCB, event, ra, *params)
+
         # If no "post" callback is defined, forget the function arguments.
         finally:
             if not bHookedReturn:
@@ -1186,19 +1208,13 @@ class Hook:
         :type event: :class:`~winappdbg.event.ExceptionEvent`
         """
 
-        # Remove the one shot hardware breakpoint
-        # at the return address location in the stack.
-        tid = event.get_tid()
-        address = event.breakpoint.get_address()
-        event.debug.erase_hardware_breakpoint(tid, address)
+        # TODO: maybe disassemble the code that triggered
+        # the event to ensure it was hit by a return instruction.
+        # Otherwise malware can read its own return address as
+        # a way to break this functionality.
 
         # Call the "post" callback.
-        try:
-            self.__postCallAction(event)
-
-        # Forget the parameters.
-        finally:
-            self.__pop_params(tid)
+        self.__postCallAction(event)
 
     def __postCallAction_codebp(self, event):
         """
@@ -1211,10 +1227,6 @@ class Hook:
 
         # If the breakpoint was accidentally hit by another thread,
         # pass it to the debugger instead of calling the "post" callback.
-        #
-        # XXX FIXME:
-        # I suppose this check will fail under some weird conditions...
-        #
         tid = event.get_tid()
         if tid not in self.__paramStack:
             return True
@@ -1225,12 +1237,36 @@ class Hook:
         event.debug.dont_break_at(pid, address)
 
         # Call the "post" callback.
-        try:
-            self.__postCallAction(event)
+        self.__postCallAction(event)
 
-        # Forget the parameters.
-        finally:
-            self.__pop_params(tid)
+    def __postCallAction_pagebp(self, event):
+        """
+        Handles the breakpoint event on exit of the function.
+        This method is a callback for a page breakpoint.
+
+        :param event: Breakpoint hit event.
+        :type event: :class:`~winappdbg.event.ExceptionEvent`
+        """
+
+        # TODO: maybe disassemble the code that triggered
+        # the event to ensure it was hit by a return instruction.
+        # Otherwise malware can read its own return address as
+        # a way to break this functionality.
+
+        # If the breakpoint was accidentally hit by another thread,
+        # pass it to the debugger instead of calling the "post" callback.
+        tid = event.get_tid()
+        if tid not in self.__paramStack:
+            return True
+
+        # Remove the page breakpoint at the return address.
+        pid = event.get_pid()
+        address = event.breakpoint.get_address()
+        size = event.get_process().get_bits() // 8
+        event.debug.dont_watch_buffer(pid, address, size)
+
+        # Call the "post" callback.
+        self.__postCallAction(event)
 
     def __postCallAction(self, event):
         """
@@ -1239,12 +1275,19 @@ class Hook:
         :param event: Breakpoint hit event.
         :type event: :class:`~winappdbg.event.ExceptionEvent`
         """
-        aThread = event.get_thread()
-        retval = self._get_return_value(aThread)
-        if self.__postCBArgs is not None:
-            self.__callHandler(self.__postCB, event, self.__postCBArgs, retval)
-        else:
-            self.__callHandler(self.__postCB, event, retval)
+
+        # Call the user defined callback.
+        try:
+            aThread = event.get_thread()
+            retval = self._get_return_value(aThread)
+            if self.__postCBArgs is not None:
+                self.__callHandler(self.__postCB, event, self.__postCBArgs, retval)
+            else:
+                self.__callHandler(self.__postCB, event, retval)
+
+        # Forget the parameters.
+        finally:
+            self.__pop_params(tid)
 
     def __callHandler(self, callback, event, *params):
         """
@@ -1327,6 +1370,34 @@ class Hook:
         :return: The new breakpoint object.
         :rtype: :class:`Breakpoint`
         """
+
+        # For hardware breakpoints, we need to set them on every thread.
+        if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
+            process = debug.get_process()
+            arch = process.get_arch()
+            if arch == win32.I386 or arch == win32.AMD64:
+                size = 1
+            else:
+                size = process.get_bits() // 8
+            bp_list = []
+            for thread in process.iter_threads():
+                tid = thread.get_tid()
+                bp_list.append(debug.watch_variable(tid, address, size, self))
+            if len(bp_list) == 1:
+                return bp_list[0]
+            return bp_list
+
+        # For page breakpoints we set a buffer watch on the first instruction.
+        if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
+            process = debug.get_process()
+            arch = process.get_arch()
+            if arch == win32.I386 or arch == win32.AMD64:
+                size = 1    # TODO: maybe disassemble and get the real size?
+            else:
+                size = process.get_bits() // 8
+            return debug.watch_buffer(pid, address, size, self)
+
+        # Code breakpoints are the default.
         return debug.break_at(pid, address, self)
 
     def unhook(self, debug, pid, address):
@@ -1338,6 +1409,24 @@ class Hook:
         :param int pid: Process ID.
         :param int address: Address of the hook.
         """
+        if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
+            process = debug.get_process()
+            arch = process.get_arch()
+            if arch == win32.I386 or arch == win32.AMD64:
+                size = 1
+            else:
+                size = process.get_bits() // 8
+            for thread in process.iter_threads():
+                tid = thread.get_tid()
+                debug.dont_watch_variable(tid, address, size)
+        if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
+            process = debug.get_process()
+            arch = process.get_arch()
+            if arch == win32.I386 or arch == win32.AMD64:
+                size = 1
+            else:
+                size = process.get_bits() // 8
+            return debug.dont_watch_buffer(pid, address, size)
         return debug.dont_break_at(pid, address)
 
 
@@ -1345,9 +1434,6 @@ class _Hook_i386(Hook):
     """Implementation details for :class:`Hook` on the
     :data:`~winappdbg.win32.ARCH_I386` architecture.
     """
-
-    # We don't want to inherit the parent class __new__ method.
-    __new__ = object.__new__
 
     def _calc_signature(self, signature):
         self._cast_signature_pointers_to_void(signature)
@@ -1384,9 +1470,6 @@ class _Hook_amd64(Hook):
     """Implementation details for :class:`Hook` on the
     :data:`~winappdbg.win32.ARCH_AMD64` architecture.
     """
-
-    # We don't want to inherit the parent class __new__ method.
-    __new__ = object.__new__
 
     # Make a list of floating point types.
     __float_types = (
@@ -1602,14 +1685,9 @@ class ApiHook:
         try:
             hook = self.__hook[pid]
         except KeyError:
-            hook = Hook(
-                self.__preCB,
-                self.__postCB,
-                self.__paramCount,
-                self.__signature,
-                event.get_process().get_arch(),
-            )
-            self.__hook[pid] = hook
+            warnings.warn(
+                "Got a breakpoint hit for a removed hook in PID %d!" % pid)
+            return
         return hook(event)
 
     @property
@@ -1620,7 +1698,7 @@ class ApiHook:
     def procName(self):
         return self.__procName
 
-    def hook(self, debug, pid):
+    def hook(self, debug, pid, bpTypeEntry=None, bpTypeReturn=None):
         """
         Installs the API hook on a given process and module.
 
@@ -1638,12 +1716,14 @@ class ApiHook:
                 aProcess = debug.system.get_process(pid)
             except KeyError:
                 aProcess = Process(pid)
-            hook = Hook(
+            hook = HookFactory(
                 self.__preCB,
                 self.__postCB,
                 self.__paramCount,
                 self.__signature,
                 aProcess.get_arch(),
+                bpTypeEntry=bpTypeEntry,
+                bpTypeReturn=bpTypeReturn
             )
             self.__hook[pid] = hook
         hook.hook(debug, pid, label)
@@ -3638,7 +3718,7 @@ class _BreakpointContainer:
         except KeyError:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
-        hookObj = Hook(
+        hookObj = HookFactory(
             preCB, postCB, paramCount, signature, arch, preCBArgs, postCBArgs
         )
         bp = self.break_at(pid, address, hookObj)
@@ -3709,7 +3789,7 @@ class _BreakpointContainer:
         except KeyError:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
-        hookObj = Hook(preCB, postCB, paramCount, signature, arch)
+        hookObj = HookFactory(preCB, postCB, paramCount, signature, arch)
         bp = self.stalk_at(pid, address, hookObj)
         return bp is not None
 
