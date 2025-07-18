@@ -232,7 +232,7 @@ class Debug(EventDispatcher, _BreakpointContainer):
             except Exception:
                 pass
 
-    def attach(self, dwProcessId):
+    def attach(self, dwProcessId, scan_threads=True, scan_modules=True):
         """
         Attaches to an existing process for debugging.
 
@@ -294,8 +294,10 @@ class Debug(EventDispatcher, _BreakpointContainer):
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
         # properly give some information, like the filename for each module.
-        aProcess.scan_threads()
-        aProcess.scan_modules()
+        if scan_threads:
+            aProcess.scan_threads()
+        if scan_modules:
+            aProcess.scan_modules()
 
         # Return the Process object, like the execv() and execl() methods.
         return aProcess
