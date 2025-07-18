@@ -441,57 +441,6 @@ PCONTEXT = POINTER(CONTEXT)
 LPCONTEXT = PCONTEXT
 
 
-def _make_st_property(index):
-    """
-    Factory to create a property for an ST(i) register.
-
-    :param int index:
-        Register index (0-7).
-
-    :return:
-        Property object for the register.
-    :rtype:
-        property
-    """
-    reg_name = "ST(%d)" % index
-    start = index * 10
-    end = start + 10
-
-    def getter(self):
-        try:
-            return self["FloatSave"]["RegisterArea"][start:end]
-        except KeyError:
-            raise KeyError("%s not available in context" % reg_name)
-
-    def setter(self, value):
-        if not isinstance(value, (list, tuple)) or len(value) != 10:
-            raise ValueError(
-                "Floating point register value must be a "
-                "10-element list or tuple of bytes."
-            )
-        try:
-            reg_area = list(self["FloatSave"]["RegisterArea"])
-            reg_area[start:end] = value
-            self["FloatSave"]["RegisterArea"] = tuple(reg_area)
-        except KeyError:
-            raise KeyError("%s not available in context" % reg_name)
-
-    doc = """
-    Floating point register {reg_name}.
-
-    The value is a 10-byte tuple representing the 80-bit extended-precision
-    floating-point number.
-
-    Requires ``CONTEXT_FLOATING_POINT`` to be present in ``ContextFlags``.
-
-    :type: tuple(int)
-    """.format(
-        reg_name=reg_name
-    )
-
-    return property(getter, setter, doc=doc)
-
-
 class Context(dict):
     """
     Register context dictionary for the i386 architecture.
@@ -507,18 +456,6 @@ class Context(dict):
     * :attr:`pc` - Program Counter (Eip register)
     * :attr:`sp` - Stack Pointer (Esp register)
     * :attr:`fp` - Frame Pointer (Ebp register)
-
-    Since the floating point registers are accessed in a very weird way by the Win32
-    API, here are some additional properties for them:
-
-    * :attr:`st0` - ST(0) floating point register
-    * :attr:`st1` - ST(1) floating point register
-    * :attr:`st2` - ST(2) floating point register
-    * :attr:`st3` - ST(3) floating point register
-    * :attr:`st4` - ST(4) floating point register
-    * :attr:`st5` - ST(5) floating point register
-    * :attr:`st6` - ST(6) floating point register
-    * :attr:`st7` - ST(7) floating point register
 
     :Example:
 
@@ -587,15 +524,6 @@ class Context(dict):
         :type: int
         """,
     )
-
-    st0 = _make_st_property(0)
-    st1 = _make_st_property(1)
-    st2 = _make_st_property(2)
-    st3 = _make_st_property(3)
-    st4 = _make_st_property(4)
-    st5 = _make_st_property(5)
-    st6 = _make_st_property(6)
-    st7 = _make_st_property(7)
 
 
 # --- LDT_ENTRY structure ------------------------------------------------------
