@@ -1507,8 +1507,12 @@ class _Hook_i386(Hook):
         return params
 
     def _get_return_value(self, aThread):
-        ctx = aThread.get_context(win32.CONTEXT_INTEGER)
-        return ctx["Eax"]
+        # Integer values are returned in EAX.
+        # Floating point values are returned in ST(0).
+        # We'll assume the integer value is the most relevant.
+        # Users who need the floating point value must get it
+        # by reading the thread context directly.
+        return aThread.get_context(win32.CONTEXT_INTEGER)["Eax"]
 
 
 class _Hook_amd64(Hook):
@@ -1631,6 +1635,11 @@ class _Hook_amd64(Hook):
         )
 
     def _get_return_value(self, aThread):
+        # Integer values are returned in RAX.
+        # Floating point values are returned in XMM0.
+        # We'll assume the integer value is the most relevant.
+        # Users who need the floating point value must get it
+        # by reading the thread context directly.
         return aThread.get_context(win32.CONTEXT_INTEGER)["Rax"]
 
 
@@ -1770,10 +1779,10 @@ class _Hook_arm64(Hook):
     def _get_return_value(self, aThread):
         # Integer return values are in X0.
         # Floating point return values are in V0.
-        # Since the signature doesn't tell us the type of the return value,
-        # we retrieve both and let the user decide which one to use.
-        ctx = aThread.get_context(win32.CONTEXT_INTEGER | win32.CONTEXT_FLOATING_POINT)
-        return (ctx["X0"], ctx["V0"])
+        # We'll assume the integer value is the most relevant.
+        # Users who need the floating point value must get it
+        # by reading the thread context directly.
+        return aThread.get_context(win32.CONTEXT_INTEGER)["X0"]
 
 
 #------------------------------------------------------------------------------
