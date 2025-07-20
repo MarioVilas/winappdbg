@@ -346,6 +346,102 @@ class Module:
         # No match.
         return False
 
+    def get_load_count(self):
+        """
+        Retrieves the load count (reference count) of this module from the PEB.
+
+        This uses undocumented Windows structures and may not work on all
+        Windows versions. The load count indicates how many times the module
+        has been loaded.
+
+        :returns: Load count of the module, 0xFFFF for pinned/system modules,
+            or None if the count could not be retrieved.
+        :rtype: int or None
+        """
+        process = self.get_process()
+        if not process:
+            return None
+
+        module_base = self.get_base()
+        if not module_base:
+            return None
+
+        try:
+            # Get the PEB and access the loader data.
+            peb = process.get_peb()
+            if not peb.Ldr:
+                return None
+
+            # Read the PEB_LDR_DATA structure.
+            ldr_data = process.read_structure(peb.Ldr, win32.PEB_LDR_DATA)
+
+            # Start walking the InLoadOrderModuleList.
+            # The list head is in ldr_data.InLoadOrderModuleList.
+            # Remember the first link to detect when we've completed the circle.
+            current_link = ldr_data.InLoadOrderModuleList.Flink
+            first_link = current_link
+
+            # Walk the circular linked list (with safety limit to avoid infinite loops).
+            max_iterations = 1000
+            iteration_count = 0
+            while current_link and iteration_count < max_iterations:
+                try:
+                    # The current_link points to the InLoadOrderModuleList field
+                    # of an LDR_MODULE structure. Since this field is at offset 0,
+                    # current_link is the address of the LDR_MODULE structure.
+                    ldr_module = process.read_structure(current_link, win32.LDR_MODULE)
+
+                    # Check if this is our module by comparing base addresses.
+                    if ldr_module.BaseAddress == module_base:
+                        # Found our module, return the load count.
+                        return ldr_module.LoadCount & 0xFFFF  # Ensure it's treated as unsigned
+
+                    # Move to the next entry.
+                    current_link = ldr_module.InLoadOrderModuleList.Flink
+                    iteration_count += 1
+
+                    # Check if we've completed the circle.
+                    if iteration_count > 0 and current_link == first_link:
+                        break
+
+                except Exception:
+                    # If we can't read a structure, stop walking.
+                    warnings.warn(
+                        "Cannot read LDR_MODULE structure at address %s for module %s, reason:\n%s"
+                        % (HexDump.address(current_link), self.get_name(), traceback.format_exc()),
+                        RuntimeWarning,
+                    )
+                    break
+
+            # Module not found in the loader list.
+            return None
+
+        except Exception:
+            # If any error occurs, return None.
+            warnings.warn(
+                "Cannot get load count for module %s, reason:\n%s"
+                % (self.get_name(), traceback.format_exc()),
+                RuntimeWarning,
+            )
+            return None
+
+    def is_pinned(self):
+        """
+        Determines if this module is pinned (cannot be unloaded).
+
+        A module is considered pinned if its load count is 0xFFFF. This happens
+        for system modules and modules that have been explicitly pinned using
+        GetModuleHandleEx with the GET_MODULE_HANDLE_EX_FLAG_PIN flag.
+
+        :returns: True if the module is pinned, False if it's not pinned,
+            or None if the pinned status could not be determined.
+        :rtype: bool or None
+        """
+        load_count = self.get_load_count()
+        if load_count is None:
+            return None
+        return load_count == 0xFFFF
+
     # ------------------------------------------------------------------------------
 
     def open_handle(self):
