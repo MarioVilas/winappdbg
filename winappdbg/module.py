@@ -143,7 +143,7 @@ class Module:
         self.SizeOfImage = SizeOfImage
         self.EntryPoint = EntryPoint
 
-        self.__symbols = list()
+        self.__symbols = None
 
         self.set_handle(hFile)
         self.set_process(process)
@@ -478,7 +478,7 @@ class Module:
         """
         Unloads the debugging symbols for a module.
         """
-        self.__symbols = list()
+        self.__symbols = None
 
     def get_symbols(self):
         """
@@ -492,7 +492,7 @@ class Module:
             - Symbol size in bytes
         :rtype:  list(tuple(str, int, int))
         """
-        if not self.__symbols:
+        if self.__symbols is None:
             self.load_symbols()
         return list(self.__symbols)
 
@@ -509,7 +509,7 @@ class Module:
             - Symbol size in bytes
         :rtype:  iterator of tuple(str, int, int)
         """
-        if not self.__symbols:
+        if self.__symbols is None:
             self.load_symbols()
         return self.__symbols.__iter__()
 
