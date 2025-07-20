@@ -3573,6 +3573,19 @@ class _BreakpointContainer:
         :rtype:  bool
         :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
+
+        # XXX FIXME see bug #52
+        #
+        # There is an antidebug trick consisting in calling LoadLibrary then
+        # FreeLibrary, which keeps the reference count greater than 0 (so no
+        # actual unload happens) but the debugger will believe it did and remove
+        # all breakpoints and hooks.
+        #
+        # Pretty clever stuff, I gotta admit. The solution is to actually get
+        # the reference count before cleaning up for that module. Which is't
+        # super easy because there's no official way to do that, so I have to
+        # read the PEB and hope for the best.
+
         self.__cleanup_module(event)
         return True
 
