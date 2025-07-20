@@ -59,6 +59,7 @@ class MixedBitsWarning(RuntimeWarning):
     This warning is issued when mixing 32 and 64 bit processes.
     """
 
+
 # If you set this warning to be considered as an error, you can stop the
 # debugger from attaching to emulated processes (for example ARM64 processes
 # running in an ARM64 version of Windows).
@@ -66,6 +67,7 @@ class MixedArchWarning(RuntimeWarning):
     """
     This warning is issued when mixing architectures.
     """
+
 
 # If you set this warning to be considered as an error, you can stop the
 # debugger from attaching to emulated processes (for example ARM64 processes

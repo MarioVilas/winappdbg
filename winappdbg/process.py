@@ -34,8 +34,6 @@ Process instrumentation.
 This module contains the logic for handling process lifetime, memory, etc.
 """
 
-from __future__ import with_statement
-
 # FIXME
 # I've been told the host process for the latest versions of VMWare
 # can't be instrumented, because they try to stop code injection into the VMs.
@@ -680,17 +678,21 @@ class Process(_ThreadContainer, _ModuleContainer):
             hProcess = self.get_handle(dwAccess)
 
             # Use GetProcessInformation with ProcessMachineTypeInfo.
-            if hasattr(win32, 'GetProcessInformation') and hasattr(win32, 'PROCESS_INFORMATION_CLASS_KERNEL32'):
+            if hasattr(win32, "GetProcessInformation") and hasattr(
+                win32, "PROCESS_INFORMATION_CLASS_KERNEL32"
+            ):
                 machine_info = win32.GetProcessInformation(
                     hProcess,
-                    win32.PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMachineTypeInfo
+                    win32.PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMachineTypeInfo,
                 )
 
                 # Get the process architecture from the machine type.
                 process_arch = _machine_to_arch_map.get(machine_info.ProcessMachine)
                 if process_arch is not None:
                     return process_arch
-                raise NotImplementedError(f"Unsupported process machine type: 0x{machine_info.ProcessMachine:04X}")
+                raise NotImplementedError(
+                    f"Unsupported process machine type: 0x{machine_info.ProcessMachine:04X}"
+                )
 
         except (AttributeError, WindowsError):
             # Fall back to the older methods if GetProcessInformation fails.
@@ -698,7 +700,6 @@ class Process(_ThreadContainer, _ModuleContainer):
 
         # Fall back to the legacy logic for older systems.
         if win32.arch == win32.ARCH_AMD64 or win32.arch == win32.ARCH_I386:
-
             # Are we in a 32 bit machine?
             if win32.bits == 32 and not win32.wow64:
                 return win32.arch
@@ -711,7 +712,9 @@ class Process(_ThreadContainer, _ModuleContainer):
             return win32.ARCH_I386
 
         # Add support for more architectures as needed.
-        raise NotImplementedError("Architecture detection not implemented for %s" % win32.arch)
+        raise NotImplementedError(
+            "Architecture detection not implemented for %s" % win32.arch
+        )
 
     def get_bits(self):
         """

@@ -33,11 +33,6 @@ Wrapper for kernel32.dll in ctypes.
 """
 
 import ctypes
-import warnings
-
-from . import context_amd64
-from . import context_arm64
-from . import context_i386
 
 from .defines import (
     ATOM,
@@ -98,13 +93,6 @@ from .defines import (
     windll,
 )
 
-# ==============================================================================
-# This is used later on to calculate the list of exported symbols.
-_all = None
-_all = set(vars().keys())
-_all.add("version")
-# ==============================================================================
-
 from .version import (
     ARCH_AMD64,
     ARCH_ARM64,
@@ -114,18 +102,23 @@ from .version import (
     GetCurrentProcess,
     GetCurrentThread,
     arch,
-    bits,
 )
 
 if arch == ARCH_I386:
-    from .context_i386 import GetThreadContext, SetThreadContext
+    from .context_i386 import GetThreadContext, SetThreadContext  # noqa
 elif arch == ARCH_AMD64:
-    from .context_amd64 import GetThreadContext, SetThreadContext
-    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext
+    from .context_amd64 import GetThreadContext, SetThreadContext  # noqa
+    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext  # noqa
 elif arch == ARCH_ARM64:
-    from .context_arm64 import GetThreadContext, SetThreadContext
-    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext
+    from .context_arm64 import GetThreadContext, SetThreadContext  # noqa
+    from .context_amd64 import Wow64GetThreadContext, Wow64SetThreadContext  # noqa
 
+# ==============================================================================
+# This is used later on to calculate the list of exported symbols.
+_all = None
+_all = set(vars().keys())
+_all.add("version")
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 
@@ -656,6 +649,7 @@ SEM_NOOPENFILEERRORBOX = 0x800
 HANDLE_FLAG_INHERIT = 0x00000001
 HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x00000002
 
+
 # --- Handle wrappers ----------------------------------------------------------
 
 
@@ -885,9 +879,9 @@ class UserModeHandle(Handle):
         return self._TYPE(self.value)
 
     # Translation to C type.
-    @staticmethod
-    def from_param(value):
-        return self._TYPE(self.value)
+    @classmethod
+    def from_param(cls, value):
+        return cls._TYPE(value)
 
     # Operation not supported.
     @property
@@ -1386,6 +1380,7 @@ class OVERLAPPED(Structure):
 
 LPOVERLAPPED = POINTER(OVERLAPPED)
 
+
 # --- SECURITY_ATTRIBUTES structure --------------------------------------------
 
 
@@ -1463,6 +1458,7 @@ PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = (
 PROCESS_CREATION_MITIGATION_POLICY_DEP_ENABLE = 0x01
 PROCESS_CREATION_MITIGATION_POLICY_DEP_ATL_THUNK_ENABLE = 0x02
 PROCESS_CREATION_MITIGATION_POLICY_SEHOP_ENABLE = 0x04
+
 
 # --- VS_FIXEDFILEINFO structure -----------------------------------------------
 
@@ -1590,6 +1586,7 @@ class MEMORY_BASIC_INFORMATION(Structure):
 
 
 PMEMORY_BASIC_INFORMATION = POINTER(MEMORY_BASIC_INFORMATION)
+
 
 # --- BY_HANDLE_FILE_INFORMATION structure -------------------------------------
 
@@ -1729,7 +1726,9 @@ class PROCESS_INFORMATION(Structure):
 
 LPPROCESS_INFORMATION = POINTER(PROCESS_INFORMATION)
 
+
 # --- GetProcessInformation constants and structures ---------------------------
+
 
 # PROCESS_INFORMATION_CLASS constants for GetProcessInformation
 # (Different from NT PROCESS_INFORMATION_CLASS in ntdll.py)
@@ -1746,6 +1745,7 @@ class PROCESS_INFORMATION_CLASS_KERNEL32:
     ProcessMachineTypeInfo = 9
     ProcessInformationClassMax = 10
 
+
 # Memory priority values
 MEMORY_PRIORITY_VERY_LOW = 1
 MEMORY_PRIORITY_LOW = 2
@@ -1757,6 +1757,7 @@ MEMORY_PRIORITY_NORMAL = 5
 PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1
 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4
 
+
 # typedef struct _MEMORY_PRIORITY_INFORMATION {
 #     ULONG MemoryPriority;
 # } MEMORY_PRIORITY_INFORMATION, *PMEMORY_PRIORITY_INFORMATION;
@@ -1764,6 +1765,7 @@ class MEMORY_PRIORITY_INFORMATION(Structure):
     _fields_ = [
         ("MemoryPriority", ULONG),
     ]
+
 
 # typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO {
 #     USHORT Version;
@@ -1779,6 +1781,7 @@ class PROCESS_MEMORY_EXHAUSTION_INFO(Structure):
         ("Value", ULONG_PTR),
     ]
 
+
 # typedef struct _APP_MEMORY_INFORMATION {
 #     ULONG64 AvailableCommit;
 #     ULONG64 PrivateCommitUsage;
@@ -1793,6 +1796,7 @@ class APP_MEMORY_INFORMATION(Structure):
         ("TotalCommitUsage", ULONG64),
     ]
 
+
 # typedef struct _PROCESS_POWER_THROTTLING_STATE {
 #     ULONG Version;
 #     ULONG ControlMask;
@@ -1805,6 +1809,7 @@ class PROCESS_POWER_THROTTLING_STATE(Structure):
         ("StateMask", ULONG),
     ]
 
+
 # typedef struct _PROCESS_PROTECTION_LEVEL_INFORMATION {
 #     DWORD ProtectionLevel;
 # } PROCESS_PROTECTION_LEVEL_INFORMATION, *PPROCESS_PROTECTION_LEVEL_INFORMATION;
@@ -1812,6 +1817,7 @@ class PROCESS_PROTECTION_LEVEL_INFORMATION(Structure):
     _fields_ = [
         ("ProtectionLevel", DWORD),
     ]
+
 
 # typedef struct _PROCESS_LEAP_SECOND_INFO {
 #     ULONG Flags;
@@ -1822,6 +1828,7 @@ class PROCESS_LEAP_SECOND_INFO(Structure):
         ("Flags", ULONG),
         ("Reserved", ULONG),
     ]
+
 
 # typedef struct _PROCESS_MACHINE_INFORMATION {
 #     USHORT ProcessMachine;
@@ -1835,6 +1842,7 @@ class PROCESS_MACHINE_INFORMATION(Structure):
         ("MachineTypeAttributes", ULONG),
     ]
 
+
 # Map information class to structure type
 _process_info_class_map = {
     PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMemoryPriority: MEMORY_PRIORITY_INFORMATION,
@@ -1845,6 +1853,7 @@ _process_info_class_map = {
     PROCESS_INFORMATION_CLASS_KERNEL32.ProcessLeapSecondInfo: PROCESS_LEAP_SECOND_INFO,
     PROCESS_INFORMATION_CLASS_KERNEL32.ProcessMachineTypeInfo: PROCESS_MACHINE_INFORMATION,
 }
+
 
 # --- STARTUPINFO and STARTUPINFOEX structures ---------------------------------
 
@@ -1944,6 +1953,7 @@ class STARTUPINFOEXW(Structure):
 
 LPSTARTUPINFOEXW = POINTER(STARTUPINFOEXW)
 
+
 # --- JIT_DEBUG_INFO structure -------------------------------------------------
 
 
@@ -1974,6 +1984,7 @@ JIT_DEBUG_INFO64 = JIT_DEBUG_INFO
 LPJIT_DEBUG_INFO = POINTER(JIT_DEBUG_INFO)
 LPJIT_DEBUG_INFO32 = POINTER(JIT_DEBUG_INFO32)
 LPJIT_DEBUG_INFO64 = POINTER(JIT_DEBUG_INFO64)
+
 
 # --- DEBUG_EVENT structure ----------------------------------------------------
 
@@ -2492,6 +2503,7 @@ class HEAPLIST32(Structure):
 
 LPHEAPLIST32 = POINTER(HEAPLIST32)
 
+
 # --- kernel32.dll -------------------------------------------------------------
 
 
@@ -2528,7 +2540,7 @@ def SetErrorMode(uMode):
     _SetErrorMode = windll.kernel32.SetErrorMode
     _SetErrorMode.argtypes = [UINT]
     _SetErrorMode.restype = UINT
-    return _SetErrorMode(dwErrCode)
+    return _SetErrorMode(uMode)
 
 
 # DWORD GetThreadErrorMode(void);
@@ -2550,7 +2562,7 @@ def SetThreadErrorMode(dwNewMode):
     _SetThreadErrorMode.errcheck = RaiseIfZero
 
     old = DWORD(0)
-    _SetThreadErrorMode(dwErrCode, byref(old))
+    _SetThreadErrorMode(dwNewMode, byref(old))
     return old.value
 
 
@@ -3028,7 +3040,7 @@ def FreeLibrary(hModule):
 def RtlPcToFileHeader(PcValue):
     _RtlPcToFileHeader = windll.kernel32.RtlPcToFileHeader
     _RtlPcToFileHeader.argtypes = [PVOID, POINTER(PVOID)]
-    _RtlPcToFileHeader.restype = PRUNTIME_FUNCTION
+    _RtlPcToFileHeader.restype = PVOID
 
     BaseOfImage = PVOID(0)
     _RtlPcToFileHeader(PcValue, byref(BaseOfImage))
@@ -3998,7 +4010,7 @@ def OpenMutexA(dwDesiredAccess=MUTEX_ALL_ACCESS, bInitialOwner=True, lpName=None
     _OpenMutexA.argtypes = [DWORD, BOOL, LPSTR]
     _OpenMutexA.restype = HANDLE
     _OpenMutexA.errcheck = RaiseIfZero
-    return Handle(_OpenMutexA(lpMutexAttributes, bInitialOwner, lpName))
+    return Handle(_OpenMutexA(dwDesiredAccess, bInitialOwner, lpName))
 
 
 def OpenMutexW(dwDesiredAccess=MUTEX_ALL_ACCESS, bInitialOwner=True, lpName=None):
@@ -4006,7 +4018,7 @@ def OpenMutexW(dwDesiredAccess=MUTEX_ALL_ACCESS, bInitialOwner=True, lpName=None
     _OpenMutexW.argtypes = [DWORD, BOOL, LPWSTR]
     _OpenMutexW.restype = HANDLE
     _OpenMutexW.errcheck = RaiseIfZero
-    return Handle(_OpenMutexW(lpMutexAttributes, bInitialOwner, lpName))
+    return Handle(_OpenMutexW(dwDesiredAccess, bInitialOwner, lpName))
 
 
 OpenMutex = GuessStringType(OpenMutexA, OpenMutexW)
@@ -4063,6 +4075,7 @@ def OpenEventW(dwDesiredAccess=EVENT_ALL_ACCESS, bInheritHandle=False, lpName=No
 
 
 OpenEvent = GuessStringType(OpenEventA, OpenEventW)
+
 
 # HANDLE WINAPI CreateSemaphore(
 #   _In_opt_  LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
@@ -4964,6 +4977,7 @@ def SetProcessAffinityMask(hProcess, dwProcessAffinityMask):
 #   __in DWORD                     ProcessInformationSize
 # );
 if hasattr(windll.kernel32, "GetProcessInformation"):
+
     def GetProcessInformation(hProcess, ProcessInformationClass):
         _GetProcessInformation = windll.kernel32.GetProcessInformation
         _GetProcessInformation.argtypes = [HANDLE, DWORD, LPVOID, DWORD]
@@ -4973,13 +4987,15 @@ if hasattr(windll.kernel32, "GetProcessInformation"):
         try:
             structure_type = _process_info_class_map[ProcessInformationClass]
         except KeyError:
-            raise ValueError(f"Unsupported ProcessInformationClass: {ProcessInformationClass}")
+            raise ValueError(
+                f"Unsupported ProcessInformationClass: {ProcessInformationClass}"
+            )
         process_information = structure_type()
         _GetProcessInformation(
             hProcess,
             ProcessInformationClass,
             byref(process_information),
-            sizeof(structure_type)
+            sizeof(structure_type),
         )
         return process_information
 

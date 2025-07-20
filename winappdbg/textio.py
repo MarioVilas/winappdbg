@@ -1364,7 +1364,7 @@ class CrashDump(StaticClass):
 
         # Exception level and stack pointer selection
         el = (cpsr >> 2) & 0x3  # EL[1:0] bits 3:2
-        sp_sel = cpsr & 0x1     # SPSel bit 0
+        sp_sel = cpsr & 0x1  # SPSel bit 0
         flag_dump += f" el{el}"
         if sp_sel:
             flag_dump += " spx"  # Use SPx
@@ -1376,9 +1376,9 @@ class CrashDump(StaticClass):
             flag_dump += " dbg"
         if cpsr & 0x100:  # A flag (bit 8) - SError interrupt mask
             flag_dump += " serr"
-        if cpsr & 0x80:   # I flag (bit 7) - IRQ interrupt mask
+        if cpsr & 0x80:  # I flag (bit 7) - IRQ interrupt mask
             flag_dump += " irq"
-        if cpsr & 0x40:   # F flag (bit 6) - FIQ interrupt mask
+        if cpsr & 0x40:  # F flag (bit 6) - FIQ interrupt mask
             flag_dump += " fiq"
 
         return flag_dump.strip()
@@ -1430,7 +1430,7 @@ class CrashDump(StaticClass):
         # This will happen when running in x86-on-ARM emulation.
         if arch in (win32.ARCH_I386, win32.ARCH_AMD64):
             sentinel_value = 0xFFFF  # Clearly invalid segment value
-            segment_registers = ['SegCs', 'SegSs', 'SegDs', 'SegEs', 'SegFs', 'SegGs']
+            segment_registers = ["SegCs", "SegSs", "SegDs", "SegEs", "SegFs", "SegGs"]
             for seg in segment_registers:
                 if seg not in registers:
                     registers[seg] = sentinel_value

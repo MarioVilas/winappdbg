@@ -61,6 +61,8 @@ windll = ctypes.windll
 class Structure(ctypes.Structure):
     if sizeof(ctypes.c_void_p) == 4:
         _pack_ = 1
+
+
 class Union(ctypes.Union):
     if sizeof(ctypes.c_void_p) == 4:
         _pack_ = 1
@@ -313,7 +315,6 @@ def MakeANSIVersion(fn):
     @functools.wraps(fn)
     def wrapper(*argv, **argd):
         t_ansi = GuessStringType.t_ansi
-        t_unicode = GuessStringType.t_unicode
         v_types = [type(item) for item in argv]
         v_types.extend([type(value) for (key, value) in argd.items()])
         if t_ansi in v_types:
@@ -339,7 +340,6 @@ def MakeWideVersion(fn):
 
     @functools.wraps(fn)
     def wrapper(*argv, **argd):
-        t_ansi = GuessStringType.t_ansi
         t_unicode = GuessStringType.t_unicode
         v_types = [type(item) for item in argv]
         v_types.extend([type(value) for (key, value) in argd.items()])

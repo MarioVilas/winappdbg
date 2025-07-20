@@ -51,14 +51,12 @@ version_number = 2.0
 #: Use this to show to the user.
 #:
 #: :type: str
-version = "Version %s" % version_number
+version = f"Version {version_number}"
 
 # Early error if this was somehow installed on a non-Windows machine.
 try:
     import ctypes
+
     ctypes.WINFUNCTYPE
-    _is_windows = True
 except AttributeError:
-    _is_windows = False
-if not _is_windows:
     raise ImportError("WinAppDbg only works on Windows")

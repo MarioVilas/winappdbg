@@ -30,8 +30,6 @@
 
 """System settings."""
 
-from __future__ import with_statement
-
 __all__ = ["System"]
 
 import ctypes
@@ -533,7 +531,6 @@ class System(_ProcessContainer):
             candidates = []
 
             if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
-
                 # Gather round children, it's story time with your grandpa Mario.
                 # In the Olden Days, the debugger was distributed as a standalone package.
                 # The Microsoft SDK always was to be installed in the "Program Files (x86)" folder on
@@ -549,7 +546,9 @@ class System(_ProcessContainer):
                 # Let's try the oldest known location for dbghelp.dll.
                 # Oh, those were the days, when this was the same across all versions.
                 candidates.append(
-                    ntpath.join(basedir, "Debugging Tools for Windows (x86)", "dbghelp.dll")
+                    ntpath.join(
+                        basedir, "Debugging Tools for Windows (x86)", "dbghelp.dll"
+                    )
                 )
 
             # Then the debugger got embedded into the SDK. This path is different for each version.
@@ -567,7 +566,6 @@ class System(_ProcessContainer):
             elif win32.arch == win32.ARCH_AMD64:
                 debugger_arch = "x64"
             if debugger_arch is not None:
-
                 # Search in Windows Kits.
                 candidates.extend(
                     glob.glob(
