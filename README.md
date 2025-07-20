@@ -16,9 +16,9 @@ test / fuzz Windows applications with quickly coded Python scripts, as well as m
 analysts and researchers wishing to instrument and test Windows binaries. Several
 ready to use utilities are shipped and can be used for this purposes.
 
-Current features also include disassembling x86/x64 native code, debugging
-multiple processes simultaneously and produce a detailed log of application
-crashes, useful for fuzzing and automated testing.
+Current features also include disassembling native code, debugging multiple processes
+simultaneously and produce a detailed log of application crashes, useful for fuzzing
+and automated testing.
 
 Where can I find WinAppDbg?
 ===========================
