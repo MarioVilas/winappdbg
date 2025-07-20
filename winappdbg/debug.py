@@ -232,7 +232,7 @@ class Debug(EventDispatcher, _BreakpointContainer):
             except Exception:
                 pass
 
-    def attach(self, dwProcessId):
+    def attach(self, dwProcessId, bScan=True):
         """
         Attaches to an existing process for debugging.
 
@@ -240,6 +240,17 @@ class Debug(EventDispatcher, _BreakpointContainer):
 
         :type  dwProcessId: int
         :param dwProcessId: Global ID of a process to attach to.
+
+        :type  bScan: bool
+        :param bScan: ``True`` to perform a scan of threads and modules
+            once attached to the process, ``False`` to let the debug
+            events provide that information.
+
+            It is generally best to do a scan instead of relying on the
+            debug events, since they may be missing some information that
+            we can obtain by scanning. However, there are some situations
+            when scanning may fail - in particular, attaching to a suspended
+            process and then trying to scan it will fail.
 
         :rtype:  :class:`~.process.Process`
         :return: A new Process object. Normally you don't need to use it now,
@@ -294,8 +305,16 @@ class Debug(EventDispatcher, _BreakpointContainer):
         # Scan the process threads and loaded modules.
         # This is prefered because the thread and library events do not
         # properly give some information, like the filename for each module.
-        aProcess.scan_threads()
-        aProcess.scan_modules()
+        if bScan:
+            try:
+                try:
+                    aProcess.scan_threads()
+                finally:
+                    aProcess.scan_modules()
+            except Exception:
+                warning.warn(
+                    "Exception raised while scanning for threads and modules:\n%s" % \
+                    traceback.format_exc())
 
         # Return the Process object, like the execv() and execl() methods.
         return aProcess
