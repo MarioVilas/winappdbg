@@ -3574,19 +3574,31 @@ class _BreakpointContainer:
         :return: ``True`` to call the user-defined handler, ``False`` otherwise.
         """
 
-        # XXX FIXME see bug #52
-        #
         # There is an antidebug trick consisting in calling LoadLibrary then
         # FreeLibrary, which keeps the reference count greater than 0 (so no
         # actual unload happens) but the debugger will believe it did and remove
-        # all breakpoints and hooks.
+        # all breakpoints and hooks. Pretty clever stuff, I gotta admit.
         #
-        # Pretty clever stuff, I gotta admit. The solution is to actually get
-        # the reference count before cleaning up for that module. Which is't
-        # super easy because there's no official way to do that, so I have to
-        # read the PEB and hope for the best.
+        # The solution is to actually check the reference count from the PEB
+        # before cleaning up for that module. Only cleanup if the module was
+        # actually unloaded (load count is 0) or if the load count cannot be
+        # determined (for backward compatibility).
 
-        self.__cleanup_module(event)
+        try:
+            module = event.get_module()
+            load_count = module.get_load_count()
+
+            # Only cleanup if the module was actually unloaded.
+            # If load_count is None (couldn't determine), cleanup anyway for compatibility.
+            # If load_count is 0, the module was actually unloaded.
+            # If load_count > 0, the module is still loaded despite the unload event.
+            if load_count is None or load_count == 0:
+                self.__cleanup_module(event)
+        except Exception:
+            # If anything goes wrong getting the load count, cleanup anyway
+            # to maintain backward compatibility.
+            self.__cleanup_module(event)
+
         return True
 
     def _notify_exit_thread(self, event):
