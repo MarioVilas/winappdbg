@@ -354,8 +354,8 @@ class Module:
         Windows versions. The load count indicates how many times the module
         has been loaded.
 
-        :returns: Load count of the module, 0xFFFF for pinned/system modules,
-            or None if the count could not be retrieved.
+        :returns: Load count of the module, ``0xFFFF`` for pinned/system modules,
+            or ``None`` if the count could not be retrieved.
         :rtype: int or None
         """
         process = self.get_process()
@@ -429,12 +429,12 @@ class Module:
         """
         Determines if this module is pinned (cannot be unloaded).
 
-        A module is considered pinned if its load count is 0xFFFF. This happens
+        A module is considered pinned if its load count is ``0xFFFF``. This happens
         for system modules and modules that have been explicitly pinned using
-        GetModuleHandleEx with the GET_MODULE_HANDLE_EX_FLAG_PIN flag.
+        ``GetModuleHandleEx`` with the ``GET_MODULE_HANDLE_EX_FLAG_PIN`` flag.
 
-        :returns: True if the module is pinned, False if it's not pinned,
-            or None if the pinned status could not be determined.
+        :returns: ``True`` if the module is pinned, ``False`` if it's not pinned,
+            or ``None`` if the pinned status could not be determined.
         :rtype: bool or None
         """
         load_count = self.get_load_count()
