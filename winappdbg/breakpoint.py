@@ -3245,11 +3245,21 @@ class _BreakpointContainer:
 
         # disable code breakpoints
         for bp in self.get_process_code_breakpoints(dwProcessId):
-            self.disable_code_breakpoint(dwProcessId, bp.get_address())
+            try:
+                self.disable_code_breakpoint(dwProcessId, bp.get_address())
+            except Exception:
+                warnings.warn(
+                    "Exception raised while disabling code breakpoint at 0x%x:\n%s" % \
+                    (bp.get_address(), traceback.format_exc()))
 
         # disable page breakpoints
         for bp in self.get_process_page_breakpoints(dwProcessId):
-            self.disable_page_breakpoint(dwProcessId, bp.get_address())
+            try:
+                self.disable_page_breakpoint(dwProcessId, bp.get_address())
+            except Exception:
+                warnings.warn(
+                    "Exception raised while disabling page breakpoint at 0x%x:\n%s" % \
+                    (bp.get_address(), traceback.format_exc()))
 
         # disable hardware breakpoints
         if self.system.has_process(dwProcessId):
@@ -3260,7 +3270,12 @@ class _BreakpointContainer:
         for aThread in aProcess.iter_threads():
             dwThreadId = aThread.get_tid()
             for bp in self.get_thread_hardware_breakpoints(dwThreadId):
-                self.disable_hardware_breakpoint(dwThreadId, bp.get_address())
+                try:
+                    self.disable_hardware_breakpoint(dwThreadId, bp.get_address())
+                except Exception:
+                    warnings.warn(
+                        "Exception raised while disabling hardware breakpoint at 0x%x:\n%s" % \
+                        (bp.get_address(), traceback.format_exc()))
 
     def erase_process_breakpoints(self, dwProcessId):
         """
