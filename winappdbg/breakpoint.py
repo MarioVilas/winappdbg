@@ -1379,14 +1379,15 @@ class Hook:
         if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
             process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
-                size = 1
-            else:
-                size = process.get_bits() // 8
+            if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
+                raise NotImplementedError(
+                    "Hardware breakpoints not implemented for architecture: %s" % arch)
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
-                bp_list.append(debug.watch_variable(tid, address, size, self))
+                bp_list.append(debug.define_hardware_breakpoint(
+                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                    HardwareBreakpoint.BP_WATCH_BYTE, True, self))
             if len(bp_list) == 1:
                 return bp_list[0]
             return bp_list
@@ -1420,14 +1421,17 @@ class Hook:
         if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
             process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
-                size = 1
-            else:
-                size = process.get_bits() // 8
+            if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
+                raise NotImplementedError(
+                    "Hardware breakpoints not implemented for architecture: %s" % arch)
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
-                bp_list.append(debug.stalk_variable(tid, address, size, self))
+                bp = debug.define_hardware_breakpoint(
+                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                    HardwareBreakpoint.BP_WATCH_BYTE, True, self)
+                debug.enable_one_shot_hardware_breakpoint(tid, address)
+                bp_list.append(bp)
             if len(bp_list) == 1:
                 return bp_list[0]
             return bp_list
@@ -1457,13 +1461,12 @@ class Hook:
         if self.__bpTypeEntry == Breakpoint.HARDWARE_BREAKPOINT:
             process = Process(pid)
             arch = process.get_arch()
-            if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
-                size = 1
-            else:
-                size = process.get_bits() // 8
+            if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
+                raise NotImplementedError(
+                    "Hardware breakpoints not implemented for architecture: %s" % arch)
             for thread in process.iter_threads():
                 tid = thread.get_tid()
-                debug.dont_watch_variable(tid, address, size)
+                debug.erase_hardware_breakpoint(tid, address)
         if self.__bpTypeEntry == Breakpoint.PAGE_BREAKPOINT:
             process = Process(pid)
             arch = process.get_arch()
