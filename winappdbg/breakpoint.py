@@ -484,8 +484,8 @@ class CodeBreakpoint(Breakpoint):
     typeName = "code breakpoint"
 
     bpInstructions = {
-        win32.ARCH_I386: b"\xcc",               # INT 3
-        win32.ARCH_AMD64: b"\xcc",              # INT 3
+        win32.ARCH_I386: b"\xcc",  # INT 3
+        win32.ARCH_AMD64: b"\xcc",  # INT 3
         win32.ARCH_ARM64: b"\x00\x00\x20\xd4",  # BRK #0
     }
 
@@ -938,6 +938,7 @@ class HardwareBreakpoint(Breakpoint):
 # minor issue since when you're fuzzing a function for overflows you're usually
 # not interested in the return value anyway.
 
+
 class HookFactory:
     """
     Factory class to produce hook objects. Used by
@@ -955,7 +956,8 @@ class HookFactory:
     .. seealso:: :class:`_Hook_i386`, :class:`_Hook_amd64`, :class:`_Hook_arm64`
     """
 
-    def __new__(cls,
+    def __new__(
+        cls,
         preCB=None,
         postCB=None,
         paramCount=None,
@@ -970,18 +972,41 @@ class HookFactory:
             arch = win32.arch
         if arch == win32.ARCH_I386:
             return _Hook_i386(
-                preCB, postCB, paramCount, signature, arch,
-                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
+                preCB,
+                postCB,
+                paramCount,
+                signature,
+                arch,
+                preCBArgs,
+                postCBArgs,
+                bpTypeEntry,
+                bpTypeReturn,
+            )
         if arch == win32.ARCH_AMD64:
             return _Hook_amd64(
-                preCB, postCB, paramCount, signature, arch,
-                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
+                preCB,
+                postCB,
+                paramCount,
+                signature,
+                arch,
+                preCBArgs,
+                postCBArgs,
+                bpTypeEntry,
+                bpTypeReturn,
+            )
         if arch == win32.ARCH_ARM64:
             return _Hook_arm64(
-                preCB, postCB, paramCount, signature, arch,
-                preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn)
-        raise NotImplementedError(
-            "Hooks not supported for architecture: %s" % arch)
+                preCB,
+                postCB,
+                paramCount,
+                signature,
+                arch,
+                preCBArgs,
+                postCBArgs,
+                bpTypeEntry,
+                bpTypeReturn,
+            )
+        raise NotImplementedError("Hooks not supported for architecture: %s" % arch)
 
 
 class Hook:
@@ -1152,7 +1177,6 @@ class Hook:
         # If we need to hook the return from the function...
         bHookedReturn = False
         if ra is not None and self.__postCB is not None:
-
             # Set a breakpoint at the return address.
             # On failure, fallback to code breakpoints.
             # We can use a one-shot breakpoint if it's a hardware breakpoint,
@@ -1161,18 +1185,24 @@ class Hook:
             if self.__bpTypeReturn == Breakpoint.HARDWARE_BREAKPOINT:
                 try:
                     debug.stalk_variable(
-                        dwThreadId, ra, aProcess.get_bits() // 8, self.__postCallAction_hwbp)
+                        dwThreadId,
+                        ra,
+                        aProcess.get_bits() // 8,
+                        self.__postCallAction_hwbp,
+                    )
                     bHookedReturn = True
                 except Exception:
-                    msg = (
-                        "Failed to set hardware breakpoint at address %s for thread ID %d"
-                    )
+                    msg = "Failed to set hardware breakpoint at address %s for thread ID %d"
                     msg = msg % (HexDump.address(ra), dwThreadId)
                     warnings.warn(msg, BreakpointWarning)
             elif self.__bpTypeReturn == Breakpoint.PAGE_BREAKPOINT:
                 try:
                     debug.watch_buffer(
-                        dwProcessId, ra, aProcess.get_bits() // 8, self.__postCallAction_pagebp)
+                        dwProcessId,
+                        ra,
+                        aProcess.get_bits() // 8,
+                        self.__postCallAction_pagebp,
+                    )
                     bHookedReturn = True
                 except Exception:
                     msg = (
@@ -1180,7 +1210,7 @@ class Hook:
                     )
                     msg = msg % (HexDump.address(ra), dwProcessId)
                     warnings.warn(msg, BreakpointWarning)
-            if not bHookedReturn:   # code bp is the fallback
+            if not bHookedReturn:  # code bp is the fallback
                 try:
                     debug.break_at(dwProcessId, ra, self.__postCallAction_codebp)
                     bHookedReturn = True
@@ -1381,13 +1411,21 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
-                bp_list.append(debug.define_hardware_breakpoint(
-                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                    HardwareBreakpoint.BP_WATCH_BYTE, True, self))
+                bp_list.append(
+                    debug.define_hardware_breakpoint(
+                        tid,
+                        address,
+                        HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                        HardwareBreakpoint.BP_WATCH_BYTE,
+                        True,
+                        self,
+                    )
+                )
             if len(bp_list) == 1:
                 return bp_list[0]
             return bp_list
@@ -1397,7 +1435,7 @@ class Hook:
             process = Process(pid)
             arch = process.get_arch()
             if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
-                size = 1    # TODO: maybe disassemble and get the real size?
+                size = 1  # TODO: maybe disassemble and get the real size?
             else:
                 size = process.get_bits() // 8
             return debug.watch_buffer(pid, address, size, self)
@@ -1423,13 +1461,19 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
                 bp = debug.define_hardware_breakpoint(
-                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                    HardwareBreakpoint.BP_WATCH_BYTE, True, self)
+                    tid,
+                    address,
+                    HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                    HardwareBreakpoint.BP_WATCH_BYTE,
+                    True,
+                    self,
+                )
                 debug.enable_one_shot_hardware_breakpoint(tid, address)
                 bp_list.append(bp)
             if len(bp_list) == 1:
@@ -1441,7 +1485,7 @@ class Hook:
             process = Process(pid)
             arch = process.get_arch()
             if arch == win32.ARCH_I386 or arch == win32.ARCH_AMD64:
-                size = 1    # TODO: maybe disassemble and get the real size?
+                size = 1  # TODO: maybe disassemble and get the real size?
             else:
                 size = process.get_bits() // 8
             return debug.stalk_buffer(pid, address, size, self)
@@ -1463,7 +1507,8 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             for thread in process.iter_threads():
                 tid = thread.get_tid()
                 debug.erase_hardware_breakpoint(tid, address)
@@ -1696,18 +1741,21 @@ class _Hook_arm64(Hook):
                 raise NotImplementedError(msg)
 
         if reg_int_sig:
+
             class RegisterArguments(ctypes.Structure):
                 _fields_ = reg_int_sig
         else:
             RegisterArguments = None
 
         if reg_float_sig:
+
             class FloatArguments(ctypes.Structure):
                 _fields_ = reg_float_sig
         else:
             FloatArguments = None
 
         if stack_sig:
+
             class StackArguments(ctypes.Structure):
                 _fields_ = stack_sig
         else:
@@ -1750,8 +1798,14 @@ class _Hook_arm64(Hook):
                 if RegisterArguments:
                     # First 8 integer arguments are in X0-X7 registers.
                     buffer = (win32.QWORD * 8)(
-                        ctx["X0"], ctx["X1"], ctx["X2"], ctx["X3"],
-                        ctx["X4"], ctx["X5"], ctx["X6"], ctx["X7"],
+                        ctx["X0"],
+                        ctx["X1"],
+                        ctx["X2"],
+                        ctx["X3"],
+                        ctx["X4"],
+                        ctx["X5"],
+                        ctx["X6"],
+                        ctx["X7"],
                     )
                     reg_args = self._get_arguments_from_buffer(
                         buffer, RegisterArguments
@@ -1760,8 +1814,14 @@ class _Hook_arm64(Hook):
                 if FloatArguments:
                     # First 8 floating-point arguments are in V0-V7 registers.
                     buffer = (win32.NEON128 * 8)(
-                        ctx["V0"], ctx["V1"], ctx["V2"], ctx["V3"],
-                        ctx["V4"], ctx["V5"], ctx["V6"], ctx["V7"],
+                        ctx["V0"],
+                        ctx["V1"],
+                        ctx["V2"],
+                        ctx["V3"],
+                        ctx["V4"],
+                        ctx["V5"],
+                        ctx["V6"],
+                        ctx["V7"],
                     )
                     float_args = self._get_arguments_from_buffer(buffer, FloatArguments)
                     arguments.update(float_args)
@@ -1788,9 +1848,10 @@ class _Hook_arm64(Hook):
         return aThread.get_context(win32.CONTEXT_INTEGER)["X0"]
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # This class acts as a factory of Hook objects, one per target process.
 # Said objects are deleted by the unhook() method.
+
 
 class ApiHook:
     """Used by :class:`~winappdbg.event.EventHandler`.
@@ -1884,8 +1945,7 @@ class ApiHook:
         try:
             hook = self.__hook[pid]
         except KeyError:
-            warnings.warn(
-                "Got a breakpoint hit for a removed hook in PID %d!" % pid)
+            warnings.warn("Got a breakpoint hit for a removed hook in PID %d!" % pid)
             return
         return hook(event)
 
@@ -1922,7 +1982,7 @@ class ApiHook:
                 self.__signature,
                 aProcess.get_arch(),
                 bpTypeEntry=bpTypeEntry,
-                bpTypeReturn=bpTypeReturn
+                bpTypeReturn=bpTypeReturn,
             )
             self.__hook[pid] = hook
         hook.hook(debug, pid, label)
@@ -3249,8 +3309,9 @@ class _BreakpointContainer:
                 self.disable_code_breakpoint(dwProcessId, bp.get_address())
             except Exception:
                 warnings.warn(
-                    "Exception raised while disabling code breakpoint at 0x%x:\n%s" % \
-                    (bp.get_address(), traceback.format_exc()))
+                    "Exception raised while disabling code breakpoint at 0x%x:\n%s"
+                    % (bp.get_address(), traceback.format_exc())
+                )
 
         # disable page breakpoints
         for bp in self.get_process_page_breakpoints(dwProcessId):
@@ -3258,8 +3319,9 @@ class _BreakpointContainer:
                 self.disable_page_breakpoint(dwProcessId, bp.get_address())
             except Exception:
                 warnings.warn(
-                    "Exception raised while disabling page breakpoint at 0x%x:\n%s" % \
-                    (bp.get_address(), traceback.format_exc()))
+                    "Exception raised while disabling page breakpoint at 0x%x:\n%s"
+                    % (bp.get_address(), traceback.format_exc())
+                )
 
         # disable hardware breakpoints
         if self.system.has_process(dwProcessId):
@@ -3274,8 +3336,9 @@ class _BreakpointContainer:
                     self.disable_hardware_breakpoint(dwThreadId, bp.get_address())
                 except Exception:
                     warnings.warn(
-                        "Exception raised while disabling hardware breakpoint at 0x%x:\n%s" % \
-                        (bp.get_address(), traceback.format_exc()))
+                        "Exception raised while disabling hardware breakpoint at 0x%x:\n%s"
+                        % (bp.get_address(), traceback.format_exc())
+                    )
 
     def erase_process_breakpoints(self, dwProcessId):
         """
@@ -3959,8 +4022,15 @@ class _BreakpointContainer:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
         hookObj = HookFactory(
-            preCB, postCB, paramCount, signature, arch,
-            preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn
+            preCB,
+            postCB,
+            paramCount,
+            signature,
+            arch,
+            preCBArgs,
+            postCBArgs,
+            bpTypeEntry,
+            bpTypeReturn,
         )
         bp = hookObj.hook(self, pid, address)
         return bp is not None
@@ -4040,8 +4110,15 @@ class _BreakpointContainer:
             aProcess = Process(pid)
         arch = aProcess.get_arch()
         hookObj = HookFactory(
-            preCB, postCB, paramCount, signature, arch,
-            preCBArgs, postCBArgs, bpTypeEntry, bpTypeReturn
+            preCB,
+            postCB,
+            paramCount,
+            signature,
+            arch,
+            preCBArgs,
+            postCBArgs,
+            bpTypeEntry,
+            bpTypeReturn,
         )
         hookObj.stalk(self, pid, address)
         return hookObj
@@ -4273,7 +4350,7 @@ class _BreakpointContainer:
             for bp in nset:
                 try:
                     self.erase_page_breakpoint(pid, bp.get_address())
-                except:
+                except Exception:
                     pass
 
             # Pass the exception to the caller

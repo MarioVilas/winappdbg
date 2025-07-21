@@ -38,7 +38,7 @@ import struct
 import warnings
 
 from . import win32
-from .win32 import kernel32, context_amd64, context_arm64, context_i386
+from .win32 import kernel32
 from .textio import HexDump
 from .window import Window
 
@@ -454,7 +454,6 @@ class Thread:
                 bSuspend = False
 
         try:
-
             # WOW64 asssumes i386 architecture always.
             if self.is_wow64():
                 if ContextFlags is not None:
@@ -467,7 +466,9 @@ class Thread:
             elif win32.wow64:
                 if win32.arch != win32.ARCH_I386:
                     raise NotImplementedError(
-                        "Mixing bits its not supported for architecture: %s" % win32.arch)
+                        "Mixing bits its not supported for architecture: %s"
+                        % win32.arch
+                    )
                 if ContextFlags is not None:
                     ContextFlags &= ~win32.ContextArchMask
                     ContextFlags |= win32.context_amd64.CONTEXT_AMD64
@@ -656,7 +657,8 @@ class Thread:
             name = "Cpsr"
         else:
             raise NotImplementedError(
-                "Gettings flags for architecture %s is not supported" % arch)
+                "Gettings flags for architecture %s is not supported" % arch
+            )
         context = self.get_context(win32.CONTEXT_CONTROL)
         return context[name] & FlagMask
 
@@ -677,7 +679,8 @@ class Thread:
             name = "Cpsr"
         else:
             raise NotImplementedError(
-                "Settings flags for architecture %s is not supported" % arch)
+                "Settings flags for architecture %s is not supported" % arch
+            )
         context = self.get_context(win32.CONTEXT_CONTROL)
         context[name] = (context[name] & FlagMask) | value
         self.set_context(context)
@@ -691,7 +694,8 @@ class Thread:
             bit = 0x200000
         else:
             raise NotImplementedError(
-                "Settings flags for architecture %s is not supported" % arch)
+                "Settings flags for architecture %s is not supported" % arch
+            )
         return bool(self.get_flags(bit))
 
     def set_tf(self):
@@ -703,7 +707,8 @@ class Thread:
             bit = 0x200000
         else:
             raise NotImplementedError(
-                "Settings flags for architecture %s is not supported" % arch)
+                "Settings flags for architecture %s is not supported" % arch
+            )
         self.set_flags(bit, 0xFFFFFFFF ^ bit)
 
     def clear_tf(self):
@@ -715,7 +720,8 @@ class Thread:
             bit = 0x200000
         else:
             raise NotImplementedError(
-                "Settings flags for architecture %s is not supported" % arch)
+                "Settings flags for architecture %s is not supported" % arch
+            )
         self.set_flags(0, 0xFFFFFFFF ^ bit)
 
     # ------------------------------------------------------------------------------

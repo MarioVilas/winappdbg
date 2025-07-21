@@ -1937,7 +1937,7 @@ def GetTokenInformation(hTokenHandle, TokenInformationClass):
 
     # Elevated token.
     if TokenInformationClass == TokenElevation:
-        TokenInformation = TOKEN_ELEVATION(0)
+        TokenInformation = TOKEN_ELEVATION_TYPE(0)
         _internal_GetTokenInformation(
             hTokenHandle, TokenInformationClass, TokenInformation
         )

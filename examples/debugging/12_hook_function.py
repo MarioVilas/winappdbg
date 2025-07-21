@@ -29,7 +29,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from winappdbg.debug import Debug
-from winappdbg.breakpoint import Breakpoint
 from winappdbg.event import EventHandler
 from winappdbg.win32 import PVOID
 

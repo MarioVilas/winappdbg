@@ -28,6 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# ruff: noqa
+
 """
 Debugging API wrappers in ctypes.
 """
@@ -45,29 +47,29 @@ from . import (
     user32,
     wtsapi32,
 )
-from .advapi32 import *  # NOQA
-from .dbghelp import *  # NOQA
+from .advapi32 import *
+from .dbghelp import *
 
 # Import all symbols from submodules into this namespace.
-from .defines import *  # NOQA
-from .kernel32 import *  # NOQA
-from .ntdll import *  # NOQA
-from .psapi import *  # NOQA
-from .shell32 import *  # NOQA
-from .shlwapi import *  # NOQA
-from .user32 import *  # NOQA
-from .wtsapi32 import *  # NOQA
-from .version import *  # NOQA
+from .defines import *
+from .kernel32 import *
+from .ntdll import *
+from .psapi import *
+from .shell32 import *
+from .shlwapi import *
+from .user32 import *
+from .wtsapi32 import *
+from .version import *
 
 # Import the appropriate context module based on detected architecture.
 if arch == ARCH_I386:
-    from .context_i386 import *  # NOQA
+    from .context_i386 import *
     from . import context_i386 as _context_module
 elif arch == ARCH_AMD64:
-    from .context_amd64 import *  # NOQA
+    from .context_amd64 import *
     from . import context_amd64 as _context_module
 elif arch == ARCH_ARM64:
-    from .context_arm64 import *  # NOQA
+    from .context_arm64 import *
     from . import context_arm64 as _context_module
 
 # This calculates the list of exported symbols.

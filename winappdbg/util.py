@@ -65,13 +65,11 @@ from . import win32
 
 _FieldInfo = namedtuple("_FieldInfo", "name ctype value")
 
+
 def _iter_fields(c_obj):
     for fname, ftype in c_obj._fields_:
-        yield _FieldInfo(
-            name=fname,
-            ctype=ftype,
-            value=getattr(c_obj, fname)
-        )
+        yield _FieldInfo(name=fname, ctype=ftype, value=getattr(c_obj, fname))
+
 
 def _describe_ctype(ctype):
     if issubclass(ctype, ctypes.Array):
@@ -79,6 +77,7 @@ def _describe_ctype(ctype):
     if issubclass(ctype, ctypes._Pointer):
         return f"{_describe_ctype(ctype._type_)}*"
     return ctype.__name__
+
 
 def pretty_ctypes(c_obj, *, indent=0, _visited=None):
     """
@@ -115,7 +114,9 @@ def pretty_ctypes(c_obj, *, indent=0, _visited=None):
     if isinstance(c_obj, ctypes.Array):
         lines = [f"{tab}{_describe_ctype(c_obj.__class__)} = ["]
         for i, elem in enumerate(c_obj):
-            lines.append(f"{tab}  [{i}] {pretty_ctypes(elem, indent=indent+1, _visited=_visited).lstrip()}")
+            lines.append(
+                f"{tab}  [{i}] {pretty_ctypes(elem, indent=indent + 1, _visited=_visited).lstrip()}"
+            )
         lines.append(f"{tab}]")
         return "\n".join(lines)
 
@@ -127,10 +128,15 @@ def pretty_ctypes(c_obj, *, indent=0, _visited=None):
     header = f"{tab}{c_obj.__class__.__name__} {{"
     body = []
     for fi in _iter_fields(c_obj):
-        val_repr = pretty_ctypes(fi.value, indent=indent+1, _visited=_visited).lstrip()
-        body.append(f"{tab}  {fi.name:<15} : {_describe_ctype(fi.ctype):<20} = {val_repr}")
+        val_repr = pretty_ctypes(
+            fi.value, indent=indent + 1, _visited=_visited
+        ).lstrip()
+        body.append(
+            f"{tab}  {fi.name:<15} : {_describe_ctype(fi.ctype):<20} = {val_repr}"
+        )
     footer = f"{tab}}}"
     return "\n".join([header, *body, footer])
+
 
 def dump_ctypes(obj, **kw):
     """

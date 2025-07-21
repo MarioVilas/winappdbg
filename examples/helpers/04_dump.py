@@ -41,7 +41,6 @@ def print_state(process_name):
     # Find every process that matches the requested name.
     system = System()
     for process, filename in system.find_processes_by_filename(process_name):
-
         # Skip processes that don't match our architecture or bits.
         if process.get_arch() != arch or process.get_bits() != bits:
             print("Skipping: %s" % filename)

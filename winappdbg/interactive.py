@@ -147,22 +147,47 @@ class ConsoleDebugger(Cmd, EventHandler):
 
     # ARM64 register aliases (64-bit to 32-bit)
     register_alias_arm64_to_32 = {
-        "w0": "X0", "w1": "X1", "w2": "X2", "w3": "X3", "w4": "X4",
-        "w5": "X5", "w6": "X6", "w7": "X7", "w8": "X8", "w9": "X9",
-        "w10": "X10", "w11": "X11", "w12": "X12", "w13": "X13", "w14": "X14",
-        "w15": "X15", "w16": "X16", "w17": "X17", "w18": "X18", "w19": "X19",
-        "w20": "X20", "w21": "X21", "w22": "X22", "w23": "X23", "w24": "X24",
-        "w25": "X25", "w26": "X26", "w27": "X27", "w28": "X28",
-        "wfp": "Fp", "wlr": "Lr", "wsp": "Sp",
+        "w0": "X0",
+        "w1": "X1",
+        "w2": "X2",
+        "w3": "X3",
+        "w4": "X4",
+        "w5": "X5",
+        "w6": "X6",
+        "w7": "X7",
+        "w8": "X8",
+        "w9": "X9",
+        "w10": "X10",
+        "w11": "X11",
+        "w12": "X12",
+        "w13": "X13",
+        "w14": "X14",
+        "w15": "X15",
+        "w16": "X16",
+        "w17": "X17",
+        "w18": "X18",
+        "w19": "X19",
+        "w20": "X20",
+        "w21": "X21",
+        "w22": "X22",
+        "w23": "X23",
+        "w24": "X24",
+        "w25": "X25",
+        "w26": "X26",
+        "w27": "X27",
+        "w28": "X28",
+        "wfp": "Fp",
+        "wlr": "Lr",
+        "wsp": "Sp",
     }
 
     # ARM64 common register aliases
     register_alias_arm64_common = {
-        "fp": "Fp",    # frame pointer (alias for x29)
-        "lr": "Lr",    # link register (alias for x30)
-        "sp": "Sp",    # stack pointer
-        "pc": "Pc",    # program counter
-        "cpsr": "Cpsr", # current program status register
+        "fp": "Fp",  # frame pointer (alias for x29)
+        "lr": "Lr",  # link register (alias for x30)
+        "sp": "Sp",  # stack pointer
+        "pc": "Pc",  # program counter
+        "cpsr": "Cpsr",  # current program status register
     }
 
     register_aliases_full_32 = list(segment_names)
@@ -2337,9 +2362,9 @@ class ConsoleDebugger(Cmd, EventHandler):
                         try:
                             system.get_process(pid).debug_break()
                             success = True
-                        except:
+                        except Exception:
                             traceback.print_exc()
-                except:
+                except Exception:
                     traceback.print_exc()
                 if not success:
                     raise  # This should never happen!

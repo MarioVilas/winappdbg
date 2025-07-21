@@ -78,6 +78,7 @@ CONTEXT_ALL = (
 ARM64_MAX_BREAKPOINTS = 8
 ARM64_MAX_WATCHPOINTS = 2
 
+
 # typedef union _ARM64_NT_NEON128 {
 #     struct {
 #         ULONGLONG Low;
@@ -94,18 +95,23 @@ class _ARM64_NT_NEON128_STRUCT(Structure):
         ("High", LONGLONG),
     ]
 
+
 class ARM64_NT_NEON128(Union):
     _fields_ = [
         ("s", _ARM64_NT_NEON128_STRUCT),
-        ("D", 2 * DWORD64),                 # XXX FIXME should be 64-bit floating point instead of DWORD64
-        ("S", 4 * DWORD),                   # XXX FIXME should be 32-bit floating point instead of DWORD
+        # FIXME: should be 64-bit floating point instead of DWORD64
+        ("D", 2 * DWORD64),
+        # FIXME: should be 32-bit floating point instead of DWORD
+        ("S", 4 * DWORD),
         ("H", 8 * WORD),
         ("B", 16 * BYTE),
     ]
 
+
 NEON128 = ARM64_NT_NEON128
 PNEON128 = POINTER(NEON128)
 PARM64_NT_NEON128 = PNEON128
+
 
 # typedef struct DECLSPEC_ALIGN(16) DECLSPEC_NOINITALL _ARM64_NT_CONTEXT {
 #     DWORD ContextFlags;
@@ -132,25 +138,46 @@ PARM64_NT_NEON128 = PNEON128
 # } ARM64_NT_CONTEXT, *PARM64_NT_CONTEXT;
 class _CONTEXT_REGS_STRUCT(Structure):
     _fields_ = [
-        ("X0", DWORD64), ("X1", DWORD64), ("X2", DWORD64),
-        ("X3", DWORD64), ("X4", DWORD64), ("X5", DWORD64),
-        ("X6", DWORD64), ("X7", DWORD64), ("X8", DWORD64),
-        ("X9", DWORD64), ("X10", DWORD64), ("X11", DWORD64),
-        ("X12", DWORD64), ("X13", DWORD64), ("X14", DWORD64),
-        ("X15", DWORD64), ("X16", DWORD64), ("X17", DWORD64),
-        ("X18", DWORD64), ("X19", DWORD64), ("X20", DWORD64),
-        ("X21", DWORD64), ("X22", DWORD64), ("X23", DWORD64),
-        ("X24", DWORD64), ("X25", DWORD64), ("X26", DWORD64),
-        ("X27", DWORD64), ("X28", DWORD64),
+        ("X0", DWORD64),
+        ("X1", DWORD64),
+        ("X2", DWORD64),
+        ("X3", DWORD64),
+        ("X4", DWORD64),
+        ("X5", DWORD64),
+        ("X6", DWORD64),
+        ("X7", DWORD64),
+        ("X8", DWORD64),
+        ("X9", DWORD64),
+        ("X10", DWORD64),
+        ("X11", DWORD64),
+        ("X12", DWORD64),
+        ("X13", DWORD64),
+        ("X14", DWORD64),
+        ("X15", DWORD64),
+        ("X16", DWORD64),
+        ("X17", DWORD64),
+        ("X18", DWORD64),
+        ("X19", DWORD64),
+        ("X20", DWORD64),
+        ("X21", DWORD64),
+        ("X22", DWORD64),
+        ("X23", DWORD64),
+        ("X24", DWORD64),
+        ("X25", DWORD64),
+        ("X26", DWORD64),
+        ("X27", DWORD64),
+        ("X28", DWORD64),
         ("Fp", DWORD64),
         ("Lr", DWORD64),
     ]
+
 
 class _CONTEXT_REGS_UNION(Union):
     _fields_ = [
         ("s", _CONTEXT_REGS_STRUCT),
         ("X", 31 * DWORD64),
     ]
+
 
 class CONTEXT(Structure):
     arch = ARCH_ARM64
@@ -193,8 +220,10 @@ class CONTEXT(Structure):
             ctx["Wvr"] = list(self.Wvr)
         return ctx
 
+
 PCONTEXT = POINTER(CONTEXT)
 LPCONTEXT = PCONTEXT
+
 
 class Context(dict):
     arch = CONTEXT.arch
@@ -285,6 +314,7 @@ def SetThreadContext(hThread, lpContext):
                     ctx.Wvr[i] = v
         lpContext = ctx
     _SetThreadContext(hThread, byref(lpContext))
+
 
 # ==============================================================================
 # This calculates the list of exported symbols.

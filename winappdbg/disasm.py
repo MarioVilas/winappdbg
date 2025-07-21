@@ -43,8 +43,6 @@ Binary code disassembly.
 - :class:`DistormEngine`
 """
 
-from __future__ import with_statement
-
 __all__ = [
     "Disassembler",
     "Engine",
@@ -478,10 +476,12 @@ class MiasmEngine(Engine):
             import miasm.analysis.binary
             import miasm.analysis.machine
             import miasm.core.locationdb
+
             class MiasmModules:
                 Container = miasm.analysis.binary.Container
                 Machine = miasm.analysis.machine.Machine
                 LocationDB = miasm.core.locationdb.LocationDB
+
             miasm = MiasmModules()
             cls.set_logging(False)
 
@@ -501,33 +501,49 @@ class MiasmEngine(Engine):
         """
         miasm_loggers = [
             # Core disassembly loggers.
-            "asmblock", "cpuhelper",
-
+            "asmblock",
+            "cpuhelper",
             # Architecture-specific loggers.
-            "aarch64dis", "x86_arch", "armdis", "mips32dis",
-            "msp430dis", "ppcdis",
-
+            "aarch64dis",
+            "x86_arch",
+            "armdis",
+            "mips32dis",
+            "msp430dis",
+            "ppcdis",
             # Analysis and processing loggers.
-            "binary", "expr_reduce", "exprsimp", "symbexec",
-            "analysis", "simplifier", "cst_propag",
-
+            "binary",
+            "expr_reduce",
+            "exprsimp",
+            "symbexec",
+            "analysis",
+            "simplifier",
+            "cst_propag",
             # JIT engine loggers.
-            "jit_x86", "jit_arm", "jit_aarch64", "jit_mips32",
-            "jit_msp430", "jit_ppc", "jit_mep",
-
+            "jit_x86",
+            "jit_arm",
+            "jit_aarch64",
+            "jit_mips32",
+            "jit_msp430",
+            "jit_ppc",
+            "jit_mep",
             # Loader loggers.
-            "loader_elf", "loader_pe", "loader_common",
-            "jitload.py", "jit function call",
-
+            "loader_elf",
+            "loader_pe",
+            "loader_common",
+            "jitload.py",
+            "jit function call",
             # Parser loggers.
-            "elfparse", "peparse", "pepy",
-
+            "elfparse",
+            "peparse",
+            "pepy",
             # OS-specific loggers.
-            "environment", "syscalls", "seh_helper", "win_api_x86_32",
-
+            "environment",
+            "syscalls",
+            "seh_helper",
+            "win_api_x86_32",
             # Translator loggers..
-            "translator_z3", "translator_smt2",
-
+            "translator_z3",
+            "translator_smt2",
             # Semantic analysis loggers.
             "x86_sem",
         ]
@@ -587,7 +603,7 @@ class MiasmEngine(Engine):
                         # Extract instruction info
                         disasm = str(instr)
                         size = instr.l
-                        hexdump = HexDump.hexadecimal(code[offset:offset + size])
+                        hexdump = HexDump.hexadecimal(code[offset : offset + size])
 
                         result.append((addr, size, disasm, hexdump))
                         offset += size
@@ -606,7 +622,7 @@ class MiasmEngine(Engine):
                         size = min(size, len(code) - offset)
 
                         # Get the data bytes
-                        data_bytes = code[offset:offset + size]
+                        data_bytes = code[offset : offset + size]
                         hexdump = HexDump.hexadecimal(data_bytes)
 
                         # Build the "define constant" instruction
@@ -632,7 +648,7 @@ class MiasmEngine(Engine):
                     # Final fallback: single byte
                     if offset < len(code):
                         size = 1
-                        data_bytes = code[offset:offset + size]
+                        data_bytes = code[offset : offset + size]
                         hexdump = HexDump.hexadecimal(data_bytes)
 
                         byte_val = data_bytes[0]
@@ -656,7 +672,9 @@ class MiasmEngine(Engine):
             # Ultimate fallback: treat entire code as data
             if code:
                 hexdump = HexDump.hexadecimal(code)
-                disasm = "db %s" % ", ".join("0x%02x" % (b if isinstance(b, int) else ord(b)) for b in code)
+                disasm = "db %s" % ", ".join(
+                    "0x%02x" % (b if isinstance(b, int) else ord(b)) for b in code
+                )
                 result.append((address, len(code), disasm, hexdump))
 
         return result
@@ -680,10 +698,10 @@ class Disassembler:
 
     # These are the supported disassembly engines.
     engines = (
-        MiasmEngine,        # https://github.com/cea-sec/miasm
-        CapstoneEngine,     # https://github.com/capstone-engine/capstone
-        DistormEngine,      # https://github.com/gdabah/distorm
-        BeaEngine,          # https://github.com/BeaEngine/beaengine
+        MiasmEngine,  # https://github.com/cea-sec/miasm
+        CapstoneEngine,  # https://github.com/capstone-engine/capstone
+        DistormEngine,  # https://github.com/gdabah/distorm
+        BeaEngine,  # https://github.com/BeaEngine/beaengine
     )
 
     # Add the list of implemented disassembler adaptors to the docstring.

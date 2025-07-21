@@ -34,7 +34,7 @@ import warnings
 
 
 def test_module_load():
-    import winappdbg  # NOQA
+    import winappdbg  # noqa
 
 
 def test_disassembler_load():
@@ -43,12 +43,13 @@ def test_disassembler_load():
 
     Disassembler(win32.ARCH_I386)
     Disassembler(win32.ARCH_AMD64)
+    Disassembler(win32.ARCH_ARM64)
 
 
 def test_db_load():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        from winappdbg import db  # NOQA
+        from winappdbg import db  # noqa
 
 
 def test_windbg_version():
