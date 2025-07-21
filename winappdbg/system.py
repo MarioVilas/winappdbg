@@ -516,7 +516,7 @@ class System(_ProcessContainer):
         :raises NotImplementedError: This feature was not implemented for the
             current architecture.
 
-        :raises WindowsError: An error occured while processing this request.
+        :raises WindowsError: An error occurred while processing this request.
         """
 
         # If a pathname was given, just load the library and return.
@@ -530,7 +530,7 @@ class System(_ProcessContainer):
             # There may be more than one, so we'll sort out later which one to load.
             candidates = []
 
-            if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64):
+            if win32.arch in (win32.ARCH_I386, win32.ARCH_AMD64, win32.ARCH_ARM64):
                 # Gather round children, it's story time with your grandpa Mario.
                 # In the Olden Days, the debugger was distributed as a standalone package.
                 # The Microsoft SDK always was to be installed in the "Program Files (x86)" folder on

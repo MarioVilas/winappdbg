@@ -3,12 +3,6 @@
 Test script for the GetProcessInformation function implementation.
 """
 
-import os
-import sys
-
-# Add the winappdbg directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from winappdbg.win32.kernel32 import (
     GetProcessInformation,
     GetCurrentProcess,

@@ -4,10 +4,6 @@ Test script for the improved architecture detection using GetProcessInformation.
 """
 
 import os
-import sys
-
-# Add the winappdbg directory to the path
-sys.path.insert(0, os.path.dirname(__file__))
 
 from winappdbg.system import System
 from winappdbg.process import Process
@@ -109,7 +105,7 @@ def test_arch_detection():
         print("All Python process architecture detections successful!")
     else:
         print(
-            f"⚠️  {len(python_processes) - success_count} Python processes failed architecture detection"
+            f"{len(python_processes) - success_count} Python processes failed architecture detection"
         )
 
     # Show what this demonstrates

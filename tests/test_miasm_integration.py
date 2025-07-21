@@ -5,10 +5,6 @@ Test script to verify MiasmEngine integration with WinAppDbg.
 """
 
 import sys
-import os
-
-# Add the winappdbg directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def test_miasm_engine_integration():
