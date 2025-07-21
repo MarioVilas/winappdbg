@@ -310,29 +310,8 @@ class CapstoneEngine(Engine):
             win32.ARCH_AMD64: (capstone.CS_ARCH_X86, capstone.CS_MODE_64),
             win32.ARCH_THUMB: (capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB),
             win32.ARCH_ARM: (capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM),
-            win32.ARCH_ARM64: (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
+            win32.ARCH_ARM64: (capstone.CS_ARCH_AARCH64, capstone.CS_MODE_ARM),
         }
-
-        # Test for the bug in early versions of Capstone.
-        # If found, warn the user about it.
-        try:
-            self.__bug = not isinstance(
-                list(
-                    capstone.cs_disasm_quick(
-                        capstone.CS_ARCH_X86, capstone.CS_MODE_32, b"\x90", 1
-                    )
-                )[0],
-                capstone.capstone.CsInsn,
-            )
-        except AttributeError:
-            self.__bug = False
-        if self.__bug:
-            warnings.warn(
-                "This version of the Capstone bindings is unstable,"
-                " please upgrade to a newer one!",
-                RuntimeWarning,
-                stacklevel=4,
-            )
 
     def decode(self, address, code):
         # Get the constants for the requested architecture.
@@ -341,13 +320,6 @@ class CapstoneEngine(Engine):
         # Get the decoder function outside the loop.
         md = capstone.Cs(arch, mode)
         decoder = md.disasm_lite
-
-        # If the buggy version of the bindings are being used, we need to catch
-        # all exceptions broadly. If not, we only need to catch CsError.
-        if self.__bug:
-            CsError = Exception
-        else:
-            CsError = capstone.CsError
 
         # Create the variables for the instruction length, mnemonic and
         # operands. That way they won't be created within the loop,
@@ -370,7 +342,7 @@ class CapstoneEngine(Engine):
                 ]
             except IndexError:
                 pass  # No instructions decoded.
-            except CsError:
+            except capstone.CsError:
                 pass  # Any other error.
 
             # On success add the decoded instruction.
