@@ -39,7 +39,6 @@ docs = [
 ]
 disasm = [
     "capstone==6.0.0a4",
-    "miasm @ git+https://github.com/cea-sec/miasm"
 ]
 db = [
     "sqlalchemy",
