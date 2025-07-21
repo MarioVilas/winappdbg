@@ -843,8 +843,12 @@ class System(_ProcessContainer):
             Current architecture is not ``i386`` or ``amd64``.
 
         .. warning::
-            It could potentially brick your machine.
-            It works on my machine, but your mileage may vary.
+            This method uses the processor's machine specific registers (MSR).
+            While this usage should be generally safe, it may fail under some
+            special circumstances (for example with certain types of
+            virtualization). In extremely old processors (circa 1995) using
+            these registers may have occasionally cause a crash, but that's no
+            longer the case in modern processors.
         """
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             raise NotImplementedError(
@@ -876,8 +880,12 @@ class System(_ProcessContainer):
             Current architecture is not ``i386`` or ``amd64``.
 
         .. warning::
-            It could potentially brick your machine.
-            It works on my machine, but your mileage may vary.
+            This method uses the processor's machine specific registers (MSR).
+            While this usage should be generally safe, it may fail under some
+            special circumstances (for example with certain types of
+            virtualization). In extremely old processors (circa 1995) using
+            these registers may have occasionally cause a crash, but that's no
+            longer the case in modern processors.
         """
         if win32.arch not in (win32.ARCH_I386, win32.ARCH_AMD64):
             raise NotImplementedError(
@@ -903,13 +911,11 @@ class System(_ProcessContainer):
 
         .. warning::
             This method uses the processor's machine specific registers (MSR).
-            It could potentially brick your machine.
-            It works on my machine, but your mileage may vary.
-
-        .. note::
-            It doesn't seem to work in VMWare or VirtualBox machines.
-            Maybe it fails in other virtualization/emulation environments,
-            no extensive testing was made so far.
+            While this usage should be generally safe, it may fail under some
+            special circumstances (for example with certain types of
+            virtualization). In extremely old processors (circa 1995) using
+            these registers may have occasionally cause a crash, but that's no
+            longer the case in modern processors.
         """
         cls.write_msr(
             IntelDebugRegister.DebugCtlMSR,
@@ -932,13 +938,11 @@ class System(_ProcessContainer):
 
         .. warning::
             This method uses the processor's machine specific registers (MSR).
-            It could potentially brick your machine.
-            It works on my machine, but your mileage may vary.
-
-        .. note::
-            It doesn't seem to work in VMWare or VirtualBox machines.
-            Maybe it fails in other virtualization/emulation environments,
-            no extensive testing was made so far.
+            While this usage should be generally safe, it may fail under some
+            special circumstances (for example with certain types of
+            virtualization). In extremely old processors (circa 1995) using
+            these registers may have occasionally cause a crash, but that's no
+            longer the case in modern processors.
         """
         LastBranchFromIP = cls.read_msr(IntelDebugRegister.LastBranchFromIP)
         LastBranchToIP = cls.read_msr(IntelDebugRegister.LastBranchToIP)
