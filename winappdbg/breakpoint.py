@@ -1411,13 +1411,21 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
-                bp_list.append(debug.define_hardware_breakpoint(
-                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                    HardwareBreakpoint.BP_WATCH_BYTE, True, self))
+                bp_list.append(
+                    debug.define_hardware_breakpoint(
+                        tid,
+                        address,
+                        HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                        HardwareBreakpoint.BP_WATCH_BYTE,
+                        True,
+                        self,
+                    )
+                )
             if len(bp_list) == 1:
                 return bp_list[0]
             return bp_list
@@ -1453,13 +1461,19 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             bp_list = []
             for thread in process.iter_threads():
                 tid = thread.get_tid()
                 bp = debug.define_hardware_breakpoint(
-                    tid, address, HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                    HardwareBreakpoint.BP_WATCH_BYTE, True, self)
+                    tid,
+                    address,
+                    HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
+                    HardwareBreakpoint.BP_WATCH_BYTE,
+                    True,
+                    self,
+                )
                 debug.enable_one_shot_hardware_breakpoint(tid, address)
                 bp_list.append(bp)
             if len(bp_list) == 1:
@@ -1493,7 +1507,8 @@ class Hook:
             arch = process.get_arch()
             if arch != win32.ARCH_I386 and arch != win32.ARCH_AMD64:
                 raise NotImplementedError(
-                    "Hardware breakpoints not implemented for architecture: %s" % arch)
+                    "Hardware breakpoints not implemented for architecture: %s" % arch
+                )
             for thread in process.iter_threads():
                 tid = thread.get_tid()
                 debug.erase_hardware_breakpoint(tid, address)
@@ -3294,8 +3309,9 @@ class _BreakpointContainer:
                 self.disable_code_breakpoint(dwProcessId, bp.get_address())
             except Exception:
                 warnings.warn(
-                    "Exception raised while disabling code breakpoint at 0x%x:\n%s" % \
-                    (bp.get_address(), traceback.format_exc()))
+                    "Exception raised while disabling code breakpoint at 0x%x:\n%s"
+                    % (bp.get_address(), traceback.format_exc())
+                )
 
         # disable page breakpoints
         for bp in self.get_process_page_breakpoints(dwProcessId):
@@ -3303,8 +3319,9 @@ class _BreakpointContainer:
                 self.disable_page_breakpoint(dwProcessId, bp.get_address())
             except Exception:
                 warnings.warn(
-                    "Exception raised while disabling page breakpoint at 0x%x:\n%s" % \
-                    (bp.get_address(), traceback.format_exc()))
+                    "Exception raised while disabling page breakpoint at 0x%x:\n%s"
+                    % (bp.get_address(), traceback.format_exc())
+                )
 
         # disable hardware breakpoints
         if self.system.has_process(dwProcessId):
@@ -3319,8 +3336,9 @@ class _BreakpointContainer:
                     self.disable_hardware_breakpoint(dwThreadId, bp.get_address())
                 except Exception:
                     warnings.warn(
-                        "Exception raised while disabling hardware breakpoint at 0x%x:\n%s" % \
-                        (bp.get_address(), traceback.format_exc()))
+                        "Exception raised while disabling hardware breakpoint at 0x%x:\n%s"
+                        % (bp.get_address(), traceback.format_exc())
+                    )
 
     def erase_process_breakpoints(self, dwProcessId):
         """

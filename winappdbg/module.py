@@ -394,7 +394,9 @@ class Module:
                     # Check if this is our module by comparing base addresses.
                     if ldr_module.BaseAddress == module_base:
                         # Found our module, return the load count.
-                        return ldr_module.LoadCount & 0xFFFF  # Ensure it's treated as unsigned
+                        return (
+                            ldr_module.LoadCount & 0xFFFF
+                        )  # Ensure it's treated as unsigned
 
                     # Move to the next entry.
                     current_link = ldr_module.InLoadOrderModuleList.Flink
@@ -408,7 +410,11 @@ class Module:
                     # If we can't read a structure, stop walking.
                     warnings.warn(
                         "Cannot read LDR_MODULE structure at address %s for module %s, reason:\n%s"
-                        % (HexDump.address(current_link), self.get_name(), traceback.format_exc()),
+                        % (
+                            HexDump.address(current_link),
+                            self.get_name(),
+                            traceback.format_exc(),
+                        ),
                         RuntimeWarning,
                     )
                     break

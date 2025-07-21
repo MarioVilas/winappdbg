@@ -35,7 +35,7 @@ Main debugger class. Most applications will want to start with this one.
 __all__ = ["Debug", "MixedBitsWarning", "MixedArchWarning"]
 
 import warnings
-
+import traceback
 from . import win32
 from .breakpoint import _BreakpointContainer
 from .event import Event, EventDispatcher, EventFactory
@@ -45,8 +45,6 @@ from .process import Process
 from .system import System
 from .thread import Thread
 from .window import Window
-
-##import traceback
 
 # ==============================================================================
 
@@ -305,7 +303,7 @@ class Debug(EventDispatcher, _BreakpointContainer):
             self.system._add_process(aProcess)
 
         # Scan the process threads and loaded modules.
-        # This is prefered because the thread and library events do not
+        # This is preferred because the thread and library events do not
         # properly give some information, like the filename for each module.
         if bScan:
             try:
@@ -314,9 +312,9 @@ class Debug(EventDispatcher, _BreakpointContainer):
                 finally:
                     aProcess.scan_modules()
             except Exception:
-                warning.warn(
-                    "Exception raised while scanning for threads and modules:\n%s" % \
-                    traceback.format_exc())
+                warnings.warn(
+                    f"Exception raised while scanning for threads and modules:\n{traceback.format_exc()}"
+                )
 
         # Return the Process object, like the execv() and execl() methods.
         return aProcess
