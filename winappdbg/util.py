@@ -702,9 +702,9 @@ def ExecutableAndWriteableAddressIterator(memory_map):
 class IntelDebugRegister(StaticClass):
     """
     Class to manipulate x86/x64 debug registers.
-    Used by :class:`HardwareBreakpoint`.
+    Used by :class:`HardwareBreakpoint_x86`.
 
-    .. rubric:: Trigger flags used by HardwareBreakpoint
+    .. rubric:: Trigger flags used by HardwareBreakpoint_x86
 
     - ``BREAK_ON_EXECUTION``: Break on execution.
     - ``BREAK_ON_WRITE``: Break on write.
@@ -712,7 +712,7 @@ class IntelDebugRegister(StaticClass):
     - ``BREAK_ON_IO_ACCESS``: Break on I/O port access.
       Not supported by any hardware.
 
-    .. rubric:: Size flags used by HardwareBreakpoint
+    .. rubric:: Size flags used by HardwareBreakpoint_x86
 
     - ``WATCH_BYTE``: Watch a byte.
     - ``WATCH_WORD``: Watch a word.
@@ -1057,11 +1057,11 @@ class IntelDebugRegister(StaticClass):
 
         :type trigger: int
         :param trigger:
-            Trigger flag. See ``HardwareBreakpoint.validTriggers``.
+            Trigger flag. See ``HardwareBreakpoint_x86.validTriggers``.
 
         :type watch: int
         :param watch:
-            Watch flag. See ``HardwareBreakpoint.validWatchSizes``.
+            Watch flag. See ``HardwareBreakpoint_x86.validWatchSizes``.
         """
         Dr7 = ctx["Dr7"]
         Dr7 |= cls.enableMask[register]

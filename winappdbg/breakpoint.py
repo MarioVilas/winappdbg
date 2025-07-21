@@ -38,7 +38,7 @@ __all__ = [
     # Breakpoint implementations
     "CodeBreakpoint",
     "PageBreakpoint",
-    "HardwareBreakpoint",
+    "HardwareBreakpoint_x86",
     # Hooks and watches
     "HookFactory",
     "ApiHook",
@@ -81,7 +81,7 @@ class Breakpoint:
     """
     Base class for breakpoints. Here's the breakpoints state machine.
 
-    .. seealso:: :class:`CodeBreakpoint`, :class:`PageBreakpoint`, :class:`HardwareBreakpoint`
+    .. seealso:: :class:`CodeBreakpoint`, :class:`PageBreakpoint`, :class:`HardwareBreakpoint_x86`
 
     :cvar DISABLED: *Disabled* -> Enabled, OneShot
     :type DISABLED: int
@@ -713,13 +713,12 @@ class PageBreakpoint(Breakpoint):
 
 
 # ==============================================================================
+# TODO: Add a new class HardwareBreakpoint_ARM
 
 
-# TODO: ARM does support hardware breakpoints, but that involves refactoring
-#       this whole class, or possibly writing a separate class entirely.
-class HardwareBreakpoint(Breakpoint):
+class HardwareBreakpoint_x86(Breakpoint):
     """
-    Hardware breakpoint (using debug registers).
+    Hardware breakpoint (using debug registers) for x86/x64 architectures.
 
     .. seealso:: :meth:`~winappdbg.debug.Debug.watch_variable`
 
@@ -779,17 +778,20 @@ class HardwareBreakpoint(Breakpoint):
         Hardware breakpoint object.
 
         :param int address: Memory address for breakpoint.
+
         :param int triggerFlag: When to trigger the breakpoint.
             Must be one of the following values:
             - :attr:`BREAK_ON_EXECUTION`
             - :attr:`BREAK_ON_WRITE`
             - :attr:`BREAK_ON_ACCESS`
+
         :param int sizeFlag: Size of the data to watch.
             Must be one of the following values:
             - :attr:`WATCH_BYTE`
             - :attr:`WATCH_WORD`
             - :attr:`WATCH_DWORD`
             - :attr:`WATCH_QWORD`
+
         :param callable condition: Optional condition callback function.
             The callback signature is::
 
@@ -799,6 +801,7 @@ class HardwareBreakpoint(Breakpoint):
             Where ``event`` is an :class:`~winappdbg.event.Event` object,
             and the return value is a boolean (``True`` to dispatch the event,
             ``False`` otherwise).
+
         :param callable action: Optional action callback function.
             If specified, the event is handled by this callback instead of
             being dispatched normally.
@@ -1420,8 +1423,8 @@ class Hook:
                     debug.define_hardware_breakpoint(
                         tid,
                         address,
-                        HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                        HardwareBreakpoint.BP_WATCH_BYTE,
+                        HardwareBreakpoint_x86.BP_BREAK_ON_EXECUTION,
+                        HardwareBreakpoint_x86.BP_WATCH_BYTE,
                         True,
                         self,
                     )
@@ -1469,8 +1472,8 @@ class Hook:
                 bp = debug.define_hardware_breakpoint(
                     tid,
                     address,
-                    HardwareBreakpoint.BP_BREAK_ON_EXECUTION,
-                    HardwareBreakpoint.BP_WATCH_BYTE,
+                    HardwareBreakpoint_x86.BP_BREAK_ON_EXECUTION,
+                    HardwareBreakpoint_x86.BP_WATCH_BYTE,
                     True,
                     self,
                 )
@@ -2289,20 +2292,20 @@ class _BreakpointContainer:
     BP_STATE_RUNNING = Breakpoint.RUNNING
 
     # Memory breakpoint trigger flags
-    BP_BREAK_ON_EXECUTION = HardwareBreakpoint.BREAK_ON_EXECUTION
-    BP_BREAK_ON_WRITE = HardwareBreakpoint.BREAK_ON_WRITE
-    BP_BREAK_ON_ACCESS = HardwareBreakpoint.BREAK_ON_ACCESS
+    BP_BREAK_ON_EXECUTION = HardwareBreakpoint_x86.BREAK_ON_EXECUTION
+    BP_BREAK_ON_WRITE = HardwareBreakpoint_x86.BREAK_ON_WRITE
+    BP_BREAK_ON_ACCESS = HardwareBreakpoint_x86.BREAK_ON_ACCESS
 
     # Memory breakpoint size flags
-    BP_WATCH_BYTE = HardwareBreakpoint.WATCH_BYTE
-    BP_WATCH_WORD = HardwareBreakpoint.WATCH_WORD
-    BP_WATCH_QWORD = HardwareBreakpoint.WATCH_QWORD
-    BP_WATCH_DWORD = HardwareBreakpoint.WATCH_DWORD
+    BP_WATCH_BYTE = HardwareBreakpoint_x86.WATCH_BYTE
+    BP_WATCH_WORD = HardwareBreakpoint_x86.WATCH_WORD
+    BP_WATCH_QWORD = HardwareBreakpoint_x86.WATCH_QWORD
+    BP_WATCH_DWORD = HardwareBreakpoint_x86.WATCH_DWORD
 
     def __init__(self):
         self.__codeBP = dict()  # (pid, address) -> CodeBreakpoint
         self.__pageBP = dict()  # (pid, address) -> PageBreakpoint
-        self.__hardwareBP = dict()  # tid -> [ HardwareBreakpoint ]
+        self.__hardwareBP = dict()  # tid -> [ HardwareBreakpoint_x86 ]
         self.__runningBP = dict()  # tid -> set( Breakpoint )
         self.__tracing = set()  # set( tid )
         self.__deferredBP = dict()  # pid -> label -> (action, oneshot)
@@ -2603,10 +2606,10 @@ class _BreakpointContainer:
             and the return value is a boolean
             (``True`` to dispatch the event, ``False`` otherwise).
 
-        :rtype:  :class:`HardwareBreakpoint`
+        :rtype:  :class:`HardwareBreakpoint_x86`
         :return: The hardware breakpoint object.
         """
-        bp = HardwareBreakpoint(address, triggerFlag, sizeFlag, condition, action)
+        bp = HardwareBreakpoint_x86(address, triggerFlag, sizeFlag, condition, action)
         begin = bp.get_address()
         end = begin + bp.get_size()
 
@@ -2732,7 +2735,7 @@ class _BreakpointContainer:
 
         :param int dwThreadId: Thread global ID.
         :param int address: Memory address where the breakpoint is defined.
-        :rtype:  :class:`HardwareBreakpoint`
+        :rtype:  :class:`HardwareBreakpoint_x86`
         :return: The hardware breakpoint object.
         """
         if dwThreadId not in self.__hardwareBP:
@@ -3007,7 +3010,7 @@ class _BreakpointContainer:
 
     def get_all_hardware_breakpoints(self):
         """
-        :rtype:  list of tuple( int, :class:`HardwareBreakpoint` )
+        :rtype:  list of tuple( int, :class:`HardwareBreakpoint_x86` )
         :return: All hardware breakpoints as a list of tuples (tid, bp).
         """
         result = list()
@@ -3082,7 +3085,7 @@ class _BreakpointContainer:
         :see: :meth:`get_process_hardware_breakpoints`
 
         :param int dwThreadId: Thread global ID.
-        :rtype:  list of :class:`HardwareBreakpoint`
+        :rtype:  list of :class:`HardwareBreakpoint_x86`
         :return: All hardware breakpoints for the given thread.
         """
         result = list()
@@ -3097,7 +3100,7 @@ class _BreakpointContainer:
         :see: :meth:`get_thread_hardware_breakpoints`
 
         :param int dwProcessId: Process global ID.
-        :rtype:  list of tuple( int, :class:`HardwareBreakpoint` )
+        :rtype:  list of tuple( int, :class:`HardwareBreakpoint_x86` )
         :return: All hardware breakpoints for each thread in the given process
             as a list of tuples (tid, bp).
         """
@@ -4137,7 +4140,7 @@ class _BreakpointContainer:
             byte (1), word (2), dword (4) and qword (8).
         :param callable action: (Optional) Action callback function.
             See :meth:`define_hardware_breakpoint` for more details.
-        :rtype:  :class:`HardwareBreakpoint`
+        :rtype:  :class:`HardwareBreakpoint_x86`
         :return: Hardware breakpoint at the requested address.
         """
 
