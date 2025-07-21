@@ -39,27 +39,32 @@ from . import (
     advapi32,
     dbghelp,
     defines,
+    gdi32,
     kernel32,
     ntdll,
+    peb_teb,
     psapi,
     shell32,
     shlwapi,
     user32,
+    version,
     wtsapi32,
 )
-from .advapi32 import *
-from .dbghelp import *
 
 # Import all symbols from submodules into this namespace.
+from .advapi32 import *
+from .dbghelp import *
 from .defines import *
+from .gdi32 import *
 from .kernel32 import *
 from .ntdll import *
+from .peb_teb import *
 from .psapi import *
 from .shell32 import *
 from .shlwapi import *
 from .user32 import *
-from .wtsapi32 import *
 from .version import *
+from .wtsapi32 import *
 
 # Import the appropriate context module based on detected architecture.
 if arch == ARCH_I386:
@@ -74,15 +79,18 @@ elif arch == ARCH_ARM64:
 
 # This calculates the list of exported symbols.
 _all = set()
-_all.update(defines._all)
-_all.update(kernel32._all)
-_all.update(user32._all)
 _all.update(advapi32._all)
-_all.update(wtsapi32._all)
+_all.update(dbghelp._all)
+_all.update(defines._all)
+_all.update(gdi32._all)
+_all.update(kernel32._all)
+_all.update(ntdll._all)
+_all.update(peb_teb._all)
+_all.update(psapi._all)
 _all.update(shell32._all)
 _all.update(shlwapi._all)
-_all.update(psapi._all)
-_all.update(dbghelp._all)
-_all.update(ntdll._all)
+_all.update(user32._all)
+_all.update(version._all)
+_all.update(wtsapi32._all)
 _all.update(_context_module._all)
 __all__ = sorted([_x for _x in _all if not _x.startswith("_")])
