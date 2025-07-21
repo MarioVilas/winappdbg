@@ -711,10 +711,9 @@ class Process(_ThreadContainer, _ModuleContainer):
             # Traditional x86 on x64.
             return win32.ARCH_I386
 
-        # Add support for more architectures as needed.
-        raise NotImplementedError(
-            "Architecture detection not implemented for %s" % win32.arch
-        )
+        # If all methods fail (can happen if we don't have enough permissions)
+        # return the debugger's architecture instead.
+        return win32.arch
 
     def get_bits(self):
         """
