@@ -25,5 +25,5 @@ Where can I find WinAppDbg?
 
  * [Homepage](https://github.com/MarioVilas/winappdbg/)
  * [Source code](https://github.com/MarioVilas/winappdbg/releases/tag/winappdbg_v2.0)
- * [Documentation](http://winappdbg.readthedocs.io/en/latest/)
+ * [Documentation](http://winappdbg.readthedocs.io/en/master/)
 
