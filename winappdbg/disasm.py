@@ -53,7 +53,6 @@ __all__ = [
 ]
 
 import logging
-import warnings
 
 from . import win32
 from .textio import HexDump
