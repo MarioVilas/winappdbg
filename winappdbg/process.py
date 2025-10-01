@@ -1837,7 +1837,7 @@ class Process(_ThreadContainer, _ModuleContainer):
         length = org_length
         if prot is not None:
             try:
-                self.mprotect(lpBaseAddress, len(lpBuffer), prot)
+                self.mprotect(lpBaseAddress, org_length, prot)
             except Exception:
                 prot = None
                 msg = (
@@ -1857,7 +1857,7 @@ class Process(_ThreadContainer, _ModuleContainer):
                 lpBuffer = lpBuffer[r:]
         finally:
             if prot is not None:
-                self.mprotect(lpBaseAddress, len(lpBuffer), mbi.Protect)
+                self.mprotect(lpBaseAddress, org_length, mbi.Protect)
         return org_length
 
     def peek_char(self, lpBaseAddress):
@@ -4687,4 +4687,5 @@ class _ProcessContainer:
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True
+
 
