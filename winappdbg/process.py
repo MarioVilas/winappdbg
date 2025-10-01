@@ -1838,7 +1838,7 @@ class Process(_ThreadContainer, _ModuleContainer):
         length = org_length
         if prot is not None:
             try:
-                self.mprotect(lpBaseAddress, org_length, prot)
+                self.mprotect(org_lpBaseAddress, org_length, prot)
             except Exception:
                 prot = None
                 msg = (
@@ -1852,7 +1852,7 @@ class Process(_ThreadContainer, _ModuleContainer):
                 warnings.warn(msg, RuntimeWarning)
         try:
             while length:
-                r = win32.WriteProcessMemory(hProcess, org_lpBaseAddress, lpBuffer)
+                r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
                 length -= r
                 lpBaseAddress += r
                 lpBuffer = lpBuffer[r:]
@@ -4688,6 +4688,7 @@ class _ProcessContainer:
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True
+
 
 
 
