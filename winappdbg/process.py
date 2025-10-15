@@ -1853,6 +1853,8 @@ class Process(_ThreadContainer, _ModuleContainer):
         try:
             while length:
                 r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
+                if r == 0:
+                    break
                 length -= r
                 lpBaseAddress += r
                 lpBuffer = lpBuffer[r:]
@@ -4688,6 +4690,7 @@ class _ProcessContainer:
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True
+
 
 
 
