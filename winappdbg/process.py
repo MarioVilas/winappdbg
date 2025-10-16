@@ -1833,9 +1833,12 @@ class Process(_ThreadContainer, _ModuleContainer):
             prot = win32.PAGE_EXECUTE_READWRITE
         else:
             prot = win32.PAGE_READWRITE
+        org_length = len(lpBuffer)
+        org_lpBaseAddress = lpBaseAddress
+        length = org_length
         if prot is not None:
             try:
-                self.mprotect(lpBaseAddress, len(lpBuffer), prot)
+                self.mprotect(org_lpBaseAddress, org_length, prot)
             except Exception:
                 prot = None
                 msg = (
@@ -1848,11 +1851,17 @@ class Process(_ThreadContainer, _ModuleContainer):
                 )
                 warnings.warn(msg, RuntimeWarning)
         try:
-            r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
+            while length:
+                r = win32.WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer)
+                if r == 0:
+                    break
+                length -= r
+                lpBaseAddress += r
+                lpBuffer = lpBuffer[r:]
         finally:
             if prot is not None:
-                self.mprotect(lpBaseAddress, len(lpBuffer), mbi.Protect)
-        return r
+                self.mprotect(org_lpBaseAddress, org_length, mbi.Protect)
+        return org_length
 
     def peek_char(self, lpBaseAddress):
         """
@@ -4681,3 +4690,8 @@ class _ProcessContainer:
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True
+
+
+
+
+
