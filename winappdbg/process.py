@@ -4788,8 +4788,3 @@ class _ProcessContainer:
         if dwProcessId in self.__processDict:
             self._del_process(dwProcessId)
         return True
-
-
-
-
-

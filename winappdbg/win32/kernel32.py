@@ -101,9 +101,9 @@ from .version import (
     NTDDI_VISTA,
     GetCurrentProcess,
     GetCurrentThread,
-    GetModuleHandle,
-    GetModuleHandleA,
-    GetModuleHandleW,
+    GetModuleHandle,  # noqa: F401
+    GetModuleHandleA,  # noqa: F401
+    GetModuleHandleW,  # noqa: F401
     arch,
 )
 

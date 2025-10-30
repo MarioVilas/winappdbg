@@ -51,48 +51,48 @@ Examples:
   %(prog)s notepad.exe
   %(prog)s 1234 --min-length 8 --encoding ascii
   %(prog)s chrome.exe -v --limit 100
-        """
+        """,
     )
 
     parser.add_argument(
-        "target",
-        help="Process ID (PID) or process name to extract strings from"
+        "target", help="Process ID (PID) or process name to extract strings from"
     )
 
     parser.add_argument(
-        "--min-length", "-n",
+        "--min-length",
+        "-n",
         type=int,
         default=4,
         metavar="N",
-        help="Minimum string length in characters (default: 4)"
+        help="Minimum string length in characters (default: 4)",
     )
 
     parser.add_argument(
-        "--encoding", "-e",
+        "--encoding",
+        "-e",
         choices=["ascii", "unicode", "both"],
         default="both",
-        help="Encoding type: ascii, unicode, or both (default: both)"
+        help="Encoding type: ascii, unicode, or both (default: both)",
     )
 
     parser.add_argument(
-        "--limit", "-l",
-        type=int,
-        metavar="N",
-        help="Limit output to first N strings"
+        "--limit", "-l", type=int, metavar="N", help="Limit output to first N strings"
     )
 
     # Verbose/quiet mode
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Verbose output with headers and statistics"
+        help="Verbose output with headers and statistics",
     )
     output_group.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         default=True,
-        help="Quiet output, only addresses and strings (default)"
+        help="Quiet output, only addresses and strings (default)",
     )
 
     args = parser.parse_args()
@@ -125,7 +125,9 @@ Examples:
             print(f"Error: Process '{args.target}' not found", file=sys.stderr)
             return 1
         if len(found) > 1:
-            print(f"Error: Multiple processes found for '{args.target}'", file=sys.stderr)
+            print(
+                f"Error: Multiple processes found for '{args.target}'", file=sys.stderr
+            )
             print("Please specify one of the following PIDs:", file=sys.stderr)
             for process, filename in found:
                 print(f"  {process.get_pid()}: {filename}", file=sys.stderr)
@@ -179,6 +181,7 @@ Examples:
         print(f"\nError during string extraction: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
