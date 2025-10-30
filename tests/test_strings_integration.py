@@ -84,14 +84,14 @@ def test_strings_on_self():
         print(f"\nFound {count} strings")
 
         if count > 0:
-            print("✓ TEST PASSED: Successfully extracted ASCII strings")
+            print("[PASS] TEST PASSED: Successfully extracted ASCII strings")
             return True
         else:
-            print("✗ TEST FAILED: No strings found")
+            print("[FAIL] TEST FAILED: No strings found")
             return False
 
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        print(f"[FAIL] TEST FAILED: {e}")
         import traceback
 
         traceback.print_exc()
@@ -135,7 +135,7 @@ def test_strings_on_notepad():
                 print(f"Started notepad.exe with PID: {pid}")
                 notepad_process = Process(pid)
             else:
-                print("✗ Could not start notepad.exe")
+                print("[FAIL] Could not start notepad.exe")
                 return False
 
         # Extract strings
@@ -164,14 +164,14 @@ def test_strings_on_notepad():
         print(f"  Unicode strings: {unicode_count}")
 
         if count > 0:
-            print("✓ TEST PASSED: Successfully extracted strings from notepad.exe")
+            print("[PASS] TEST PASSED: Successfully extracted strings from notepad.exe")
             return True
         else:
-            print("✗ TEST FAILED: No strings found in notepad.exe")
+            print("[FAIL] TEST FAILED: No strings found in notepad.exe")
             return False
 
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        print(f"[FAIL] TEST FAILED: {e}")
         import traceback
 
         traceback.print_exc()
@@ -223,16 +223,16 @@ def test_encoding_filters():
 
         # Verify that "both" returns more results
         if both_count >= ascii_count and both_count >= unicode_count:
-            print("✓ TEST PASSED: Encoding filters work correctly")
+            print("[PASS] TEST PASSED: Encoding filters work correctly")
             return True
         else:
             print(
-                f"✗ TEST FAILED: Expected 'both' ({both_count}) >= ascii ({ascii_count}) and unicode ({unicode_count})"
+                f"[FAIL] TEST FAILED: Expected 'both' ({both_count}) >= ascii ({ascii_count}) and unicode ({unicode_count})"
             )
             return False
 
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        print(f"[FAIL] TEST FAILED: {e}")
         import traceback
 
         traceback.print_exc()
@@ -272,16 +272,16 @@ def test_min_length():
 
         # Shorter min length should find more or equal strings
         if count_short >= count_long:
-            print("✓ TEST PASSED: minLength parameter works correctly")
+            print("[PASS] TEST PASSED: minLength parameter works correctly")
             return True
         else:
             print(
-                f"✗ TEST FAILED: Expected more strings with minLength=4 ({count_short}) than minLength=10 ({count_long})"
+                f"[FAIL] TEST FAILED: Expected more strings with minLength=4 ({count_short}) than minLength=10 ({count_long})"
             )
             return False
 
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        print(f"[FAIL] TEST FAILED: {e}")
         import traceback
 
         traceback.print_exc()
@@ -316,17 +316,17 @@ def main():
     total = len(results)
 
     for name, result in results:
-        status = "✓ PASS" if result else "✗ FAIL"
+        status = "[PASS]" if result else "[FAIL]"
         print(f"{status}: {name}")
 
     print()
     print(f"Total: {passed}/{total} tests passed")
 
     if passed == total:
-        print("\n🎉 All tests passed!")
+        print("\nAll tests passed!")
         sys.exit(0)
     else:
-        print(f"\n❌ {total - passed} test(s) failed")
+        print(f"\n{total - passed} test(s) failed")
         sys.exit(1)
 
 
