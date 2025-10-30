@@ -16,9 +16,12 @@ def is_miasm_available():
         "miasm.analysis.machine",
         "miasm.core.locationdb",
     ]
-    return all(
-        importlib.util.find_spec(module) is not None for module in required_modules
-    )
+    try:
+        return all(
+            importlib.util.find_spec(module) is not None for module in required_modules
+        )
+    except (ModuleNotFoundError, ValueError, ImportError):
+        return False
 
 
 @pytest.mark.skipif(
