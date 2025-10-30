@@ -885,14 +885,20 @@ def GetModuleHandleA(lpModuleName=None):
     _GetModuleHandleA = windll.kernel32.GetModuleHandleA
     _GetModuleHandleA.argtypes = [LPSTR]
     _GetModuleHandleA.restype = HMODULE
-    return _GetModuleHandleA(lpModuleName)
+    hModule = _GetModuleHandleA(lpModuleName)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
 
 
 def GetModuleHandleW(lpModuleName=None):
     _GetModuleHandleW = windll.kernel32.GetModuleHandleW
     _GetModuleHandleW.argtypes = [LPWSTR]
     _GetModuleHandleW.restype = HMODULE
-    return _GetModuleHandleW(lpModuleName)
+    hModule = _GetModuleHandleW(lpModuleName)
+    if hModule == NULL:
+        raise ctypes.WinError()
+    return hModule
 
 
 GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
@@ -920,7 +926,7 @@ def GetModuleFileNameA(hModule=None):
     return lpFilename.value
 
 
-def GetModuleFileNameW(hProcess, hModule=None):
+def GetModuleFileNameW(hModule=None):
     _GetModuleFileNameW = ctypes.windll.kernel32.GetModuleFileNameW
     _GetModuleFileNameW.argtypes = [HMODULE, LPWSTR, DWORD]
     _GetModuleFileNameW.restype = DWORD

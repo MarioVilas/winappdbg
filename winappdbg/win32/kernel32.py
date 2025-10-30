@@ -101,6 +101,9 @@ from .version import (
     NTDDI_VISTA,
     GetCurrentProcess,
     GetCurrentThread,
+    GetModuleHandle,
+    GetModuleHandleA,
+    GetModuleHandleW,
     arch,
 )
 
@@ -2974,30 +2977,8 @@ def LoadLibraryExW(pszLibrary, dwFlags=0):
 LoadLibraryEx = GuessStringType(LoadLibraryExA, LoadLibraryExW)
 
 
-# HMODULE WINAPI GetModuleHandle(
-#   __in_opt  LPCTSTR lpModuleName
-# );
-def GetModuleHandleA(lpModuleName):
-    _GetModuleHandleA = windll.kernel32.GetModuleHandleA
-    _GetModuleHandleA.argtypes = [LPSTR]
-    _GetModuleHandleA.restype = HMODULE
-    hModule = _GetModuleHandleA(lpModuleName)
-    if hModule == NULL:
-        raise ctypes.WinError()
-    return hModule
-
-
-def GetModuleHandleW(lpModuleName):
-    _GetModuleHandleW = windll.kernel32.GetModuleHandleW
-    _GetModuleHandleW.argtypes = [LPWSTR]
-    _GetModuleHandleW.restype = HMODULE
-    hModule = _GetModuleHandleW(lpModuleName)
-    if hModule == NULL:
-        raise ctypes.WinError()
-    return hModule
-
-
-GetModuleHandle = GuessStringType(GetModuleHandleA, GetModuleHandleW)
+# GetModuleHandle is imported from .version to avoid code duplication
+# and ensure consistent error handling across the codebase.
 
 
 # FARPROC WINAPI GetProcAddress(
