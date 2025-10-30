@@ -5,8 +5,24 @@ Test script to verify MiasmEngine integration with WinAppDbg.
 """
 
 import sys
+import pytest
 
 
+def is_miasm_available():
+    """Check if Miasm is available for import."""
+    try:
+        import miasm.analysis.binary
+        import miasm.analysis.machine
+        import miasm.core.locationdb
+        return True
+    except ImportError:
+        return False
+
+
+@pytest.mark.skipif(
+    not is_miasm_available(),
+    reason="Miasm is not installed. Install from: https://github.com/cea-sec/miasm"
+)
 def test_miasm_engine_integration():
     """Test that MiasmEngine integrates properly with WinAppDbg"""
 

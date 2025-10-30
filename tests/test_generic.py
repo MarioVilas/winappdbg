@@ -31,6 +31,37 @@
 import ntpath
 import os
 import warnings
+import pytest
+
+
+def is_sdk_dbghelp_available():
+    """Check if Microsoft SDK version of dbghelp.dll is available."""
+    try:
+        from winappdbg import win32
+        from winappdbg.system import System
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            dbghelp = System.load_dbghelp()
+
+        if dbghelp is None:
+            return False
+
+        pathname = win32.GetModuleFileNameEx(-1, dbghelp._handle)
+        sysroot = os.getenv("SystemRoot") or os.getenv("SYSTEMROOT")
+        if not sysroot:
+            return False
+
+        system = ntpath.join(sysroot, "System32")
+        syswow = ntpath.join(sysroot, "SysWoW64")
+
+        # If it's in System32/SysWoW64, it's the system version, not SDK
+        if pathname.lower().startswith(system.lower()) or pathname.lower().startswith(syswow.lower()):
+            return False
+
+        return True
+    except Exception:
+        return False
 
 
 def test_module_load():
@@ -52,6 +83,10 @@ def test_db_load():
         from winappdbg import db  # noqa
 
 
+@pytest.mark.skipif(
+    not is_sdk_dbghelp_available(),
+    reason="Microsoft SDK (Debugging Tools for Windows) is not installed. Only system dbghelp.dll is available."
+)
 def test_windbg_version():
     from winappdbg import win32
     from winappdbg.system import System
