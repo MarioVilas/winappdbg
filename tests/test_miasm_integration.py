@@ -37,7 +37,7 @@ def test_miasm_engine_integration():
 
         except Exception as e:
             print(f"ARM64 test failed: {e}")
-            return False
+            assert False, f"ARM64 test failed: {e}"
 
         # Test x86_64 support
         try:
@@ -55,7 +55,7 @@ def test_miasm_engine_integration():
 
         except Exception as e:
             print(f"x86_64 test failed: {e}")
-            return False
+            assert False, f"x86_64 test failed: {e}"
 
         # Test 2: Generic Disassembler usage
         print("\nTest 2: Generic Disassembler usage")
@@ -74,7 +74,7 @@ def test_miasm_engine_integration():
 
         except Exception as e:
             print(f"Generic disassembler test failed: {e}")
-            return False
+            assert False, f"Generic disassembler test failed: {e}"
 
         # Test 3: Auto-selection (should pick MiasmEngine first)
         print("\nTest 3: Auto-selection test")
@@ -92,7 +92,7 @@ def test_miasm_engine_integration():
 
         except Exception as e:
             print(f"Auto-selection test failed: {e}")
-            return False
+            assert False, f"Auto-selection test failed: {e}"
 
         # Test 4: Supported architectures
         print("\nTest 4: Supported architectures")
@@ -110,7 +110,7 @@ def test_miasm_engine_integration():
             print(f"  Supported: {sorted(MiasmEngine.supported)}")
         else:
             print(f"Unexpected supported architectures: {MiasmEngine.supported}")
-            return False
+            assert False, f"Unexpected supported architectures: {MiasmEngine.supported}"
 
         # Test 5: Engine metadata
         print("\nTest 5: Engine metadata")
@@ -124,25 +124,27 @@ def test_miasm_engine_integration():
             print("Engine name is correct")
         else:
             print(f"Expected name '{expected_name}', got '{MiasmEngine.name}'")
-            return False
+            assert False, f"Expected name '{expected_name}', got '{MiasmEngine.name}'"
 
         print("\nAll tests passed! MiasmEngine integration is working correctly.")
-        return True
 
     except ImportError as e:
         print(f"Import error: {e}")
         print("Make sure Miasm is installed:")
         print("  git clone https://github.com/cea-sec/miasm.git")
         print("  cd miasm && python setup.py install")
-        return False
+        assert False, f"Import error: {e}"
     except Exception as e:
         print(f"Unexpected error: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
+        assert False, f"Unexpected error: {e}"
 
 
 if __name__ == "__main__":
-    success = test_miasm_engine_integration()
-    sys.exit(0 if success else 1)
+    try:
+        test_miasm_engine_integration()
+        sys.exit(0)
+    except (AssertionError, Exception):
+        sys.exit(1)
