@@ -123,7 +123,7 @@ def test_strings_on_notepad():
             # Start notepad
             import subprocess
 
-            proc = subprocess.Popen(["notepad.exe"])
+            _ = subprocess.Popen(["notepad.exe"])
             time.sleep(2)  # Give it time to start
 
             # Re-scan and find it
