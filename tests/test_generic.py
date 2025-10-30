@@ -56,7 +56,9 @@ def is_sdk_dbghelp_available():
         syswow = ntpath.join(sysroot, "SysWoW64")
 
         # If it's in System32/SysWoW64, it's the system version, not SDK
-        if pathname.lower().startswith(system.lower()) or pathname.lower().startswith(syswow.lower()):
+        if pathname.lower().startswith(system.lower()) or pathname.lower().startswith(
+            syswow.lower()
+        ):
             return False
 
         return True
@@ -85,7 +87,7 @@ def test_db_load():
 
 @pytest.mark.skipif(
     not is_sdk_dbghelp_available(),
-    reason="Microsoft SDK (Debugging Tools for Windows) is not installed. Only system dbghelp.dll is available."
+    reason="Microsoft SDK (Debugging Tools for Windows) is not installed. Only system dbghelp.dll is available.",
 )
 def test_windbg_version():
     from winappdbg import win32
