@@ -89,6 +89,8 @@ def main():
     else:
         parser.error("internal error")
 
+    return 0
+
 
 def show(search=None, wide=True):
     "show a table with the list of services"
@@ -321,4 +323,7 @@ def resume(target):
 if __name__ == "__main__":
     import sys
 
-    main(sys.argv[1:])
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

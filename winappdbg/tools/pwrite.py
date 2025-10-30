@@ -50,7 +50,7 @@ def main():
         script = os.path.basename(sys.argv[0])
         print("  %s <pid> <address> {binary input file / hex data}" % script)
         print("  %s <process.exe> <address> {binary input file / hex data}" % script)
-        return
+        return 1
 
     System.request_debug_privileges()
 
@@ -62,19 +62,19 @@ def main():
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
             print("Process not found: %s" % sys.argv[1])
-            return
+            return 1
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
             for p, n in pl:
                 print("\t%s: %s" % (HexDump.integer(p.get_pid()), n))
-            return
+            return 1
         pid = pl[0][0].get_pid()
 
     try:
         address = HexInput.integer(sys.argv[2])
     except Exception:
         print("Invalid value for address: %s" % sys.argv[2])
-        return
+        return 1
 
     filename = " ".join(sys.argv[3:])
     if os.path.exists(filename):
@@ -86,12 +86,19 @@ def main():
             data = HexInput.hexadecimal(filename)
         except Exception:
             print("Invalid filename or hex block: %s" % filename)
-            return
+            return 1
 
-    p = Process(pid)
-    p.write(address, data)
-    print("Written %d bytes to PID %d" % (len(data), pid))
+    try:
+        p = Process(pid)
+        p.write(address, data)
+        print("Written %d bytes to PID %d" % (len(data), pid))
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

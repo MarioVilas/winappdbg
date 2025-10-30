@@ -1013,9 +1013,11 @@ class CrashLogger:
 
         # Catch errors and show them on screen
         except Exception as e:
-            print("Runtime error: %s" % str(e))
+            print("Runtime error: %s" % str(e), file=sys.stderr)
             traceback.print_exc()
-            return
+            return 1
+
+        return 0
 
     def install_as_jit(self, config):
         # Not yet compatible with Cygwin.
@@ -1234,7 +1236,8 @@ def main():
         return cl.run_from_cmdline(sys.argv)
     except KeyboardInterrupt:
         print("Interrupted by the user!")
+        return 130
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -60,78 +60,86 @@ def main():
         print("Usage:")
         print("  %s <pid>..." % script)
         print("  %s <process.exe>..." % script)
-        return
+        return 0
 
-    s = System()
-    s.request_debug_privileges()
-    s.scan_processes()
+    try:
+        s = System()
+        s.request_debug_privileges()
+        s.scan_processes()
 
-    targets = set()
-    for token in sys.argv[1:]:
-        try:
-            pid = HexInput.integer(token)
-            if not s.has_process(pid):
-                print("Process not found: %s" % token)
-                return
-            targets.add(pid)
-        except ValueError:
-            pl = s.find_processes_by_filename(token)
-            if not pl:
-                print("Process not found: %s" % token)
-                return
-            for p, n in pl:
-                pid = p.get_pid()
+        targets = set()
+        for token in sys.argv[1:]:
+            try:
+                pid = HexInput.integer(token)
+                if not s.has_process(pid):
+                    print("Process not found: %s" % token)
+                    return 1
                 targets.add(pid)
+            except ValueError:
+                pl = s.find_processes_by_filename(token)
+                if not pl:
+                    print("Process not found: %s" % token)
+                    return 1
+                for p, n in pl:
+                    pid = p.get_pid()
+                    targets.add(pid)
 
-    targets = list(targets)
-    targets.sort()
+        targets = list(targets)
+        targets.sort()
 
-    for pid in targets:
-        process = Process(pid)
-        fileName = process.get_filename()
-        memoryMap = process.get_memory_map()
-        mappedFilenames = process.get_mapped_filenames()
-        if fileName:
-            print("Memory map for %d (%s):" % (pid, fileName))
-        else:
-            print("Memory map for %d:" % pid)
-        print()
-        ##        print(CrashDump.dump_memory_map(memoryMap),)
-        print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
+        for pid in targets:
+            process = Process(pid)
+            fileName = process.get_filename()
+            memoryMap = process.get_memory_map()
+            mappedFilenames = process.get_mapped_filenames()
+            if fileName:
+                print("Memory map for %d (%s):" % (pid, fileName))
+            else:
+                print("Memory map for %d:" % pid)
+            print()
+            ##        print(CrashDump.dump_memory_map(memoryMap),)
+            print(CrashDump.dump_memory_map(memoryMap, mappedFilenames))
 
-        readable = 0
-        writeable = 0
-        executable = 0
-        private = 0
-        mapped = 0
-        image = 0
-        total = 0
-        for mbi in memoryMap:
-            size = mbi.RegionSize
-            if not mbi.is_free():
-                total += size
-            if mbi.is_readable():
-                readable += size
-            if mbi.is_writeable():
-                writeable += size
-            if mbi.is_executable():
-                executable += size
-            if mbi.is_private():
-                private += size
-            if mbi.is_mapped():
-                mapped += size
-            if mbi.is_image():
-                image += size
-        width = len(number(total))
-        print(("  %%%ds bytes of readable memory" % width) % number(readable))
-        print(("  %%%ds bytes of writeable memory" % width) % number(writeable))
-        print(("  %%%ds bytes of executable memory" % width) % number(executable))
-        print(("  %%%ds bytes of private memory" % width) % number(private))
-        print(("  %%%ds bytes of mapped memory" % width) % number(mapped))
-        print(("  %%%ds bytes of image memory" % width) % number(image))
-        print(("  %%%ds bytes of total memory" % width) % number(total))
-        print()
+            readable = 0
+            writeable = 0
+            executable = 0
+            private = 0
+            mapped = 0
+            image = 0
+            total = 0
+            for mbi in memoryMap:
+                size = mbi.RegionSize
+                if not mbi.is_free():
+                    total += size
+                if mbi.is_readable():
+                    readable += size
+                if mbi.is_writeable():
+                    writeable += size
+                if mbi.is_executable():
+                    executable += size
+                if mbi.is_private():
+                    private += size
+                if mbi.is_mapped():
+                    mapped += size
+                if mbi.is_image():
+                    image += size
+            width = len(number(total))
+            print(("  %%%ds bytes of readable memory" % width) % number(readable))
+            print(("  %%%ds bytes of writeable memory" % width) % number(writeable))
+            print(("  %%%ds bytes of executable memory" % width) % number(executable))
+            print(("  %%%ds bytes of private memory" % width) % number(private))
+            print(("  %%%ds bytes of mapped memory" % width) % number(mapped))
+            print(("  %%%ds bytes of image memory" % width) % number(image))
+            print(("  %%%ds bytes of total memory" % width) % number(total))
+            print()
+
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

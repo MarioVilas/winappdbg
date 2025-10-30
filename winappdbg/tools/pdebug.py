@@ -68,6 +68,7 @@ class PDebug(ConsoleDebugger):
             self.loop()
         finally:
             self.finalize()
+        return 0
 
     # Initialize the debugger.
     def initialize(self):
@@ -300,4 +301,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

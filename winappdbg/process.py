@@ -54,7 +54,15 @@ from . import win32
 from .win32.version import _machine_to_arch_map
 from .disasm import Disassembler
 from .module import _ModuleContainer
-from .search import HexPattern, IStringPattern, Pattern, Search, StringPattern
+from .search import (
+    AsciiStringsPattern,
+    HexPattern,
+    IStringPattern,
+    Pattern,
+    Search,
+    StringPattern,
+    UnicodeStringsPattern,
+)
 from .textio import HexDump, HexInput
 from .thread import Thread, _ThreadContainer
 from .util import MemoryAddresses, PathOperations, Regenerator
@@ -1357,6 +1365,96 @@ class Process(_ThreadContainer, _ModuleContainer):
         """
         pattern = HexPattern(hexa)
         return Search.search_process(self, [pattern], minAddr, maxAddr)
+
+    def strings(
+        self, minLength=4, encoding="both", minAddr=None, maxAddr=None, bufferPages=None
+    ):
+        """
+        Extract printable strings from the process memory.
+
+        This method extracts readable strings from the process memory, similar to
+        the Unix ``strings`` command. It can extract both ASCII and Unicode strings.
+
+        :param int minLength: Minimum length of strings to extract, in characters.
+            Defaults to 4.
+        :param str encoding: Type of strings to extract. Valid values are:
+
+            - ``"ascii"`` - Extract only ASCII strings (8-bit)
+            - ``"unicode"`` - Extract only Unicode strings (UTF-16LE, 16-bit)
+            - ``"both"`` - Extract both ASCII and Unicode strings (default)
+
+        :param int minAddr: Optional. Start the search at this memory address.
+        :param int maxAddr: Optional. Stop the search at this memory address.
+        :param int bufferPages: Optional. Number of memory pages to buffer when
+            performing the search. See :meth:`~.search.Search.search_process` for
+            details on this parameter.
+        :rtype: iterator[tuple[int, str]]
+        :return: An iterator of tuples. Each tuple contains the following:
+
+            - The memory address where the string was found.
+            - The string that was extracted (decoded as a Python str).
+
+        :raises ValueError: If an invalid encoding parameter is provided.
+        :raises WindowsError: An error occurred when querying or reading the
+            process memory.
+
+        Example::
+
+            from winappdbg import Process
+
+            # Open a process
+            process = Process(1234)
+
+            # Extract all strings from the process memory
+            for address, string in process.strings():
+                print(f"0x{address:08x}: {string}")
+
+            # Extract only ASCII strings of at least 8 characters
+            for address, string in process.strings(minLength=8, encoding="ascii"):
+                print(f"0x{address:08x}: {string}")
+
+        .. note::
+
+            This method uses :class:`~.search.AsciiStringsPattern` and
+            :class:`~.search.UnicodeStringsPattern` to extract strings.
+            Only printable ASCII characters (0x20-0x7E) are considered.
+        """
+        # Validate encoding parameter
+        encoding = encoding.lower()
+        if encoding not in ("ascii", "unicode", "both"):
+            raise ValueError(
+                f"Invalid encoding: {encoding!r}. "
+                "Valid values are: 'ascii', 'unicode', 'both'"
+            )
+
+        # Build list of patterns based on encoding
+        patterns = []
+        if encoding in ("ascii", "both"):
+            patterns.append(AsciiStringsPattern(minLength))
+        if encoding in ("unicode", "both"):
+            patterns.append(UnicodeStringsPattern(minLength))
+
+        # Search for strings in process memory
+        for address, data in Search.search_process(
+            self, patterns, minAddr, maxAddr, bufferPages, overlapping=False
+        ):
+            # Decode the extracted bytes
+            try:
+                # Try to detect if this is ASCII or Unicode
+                if b"\x00" in data and len(data) >= 2:
+                    # Likely Unicode (UTF-16LE) - has null bytes
+                    # Remove trailing null bytes if present
+                    if data[-1] == 0:
+                        data = data[:-1]
+                    decoded = data.decode("utf-16-le")
+                else:
+                    # ASCII string
+                    decoded = data.decode("latin-1")
+                yield (address, decoded)
+            except (UnicodeDecodeError, UnicodeError):
+                # If decoding fails, skip this string
+                # This shouldn't happen with our patterns, but be defensive
+                continue
 
     # ------------------------------------------------------------------------------
 

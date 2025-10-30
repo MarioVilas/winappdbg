@@ -157,6 +157,11 @@ def main():
         cc = open_database(filename)
         print_report_for_database(cc, options)
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

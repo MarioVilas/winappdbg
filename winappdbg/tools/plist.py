@@ -128,8 +128,8 @@ def main():
         s.scan_processes_fast()
     pid_list = s.get_process_ids()
     if not pid_list:
-        print("Unknown error enumerating processes!")
-        return
+        print("Unknown error enumerating processes!", file=sys.stderr)
+        return 1
     pid_list = sorted(pid_list)
 
     # Get the filename of each process.
@@ -202,8 +202,8 @@ def main():
                     srvset.add(descriptor.ServiceName)
                     services[descriptor.ProcessId] = srvset
         except WindowsError as e:
-            print("Error getting the list of services: %s" % str(e))
-            return
+            print("Error getting the list of services: %s" % str(e), file=sys.stderr)
+            return 1
 
     if options.format == "auto":
         if options.windows or options.services:
@@ -284,6 +284,11 @@ def main():
         table.justify(0, 1)
         table.show()
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

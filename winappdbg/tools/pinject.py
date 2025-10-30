@@ -51,7 +51,7 @@ def main():
         print("Injects a DLL into a running process.")
         print("  %s <pid> <library.dll>" % script)
         print("  %s <process.exe> <library.dll>" % script)
-        return
+        return 1
 
     System.request_debug_privileges()
 
@@ -63,29 +63,36 @@ def main():
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
             print("Process not found: %s" % sys.argv[1])
-            return
+            return 1
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
             for p, n in pl:
                 print("\t%12d: %s" % (p.get_pid(), n))
-            return
+            return 1
         pid = pl[0][0].get_pid()
     print("Using PID %d (0x%x)" % (pid, pid))
 
     dll = sys.argv[2]
     print("Using DLL %s" % dll)
 
-    p = Process(pid)
-    b = p.get_bits()
-    if b != System.bits:
-        print(
-            "Cannot inject into a %d bit process from a %d bit Python VM!"
-            % (b, System.bits)
-        )
-        return
-    p.scan_modules()
-    p.inject_dll(dll)
+    try:
+        p = Process(pid)
+        b = p.get_bits()
+        if b != System.bits:
+            print(
+                "Cannot inject into a %d bit process from a %d bit Python VM!"
+                % (b, System.bits)
+            )
+            return 1
+        p.scan_modules()
+        p.inject_dll(dll)
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

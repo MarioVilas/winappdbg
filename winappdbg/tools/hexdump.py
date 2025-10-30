@@ -44,23 +44,30 @@ def main():
 
         script = os.path.basename(argv[0])
         print("  %s <filename>" % script)
-        return
-    with open(argv[1], "rb") as fd:
-        fd.seek(0, 2)
-        size = fd.tell()
-        fd.seek(0, 0)
-        if size.bit_length() > 32:
-            width = 8
-        else:
-            width = 16
-        address = 0
-        while True:
-            data = fd.read(16)
-            if not data:
-                break
-            print(HexDump.hexblock(data, address=address, width=width))
-            address = address + len(data)
+        return 1
+    try:
+        with open(argv[1], "rb") as fd:
+            fd.seek(0, 2)
+            size = fd.tell()
+            fd.seek(0, 0)
+            if size.bit_length() > 32:
+                width = 8
+            else:
+                width = 16
+            address = 0
+            while True:
+                data = fd.read(16)
+                if not data:
+                    break
+                print(HexDump.hexblock(data, address=address, width=width))
+                address = address + len(data)
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

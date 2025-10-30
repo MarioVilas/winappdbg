@@ -55,7 +55,7 @@ def main():
     if len(argv) < 3:
         script = os.path.basename(argv[0])
         print("  %s <pid> <process.exe> [arguments]" % script)
-        return
+        return 1
 
     # Request debug privileges.
     system = System()
@@ -72,18 +72,18 @@ def main():
             system.scan_processes_fast()
             if not system.has_process(dwParentProcessId):
                 print("Can't find process ID %d" % dwParentProcessId)
-                return
+                return 1
     else:
         system.scan_processes()
         process_list = system.find_processes_by_filename(argv[1])
         if not process_list:
             print("Can't find process %r" % argv[1])
-            return
+            return 1
         if len(process_list) > 1:
             print("Too many processes found:")
             for process, name in process_list:
                 print("\t%d:\t%s" % (process.get_pid(), name))
-            return
+            return 1
         dwParentProcessId = process_list[0][0].get_pid()
 
     # Parse the target process argument.
@@ -93,7 +93,7 @@ def main():
             filename = win32.SearchPath(None, filename, ".exe")[0]
         except WindowsError as e:
             print("Error searching for %s: %s" % (filename, str(e)))
-            return
+            return 1
         argv = list(argv)
         argv[2] = filename
 
@@ -111,13 +111,16 @@ def main():
             print("This tool requires Windows Vista or above.")
         else:
             print("Error starting new process: %s" % str(e))
-        return
+        return 1
     except WindowsError as e:
         print("Error starting new process: %s" % str(e))
-        return
+        return 1
     print("Process created: %d" % dwProcessId)
-    return dwProcessId
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

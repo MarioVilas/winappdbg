@@ -51,7 +51,7 @@ def main():
         script = os.path.basename(sys.argv[0])
         print("  %s <pid> <address> <size> [binary output file]" % script)
         print("  %s <process.exe> <address> <size> [binary output file]" % script)
-        return
+        return 1
 
     System.request_debug_privileges()
 
@@ -63,43 +63,51 @@ def main():
         pl = s.find_processes_by_filename(sys.argv[1])
         if not pl:
             print("Process not found: %s" % sys.argv[1])
-            return
+            return 1
         if len(pl) > 1:
             print("Multiple processes found for %s" % sys.argv[1])
             for p, n in pl:
                 print("\t%s: %s" % (HexDump.integer(p), n))
-            return
+            return 1
         pid = pl[0][0].get_pid()
 
     try:
         address = HexInput.integer(sys.argv[2])
     except Exception:
         print("Invalid value for address: %s" % sys.argv[2])
-        return
+        return 1
 
     try:
         size = HexInput.integer(sys.argv[3])
     except Exception:
         print("Invalid value for size: %s" % sys.argv[3])
-        return
+        return 1
 
-    p = Process(pid)
-    data = p.read(address, size)
-    ##    data = p.peek(address, size)
-    print("Read %d bytes from PID %d" % (len(data), pid))
+    try:
+        p = Process(pid)
+        data = p.read(address, size)
+        ##    data = p.peek(address, size)
+        print("Read %d bytes from PID %d" % (len(data), pid))
 
-    if len(sys.argv) == 5:
-        filename = sys.argv[4]
-        open(filename, "wb").write(data)
-        print("Written %d bytes to %s" % (len(data), filename))
-    else:
-        if win32.sizeof(win32.LPVOID) == win32.sizeof(win32.DWORD):
-            width = 16
+        if len(sys.argv) == 5:
+            filename = sys.argv[4]
+            open(filename, "wb").write(data)
+            print("Written %d bytes to %s" % (len(data), filename))
         else:
-            width = 8
-        print()
-        print(HexDump.hexblock(data, address, width=width))
+            if win32.sizeof(win32.LPVOID) == win32.sizeof(win32.DWORD):
+                width = 16
+            else:
+                width = 8
+            print()
+            print(HexDump.hexblock(data, address, width=width))
+
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except Exception as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

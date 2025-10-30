@@ -35,7 +35,6 @@
 
 import os
 import sys
-from sys import exit
 
 from winappdbg import win32
 from winappdbg.process import Process
@@ -59,7 +58,7 @@ def main():
         print(
             "If a process name is given instead of an ID all matching processes are killed."
         )
-        exit()
+        return 0
 
     # Scan for active processes.
     # This is needed both to translate names to IDs, and to validate the user-supplied IDs.
@@ -81,13 +80,13 @@ def main():
             matched = s.find_processes_by_filename(token)
             if not matched:
                 print("Error: process not found: %s" % token)
-                exit()
+                return 1
             for process, name in matched:
                 targets.add(process.get_pid())
         else:
             if not s.has_process(pid):
                 print("Error: process not found: 0x%x (%d)" % (pid, pid))
-                exit()
+                return 1
             targets.add(pid)
     targets = list(targets)
     targets.sort()
@@ -178,6 +177,7 @@ def main():
 
     if count == 0:
         print("Failed! No process was killed.")
+        return 1
     elif count == 1:
         print("Successfully killed 1 process.")
     else:
@@ -185,8 +185,8 @@ def main():
 
     # Exit the current thread.
     # This will kill all the processes we have attached to.
-    exit()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

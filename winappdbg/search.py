@@ -39,6 +39,8 @@ __all__ = [
     "StringPattern",
     "IStringPattern",
     "HexPattern",
+    "AsciiStringsPattern",
+    "UnicodeStringsPattern",
     "MemoryAccessWarning",
 ]
 
@@ -264,6 +266,106 @@ class HexPattern(Pattern):
         match = self.compiled.search(self.data[self.pos :])
         if match is not None:
             return match.start() + self.pos
+        return -1
+
+
+# ------------------------------------------------------------------------------
+
+
+class AsciiStringsPattern(Pattern):
+    """
+    Pattern matching for extracting ASCII strings from binary data.
+
+    This pattern extracts printable ASCII strings similar to the Unix
+    ``strings`` command. Only characters in the range 0x20-0x7E (space to
+    tilde) are considered printable.
+    """
+
+    def __init__(self, minLength=4):
+        """
+        Class constructor.
+
+        :type  minLength: int
+        :param minLength: Minimum length of strings to extract.
+            Defaults to 4 characters.
+        """
+        # Pattern to match sequences of printable ASCII characters
+        # Printable ASCII: space (0x20) to tilde (0x7E)
+        pattern = rb"[\x20-\x7E]{%d,}" % minLength
+        super().__init__(pattern)
+        self.minLength = minLength
+        self.compiled = re.compile(pattern)
+        self.match = None
+
+    def __len__(self):
+        """
+        Return the length of the last match.
+        """
+        if self.match is not None:
+            return len(self.match.group(0))
+        return self.minLength
+
+    def next_match(self):
+        """
+        Find the next ASCII string in the data buffer.
+
+        :rtype:  int
+        :return: Position in the buffer where the string was found,
+            or -1 if not found.
+        """
+        self.match = self.compiled.search(self.data, self.pos)
+        if self.match is not None:
+            return self.match.start()
+        return -1
+
+
+# ------------------------------------------------------------------------------
+
+
+class UnicodeStringsPattern(Pattern):
+    """
+    Pattern matching for extracting Unicode (UTF-16LE) strings from binary data.
+
+    This pattern extracts printable Unicode strings encoded as UTF-16LE
+    (little-endian), which is the standard Unicode encoding on Windows.
+    """
+
+    def __init__(self, minLength=4):
+        """
+        Class constructor.
+
+        :type  minLength: int
+        :param minLength: Minimum length of strings to extract (in characters).
+            Defaults to 4 characters.
+        """
+        # Pattern to match sequences of printable ASCII characters as UTF-16LE
+        # Each character is represented as: char byte followed by null byte
+        # Printable ASCII range: 0x20-0x7E
+        pattern = rb"(?:[\x20-\x7E]\x00){%d,}" % minLength
+        super().__init__(pattern)
+        self.minLength = minLength * 2  # Each Unicode char is 2 bytes
+        self.compiled = re.compile(pattern)
+        self.match = None
+
+    def __len__(self):
+        """
+        Return the length of the last match.
+        """
+        if self.match is not None:
+            return len(self.match.group(0))
+        return self.minLength
+
+    def next_match(self):
+        """
+        Find the next Unicode string in the data buffer.
+
+        :rtype:  int
+        :return: Position in the buffer where the string was found,
+            or -1 if not found.
+        """
+        self.match = self.compiled.search(self.data, self.pos)
+        if self.match is not None:
+            return self.match.start()
         return -1
 
 

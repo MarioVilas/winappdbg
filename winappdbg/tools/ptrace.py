@@ -442,4 +442,7 @@ def callback_execute_target(option, opt_str, value, parser):
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

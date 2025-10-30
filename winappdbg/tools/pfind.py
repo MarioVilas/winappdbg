@@ -486,6 +486,8 @@ class Main:
         # Perform the search on the selected targets
         self.do_search()
 
+        return 0
+
 
 # ------------------------------------------------------------------------------
 
@@ -495,4 +497,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
