@@ -53,6 +53,7 @@ from .defines import (
     LPVOID,
     LPWSTR,
     MAX_PATH,
+    NULL,
     PBOOL,
     PDWORD,
     PHKEY,
