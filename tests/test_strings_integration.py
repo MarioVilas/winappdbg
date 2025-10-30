@@ -17,7 +17,8 @@ import subprocess
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from winappdbg import System, Process
+from winappdbg.system import System
+from winappdbg.process import Process
 
 
 def create_test_executable():
