@@ -359,6 +359,137 @@ class Process(_ThreadContainer, _ModuleContainer):
                     pass
             raise
 
+    def generate_minidump(
+        self,
+        filename,
+        DumpType=None,
+        ContextRecord=None,
+        ExceptionParam=None,
+        UserStreamParam=None,
+        CallbackParam=None,
+    ):
+        """
+        Generates a minidump file for the process.
+
+        :type  filename: str
+        :param filename: Path to the output minidump file (.dmp).
+
+        :type  DumpType: int
+        :param DumpType: Type of information to include in the minidump.
+            Defaults to ``MiniDumpNormal``. Can be a combination of
+            ``MINIDUMP_TYPE`` flags from :mod:`win32`. Common values:
+
+            - ``win32.MiniDumpNormal`` - Include only basic information
+            - ``win32.MiniDumpWithFullMemory`` - Include all accessible memory
+            - ``win32.MiniDumpWithDataSegs`` - Include data segments
+            - ``win32.MiniDumpWithHandleData`` - Include handle information
+            - ``win32.MiniDumpWithThreadInfo`` - Include thread information
+
+            Multiple flags can be combined with bitwise OR.
+
+        :type  ContextRecord: CONTEXT or None
+        :param ContextRecord: Optional pointer to a CONTEXT structure for
+            the calling thread. Used when generating a dump from an exception
+            handler to capture the thread state. Architecture-specific.
+            Defaults to ``None``.
+
+        :type  ExceptionParam: MINIDUMP_EXCEPTION_INFORMATION or None
+        :param ExceptionParam: Optional pointer to exception information.
+            Used when generating a dump from an exception handler.
+            Defaults to ``None``.
+
+        :type  UserStreamParam: MINIDUMP_USER_STREAM_INFORMATION or None
+        :param UserStreamParam: Optional pointer to user-defined information
+            to include in the minidump. Defaults to ``None``.
+
+        :type  CallbackParam: MINIDUMP_CALLBACK_INFORMATION or None
+        :param CallbackParam: Optional pointer to a callback structure for
+            customizing minidump generation. Defaults to ``None``.
+
+        :raises WindowsError: On error an exception is raised.
+
+        Example::
+
+            # Generate a basic minidump
+            process.generate_minidump("crash.dmp")
+
+            # Generate a full memory dump
+            process.generate_minidump(
+                "full_crash.dmp",
+                win32.MiniDumpWithFullMemory | win32.MiniDumpWithHandleData
+            )
+
+            # Advanced: Generate from exception handler with context
+            # try:
+            #     # ... code that might crash ...
+            # except:
+            #     exc_info = win32.MINIDUMP_EXCEPTION_INFORMATION()
+            #     context = win32.CONTEXT()
+            #     # ... fill in exception info and context ...
+            #     process.generate_minidump(
+            #         "exception.dmp",
+            #         ContextRecord=context,
+            #         ExceptionParam=exc_info
+            #     )
+
+        .. note::
+            This method requires PROCESS_QUERY_INFORMATION and PROCESS_VM_READ
+            access rights to the process. If handle information is requested
+            (e.g., with MiniDumpWithHandleData), PROCESS_DUP_HANDLE is also
+            required and will be automatically requested.
+        """
+        if DumpType is None:
+            DumpType = win32.MiniDumpNormal
+
+        # Convert None to NULL for optional parameters
+        if ContextRecord is None:
+            ContextRecord = win32.NULL
+        if ExceptionParam is None:
+            ExceptionParam = win32.NULL
+        if UserStreamParam is None:
+            UserStreamParam = win32.NULL
+        if CallbackParam is None:
+            CallbackParam = win32.NULL
+
+        # Get process handle with required access rights as per Microsoft docs:
+        # https://learn.microsoft.com/en-us/windows/win32/api/minidumpapiset/nf-minidumpapiset-minidumpwritedump
+        # PROCESS_QUERY_INFORMATION and PROCESS_VM_READ are always required.
+        # PROCESS_DUP_HANDLE is required if handle information is to be collected.
+        dwDesiredAccess = win32.PROCESS_QUERY_INFORMATION | win32.PROCESS_VM_READ
+
+        # Check if handle information is requested
+        if DumpType & win32.MiniDumpWithHandleData:
+            dwDesiredAccess |= win32.PROCESS_DUP_HANDLE
+
+        hProcess = self.get_handle(dwDesiredAccess)
+
+        # Create the output file
+        hFile = win32.CreateFile(
+            filename,
+            win32.GENERIC_WRITE,
+            0,  # no sharing
+            None,  # default security
+            win32.CREATE_ALWAYS,
+            win32.FILE_ATTRIBUTE_NORMAL,
+            None,  # no template
+        )
+
+        try:
+            # Generate the minidump
+            win32.MiniDumpWriteDump(
+                hProcess,
+                self.get_pid(),
+                hFile,
+                ContextRecord,
+                DumpType,
+                ExceptionParam,
+                UserStreamParam,
+                CallbackParam,
+            )
+        finally:
+            # Always close the file handle
+            win32.CloseHandle(hFile)
+
     def is_debugged(self):
         """
         Tries to determine if the process is being debugged by another process.

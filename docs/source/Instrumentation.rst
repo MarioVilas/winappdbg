@@ -288,3 +288,16 @@ Example #26: stopping and starting a system service
 .. literalinclude:: ../../examples/instrumentation/26_service_restart.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
+
+Generating minidump files
+--------------------------
+
+**Minidump files** are the standard Windows format for crash dumps and process snapshots. The *Process* class provides a convenient method to generate minidump files for any running process, which can then be analyzed with tools like WinDbg, Visual Studio, or other debuggers.
+
+Example #27: generating a minidump of a running process
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/instrumentation/27_generate_minidump.py>`
+
+.. literalinclude:: ../../examples/instrumentation/27_generate_minidump.py
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.

@@ -501,3 +501,19 @@ Example #16: resolving a label back into a memory address
 .. literalinclude:: ../../examples/debugging/16_resolve_label.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
    :end-before: # When invoked from the command line,
+
+Generating minidump files
+--------------------------
+
+In addition to WinAppDbg's native crash dumps, you can also generate standard Windows minidump files (.dmp) that can be analyzed with tools like WinDbg, Visual Studio, or other debuggers. Minidumps are the industry-standard format for crash reporting on Windows.
+
+The minidump functionality is available through the :meth:`Process.generate_minidump` method for any process, and through :meth:`Event.generate_minidump` method on debug events for convenient crash dump generation. Exception events automatically include exception context and exception records.
+
+Example #17: saving crash minidumps
+++++++++++++++++++++++++++++++++++++
+
+:download:`Download <../../examples/debugging/17_crash_minidump.py>`
+
+.. literalinclude:: ../../examples/debugging/17_crash_minidump.py
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
+   :end-before: # When invoked from the command line,

@@ -223,6 +223,82 @@ class Event:
             process._add_thread(thread)
         return thread
 
+    def generate_minidump(
+        self,
+        filename,
+        DumpType=None,
+        bIncludeContext=True,
+        ExceptionParam=None,
+        UserStreamParam=None,
+        CallbackParam=None,
+    ):
+        """
+        Generates a minidump file for the process where this event occurred.
+
+        This is a convenience wrapper around :meth:`Process.generate_minidump`
+        that automatically captures the thread context if requested.
+
+        :type  filename: str
+        :param filename: Path to the output minidump file (.dmp).
+
+        :type  DumpType: int
+        :param DumpType: Type of information to include in the minidump.
+            See :meth:`Process.generate_minidump` for details.
+
+        :type  bIncludeContext: bool
+        :param bIncludeContext: If ``True`` (default), captures and includes
+            the context (register state) of the thread where the event occurred.
+            Set to ``False`` to skip context capture.
+
+        :type  ExceptionParam: MINIDUMP_EXCEPTION_INFORMATION or None
+        :param ExceptionParam: Optional exception information.
+            :class:`ExceptionEvent` provides a more convenient method that
+            automatically populates this.
+
+        :type  UserStreamParam: MINIDUMP_USER_STREAM_INFORMATION or None
+        :param UserStreamParam: Optional user-defined information streams.
+
+        :type  CallbackParam: MINIDUMP_CALLBACK_INFORMATION or None
+        :param CallbackParam: Optional callback for customizing the dump.
+
+        :raises WindowsError: On error an exception is raised.
+
+        Example::
+
+            class MyEventHandler(EventHandler):
+                def breakpoint(self, event):
+                    # Generate a minidump when hitting a breakpoint
+                    event.generate_minidump("breakpoint.dmp")
+
+                def load_dll(self, event):
+                    # Generate a dump without context for DLL load events
+                    event.generate_minidump("dll_load.dmp", bIncludeContext=False)
+        """
+        # Get the context if requested
+        ContextRecord = None
+        if bIncludeContext:
+            try:
+                thread = self.get_thread()
+                context = thread.get_context()
+                ContextRecord = win32.byref(context)
+            except Exception:
+                # If we can't get context, continue without it
+                # (might happen for exit events, etc.)
+                msg = "Failed to capture thread context for minidump: %s"
+                msg = msg % traceback.format_exc()
+                warnings.warn(msg, EventCallbackWarning)
+
+        # Generate the minidump
+        process = self.get_process()
+        process.generate_minidump(
+            filename,
+            DumpType=DumpType,
+            ContextRecord=ContextRecord,
+            ExceptionParam=ExceptionParam,
+            UserStreamParam=UserStreamParam,
+            CallbackParam=CallbackParam,
+        )
+
 
 # ==============================================================================
 
@@ -655,6 +731,94 @@ class ExceptionEvent(Event):
             event = EventFactory.get(self.debug, raw)
             nested.append(event)
         return nested
+
+    def generate_minidump(
+        self,
+        filename,
+        DumpType=None,
+        bIncludeContext=True,
+        bIncludeException=True,
+        UserStreamParam=None,
+        CallbackParam=None,
+    ):
+        """
+        Generates a minidump file for the exception, including exception information.
+
+        This is an enhanced version of :meth:`Event.generate_minidump` that
+        automatically captures the exception information for crash dumps.
+
+        :type  filename: str
+        :param filename: Path to the output minidump file (.dmp).
+
+        :type  DumpType: int
+        :param DumpType: Type of information to include in the minidump.
+            See :meth:`Process.generate_minidump` for details.
+
+        :type  bIncludeContext: bool
+        :param bIncludeContext: If ``True`` (default), captures and includes
+            the context (register state) of the thread where the exception occurred.
+
+        :type  bIncludeException: bool
+        :param bIncludeException: If ``True`` (default), captures and includes
+            the exception information in the minidump. This provides crash
+            analysis tools with the exception record.
+
+        :type  UserStreamParam: MINIDUMP_USER_STREAM_INFORMATION or None
+        :param UserStreamParam: Optional user-defined information streams.
+
+        :type  CallbackParam: MINIDUMP_CALLBACK_INFORMATION or None
+        :param CallbackParam: Optional callback for customizing the dump.
+
+        :raises WindowsError: On error an exception is raised.
+
+        Example::
+
+            class MyEventHandler(EventHandler):
+                def access_violation(self, event):
+                    # Automatically capture exception and context
+                    event.generate_minidump("crash.dmp")
+
+                def breakpoint(self, event):
+                    # Just capture state without exception record
+                    event.generate_minidump("debug.dmp", bIncludeException=False)
+        """
+        # Build exception information if requested
+        ExceptionParam = None
+        if bIncludeException:
+            try:
+                # Get the context for the faulting thread
+                thread = self.get_thread()
+                context = thread.get_context()
+
+                # Build EXCEPTION_POINTERS structure
+                exc_pointers = win32.EXCEPTION_POINTERS()
+                exc_pointers.ExceptionRecord = win32.byref(
+                    self.raw.u.Exception.ExceptionRecord
+                )
+                exc_pointers.ContextRecord = win32.byref(context)
+
+                # Build MINIDUMP_EXCEPTION_INFORMATION structure
+                exc_info = win32.MINIDUMP_EXCEPTION_INFORMATION()
+                exc_info.ThreadId = self.get_tid()
+                exc_info.ExceptionPointers = win32.byref(exc_pointers)
+                exc_info.ClientPointers = False  # Pointers are in our address space
+
+                ExceptionParam = win32.byref(exc_info)
+            except Exception:
+                # If we can't build exception info, continue without it
+                msg = "Failed to capture exception information for minidump: %s"
+                msg = msg % traceback.format_exc()
+                warnings.warn(msg, EventCallbackWarning)
+
+        # Call the base class method with exception information
+        super(ExceptionEvent, self).generate_minidump(
+            filename,
+            DumpType=DumpType,
+            bIncludeContext=bIncludeContext,
+            ExceptionParam=ExceptionParam,
+            UserStreamParam=UserStreamParam,
+            CallbackParam=CallbackParam,
+        )
 
 
 # ==============================================================================

@@ -121,8 +121,6 @@ def test_strings_on_notepad():
             notepad_process = Process(pid)
         else:
             print("Starting notepad.exe...")
-            # Start notepad
-            import subprocess
 
             _ = subprocess.Popen(["notepad.exe"])
             time.sleep(2)  # Give it time to start
