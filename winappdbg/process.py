@@ -387,23 +387,28 @@ class Process(_ThreadContainer, _ModuleContainer):
 
             Multiple flags can be combined with bitwise OR.
 
-        :type  ContextRecord: CONTEXT or None
-        :param ContextRecord: Optional pointer to a CONTEXT structure for
+        :type  ContextRecord: ctypes pointer or None
+        :param ContextRecord: Optional pointer to a ``CONTEXT`` structure for
             the calling thread. Used when generating a dump from an exception
-            handler to capture the thread state. Architecture-specific.
+            handler to capture the thread state. Architecture-specific
+            (``CONTEXT_i386``, ``CONTEXT_amd64``, or ``CONTEXT_arm64``).
             Defaults to ``None``.
 
-        :type  ExceptionParam: MINIDUMP_EXCEPTION_INFORMATION or None
-        :param ExceptionParam: Optional pointer to exception information.
+        :type  ExceptionParam: ctypes pointer or None
+        :param ExceptionParam: Optional pointer to a
+            ``MINIDUMP_EXCEPTION_INFORMATION`` structure.
             Used when generating a dump from an exception handler.
             Defaults to ``None``.
 
-        :type  UserStreamParam: MINIDUMP_USER_STREAM_INFORMATION or None
-        :param UserStreamParam: Optional pointer to user-defined information
-            to include in the minidump. Defaults to ``None``.
+        :type  UserStreamParam: ctypes pointer or None
+        :param UserStreamParam: Optional pointer to a
+            ``MINIDUMP_USER_STREAM_INFORMATION`` structure for
+            user-defined information to include in the minidump.
+            Defaults to ``None``.
 
-        :type  CallbackParam: MINIDUMP_CALLBACK_INFORMATION or None
-        :param CallbackParam: Optional pointer to a callback structure for
+        :type  CallbackParam: ctypes pointer or None
+        :param CallbackParam: Optional pointer to a
+            ``MINIDUMP_CALLBACK_INFORMATION`` structure for
             customizing minidump generation. Defaults to ``None``.
 
         :raises WindowsError: On error an exception is raised.
