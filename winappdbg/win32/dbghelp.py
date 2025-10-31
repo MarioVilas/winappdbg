@@ -891,7 +891,7 @@ MINIDUMP_CALLBACK_ROUTINE = WINFUNCTYPE(
 # } MINIDUMP_CALLBACK_INFORMATION, *PMINIDUMP_CALLBACK_INFORMATION;
 class MINIDUMP_CALLBACK_INFORMATION(Structure):
     _fields_ = [
-        ("CallbackRoutine", MINIDUMP_CALLBACK_ROUTINE),
+        ("CallbackRoutine", PVOID),  # Function pointer (MINIDUMP_CALLBACK_ROUTINE)
         ("CallbackParam", PVOID),
     ]
 
