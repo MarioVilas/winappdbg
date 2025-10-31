@@ -52,6 +52,10 @@ These tools were inspired by the **ptools** suite by `Nicolás Economou <https:/
 
    Finds the given text, binary data, binary pattern or regular expression in a process memory space.
 
+* :download:`pstrings.py <../../winappdbg/tools/pstrings.py>` :
+
+   Extracts printable strings from a process memory space, similar to the Unix ``strings`` command. Supports both ASCII and Unicode (UTF-16LE) string extraction with configurable minimum length.
+
 * :download:`plist.py <../../winappdbg/tools/plist.py>` :
 
    Shows a list of all currently running processes.
