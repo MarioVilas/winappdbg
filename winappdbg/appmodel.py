@@ -49,7 +49,6 @@ __all__ = [
     "build_aumid",
 ]
 
-import os
 import warnings
 
 # Try to import comtypes for COM support (launching apps)
@@ -57,7 +56,6 @@ try:
     import comtypes
     import comtypes.client
     from comtypes import GUID, POINTER, COMMETHOD
-    from comtypes.hresult import S_OK
 
     HAS_COMTYPES = True
 except ImportError:
@@ -172,17 +170,12 @@ def launch_packaged_app(aumid, arguments=None, options=AO_NONE):
     try:
         # Create the ApplicationActivationManager instance
         aam = comtypes.client.CreateObject(
-            CLSID_ApplicationActivationManager,
-            interface=IApplicationActivationManager
+            CLSID_ApplicationActivationManager, interface=IApplicationActivationManager
         )
 
         # Call ActivateApplication
         # Note: out parameters in comtypes are returned, not passed
-        process_id = aam.ActivateApplication(
-            aumid,
-            arguments or "",
-            options
-        )
+        process_id = aam.ActivateApplication(aumid, arguments or "", options)
 
         # Return the process ID
         return process_id
@@ -232,7 +225,7 @@ def parse_package_full_name(package_full_name):
 
     # Split by underscores
     # Format: Name_Version_Arch_ResourceId_PublisherHash
-    parts = package_full_name.split('_')
+    parts = package_full_name.split("_")
 
     if len(parts) < 3:
         return None
@@ -323,5 +316,5 @@ if not HAS_COMTYPES:
         "Packaged app launching will not be available. "
         "Install with: pip install winappdbg[packaged_apps]",
         ImportWarning,
-        stacklevel=2
+        stacklevel=2,
     )

@@ -4411,7 +4411,7 @@ class _ProcessContainer:
                 "a handle will fail. Try calling get_handle() with specific "
                 "access rights if needed." % pid,
                 RuntimeWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
         # Wrap the process in a Process object and add it to the snapshot

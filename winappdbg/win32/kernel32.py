@@ -3156,10 +3156,11 @@ def GetPackageFullNameW(hProcess):
         raise ctypes.WinError(retval)
     return packageFullName.value
 
+
 def GetPackageFullNameA(hProcess):
     result = GetPackageFullNameW(hProcess)
     if result:
-        return result.encode('mbcs', 'replace')
+        return result.encode("mbcs", "replace")
     return b""
 
 
