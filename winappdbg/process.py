@@ -1376,6 +1376,30 @@ class Process(_ThreadContainer, _ModuleContainer):
         # Return the dictionary.
         return environment
 
+    def get_package_full_name(self):
+        """
+        Retrieves the package full name for the process.
+
+        This method is only applicable to packaged processes (Windows Store apps,
+        UWP apps, etc.). For traditional desktop applications, this method will
+        return ``None``.
+
+        Requires Windows 8 or later.
+
+        :rtype: str or None
+        :return: Package full name if the process is packaged, ``None`` otherwise.
+        """
+        try:
+            hProcess = self.get_handle(win32.PROCESS_QUERY_LIMITED_INFORMATION)
+            return win32.GetPackageFullName(hProcess)
+        except WindowsError as e:
+            if e.winerror == win32.APPMODEL_ERROR_NO_PACKAGE:
+                return None
+            raise
+        except AttributeError:
+            # GetPackageFullName not available on this system
+            return None
+
     # ------------------------------------------------------------------------------
 
     def search(self, pattern, minAddr=None, maxAddr=None):
@@ -4305,6 +4329,96 @@ class _ProcessContainer:
             raise
 
         # Return the new Process object.
+        return aProcess
+
+    def start_packaged_app(self, aumid, arguments=None, options=0):
+        """
+        Launch a packaged application (UWP/MSIX) by its Application User Model ID.
+
+        This method requires the ``comtypes`` library. Install it with: ``pip install comtypes``
+
+        Requires Windows 8 or later.
+
+        :param str aumid: Application User Model ID (AUMID) of the app to launch.
+            Example: "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"
+
+            To find AUMIDs, use PowerShell:
+            ``Get-StartApps`` or ``Get-AppxPackage | Select PackageFamilyName``
+
+        :param str arguments: Optional command-line arguments to pass to the app.
+
+        :param int options: Activation options from the appmodel module:
+            - ``appmodel.AO_NONE`` (0x00000000): No special options
+            - ``appmodel.AO_DESIGNMODE`` (0x00000001): Launch in design mode
+            - ``appmodel.AO_NOERRORUI`` (0x00000002): Don't show error UI
+            - ``appmodel.AO_NOSPLASHSCREEN`` (0x00000004): Don't show splash screen
+            - ``appmodel.AO_PRELAUNCH`` (0x02000000): Prelaunch the app
+
+        :rtype: Process
+        :return: Process object for the launched application.
+
+        :raises ImportError: If comtypes is not installed.
+        :raises WindowsError: If the app fails to launch.
+
+        .. note::
+
+            Due to AppContainer restrictions on packaged apps, this method may not
+            be able to obtain full access rights (:const:`PROCESS_ALL_ACCESS`).
+            It will try progressively more limited access rights and return a
+            Process object with the best access level available. Additional access
+            rights can be requested later via :meth:`~Process.get_handle` if needed.
+
+        Example::
+
+            from winappdbg import System
+
+            system = System()
+
+            # Launch Windows Calculator
+            process = system.start_packaged_app(
+                "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"
+            )
+            print(f"Calculator launched with PID: {process.get_pid()}")
+        """
+        from . import appmodel
+
+        # Launch the app and get the process ID
+        pid = appmodel.launch_packaged_app(aumid, arguments, options)
+
+        # Try to open a handle to the process with maximum access.
+        # For packaged apps, we may not get PROCESS_ALL_ACCESS due to
+        # AppContainer restrictions, so we try increasingly limited access.
+        hProcess = None
+        for dwAccess in [
+            win32.PROCESS_ALL_ACCESS,
+            win32.PROCESS_VM_READ | win32.PROCESS_QUERY_INFORMATION,
+            win32.PROCESS_QUERY_LIMITED_INFORMATION,
+        ]:
+            try:
+                hProcess = win32.OpenProcess(dwAccess, win32.FALSE, pid)
+                break  # Success!
+            except WindowsError:
+                continue  # Try next access level
+
+        # If we couldn't open any handle, warn the user but still return
+        # a Process object. The Process class is designed to work without
+        # an initial handle, and the user can try to obtain one later via
+        # get_handle() if needed.
+        if hProcess is None:
+            warnings.warn(
+                "Could not obtain a handle to the launched process (PID: %d). "
+                "The process was launched successfully but operations requiring "
+                "a handle will fail. Try calling get_handle() with specific "
+                "access rights if needed." % pid,
+                RuntimeWarning,
+                stacklevel=2
+            )
+
+        # Wrap the process in a Process object and add it to the snapshot
+        aProcess = Process(pid, hProcess)
+        self._add_process(aProcess)
+
+        # Return the Process object
         return aProcess
 
     def get_explorer_pid(self):

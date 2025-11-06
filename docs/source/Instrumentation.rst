@@ -301,3 +301,58 @@ Example #27: generating a minidump of a running process
 
 .. literalinclude:: ../../examples/instrumentation/27_generate_minidump.py
    :start-after: # POSSIBILITY OF SUCH DAMAGE.
+
+Working with UWP and packaged apps
+-----------------------------------
+
+Starting with Windows 8, Microsoft introduced **Universal Windows Platform (UWP)** and packaged applications (also known as Windows Store apps, MSIX packages). These applications have a package identity that includes a full package name.
+
+WinAppDbg provides support for both querying and launching packaged applications.
+
+.. note::
+
+    Launching packaged apps requires the ``comtypes`` library.
+    Install it with: ``pip install winappdbg[packaged_apps]``
+
+Querying packaged apps
++++++++++++++++++++++++
+
+The *Process* class provides a method to retrieve package information from running processes. Example #28 shows how to scan all running processes and display detailed information about packaged apps, including the AUMID needed for launching.
+
+Example #28: getting package information from running processes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:download:`Download <../../examples/instrumentation/28_get_package_name.py>`
+
+.. literalinclude:: ../../examples/instrumentation/28_get_package_name.py
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.
+
+Application User Model IDs (AUMIDs)
++++++++++++++++++++++++++++++++++++
+
+To launch a packaged application, you need its **Application User Model ID (AUMID)**. An AUMID has the format: ``PackageFamilyName!ApplicationId``
+
+You can find AUMIDs by:
+
+1. Running example #28 to see running packaged apps with their AUMIDs
+2. Using PowerShell: ``Get-StartApps`` or ``Get-AppxPackage``
+
+Common AUMIDs for built-in Windows apps:
+
+- Calculator: ``Microsoft.WindowsCalculator_8wekyb3d8bbwe!App``
+- Notepad: ``Microsoft.WindowsNotepad_8wekyb3d8bbwe!App``
+- Microsoft Store: ``Microsoft.WindowsStore_8wekyb3d8bbwe!App``
+- Photos: ``Microsoft.Windows.Photos_8wekyb3d8bbwe!App``
+
+Launching packaged apps
+++++++++++++++++++++++++
+
+The *System* class provides methods to launch packaged applications using their Application User Model ID (AUMID).
+
+Example #29: launching a packaged application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:download:`Download <../../examples/instrumentation/29_launch_packaged_app.py>`
+
+.. literalinclude:: ../../examples/instrumentation/29_launch_packaged_app.py
+   :start-after: # POSSIBILITY OF SUCH DAMAGE.

@@ -47,6 +47,9 @@ db = [
 search = [
     "regex",
 ]
+packaged_apps = [
+    "comtypes>=1.2.0",
+]
 
 [project.scripts]
 crash_logger = "winappdbg.tools.crash_logger:main"

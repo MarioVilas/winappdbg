@@ -35,6 +35,7 @@ Wrapper for kernel32.dll in ctypes.
 import ctypes
 
 from .defines import (
+    APPMODEL_ERROR_NO_PACKAGE,
     ATOM,
     BOOL,
     BOOLEAN,
@@ -3128,6 +3129,41 @@ def QueryFullProcessImageNameW(hProcess, dwFlags=0):
 QueryFullProcessImageName = GuessStringType(
     QueryFullProcessImageNameA, QueryFullProcessImageNameW
 )
+
+
+# LONG GetPackageFullName(
+#   __in          HANDLE hProcess,
+#   __in_out      UINT32 *packageFullNameLength,
+#   __out_opt     PWSTR  packageFullName
+# );
+def GetPackageFullNameW(hProcess):
+    _GetPackageFullName = windll.kernel32.GetPackageFullName
+    _GetPackageFullName.argtypes = [HANDLE, PDWORD, LPWSTR]
+    _GetPackageFullName.restype = LONG
+
+    dwLength = DWORD(0)
+    retval = _GetPackageFullName(hProcess, byref(dwLength), None)
+    if retval != ERROR_INSUFFICIENT_BUFFER:
+        if retval == APPMODEL_ERROR_NO_PACKAGE:
+            raise ctypes.WinError(retval)
+        elif retval != ERROR_SUCCESS:
+            raise ctypes.WinError(retval)
+        return ""
+
+    packageFullName = ctypes.create_unicode_buffer("", dwLength.value + 1)
+    retval = _GetPackageFullName(hProcess, byref(dwLength), packageFullName)
+    if retval != ERROR_SUCCESS:
+        raise ctypes.WinError(retval)
+    return packageFullName.value
+
+def GetPackageFullNameA(hProcess):
+    result = GetPackageFullNameW(hProcess)
+    if result:
+        return result.encode('mbcs', 'replace')
+    return b""
+
+
+GetPackageFullName = DefaultStringType(GetPackageFullNameA, GetPackageFullNameW)
 
 
 # DWORD WINAPI GetLogicalDriveStrings(
