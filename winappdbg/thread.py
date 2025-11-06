@@ -879,6 +879,11 @@ class Thread:
         LimitLow = ldt.LimitLow
         LimitHi = ldt.HighWord.Bits.LimitHi << 16
         Limit = LimitLow | LimitHi
+
+        # Apply granularity: when G=1, limit is in 4KB pages, not bytes
+        if ldt.HighWord.Bits.Granularity:
+            Limit = (Limit << 12) | 0xFFF
+
         if address > Limit:
             msg = None
 
